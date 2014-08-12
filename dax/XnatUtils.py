@@ -397,7 +397,7 @@ def list_project_scans(intf, projectid, include_shared=True):
             snew['type']         = s['xnat:imagescandata/type']
             snew['project_id'] = projectid
             snew['project_label'] = projectid
-            snew['subject_id'] = s[sess_type+'xnat:imagesessiondata/subject_id']
+            snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
             snew['subject_label'] = s['subject_label']
             snew['session_id'] = s['ID']
             snew['session_label'] = s['label']
@@ -1095,3 +1095,32 @@ def print_args(options):
         else:
             print info,": Not set. The process might fail without this argument."
     print "---------------------------------"
+ 
+# Upload a folder to a resource all files are zip and then unzip in Xnat   
+def Upload_folder_to_resource(resourceObj,directory):
+    filenameZip=resourceObj.label()+'.zip'
+    initDir=os.getcwd()
+    #Zip all the files in the directory
+    os.chdir(directory)
+    os.system('zip '+filenameZip+' *')
+    #upload
+    resourceObj.put_zip(directory+'/'+filenameZip,extract=True)
+    #return to the initial directory:
+    os.chdir(initDir)
+
+# Download all resources in a folder. the folder will have the name Resource.label(),
+# removes the previous folder if there is one.
+def Download_resource_to_folder(Resource,directory):
+    Res_path=os.path.join(directory,Resource.label())
+    if os.path.exists(Res_path):
+        os.remove(Res_path)
+    Resource.get(directory,extract=True)
+
+def copy_resource(intf, scan_dict,directory,old_res,new_res):
+    SCAN = get_full_object(intf, scan_dict)
+    #download
+    Download_resource_to_folder(SCAN.resource(old_res),directory)
+    #upload
+    Upload_folder_to_resource(new_res,SCAN.resource(new_res),os.path.join(directory,old_res))
+    #clean directory
+    clean_directory(directory)
