@@ -1,0 +1,99 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Upload manual edits to FreeSurfer subject on XNAT
+
+@author: Brian D. Boyd, Psychiatry, Vanderbilt University
+'''
+
+import os, sys, shutil, time
+from datetime import datetime
+from pyxnat import Interface
+import XnatUtils
+import task
+
+def parse_args():
+    from argparse import ArgumentParser
+    ap = ArgumentParser(prog='fsupload', description="Upload FreeSurfer edits to subject on XNAT")
+    ap.add_argument('project', help='Project Label')
+    ap.add_argument('session', help='Session Label')
+    return ap.parse_args()
+    
+if __name__ == '__main__':    
+    args = parse_args()
+    proj_label = args.project
+    sess_label = args.session
+    fs = None
+                      
+    try:
+        # Environs
+        xnat_user = os.environ['XNAT_USER']
+        xnat_pass = os.environ['XNAT_PASS']
+        xnat_host = os.environ['XNAT_HOST']
+        subjects_dir = os.environ['SUBJECTS_DIR']
+
+    except KeyError as e:
+        print "ERROR:you must set the environment variable %s" % str(e)
+        sys.exit(1)  
+        
+    local_subj_path = subjects_dir+'/'+sess_label
+    if not os.path.exists(local_subj_path):
+        print 'ERROR:cannot upload, subject not found in local FreeSurfer subjects directory.'
+        sys.exit(1)
+        
+    xnat = Interface(xnat_host, xnat_user, xnat_pass)
+
+    # Find the FreeSurfer assessor
+    sess_list = XnatUtils.list_experiments(xnat, projectid=proj_label)
+    for sess in sess_list:
+        if sess['label'] == sess_label:
+            assr_list = XnatUtils.list_assessors(xnat, proj_label, sess['subject_ID'], sess['ID'])
+            for assr in assr_list:
+                # Skip if not FreeSurfer
+                if assr['proctype'] == 'FreeSurfer':
+                    fs = assr
+                    
+    if fs == None:
+        print('ERROR:FreeSurfer not found for project='+proj_label+ ', session='+sess_label)
+        sys.exit(1)
+        
+    # Upload the edits - brainmask, wm, aseg, control.dat,...
+    assessor = XnatUtils.get_full_object(xnat,fs)    
+    resource = assessor.out_resource('EDITS')
+    curtime = time.strftime("%Y%m%d-%H%M%S")
+    brainmask_path = local_subj_path+'/mri/brainmask.edited.mgz'
+    wm_path = local_subj_path+'/mri/wm.edited.mgz'
+    aseg_path = local_subj_path+'/mri/aseg.edited.mgz'
+    control_path = local_subj_path+'/tmp/control.dat'
+    
+    if os.path.isfile(brainmask_path):
+        print('Uploading brainmask...')
+        resource.file('brainmask.edited.mgz.'+curtime).put(brainmask_path)   
+    else:
+        print('No edited brainmask found')
+        
+    if os.path.isfile(wm_path):
+        print('Uploading wm...')
+        resource.file('wm.edited.mgz.'+curtime).put(wm_path)
+    else:
+        print('No edited wm found')
+
+    if os.path.isfile(aseg_path):
+        print('Uploading aseg...')
+        resource.file('aseg.edited.mgz.'+curtime).put(aseg_path) 
+    else:
+        print('No edited aseg found')
+
+    if os.path.isfile(control_path):
+        print('Uploading control.dat...')
+        resource.file('control.dat.'+curtime).put(control_path)   
+    else:
+        print('No edited control points found')
+
+    # Set QC Status to trigger reprocessing
+    print('Setting qcstatus to trigger reprocessing...')
+    assessor.attrs.set('fs:fsdata/validation/status',task.REPROC)
+    
+    xnat.disconnect()
+    print 'DONE'
