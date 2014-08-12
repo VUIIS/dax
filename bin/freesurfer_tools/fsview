@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, sys
+import os
+import sys
 
 '''
 Load freesurfer subject in freeview
@@ -30,7 +31,7 @@ if __name__ == '__main__':
     local_subj_path = subjects_dir+'/'+sess
                       
     if not os.path.exists(local_subj_path):
-        print 'ERROR:cannot load, subject '+sess+' not found in local FreeSurfer subjects directory.'
+        print 'ERROR:cannot load, '+sess+' not found in local FreeSurfer subjects directory.'
         sys.exit(1)
         
     cmd = 'freeview'

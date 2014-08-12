@@ -7,9 +7,12 @@ Download a FreeSurfer subject from XNAT
 @author: Brian D. Boyd, Psychiatry, Vanderbilt University
 '''
 
-import os, sys, shutil
-from datetime import datetime
+import os
+import sys
+import shutil
+
 from pyxnat import Interface
+
 import XnatUtils
 
 def parse_args():
@@ -86,8 +89,10 @@ if __name__ == '__main__':
  
     print 'Moving files...'
     src_assr_label = subjects_dir+'/'+assr_label+'/out/resources/DATA/files/'+assr_label
-    src_sess_label = subjects_dir+'/'+sess_label+'/assessors/'+assr_label+'/out/resources/DATA/files/'+assr_label
-    src_sess_id    = subjects_dir+'/'+sess_label+'/assessors/'+fs['assessor_id']+'/out/resources/DATA/files/'+assr_label
+    src_sess_label = subjects_dir+'/'+sess_label+'/assessors/'+assr_label+\
+        '/out/resources/DATA/files/'+assr_label
+    src_sess_id = subjects_dir+'/'+sess_label+'/assessors/'+fs['assessor_id']+\
+        '/out/resources/DATA/files/'+assr_label
         
     # Find the FS subject directory in the downloaded directory
     if os.path.exists(src_assr_label):
@@ -100,7 +105,7 @@ if __name__ == '__main__':
         print('ERROR:downloaded subject does not exist')
         sys,exit()
 
-    # Move the subdirectory containing the FS subject up to the level of SUBJECTS_DIR, renaming to session label
+    # Move the subdir containing FS subject up to level of SUBJECTS_DIR, renaming to session label
     dest = subjects_dir+'/'+sess_label
     shutil.move(src,dest)
 

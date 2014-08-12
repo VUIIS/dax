@@ -7,9 +7,12 @@ Upload manual edits to FreeSurfer subject on XNAT
 @author: Brian D. Boyd, Psychiatry, Vanderbilt University
 '''
 
-import os, sys, shutil, time
-from datetime import datetime
+import os
+import sys
+import time
+
 from pyxnat import Interface
+
 import XnatUtils
 import task
 
