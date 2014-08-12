@@ -24,7 +24,7 @@ def readme():
 if __name__ == '__main__':
     setup(name='dax',
           version=get_version(),
-          description='A python API for VUIIS CCI Infrastructure',
+          description='Distributed Automation for XNAT',
           url='http://github.com/VUIIS/dax',
           author='VUIIS CCI',
           author_email='vuiis-cci@googlegroups.com',
