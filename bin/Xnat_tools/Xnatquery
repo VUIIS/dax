@@ -1,0 +1,600 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Query through Xnat
+
+@author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
+'''
+
+import os
+import sys
+from pyxnat import Interface
+from datetime import datetime
+
+DEFAULT_STATUS_DICT={'NEED_INPUTS':1, 'NEED_TO_RUN':2, 'JOB_RUNNING':3, 'JOB_FAILED':4, 'READY_TO_UPLOAD':5, 'UPLOADING':6, 'READY_TO_COMPLETE':7, 'COMPLETE':8, 'UNKNOWN':9}
+DEFAULT_STATUS_LIST=['NEED_INPUTS', 'NEED_TO_RUN', 'JOB_RUNNING', 'JOB_FAILED', 'READY_TO_UPLOAD', 'UPLOADING', 'READY_TO_COMPLETE', 'COMPLETE']
+
+######################################################################################################
+########################################## USEFUL FUNCTIONS ##########################################
+######################################################################################################
+def get_interface():
+    # Environs
+    user = os.environ['XNAT_USER']
+    pwd = os.environ['XNAT_PASS']
+    host = os.environ['XNAT_HOST']
+    # Don't sys.exit, let callers catch KeyErrors
+    return Interface(host, user, pwd)
+
+def list_subjs(xnat,project):
+    post_uri_subject = '/REST/projects/'+project+'/subjects'
+    subj_list=xnat._get_json(post_uri_subject)
+    subj_count=len(subj_list)
+    return subj_count,subj_list
+
+def list_exps(xnat,project,subject):
+    post_uri_experiment = '/REST/projects/'+project+'/subjects/'+subject+'/experiments'
+    return xnat._get_json(post_uri_experiment)
+
+def list_assessors(xnat, project, subject, experiment):
+    post_uri_assessor = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors'
+    return xnat._get_json(post_uri_assessor)
+
+def list_scans(xnat,project,subject,experiment):
+    post_uri_scan = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans'
+    return xnat._get_json(post_uri_scan)
+
+def list_out_resources(xnat,project,subject,experiment,assessor_label):
+    post_uri_out_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources'
+    return xnat._get_json(post_uri_out_resource)
+
+def list_resources(xnat,project,subject,experiment,scan):
+    post_uri_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan+'/resources'
+    return xnat._get_json(post_uri_resource)
+
+def list_project_scans(intf, projectid, include_shared=True):
+    new_list = []
+
+    post_uri = '/REST/archive/experiments'
+    post_uri += '?project='+projectid
+    post_uri += '&xsiType=xnat:imageSessionData'
+    post_uri += '&columns=ID,URI,label,subject_label,project'
+    post_uri += ',xnat:imagesessiondata/subject_id'
+    post_uri += ',xnat:imagescandata/id'
+    post_uri += ',xnat:imagescandata/type'
+    post_uri += ',xnat:imagescandata/quality'
+    post_uri += ',xnat:imagescandata/note'
+    post_uri += ',xnat:imagescandata/frames'
+    post_uri += ',xnat:imagescandata/series_description'
+    scan_list = intf._get_json(post_uri)
+
+    for s in scan_list:
+        snew = {}
+        snew['scan_id']      = s['xnat:imagescandata/id']
+        snew['scan_label']   = s['xnat:imagescandata/id']
+        snew['scan_quality'] = s['xnat:imagescandata/quality']
+        snew['scan_note']    = s['xnat:imagescandata/note']
+        snew['scan_frames']  = s['xnat:imagescandata/frames']
+        snew['scan_description'] = s['xnat:imagescandata/series_description']
+        snew['scan_type']    = s['xnat:imagescandata/type']
+        snew['ID']           = s['xnat:imagescandata/id']
+        snew['label']        = s['xnat:imagescandata/id']
+        snew['quality']      = s['xnat:imagescandata/quality']
+        snew['note']         = s['xnat:imagescandata/note']
+        snew['frames']       = s['xnat:imagescandata/frames']
+        snew['series_description'] = s['xnat:imagescandata/series_description']
+        snew['type']         = s['xnat:imagescandata/type']
+        snew['project_id'] = projectid
+        snew['project_label'] = projectid
+        snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
+        snew['subject_label'] = s['subject_label']
+        snew['session_id'] = s['ID']
+        snew['session_label'] = s['label']
+        snew['session_uri'] = s['URI']
+        new_list.append(snew)
+        
+    if (include_shared):
+        post_uri = '/REST/archive/experiments'
+        post_uri += '?xnat:imagesessiondata/sharing/share/project='+projectid
+        post_uri += '&xsiType=xnat:imageSessionData'
+        post_uri += '&columns=ID,URI,label,subject_label,project'
+        post_uri += ',xnat:imagesessiondata/subject_id'
+        post_uri += ',xnat:imagescandata/id'
+        post_uri += ',xnat:imagescandata/type'
+        post_uri += ',xnat:imagescandata/quality'
+        post_uri += ',xnat:imagescandata/note'
+        post_uri += ',xnat:imagescandata/frames'
+        post_uri += ',xnat:imagescandata/series_description'
+        scan_list = intf._get_json(post_uri)
+    
+        for s in scan_list:
+            snew = {}
+            snew['scan_id']      = s['xnat:imagescandata/id']
+            snew['scan_label']   = s['xnat:imagescandata/id']
+            snew['scan_quality'] = s['xnat:imagescandata/quality']
+            snew['scan_note']    = s['xnat:imagescandata/note']
+            snew['scan_frames']  = s['xnat:imagescandata/frames']
+            snew['scan_description'] = s['xnat:imagescandata/series_description']
+            snew['scan_type']    = s['xnat:imagescandata/type']
+            snew['ID']           = s['xnat:imagescandata/id']
+            snew['label']        = s['xnat:imagescandata/id']
+            snew['quality']      = s['xnat:imagescandata/quality']
+            snew['note']         = s['xnat:imagescandata/note']
+            snew['frames']       = s['xnat:imagescandata/frames']
+            snew['series_description'] = s['xnat:imagescandata/series_description']
+            snew['type']         = s['xnat:imagescandata/type']
+            snew['project_id'] = projectid
+            snew['project_label'] = projectid
+            snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
+            snew['subject_label'] = s['subject_label']
+            snew['session_id'] = s['ID']
+            snew['session_label'] = s['label']
+            snew['session_uri'] = s['URI']
+            new_list.append(snew)
+            
+    return new_list
+
+def list_project_assessors(intf, projectid):
+    new_list = []
+        
+    # First get FreeSurfer
+    post_uri = '/REST/archive/experiments'
+    post_uri += '?project='+projectid
+    post_uri += '&xsiType=fs:fsdata'
+    post_uri += '&columns=ID,label,URI,xsiType,project'
+    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
+    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
+    post_uri += ',fs:fsData/validation/status'
+    assessor_list = intf._get_json(post_uri)
+
+    for a in assessor_list:
+        anew = {}
+        anew['ID'] = a['ID']
+        anew['label'] = a['label']
+        anew['uri'] = a['URI']
+        anew['assessor_id'] = a['ID']
+        anew['assessor_label'] = a['label']
+        anew['assessor_uri'] = a['URI']
+        anew['project_id'] = projectid
+        anew['project_label'] = projectid
+        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+        anew['subject_label'] = a['label'].split('-x-')[1]
+        anew['session_id'] = a['session_ID']
+        anew['session_label'] = a['session_label']
+        anew['procstatus'] = a['fs:fsdata/procstatus']
+        anew['qcstatus'] = a['fs:fsdata/validation/status']
+        anew['proctype'] = 'FreeSurfer'
+        anew['xsiType'] = a['xsiType']
+        new_list.append(anew)
+
+    # Then add genProcData    
+    post_uri = '/REST/archive/experiments'
+    post_uri += '?project='+projectid
+    post_uri += '&xsiType=proc:genprocdata'
+    post_uri += '&columns=ID,label,URI,xsiType,project'
+    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
+    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
+    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
+    assessor_list = intf._get_json(post_uri)
+
+    for a in assessor_list:
+        anew = {}
+        anew['ID'] = a['ID']
+        anew['label'] = a['label']
+        anew['uri'] = a['URI']
+        anew['assessor_id'] = a['ID']
+        anew['assessor_label'] = a['label']
+        anew['assessor_uri'] = a['URI']
+        anew['project_id'] = projectid
+        anew['project_label'] = projectid
+        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+        anew['subject_label'] = a['label'].split('-x-')[1]
+        anew['session_id'] = a['session_ID']
+        anew['session_label'] = a['session_label']
+        anew['procstatus'] = a['proc:genprocdata/procstatus']
+        anew['proctype'] = a['proc:genprocdata/proctype']
+        anew['qcstatus'] = a['proc:genprocdata/validation/status']
+        anew['xsiType'] = a['xsiType']
+        new_list.append(anew)
+
+    return new_list
+
+def display_item(project,subject=None,session=None):
+    print'Project: '+project
+    if subject:
+        print '  +Subject: '+subject
+        if session:
+            print '    *Session: '+session
+            
+def get_proper_str(str_option,end=False):
+    if len(str_option)>55:
+        if end:
+            return '...'+str_option[-50:]
+        else:
+            return str_option[:50]+'...'
+    else:
+        return str_option
+    
+########################################################################################################
+########################################## SPECIFIC FUNCTIONS ##########################################
+########################################################################################################
+def query_project(xnat,project,all=False):
+    _,subject_list=list_subjs(xnat,project)
+    for subject in subject_list:
+        print '  +Subject: '+subject['label']
+        if all:
+            query_subject(xnat,project,subject['label'],all)
+    
+def query_subject(xnat,project,subject,all=False):
+    for session in list_exps(xnat,project,subject):
+        print '    *Session: '+session['label']
+        if all:
+            query_session(xnat,project,subject,session['label'])
+            
+def query_session(xnat,project,subject,session,all=False):
+    print '      ***SCANS***' 
+    for scan in list_scans(xnat,project,subject,session):
+        query_scan(xnat,project,subject,session,scan['ID'],scan['type'],all)        
+    print '      ***PROCESSES***'
+    for assessor in list_assessors(xnat,project,subject,session):
+        query_assessor(xnat,assessor['label'],all)
+            
+def query_scan(xnat,project,subject,session,scan,scantype,all=False):
+    print '       -'+scan+' -- '+scantype
+    if all:
+        for resource in list_resources(xnat,project,subject,session,scan):
+            print '         ->'+resource['label']
+
+def query_assessor(xnat,assessor_label,all=False):
+    labels=assessor_label.split('-x-')
+    print '       -'+assessor_label
+    if all:
+        for out_resource in list_out_resources(xnat,labels[0],labels[1],labels[2],assessor_label):
+            print '         ->'+out_resource['label']
+    
+
+def add_process_to_dict(dictionary,proctype,procstatus):
+    #proctype:
+    if proctype in dictionary:
+        dictionary[proctype][0] += 1                                    
+    else:
+        dictionary[proctype] = [1,0,0,0,0,0,0,0,0,0]
+        
+    #procstatus:
+    dictionary[proctype][DEFAULT_STATUS_DICT[procstatus]] += 1
+    
+    return dictionary
+    
+def report_information_on_project(xnat,project,filetxt):
+    #scan
+    scan_unusable=list()
+    scan_dict=dict()
+    unknow_status=list()
+    #for all process except FS
+    assessor_dict=dict()   #dictionary: keys = proctype, value= list of 10 values: count, NEED_INPUTS, NEED_TO_RUN, JOB_RUNNING, JOB_FAILED, READY_TO_UPLOAD, UPLOADING, READY_TO_COMPLETE, COMPLETE, UNKNOWN
+    
+    print('INFO: XNAT querying...')
+    #scan loop
+    scan_list=list_project_scans(xnat, project)
+    subj_number=len(set([d['subject_label'] for d in scan_list]))
+    exp_number=len(set([d['session_label'] for d in scan_list]))
+    scan_number=len(scan_list)
+    for scan in scan_list:
+        if scan['quality']=='unusable':
+            scan_unusable.append([scan['subject_label'],scan['session_label'], scan['ID'],scan['type']])
+        #add the count for the scan type:
+        if scan['type'] in scan_dict:
+            scan_dict[scan['type']] += 1                                    
+        else:
+            scan_dict[scan['type']] = 1
+            
+    #assessor loop
+    proc_list=list_project_assessors(xnat, project)
+    proc_number=len(proc_list)
+    for assessor in proc_list:
+        #add to dictionary of process
+        if assessor['procstatus'] in DEFAULT_STATUS_LIST:
+            assessor_dict=add_process_to_dict(assessor_dict,assessor['proctype'],assessor['procstatus'])
+        else:
+            unknow_status.append(assessor['procstatus'])
+            assessor_dict=add_process_to_dict(assessor_dict,assessor['proctype'],'UNKNOWN')         
+                                
+    # display informations
+    print '\n'
+    report_str='Information for project '+project+' on Xnat :\n'
+    report_str+='Date: '+str(datetime.now())+'\n'
+    report_str+='==========================================================================\n'
+    report_str+='Project Info:\n'
+    report_str+='--------------------------------------------------------------------------\n'
+    #print description
+    post_uri_project = '/REST/projects'
+    project_list = xnat._get_json(post_uri_project)
+    for Project in project_list:
+        if Project['ID']==project:
+            report_str+='%*s : %*s' % (-13, 'Description', -30, Project['description']) + '\n'
+    report_str+='Count:\n'
+    report_str+='---------------------------------------\n'
+    report_str+='\t%*s : %*s' % (-13, 'Subjects', -30, subj_number) + '\n'
+    report_str+='\t%*s : %*s' % (-13, 'Experiments', -30, exp_number) + '\n'
+    report_str+='\t%*s : %*s' % (-13, 'Scans', -30, scan_number) + '\n'
+    report_str+='\t%*s : %*s' % (-13, 'Processes', -30, proc_number) + '\n'
+    report_str+='--------------------------------------------------------------------------\n'
+    report_str+='\n'
+    report_str+='Scan info :\n'
+    report_str+='--------------------------------------------------------------------------\n'
+    report_str+='\t%*s | %*s' % (-30, 'Scan type', -30, 'Count') + '\n'
+    report_str+='\t---------------------------------------\n'
+    for key in sorted(scan_dict):
+        report_str+='\t%*s : %*s' % (-30, key[:30], -30, scan_dict[key]) +'\n'
+    report_str+='\t---------------------------------------\n'
+    report_str+='\t%*s : %*s' % (-30, 'Total', -30, scan_number)+'\n'
+    report_str+='\n'
+    if scan_unusable:
+        report_str+='\tList of unusable scan :\n'
+        report_str+='\t-----------------------\n'
+        report_str+='\t%*s | %*s | %*s | %*s' % (-20, 'Subject',-20, 'Experiment',-20, 'Scan', -20, 'Type')+'\n'
+        for S in sorted(scan_unusable):
+            report_str+='\t%*s | %*s | %*s | %*s' % (-20, S[0], -20, S[1],-20, S[2],-20, S[3])+'\n'
+        report_str+='--------------------------------------------------------------------------\n'
+        report_str+='\n'
+    report_str+='Process info :\n'
+    report_str+='--------------------------------------------------------------------------\n'
+    report_str+='\t%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-30, 'Process type', -10, 'Count',-10,'COMPLETE',-20, 'READY_TO_COMPLETE',-10,'UPLOADING',-15, 'READY_TO_UPLOAD',-11, 'JOB_FAILED',-12,'JOB_RUNNING',-12, 'NEED_TO_RUN',-11, 'NEED_INPUTS',-10,'UNKNOWN')+'\n'
+    for key in sorted(assessor_dict) :
+        report_str+='\t%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-30, key, -10, assessor_dict[key][0], -10, assessor_dict[key][DEFAULT_STATUS_DICT['COMPLETE']], -20, assessor_dict[key][DEFAULT_STATUS_DICT['READY_TO_COMPLETE']],-10, assessor_dict[key][DEFAULT_STATUS_DICT['UPLOADING']],-15, assessor_dict[key][DEFAULT_STATUS_DICT['READY_TO_UPLOAD']],-11, assessor_dict[key][DEFAULT_STATUS_DICT['JOB_FAILED']],-12, assessor_dict[key][DEFAULT_STATUS_DICT['JOB_RUNNING']],-12, assessor_dict[key][DEFAULT_STATUS_DICT['NEED_TO_RUN']],-11, assessor_dict[key][DEFAULT_STATUS_DICT['NEED_INPUTS']],-10, assessor_dict[key][DEFAULT_STATUS_DICT['UNKNOWN']]) +'\n'   
+    if unknow_status:
+        unknow_status=list(set(unknow_status))
+        report_str+='\n'
+        report_str+='\tList of UNKNOWN status:\n'
+        report_str+='\t--------------------------------------\n'
+        for unknown_status in sorted(unknow_status):
+            report_str+='\t'+unknown_status+'\n'
+    
+    report_str+='--------------------------------------------------------------------------\n'
+    report_str+='===========================================================================\n'
+    #Print or write in files:
+    if not filetxt:
+        print report_str
+    else:
+        filetxt=os.path.abspath(filetxt)
+        print 'INFO: Writing the report in the file: '+filetxt+'             '
+        f = open(filetxt,'w')
+        f.write(report_str+'\n')
+        f.close()
+
+########################################## CHECK OPTIONS ##########################################
+def check_options(options):
+    # The options :
+    if not options.me:
+        if not options.project and not options.all and not options.assessor:
+            print 'OPTION ERROR: You need to specify a project with the option -p/--project.'
+            return False
+        if options.info:
+            if options.filetxt:
+                folder=os.path.dirname(os.path.abspath(options.filetxt))
+                if not os.path.exists(folder):
+                    print 'OPTION ERROR: the path '+folder+' does not exist. Please check the path given.'
+                    return False
+   
+    try:
+        xnat = get_interface()
+        #ASSESSOR
+        if options.assessor:
+            if len(options.assessor.split(','))>1:
+                print 'OPTION ERROR: Too much processes labels given to the option.'
+                return False
+            labels=options.assessor.split('-x-')
+            if not len(labels)>1:
+                print 'OPTION ERROR: You used the option -a/--assessor with an invalid process label.'
+                return False
+            else:
+                if not xnat.select('/project/'+labels[0]+'/subjects/'+labels[1]+'/experiments/'+labels[2]+'/assessors/'+options.assessor):
+                    print 'OPTION ERROR: You used the option -a/--assessor with an not existing process label.'
+                    return False
+        #PROJECT
+        if options.project:
+            if len(options.project.split(','))>1:
+                print 'OPTION ERROR: Too much projects IDs given to the option.'
+                return False
+            P=xnat.select('/project/'+options.project)
+            if not P.exists():
+                print 'OPTION ERROR: You used the option -p/--project with an not existing project ID.'
+                return False
+            #SUBJECT
+            if options.subject:
+                if len(options.subject.split(','))>1:
+                    print 'OPTION ERROR: Too much subjects labels given to the option.'
+                    return False
+                S=P.subject(options.subject)
+                if not S.exists():
+                    print 'OPTION ERROR: You used the option -s/--subject with an not existing subject label.'
+                    return False
+                #EXPERIMENT
+                if options.experiment:
+                    if len(options.experiment.split(','))>1:
+                        print 'OPTION ERROR: Too much experiment labels given to the option.'
+                        return False
+                    E=S.experiment(options.experiment)
+                    if not E.exists():
+                        print 'OPTION ERROR: You used the option -e/--experiment with an not existing experiment label.'
+                        return False
+                    #SCAN
+                    if options.scan:
+                        if len(options.scan.split(','))>1:
+                            print 'OPTION ERROR: Too much scans IDs given to the option.'
+                            return False
+                        C=E.scan(options.scan) 
+                        if not C.exists():
+                            print 'OPTION ERROR: You used the option -c/--scan with an not existing scan ID.'
+                            return False
+    finally:                                        
+        xnat.disconnect()
+                
+    return True
+
+########################################## MAIN DISPLAY FUNCTION ##########################################   
+def Main_display(parser):
+    (options,args)=parser.parse_args()
+    print '####################################################################################################'
+    print '#                                                XNATQUERY                                         #'
+    print '#                                                                                                  #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
+    print '# Parameters :                                                                                     #'
+    if options=={'me': False, 'info': False, 'all': False, 'scan': None, 'filetxt': None, 'project': None, 'experiment': None, 'assessor': None, 'subject': None}:
+        print '#     No Arguments given                                                                           #'
+        print '#     See the help bellow or Use "Xnatquery" -h                                                    #'
+        print '####################################################################################################'
+        parser.print_help()
+        sys.exit()
+    else:
+        if options.me:
+            print '#     %*s#' %(-93,'->List of projects on Xnat you have access to.')
+        elif options.info:
+            print '#     %*s#' %(-93,'->Getting report on the following project.')
+            print '#     %*s ->  %*s#' %(-30,'Project',-58,options.project)
+            if options.filetxt:
+                print '#     %*s ->  %*s#' %(-30,'file text',-58,get_proper_str(options.filetxt,True))
+        else:
+            if options.assessor:
+                print '#     %*s ->  %*s#' %(-30,'Query level',-58,'resources')
+                print '#     %*s ->  %*s#' %(-30,'Process',-58,options.assessor)
+            elif not options.project:
+                    print '#     %*s ->  %*s#' %(-30,'Query level',-58,'projects')
+            else:
+                if not options.subject:
+                    print '#     %*s ->  %*s#' %(-30,'Query level',-58,'subjects')
+                    print '#     %*s ->  %*s#' %(-30,'Project',-58,options.project)
+                else:
+                    if not options.experiment:
+                        print '#     %*s ->  %*s#' %(-30,'Query level',-58,'sessions')
+                        print '#     %*s ->  %*s#' %(-30,'Project',-58,options.project)
+                        print '#     %*s ->  %*s#' %(-30,'Subject',-58,options.subject)
+                    else:
+                        if not options.scan or not options.assessor:
+                            print '#     %*s ->  %*s#' %(-30,'Query level',-58,'scans/processes')
+                            print '#     %*s ->  %*s#' %(-30,'Project',-58,options.project)
+                            print '#     %*s ->  %*s#' %(-30,'Subject',-58,options.subject)
+                            print '#     %*s ->  %*s#' %(-30,'Session',-58,options.experiment)
+                        elif options.scan:
+                            print '#     %*s ->  %*s#' %(-30,'Query level',-58,'resources')
+                            print '#     %*s ->  %*s#' %(-30,'Project',-58,options.project)
+                            print '#     %*s ->  %*s#' %(-30,'Subject',-58,options.subject)
+                            print '#     %*s ->  %*s#' %(-30,'Session',-58,options.experiment)
+                            print '#     %*s ->  %*s#' %(-30,'Scan',-58,options.scan)
+                            
+                if options.all:
+                    print '#     %*s ->  %*s#' %(-30,'All',-58,'on')
+        print '####################################################################################################'
+
+def parse_args():
+    from optparse import OptionParser
+    usage = "usage: %prog [options] \nWhat is the script doing : Query on Xnat at any level. "
+    parser = OptionParser(usage=usage)
+    parser.add_option("-p", "--project", dest="project",default=None,
+                  help="project ID on Xnat or 'all' to see all the project.", metavar="PROJECT_ID")
+    parser.add_option("-s", "--subject", dest="subject",default=None,
+                  help="Subject label on Xnat", metavar="SUBJECT_LABEL")
+    parser.add_option("-e", "--experiment", dest="experiment",default=None,
+                  help="Session label on Xnat", metavar="EXPERIMENT_LABEL")
+    parser.add_option("-a", "--assessor", dest="assessor",default=None,
+                  help="Assessor/Process label on XNAT. E.G: VUSTP-x-VUSTP1-x-VUSTP1a-x-FS", metavar="ASSESSOR_LABEL")
+    parser.add_option("-c", "--scan", dest="scan",default=None,
+                  help="Scan ID on Xnat.", metavar="SCAN_ID")
+    
+    parser.add_option("--all", dest="all",action="store_true", default=False,
+                  help="Print all the objects on XNAT from the level you are at.", metavar="")
+    
+    parser.add_option("--me", dest="me",action="store_true", default=False,
+                  help="Give the projects ID that you have access.", metavar="")
+    
+    parser.add_option("--info", dest="info",action="store_true", default=False,
+                  help="Give the project information (Scan / assessor + status).", metavar="")
+    parser.add_option("-x","--filetxt", dest="filetxt", default=None,
+                  help="Save the report from --info in a text file.", metavar="FILEPATH")
+    return parser
+              
+###################################################################################################
+########################################## MAIN FUNCTION ##########################################
+###################################################################################################
+if __name__ == '__main__':
+    parser = parse_args()
+    (options,args)=parser.parse_args()
+    #############################
+    #Main display:
+    Main_display(parser)
+    #check options:
+    run=check_options(options)
+    #############################
+    
+    #############################
+    # RUN                       #
+    #############################
+    if run:
+        #############################
+        #Extract values from Options
+        project = options.project
+        subject = options.subject
+        session = options.experiment
+        scan = options.scan
+        assessor = options.assessor
+        
+        """ Query on Xnat to give the project / subject / experiment / scan / resources """
+        # Connection to Xnat
+        try:
+            xnat = get_interface()
+            
+            #give the name of the project where you have access
+            if options.me:
+                print 'List of projects on XNAT you have access to:'
+                print '---------------------------------------'
+                post_uri_project = '/REST/projects/'
+                for project in xnat._get_json(post_uri_project):
+                    _,subjList=list_subjs(xnat,project['ID'])
+                    if subjList:
+                        print '%*s : %*s' % (-20, project['ID'], -30, project['name'])
+                print '---------------------------------------'
+                    
+            #report from project          
+            elif options.info:
+                report_information_on_project(xnat,project,options.filetxt)
+            #level of query
+            else:
+                #check assessor and scan, if nothing choose, set them to True
+                if not project and options.all and not assessor:
+                    project='all'
+                
+                #if all projects
+                if assessor:
+                    labels=assessor.split('-x-')
+                    display_item(labels[0],labels[1],labels[2])
+                    query_assessor(xnat,assessor,True)
+                    
+                elif project=='all':
+                    post_uri_project = '/REST/projects'
+                    project_list = xnat._get_json(post_uri_project)
+                    for project in project_list:
+                        print '%*s : %*s' % (-20, project['ID'], -30, project['name'])
+                        _,subject_list=list_subjs(xnat,project['ID'])
+                        if not subject_list:
+                            print "  ->You don't have access to this project."
+                else:
+                    if subject:
+                        if session:
+                            display_item(project,subject,session)
+                            if scan:
+                                scantype=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+session+'/scans/'+scan).attrs.get('series_description')
+                                query_scan(xnat,project,subject,session,scan,scantype,True)
+                            else:
+                                query_session(xnat,project,subject,session,options.all)
+                        else:
+                            display_item(project,subject)
+                            query_subject(xnat,project,subject,options.all)
+                    else:
+                        display_item(project)
+                        query_project(xnat,project,options.all)
+            
+        finally:                                        
+            xnat.disconnect()
+    
+    print '===================================================================\n'

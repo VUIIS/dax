@@ -1,0 +1,597 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+'''
+Created on May 6, 2013
+
+@author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
+'''
+import os,sys,csv
+from pyxnat import Interface
+from pyxnat.core.errors import DatabaseError
+from email.mime.text import MIMEText
+from datetime import datetime
+import smtplib
+
+DEFAULT_LABELS_DICT={'Project':0, 'Subject':1, 'Session':2, 'Scan':3, 'Scan Type':4, 'Scan Series Description':5, 'Resource':6}
+DEFAULT_NOTE='Xnatupload'
+######################################################################################################
+########################################## USEFUL FUNCTIONS ##########################################
+######################################################################################################
+def get_interface():
+    # Environs
+    user = os.environ['XNAT_USER']
+    pwd = os.environ['XNAT_PASS']
+    host = os.environ['XNAT_HOST']
+    # Don't sys.exit, let callers catch KeyErrors
+    return Interface(host, user, pwd)
+
+def get_proper_str(str_option,end=False):
+    if len(str_option)>55:
+        if end:
+            return '...'+str_option[-50:]
+        else:
+            return str_option[:50]+'...'
+    else:
+        return str_option
+
+def smaller_str(str_option,size=10,end=False):
+    if len(str_option)>size:
+        if end:
+            return '...'+str_option[-size:]
+        else:
+            return str_option[:size]+'...'
+    else:
+        return str_option
+
+def get_resourceName(labels,fileExtension):
+    if len(labels)==7:
+        resource=labels[6]
+    else:
+        #add the resource name from the extension if known
+        if fileExtension.lower()=='.dcm':
+            resource='DICOM'
+        elif fileExtension.lower()=='.nii':
+            resource='NIFTI'
+        elif fileExtension.lower()=='.par':
+            resource='PAR'
+        elif fileExtension.lower()=='.rec':
+            resource='REC'
+        elif fileExtension.lower()=='.zip':
+            resource='secondary'
+        elif fileExtension.lower()=='.gif':
+            resource='SNAPSHOTS'
+        elif fileExtension.lower()=='.mat':
+            resource='MAT'
+        else:
+            resource='UNKNOWN'
+    return resource
+    
+def get_labels_file(fname):
+    fileName, fileExtension = os.path.splitext(fname)
+    if fileExtension in ['.GZ','.gz']:
+        fileName,fileExtension=os.path.splitext(fileName)
+    if not len(fileName.split('-x-'))>4:
+        print ' *WARNING: File '+fileName+' wrong format.'
+        return None
+    else:
+        project,subject,session,scan=fileName.split('-x-')[:4]
+        #scantype
+        l=fileName.split('-x-')
+        if not len(l)>4:
+            type='UNKNOWN'
+        else:
+            type=l[4]
+        #series description
+        if not len(l)>5:
+            SD='UNKNOWN'
+        else:
+            SD=l[5]
+        return [project,subject,session,scan,type,SD,get_resourceName(l,fileExtension)]
+
+def get_ff_in_folder(directory):
+    folder_list=list()
+    file_list=list()
+    for ff_name in os.listdir(directory):
+        if os.path.isfile(os.path.join(directory,ff_name)):
+            file_list.append(os.path.join(directory,ff_name))
+        else:
+            folder_list.append(os.path.join(directory,ff_name))
+    return file_list,folder_list
+
+def looping(directory,project,file_list,labels_dict,count):
+    #Go through the folders:
+    files,folder_list=get_ff_in_folder(directory)
+    #add files to the list:
+    file_list.extend(files)
+    #For subject
+    for folderpath in folder_list:
+        if count==4:
+            #getting the label info from the path
+            labels=folderpath.split('/')[-4:]
+            #save labels with file in a dictionary:
+            labels_dict[project+'-x-'+'-x-'.join(labels)]=folderpath
+        else:
+            labels_dict,file_list=looping(folderpath,project,file_list,labels_dict,count+1)
+    return labels_dict,file_list
+
+########################################################################################################
+########################################## SPECIFIC FUNCTIONS ##########################################
+########################################################################################################
+def loop_on_files(directory):
+    print'INFO: Reading the directory: '+directory
+    labels_dict=dict()
+    filepath_list,folder_list=get_ff_in_folder(directory)
+    for filepath in filepath_list:
+        #get the labels:
+        labels=get_labels_file(os.path.basename(filepath))
+        if labels: 
+            #save labels with file in a dictionary:
+            labels_dict['-x-'.join(labels)]=filepath
+            
+    return labels_dict,folder_list
+
+def loop_on_folders(directory,project):
+    print'INFO: Reading the directory: '+directory
+    #variable:
+    labels_dict=dict()
+    file_list=list()
+    #Go through the folders:
+    labels_dict,file_list=looping(directory,project,file_list,labels_dict,1)
+    #check for all of them if the scantype and the series description are present
+    for label,respath in labels_dict.items():
+        if len(label.split('-x-'))!=7:
+            project,subject,session,scan=label.split('-x-')[:4]
+            if len(respath.split('/')[-2].split('-x-'))>2:
+                type=respath.split('/')[-2].split('-x-')[1]
+                SD=respath.split('/')[-2].split('-x-')[2]
+            elif len(respath.split('/')[-2].split('-x-'))==2:
+                type=respath.split('/')[-2].split('-x-')[1]
+                SD='UNKNOWN'
+            else:
+                type='UNKNOWN'
+                SD='UNKNOWN'
+            resource=label.split('-x-')[-1]
+            new_label='-x-'.join([project,subject,session,scan,type,SD,resource])
+            labels_dict[new_label] = labels_dict.pop(label)
+    
+    return labels_dict,file_list
+
+def read_csv_info(fpath,project):
+    print'INFO: Reading the csv file: '+fpath
+    #variable:
+    labels_dict=dict()
+    f=open(fpath, "rU")
+    reader = csv.reader(f,delimiter=',', dialect=csv.excel_tab)
+    for row in reader:
+        if row[0].strip()=='Subject':
+            continue
+        if len(row)>6:
+            new_label='-x-'.join([project,row[0].strip(),row[1].strip(),row[2].strip(),row[3].strip(),row[4].strip(),row[5].strip()])
+            labels_dict[new_label] = row[6].strip()
+    return labels_dict
+
+######################################### REPORT ###############################################
+def make_report(project,text,labels_dict,junk_list=None):
+    labels_list=[i.split('-x-') for i in labels_dict.keys()]
+    
+    #Display:
+    str_report='Report information about uploading :\n'
+    str_report+='Common Path Directory: '+str(os.path.commonprefix(labels_dict.values()))+'\n'
+    str_report+='Date: '+str(datetime.now())+'\n'
+    str_report+='===================================================================\n'
+    str_report+='List of the data that need to be upload : \n'
+    str_report+='-----------------------------------------\n'
+    str_report+='%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-10, 'Project',-10, 'Subject', -15, 'Session', -10, 'Scan',-10, 'Scan Type',-10,'Scan S.D',-10, 'Resource',-58, 'file(s)/folder')+'\n'
+    str_report+='----------------------------------------------------------------------------------------------------------------------------------------------------------\n'
+    for label in sorted(labels_list):
+        p=smaller_str(label[DEFAULT_LABELS_DICT['Project']])
+        s=smaller_str(label[DEFAULT_LABELS_DICT['Subject']])
+        se=smaller_str(label[DEFAULT_LABELS_DICT['Session']],size=15)
+        sc=smaller_str(label[DEFAULT_LABELS_DICT['Scan']])
+        t=smaller_str(label[DEFAULT_LABELS_DICT['Scan Type']])
+        sd=smaller_str(label[DEFAULT_LABELS_DICT['Scan Series Description']])
+        r=smaller_str(label[DEFAULT_LABELS_DICT['Resource']])
+        file=get_proper_str(labels_dict['-x-'.join(label)],end=True)
+        str_report+='%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-10,p,-10,s,-15,se,-10,sc,-10,t,-10,sd,-10,r,-58,file)+'\n'
+    str_report+='Scan S.D = Scan Series Description' 
+    str_report+='\n-----------------------------------------\n'
+    if junk_list:
+        str_report+='\nList of the file(s)/folder(s) that have been found but does not match the method: \n'
+        str_report+='-----------------------------------------\n'
+        for junk in junk_list:
+            str_report+='  -> '+junk+'\n'
+        str_report+='-----------------------------------------\n'
+        str_report+='Thoses file(s)/folder(s) will NOT be upload to XNAT.\n'
+    
+    str_report+='INFO:Check only the value: project/subject/session/scan and resource.\n'
+    str_report+='INFO:If the resource is UNKNOWN, it will not be upload.\n'
+    str_report+="\nINFO: If the Scan Type or Scan Series Description is UNKNOWN, the script will take the Scan has the type/SD.\n"
+    str_report+="\t for up1: If you want to add the type, add 'scantype-x-SD' between the filename from 'scan' and '-x-resource.ext'.\n"
+    str_report+="\t for up2: If you want to add the type, add the type and SD like this '-x-scantype-x-SD' to the scan folder.\n"
+    str_report+='REMINDER : Remember that with the method --up1, you need to have the following architecture: project-x-subject-x-session-x-scan-x-scantype-x-scanseriesdescription-x-resource.ext .\n'
+    str_report+='           Remember that with the method --up2, you need to have the following architecture: Main_folder/subject/session/scan-x-scantype-x-scanseriesdescription/resource.\n'
+    str_report+='P.S : Please check that the REC or NII image type that you upload are compressed (.rec/.nii), please compress them in .gz like "file.nii.gz".\n'
+    
+    #Print or write in files:
+    if not text:
+        print '\n----------------------------------'
+        print str_report
+    else:
+        str_report+='===================================================================\n'
+        filetxt=os.path.abspath(text)
+        print 'INFO: Writing the report in the file: '+filetxt+'             '
+        f = open(filetxt,'w')
+        f.write(str_report+'\n')
+        f.close()
+        
+######################################### Create XNAT Objs ###############################################
+def create_subject(P,subject,quiet):
+    #check subject
+    S=P.subject(subject)
+    if not S.exists():
+        S.insert()
+        if not quiet:
+            print '   >Subject '+subject+' created'
+    return S
+            
+def create_session(S,session,sessiontype,quiet):
+    #check session
+    Se=S.experiment(session)
+    if not Se.exists():
+        if sessiontype=='CT':
+            Se.create(experiments='xnat:ctSessionData')
+        elif sessiontype=='MR':
+            Se.create(experiments='xnat:mrSessionData')
+        elif sessiontype=='PET':
+            Se.create(experiments='xnat:petSessionData')
+        elif sessiontype=='GEN':
+            Se.create(experiments='xnat:imageSessionData')
+        d=datetime.now()
+        Se.attrs.set('xnat:experimentdata/date',str(d.year)+'-'+str(d.month)+'-'+str(d.day))
+        if not quiet:
+            print '    >Session '+session+' created'
+    return Se
+            
+def create_scan(Se,sessiontype,scan,scantype,scanSD,quiet):
+    #check session
+    Sc=Se.scan(scan)
+    if not Sc.exists():
+        if sessiontype=='CT':
+            Sc.create(scans='xnat:ctScanData')
+        elif sessiontype=='MR':
+            Sc.create(scans='xnat:mrScanData')
+        elif sessiontype=='PET':
+            Sc.create(scans='xnat:petScanData')
+        elif sessiontype=='GEN':
+            Sc.create(scans='xnat:imageScanData')
+        #set attributes
+        if scantype!='UNKNOWN':
+            Sc.attrs.set('type',scantype)
+        else:
+            Sc.attrs.set('type',' ')
+        if scanSD!='UNKNOWN':
+            Sc.attrs.set('series_description',scanSD)
+        else:
+            Sc.attrs.set('series_description',' ')
+        Sc.attrs.set('quality','questionable')
+        Sc.attrs.set('note',DEFAULT_NOTE)
+        if not quiet:
+            print '     >Scan '+scan+' created'
+    return Sc
+
+######################################### UPLOAD FUNCTIONS ###############################################
+def Upload_to_resource(label,resourceObj,fpath,force,quiet,add=False):
+    if label=='UNKNOWN' and not quiet:
+        print '      -->resource label set to UNKNOWN. No upload.'
+    else:
+        #remove the former file
+        if force:
+            resourceObj.delete()
+
+        if not resourceObj.exists() or add:
+            if not os.path.exists(fpath):
+                if not quiet:
+                    print '    -->ERROR: file path '+fpath+' does not exist.'
+            else:
+                #Upload Folder
+                if os.path.isdir(fpath):
+                    if fpath[-1]=='/':
+                        fpath=fpath[:-1]
+                    Upload_folder_to_resource(label,resourceObj,fpath,quiet)
+                #Upload File
+                elif os.path.isfile(fpath):
+                    Upload_file_to_resource(label,resourceObj,fpath,quiet)
+        else:
+            if not quiet:
+                print '       -->WARNING: Resource '+label+' already on Xnat. No upload for this file. Use options --force to force the upload'
+
+def Upload_file_to_resource(label,resourceObj,fpath,quiet):
+    if not quiet:
+        print '      >Upload file for resource ' +label+' ...'
+    # upload file to XNAT
+    if not resourceObj.file(os.path.basename(fpath)).exists():
+        resourceObj.file(os.path.basename(fpath)).put(fpath)
+    elif not quiet:
+        print '       -->WARNING: The file you upload already exists. Use --force to delete this resource and create a new one with this file.'
+                
+def Upload_folder_to_resource(label,resourceObj,directory,quiet):
+    if not quiet:
+        print '      >Upload resource ' +label
+    filenameZip=label+'.zip'
+    initDir=os.getcwd()
+    #Zip all the files in the directory
+    os.chdir(directory)
+    os.system('zip '+filenameZip+' *')
+    #upload
+    resourceObj.put_zip(directory+'/'+filenameZip,extract=True)
+    #return to the initial directory:
+    os.chdir(initDir)
+    
+
+def Upload_XNAT(labels_dict,xnat,project,sessiontype,force,quiet):
+    #init
+    previous_subj,previous_sess=['','']
+    nb_res=len(labels_dict)
+    count=0
+    #get project
+    P=xnat.select('/project/'+project)
+    for label in sorted(labels_dict):
+        subject,session,scan,scantype,scanSD,Resource=label.split('-x-')[1:]
+        if not quiet:
+            count+=1
+            print ' *Resource to upload: '+str(count)+'/'+str(nb_res)               
+        if subject!=previous_subj:
+            previous_subj=subject
+            if not quiet:
+                print '  +Subject '+subject
+            S=create_subject(P,subject,quiet)
+        if session!=previous_sess:
+            previous_sess=session
+            if not quiet:
+                print '   +Session '+session
+            Se=create_session(S,session,sessiontype,quiet)
+        if not quiet:
+            print '    +Scan '+scan
+        SCAN=create_scan(Se,sessiontype,scan,scantype,scanSD,quiet)
+        
+        if SCAN.exists():
+            Upload_to_resource(Resource,SCAN.resource(Resource),labels_dict[label],force,quiet,add=False)
+        else:
+            if not quiet:
+                print '    -->ERROR:Scan does not exist. Error in the creation.'
+
+def OnlyUpload(labels_dict,xnat,add,force,quiet):
+    #number of subjects:
+    labels_list=[i.split('-x-')[0] for i in labels_dict.keys()]
+    nb_subjs=len(list(set(labels_list)))
+    count=0
+    
+    for label in sorted(labels_dict):
+        if not quiet:
+            count+=1
+            print ' *File : '+str(count)+'/'+str(nb_subjs)
+        project,subject,session,scan=label.split('-x-')[:4]
+        SCAN=xnat.select('/project/'+project+'/subject/'+subject+'/experiment/'+session+'/scan/'+scan)
+        if SCAN.exists():
+            Upload_to_resource(label.split('-x-')[-1],SCAN.resource(label.split('-x-')[-1]),labels_dict[label],force,quiet,add)
+        elif not quiet:
+            print '    -->ERROR:The file you want to upload does not fit a SCAN on XNAT. Check the name of the file with XNAT.'
+
+########################################## CHECK OPTIONS ##########################################
+def check_options(options):
+    if options.force and options.add:
+        print 'OPTION ERROR: You can not use --add and --force. --force will delete the files for a resource and upload the file(s) in the directory to the resource. --add will only add the file(s) to the resource. Choose one of this two options.'
+        return False
+    if not options.onlyupload and options.add: 
+        print 'OPTION ERROR: You can not use --add without -o/--onlyUpload.'
+        return False
+    if not options.up1 and  not options.up2 and not options.csv and not options.onlyupload:
+        print 'OPTION ERROR: Please provide one of the method between --up1,--up2, -c/--csv, or -o/--onlyUpload. Choose only one.'
+        return False
+    if options.up1 or options.up2 or options.onlyupload:
+        if not options.directory:
+            print 'OPTION ERROR: Please provide a directory with the option -d/--directory.'
+            return False
+        else:
+            #check if the directory exists
+            if not os.path.exists(options.directory):
+                print "ERROR : Please provide an existing directory. The directory "+options.directory+" doesn't exist."
+                return False
+        if options.up1 and options.up2:
+            print 'OPTION ERROR: Too much methods used as options: --up1,--up2, -c/--csv, or -o/--onlyUpload. Choose only one.'
+            return False
+        elif options.up1 and options.onlyupload:
+            print 'OPTION ERROR: Too much methods used as options: --up1,--up2, -c/--csv, or -o/--onlyUpload. Choose only one.'
+            return False
+        elif options.onlyupload and options.up2:
+            print 'OPTION ERROR: Too much methods used as options: --up1,--up2, -c/--csv, or -o/--onlyUpload. Choose only one.'
+            return False
+    
+    if options.up1 or options.up2 or options.csv:
+        if not options.session:
+            print 'OPTION ERROR: Please provide the type of session you want to create: MR,CT or PET.'
+            return False
+        else:
+            if not options.session in ['CT','MR','PET']:
+                print 'OPTION ERROR: Session type wrong. Please provide a right value: MR,CT or PET.'
+                return False
+        if not options.project:
+            print 'OPTION ERROR: Please provide a project ID with the option -p.'
+            return False
+        else:
+            try:
+                xnat=get_interface()
+                if not (xnat.select('/project/'+options.project)).exists():
+                    print "OPTION ERROR: The project ID you gave doesn't exist on XNAT. If it is a new project, create the project first on XNAT."
+            finally:
+                xnat.disconnect()
+            
+    if options.report and options.text:
+        folder=os.path.dirname(os.path.abspath(options.text))
+        if not os.path.exists(folder):
+            print 'OPTION ERROR: You used options -t/--txt to save the report in a file text but the path '+folder+' does not exist. Please provide a right path.'
+            return False
+    
+    if options.csv:
+        if not os.path.exists(options.csv):
+            print 'OPTION ERROR: You used options -c/--csv but the file '+options.csv+' does not exist. Please provide a right path.'
+            return False
+        
+    return True
+
+########################################## MAIN DISPLAY FUNCTION ##########################################   
+def Main_display(parser):
+    (options,args)=parser.parse_args()
+    #Display:
+    print '####################################################################################################'
+    print '#                                            XNATUPLOAD                                            #'
+    print '#                                                                                                  #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
+    print '# Parameters :                                                                                     #'
+    if options=={'csv':None, 'force': False, 'onlyupload': False, 'text': None, 'quiet': False, 'project': None, 'report': False, 'session': None, 'directory': None, 'up2': False, 'up1': False,'add':False}:
+        print '#     No Arguments given                                                                           #'
+        print '#     See the help bellow or "Xnatupload -h" to see the options                                    #'
+        print '####################################################################################################'
+        parser.print_help()
+        sys.exit()
+    else:
+        if options.project:
+            print '#     %*s ->  %*s#' %(-30,'Project',-58,options.project)
+        if options.directory:
+            print '#     %*s ->  %*s#' %(-30,'Directory',-58,get_proper_str(options.directory))
+        if options.onlyupload:
+            print '#     %*s ->  %*s#' %(-30,'Upload Method',-58,'Only upload to scan')
+        elif options.up1:
+            print '#     %*s ->  %*s#' %(-30,'Upload Method',-58,'up1 - all files in the directory')
+            if options.session:
+                print '#     %*s ->  %*s#' %(-30,'Session type',-58,options.session)
+        elif options.up2:
+            print '#     %*s ->  %*s#' %(-30,'Upload Method',-58,'up2 - one folder per object in the directory')
+            if options.session:
+                print '#     %*s ->  %*s#' %(-30,'Session type',-58,options.session)
+        if options.report:
+            print '#     %*s ->  %*s#' %(-30,'Report',-58,'on')
+            if options.text :
+                print '#     %*s ->  %*s#' %(-30,'Path for the report file',-58,get_proper_str(options.text))
+        if options.csv:
+            print '#     %*s ->  %*s#' %(-30,'CSV file',-58,get_proper_str(options.csv))
+        if options.force:
+            print '#     %*s ->  %*s#' %(-30,'Force',-58,'on')
+        if options.quiet:
+            print '#     %*s ->  %*s#' %(-30,'Quiet',-58,'on')
+        if options.add:
+            print '#     %*s ->  %*s#' %(-30,'Add',-58,'on')
+        print '####################################################################################################'
+    
+    
+def parse_args():
+    from optparse import OptionParser
+    usage = "usage: %prog [options] \nWhat is the script doing : Upload resources for SCAN into a new project on Xnat. YOU NEED TO CREATE THE PROJECT ON XNAT BEFORE."
+    parser = OptionParser(usage=usage)
+    #need this options
+    parser.add_option("-p", "--project", dest="project",default=None,
+                  help="Project ID on Xnat", metavar="PROJECT ID")
+    parser.add_option("-d", "--directory", dest="directory",default=None,
+                  help="Directory from where the data will be upload", metavar="DIRECTORY")
+    #for a specific scantype or specific Assessor
+    parser.add_option("--up1", dest="up1",action="store_true", default=False,
+                  help="Upload method n 1 : all the files are in the same directory. Name the files : Project-x-subject-x-experiment-x-scan-x-scantype-x-series_description-x-resourcename.extension. E.G : BLSA-x-BLSA_0000-x-BLSA_0000_0-x-scan_2-x-fMRI-x-FuncRun_gonogo-x-NIFTI.nii.gz.", metavar="")
+    parser.add_option("--up2", dest="up2",action="store_true", default=False,
+                  help="Upload method n 2 : The directory has a specific structure. Tree structure : folder/subject/experiment/scan-x-scantype-x-series_description/resourcename/file.extension. E.G : MAINFOLDER/BLSA_0000/BLSA_0000_0/scan_2-x-fMRI-x-FuncRun_gonogo/NIFTI/file.nii.gz", metavar="")
+    #text file for report
+    parser.add_option("-c","--csv", dest="csv",default=None,
+                  help="CSV file with the information for uploading data to XNAT. Columns: Subject,Session,Scan,Scantype,SeriesDescription,Resource,fpath; fpath is the path for the folder or the file where the resources file(s) are.", metavar="PATH")
+    #Verbose
+    parser.add_option("--sess", dest="session",default=None,
+                  help="Session type on Xnat. Choices : MR, CT and PET", metavar="SESSION_TYPE")
+    #Force the uploading (meaning delete the resources if it already exists
+    parser.add_option("--force", dest="force",action="store_true", default=False,
+                  help="Force the upload. If the resources exist, it will remove them before uploading.", metavar="")
+    #Upload only
+    parser.add_option("-o","--onlyUpload", dest="onlyupload",action="store_true", default=False,
+                  help="Upload files in directory on Xnat where they should be without creating anything. All the files are in the same directory. Name the files : Project-x-subject-x-experiment-x-scan-x-scantype-x-resourcename.extension. E.G : BLSA-x-BLSA_0000-x-BLSA_0000_0-x-scan_2-x-NIFTI.nii.gz.", metavar="")
+    #add file to resource
+    parser.add_option("--add", dest="add",action="store_true", default=False,
+                  help="Add the files to the resource without deleting the file there. WARNING: work only with -o/--onlyUpload.", metavar="PATH")
+    #Report
+    parser.add_option("--report", dest="report",action="store_true", default=False,
+                  help="Gives a report of your upload. Use this before uploading to be sure you have the good architecture or name for your directory/files.", metavar="PATH")
+    #text file for report
+    parser.add_option("-t","--txt", dest="text",default=None,
+                  help="Give the path where the report will be save. If not set, will be print on the terminal", metavar="PATH")
+    #Verbose
+    parser.add_option("--quiet", dest="quiet",action="store_true", default=False,
+                  help="Remove all the display.", metavar="")
+    return parser
+    
+###################################################################################################
+########################################## MAIN FUNCTION ##########################################
+###################################################################################################
+if __name__ == '__main__':
+    parser = parse_args()
+    (options,args)=parser.parse_args()
+    #############################
+    #Main display:
+    Main_display(parser)
+    #check options:
+    run=check_options(options)
+    #############################
+    
+    #############################
+    # RUN                       #
+    #############################
+    if run:
+        #############################
+        #Extract values from Options
+        project = options.project
+        if options.directory:
+            directory = os.path.abspath(options.directory)
+        junk_list=None
+        """ Upload all the files in the directory on Xnat"""
+        # Connection to Xnat
+        try:
+            xnat = get_interface()
+            if options.onlyupload:
+                print 'INFO: only upload data -- all files in one folder with XNAT path in the name (project-x-subject-x-session-x-scan-x-resource.ext'
+                #get the labels/folder for the directory:
+                labels_dict,junk_list=loop_on_files(directory)
+                if options.report:
+                    make_report(project,options.text,labels_dict,junk_list)
+                else:
+                    OnlyUpload(labels_dict,xnat,options.add,options.force,options.quiet)
+            elif options.csv:
+                print 'INFO: Uploading using csv file '+options.csv
+                #get the labels/folder for the directory:
+                labels_dict=read_csv_info(options.csv,project)
+                if options.report:
+                    make_report(project,options.text,labels_dict)
+                else:
+                    Upload_XNAT(labels_dict,xnat,project,options.session,options.force,options.quiet)
+            elif options.up1:
+                print 'INFO: Uploading using method 1 -- all files in one folder with XNAT path in the name (project-x-subject-x-session-x-scan-x-scantype-x-scanseriesdescription-x-resource.ext'
+                #get the labels/folder for the directory:
+                labels_dict,junk_list=loop_on_files(directory)
+                if options.report:
+                    make_report(project,options.text,labels_dict,junk_list=None)
+                else:
+                    Upload_XNAT(labels_dict,xnat,project,options.session,options.force,options.quiet)
+            elif options.up2:
+                print 'INFO: Uploading using method 2 -- data in a hierarchie refleting the XNAT path: folder/subject/session/scan-x-scantype-x-seriesdescriptions/resource/'
+                #get the labels/folder for the directory:
+                labels_dict,junk_list=loop_on_folders(directory,project)
+                if options.report:
+                    make_report(project,options.text,labels_dict,junk_list=None)
+                else:
+                    Upload_XNAT(labels_dict,xnat,project,options.session,options.force,options.quiet)
+                    
+            #list of junk:
+            if junk_list: 
+                print '\n----------------------------------'
+                print 'List of junk folder(s)/file(s) with probably data that have not been uploaded on XNAT:'
+                for junk in junk_list:
+                    print '  - folder: '+junk              
+        finally:                                        
+            xnat.disconnect()
+            
+        print '===================================================================\n'

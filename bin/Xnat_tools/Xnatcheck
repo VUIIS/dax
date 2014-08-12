@@ -1,0 +1,573 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Created on May 6, 2013
+
+@author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
+'''
+
+import os,sys
+from pyxnat import Interface
+
+######################################################################################################
+########################################## USEFUL FUNCTIONS ##########################################
+######################################################################################################
+def get_interface():
+    # Environs
+    user = os.environ['XNAT_USER']
+    pwd = os.environ['XNAT_PASS']
+    host = os.environ['XNAT_HOST']
+    # Don't sys.exit, let callers catch KeyErrors
+    return Interface(host, user, pwd)
+
+def list_project_scans(intf, projectid, include_shared=True):
+    new_list = []
+
+    post_uri = '/REST/archive/experiments'
+    post_uri += '?project='+projectid
+    post_uri += '&xsiType=xnat:imageSessionData'
+    post_uri += '&columns=ID,URI,label,subject_label,project'
+    post_uri += ',xnat:imagesessiondata/subject_id'
+    post_uri += ',xnat:imagescandata/id'
+    post_uri += ',xnat:imagescandata/type'
+    post_uri += ',xnat:imagescandata/quality'
+    post_uri += ',xnat:imagescandata/note'
+    post_uri += ',xnat:imagescandata/frames'
+    post_uri += ',xnat:imagescandata/series_description'
+    scan_list = intf._get_json(post_uri)
+
+    for s in scan_list:
+        snew = {}
+        snew['scan_id']      = s['xnat:imagescandata/id']
+        snew['scan_label']   = s['xnat:imagescandata/id']
+        snew['scan_quality'] = s['xnat:imagescandata/quality']
+        snew['scan_note']    = s['xnat:imagescandata/note']
+        snew['scan_frames']  = s['xnat:imagescandata/frames']
+        snew['scan_description'] = s['xnat:imagescandata/series_description']
+        snew['scan_type']    = s['xnat:imagescandata/type']
+        snew['ID']           = s['xnat:imagescandata/id']
+        snew['label']        = s['xnat:imagescandata/id']
+        snew['quality']      = s['xnat:imagescandata/quality']
+        snew['note']         = s['xnat:imagescandata/note']
+        snew['frames']       = s['xnat:imagescandata/frames']
+        snew['series_description'] = s['xnat:imagescandata/series_description']
+        snew['type']         = s['xnat:imagescandata/type']
+        snew['project_id'] = projectid
+        snew['project_label'] = projectid
+        snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
+        snew['subject_label'] = s['subject_label']
+        snew['session_id'] = s['ID']
+        snew['session_label'] = s['label']
+        snew['session_uri'] = s['URI']
+        new_list.append(snew)
+        
+    if (include_shared):
+        post_uri = '/REST/archive/experiments'
+        post_uri += '?xnat:imagesessiondata/sharing/share/project='+projectid
+        post_uri += '&xsiType=xnat:imageSessionData'
+        post_uri += '&columns=ID,URI,label,subject_label,project'
+        post_uri += ',xnat:imagesessiondata/subject_id'
+        post_uri += ',xnat:imagescandata/id'
+        post_uri += ',xnat:imagescandata/type'
+        post_uri += ',xnat:imagescandata/quality'
+        post_uri += ',xnat:imagescandata/note'
+        post_uri += ',xnat:imagescandata/frames'
+        post_uri += ',xnat:imagescandata/series_description'
+        scan_list = intf._get_json(post_uri)
+    
+        for s in scan_list:
+            snew = {}
+            snew['scan_id']      = s['xnat:imagescandata/id']
+            snew['scan_label']   = s['xnat:imagescandata/id']
+            snew['scan_quality'] = s['xnat:imagescandata/quality']
+            snew['scan_note']    = s['xnat:imagescandata/note']
+            snew['scan_frames']  = s['xnat:imagescandata/frames']
+            snew['scan_description'] = s['xnat:imagescandata/series_description']
+            snew['scan_type']    = s['xnat:imagescandata/type']
+            snew['ID']           = s['xnat:imagescandata/id']
+            snew['label']        = s['xnat:imagescandata/id']
+            snew['quality']      = s['xnat:imagescandata/quality']
+            snew['note']         = s['xnat:imagescandata/note']
+            snew['frames']       = s['xnat:imagescandata/frames']
+            snew['series_description'] = s['xnat:imagescandata/series_description']
+            snew['type']         = s['xnat:imagescandata/type']
+            snew['project_id'] = projectid
+            snew['project_label'] = projectid
+            snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
+            snew['subject_label'] = s['subject_label']
+            snew['session_id'] = s['ID']
+            snew['session_label'] = s['label']
+            snew['session_uri'] = s['URI']
+            new_list.append(snew)
+            
+    return new_list
+
+def list_project_assessors(intf, projectid):
+    new_list = []
+        
+    # First get FreeSurfer
+    post_uri = '/REST/archive/experiments'
+    post_uri += '?project='+projectid
+    post_uri += '&xsiType=fs:fsdata'
+    post_uri += '&columns=ID,label,URI,xsiType,project'
+    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
+    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
+    post_uri += ',fs:fsData/validation/status'
+    assessor_list = intf._get_json(post_uri)
+
+    for a in assessor_list:
+        anew = {}
+        anew['ID'] = a['ID']
+        anew['label'] = a['label']
+        anew['uri'] = a['URI']
+        anew['assessor_id'] = a['ID']
+        anew['assessor_label'] = a['label']
+        anew['assessor_uri'] = a['URI']
+        anew['project_id'] = projectid
+        anew['project_label'] = projectid
+        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+        anew['subject_label'] = a['label'].split('-x-')[1]
+        anew['session_id'] = a['session_ID']
+        anew['session_label'] = a['session_label']
+        anew['procstatus'] = a['fs:fsdata/procstatus']
+        anew['qcstatus'] = a['fs:fsdata/validation/status']
+        anew['proctype'] = 'FreeSurfer'
+        anew['xsiType'] = a['xsiType']
+        new_list.append(anew)
+
+    # Then add genProcData    
+    post_uri = '/REST/archive/experiments'
+    post_uri += '?project='+projectid
+    post_uri += '&xsiType=proc:genprocdata'
+    post_uri += '&columns=ID,label,URI,xsiType,project'
+    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
+    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
+    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
+    assessor_list = intf._get_json(post_uri)
+
+    for a in assessor_list:
+        anew = {}
+        anew['ID'] = a['ID']
+        anew['label'] = a['label']
+        anew['uri'] = a['URI']
+        anew['assessor_id'] = a['ID']
+        anew['assessor_label'] = a['label']
+        anew['assessor_uri'] = a['URI']
+        anew['project_id'] = projectid
+        anew['project_label'] = projectid
+        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+        anew['subject_label'] = a['label'].split('-x-')[1]
+        anew['session_id'] = a['session_ID']
+        anew['session_label'] = a['session_label']
+        anew['procstatus'] = a['proc:genprocdata/procstatus']
+        anew['proctype'] = a['proc:genprocdata/proctype']
+        anew['qcstatus'] = a['proc:genprocdata/validation/status']
+        anew['xsiType'] = a['xsiType']
+        new_list.append(anew)
+
+    return new_list
+
+def display_count(nb):
+    sys.stdout.write("-- Number of Processes/scans found: "+str(nb)+"                                \n\n")
+    sys.stdout.flush()
+
+def get_proper_str(str_option,end=False):
+    if len(str_option)>55:
+        if end:
+            return '...'+str_option[-50:]
+        else:
+            return str_option[:50]+'...'
+    else:
+        return str_option
+    
+def get_option_list(option):
+    if not option:
+        return None
+    elif option=='all':
+        return 'all'
+    elif option=='nan':
+        return None
+    else:
+        return option.split(',')
+
+def get_size(size):
+    if not size:
+        return None
+    elif 'g' in size.lower():
+        size=int(size.lower().split('g')[0])*1024*1024*1024 #bring back to bytes
+    elif 'm' in size.lower():
+        size=int(size.lower().split('m')[0])*1024*1024 #bring back to bytes
+    elif 'k' in size.lower():
+        size=int(size.lower().split('k')[0])*1024 #bring back to bytes
+    else:
+        size=int(size)
+    return size
+    
+    
+def filter_subj_sess(subjects,sessions,obj_list):
+    obj_list_subj=[]
+    obj_list_sess=[]
+    if subjects:
+        obj_list_subj=filter(lambda x: x['subject_label'] in subjects, obj_list)
+    if sessions:
+        obj_list_sess=filter(lambda x: x['session_label'] in sessions, obj_list)
+    return obj_list_subj+obj_list_sess
+
+def filter_scans(scantypes,qualities,SDs,obj_list):
+    if scantypes and scantypes!='all':
+        obj_list=filter(lambda x: x['type'] in scantypes, obj_list)
+    if qualities and qualities!='all':
+        obj_list=filter(lambda x: x['quality'] in qualities, obj_list)
+    if SDs and SDs!='all':
+        obj_list=filter(lambda x: x['series_description'] in SDs, obj_list)
+    return obj_list
+
+def filter_assessors(proctypes,status,qastatus,obj_list):
+    if proctypes and proctypes!='all':
+        obj_list=filter(lambda x: x['proctype'] in proctypes, obj_list)
+    if status and status!='all':
+        obj_list=filter(lambda x: x['procstatus'] in status, obj_list)
+    if qastatus and qastatus!='all':
+        obj_list=filter(lambda x: x['qcstatus'] in qastatus, obj_list)
+        
+    return obj_list
+
+########################################################################################################
+########################################## SPECIFIC FUNCTIONS ##########################################
+########################################################################################################
+def check_resource(Resource,ID,size,nb_p):
+    #if resource doesn't exist, print label
+    if not Resource.exists():
+        sys.stdout.write(ID+"                            \n")
+        nb_p+=1
+    else:
+        if len(Resource.files().get())==0:
+            sys.stdout.write(ID+"                            \n")
+            nb_p+=1
+        
+        if size:
+            Bigger_file_size=0
+            for fname in Resource.files().get()[:]:
+                size_file=int(Resource.file(fname).size())
+                if Bigger_file_size<size_file:
+                    Bigger_file_size=size_file
+            
+            #if the size of the resource is less that the size
+            if Bigger_file_size<size:
+                sys.stdout.write(ID+"                            \n")
+                nb_p+=1
+                
+    return nb_p
+
+########################################## CHECK SCANS ########################################## 
+def check_xnat_scans(xnat,project,subjects,sessions,scantypes,qualities,SDs,resources,size):
+    nb_s=0
+    scan_list=list_project_scans(xnat, project)
+    #filter the subject or session if exists:
+    if subjects or sessions:
+        scan_list=filter_subj_sess(subjects,sessions,scan_list)
+    #filter scantype/qualitys:
+    scan_list=filter_scans(scantypes,qualities,SDs,scan_list)
+    #sort the list
+    scan_list=sorted(scan_list, key=lambda k: k['subject_label'])
+    print '------------------------'
+    print 'Subject | Session | Scan'
+    print '------------------------'
+    for scan in scan_list:
+        if resources:
+            for resource in resources:
+                Resource=xnat.select('/projects/'+scan['project_id']+'/subjects/'+scan['subject_id']+'/experiments/'+scan['session_id']+'/scans/'+scan['ID']+'/resource/'+resource)
+                nb_s=check_resource(Resource,scan['subject_label']+' | '+scan['session_label']+' | '+scan['ID'],size,nb_s)
+        else:
+            nb_s+=1
+            print scan['subject_label']+' | '+scan['session_label']+' | '+scan['ID']
+    print '------------------------'
+    return nb_s 
+
+########################################## CHECK ASSESSORS ########################################## 
+def check_xnat_assessors(xnat,project,subjects,sessions,proctypes,status,qastatus_list,resources,size):
+    nb_p=0
+    proc_list=list_project_assessors(xnat, project)
+    #filter the subject or session if exists:
+    if subjects or sessions:
+        proc_list=filter_subj_sess(subjects,sessions,proc_list)
+    #filter proctype/procstatus:
+    proc_list=filter_assessors(proctypes,status,qastatus_list,proc_list)
+    #sort the list
+    proc_list=sorted(proc_list, key=lambda k: k['label'])
+    print '-----------------------------------------'
+    print '              Process Label              '
+    print '-----------------------------------------'
+    for proc in proc_list:
+        if resources:
+            for resource in resources:
+                Resource=xnat.select('/projects/'+proc['project_id']+'/subjects/'+proc['subject_id']+'/experiments/'+proc['session_id']+'/assessors/'+proc['label']+'/out/resource/'+resource)
+                nb_p=check_resource(Resource,proc['label'],size,nb_p)
+        else:
+            nb_p+=1
+            print proc['label']
+    print '-----------------------------------------'
+    return nb_p 
+
+########################################## CHECK SPECIFIC ASSESSOR ##########################################   
+def check_assessor_label(xnat,assessor_label,status_list,qastatus_list,resource_list,size,nb_p):
+    #get labels:
+    labels=assessor_label.split('-x-')
+    if len(labels)==1:
+        print'ERROR: the assessor label can not be set (ERROR no "-x-" in the name)'
+        sys.exit()
+    else:
+        #labels
+        project=labels[0]
+        subject=labels[1]
+        experiment=labels[2]
+        procname=labels[-1]
+        
+        Assessor_xnat=xnat.select('/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label)
+        if Assessor_xnat.exists():
+            #Assessor exists
+            if status_list or qastatus_list:
+                res_need_to_be_check=False
+                if procname=='FS':
+                    #FreeSurfer:
+                    assessor_status=Assessor_xnat.attrs.get('fs:fsData/procstatus')
+                    assessor_qastatus=Assessor_xnat.attrs.get('fs:fsData/qcstatus')
+                else:
+                    assessor_status=Assessor_xnat.attrs.get('proc:genProcData/procstatus')
+                    assessor_qastatus=Assessor_xnat.attrs.get('proc:genProcData/qcstatus')
+                
+                if status_list and assessor_status in status_list:
+                    if not resource_list:
+                        #checking only status, meaning that the satus was the one we are looking for
+                        sys.stdout.write(assessor_label+"                            \n")
+                        nb_p+=1
+                    else:
+                        res_need_to_be_check=True
+                if (qastatus_list in assessor_qastatus in qastatus_list):
+                    if not resource_list:
+                        #checking only status, meaning that the satus was the one we are looking for
+                        sys.stdout.write(assessor_label+"                            \n")
+                        nb_p+=1
+                    else:
+                        res_need_to_be_check=True
+                    
+                if res_need_to_be_check:
+                    for res_label in resource_list:
+                        nb_p=check_resource(Assessor_xnat.out_resource(res_label),assessor_label,size,nb_p)                    
+            else:
+                #checking only the resource
+                if resource_list:
+                    for res_label in resource_list:
+                        nb_p=check_resource(Assessor_xnat.out_resource(res_label),assessor_label,size,nb_p)
+                        
+    return nb_p
+
+########################################## CHECK OPTIONS ##########################################
+def check_options(options):
+    #Checked argument values if not:
+    if options.txtfile:
+        if not os.path.exists(options.txtfile):
+            print "OPTION ERROR: the file "+options.txtfile+" does not exist."
+            return False    
+    if not options.project and not options.txtfile :
+        print 'OPTION ERROR: You need at least to set the project with the option -p/--project or use a txt file with the options -x/--txtfile.'
+        return False
+    return True
+
+########################################## MAIN DISPLAY ##########################################
+def Main_display(parser):
+    (options,args) = parser.parse_args()
+    print '####################################################################################################'
+    print '#                                             XNATCHECK                                            #'
+    print '#                                                                                                  #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
+    print '# Parameters :                                                                                     #'
+    if options=={'SD':None, 'qastatus':None,'status': None, 'assessortype': None, 'scantype': None, 'resource': None, 'txtfile': None, 'project': None, 'session': None, 'size': None, 'quality': None, 'subject': None}:
+        print '#     No Arguments given                                                                           #'
+        print '#     Use "Xnatcheck -h" to see the options                                                        #'
+        print '####################################################################################################'
+        parser.print_help()
+        sys.exit()
+    else:   
+        if options.txtfile:
+            print '#     %*s ->  %*s#' %(-30,'Text File Path',-58,get_proper_str(options.txtfile,True))
+        else:
+            if options.project:
+                print '#     %*s ->  %*s#' %(-30,'Project(s)',-58,get_proper_str(options.project))
+            #Subjects
+            if options.subject:
+                print '#     %*s ->  %*s#' %(-30,'Subject(s)',-58,get_proper_str(options.subject))
+            #Experiment
+            if options.session:
+                print '#     %*s ->  %*s#' %(-30,'Session(s)',-58,get_proper_str(options.session))
+        
+        if options.scantype or options.quality or options.SD:
+            print '#     %*s#' %(-93,'--Scan Options--')
+            if options.scantype:
+                print '#     %*s ->  %*s#' %(-30,'Types',-58,get_proper_str(options.scantype))
+            if options.quality:
+                print '#     %*s ->  %*s#' %(-30,'Quality',-58,get_proper_str(options.quality))
+            if options.SD:
+                print '#     %*s ->  %*s#' %(-30,'Series Description',-58,get_proper_str(options.SD))
+        
+        if options.assessortype or options.status:
+            print '#     %*s#' %(-93,'--Process Options--') 
+            if options.assessortype:
+                print '#     %*s ->  %*s#' %(-30,'Types',-58,get_proper_str(options.assessortype))
+            if options.status:
+                print '#     %*s ->  %*s#' %(-30,'Status',-58,get_proper_str(options.status))
+            if options.qastatus:
+                print '#     %*s ->  %*s#' %(-30,'QA Status',-58,get_proper_str(options.qastatus))
+        
+        if options.resource or options.size:
+            print '#     %*s#' %(-93,'--Resource Options--')
+            if options.resource:
+                print '#     %*s ->  %*s#' %(-30,'Types',-58,get_proper_str(options.resource))
+            if options.size:
+                print '#     %*s ->  %*s#' %(-30,'Minimal size to check (Kb)',-58,options.size)           
+        print '####################################################################################################'
+
+########################################## OPTIONS ##########################################
+def parse_args():
+    from optparse import OptionParser
+    usage = "usage: %prog [options] \nWhat is the script doing : Check a project on Xnat for assessor type / scan type / resources "
+    parser = OptionParser(usage=usage)
+    #need this options
+    parser.add_option("-p", "--project", dest="project",default=None,
+                  help="Project ID on Xnat or a list of Project", metavar="PROJECT_ID")
+    
+    #select a special subj or sess
+    parser.add_option("--subj", dest="subject",default=None,
+                  help="Change Status for only this subject/list of subjects. E.G: --subj VUSTP2,VUSTP3", metavar="LIST_OF_SUBJECTS")
+    parser.add_option("--sess", dest="session",default=None,
+                  help="Change Status for only this session/list of sessions. Use the options --subj with it. E.G: --exp VUSTP2a,VUSTP3b", metavar="LIST_OF_EXPERIMENTS")
+    
+    #scan attrs
+    parser.add_option("-s", "--scantype", dest="scantype",default=None,
+                  help="Check if the scan type exists for each subject/experiment in the project. E.G : -s fMRI,T1", metavar="SCAN_TYPE")
+    parser.add_option("--quality", dest="quality",default=None,
+                  help="Check if the scan has the quality specified. E.G: unusable or questionable or usable.", metavar="QUALITY")
+    parser.add_option("--seriesD", dest="SD",default=None,
+                  help="Check if the scan has the series description specified. E.G: cap1,cap2,gonogo1,T1W.", metavar="SD")
+    
+    #proc attrs
+    parser.add_option("-t", "--typeprocess", dest="assessortype",default=None,
+                  help="Check if the process exists for each subject/experiment in the project. E.G : -a fMRIQA,dtiQA_v2", metavar="ASSESSOR_TYPE")
+    parser.add_option("--status", dest="status",default=None,
+                  help="Check if the assessor has the status specified. E.G : COMPLETE,JOB_FAILED.", metavar="STATUS")
+    parser.add_option("--qastatus", dest="qastatus",default=None,
+                  help="Check if the assessor has the qastatus specified. E.G : Passes,Failed.", metavar="STATUS")
+    
+    #Resource
+    parser.add_option("-r","--resources", dest="resource",default=None,
+                  help="Check if the resources exists.", metavar="RESOURCES")
+    parser.add_option("--size", dest="size",default=None,
+                  help="Check the size of the resource. If the file with the bigger size in the resource is under the size you are giving or if the resource doesn't exist, it will display the label on the screen. Units by default bytes. E.G: 6M or 7G or 8k or 10K or 10000", metavar="SIZE")
+    
+    #File text with the assessor to check
+    parser.add_option("-x","--txtfile",dest="txtfile",default=None,
+                  help="File txt with at each line the label of the assessor where the status need to be checked or the resource (ONLY for ASSESSOR). E.G for label: project-x-subject-x-experiment-x-scan-x-process_name.", metavar="FILEPATH")
+    return parser
+
+###################################################################################################
+########################################## MAIN FUNCTION ##########################################
+###################################################################################################
+if __name__ == '__main__':
+    parser=parse_args()
+    (options,args) = parser.parse_args()
+    
+    #############################
+    #Main display:
+    Main_display(parser)
+    #check options:
+    run=check_options(options)
+    #############################
+    
+    #############################
+    # RUN                       #
+    #############################
+    if run:
+        #############################
+        #Arguments :
+        ProjectList = get_option_list(options.project)
+        #scan attrs:
+        scantypes = get_option_list(options.scantype)
+        qualities = get_option_list(options.quality)
+        SDs = get_option_list(options.SD)
+        #Proc attrs
+        proctypes = get_option_list(options.assessortype)
+        status = get_option_list(options.status)
+        qastatus = get_option_list(options.qastatus)
+        #resources
+        resources = get_option_list(options.resource)
+        size = get_size(options.size)
+        #textfile
+        txtfile=options.txtfile
+        #XNAT option
+        if not options.subject:
+            subjects=None
+        elif options.subject=='all':
+            subjects=None
+        else:
+            subjects=options.subject.split(',')
+        if not options.session:
+            sessions=None
+        elif options.session=='all':
+            sessions=None
+        else:
+            sessions=options.session.split(',')
+        
+        """ Check that the scan or assessor type or resources exist for a project on Xnat"""
+        # Connection to Xnat
+        try:   
+            xnat = get_interface() 
+            #initiate nb of processes/scans:
+            nb_sp=0
+            ####################
+            #      TXTFILE     #
+            ####################
+            if txtfile:
+                input_file = open(txtfile, 'r')
+                for index,line in enumerate(input_file):
+                    assessor_label=line.split('\n')[0]
+                    #check_assessor with label
+                    nb_sp=check_assessor_label(xnat,assessor_label,satus,qastatus,resources,size,nb_sp)     
+                
+                #display the counts of processes or scan found        
+                display_count(nb_sp)
+            #####################
+            #      PROJECTS     #
+            #####################
+            else:
+                for project in options.project.split(','):
+                    sys.stdout.write("  *Project: "+project+'                                                  \n')
+                    #check access
+                    proj=xnat.select('/project/'+project)
+                    if not proj.exists():
+                        print'   -->ERROR: Project '+project+' does not exist on XNAT.'
+                        continue
+                    else:
+                        post_uri_subject = '/REST/projects/'+project+'/subjects'
+                        subject_list = xnat._get_json(post_uri_subject)
+                        number_subjs=len(subject_list) 
+                        if not number_subjs>0:
+                            print"   -->ERROR: You don't access to the project: "+project+"."
+                            continue
+                
+                ### SCAN ###
+                if scantypes or qualities or SDs:  
+                    nb_sp=check_xnat_scans(xnat,project,subjects,sessions,scantypes,qualities,SDs,resources,size)
+                    #display the counts of processes or scan found        
+                    display_count(nb_sp)
+                
+                ### ASSESSOR ### 
+                if proctypes or status:
+                    nb_sp=check_xnat_assessors(xnat,project,subjects,sessions,proctypes,status,qastatus,resources,size)
+                    #display the counts of processes or scan found        
+                    display_count(nb_sp)
+                                            
+        finally:                                        
+            xnat.disconnect()
+    print '===================================================================\n'

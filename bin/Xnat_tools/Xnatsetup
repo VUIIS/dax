@@ -1,0 +1,616 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+'''
+Created on Jan 24, 2013
+
+@author: yvernabc
+'''
+
+import os
+import sys
+import subprocess
+import getpass
+
+######################################################################################################
+########################################## USEFUL FUNCTIONS ##########################################
+######################################################################################################
+def find_program(Program_name):
+    p = subprocess.Popen(['which', Program_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    out=out.strip()
+    if os.path.isfile(out):
+        print '    *'+Program_name+' found'
+    else:
+        print '    *'+Program_name+' not found. Please install it.'
+        answer = raw_input("Do you want to continue anyway(Y/N)?")
+        while (answer not in ['Y','y','N','n','yes','no','YES','NO']):
+            answer = raw_input("Wrong Answer. Do you want to continue anyway(Y/N)?")
+            
+        if answer in ['N','y','no','No']:
+            print 'EXIT'
+            sys.exit()
+            
+def get_proper_str(str_option,end=False):
+    if len(str_option)>55:
+        if end:
+            return '...'+str_option[-50:]
+        else:
+            return str_option[:50]+'...'
+    else:
+        return str_option
+
+def run_bash_profile():
+    os.system('source ~/.bash_profile')
+    
+########################################################################################################
+########################################## INSTALL FUNCTIONS ###########################################
+########################################################################################################
+def install_httplib2(nosudo):
+    try:
+        print'    *Installing httplib2 using pip'
+        if nosudo:
+            os.system('pip install --user --quiet httplib2')
+        else:
+            os.system('sudo pip install --quiet httplib2')
+        print '      +Package httplib2 was installed successfully'
+    except SystemExit as e:
+        print '      +ERROR: Package httplib2 installation failed.'
+        print '      +The error are the followings :\n'
+        print e
+        print '      +You can still try to install it manually on your computer using pip or other python way to install a package.'
+        sys.exit()
+        
+def install_lxml(nosudo):
+    try:
+        print'    *Installing lxml using pip'
+        if nosudo:
+            os.system('pip install --user --quiet lxml')
+        else:
+            os.system('sudo pip install --quiet lxml')
+        print '      +Package lxml was installed successfully'
+    except SystemExit as e:
+        print '      +error: Package lxml installation failed.'
+        print '      +The error are the followings :\n'
+        print e
+        print '      +You can still try to install it manually on your computer using pip or other python way to install a package.'
+        sys.exit()
+            
+def install_pyxnat(nosudo,installDir):
+    print'    *Installing pyxnat using git'
+    if not nosudo:
+        os.system('sudo pip install git+git://github.com/bud42/pyxnat.git@b4917ba#egg=pyxnat.git')
+    else:
+        if not installDir:
+            path = raw_input("Path where you want the pyxnat package to be cloned: ")
+            if os.path.exists(path):
+                path=os.path.join(path,'pyxnat')
+            else:
+                print 'ERROR: The path '+path+' you gave does not exists. Exit script.'
+                sys.exit()
+        else:
+            path=os.path.join(installDir,'pyxnat')
+        os.system('git clone git://github.com/bud42/pyxnat.git '+path )
+        os.system('cd '+path)
+        os.system('git checkout b4917ba') #checkout to the right version
+        #adding pyxnat to the PYTHONPATH
+        line='export PYTHONPATH='+path+':$PYTHONPATH'
+        add_to_workstation(line,"#Pyxnat path added to the PYTHONPATH")
+        sys.path.append(path)
+    #test if install
+    run_bash_profile()
+    try:
+        import pyxnat
+        return True
+    except ImportError as e:
+        return False 
+
+def install_pycap(nosudo,installDir):
+    print'    *Installing pycap using git'
+    if not nosudo:
+        os.system('sudo pip install git+git://github.com/sburns/PyCap.git')
+    else:
+        if not installDir:
+            path = raw_input("Path where you want the Pycap package to be cloned: ")
+            if os.path.exists(path):
+                pass
+            else:
+                print 'The path '+installDir+' you gave does not exists. Exit script.'
+                sys.exit()
+        else:
+            path=installDir
+        #call git and python install
+        os.system('git clone --quiet git://github.com/sburns/PyCap.git '+path)
+        #adding pycap to the PYTHONPATH
+        line='export PYTHONPATH='+path+':$PYTHONPATH'
+        add_to_workstation(line,"#Pycap path in the PYTHONPATH")
+        sys.path.append(path)
+    #test if install
+    run_bash_profile()
+    try:
+        import redcap
+        return True
+    except ImportError as e:
+        return False 
+    
+def install_pandas(nosudo):
+    try:
+        print'    *Installing pandas using pip'
+        if nosudo:
+            os.system('pip install --user --quiet pandas')
+        else:
+            os.system('sudo pip install --quiet pandas')                
+        print '      +Package pandas was installed successfully'
+    except SystemExit as e:
+        print '      +ERROR: Package pandas installation failed.'
+        print '      +The error are the followings :\n'
+        print e
+        print '      +You can still try to install it manually on your computer using pip or other python way to install a package.'
+        sys.exit()
+        
+def install_cci(nosudo,installDir):
+    print'    *Installing API package using git'
+    if not nosudo:
+        os.system('sudo pip install git+git://github.com/VUIIS/api')
+    else:
+        if not installDir:
+            path = raw_input("Path where you want the API package to be cloned: ")
+            if not os.path.exists(path):
+                print 'The path '+path+' you gave does not exists. Exit script.'
+                sys.exit()
+        else:
+            path=installDir
+        #call git and python install
+        #os.system(pip install git+git://github.com/pyxnat/pyxnat.git@  NUMBER '+path)
+        os.system('git clone --quiet git://github.com/VUIIS/api '+path)
+        #adding pyxnat to the PYTHONPATH
+        line='export PYTHONPATH='+path+':$PYTHONPATH'
+        add_to_workstation(line,"#API path in the PYTHONPATH")
+        sys.path.append(path)
+    #test if install
+    run_bash_profile()
+    try:
+        import XnatUtils
+        return True
+    except ImportError as e:
+        return False  
+
+#add to .xnat_setup    
+def add_to_workstation(line,comments):
+    #.profile
+    profile_path=os.environ['HOME']+'/.xnat_setup'
+    if comments[1]!='#':
+        comments='#'+comments
+    #add line:
+    if not os.path.exists(profile_path):
+        comments= '###### XNAT SETUP FILE ######\n#File running everytime you open a new terminal : edited and created by Xnatsetup, tool to set up your computer to use Xnat tools/spiders.\n'+comments
+        #link the file in the bashrc or profile
+        bash_profile_path=os.environ['HOME']+'/.bash_profile'
+            
+        if os.path.exists(bash_profile_path):
+            if not 'source ~/.xnat_setup' in open(bash_profile_path).read():
+                with open(bash_profile_path, "a") as bash_profile:
+                    bash_profile.write("#call for .xnat_setup file where the XNAT setup has been done: \n")
+                    bash_profile.write("source ~/.xnat_setup\n")
+    #add the line and comments
+    if not line in open(profile_path).read():
+        with open(profile_path,"a") as bashrc:
+            bashrc.write(comments+'\n')
+            bashrc.write(line+'\n')  
+
+########################################################################################################
+########################################## SPECIFIC FUNCTIONS ##########################################
+########################################################################################################
+
+############################################ Basic Setup ###############################################
+def basic_setup(nosudo,installDir):
+    #check that the packages for python are installed :
+    print'  - Checking python packages:'
+    check_install_python_packages(nosudo,installDir)
+    
+    #Set up the .bashrc :
+    print'  - Setting XNAT variables'
+    set_xnat_variables()
+
+def check_install_python_packages(nosudo,installDir):
+    # httplib2
+    try:
+        import httplib2
+        print '    *httplib2 already installed'
+    except ImportError:
+        install_httplib2(nosudo)
+    # lxml
+    try:
+        import lxml
+        print '    *lxml already installed'
+    except ImportError:
+        install_lxml(nosudo)   
+    # Pyxnat
+    try:
+        import pyxnat
+        print '    *pyxnat already installed'
+    except ImportError as e:
+        install_pyxnat(nosudo,installDir)
+        #last try for pyxnat, if not working exit because it will be needed for next step
+        try:
+            import pyxnat
+            print '      +Package pyxnat was installed successfully'
+        except ImportError as e:
+            print '      +ERROR with pyxnat installation. Try to install it manually.'
+            sys.exit()  
+
+def set_xnat_variables():
+    # XNAT_HOST
+    try:
+        # Environs
+        XNAT_HOST = os.environ['XNAT_HOST']
+        print "    *XNAT_HOST already set up"
+    except KeyError as e:
+        line='export XNAT_HOST=http://xnat.vanderbilt.edu/xnat'
+        add_to_workstation(line,"#Xnat host address")
+        print "    *XNAT_HOST set up"
+    # XNAT_USER and XNAT_PASS
+    try:
+        # Environs
+        XNAT_USER = os.environ['XNAT_USER']
+        print "    *XNAT_USER already set up"
+        XNAT_PASS = os.environ['XNAT_PASS']
+        print "    *XNAT_PASS already set up"
+    except KeyError as e:
+        name = raw_input("Username on XNAT: ")
+        password = getpass.getpass()
+        print "DEBUG: Trying to open a connection with XNAT with your log in info ..."
+        #Check that the the user can open a connection to XNAT and close it
+        #connection
+        from pyxnat import Interface
+        xnat=Interface('http://xnat.vanderbilt.edu/xnat',name,password)
+        try:
+            #check connection
+            if xnat.select('/project/all/').exists():
+                xnat.disconnect()
+                print '>log in checked.'
+        except:
+            print 'ERROR: You must have set the wrong Username and Password.'
+            print 'Try again:'
+            name = raw_input("Username on XNAT: ")
+            password = getpass.getpass()
+            xnat=Interface('http://xnat.vanderbilt.edu/xnat',name,password)
+            try:
+                #check connection
+                if xnat.select('/project/all/').exists():
+                    xnat.disconnect()
+                    print '>log in checked.'
+            except:
+                print 'ERROR: Wrong login. Check on XNAT that you can log in.'
+                sys.exit()        
+        #Send to the bashrc
+        line='export XNAT_USER='+name
+        add_to_workstation(line,"#Xnat username")
+        print "    *XNAT_USER set up"
+        line='export XNAT_PASS='+password
+        add_to_workstation(line,"#Xnat password")
+        print "    *XNAT_PASS set up"
+    
+############################################ Advance Setup ###############################################
+def advance_setup(Accre):
+    #matlab    
+    find_program('matlab')
+    #xvfb-run   
+    find_program('xvfb-run ')
+    #gs    
+    find_program('gs')
+    #setup the UploadDir path variables used for Xnatrun :
+    try:
+        # Environs
+        UPLOAD_PATH = os.environ['UPLOAD_SPIDER_DIR']
+        print "    *Upload Directory for Spider already set up"
+    except KeyError as e:
+        path_upload = raw_input("Path for a directory used to upload the results from the spiders you will run (if you run a lot of spiders, the directory needs to be in a place with a lot memory) : ")
+        add_to_workstation('export UPLOAD_SPIDER_DIR='+path_upload,"#Upload directory for the Spiders results to stay before Upload.")
+        print "    *Upload Directory for Spider set up"
+    #setup the masimatlb path variables used for Xnatrun :
+    try:
+        # Environs
+        MASIMATLAB_PATH = os.environ['MASIMATLAB_PATH']
+        print "    *masimatlab path already set up"
+    except:
+        path_masi = raw_input("Path to masimatlab: ")
+        add_to_workstation('export MASIMATLAB_PATH='+path_masi,"#Masimatlab path used for the Xnatrun and set up the Xnattools and Spiders.py in pythonpath")
+        print "    *masimatlab path set up"
+    #setup Xnat Tools :
+    try:
+        # Environs
+        p = subprocess.Popen(['Xnatquery'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        print "    *Xnat Tools already set up"
+    except:
+        try:
+            MASIMATLAB_PATH = os.environ['MASIMATLAB_PATH']
+        except KeyError as e:
+            MASIMATLAB_PATH=path_masi
+        add_to_workstation('export PATH='+os.path.join(MASIMATLAB_PATH,'/trunk/xnatspiders/Xnat_tools')+':$PATH',"#Xnat tools in PATH")
+        print "    *Xnat Tools set up"
+
+############################################ REDCap Setup ###############################################
+def redcap_setup(nosudo,installDir):
+    #checking the package Pycap is install
+    check_install_for_redcap(nosudo,installDir)
+    #checking the variables API_URL is set
+    try:
+        # Environs
+        API_URL = os.environ['API_URL']
+        print "    *API_URL already set up"
+    except KeyError as e:
+        line='export API_URL=https://redcap.vanderbilt.edu/api/'
+        add_to_workstation(line,"#Redcap API URL")
+        print "    *API_URL set up"
+        
+def check_install_for_redcap(nosudo,installDir):
+    # Pycap            
+    try:
+        import redcap
+        print '    *pycap already installed'
+    except ImportError as e:
+        worked=install_pycap(nosudo,installDir)
+        if worked:
+            print '      +Package pycap was installed successfully'
+        else:
+            print '      +ERROR with pycap installation. Try to install it manually.'
+    # Pandas
+    try:
+        import pandas
+        print '    *pandas already installed'
+    except ImportError:
+        install_pandas(nosudo)
+
+############################################ CCI Setup ###############################################      
+def cci_package_setup(nosudo,installDir):
+    #cci package
+    try:
+        import XnatUtils
+        print '    *API package already installed'
+    except ImportError as e:
+        worked=install_cci(nosudo,installDir)
+        if worked:
+            print '      +Package API was installed successfully'
+        else:
+            print '      +ERROR with API installation. Try to install it manually.'
+            
+    #add to the bashrc or profile
+    try:
+        # Environs
+        MASIMATLAB_PATH = os.environ['MASIMATLAB_PATH']
+        add_to_workstation('export PYTHONPATH='+os.path.join(MASIMATLAB_PATH,'/trunk/xnatspiders/processors')+':'+os.path.join(MASIMATLAB_PATH,'/trunk/xnatspiders/modules')+':PYTHONPATH',"#Processors and Modules to PATH from MASIMATLAB")
+        print "    *processors and modules path already set up"
+    except:
+        print 'ERROR: the workstation does not know where is masimatlab. Please add by hand in your .bashrc or .profile the modules and processors folder in masimatlab/trunk/xnatspiders/.'
+############################################ ACCRE Setup ############################################### 
+def ACCRE_setup(installDir):
+    ### Set up environment ###
+    print'  - Setting XNAT variables'
+    set_xnat_variables()
+    print'  - Setting Matlab'
+    add_to_workstation('setpkgs -a matlab','#Installing matlab')
+    #add lines to xnat_setup
+    add_to_workstation('export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1',"#To avoid ants to use more than one cpu")
+    add_to_workstation('export PATH=/usr/local/xvfb-run:$PATH',"#xvfb-run working on accre")
+    # check for the setpkg pyxnat
+    add_to_workstation('setpkgs -a python_xnat','#Installing the python package for XNAT')
+    print'  - Python Packages installed'
+    ### setting pyxnat good version: ###
+    print'  -> Installing specific pyxnat using git'
+    worked=install_pyxnat(False,installDir) 
+    #last try for pyxnat, if not working exit because it will be needed for next step
+    if worked:
+        print '      +Package pyxnat was installed successfully'
+    else:
+        print '      +ERROR with pyxnat installation. Try to install it manually.'
+
+########################################## CHECK OPTIONS ##########################################
+def check_options(options):
+    if not options.basic and not options.advanced and not options.redcap and not options.api and not options.accre:
+        print "OPTION ERROR: No set up selected. Use --help to see the different options."
+        return False
+    if options.installDir:
+        folder=os.path.dirname(os.path.abspath(options.installDir))
+        if not os.path.exists(folder):
+           print 'OPTION ERROR: the dir path <'+folder+'> does not exist. Please check the path given.'
+           return False
+    print 'INFO: Checking Requirements ...'
+    #pip   
+    find_program('pip')
+    #git  
+    find_program('git')
+    try:
+        if not os.environ['SHELL']=='/bin/bash':
+            print 'WARNING: your shell is not /bin/bash. The set up is not going to work because it uses only /bin/bash as shell.'
+            print"Those are the installation step that you can change for your specific shell:"
+            print"A)Basic Setup:"
+            print" 1) install python package httplib2 using pip or easy_install"
+            print" 2) install python package lxml using pip or easy_install"
+            print" 3) clone python package pyxnat using git : 'git clone --quiet https://github.com/DavidJJ/pyxnat.git pyxnat'"
+            print" 4) add to your shell configuration file (the Xnatsetup use bash as shell) changing it to what you need :"
+            print"    export PYTHONPATH=/PathTopyxnatFolder:$PYTHONPATH"
+            print"    export XNAT_HOST=http://129.59.89.110:8080/xnat"
+            print"    export XNAT_USER=#your xnat user name"
+            print"    export XNAT_PASS=#your xnat password"
+            print"B)Advance Setup"
+            print" 1) add to your shell configuration file (the Xnatsetup use bash as shell) changing it to what is allowed by your shell :"
+            print"    export UPLOAD_SPIDER_DIR=/PathToUploadDir"
+            print"    export MASIMATLAB_PATH=/PathToMasimatlab"
+            print"    export PATH=/pathToMasimatlab/trunk/xnatspiders/Xnat_tools:$PATH"
+            print"    export PYTHONPATH=/pathToMasimatlab/trunk/xnatspiders/bin/tools:$PYTHONPATH"
+            print"C)Redcap Setup"
+            print" 1) install python package pandas using pip or easy_install"
+            print" 2) clone python package Pycap using git : 'git clone --quiet git://github.com/sburns/PyCap.git '"
+            print" 3) add to your shell configuration file (the Xnatsetup use bash as shell) changing it to what is allowed by your shell :"
+            print"    export API_URL=https://redcap.vanderbilt.edu/api/"
+            print"    export PYTHONPATH=/pathToPycap:$PYTHONPATH"
+            print"D)API Setup"
+            print" 1) clone python package API using git : 'git clone --quiet git://github.com/VUIIS/api'"
+            print" 2) add to your shell configuration file (the Xnatsetup use bash as shell) changing it to what is allowed by your shell :"
+            print"    export PYTHONPATH=/pathToAPI:$PYTHONPATH"
+            print"E)ACCRE Setup"
+            print" 1) setup all the python package needed."
+            print" 2) install specific pyxnat"
+            print"    export PYTHONPATH=/PathTopyxnatFolder:$PYTHONPATH"
+            print" 3) add login to the xnat_setup file:"
+            print"    export XNAT_HOST=http://129.59.89.110:8080/xnat"
+            print"    export XNAT_USER=#your xnat user name"
+            print"    export XNAT_PASS=#your xnat password"
+            print"    export MASIMATLAB_PATH=/PathToMasimatlab"
+            print"    export PATH=/pathToMasimatlab/trunk/xnatspiders/Xnat_tools:$PATH"
+            return False
+    except KeyError as e:
+        print 'ERROR: can not check the shell.'
+        print e
+        return False
+    
+    return True
+        
+########################################## MAIN DISPLAY ##########################################
+def Main_display(parser):
+    (options,args)=parser.parse_args()
+    print '####################################################################################################'
+    print '#                                            XNATSETUP                                             #'
+    print '# XnatSetup is a command tool to set up on your computer the variables to use the tools/spiders.   #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
+    print '# Operating system : Linux & Mac OS                                                                #'
+    print '# Shell : bash                                                                                     #'
+    print '# Requirements : python with pip & git                                                             #'
+    print '# Tutorial to setup manually : http://xnat.vanderbilt.edu/index.php/Main_Page                      #'
+    print '# Contact : benjamin.c.yvernault@vanderbilt.edu                                                    #'
+    if options=={'redcap': False, 'installDir': None, 'Accre': False, 'api': False, 'tutorial': False, 'basic': False, 'nosudo': False, 'advanced': False}:
+        print '#     No Arguments given                                                                           #'
+        print '#     See the help bellow or Use "Xnatquery" -h                                                    #'
+        print '####################################################################################################'
+        parser.print_help()
+        sys.exit()
+    else:
+        if options.basic:
+            print '#     %*s ->  %*s#' %(-30,'Setup Mode',-58,'basic')
+        if options.advanced:
+            print '#     %*s ->  %*s#' %(-30,'Setup Mode',-58,'advanced')
+        if options.redcap:
+            print '#     %*s ->  %*s#' %(-30,'Setup Mode',-58,'REDCap')
+        if options.api:
+            print '#     %*s ->  %*s#' %(-30,'Setup Mode',-58,'API')
+        if options.Accre:
+            print '#     %*s ->  %*s#' %(-30,'Setup Mode',-58,'ACCRE')
+        if options.nosudo:
+            print '#     %*s ->  %*s#' %(-30,'Sudo Access',-58,'off')
+        if options.installDir:
+            print '#     %*s ->  %*s#' %(-30,'Directory for install',-58,get_proper_str(options.installDir,True))
+        if options.tutorial:
+            print '#     %*s ->  %*s#' %(-30,'Tutorial',-58,'on')
+        print '####################################################################################################'
+    
+    if options.tutorial:
+        print'INFO: Tutorial Mode :'
+
+        print"--Basic Setup--"
+        print" 1) install python package httplib2 using pip or easy_install"
+        print" 2) install python package lxml using pip or easy_install"
+        print" 3) clone python package pyxnat using git : 'git clone --quiet https://github.com/DavidJJ/pyxnat.git pyxnat'"
+        print" 4) add to your shell configuration file (the Xnatsetup use bash as shell) changing it to what you need :"
+        print"    export PYTHONPATH=/PathTopyxnatFolder:$PYTHONPATH"
+        print"    export XNAT_HOST=http://129.59.89.110:8080/xnat"
+        print"    export XNAT_USER=#your xnat user name"
+        print"    export XNAT_PASS=#your xnat password"
+
+        print"--Advance Setup--"
+        print" 1) add to your shell configuration file (the Xnatsetup use bash as shell) changing it to what is allowed by your shell :"
+        print"    export UPLOAD_SPIDER_DIR=/PathToUploadDir"
+        print"    export MASIMATLAB_PATH=/PathToMasimatlab"
+        print"    export PATH=/pathToMasimatlab/trunk/xnatspiders/Xnat_tools:$PATH"
+        print"    export PYTHONPATH=/pathToMasimatlab/trunk/xnatspiders/bin/tools:$PYTHONPATH"
+
+        print"--Redcap Setup--"
+        print" 1) install python package pandas using pip or easy_install"
+        print" 2) clone python package Pycap using git : 'git clone --quiet git://github.com/sburns/PyCap.git '"
+        print" 3) add to your shell configuration file (the Xnatsetup use bash as shell) changing it to what is allowed by your shell :"
+        print"    export API_URL=https://redcap.vanderbilt.edu/api/"
+        print"    export PYTHONPATH=/pathToPycap:$PYTHONPATH"
+        
+        print"--API Setup--"
+        print" 1) clone python package API using git : 'git clone --quiet git://github.com/VUIIS/api'"
+        print" 2) add to your shell configuration file (the Xnatsetup use bash as shell) changing it to what is allowed by your shell :"
+        print"    export PYTHONPATH=/pathToAPI:$PYTHONPATH"
+        
+        print"--ACCRE Setup--"
+        print" 1) setup all the python package needed."
+        print" 2) install specific pyxnat"
+        print"    export PYTHONPATH=/PathTopyxnatFolder:$PYTHONPATH"
+        print" 3) add login to the xnat_setup file:"
+        print"    export XNAT_HOST=http://129.59.89.110:8080/xnat"
+        print"    export XNAT_USER=#your xnat user name"
+        print"    export XNAT_PASS=#your xnat password"
+        print"    export MASIMATLAB_PATH=/PathToMasimatlab"
+        print"    export PATH=/pathToMasimatlab/trunk/xnatspiders/Xnat_tools:$PATH"
+        #Exit after the end of the tutorial
+        sys.exit()
+
+def parse_args():
+    from optparse import OptionParser
+    usage = "usage: %prog [options] \nWhat is the script doing : Set up your computer to use xnat.\n"
+    usage+="  *Basic installation (--basic) - Needed to use the Xnat command tools or any of the next installations : install the python package httplib2, lxml, and pyxnat if not already install & saving your username/host/password for XNAT.\n"
+    usage+="  *Advance installation (--advance ) - Needed to run the non-specific spiders : Set up the Upload Directory, set up masimatlab path for Xnatrun, add the xnat tools to your PATH, and add Spiders.py in your PYTHONPATH .\n"
+    usage+="  *Redcap installation (--redcap ) - Needed to use redcap spiders (send data to redcap) : Install Pycap / pandas if not install and set up the URL for redcap .\n"
+    usage+="  *API installation (--api ) - Needed to use API package to run spiders on ACCRE via jobs (Contains XnatUtils) : Install API if not install.\n"
+    usage+="  *ACCRE installation (--accre) - Setup the environment to use the package/spiders/tools on ACCRE.\n"
+    parser = OptionParser(usage=usage)
+    parser.add_option("--basic",dest="basic",action="store_true", default=False,
+                  help="Use this options to set up the env variables to use the Xnat tools and have the basic set up.", metavar="")
+    parser.add_option("--advance",dest="advanced",action="store_true", default=False,
+                  help="Use this options to set up the env variables to run spiders in general.", metavar="")
+    parser.add_option("--redcap",dest="redcap",action="store_true", default=False,
+                  help="Use this options to set up the env variables to use redcap spiders.", metavar="")
+    parser.add_option("--api",dest="api",action="store_true", default=False,
+                  help="Use this options to set up the env variables to run spiders on ACCRE via jobs.", metavar="")
+    parser.add_option("--Accre",dest="Accre",action="store_true", default=False,
+                  help="Use this options if you are on Accre.", metavar="")
+    parser.add_option("--NoSudo",dest="nosudo",action="store_true", default=False,
+                  help="Use this options if you don't have sudo access and you still want to install the package (check -d option).", metavar="")
+    parser.add_option("-d","--installdir",dest="installDir",default=None,
+                  help="Use this options to specify a directory where the python package need to be install. It works only if you use --NoSudo option.", metavar="")
+    parser.add_option("--tutorial",dest="tutorial",action="store_true", default=False,
+                  help="Give you the step for the specific setup you are asking.", metavar="")
+    return parser
+         
+if __name__ == '__main__':
+    parser = parse_args()
+    (options,args)=parser.parse_args()
+    #############################
+    #Main display:
+    Main_display(parser)
+    #check options:
+    run=check_options(options)
+    #############################
+    
+    #############################
+    # RUN                       #
+    #############################
+    if run:     
+        if options.Accre:
+            print "INFO: Setting up the workstation on ACCRE ..."
+            ACCRE_setup(options.installDir)  
+        else:                          
+            if options.basic: 
+                print "INFO: Setting up your workstation with the BASIC XNAT requirements ..."
+                basic_setup(options.nosudo,options.installDir)
+            if options.advanced:
+                print "INFO: Setting up your workstation with the Advanced XNAT requirements ..."
+                advance_setup()
+            if options.redcap:
+                print "INFO: Setting up your workstation with the REDCap XNAT requirements ..."
+                redcap_setup(options.nosudo,options.installDir)
+            if options.api:
+                print "INFO: Setting up the API package on your workstation ..."
+                cci_package_setup(options.nosudo,options.installDir)
+        
+        # Display:
+        print "\n\nWARNING: The changes made by the script might not yet be activated. Open a new terminal to finalize the installation or run your .bash_profile."
+        print "INFO: To run your .bash_profile :"
+        print "\t . ~/.bash_profile"
+        print '==============================================================================================================================================\n'
+        
+        

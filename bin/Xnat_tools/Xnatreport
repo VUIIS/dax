@@ -1,0 +1,400 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Query through Xnat
+
+@author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
+'''
+import os
+import sys
+from pyxnat import Interface
+from datetime import datetime
+from email.mime.text import MIMEText
+from email.MIMEBase import MIMEBase
+from email.MIMEMultipart import MIMEMultipart
+from email import Encoders
+import smtplib
+
+######################################################################################################
+########################################## USEFUL FUNCTIONS ##########################################
+######################################################################################################
+def get_interface():
+    # Environs
+    user = os.environ['XNAT_USER']
+    pwd = os.environ['XNAT_PASS']
+    host = os.environ['XNAT_HOST']
+    # Don't sys.exit, let callers catch KeyErrors
+    return Interface(host, user, pwd)
+
+def list_subjs(xnat,project):
+    post_uri_subject = '/REST/projects/'+project+'/subjects'
+    subj_list=xnat._get_json(post_uri_subject)
+    subj_count=len(subj_list)
+    if not subj_count>0:
+        print "WARNING: You don't access to the project "+project+" ."
+    return subj_count,subj_list
+
+def list_exps(xnat,project,subject):
+    post_uri_experiment = '/REST/projects/'+project+'/subjects/'+subject+'/experiments'
+    return xnat._get_json(post_uri_experiment)
+
+def list_assessors(xnat, project, subject, experiment):
+    post_uri_assessor = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors'
+    return xnat._get_json(post_uri_assessor)
+
+def list_scans(xnat,project,subject,experiment):
+    post_uri_scan = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans'
+    return xnat._get_json(post_uri_scan)
+
+def list_out_resources(xnat,project,subject,experiment,assessor_label):
+    post_uri_out_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources'
+    return xnat._get_json(post_uri_out_resource)
+
+def list_resources(xnat,project,subject,experiment,scan):
+    post_uri_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan+'/resources'
+    return xnat._get_json(post_uri_resource)
+
+def get_proper_str(str_option,end=False):
+    if len(str_option)>55:
+        if end:
+            return '...'+str_option[-50:]
+        else:
+            return str_option[:50]+'...'
+    else:
+        return str_option
+
+def sendMail(FROM,PWS,TO,SUBJECT,TEXT,SERVER,filename='nan'):
+    """send an email from FROM (with the password PWS) to TO with the subject and text given.
+    
+    parameters:
+        - FROM = email address from where the e-amil is sent
+        - PWS = password of the email address
+        - TO = list of email address which will receive the email
+        - SUBJECT =  subject of the email
+        - TEXT = inside of the email
+        - server = server used to send the email
+    """
+    
+    #attached the file if one :
+    if filename!='nan':
+        msg = MIMEMultipart()
+        msg['From'] = FROM
+        msg['To'] = ",".join(TO)
+        msg['Subject'] = SUBJECT
+        
+        msg.attach( MIMEText(TEXT) )
+        
+        part = MIMEBase('application', "octet-stream")
+        part.set_payload( open(filename,"rb").read() )
+        Encoders.encode_base64(part)
+        part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(filename))
+        msg.attach(part)
+    else:
+        # Create the container (outer) email message.
+        msg = MIMEText(TEXT)
+        msg['Subject'] = SUBJECT
+        # me == the sender's email address
+        # family = the list of all recipients' email addresses
+        msg['From'] = FROM
+        msg['To'] = ",".join(TO)
+    
+    # Send the email via our own SMTP server.
+    s = smtplib.SMTP(SERVER)
+    s.starttls()
+    s.login(FROM,PWS)
+    s.sendmail(FROM, TO, msg.as_string())
+    s.quit()
+    
+########################################################################################################
+########################################## SPECIFIC FUNCTIONS ##########################################
+########################################################################################################
+def get_csv_str(previous_subject,previous_exp,subject,experiment,scan_asse,type,quality,Resources_str):
+    if previous_subject!=subject:
+        string_s=subject+','+experiment+','
+        previous_subject=subject
+        previous_exp=experiment
+    elif previous_exp!=experiment:
+        string_s=' ,'+experiment+','
+    else:
+        string_s=' , ,'
+    string_s+=scan_asse+','+type+','+quality+','+Resources_str+'\n'
+    
+    return previous_subject,previous_exp,string_s
+
+def get_txt_str(previous_subject,previous_exp,subject,experiment,scan_asse,type,quality,Resources_str):
+    if len(type)>20:
+        type=type[:19]
+        
+    if previous_subject!=subject:
+        string_s='\t%*s | %*s | %*s | %*s | %*s | %*s ' % (-15, subject,-15, experiment, -60, scan_asse, -20, type, -20, quality, -40, Resources_str)+'\n'
+        previous_subject=subject
+        previous_exp=experiment
+    elif previous_exp!=experiment:
+        string_s='\t%*s | %*s | %*s | %*s | %*s | %*s ' % (-15, ' ',-15, experiment, -60, scan_asse, -20, type, -20, quality, -40, Resources_str)+'\n'
+    else:
+        string_s='\t%*s | %*s | %*s | %*s | %*s | %*s ' % (-15, ' ',-15, ' ', -60, scan_asse, -20, type, -20, quality, -40, Resources_str)+'\n'
+        
+    return previous_subject,previous_exp,string_s
+    
+def report_project(xnat,project,csv):
+    string_s='Report for Project '+project+'\n'
+    if csv:
+        string_s+='Subject,Experiment,Scan/assessor_label,Type/Process,Quality/Status,Resources\n'
+    else:
+        string_s+='------------------------------------------------------------------------------------------------------------------\n'
+        string_s+='\t%*s | %*s | %*s | %*s | %*s | %*s ' % (-15, 'Subject',-15, 'Experiment', -60, 'Scan/Assessor_label', -20, 'Scan/Process Type', -20, 'Quality/Status', -40, 'Resources')+'\n'
+    
+    #for all subjects:
+    subj_count,subj_list=list_subjs(xnat,project)
+    #variable for the print to avoid printing several time the experiment or subject
+    previous_subject=''
+    previous_exp=''
+    #looping
+    for subject in subj_list:
+        sys.stdout.write('.')
+        sys.stdout.flush()
+        for experiment in list_exps(xnat,project,subject['ID']):
+            sys.stdout.write('.')
+            sys.stdout.flush()
+            for scan in list_scans(xnat,project,subject['ID'],experiment['ID']):
+                sys.stdout.write('.')
+                sys.stdout.flush()
+                Resources_str=''
+                for res in list_resources(xnat,project,subject['ID'],experiment['ID'],scan['ID']):
+                    RES=xnat.select('/project/'+project+'/subject/'+subject['ID']+'/experiment/'+experiment['ID']+'/scan/'+scan['ID']+'/resource/'+res['label'])
+                    if len(RES.files().get()) > 0:
+                        Resources_str+=res['label']+' / '
+                    else:
+                        Resources_str+=res['label']+'=EMPTY / '
+                if csv:
+                    previous_subject,previous_exp,str_s=get_csv_str(previous_subject,previous_exp,subject['label'],experiment['label'],scan['ID'],scan['type'],scan['quality'],Resources_str)
+                else:
+                    previous_subject,previous_exp,str_s=get_txt_str(previous_subject,previous_exp,subject['label'],experiment['label'],scan['ID'],scan['type'],scan['quality'],Resources_str)
+                string_s+=str_s
+                               
+            #assessor
+            for assessor in list_assessors(xnat, project, subject['ID'], experiment['ID']):
+                sys.stdout.write('.')
+                sys.stdout.flush()
+                if assessor['xsiType']=='proc:genProcData':
+                    Assessor_Xnat=xnat.select('/project/'+project+'/subjects/'+subject['ID']+'/experiments/'+experiment['ID']+'/assessors/'+assessor['ID'])
+                    out_Resources_str=''
+                    for outres in list_out_resources(xnat,project,subject['ID'],experiment['ID'],assessor['label']):
+                        ORES=Assessor_Xnat.out_resource(outres['label'])
+                        if len(ORES.files().get()) > 0:
+                            out_Resources_str+=outres['label']+' / '
+                        else:
+                            out_Resources_str+=outres['label']+'=EMPTY / '
+                    
+                    if assessor['label'].split('-x-')[-1]=='FS':
+                        proctype=Assessor_Xnat.attrs.get('fs:fsData/proctype')
+                        procstatus=Assessor_Xnat.attrs.get('fs:fsData/procstatus')
+                    else:
+                        proctype=Assessor_Xnat.attrs.get('proc:genProcData/proctype')
+                        procstatus=Assessor_Xnat.attrs.get('proc:genProcData/procstatus')
+                    #string
+                    if csv:
+                        previous_subject,previous_exp,str_p=get_csv_str(previous_subject,previous_exp,subject['label'],experiment['label'],assessor['label'],proctype,procstatus,out_Resources_str)
+                    else:
+                        previous_subject,previous_exp,str_p=get_txt_str(previous_subject,previous_exp,subject['label'],experiment['label'],assessor['label'],proctype,procstatus,out_Resources_str)
+                    string_s+=str_p
+                    
+    if not csv:
+        string_s+='------------------------------------------------------------------------------------------------------------------\n'
+        
+    return string_s
+
+def write_report(filepath,text):
+    #copy the results
+    f = open(filepath,'w')
+    f.write(text)
+    f.close()
+    
+########################################## CHECK OPTIONS ##########################################
+def check_options(options):
+    #check options :
+    if not options.List_project:
+        print 'OPTION ERROR: No project selected.Please specify one or more project with option -p/--project.'
+        return False
+    
+    if options.csv and not options.filename:
+        print 'OPTION WARNING: No path specify. It will be saved in /tmp.'
+        
+    if options.csv and options.txtfilename:
+        print 'OPTION ERROR: You set this option -t but you are asking for a csv file. Choose one of them.'
+        return False
+    
+    #check the name given
+    if options.filename:
+        folder=os.path.dirname(os.path.abspath(options.filename))
+        if not os.path.exists(folder):
+           print 'OPTION ERROR: the csv file path <'+folder+'> does not exist. Please check the path given.'
+           return False
+        if len(options.filename.split('.'))>1:
+            if not options.filename.split('.')[1]=='csv':
+                print 'OPTION ERROR: The extension for the filename given as parameter is not ".csv". Please check the extension.'
+                return False
+        else:
+            print 'OPTION ERROR: Invalid csv filename. Please check the filename.'
+            return False
+    #check the name given
+    if options.txtfilename:
+        folder=os.path.dirname(os.path.abspath(options.txtfilename))
+        if not os.path.exists(folder):
+           print 'OPTION ERROR: the txt file path <'+folder+'> does not exist. Please check the path given.'
+           return False
+        if len(options.txtfilename.split('.'))>1:
+            if not options.txtfilename.split('.')[1]=='txt':
+                print 'OPTION ERROR: The extension for the txt filename given as parameter is not ".txt".  Please check the extension.'
+                return False
+        else:
+            print 'OPTION ERROR: Invalid txt filename. Please check the filename.'
+            return False
+    
+    #check for email sent :
+    if options.emailAddress:
+        try:
+            # Environs
+            VUEMAIL_ADDR = os.environ['EMAIL_ADDR']
+            VUEMAIL_PWS = os.environ['EMAIL_PWS']
+        except KeyError as e:
+            print "OPTIONS ERROR: You must set the environment variable %s to be able to receive emails from this address for the report." % str(e)
+            return False
+
+    return True
+
+########################################## MAIN DISPLAY ##########################################
+def Main_display(parser):
+    (options,args) = parser.parse_args()
+    #Display:
+    print '####################################################################################################'
+    print '#                                            XNATREPORT                                            #'
+    print '#                                                                                                  #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
+    print '# Parameters :                                                                                     #'
+    if options=={'txtfilename': None, 'csv': False, 'emailAddress': None, 'List_project': None, 'filename': None}:
+        print '#     No Arguments given                                                                           #'
+        print '#     Use "Xnatreport -h" to see the options                                                       #'
+        print '####################################################################################################'
+        parser.print_help()
+        sys.exit()
+    else:
+        if options.List_project:
+            print '#     %*s ->  %*s#' %(-30,'Project(s)',-58,get_proper_str(options.List_project))
+        if options.emailAddress:
+            print '#     %*s ->  %*s#' %(-30,'Email address(es)',-58,get_proper_str(options.emailAddress))
+        if options.csv:
+            print '#     %*s ->  %*s#' %(-30,'CSV format',-58,'on')
+        if options.filename:
+            print '#     %*s ->  %*s#' %(-30,'CSV filename',-58,get_proper_str(options.filename,True))
+        if options.txtfilename:
+            print '#     %*s ->  %*s#' %(-30,'TXT filename',-58,get_proper_str(options.txtfilename,True))
+        print '####################################################################################################'
+    
+def parse_args():
+    from optparse import OptionParser
+    usage = "usage: %prog [options] \nWhat is the script doing : Create a report about Xnat statement. "
+    parser = OptionParser(usage=usage)
+    parser.add_option("-p", "--project", dest="List_project",default=None,
+                  help="List of project ID on Xnat separate by a coma", metavar="PROJECT_ID")
+    parser.add_option("-e", "--email", dest="emailAddress",default=None,
+                  help="Email Address or list d'email separate by a coma to whom the report will be send. If no addresses are given, display the report on the terminal.", metavar="EMAIL_ADDRESS")
+    parser.add_option("--csv", dest="csv",action="store_true", default=False,
+                  help="Write the report in a csv file format to be able to look at it on Excel. (Write the file in /tmp, use options -f with a full path if you want an other location).", metavar="")
+    parser.add_option("-f", "--filename", dest="filename",default=None,
+                  help="csv fullpath where to save the report .csv format file.", metavar="CSV_FULLPATH_FILE")
+    parser.add_option("-t", "--txtfilename", dest="txtfilename",default=None,
+                  help="txt fullpath where to save the report as a .txt format file.", metavar="TXT_FULLPATH_FILE")
+    return parser
+    
+if __name__ == '__main__':
+    parser=parse_args()
+    (options,args) = parser.parse_args()
+    #############################
+    #Main display:
+    Main_display(parser)
+    #check options:
+    run=check_options(options)
+    #############################
+    
+    #############################
+    # RUN                       #
+    #############################
+    if run:
+        #############################
+        #Arguments :
+        project_list=options.List_project.split(',')
+        if options.csv:
+            if not options.filename:
+                filepath='/tmp/Report_on_Xnat_projects.csv'
+            else:
+                filepath=os.path.abspath(options.filename)            
+        
+        """ Report on Xnat database for the list of project for processes or resources on scan """
+        # Connection to Xnat
+        try:
+            str_report='==========================================================================\n'
+            str_report+="Report for the following project(s) :\n"
+            str_report+='-------------------\n'
+            for project in project_list:
+                str_report+='\t-'+project+'\n'
+            str_report+='-------------------\n'
+            str_report+='Date: '+str(datetime.now())+'\n'
+            
+            #connection to Xnat
+            xnat = get_interface()
+            
+            #Starting querying :
+            for project in project_list:
+                sys.stdout.write('\nINFO:Loading Xnat - project '+project+' : .')
+                sys.stdout.flush()
+                
+                #check if the project exists:
+                project_xnat=xnat.select('/project/'+project)
+                if not project_xnat.exists():
+                    print 'ERROR: Project '+project+' does not exist on Xnat.'
+                else:
+                    str_re=report_project(xnat,project,options.csv)
+        finally:                                        
+            xnat.disconnect()
+        
+        if not options.csv:
+            str_report+=str_re
+        str_report+='==========================================================================\n'
+        #Writing the Report
+        if options.csv:
+            print'\n'
+            print 'WARNING : FileName for csv is '+filepath+'.'
+            write_report(filepath,str_re)  
+            #for the email:
+            if options.emailAddress:
+                email_add=options.emailAddress.split(',')
+                Subject_email='Report for Xnat on '+str(datetime.now())
+                Report_Text='Attached a csv file with the report. You can open it with Excel.'
+                if os.path.exists(filepath):
+                    sendMail(VUEMAIL_ADDR,VUEMAIL_PWS,email_add,Subject_email,Report_Text,'smtp.gmail.com',filepath)
+                else:
+                    sendMail(VUEMAIL_ADDR,VUEMAIL_PWS,email_add,Subject_email,Report_Text,'smtp.gmail.com')
+            else:
+                print 'INFO: Reports saved as a csv. Looked at the csv file '+filepath+'. You can open it with Excel.'                
+        elif options.txtfilename:
+            txtfilename=os.path.abspath(options.txtfilename)
+            write_report(txtfilename,str_report)  
+            #for the email:
+            if options.emailAddress:
+                email_add=options.emailAddress.split(',')
+                Subject_email='Report for Xnat on '+str(datetime.now())
+                Report_Text='Attached a txt file with the report.'
+                if os.path.exists(txtfilename):
+                    sendMail(VUEMAIL_ADDR,VUEMAIL_PWS,email_add,Subject_email,Report_Text,'smtp.gmail.com',txtfilename)
+                else:
+                    sendMail(VUEMAIL_ADDR,VUEMAIL_PWS,email_add,Subject_email,Report_Text,'smtp.gmail.com')
+            else:
+                print 'INFO: Report saved as txt file. Looked at the txt file '+txtfilename+'.'
+        else:
+            print '\n'
+            print 'Report for the list of project on Xnat Database. Time : '+str(datetime.now())+'\n'                          
+            print str_report
+                    

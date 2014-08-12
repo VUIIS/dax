@@ -1,0 +1,346 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Created on Mar 13, 2013
+
+@author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
+'''
+
+import os
+import sys
+from datetime import datetime
+from pyxnat import Interface
+
+######################################################################################################
+########################################## USEFUL FUNCTIONS ##########################################
+######################################################################################################
+def get_interface():
+    # Environs
+    user = os.environ['XNAT_USER']
+    pwd = os.environ['XNAT_PASS']
+    host = os.environ['XNAT_HOST']
+    # Don't sys.exit, let callers catch KeyErrors
+    return Interface(host, user, pwd)
+
+def get_proper_str(str_option,end=False):
+    if len(str_option)>55:
+        if end:
+            return '...'+str_option[-50:]
+        else:
+            return str_option[:50]+'...'
+    else:
+        return str_option
+
+########################################################################################################
+########################################## SPECIFIC FUNCTIONS ##########################################
+########################################################################################################
+def FS_Upload(experiment,assessor_label,assessor_path,force):
+    ##FREESURFER##
+    snapshot_original = assessor_path+'/SNAPSHOTS/snapshot_original.png'
+    if not os.path.exists(snapshot_original) and os.path.exists(assessor_path+'/PDF/'):
+        print '    +creating original SNAPSHOTS                                        '
+        #Make the snapshots for the assessors with ghostscript
+        os.system('gs -q -o '+snapshot_original+' -sDEVICE=pngalpha -dLastPage=1 '+assessor_path+'/PDF/*.pdf')
+    
+    #Create the preview snapshot from the original if Snapshots exist :
+    if os.path.exists(assessor_path+'/SNAPSHOTS/'):
+        Assessor_Resource_List=os.listdir(assessor_path+'/SNAPSHOTS/')
+        for snapshot in Assessor_Resource_List:
+            if len(snapshot.split('original'))>1:
+                print '    +creating preview of SNAPSHOTS                                        '
+                #Name of the preview snapshot
+                snapshot_preview = assessor_path+'/SNAPSHOTS/preview.'+snapshot.split('.')[1]
+                #Make the snapshot_thumbnail
+                os.system('convert '+assessor_path+'/SNAPSHOTS/'+snapshot+' -resize x200 '+snapshot_preview) 
+    
+    #Select the assessor
+    assessor_obj=experiment.assessor(assessor_label)
+    
+    # Upload the XML
+    xml_files_list = os.listdir(assessor_path+'/XML')
+    if len(xml_files_list) != 1:
+        print 'ERROR:cannot upload FreeSufer, unable to find XML file:'+assessor_path+'                                        '
+    else:
+        xml_path = assessor_path+'/XML/'+xml_files_list[0]
+        assessor_obj.create(xml=xml_path,allowDataDeletion=False)
+    
+    #UPLOAD files :                
+    Assessor_Resource_List=os.listdir(assessor_path)    
+    #for each folder=resource in the assessor directory 
+    for Resource in Assessor_Resource_List:
+        Resource_path=assessor_path+'/'+Resource
+        
+        #Need to be in a folder to create the resource :
+        if os.path.isdir(Resource_path):
+            #check if the resource exist, if yes remove it
+            if assessor_obj.out_resource(Resource).exists():
+                assessor_obj.out_resource(Resource).delete()
+            
+            #create the resource
+            r = assessor_obj.out_resource(Resource)
+
+            #if it's the SNAPSHOTS folder, need to set the thumbnail and original:
+            if Resource=='SNAPSHOTS':
+                print '    -Uploading SNAPSHOTS ...                                                            '
+                #for each files in this folderl, Upload files in the resource :
+                Resource_files_list=os.listdir(Resource_path)
+                #upload the THUMBNAIL & ORIFINAL:
+                preview = [s for s in Resource_files_list if "preview" in s][0]
+                r.file(preview).put(Resource_path+'/'+preview,(preview.split('.')[1]).upper(),'THUMBNAIL')
+                os.remove(Resource_path+'/'+preview)
+                original = [s for s in Resource_files_list if "original" in s][0]
+                r.file(original).put(Resource_path+'/'+original,(original.split('.')[1]).upper(),'ORIGINAL')
+                os.remove(Resource_path+'/'+original)
+                if len(Resource_files_list)>2:
+                    upload_zip(Resource,Resource_path,r)
+                        
+            #for all the other resources :
+            else:
+                print '    -Uploading '+Resource+' ...                                                            '
+                #for each files in this folderl, Upload files in the resource :
+                Resource_files_list=os.listdir(Resource_path)
+                #for each folder=resource in the assessor directory, more than 2 files, use the zip from XNAT
+                if len(Resource_files_list)>2:
+                    upload_zip(Resource,Resource_path,r)
+                #One or two file, let just upload them:
+                else:
+                    for filename in Resource_files_list:
+                        #if it's a folder, zip it and upload it
+                        if os.path.isdir(Resource_path+'/'+filename):
+                            upload_zip(filename,Resource_path+'/'+filename,r)
+                        else:
+                            print '      *Uploading File '+filename+' ...                                                            '
+                            #upload the file
+                            r.file(filename).put(Resource_path+'/'+filename)
+                        
+    #upload finish
+    assessor_obj.attrs.set('fs:fsData/procstatus','COMPLETE')
+    assessor_obj.attrs.set('fs:fsData/validation/status','Needs QA')
+    
+def Process_Default_Upload(assessor_obj,assessor_path,force):
+    #SNAPSHOTS :
+    #Check if the SNAPSHOTS folder exists, if not create one from PDF if pdf exists :
+    if not os.path.exists(assessor_path+'/SNAPSHOTS/') and os.path.exists(assessor_path+'/PDF/'):
+        print '    +creating original SNAPSHOTS                                        '
+        os.system('mkdir '+assessor_path+'/SNAPSHOTS/')
+        #Make the snapshots for the assessors with ghostscript
+        snapshot_original = assessor_path+'/SNAPSHOTS/snapshot_original.png'
+        os.system('gs -q -o '+snapshot_original+' -sDEVICE=pngalpha -dLastPage=1 '+assessor_path+'/PDF/*.pdf')
+    
+    #Create the preview snapshot from the original if Snapshots exist :
+    if os.path.exists(assessor_path+'/SNAPSHOTS/'):
+        Assessor_Resource_List=os.listdir(assessor_path+'/SNAPSHOTS/')
+        for snapshot in Assessor_Resource_List:
+            if len(snapshot.split('original'))>1:
+                print '    +creating preview of SNAPSHOTS                                        '
+                #Name of the preview snapshot
+                snapshot_preview = assessor_path+'/SNAPSHOTS/preview.'+snapshot.split('.')[1]
+                #Make the snapshot_thumbnail
+                os.system('convert '+assessor_path+'/SNAPSHOTS/'+snapshot+' -resize x200 '+snapshot_preview)
+        
+    #UPLOAD files :                
+    #for each folder=resource in the assessor directory 
+    for Resource in os.listdir(assessor_path) :
+        Resource_path=assessor_path+'/'+Resource
+        
+        #Need to be in a folder to create the resource :
+        if os.path.isdir(Resource_path):
+            #check if the resource exist, if yes remove it
+            if assessor_obj.out_resource(Resource).exists():
+                assessor_obj.out_resource(Resource).delete()
+            
+            #create the resource
+            r = assessor_obj.out_resource(Resource)
+                
+            #if it's the SNAPSHOTS folder, need to set the thumbnail and original:
+            if Resource=='SNAPSHOTS':
+                print '    -Uploading SNAPSHOTS ...                                        '
+                #for each files in this folderl, Upload files in the resource :
+                Resource_files_list=os.listdir(Resource_path)
+                #upload the THUMBNAIL & ORIFINAL:
+                preview = [s for s in Resource_files_list if "preview" in s][0]
+                r.file(preview).put(Resource_path+'/'+preview,(preview.split('.')[1]).upper(),'THUMBNAIL')
+                os.remove(Resource_path+'/'+preview)
+                original = [s for s in Resource_files_list if "original" in s][0]
+                r.file(original).put(Resource_path+'/'+original,(original.split('.')[1]).upper(),'ORIGINAL')
+                os.remove(Resource_path+'/'+original)
+                if len(Resource_files_list)>2:
+                    upload_zip(Resource,Resource_path,r)
+            #for all the other resources :
+            else:
+                print '    -Uploading '+Resource+' ...                                        '
+                #for each files in this folderl, Upload files in the resource :
+                Resource_files_list=os.listdir(Resource_path)
+                #for each folder=resource in the assessor directory, more than 2 files, use the zip from XNAT
+                if len(Resource_files_list)>2:
+                    upload_zip(Resource,Resource_path,r)
+                #One or two file, let just upload them:
+                else:
+                    for filename in Resource_files_list:
+                        #if it's a folder, zip it and upload it
+                        if os.path.isdir(Resource_path+'/'+filename):
+                            upload_zip(filename,Resource_path+'/'+filename,r)
+                        else:
+                            print '      *Uploading File '+filename+' ...                                        '
+                            #upload the file
+                            r.file(filename).put(Resource_path+'/'+filename)
+        else:
+            print 'WARNING : '+Resource +' is not a folder. Can not be upload.\n                                        '
+                        
+    #upload finish
+    assessor_obj.attrs.set('proc:genProcData/procstatus','COMPLETE')
+    assessor_obj.attrs.set('proc:genProcData/validation/status','Needs QA')
+
+def upload_zip(Resource,directory,resourceObj):
+    filenameZip=Resource+'.zip'
+    initDir=os.getcwd()
+    #Zip all the files in the directory
+    os.chdir(directory)
+    os.system('zip '+filenameZip+' *')
+    #upload
+    print '      *Uploading zip '+Resource+' ...'
+    resourceObj.put_zip(directory+'/'+filenameZip,extract=True)
+    #return to the initial directory:
+    os.chdir(initDir)
+
+########################################## CHECK OPTIONS ##########################################
+def check_options(options):
+    if options.directory:
+        if not os.path.exists(options.directory):
+            print 'OPTION ERROR: given directory as argument does not exist.'
+            return False
+    else:
+        print 'OPTION ERROR: You need to specify the directory -d/--directory.'
+        return False
+    return True
+
+########################################## PRINT DISPLAY ##########################################
+def Main_display(parser):
+    (options,args)=parser.parse_args()
+    #Display:
+    print '####################################################################################################'
+    print '#                                        XNATPROCESSUPLOAD                                         #'
+    print '#                                                                                                  #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
+    print '# Parameters :                                                                                     #'
+    if options=={'directory': None,'force': False}:
+        print '#     No Arguments given                                                                           #'
+        print '#     Use "Xnatprocessupload -h" to see the options                                                #'
+        print '####################################################################################################'
+        parser.print_help()
+        sys.exit()
+    else:
+        if options.directory:
+            print '#     %*s ->  %*s#' %(-30,'Directory',-58,get_proper_str(options.directory,True))
+        if options.force:
+            print '#     %*s ->  %*s#' %(-30,'Force',-58,'on')
+        print '####################################################################################################'
+
+########################################## OPTIONS ##########################################
+def parse_args():
+    from optparse import OptionParser
+    usage = "usage: %prog [options] \nWhat is the script doing : Upload Data on Xnat from a Directory as an Assessor. "
+    parser = OptionParser(usage=usage)
+    parser.add_option("-d", "--directory", dest="directory",default=None,
+                  help="Directory containing the different assessors folders that you want to upload.", metavar="FOLDER_PATH")
+    parser.add_option("--force", dest="force",action="store_true", default=False,
+                  help="Force the upload.", metavar="")
+    return parser
+
+###################################################################################################
+########################################## MAIN FUNCTION ##########################################
+###################################################################################################
+if __name__ == '__main__':
+    parser=parse_args()
+    (options,args) = parser.parse_args()
+    
+    #############################
+    #Main display:
+    Main_display(parser)
+    #check options:
+    run=check_options(options)
+    #############################
+    
+    #############################
+    # RUN                       #
+    #############################
+    if run:
+        #############################
+        #Arguments :
+        UploadDir = os.path.abspath(options.directory)
+        force = options.force
+            
+        #Start the process to upload
+        try:
+            xnat = get_interface()
+            print 'INFO: Uploading the resources for each processors in the directory'+UploadDir+' ...'
+            ################# 1) Upload the assessor data ###############
+            #For each assessor label that need to be upload :
+            Process_folder_list=os.listdir(UploadDir)
+            number_of_folders=len(Process_folder_list)
+            for index,assessor_label in enumerate(Process_folder_list):
+                assessor_path=UploadDir+'/'+assessor_label
+                if os.path.isdir(assessor_path):
+                    print ' *Folder : '+str(index+1)+'/'+str(number_of_folders)+' -- name: '+assessor_label+' / time: '+str(datetime.now())+'          '
+                    #Get the Project Name, the subject label, the experiment label and the assessor label from the folder name :
+                    labels=assessor_label.split('-x-')
+                    ProjectName=labels[0]
+                    Subject=labels[1]
+                    Experiment=labels[2]
+                    
+                    #The Process name is the last labels
+                    Process_name=labels[-1]
+                    
+                    #check if subject/experiment exists on XNAT
+                    EXPERIMENT = xnat.select('/project/'+ProjectName+'/subjects/'+Subject+'/experiments/'+Experiment)
+                    if EXPERIMENT.exists():
+                        #ASSESSOR in the experiment
+                        ASSESSOR=EXPERIMENT.assessor(assessor_label)
+                        #existence :
+                        if not ASSESSOR.exists():
+                            if Process_name=='FS':
+                                #create the assessor and set the status 
+                                ASSESSOR.create(assessors='fs:fsData')
+                                #Set attributes
+                                ASSESSOR.attrs.set('fs:fsData/procstatus','UPLOADING') #Set to uploading files
+                                ASSESSOR.attrs.set('fs:fsData/validation/status','Job Pending')
+                                ASSESSOR.attrs.set('fs:fsData/proctype', 'FreeSurfer')
+                                now=datetime.now()
+                                today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
+                                ASSESSOR.attrs.set('fs:fsData/date',today)
+                            else:
+                                #create the assessor and set the status 
+                                ASSESSOR.create(assessors='proc:genProcData')
+                                #Set attributes
+                                ASSESSOR.attrs.set('proc:genProcData/procstatus','UPLOADING') #Set to uploading files
+                                ASSESSOR.attrs.set('proc:genProcData/validation/status','Job Pending')
+                                ASSESSOR.attrs.set('proc:genProcData/proctype', Process_name)
+                                now=datetime.now()
+                                today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
+                                ASSESSOR.attrs.set('proc:genProcData/date',today)
+                        ## FreeSurfer ##
+                        if Process_name=='FS':      
+                            if ASSESSOR.attrs.get('fs:fsData/procstatus')=='READY_TO_COMPLETE' or ASSESSOR.attrs.get('fs:fsData/procstatus')=='COMPLETE':
+                                if not force:
+                                    print assessor_label+': Data already existing on XNAT. Use --force to force the upload.                    \n'
+                                else:
+                                    FS_Upload(EXPERIMENT,assessor_label,assessor_path,force)
+                            else:
+                                FS_Upload(EXPERIMENT,assessor_label,assessor_path,force)
+                        ## Default Processor ##
+                        else:
+                            if ASSESSOR.attrs.get('proc:genProcData/procstatus')=='READY_TO_COMPLETE' or ASSESSOR.attrs.get('proc:genProcData/procstatus')=='COMPLETE':
+                                if not force:
+                                    print '   -->Data already existing on XNAT. Use --force to force the upload.                    \n'
+                                else:
+                                    Process_Default_Upload(ASSESSOR,assessor_path,force)
+                            else:
+                                Process_Default_Upload(ASSESSOR,assessor_path,force)
+                    else:
+                        print 'ERROR: The folder '+assessor_label+' has a wrong ProjectName or Subject label or Experiment label.                    \n'
+        #Stop the process before the end or end of the script, remove the flagfile for the spider running 
+        finally:
+            xnat.disconnect()
+    print '===================================================================\n'

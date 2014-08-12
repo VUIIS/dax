@@ -1,0 +1,297 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Query through Xnat
+
+@author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
+'''
+
+import os
+import sys
+from pyxnat import Interface
+
+######################################################################################################
+########################################## USEFUL FUNCTIONS ##########################################
+######################################################################################################
+def get_interface():
+    # Environs
+    user = os.environ['XNAT_USER']
+    pwd = os.environ['XNAT_PASS']
+    host = os.environ['XNAT_HOST']
+    # Don't sys.exit, let callers catch KeyErrors
+    return Interface(host, user, pwd)
+
+def get_proper_str(str_option,end=False):
+    if len(str_option)>55:
+        if end:
+            return '...'+str_option[-50:]
+        else:
+            return str_option[:50]+'...'
+    else:
+        return str_option
+
+def list_experiments(intf, projectid=None, subjectid=None):
+    if projectid and subjectid:
+        post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
+    elif projectid == None and subjectid == None:
+        post_uri = '/REST/experiments'
+    elif projectid and subjectid == None:
+        post_uri = '/REST/projects/'+projectid+'/experiments'
+    else:
+        return None
+
+    post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:subjectdata/meta/last_modified'
+    experiment_list = intf._get_json(post_uri)
+
+    # Override the project returned to be the one we queried and add others for convenience
+    if (projectid != None):
+        for e in experiment_list:
+            e['project'] = projectid
+            e['project_id'] = projectid
+            e['project_label'] = projectid
+            e['subject_id'] = e['subject_ID'] 
+            e['session_id'] = e['ID']
+            e['session_label'] = e['label']
+
+    return experiment_list
+
+########################################################################################################
+########################################## SPECIFIC FUNCTIONS ##########################################
+########################################################################################################
+def get_text_session(xnat,project,txtfile):
+    session_list=list()
+    input_file = open(txtfile, 'r')
+    for line in input_file:
+        label=line.strip().split('\n')[0]
+        #check on XNAT:
+        worked,sess_label=xnat_check(xnat,project,label)
+        if worked:
+            session_list.append(sess_label)
+        
+    return session_list
+
+def xnat_check(xnat,project,label,list_experiment):
+    if len(label.split('-x-'))>1:
+        session=label.split('-x-')[2]
+    else:
+        session=label
+    subject=get_subject_id(xnat,session,list_experiment)
+    S=xnat.select('/project/'+project+'/subject/'+subject+'/experiment/'+session)
+    if S.exists():
+        return True,session
+    else:
+        return False,''
+
+def get_subject_id(xnat,session,list_experiment):
+    subject_id=[x['subject_id'] for x in list_experiment if x['session_label']==session]
+    return subject_id[0]
+    
+def change_date(xnat,project,session,list_experiment):
+    subject=get_subject_id(xnat,session,list_experiment)
+    Session=xnat.select('/project/'+project+'/subject/'+subject+'/experiment/'+session)
+    #set the date to nothing:
+    Session.attrs.set('xnat:mrSessionData/original',' ')
+    print '   ->Session changed to need update.'
+
+def list_project_assessors(intf, projectid):
+    new_list = []
+        
+    # First get FreeSurfer
+    post_uri = '/REST/archive/experiments'
+    post_uri += '?project='+projectid
+    post_uri += '&xsiType=fs:fsdata'
+    post_uri += '&columns=ID,label,URI,xsiType,project'
+    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
+    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
+    post_uri += ',fs:fsData/validation/status'
+    assessor_list = intf._get_json(post_uri)
+
+    for a in assessor_list:
+        anew = {}
+        anew['ID'] = a['ID']
+        anew['label'] = a['label']
+        anew['uri'] = a['URI']
+        anew['assessor_id'] = a['ID']
+        anew['assessor_label'] = a['label']
+        anew['assessor_uri'] = a['URI']
+        anew['project_id'] = projectid
+        anew['project_label'] = projectid
+        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+        anew['session_id'] = a['session_ID']
+        anew['session_label'] = a['session_label']
+        anew['procstatus'] = a['fs:fsdata/procstatus']
+        anew['qcstatus'] = a['fs:fsdata/validation/status']
+        anew['proctype'] = 'FreeSurfer'
+        anew['xsiType'] = a['xsiType']
+        new_list.append(anew)
+
+    # Then add genProcData    
+    post_uri = '/REST/archive/experiments'
+    post_uri += '?project='+projectid
+    post_uri += '&xsiType=proc:genprocdata'
+    post_uri += '&columns=ID,label,URI,xsiType,project'
+    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
+    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
+    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
+    assessor_list = intf._get_json(post_uri)
+
+    for a in assessor_list:
+        anew = {}
+        anew['ID'] = a['ID']
+        anew['label'] = a['label']
+        anew['uri'] = a['URI']
+        anew['assessor_id'] = a['ID']
+        anew['assessor_label'] = a['label']
+        anew['assessor_uri'] = a['URI']
+        anew['project_id'] = projectid
+        anew['project_label'] = projectid
+        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+        anew['session_id'] = a['session_ID']
+        anew['session_label'] = a['session_label']
+        anew['procstatus'] = a['proc:genprocdata/procstatus']
+        anew['proctype'] = a['proc:genprocdata/proctype']
+        anew['qcstatus'] = a['proc:genprocdata/validation/status']
+        anew['xsiType'] = a['xsiType']
+        new_list.append(anew)
+
+    return new_list
+
+def get_xnat_subject_need_inputs(xnat,project):
+    proc_list=list_project_assessors(xnat, project)
+    if not proc_list:
+        sys.stdout.write("   !!ERROR: You don't have access to the project: "+project+".!!\n")
+        sys.exit()
+    proc_list=filter(lambda x: x['procstatus']=='NEED_INPUTS', proc_list)
+    return list(set([x['session_label'] for x in proc_list]))
+        
+########################################## CHECK OPTIONS ##########################################                        
+def check_options(options):
+    # The options :
+    if not options.project:
+        print 'OPTION ERROR: You need to provide a project with the option -p/--project.'
+        return False
+        
+    if not options.session and not options.txtfile and not options.needinputs and not options.all:
+        print 'OPTION ERROR: You need to provide a subject label with -s/--subject or a text file -x/--txtfile or check NEED_INPUTS processes with -n/--needinputs.'
+        return False
+    
+    if options.all:
+        print 'OPTION WARNING: You choose --all. It will update all subjects again.'
+    else:
+        if (options.needinputs and options.session) or (options.needinputs and options.txtfile) or (options.txtfile and options.session):
+            print 'OPTION ERROR: You provide different modes together. Please provide only one: -s/--subject or -x/--txtfile or -n/--needinputs.'
+            return False
+           
+    if options.txtfile:
+        if not os.path.exists(options.txtfile):
+            print "OPTION ERROR: the file "+options.txtfile+" does not exist."
+            return False
+    else:
+        try:
+            xnat = get_interface()
+            #PROJECT
+            for project in options.project.split(','):
+                P=xnat.select('/project/'+project)
+                if not P.exists():
+                    print 'OPTION ERROR: You used the option -p/--project with one or more non existing project ID on XNAT.'
+                    return False
+            
+        finally:                                        
+            xnat.disconnect()
+                
+    return True
+
+########################################## MAIN DISPLAY FUNCTION ##########################################   
+def Main_display(parser):
+    (options,args)=parser.parse_args()
+    print '####################################################################################################'
+    print '#                                            XNATSUBJECTUPDATE                                     #'
+    print '#                                                                                                  #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
+    print '# Parameters :                                                                                     #'
+    if options=={'project': None, 'needinputs': False, 'txtfile': None, 'session': None,'all':False}:
+        print '#     No Arguments given                                                                           #'
+        print '#     See the help bellow or Use "Xnatsubjectupdate" -h                                            #'
+        print '####################################################################################################'
+        parser.print_help()
+        sys.exit()
+    else:
+        if options.all:
+            print '#     %*s ->  %*s#' %(-30,'All',-58,'on')
+        if options.project:
+            print '#     %*s ->  %*s#' %(-30,'Project(s)',-58,options.project)
+        if options.needinputs:
+            print '#     %*s ->  %*s#' %(-30,'Mode',-58,'Sessions with NEED_INPUTS processes')
+        if options.session:
+            print '#     %*s ->  %*s#' %(-30,'Mode',-58,'Selected Sessions')
+            print '#     %*s ->  %*s#' %(-30,'Session(s)',-58,get_proper_str(options.session))
+        if options.txtfile:
+            print '#     %*s ->  %*s#' %(-30,'Mode',-58,'TEXT file with list of sessions/processors')
+            print '#     %*s ->  %*s#' %(-30,'Text File',-58,get_proper_str(options.txtfile,True))
+        print '####################################################################################################'
+
+def parse_args():
+    from optparse import OptionParser
+    usage = "usage: %prog [options] \nWhat is the script doing : Change the last update date on a Session on XNAT to nothing to be update again. "
+    parser = OptionParser(usage=usage)
+    parser.add_option("-p", "--project", dest="project",default=None,
+                  help="One project ID on Xnat.", metavar="PROJECT_ID")
+    parser.add_option("-s", "--session", dest="session",default=None,
+                  help="Session label on Xnat or list of them.", metavar="SESSION_LABELS")
+    parser.add_option("-n", "--needinputs", dest="needinputs",action="store_true", default=False,
+                  help="Change the subject last update date for all the subject with processes in NEED_INPUTS mode.", metavar="SUBJECT_LABELS")
+    parser.add_option("-x","--txtfile",dest="txtfile",default=None,
+                    help="File txt with at each line the label of the assessor or just the Session label where the Subject date need to be changed. E.G for label: project-x-subject-x-experiment-x-scan-x-process_name.", metavar="FILEPATH")
+    parser.add_option("-a", "--all", dest="all",action="store_true", default=False,
+                  help="Change the session last update date for all sessions.", metavar="")
+    return parser
+              
+###################################################################################################
+########################################## MAIN FUNCTION ##########################################
+###################################################################################################
+if __name__ == '__main__':
+    """ Update the last update date of the session to nothing to be update again """
+    parser = parse_args()
+    (options,args)=parser.parse_args()
+    #############################
+    #Main display:
+    Main_display(parser)
+    #check options:
+    run=check_options(options)
+    #############################
+    
+    #############################
+    # RUN                       #
+    #############################
+    if run:
+        # Connection to Xnat
+        try:
+            xnat = get_interface()
+            
+            for indexP,project in enumerate(options.project.split(',')):
+                print '-> Project : '+project
+                print ' INFO: Getting Sessions from XNAT...'
+                list_sessions_xnat=list_experiments(xnat, project)
+                if options.all:
+                    print' INFO: Getting all XNAT sessions...'
+                    session_list=list(set([x['session_label'] for x in list_sessions_xnat]))
+                elif options.needinputs:
+                    print' INFO: Checking XNAT processes...'
+                    session_list=get_xnat_subject_need_inputs(xnat,project)
+                elif options.txtfile:
+                    print' INFO: Getting XNAT sessions from text file '+options.txtfile+' ...'
+                    session_list=get_text_session(xnat,project,options.txtfile,list_sessions_xnat)
+                else:
+                    session_list=(options.session).split(',')
+                
+                print' INFO: Changing XNAT sessions last update date for '+str(len(session_list))+' sessions ...'
+                for indexS,session in enumerate(session_list):
+                    print '  *Sessions '+str(indexS+1)+'/'+str(len(session_list))+' : '+session
+                    change_date(xnat,project,session,list_sessions_xnat)
+            
+        finally:                                        
+            xnat.disconnect()
+    
+    print '===================================================================\n'

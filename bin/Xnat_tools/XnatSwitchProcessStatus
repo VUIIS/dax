@@ -1,0 +1,576 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+'''
+Created on Jan 24, 2013
+
+@author: yvernabc
+'''
+
+import os
+import sys
+from pyxnat import Interface
+import fileinput
+
+######################################################################################################
+########################################## USEFUL FUNCTIONS ##########################################
+######################################################################################################
+def get_interface():
+	# Environs
+	user = os.environ['XNAT_USER']
+	pwd = os.environ['XNAT_PASS']
+	host = os.environ['XNAT_HOST']
+	# Don't sys.exit, let callers catch KeyErrors
+	return Interface(host, user, pwd)
+
+def list_out_resources(xnat,project,subject,experiment,assessor_label):
+	post_uri_out_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources'
+	out_resource_list = xnat._get_json(post_uri_out_resource)
+	return out_resource_list
+    
+def list_project_assessors(intf, projectid):
+    new_list = []
+        
+    # First get FreeSurfer
+    post_uri = '/REST/archive/experiments'
+    post_uri += '?project='+projectid
+    post_uri += '&xsiType=fs:fsdata'
+    post_uri += '&columns=ID,label,URI,xsiType,project'
+    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
+    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
+    post_uri += ',fs:fsData/validation/status'
+    assessor_list = intf._get_json(post_uri)
+
+    for a in assessor_list:
+        anew = {}
+        anew['ID'] = a['ID']
+        anew['label'] = a['label']
+        anew['uri'] = a['URI']
+        anew['assessor_id'] = a['ID']
+        anew['assessor_label'] = a['label']
+        anew['assessor_uri'] = a['URI']
+        anew['project_id'] = projectid
+        anew['project_label'] = projectid
+        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+        anew['session_id'] = a['session_ID']
+        anew['session_label'] = a['session_label']
+        anew['procstatus'] = a['fs:fsdata/procstatus']
+        anew['qcstatus'] = a['fs:fsdata/validation/status']
+        anew['proctype'] = 'FreeSurfer'
+        anew['xsiType'] = a['xsiType']
+        new_list.append(anew)
+
+    # Then add genProcData    
+    post_uri = '/REST/archive/experiments'
+    post_uri += '?project='+projectid
+    post_uri += '&xsiType=proc:genprocdata'
+    post_uri += '&columns=ID,label,URI,xsiType,project'
+    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
+    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
+    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
+    assessor_list = intf._get_json(post_uri)
+
+    for a in assessor_list:
+        anew = {}
+        anew['ID'] = a['ID']
+        anew['label'] = a['label']
+        anew['uri'] = a['URI']
+        anew['assessor_id'] = a['ID']
+        anew['assessor_label'] = a['label']
+        anew['assessor_uri'] = a['URI']
+        anew['project_id'] = projectid
+        anew['project_label'] = projectid
+        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+        anew['session_id'] = a['session_ID']
+        anew['session_label'] = a['session_label']
+        anew['procstatus'] = a['proc:genprocdata/procstatus']
+        anew['proctype'] = a['proc:genprocdata/proctype']
+        anew['qcstatus'] = a['proc:genprocdata/validation/status']
+        anew['xsiType'] = a['xsiType']
+        new_list.append(anew)
+
+    return new_list
+
+def get_proper_str(str_option,end=False):
+    if len(str_option)>55:
+        if end:
+            return '...'+str_option[-50:]
+        else:
+            return str_option[:50]+'...'
+    else:
+        return str_option
+       
+def get_option_list(option):
+    if not option:
+        return None
+    elif option=='all':
+        return 'all'
+    elif option=='nan':
+        return None
+    else:
+        return option.split(',')
+
+def is_good_QA_status(Assessor,check_status_list,FS):
+	#check if it need to run:
+	if FS:
+		if check_status_list:
+			run= Assessor.attrs.get('fs:fsData/validation/status') in check_status_list
+		else:
+			run=True
+	else:
+		if check_status_list:
+			run= Assessor.attrs.get('proc:genProcData/validation/status') in check_status_list
+		else:
+			run=True
+	
+	return run
+
+def is_good_Proc_status(Assessor,check_status_list,FS):
+	#check if it need to run:
+	if FS:
+		if check_status_list:
+			run= Assessor.attrs.get('fs:fsData/procstatus') in check_status_list
+		else:
+			run=True
+	else:
+		if check_status_list:
+			run= Assessor.attrs.get('proc:genProcData/procstatus') in check_status_list
+		else:
+			run=True
+	
+	return run
+
+########################################################################################################
+########################################## SPECIFIC FUNCTIONS ##########################################
+########################################################################################################
+
+########################################## DELETE OUT RESOURCES ##########################################
+def delete_Out_Resource(Assessor,resource_name):
+	sys.stdout.write('     ->Removing '+resource_name['label']+'                         \n')
+	done_up=0
+	count=0
+	while count<3 and done_up==0:
+		try:
+			if Assessor.out_resource(resource_name['label']).exists():
+				Assessor.out_resource(resource_name['label']).delete()
+				done_up=1
+			else:
+				sys.stdout.write('      ->Resource deleted, does not exist anymore.           \n')
+				done_up=1
+		except Exception as e:
+			if isinstance(e,KeyboardInterrupt):
+				sys.exit()
+			else:
+				sys.stdout.write('      ->WARNING: Timing Out while deleting: Resource Too big.Trying again.         \n')
+				count+=1
+	
+	if done_up==0:
+		sys.stdout.write('      ->WARNING: Can not remove resource '+resource_name['label']+'. Deleting file by file.         \n')
+		try:
+			for fname in Assessor.out_resource(resource_name['label']).files().get()[:]:
+				Assessor.out_resource(resource_name['label']).file(fname).delete()
+				Assessor.out_resource(resource_name['label']).delete()
+		except Exception as e:
+			if isinstance(e,KeyboardInterrupt):
+				sys.exit()
+			else:
+				sys.stdout.write('      ->ERROR: deleting file by file for the resource '+resource_name['label']+'        \n')
+				print e
+
+########################################## SWITCH JOB/QC STATUS FS/DEFAULT PROC ##########################################
+def Switch_FS_QA_status(Assessor,status):
+    Assessor.attrs.set('fs:fsData/validation/status',status)
+    sys.stdout.write('    -QA Status on Assessor '+Assessor.label()+' changed to '+status+'\n')
+    
+def Switch_Default_PROC_QA_status(Assessor,status):
+	Assessor.attrs.set('proc:genProcData/validation/status',status)
+	sys.stdout.write('    -QA Status on Assessor '+Assessor.label()+' changed to '+status+'\n')
+	
+def Switch_FS_JOB_status(Assessor,status,scanNprocesses=None,sessionNprocesses=None):
+    Assessor.attrs.set('fs:fsData/procstatus',status)
+    if status=='NEED_TO_RUN' or status=='NEED_INPUTS':
+    	Assessor.attrs.set('fs:fsData/validation/status','Job Pending')
+    	Assessor.attrs.set('fs:fsData/jobid',' ')
+    	Assessor.attrs.set('fs:fsData/memused',' ')
+    	Assessor.attrs.set('fs:fsData/walltimeused',' ')
+        if scanNprocesses:
+            Switch_Depending_JOB_NEED_INPUTS(scanNprocesses,True)
+        if sessionNprocesses:
+            Switch_Depending_JOB_NEED_INPUTS(sessionNprocesses)
+    #display
+    sys.stdout.write('    -JOB Status on Assessor '+Assessor.label()+' changed to '+status+'\n')
+
+def Switch_Default_PROC_JOB_status(Assessor,status,scanNprocesses=None,sessionNprocesses=None):
+    Assessor.attrs.set('proc:genProcData/procstatus',status)
+    if status=='NEED_TO_RUN' or status=='NEED_INPUTS':
+    	Assessor.attrs.set('proc:genProcData/validation/status','Job Pending')
+    	Assessor.attrs.set('proc:genProcData/jobid',' ')
+    	Assessor.attrs.set('proc:genProcData/memused',' ')
+    	Assessor.attrs.set('proc:genProcData/walltimeused',' ')
+        if scanNprocesses:
+            Switch_Depending_JOB_NEED_INPUTS(Assessor,scanNprocesses,True)
+        if sessionNprocesses:
+            Switch_Depending_JOB_NEED_INPUTS(Assessor,sessionNprocesses)
+    #display
+    sys.stdout.write('    -JOB Status on Assessor '+Assessor.label()+' changed to '+status+'\n')
+
+def Switch_Depending_JOB_NEED_INPUTS(Assessor,processtype_list,scantype=False):
+    sys.stdout.write('    +Switching JOBs depending on principal job: \n')
+    for ProcType in processtype_list:
+        labels=Assessor.label().split('-x-')
+        if scantype:
+            assessor_label=labels[0]+'-x-'+labels[1]+'-x-'+labels[2]+'-x-'+labels[3]+'-x-'+ProcType
+        else:
+            assessor_label=labels[0]+'-x-'+labels[1]+'-x-'+labels[2]+'-x-'+ProcType
+        #display
+        AssessorDepend=xnat.select('/project/'+labels[0]+'/subjects/'+labels[1]+'/experiments/'+labels[2]+'/assessors/'+assessor_label)
+        if AssessorDepend.exists():
+            Switch_Default_PROC_JOB_status(AssessorDepend,'NEED_INPUTS')
+            for resource_name in list_out_resources(xnat,labels[0],labels[1],labels[2],assessor_label):
+                delete_Out_Resource(AssessorDepend,resource_name)
+
+########################################## SWITCH ALL ##########################################
+def Switch_XNAT_PROCESS_status(xnat,ProjectList,subjects,sessions,Processes_List,scanNprocesses,sessionNprocesses,status,check_status_list,deleteR,qastatus):
+	sys.stdout.write('XNAT querying ...\n')
+	for project in ProjectList:
+		sys.stdout.write("  *Project: "+project+'                                                \n')
+        #for all processors in the project:
+        proc_list=list_project_assessors(xnat, project)
+        if not proc_list:
+            sys.stdout.write("   !!ERROR: You don't have access to the project: "+project+".!!\n")
+        #if subjects or sessions set:
+        if subjects or sessions:
+            proc_list=filter_proc(subjects,sessions,proc_list) 
+        proc_list=filter_assessors(Processes_List,check_status_list,qastatus,proc_list)
+        #sort the list:
+        p_list=sorted(proc_list, key=lambda k: k['label'])
+        for index,proc_dict in enumerate(p_list):
+            sys.stdout.write('   - Process '+str(index+1)+'/'+str(len(p_list))+'        \r')
+            sys.stdout.flush()
+            if qastatus:
+                ASSESSOR=xnat.select('/project/'+project+'/subjects/'+proc_dict['subject_id']+'/experiments/'+proc_dict['session_id']+'/assessors/'+proc_dict['ID'])
+                if proc_dict['proctype']=='FreeSurfer' or proc_dict['proctype']=='FS':
+                    Switch_FS_QA_status(ASSESSOR,status)
+                else:
+                    Switch_Default_PROC_QA_status(ASSESSOR,status)
+            else:
+                ASSESSOR=xnat.select('/project/'+project+'/subjects/'+proc_dict['subject_id']+'/experiments/'+proc_dict['session_id']+'/assessors/'+proc_dict['ID'])
+                if proc_dict['proctype']=='FreeSurfer' or proc_dict['proctype']=='FS':
+                    Switch_FS_JOB_status(ASSESSOR,status,scanNprocesses,sessionNprocesses)
+                else:
+                    Switch_Default_PROC_JOB_status(ASSESSOR,status,scanNprocesses,sessionNprocesses)
+                if deleteR:
+                    for resource_name in list_out_resources(xnat,project,proc_dict['subject_id'],proc_dict['session_id'],proc_dict['label']):
+                        delete_Out_Resource(ASSESSOR,resource_name)
+                    
+def filter_proc(subjects,sessions,proc_list):
+    proc_list_subj=[]
+    proc_list_sess=[]
+    if subjects:
+        proc_list_subj=filter(lambda x: x['label'].split('-x-')[1] in subjects, proc_list)
+    if sessions:
+        proc_list_sess=filter(lambda x: x['session_label'] in sessions, proc_list)
+        
+    return proc_list_subj+proc_list_sess
+    
+def filter_assessors(proctypes,status,qastatus,obj_list):
+    if proctypes and proctypes!='all':
+        obj_list=filter(lambda x: x['proctype'] in proctypes, obj_list)
+    if qastatus:
+    	obj_list=filter(lambda x: x['qcstatus'] in status, obj_list)
+    else:
+    	if status and status!='all':
+        	obj_list=filter(lambda x: x['procstatus'] in status, obj_list)
+    return obj_list
+            
+########################################## CHANGE STATUS FOR SPECIFIC ASSESSOR ##########################################	
+########################################## set STATUS ASSESSOR ##########################################
+def set_Status_assessor(xnat,assessor_label,scanNprocesses,sessionNprocesses,status,check_status_list,deleteR,qastatus):
+    #get the information from the label:
+    labels=assessor_label.split('-x-')
+    if len(labels)==1:
+        print'ERROR: WRONG PROCESS LABEL: the assessor label can not be set (ERROR no "-x-" in the name)'
+        print'  -> Skipping the processor '+assessor_label
+    else:
+        project=labels[0]
+        subject=labels[1]
+        experiment=labels[2]
+        Process_name=labels[-1]
+        
+        ASSESSOR=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label)
+        if not ASSESSOR.exists():
+            print 'ERROR: Assessors '+assessor_label+' does not exist on XNAT.'
+        else:
+            type_run=should_switch_assessor(ASSESSOR,Process_name,check_status_list,qastatus)
+            if type_run==1:
+                if Process_name=='FS':
+                    Switch_FS_QA_status(ASSESSOR,status)
+                else:
+                    Switch_Default_PROC_QA_status(ASSESSOR,status)
+            elif type_run==2:
+                if Process_name=='FS':   
+                    Switch_FS_JOB_status(ASSESSOR,status,scanNprocesses,sessionNprocesses)
+                else:
+                    Switch_Default_PROC_JOB_status(ASSESSOR,status,scanNprocesses,sessionNprocesses)
+                if deleteR:
+                    #resource loop
+                    for resource_name in list_out_resources(xnat,project,subject,experiment,assessor_label):
+                        delete_Out_Resource(ASSESSOR,resource_name)
+
+def should_switch_assessor(ASSESSOR,proctype,check_status_list,qastatus):
+    #gonna return 1 if true for qastatus and FS and status in the list or not FS and status in the list or no status to check
+    if qastatus and (not check_status_list or (proctype=='FS' and ASSESSOR.attrs.get('fs:fsData/validation/status') in check_status_list) or (proctype!='FS' and ASSESSOR.attrs.get('proc:genProcData/validation/status') in check_status_list)):
+        return 1
+    #gonna return 2 if true for FS and status in the list or not FS and status in the list or no status to check
+    elif not check_status_list or (proctype=='FS' and ASSESSOR.attrs.get('fs:fsData/procstatus') in check_status_list) or (proctype!='FS' and ASSESSOR.attrs.get('proc:genProcData/procstatus') in check_status_list):
+        return 2
+    return 0 #should not run
+
+########################################## CHECK THE STATUS GIVE AS INPUT ##########################################
+def checking_status(status,check_status_list,qastatus):
+    if not qastatus:
+        status_correct=0
+	
+    	if status=='NEED_TO_RUN':
+    		status_correct=1
+    	elif status=='NEED_INPUTS':
+    		status_correct=1
+    	elif status=='JOB_RUNNING':
+    		print 'STATUS ERROR: You choose JOB_RUNNING as a new status. This status is set only by the automatic script to run jobs. If you want to use it anyway, use the options --force.'
+    		sys.exit()
+    	elif status=='JOB_FAILED':
+    		print 'STATUS ERROR: You choose JOB_FAILED as a new status. This status is set only by the automatic script to check jobs. If you want to use it anyway, use the options --force.'
+    		sys.exit()
+    	elif status=='READY_TO_UPLOAD':
+    		print 'STATUS ERROR: You choose ReadyToUpload as a new status. This status is set only by the jobs. If you want to use it anyway, use the options --force.'
+    		sys.exit()
+    	elif status=='UPLOADING':
+    		print 'STATUS ERROR: You choose Uploading as a new status. This status is set only by the spider that upload the processed data. If you want to use it anyway, use the options --force.'
+    		sys.exit()
+    	elif status=='COMPLETE':
+    		status_correct=1
+    
+    	#For statusbefore :
+    	if check_status_list:
+    		check_status_correct=0
+    		for check_status in check_status_list:
+    			if check_status=='NEED_TO_RUN':
+    				check_status_correct=1
+    			elif check_status=='NEED_INPUTS':
+    				check_status_correct=1
+    			elif check_status=='JOB_RUNNING':
+    				print "STATUS WARNING: You choose JOB_RUNNING as previous status to change. Don't forget to remove the jobs from ACCRE if there are still running."
+    				check_status_correct=1
+    			elif check_status=='JOB_FAILED':
+    				check_status_correct=1
+    			elif check_status=='READY_TO_UPLOAD':
+    				check_status_correct=1
+    			elif check_status=='UPLOADING':
+    				print 'STATUS WARNING: You choose Uploading as previous status to change. Be sure that nothing is really uploading right now before changing the assessor status.'
+    				check_status_correct=1
+    			elif check_status=='COMPLETE':
+    				check_status_correct=1
+    	else:
+    		check_status_correct=1
+    	
+    	if not status_correct and not check_status_correct:
+    		print 'STATUS ERROR: the status given in the option are not in the list of the status that the system provide. Use --force to force the change.'
+    		sys.exit()
+        
+########################################## CHECK OPTIONS ##########################################
+def check_options(options):
+    #Checked argument values if not:
+    if options.txtfile:
+    	if not os.path.exists(options.txtfile):
+    		print "OPTION ERROR: the file "+options.txtfile+" does not exist."
+    		return False
+    else:
+        if not options.txtfile and not options.select:
+    		if not options.project:
+    			print'OPTION ERROR: No project ID given, please give one with -p options. Use -h to check the options.'
+    			return False
+    		if not options.processes:
+    			print'OPTION ERROR: No process type given, please give one with -t options. Use -h to check the options.'
+    			print'E.G: fMRIQA,dtiQA_v2,FreeSurfer'
+    			return False
+    
+    if not options.status:
+    	print 'OPTION ERROR: No status given, please give one with -s options. Use -h to check the options.'
+    	return False
+    #Checking Status if it's in the list
+    if not options.force:
+    	if not options.check_status or options.check_status=='all':
+    		check_status_list=None
+    	else:
+    		check_status_list=options.check_status.split(',')
+    	checking_status(options.status,check_status_list,options.qastatus)
+    
+    if not options.check_status:
+    	print'OPTION WARNING: No status to be check given (opt: -f/--formerStatus). The script will change the status of all the processes type given to '+options.status
+    if options.deleteR:
+    	print'OPTION WARNING: The resources/files on the process will be deleted before changing the status since you used the option -d / --deleteR.'
+    
+    return True
+							
+########################################## MAIN DISPLAY FUNCTION ##########################################
+def Main_display(parser):
+    (options,args) = parser.parse_args()	
+    #Display:
+    print '####################################################################################################'
+    print '#                                       XNATSWITCHPROCESSSTATUS                                    #'
+    print '#                                                                                                  #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
+    print '# Parameters :                                                                                     #'
+    if options=={'status': None, 'qastatus': False, 'scanNprocesses': None, 'sessionNprocesses': None, 'processes': None, 'force': False, 'txtfile': None, 'project': None, 'session': None, 'deleteR': False, 'check_status': None, 'select': None, 'subject': None}:
+    	print '#     No Arguments given                                                                           #'
+    	print '#     Use "XnatSwitchProcessStatus -h" to see the options                                          #'
+    	print '####################################################################################################'
+    	parser.print_help()
+    	sys.exit()
+    else:		
+        if options.txtfile:
+        	print '#     %*s ->  %*s#' %(-30,'File txt',-58,get_proper_str(options.txtfile,True))
+        elif options.select:
+        	print '#     %*s ->  %*s#' %(-30,'Selected Process',-58,get_proper_str(options.select,True))
+        else:
+            if options.project:
+            	print '#     %*s ->  %*s#' %(-30,'Project(s)',-58,get_proper_str(options.project))
+            #Subjects
+            if options.subject:
+            	print '#     %*s ->  %*s#' %(-30,'Subject(s)',-58,get_proper_str(options.subject))
+            #Experiment
+            if options.session:
+            	print '#     %*s ->  %*s#' %(-30,'Session(s)',-58,get_proper_str(options.session))
+            #Processes	
+            if options.processes:
+            	print '#     %*s ->  %*s#' %(-30,'Process Types',-58,get_proper_str(options.processes))
+            if options.scanNprocesses:
+                print '#     %*s ->  %*s#' %(-30,'Scan Process Types NI',-58,get_proper_str(options.scanNprocesses))
+            if options.sessionNprocesses:
+                print '#     %*s ->  %*s#' %(-30,'Session Process Types NI',-58,get_proper_str(options.sessionNprocesses))
+            if options.qastatus:
+            	print '#     %*s ->  %*s#' %(-30,'Change QA status',-58,'on')
+            if options.check_status:
+            	print '#     %*s ->  %*s#' %(-30,'Previous Status',-58,get_proper_str(options.check_status))
+        if options.status:
+        	print '#     %*s ->  %*s#' %(-30,'New Status',-58,options.status)
+        if options.deleteR:
+        	print '#     %*s ->  %*s#' %(-30,'Delete resources',-58,'on')
+        if options.force:
+        	print '#     %*s ->  %*s#' %(-30,'Force',-58,'on')
+    print '####################################################################################################'
+
+########################################## OPTIONS ##########################################
+def parse_args():
+    from optparse import OptionParser
+    usage = "usage: %prog [options] \nWhat is the script doing : Change / Switch the status of Process on XNAT . "
+    parser = OptionParser(usage=usage)
+    parser.add_option("-p", "--project", dest="project",default=None,
+    				help="Project ID on XNAT or list of Project ID", metavar="PROJECT_ID")
+    parser.add_option("-s", "--status", dest="status",default=None,
+    				help="Status you want to set on the Processes. E.G: 'NeedToRun'", metavar="STATUS")
+    parser.add_option("-f","--formerStatus", dest="check_status",default=None,
+    				help="Change the status of the process with this status. E.G: 'Failed'", metavar="FORMER_STATUS")           
+    parser.add_option("-t","--type", dest="processes",default=None,
+    				help="Process type you want the status to changed. E.G: fMRIQA,dtiQA_v2. You can use 'all' for all of them. If not use, will change the status for the processes with the right Type.", metavar="PROCESS_TYPE")  
+    parser.add_option("-n","--ScanNeedinputs", dest="scanNprocesses",default=None,
+                    help="Process type running on Scan that will need inputs from the process type you are rerunning.", metavar="PROCESS_TYPE") 
+    parser.add_option("-N","--SessionNeedinputs", dest="sessionNprocesses",default=None,
+                    help="Process type running on Session that will need inputs from the process type you are rerunning. E.G: TBSS for dtiQA_v2.", metavar="PROCESS_TYPE") 
+    parser.add_option("--subj", dest="subject",default=None,
+                  help="Change Status for only this subject/list of subjects. E.G: --subj VUSTP2,VUSTP3", metavar="LIST_OF_SUBJECTS")
+    parser.add_option("--sess", dest="session",default=None,
+                  help="Change Status for only this session/list of sessions. Use the options --subj with it. E.G: --exp VUSTP2a,VUSTP3b", metavar="LIST_OF_EXPERIMENTS")
+    parser.add_option("--select", dest="select",default=None,
+    				help="Give the process label that you want to change the status. E.G : BLSA-x-BLSA_0000-x-BLSA_0000_00-x-FreeSurfer", metavar="PROCESS_LABEL")   
+    parser.add_option("-d","--deleteR",dest="deleteR",action="store_true", default=False,
+    				help="Delete the resources present on the process.", metavar="")
+    parser.add_option("--qc",dest="qastatus",action="store_true", default=False,
+    				help="Change the quality control status on XNAT.", metavar="")
+    parser.add_option("-x","--txtfile",dest="txtfile",default=None,
+    				help="File txt with at each line the label of the assessor where the status need to be changed. E.G for label: project-x-subject-x-experiment-x-scan-x-process_name.", metavar="FILEPATH")
+    parser.add_option("--force",dest="force",action="store_true", default=False,
+    				help="Force the action to change the status even if it's not a standard status.", metavar="")      
+    return parser
+
+###################################################################################################
+########################################## MAIN FUNCTION ##########################################
+###################################################################################################
+if __name__ == '__main__':
+	parser=parse_args()
+	(options,args) = parser.parse_args()
+	
+	#############################
+    #Main display:
+	Main_display(parser)
+    #check options:
+	run=check_options(options)
+    #############################
+	
+	#############################
+    # RUN                       #
+    #############################
+	if run:
+		#############################
+		#Arguments :
+		ProjectList = get_option_list(options.project)
+		status=options.status
+		#status to be check from the options
+		check_status=options.check_status
+		if not check_status or check_status=='all':
+			check_status_list=None
+		else:
+			check_status_list=check_status.split(',')
+		#process list from the options
+		Processes_List=get_option_list(options.processes)
+		#XNAT option
+		if not options.subject:
+			subject_List=None
+		elif options.subject=='all':
+			subject_List=None
+		else:
+			subject_List=options.subject.split(',')
+		if not options.session:
+			session_List=None
+		elif options.session=='all':
+			session_List=None
+		else:
+			session_List=options.session.split(',')
+		#other options
+		selectA=options.select
+		deleteR=options.deleteR
+		force=options.force
+		txtfile=options.txtfile
+		qastatus=options.qastatus
+        scanNprocesses=get_option_list(options.scanNprocesses)
+        sessionNprocesses=get_option_list(options.sessionNprocesses)
+        
+        #FS for FREESURFER
+        if Processes_List and Processes_List!='all' and 'FS' in Processes_List:
+            Processes_List.remove('FS')
+            Processes_List.append('FreeSurfer')
+		
+		# Connection to Xnat
+        try:
+			xnat = get_interface()
+			#if select a specific assessor
+			if selectA:
+				print "Changing Status on assessor "+selectA+" to "+status
+				#set the status
+				set_Status_assessor(xnat,selectA,scanNprocesses,sessionNprocesses,status,check_status_list,deleteR,qastatus)
+			
+			#if using a file
+			elif txtfile:
+				assessor_label_list=list()
+				input_file = open(txtfile, 'r')
+				for index,line in enumerate(input_file):
+					assessor_label=line.strip().split('\n')[0]
+					#set the status
+					set_Status_assessor(xnat,assessor_label,scanNprocesses,sessionNprocesses,status,check_status_list,deleteR,qastatus)
+			else:
+				Switch_XNAT_PROCESS_status(xnat,ProjectList,subject_List,session_List,Processes_List,scanNprocesses,sessionNprocesses,status,check_status_list,deleteR,qastatus)
+        finally:                
+			xnat.disconnect()	
+		
+	# Display:
+	print '===================================================================\n'
