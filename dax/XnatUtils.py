@@ -1,10 +1,14 @@
 import socket
+import os
+import sys
+import shutil
+import re
+from datetime import datetime
 
 from pyxnat import Interface
-import os, sys, shutil, re
-from datetime import datetime
-import redcap
 from lxml import etree
+
+import redcap
 
 ####################################################################################
 #            Class JobHandler to copy file after the end of a Job                  #
@@ -1095,6 +1099,18 @@ def print_args(options):
         else:
             print info,": Not set. The process might fail without this argument."
     print "---------------------------------"
+
+def makedir(jobdir):
+    if not os.path.exists(jobdir):
+        os.mkdir(jobdir)
+    else:
+        today=datetime.now()
+        jobdir=jobdir+'/TempDir_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day)
+        if not os.path.exists(jobdir):
+            os.mkdir(jobdir)
+        else:
+            clean_directory(jobdir)
+    return jobdir
  
 # Upload a folder to a resource all files are zip and then unzip in Xnat   
 def Upload_folder_to_resource(resourceObj,directory):
