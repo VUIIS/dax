@@ -1,12 +1,9 @@
-import task
-import os,re
-import XnatUtils
-from os.path import expanduser
-from datetime import datetime
+import os
+import re
 
-USER_HOME = expanduser("~")
-DEFAULT_MASIMATLAB_PATH = os.path.join(USER_HOME,'masimatlab')
-DEFAULT_SPIDER_DIR = os.path.join(DEFAULT_MASIMATLAB_PATH, 'trunk', 'xnatspiders', 'spiders')
+import task
+import XnatUtils
+from constants import DEFAULT_MASIMATLAB_PATH
 
 class Processor(object):
     def __init__(self,walltime_str,memreq_mb,spider_path,version=None,masimatlab=DEFAULT_MASIMATLAB_PATH,ppn=1,xsitype='proc:genProcData'):

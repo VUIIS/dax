@@ -1,12 +1,8 @@
 import os
 import shutil
 import smtplib
-from os.path import expanduser
 from email.mime.text import MIMEText
 from datetime import datetime
-
-USER_HOME = expanduser("~")
-DEFAULT_MASIMATLAB_PATH = os.path.join(USER_HOME,'masimatlab')
 
 class Module(object):
     def __init__(self,module_name,directory,email,Text_report):
