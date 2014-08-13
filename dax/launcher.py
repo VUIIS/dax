@@ -6,15 +6,18 @@
 """
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 
-import os,sys
+import os
+import sys
+from datetime import datetime, timedelta
+
 from pyxnat import Interface
+
 import processors
 import modules
 import XnatUtils
 import task
 import cluster
 from task import Task
-from datetime import datetime, timedelta
 
 DEFAULT_QUEUE_LIMIT = 900
 DEFAULT_ROOT_JOB_DIR = '/tmp'
@@ -349,7 +352,7 @@ class Launcher(object):
         lock_file = os.path.join(self.upload_dir,'FlagFiles',lockfile_prefix+'_'+UPDATE_LOCK_FILE)
         
         if os.path.exists(lock_file):
-           os.remove(lock_file)
+            os.remove(lock_file)
         
     def get_lastupdated(self, info):
         update_time = info['last_updated'][len(UPDATE_PREFIX):]
