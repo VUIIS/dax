@@ -10,7 +10,7 @@ Created on Mar 13, 2013
 import os,sys,re
 from datetime import datetime
 from pyxnat import Interface
-from task import READY_TO_COMPLETE, COMPLETE, UPLOADING
+from dax.task import READY_TO_COMPLETE, COMPLETE, UPLOADING
 import subprocess
 from subprocess import CalledProcessError
 from email.mime.text import MIMEText
