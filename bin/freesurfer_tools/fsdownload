@@ -13,7 +13,7 @@ import shutil
 
 from pyxnat import Interface
 
-import XnatUtils
+from dax import XnatUtils
 
 def parse_args():
     from argparse import ArgumentParser
