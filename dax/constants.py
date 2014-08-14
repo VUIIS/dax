@@ -12,6 +12,7 @@ else:
 #Result dir
 if 'UPLOAD_SPIDER_DIR' not in os.environ:
   RESULTS_DIR=os.path.join(USER_HOME,'RESULTS_XNAT_SPIDER')
-  os.mkdir(RESULTS_DIR)
+  if not os.path.exists(RESULTS_DIR):
+    os.mkdir(RESULTS_DIR)
 else:
   RESULTS_DIR=os.environ['UPLOAD_SPIDER_DIR']
