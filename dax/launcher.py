@@ -18,7 +18,7 @@ import XnatUtils
 import task
 import cluster
 from task import Task
-from constant import RESULTS_DIR
+from constants import RESULTS_DIR
 
 DEFAULT_QUEUE_LIMIT = 900
 DEFAULT_ROOT_JOB_DIR = '/tmp'
@@ -38,6 +38,16 @@ class Launcher(object):
         self.priority_project = priority_project
         self.job_email=job_email
         self.job_email_options=job_email_options
+        
+        #Creating Folders for flagfile/pbs/outlog in RESULTS_DIR
+        if not os.path.exists(RESULTS_DIR):
+            os.mkdir(RESULTS_DIR)
+        if not os.path.exists(os.path.join(RESULTS_DIR,'PBS')):
+            os.mkdir(os.path.join(RESULTS_DIR,'PBS'))
+        if not os.path.exists(os.path.join(RESULTS_DIR,'OUTLOG')):
+            os.mkdir(os.path.join(RESULTS_DIR,'OUTLOG'))
+        if not os.path.exists(os.path.join(RESULTS_DIR,'FlagFiles')):
+            os.mkdir(os.path.join(RESULTS_DIR,'FlagFiles'))
         
         # Add empty lists for projects in one list but not the other
         for proj in self.project_process_dict.keys():
