@@ -3,10 +3,10 @@ import re
 
 import task
 import XnatUtils
-from constants import DEFAULT_MASIMATLAB_PATH
+from constants import MASIMATLAB_PATH
 
 class Processor(object):
-    def __init__(self,walltime_str,memreq_mb,spider_path,version=None,masimatlab=DEFAULT_MASIMATLAB_PATH,ppn=1,xsitype='proc:genProcData'):
+    def __init__(self,walltime_str,memreq_mb,spider_path,version=None,masimatlab=MASIMATLAB_PATH,ppn=1,xsitype='proc:genProcData'):
         self.walltime_str=walltime_str # 00:00:00 format
         self.memreq_mb=memreq_mb  # memory required in megabytes      
         self.masimatlab=masimatlab
@@ -57,7 +57,7 @@ class ScanProcessor(Processor):
     def should_run(): 
         raise NotImplementedError()
     
-    def __init__(self,scan_types,walltime_str,memreq_mb,spider_path,version=None,masimatlab=DEFAULT_MASIMATLAB_PATH, ppn=1):
+    def __init__(self,scan_types,walltime_str,memreq_mb,spider_path,version=None,masimatlab=MASIMATLAB_PATH, ppn=1):
         super(ScanProcessor, self).__init__(walltime_str, memreq_mb,spider_path,version,masimatlab,ppn)
         self.scan_types=scan_types
          
@@ -81,7 +81,7 @@ class SessionProcessor(Processor):
     def should_run(): 
         raise NotImplementedError()
     
-    def __init__(self,walltime_str,memreq_mb,spider_path,version=None,masimatlab=DEFAULT_MASIMATLAB_PATH,ppn=1):
+    def __init__(self,walltime_str,memreq_mb,spider_path,version=None,masimatlab=MASIMATLAB_PATH,ppn=1):
         super(SessionProcessor, self).__init__(walltime_str,memreq_mb,spider_path,version,masimatlab,ppn)
         
     def get_assessor_name(self,session_dict):  
