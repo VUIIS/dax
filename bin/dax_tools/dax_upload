@@ -17,6 +17,7 @@ from email.mime.text import MIMEText
 from email.MIMEBase import MIMEBase
 import smtplib
 from email import Encoders
+from dax.constants import RESULTS_DIR
 
 def parse_args():
     from optparse import OptionParser
@@ -64,21 +65,14 @@ def sendMail(FROM,PWS,TO,SUBJECT,TEXT,SERVER,filename='nan'):
 def get_assessor_name_from_folder():
     #Get the assessor label from the folders in Upload Directory that are ready to be upload
     
-    #Upload Directory 
-    try:
-        UploadDir = os.environ['UPLOAD_SPIDER_DIR']
-    except KeyError as e:
-        print "You must set the environment variable %s" % str(e)
-        sys.exit(1) 
-    
     #list of assessor label
     assessor_label_list=list()
     
     print ' -Get Processes names from the upload folder...'
     #check all files/folder in the directory
-    UploadDirList=os.listdir(UploadDir)
+    UploadDirList=os.listdir(RESULTS_DIR)
     for assessor_label in UploadDirList:
-        assessor_path=UploadDir+'/'+assessor_label
+        assessor_path=os.path.join(RESULTS_DIR,assessor_label)
         #if it's a folder and not OUTLOG and the flag file READY_TO_UPLAOD exists
         if os.path.isdir(assessor_path) and assessor_label!='OUTLOG' and assessor_label!='TRASH' and assessor_label!='PBS' and assessor_label!='FlagFiles' and (os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt')) or os.path.exists(os.path.join(assessor_path,'JOB_FAILED.txt'))):
             if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
@@ -90,21 +84,14 @@ def get_assessor_name_from_folder():
 def get_outlog_from_folder():
     #Get the outlog files which need to be upload
     
-    #Upload Directory 
-    try:
-        UploadDir = os.environ['UPLOAD_SPIDER_DIR']
-    except KeyError as e:
-        print "You must set the environment variable %s" % str(e)
-        sys.exit(1) 
-    
     #list of assessor label
     outlog_list=list()
     
     print ' -Get the OUTLOG for the processes...'
     #check all files/folder in the directory
-    OutlogDirList=os.listdir(UploadDir+'/OUTLOG')
+    OutlogDirList=os.listdir(os.path.join(RESULTS_DIR,'OUTLOG'))
     for outlog_name in OutlogDirList:
-        outlog_file=os.path.join(UploadDir,'OUTLOG',outlog_name)
+        outlog_file=os.path.join(RESULTS_DIR,'OUTLOG',outlog_name)
         #if it's a folder and not OUTLOG and the flag file READY_TO_UPLAOD exists
         if os.path.isfile(outlog_file):
             #Add the file to the list to be uploaded:
@@ -115,21 +102,14 @@ def get_outlog_from_folder():
 def get_pbs_from_folder():
     #Get the pbs files which need to be upload
     
-    #Upload Directory 
-    try:
-        UploadDir = os.environ['UPLOAD_SPIDER_DIR']
-    except KeyError as e:
-        print "You must set the environment variable %s" % str(e)
-        sys.exit(1) 
-    
     #list of assessor label
     pbs_list=list()
     
     print ' -Get the PBS for the processes...'
     #check all files/folder in the directory
-    PBSDirList=os.listdir(UploadDir+'/PBS')
+    PBSDirList=os.listdir(os.path.join(RESULTS_DIR,'PBS'))
     for pbs_name in PBSDirList:
-        pbs_file=UploadDir+'/PBS/'+pbs_name
+        pbs_file=os.path.join(RESULTS_DIR,'PBS',pbs_name)
         #if it's a folder and not OUTLOG and the flag file READY_TO_UPLAOD exists
         if os.path.isfile(pbs_file):
             #add the file to the list to be uploaded
@@ -160,9 +140,9 @@ def check_process(process_file):
         #error , send an email
         return 1
 
-def check_crontab_job(UploadDir):
+def check_crontab_job():
     flag_files_list=list()
-    for files in os.listdir(os.path.join(UploadDir,'FlagFiles')):
+    for files in os.listdir(os.path.join(RESULTS_DIR,'FlagFiles')):
         print '   - Check '+files
         #check if there is a process for this file, if not send a warning to the User
         keep=check_process(files)
@@ -278,27 +258,27 @@ def Uploading_OUTLOG(outlog_list,xnat):
                 if r.exists():
                     print 'WARNING : the OUTLOG resource already exists for the assessor '+assessor_label
                     #check if there is a folder with the same name : if yes, put the outlog there. If not upload it.
-                    if  os.path.isdir(os.path.join(UploadDir,assessor_label)):
+                    if  os.path.isdir(os.path.join(RESULTS_DIR,assessor_label)):
                         print 'WARNING: Copying the outlog file in the assessor folder...'
-                        assessor_outlog_folder=os.path.join(UploadDir,assessor_label,'OUTLOG')
+                        assessor_outlog_folder=os.path.join(RESULTS_DIR,assessor_label,'OUTLOG')
                         if not os.path.exists(assessor_outlog_folder):
                             os.mkdir(assessor_outlog_folder)
-                        os.system('mv '+os.path.join(UploadDir,'OUTLOG',outlogfile)+' '+assessor_outlog_folder)
+                        os.system('mv '+os.path.join(RESULTS_DIR,'OUTLOG',outlogfile)+' '+assessor_outlog_folder)
                     else:
                         print 'WARNING: Copying the outlog file in the TRASH ...'
-                        os.rename(os.path.join(UploadDir,'OUTLOG',outlogfile),os.path.join(UploadDir,'TRASH',outlogfile))
+                        os.rename(os.path.join(RESULTS_DIR,'OUTLOG',outlogfile),os.path.join(RESULTS_DIR,'TRASH',outlogfile))
                 else:
                     #upload the file
                     r=assessor.out_resource('OUTLOG')
-                    r.file(outlogfile).put(os.path.join(UploadDir,'OUTLOG',outlogfile))
-                    os.remove(os.path.join(UploadDir,'OUTLOG',outlogfile))
+                    r.file(outlogfile).put(os.path.join(RESULTS_DIR,'OUTLOG',outlogfile))
+                    os.remove(os.path.join(RESULTS_DIR,'OUTLOG',outlogfile))
             else:
                 print 'ERROR: The assessor '+assessor_label+' does not exist. Copy to TRASH.'
-                os.rename(os.path.join(UploadDir,'OUTLOG',outlogfile),os.path.join(UploadDir,'TRASH',outlogfile))
+                os.rename(os.path.join(RESULTS_DIR,'OUTLOG',outlogfile),os.path.join(RESULTS_DIR,'TRASH',outlogfile))
                 
         else:
             print 'ERROR: The Output PBS file '+outlogfile+' has a wrong ProjectName or Subject label or Experiment label in his name. Copy to TRASH.'
-            os.rename(os.path.join(UploadDir,'OUTLOG',outlogfile),os.path.join(UploadDir,'TRASH',outlogfile))
+            os.rename(os.path.join(RESULTS_DIR,'OUTLOG',outlogfile),os.path.join(RESULTS_DIR,'TRASH',outlogfile))
 
 def Uploading_PBS(pbs_list,xnat):
     number_pbs=len(pbs_list)
@@ -323,27 +303,27 @@ def Uploading_PBS(pbs_list,xnat):
                 if r.exists():
                     print 'WARNING : the PBS resource already exists for the assessor '+assessor_label
                     #check if there is a folder with the same name : if yes, put the outlog there. If not upload it.
-                    if  os.path.isdir(os.path.join(UploadDir,assessor_label)):
+                    if  os.path.isdir(os.path.join(RESULTS_DIR,assessor_label)):
                         print 'WARNING: Copying the pbs file in the assessor folder...'
-                        assessor_pbs_folder=os.path.join(UploadDir,assessor_label,'PBS')
+                        assessor_pbs_folder=os.path.join(RESULTS_DIR,assessor_label,'PBS')
                         if not os.path.exists(assessor_pbs_folder):
                             os.mkdir(assessor_pbs_folder)
-                        os.system('mv '+os.path.join(UploadDir,'PBS',pbsfile)+' '+assessor_pbs_folder)
+                        os.system('mv '+os.path.join(RESULTS_DIR,'PBS',pbsfile)+' '+assessor_pbs_folder)
                     else:
                         print 'WARNING: Copying the pbs file in the TRASH ...'
-                        os.rename(os.path.join(UploadDir,'PBS',pbsfile),os.path.join(UploadDir,'TRASH',pbsfile))
+                        os.rename(os.path.join(RESULTS_DIR,'PBS',pbsfile),os.path.join(RESULTS_DIR,'TRASH',pbsfile))
                 else:
                     #upload the file
                     r=assessor.out_resource('PBS')
-                    r.file(pbsfile).put(UploadDir+'/PBS/'+pbsfile)
-                    os.remove(UploadDir+'/PBS/'+pbsfile)
+                    r.file(pbsfile).put(RESULTS_DIR+'/PBS/'+pbsfile)
+                    os.remove(RESULTS_DIR+'/PBS/'+pbsfile)
             else:
                 print 'ERROR: The assessor '+assessor_label+' does not exist. Copy to TRASH.'
-                os.rename(UploadDir+'/PBS/'+pbsfile,UploadDir+'/TRASH/'+pbsfile)
+                os.rename(RESULTS_DIR+'/PBS/'+pbsfile,RESULTS_DIR+'/TRASH/'+pbsfile)
                 
         else:
             print 'ERROR: The PBS file '+pbsfile+' has a wrong ProjectName or Subject label or Experiment label in his name. Copy to TRASH.'
-            os.rename(UploadDir+'/PBS/'+pbsfile,UploadDir+'/TRASH/'+pbsfile)
+            os.rename(RESULTS_DIR+'/PBS/'+pbsfile,RESULTS_DIR+'/TRASH/'+pbsfile)
     
 def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label,version):
     #SNAPSHOTS :
@@ -482,27 +462,26 @@ if __name__ == '__main__':
         VUIISxnat_host = os.environ['XNAT_HOST']
         VUEMAIL_ADDR = os.environ['EMAIL_ADDR']
         VUEMAIL_PWS = os.environ['EMAIL_PWS']
-        UploadDir = os.environ['UPLOAD_SPIDER_DIR']
     except KeyError as e:
         print "You must set the environment variable %s" % str(e)
         sys.exit(1) 
     
     #make the two special directory
-    if not os.path.exists(UploadDir):
-        os.mkdir(UploadDir)
-    if not os.path.exists(os.path.join(UploadDir,'OUTLOG')):
-        os.mkdir(os.path.join(UploadDir,'OUTLOG'))
-    if not os.path.exists(os.path.join(UploadDir,'TRASH')):
-        os.mkdir(os.path.join(UploadDir,'TRASH'))
-    if not os.path.exists(os.path.join(UploadDir,'PBS')):
-        os.mkdir(os.path.join(UploadDir,'PBS'))
-    if not os.path.exists(os.path.join(UploadDir,'FlagFiles')):
-        os.mkdir(os.path.join(UploadDir,'FlagFiles'))
+    if not os.path.exists(RESULTS_DIR):
+        os.mkdir(RESULTS_DIR)
+    if not os.path.exists(os.path.join(RESULTS_DIR,'OUTLOG')):
+        os.mkdir(os.path.join(RESULTS_DIR,'OUTLOG'))
+    if not os.path.exists(os.path.join(RESULTS_DIR,'TRASH')):
+        os.mkdir(os.path.join(RESULTS_DIR,'TRASH'))
+    if not os.path.exists(os.path.join(RESULTS_DIR,'PBS')):
+        os.mkdir(os.path.join(RESULTS_DIR,'PBS'))
+    if not os.path.exists(os.path.join(RESULTS_DIR,'FlagFiles')):
+        os.mkdir(os.path.join(RESULTS_DIR,'FlagFiles'))
     
     #check if this spider is still running for the former called by checking the flagfile Spider_Process_Upload_running.txt
-    if not os.path.exists(os.path.join(UploadDir,'FlagFiles','Process_Upload_running.txt')):
+    if not os.path.exists(os.path.join(RESULTS_DIR,'FlagFiles','Process_Upload_running.txt')):
         #create the flag file showing that the spider is running 
-        f=open(os.path.join(UploadDir,'FlagFiles','Process_Upload_running.txt'), 'w')
+        f=open(os.path.join(RESULTS_DIR,'FlagFiles','Process_Upload_running.txt'), 'w')
         today=datetime.now()
         datestr="Date: "+str(today.year)+str(today.month)+str(today.day)+'_'+str(today.hour)+':'+str(today.minute)+':'+str(today.second)
         f.write(datestr+'\n')
@@ -510,10 +489,10 @@ if __name__ == '__main__':
         
         try:
             #Start Uploading
-            print '-------- Upload Directory: '+UploadDir+' --------'
+            print '-------- Upload Directory: '+RESULTS_DIR+' --------'
             ###VARIABLES###
             #Check if the folder is not empty
-            UploadDirList=os.listdir(UploadDir)
+            UploadDirList=os.listdir(RESULTS_DIR)
             if len(UploadDirList)==0:
                 print 'WARNING: No data need to be upload.\n'
             else:
@@ -533,7 +512,7 @@ if __name__ == '__main__':
                     #For each assessor label that need to be upload :
                     number_of_processes=len(assessor_label_in_dir_list)
                     for index,assessor_label in enumerate(assessor_label_in_dir_list):
-                        assessor_path=UploadDir+'/'+assessor_label
+                        assessor_path=RESULTS_DIR+'/'+assessor_label
                         if os.path.isdir(assessor_path):
                             sys.stdout.flush()
                             sys.stdout.write("    *Process: "+str(index+1)+"/"+str(number_of_processes)+' -- label: '+assessor_label+' / time: '+str(datetime.now())+'\n')
@@ -626,7 +605,7 @@ if __name__ == '__main__':
                     
                     ################# 4) Check flagfile and process running ps -aux ################
                     print ' - Checking process running ...'
-                    flag_files_list=check_crontab_job(UploadDir)
+                    flag_files_list=check_crontab_job()
                     
                 #if fail, close the connection to xnat
                 finally:
@@ -654,7 +633,7 @@ if __name__ == '__main__':
         #Stop the process before the end or end of the script, remove the flagfile for the spider running 
         finally:
             #remove flagfile
-            os.remove(os.path.join(UploadDir,'FlagFiles','Process_Upload_running.txt'))
+            os.remove(os.path.join(RESULTS_DIR,'FlagFiles','Process_Upload_running.txt'))
             print '===================================================================\n'
     else:
         print 'WARNING: Upload already running.'
