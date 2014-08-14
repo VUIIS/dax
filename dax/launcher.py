@@ -18,6 +18,7 @@ import XnatUtils
 import task
 import cluster
 from task import Task
+from constant import RESULTS_DIR
 
 DEFAULT_QUEUE_LIMIT = 900
 DEFAULT_ROOT_JOB_DIR = '/tmp'
@@ -62,11 +63,6 @@ class Launcher(object):
                 self.xnat_host = os.environ['XNAT_HOST']
             else:
                 self.xnat_host = xnat_host
-        
-            if upload_dir == None:
-                self.upload_dir = os.environ['UPLOAD_SPIDER_DIR']
-            else:
-                self.upload_dir = upload_dir
 
         except KeyError as e:
             print("You must set the environment variable %s" % str(e))
@@ -177,7 +173,7 @@ class Launcher(object):
               
             # Get a new task with the matched processor
             assr = XnatUtils.get_full_object(xnat, assr_info)
-            cur_task = Task(task_proc,assr,self.upload_dir)
+            cur_task = Task(task_proc,assr,RESULTS_DIR)
             task_list.append(cur_task)      
                                         
         return task_list
@@ -274,7 +270,7 @@ class Launcher(object):
         # Processors
         for sess_proc in sess_proc_list:
             if sess_proc.should_run(sess_info, xnat):
-                sess_task = sess_proc.get_task(xnat, sess_info, self.upload_dir)
+                sess_task = sess_proc.get_task(xnat, sess_info, RESULTS_DIR)
                 print('    *Processor:'+sess_proc.name+':updating status:'+sess_task.assessor_label)
                 sess_task.update_status()
             
@@ -293,7 +289,7 @@ class Launcher(object):
         # Processors   
         for scan_proc in scan_proc_list:
             if scan_proc.should_run(scan_info):
-                scan_task = scan_proc.get_task(xnat, scan_info, self.upload_dir)
+                scan_task = scan_proc.get_task(xnat, scan_info, RESULTS_DIR)
                 print('      *Processor: '+scan_proc.name+':updating status:'+scan_task.assessor_label)
                 scan_task.update_status()
      
@@ -325,7 +321,7 @@ class Launcher(object):
                 return
                 
     def lock_open_tasks(self, lockfile_prefix):
-        lock_file = os.path.join(self.upload_dir,'FlagFiles',lockfile_prefix+'_'+OPEN_TASKS_LOCK_FILE)
+        lock_file = os.path.join(RESULTS_DIR,'FlagFiles',lockfile_prefix+'_'+OPEN_TASKS_LOCK_FILE)
         
         if os.path.exists(lock_file):
             return False
@@ -334,7 +330,7 @@ class Launcher(object):
             return True
         
     def lock_update(self,lockfile_prefix):
-        lock_file = os.path.join(self.upload_dir,'FlagFiles',lockfile_prefix+'_'+UPDATE_LOCK_FILE)
+        lock_file = os.path.join(RESULTS_DIR,'FlagFiles',lockfile_prefix+'_'+UPDATE_LOCK_FILE)
         
         if os.path.exists(lock_file):
             return False
@@ -343,13 +339,13 @@ class Launcher(object):
             return True
                 
     def unlock_open_tasks(self,lockfile_prefix):
-        lock_file = os.path.join(self.upload_dir,'FlagFiles',lockfile_prefix+'_'+OPEN_TASKS_LOCK_FILE)
+        lock_file = os.path.join(RESULTS_DIR,'FlagFiles',lockfile_prefix+'_'+OPEN_TASKS_LOCK_FILE)
         
         if os.path.exists(lock_file):
             os.remove(lock_file)
                
     def unlock_update(self,lockfile_prefix):
-        lock_file = os.path.join(self.upload_dir,'FlagFiles',lockfile_prefix+'_'+UPDATE_LOCK_FILE)
+        lock_file = os.path.join(RESULTS_DIR,'FlagFiles',lockfile_prefix+'_'+UPDATE_LOCK_FILE)
         
         if os.path.exists(lock_file):
             os.remove(lock_file)
