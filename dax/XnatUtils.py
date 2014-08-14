@@ -10,19 +10,13 @@ from lxml import etree
 
 import redcap
 
+from constant import RESULTS_DIR
+
 ####################################################################################
 #            Class JobHandler to copy file after the end of a Job                  #
 ####################################################################################   
 class SpiderProcessHandler:
     def __init__(self,script_name,project,subject,experiment,scan=''):
-        #set the email env to send the email if a job fail
-        try:
-            # Environs
-            UploadDir = os.environ['UPLOAD_SPIDER_DIR']
-        except KeyError as e:
-            print "You must set the environment variable %s. The email with errors will be send with this address." % str(e)
-            sys.exit(1)
-            
         if len(script_name.split('/'))>1:
             script_name=os.path.basename(script_name)
         if script_name.endswith('.py'):
@@ -41,10 +35,10 @@ class SpiderProcessHandler:
         #make the assessor folder for upload
         if scan=='':
             self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+self.ProcessName
-            self.dir=UploadDir+'/'+self.assessor_label
+            self.dir=os.path.join(RESULTS_DIR,self.assessor_label)
         else:
             self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+scan+'-x-'+self.ProcessName
-            self.dir=UploadDir+'/'+self.assessor_label
+            self.dir=os.path.join(RESULTS_DIR,self.assessor_label)
         #if the folder already exists : remove it
         if not os.path.exists(self.dir):
             os.mkdir(self.dir)
