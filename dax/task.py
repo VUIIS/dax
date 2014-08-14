@@ -6,6 +6,8 @@ import cluster
 from cluster import PBS
 import XnatUtils
 
+from constant import RESULTS_DIR
+
 # Job Statuses
 NEED_TO_RUN='NEED_TO_RUN' # assessor that is ready to be launch on the cluster (ACCRE). All the input data for the process to run are there.
 NEED_INPUTS='NEED_INPUTS' # assessor where input data are missing from a scan, multiple scans or other assessor.
@@ -30,8 +32,8 @@ REPROC='Reproc' # will cause spider to zip the current results and put in OLD, a
 OPEN_QC_LIST = [RERUN, REPROC]
 
 # Other Constants
-DEFAULT_PBS_DIR=os.environ['UPLOAD_SPIDER_DIR']+'/PBS'
-DEFAULT_OUT_DIR=os.environ['UPLOAD_SPIDER_DIR']+'/OUTLOG'
+DEFAULT_PBS_DIR=os.path.join(RESULTS_DIR,'PBS')
+DEFAULT_OUT_DIR=os.path.join(RESULTS_DIR,'OUTLOG')
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
 OLD_RESOURCE = 'OLD'
 EDITS_RESOURCE = 'EDITS'
