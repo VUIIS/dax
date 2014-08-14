@@ -13,8 +13,8 @@ import time
 
 from pyxnat import Interface
 
-import XnatUtils
-import task
+from dax import XnatUtils
+from dax import task
 
 def parse_args():
     from argparse import ArgumentParser
