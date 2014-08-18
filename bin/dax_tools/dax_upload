@@ -359,8 +359,8 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
         print '    +uploading XML'
         xml_files_list = os.listdir(xmlpath)
         if len(xml_files_list) != 1:
-        	print 'ERROR:cannot upload FreeSufer, unable to find XML file:'+assessor_path
-        	return
+            print 'ERROR:cannot upload FreeSufer, unable to find XML file:'+assessor_path
+            return
         xml_path = assessor_path+'/XML/'+xml_files_list[0]
         assessor.create(xml=xml_path, allowDataDeletion=False)
     
@@ -408,7 +408,7 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
                         if os.path.isdir(filename):
                             upload_zip(filename,Resource_path+'/'+filename,r)
                         elif filename.lower().endswith('.zip'):
-                        	r.put_zip(Resource_path+'/'+filename, extract=True)
+                            r.put_zip(Resource_path+'/'+filename, extract=True)
                         else:
                             #upload the file
                             r.file(filename).put(Resource_path+'/'+filename)
