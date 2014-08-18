@@ -34,7 +34,7 @@ if __name__ == '__main__':
           test_suite='nose.collector',
           tests_require=['nose'],
           install_requires=['pycap','httplib2','lxml'],
-          dependency_links=['git+git://github.com/bud42/pyxnat.git@b4917ba#egg=pyxnat.git'],
+          dependency_links=['git+git://github.com/bud42/pyxnat.git@158a41284e#egg=pyxnat.git'],
           zip_safe=True,
           scripts=[
                    'bin/dax_tools/dax_update', 
