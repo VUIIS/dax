@@ -219,14 +219,21 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
             #if it's the SNAPSHOTS folder, need to set the thumbnail and original:
             if Resource == 'SNAPSHOTS':
                 #for each files in this folderl, Upload files in the resource :
-                Resource_files_list=os.listdir(Resource_path)
-                preview = [s for s in Resource_files_list if "preview" in s][0]
-                r.file(preview).put(Resource_path+'/'+preview,(preview.split('.')[1]).upper(),'THUMBNAIL')
-                os.remove(Resource_path+'/'+preview)
-                original = [s for s in Resource_files_list if "original" in s][0]
-                r.file(original).put(Resource_path+'/'+original,(original.split('.')[1]).upper(),'ORIGINAL')
-                os.remove(Resource_path+'/'+original)
-                if len(os.listdir(Resource_path))>2:
+                Resource_files_list = os.listdir(Resource_path)
+                
+                preview_list = [s for s in Resource_files_list if "preview" in s]
+                if preview_list:
+                    preview = preview_list[0]
+                    r.file(preview).put(Resource_path+'/'+preview,(preview.split('.')[1]).upper(),'THUMBNAIL')
+                    os.remove(Resource_path+'/'+preview)
+                    
+                original_list = [s for s in Resource_files_list if "original" in s]
+                if original_list:
+                    original = original_list[0]
+                    r.file(original).put(Resource_path+'/'+original,(original.split('.')[1]).upper(),'ORIGINAL')
+                    os.remove(Resource_path+'/'+original)
+                
+                if len(os.listdir(Resource_path)) > 0:
                     upload_zip(Resource,Resource_path,r)
                     
             #for all the other resources :
