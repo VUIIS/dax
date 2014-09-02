@@ -6,7 +6,7 @@ from datetime import datetime
 
 def parse_args():
     from argparse import ArgumentParser
-    ap = ArgumentParser(prog='update_open_tasks', description="Updates open tasks")
+    ap = ArgumentParser(prog='dax_update_open_tasks', description="Updates open tasks")
     ap.add_argument(dest='settings_path', help='Settings Path')
     return ap.parse_args()
 
