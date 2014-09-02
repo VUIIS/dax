@@ -39,7 +39,6 @@ if __name__ == '__main__':
                    'bin/dax_tools/dax_update', 
                    'bin/dax_tools/dax_update_open_tasks', 
                    'bin/dax_tools/dax_upload',
-                   'bin/dax_tools/dax_lastupdated_subj2sess',
                    'bin/freesurfer_tools/fsupload',
                    'bin/freesurfer_tools/fsdownload',
                    'bin/freesurfer_tools/fsview',
