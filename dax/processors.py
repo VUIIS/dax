@@ -40,21 +40,21 @@ class Processor(object):
             self.name = os.path.basename(spider_path)[7:-3]
 
     # has_inputs - does this object have the required inputs? e.g. NIFTI format of the required scan type and quality and are there no conflicting inputs, i.e. only 1 required by 2 found?
-    def has_inputs(): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
+    def has_inputs(self): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
         raise NotImplementedError()
      
     # should_run - is the object of the proper object type? e.g. is it a scan? and is it the required scan type? e.g. is it a T1?
-    def should_run(): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
+    def should_run(self): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
         raise NotImplementedError()
         
-    def write_pbs(filename):
+    def write_pbs(self,filename):
         raise NotImplementedError()
 
 class ScanProcessor(Processor):
-    def has_inputs():
+    def has_inputs(self):
         raise NotImplementedError()
      
-    def should_run(): 
+    def should_run(self): 
         raise NotImplementedError()
     
     def __init__(self,scan_types,walltime_str,memreq_mb,spider_path,version=None,masimatlab=MASIMATLAB_PATH, ppn=1):
@@ -75,10 +75,10 @@ class ScanProcessor(Processor):
         return task.Task(self,assessor,upload_dir)
         
 class SessionProcessor(Processor):
-    def has_inputs():
+    def has_inputs(self):
         raise NotImplementedError()
      
-    def should_run(): 
+    def should_run(self): 
         raise NotImplementedError()
     
     def __init__(self,walltime_str,memreq_mb,spider_path,version=None,masimatlab=MASIMATLAB_PATH,ppn=1):

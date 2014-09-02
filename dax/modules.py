@@ -15,10 +15,10 @@ class Module(object):
     def needs_run(self):
         raise NotImplementedError()
         
-    def prerun():
+    def prerun(self):
         raise NotImplementedError()
     
-    def afterrun():
+    def afterrun(self):
         raise NotImplementedError()
     
     def report(self,string):
@@ -43,7 +43,7 @@ class Module(object):
             else:
                 today=datetime.now()
                 self.directory=os.path.join(self.directory,self.module_name+'_tmp_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day)+'_'+str(today.hour)+'_'+str(today.minute)+'_'+str(today.second))
-    	    
+    
                 if not os.path.exists(self.directory):
                     os.mkdir(self.directory)
                 else:
@@ -91,14 +91,14 @@ class ScanModule(Module):
     def __init__(self,module_name,directory,email,Text_report):
         super(ScanModule, self).__init__(module_name,directory,email,Text_report)
         
-    def run():
+    def run(self):
         raise NotImplementedError()
 
 class SessionModule(Module):
     def __init__(self,module_name,directory,email,Text_report):
         super(SessionModule, self).__init__(module_name,directory,email,Text_report)
         
-    def run():
+    def run(self):
         raise NotImplementedError()
     
 def modules_by_type(mod_list):
