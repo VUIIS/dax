@@ -272,26 +272,24 @@ def Uploading_OUTLOG(outlog_list,xnat):
         Experiment=labels[2]
         assessor_label=outlogfile.split('.')[0]
         
-        #connect to the experiment
+        # Connect to experiment
         experiment = xnat.select('/project/'+ProjectName+'/subjects/'+Subject+'/experiments/'+Experiment)
         if not experiment.exists():
-            print 'ERROR: The Output PBS file '+outlogfile+' has a wrong ProjectName or Subject label or Experiment label in his name. Copy to TRASH.'
+            print('ERROR:OUTLOG file '+outlogfile+' has invalid name, moving to TRASH.')
+            os.rename(os.path.join(RESULTS_DIR, _OUTLOG, outlogfile),os.path.join(RESULTS_DIR, _TRASH, outlogfile))
             continue
-            
-        os.rename(os.path.join(RESULTS_DIR, _OUTLOG, outlogfile),os.path.join(RESULTS_DIR, _TRASH, outlogfile))
         
-        #ASSESSOR
+        # Connect to assessor
         assessor=experiment.assessor(assessor_label)
-        
         if not assessor.exists():
-            print 'ERROR: The assessor '+assessor_label+' does not exist. Copy to TRASH.'        
+            print 'ERROR: The assessor '+assessor_label+' does not exist. Moving OUTLOG to TRASH.'        
             os.rename(os.path.join(RESULTS_DIR, _OUTLOG, outlogfile),os.path.join(RESULTS_DIR, _TRASH, outlogfile))  
             continue
         
+        # Connect to resource
         r = assessor.out_resource(_OUTLOG)
-            
         if r.exists():
-            print 'WARNING : the OUTLOG resource already exists for the assessor '+assessor_label
+            print 'WARNING: the OUTLOG resource already exists for the assessor '+assessor_label
             #check if there is a folder with the same name : if yes, put the outlog there. If not upload it.
             if  os.path.isdir(os.path.join(RESULTS_DIR,assessor_label)):
                 print 'WARNING: Copying the outlog file in the assessor folder...'
@@ -412,15 +410,22 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
             if Resource=='SNAPSHOTS':
                 #for each files in this folderl, Upload files in the resource :
                 Resource_files_list=os.listdir(Resource_path)
-                preview = [s for s in Resource_files_list if "preview" in s][0]
-                r.file(preview).put(os.path.join(Resource_path,preview),(preview.split('.')[1]).upper(),'THUMBNAIL')
-                os.remove(os.path.join(Resource_path,preview))
-                original = [s for s in Resource_files_list if "original" in s][0]
-                r.file(original).put(os.path.join(Resource_path,original),(original.split('.')[1]).upper(),'ORIGINAL')
-                os.remove(os.path.join(Resource_path,original))
+                
+                preview_list = [s for s in Resource_files_list if "preview" in s]
+                if preview_list:
+                    preview = preview_list[0]
+                    r.file(preview).put(Resource_path+'/'+preview,(preview.split('.')[1]).upper(),'THUMBNAIL')
+                    os.remove(Resource_path+'/'+preview)
+
+                original_list = [s for s in Resource_files_list if "original" in s]
+                if original_list:
+                    original = original_list[0]
+                    r.file(original).put(Resource_path+'/'+original,(original.split('.')[1]).upper(),'ORIGINAL')
+                    os.remove(Resource_path+'/'+original)
+                
                 if len(os.listdir(Resource_path))>2:
                     upload_zip(Resource,Resource_path,r)
-                    
+              
             #for all the other resources :
             else:
                 #for each files in this folderl, Upload files in the resource :
