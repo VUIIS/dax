@@ -6,7 +6,7 @@ import cluster
 from cluster import PBS
 import XnatUtils
 
-from constants import RESULTS_DIR
+from dax_settings import RESULTS_DIR
 
 # Job Statuses
 NEED_TO_RUN='NEED_TO_RUN' # assessor that is ready to be launch on the cluster (ACCRE). All the input data for the process to run are there.
