@@ -5,6 +5,6 @@ Distributed Automation for XNAT
 
 Install it with:
 
-pip install git+git://github.com/VUIIS/dax.git
+pip install dax
 
 Use --upgrade to overwrite previous installation
