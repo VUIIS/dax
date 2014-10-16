@@ -10,7 +10,7 @@ from lxml import etree
 
 import redcap
 
-from constants import RESULTS_DIR
+from dax_settings import RESULTS_DIR
 
 ####################################################################################
 #            Class JobHandler to copy file after the end of a Job                  #
