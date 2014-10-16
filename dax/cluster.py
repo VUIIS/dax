@@ -17,9 +17,7 @@ MAX_TRACE_DAYS=30
 def count_jobs():
     cmd = CMD_COUNT_NB_JOBS
     try:
-        print cmd
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-        print output
         return int(output)
     except (CalledProcessError,ValueError):
         return -1
