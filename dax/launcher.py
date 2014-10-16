@@ -18,10 +18,8 @@ import XnatUtils
 import task
 import cluster
 from task import Task
-from constants import RESULTS_DIR
+from dax_settings import RESULTS_DIR,DEFAULT_ROOT_JOB_DIR,DEFAULT_QUEUE_LIMIT
 
-DEFAULT_QUEUE_LIMIT = 900
-DEFAULT_ROOT_JOB_DIR = '/tmp'
 UPDATE_LOCK_FILE  = 'UPDATE_RUNNING.txt'
 OPEN_TASKS_LOCK_FILE  = 'OPEN_TASKS_UPDATE_RUNNING.txt'
 UPDATE_FORMAT = "%Y-%m-%d %H:%M:%S"
