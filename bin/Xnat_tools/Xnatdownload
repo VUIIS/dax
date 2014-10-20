@@ -356,12 +356,30 @@ def make_directory(obj_dict,directory):
 ########################################################################################################
 ########################################## SPECIFIC FUNCTIONS ##########################################
 ########################################################################################################
-def dl_folder(Resource,directory):
-    Res_path=os.path.join(directory,Resource.label())
-    if os.path.exists(Res_path):
-        shutil.rmtree(Res_path)
-        
-    Resource.get(directory,extract=True)
+def dl_files(Resource,directory):
+    #if more than one file:
+    if len(Resource.files().get())>1:
+        #create a dir with the resourcename:
+        Outputdir=os.path.join(directory,Resource.label())
+        if not os.path.exists(Outputdir):
+            os.mkdir(Outputdir)
+        print '   ->Downloading all resources for '+Resource.label()+' as a zip'
+        Resource.get(Outputdir,extract=False) #not sure the extract True is working
+        print '   ->Unzipping ...' 
+        os.system('unzip -d '+Outputdir+' '+os.path.join(Outputdir,Resource.label()+'.zip')+" > /dev/null")
+        os.remove(os.path.join(Outputdir,Resource.label()+'.zip'))
+    #if only one, if using download all resources, download it and unzip it if it's a zip
+    else:
+        print '   ->Downloading resource for '+Resource.label()
+        Input_res_label_fname = Resource.files().get()[0]
+        Outputdir=os.path.join(directory,Resource.label())
+        if not os.path.exists(Outputdir):
+            os.mkdir(Outputdir)
+        Resource.file(Input_res_label_fname).get(os.path.join(Outputdir,Input_res_label_fname))
+        if os.path.join(directory,Input_res_label_fname)[-3:]=='zip':
+            print '   -> Unzipping ...'
+            os.system('unzip -d '+directory+' '+os.path.join(Outputdir,Input_res_label_fname)+" > /dev/null")
+            os.remove(os.path.join(Outputdir,Input_res_label_fname))
     
 def dl_file(Resource,fpath):
     Resource.file(Resource.files().get()[0]).get(fpath+'__'+Resource.files().get()[0])
@@ -377,14 +395,14 @@ def download_resource(directory,xnat,Resource,Resource_label,quiet,oneDir,label=
             if oneDir:
                 if len(Resource.files().get())>1:
                     if (last_download and last_download<int(get_resource_modified(xnat,Resource))) or not os.path.exists(os.path.join(directory,label)):
-                        dl_folder(Resource,directory)
+                        dl_files(Resource,directory)
                         os.system('mv '+os.path.join(directory,Resource_label)+' '+os.path.join(directory,label))
                 else:
                     dl_file(Resource,os.path.join(directory,label))
             else:
                 Res_path=os.path.join(directory,Resource_label)
                 if not os.path.exists(Res_path) or (last_download and last_download<int(get_resource_modified(xnat,Resource))) or len(os.listdir(Res_path))==0:
-                    dl_folder(Resource,directory)
+                    dl_files(Resource,directory)
                 else:
                     if not quiet: print '    ->Skipping resource. Up-to-date.'            
 
