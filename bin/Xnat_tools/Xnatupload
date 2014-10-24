@@ -323,7 +323,10 @@ def Upload_folder_to_resource(label,resourceObj,directory,quiet):
     os.chdir(directory)
     os.system('zip '+filenameZip+' *')
     #upload
-    resourceObj.put_zip(directory+'/'+filenameZip,extract=True)
+    resourceObj.put_zip(os.path.join(directory,filenameZip),extract=True)
+    #remove the tmp zip file:
+    if os.path.exists(os.path.join(directory,filenameZip)):
+        os.remove(os.path.join(directory,filenameZip))
     #return to the initial directory:
     os.chdir(initDir)
     
