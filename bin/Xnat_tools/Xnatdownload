@@ -466,7 +466,7 @@ def download_xnat_data(directory,xnat,project,subject_labels,session_labels,Scan
     if not quiet: print 'INFO: Downloading Data for each subject..'
     for index,subj in enumerate(sorted(subj_list)):
         if not quiet: print ' * '+str(index+1)+'/'+str(number)+' Subject : '+subj
-        for scan in filter_subj_sess(subject_labels,session_labels,scan_list):
+        for scan in filter_subj_sess(subj,session_labels,scan_list):
             #PATH
             if oneDir:
                 scanpath=directory
