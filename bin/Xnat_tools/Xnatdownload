@@ -806,20 +806,23 @@ if __name__ == '__main__':
             proj_dict,last_download=read_report(os.path.join(directory,DEFAULT_REPORT_NAME))
             pass
         elif options.missing:
-            run=False
-            for project in projectList:
-                if os.path.exists(os.path.join(directory,project)):
-                    run=True
-            if not run:
-                print '========'
-                answer = raw_input("OPTION --missing INFO: You are using the option --missing. Are you sure this is the right directory (the one where you downloaded previous data?): "+directory+" (Y/N)?")
-                while (answer not in ['Y','y','N','n','yes','no','YES','NO']):
-                    answer = raw_input("Wrong Answer. Are you sure this is the right directory (the one where you downloaded previous data?): "+directory+" (Y/N)?")
-                if answer in ['N','n','no','NO','No','nO']:
-                    print'OPTION --missing INFO: Wrong directory. Exit script.'
+            if options.filetext:
+                pass
+            else:
+                run=False
+                for project in projectList:
+                    if os.path.exists(os.path.join(directory,project)):
+                        run=True
+                if not run:
+                    print '========'
+                    answer = raw_input("OPTION --missing INFO: You are using the option --missing. Are you sure this is the right directory (the one where you downloaded previous data?): "+directory+" (Y/N)?")
+                    while (answer not in ['Y','y','N','n','yes','no','YES','NO']):
+                        answer = raw_input("Wrong Answer. Are you sure this is the right directory (the one where you downloaded previous data?): "+directory+" (Y/N)?")
+                    if answer in ['N','n','no','NO','No','nO']:
+                        print'OPTION --missing INFO: Wrong directory. Exit script.'
+                        print'========'
+                        sys.exit()
                     print'========'
-                    sys.exit()
-                print'========'
         else:
             if not os.path.exists(directory):
                 os.mkdir(directory)
