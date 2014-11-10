@@ -55,8 +55,11 @@ class Task(object):
                 assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name())
                 assessor.attrs.set('proc:genprocdata/validation/status', JOB_PENDING)
                 assessor.attrs.set('proc:genprocdata/procversion', self.get_processor_version())
-            if processor.has_inputs(assessor):
+            has_inputs=processor.has_inputs(assessor)
+            if has_inputs==1:
                 self.set_status(NEED_TO_RUN)
+            elif has_inputs==-1:
+                self.set_status(NO_DATA)
             else:
                 self.set_status(NEED_INPUTS)
         
