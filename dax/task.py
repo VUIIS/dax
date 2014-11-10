@@ -9,6 +9,7 @@ import XnatUtils
 from dax_settings import RESULTS_DIR
 
 # Job Statuses
+NO_DATA='NO_DATA'         # assessor that doesn't have data to run (for session assessor): E.G: dtiqa multi but no dti present.
 NEED_TO_RUN='NEED_TO_RUN' # assessor that is ready to be launch on the cluster (ACCRE). All the input data for the process to run are there.
 NEED_INPUTS='NEED_INPUTS' # assessor where input data are missing from a scan, multiple scans or other assessor.
 JOB_RUNNING='JOB_RUNNING' # the job has been submitted on the cluster and is running right now.
@@ -233,8 +234,10 @@ class Task(object):
             new_status = COMPLETE
         elif old_status == NEED_INPUTS:
             # Check it again in case available inputs changed
-            if self.has_inputs():
+            if self.has_inputs()==1:
                 new_status = NEED_TO_RUN
+            elif self.has_inputs()==-1:
+                new_status = NO_DATA
         elif old_status == JOB_RUNNING:
             new_status = self.check_running()
         elif old_status == READY_TO_UPLOAD:
