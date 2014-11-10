@@ -250,6 +250,8 @@ class Task(object):
         elif old_status == UPLOADING:
             # TODO: can we see if it's really uploading???
             pass
+        elif old_status == NO_DATA:
+            pass
         else:
             print('\t *ERROR:unknown status:'+old_status)
             
