@@ -9,6 +9,7 @@ import XnatUtils
 from dax_settings import RESULTS_DIR
 
 # Job Statuses
+NO_DATA='NO_DATA'         # assessor that doesn't have data to run (for session assessor): E.G: dtiqa multi but no dti present.
 NEED_TO_RUN='NEED_TO_RUN' # assessor that is ready to be launch on the cluster (ACCRE). All the input data for the process to run are there.
 NEED_INPUTS='NEED_INPUTS' # assessor where input data are missing from a scan, multiple scans or other assessor.
 JOB_RUNNING='JOB_RUNNING' # the job has been submitted on the cluster and is running right now.
@@ -54,8 +55,11 @@ class Task(object):
                 assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name())
                 assessor.attrs.set('proc:genprocdata/validation/status', JOB_PENDING)
                 assessor.attrs.set('proc:genprocdata/procversion', self.get_processor_version())
-            if processor.has_inputs(assessor):
+            has_inputs=processor.has_inputs(assessor)
+            if has_inputs==1:
                 self.set_status(NEED_TO_RUN)
+            elif has_inputs==-1:
+                self.set_status(NO_DATA)
             else:
                 self.set_status(NEED_INPUTS)
         
@@ -233,8 +237,10 @@ class Task(object):
             new_status = COMPLETE
         elif old_status == NEED_INPUTS:
             # Check it again in case available inputs changed
-            if self.has_inputs():
+            if self.has_inputs()==1:
                 new_status = NEED_TO_RUN
+            elif self.has_inputs()==-1:
+                new_status = NO_DATA
         elif old_status == JOB_RUNNING:
             new_status = self.check_running()
         elif old_status == READY_TO_UPLOAD:
@@ -243,6 +249,8 @@ class Task(object):
             pass
         elif old_status == UPLOADING:
             # TODO: can we see if it's really uploading???
+            pass
+        elif old_status == NO_DATA:
             pass
         else:
             print('\t *ERROR:unknown status:'+old_status)
