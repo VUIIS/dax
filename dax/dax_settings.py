@@ -29,10 +29,11 @@ SUFFIX_MEMORY         --> string after the Memory used in the output of the CMD_
 EXIT_STATUS           --> string to check in the output to be sure the value for walltime and memory are there
 
     2) PATH / default value for cluster
-    
-RESULTS_DIR  --> where results from jobs are stored to be upload to xnat later.
-ROOT_JOB_DIR --> Directory used for temp job folder for intermediate results
-QUEUE_LIMIT  --> Number max of jobs authorized in the queue.
+
+DEFAULT_GATEWAY --> Name of the computer you are working on (define by HOSTNAME), default value if HOSTNAME not in env
+RESULTS_DIR     --> where results from jobs are stored to be upload to xnat later.
+ROOT_JOB_DIR    --> Directory used for temp job folder for intermediate results
+QUEUE_LIMIT     --> Number max of jobs authorized in the queue.
 
     3) REDCap for dax_manager (optional)
     
@@ -79,6 +80,8 @@ ${pbs_cmds}
 """)
 
 #Path for results from job by default.
+#Gateway of the computer you are running on for default if HOSTNAME is not an env:
+DEFAULT_GATEWAY = 'poplar'
 #Root directory for jobs
 DEFAULT_ROOT_JOB_DIR = '/tmp'
 #Number maximun of job in the queue:
