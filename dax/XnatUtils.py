@@ -10,7 +10,7 @@ from lxml import etree
 
 import redcap
 
-from dax_settings import RESULTS_DIR
+from dax_settings import RESULTS_DIR,API_URL,API_KEY
 
 ####################################################################################
 #            Class JobHandler to copy file after the end of a Job                  #
@@ -1134,3 +1134,48 @@ def copy_resource(intf, scan_dict,directory,old_res,new_res):
     Upload_folder_to_resource(new_res,SCAN.resource(new_res),os.path.join(directory,old_res))
     #clean directory
     clean_directory(directory)
+
+def upload_update_date_redcap(type_update,start_end):
+    """ 
+        type_update : 1 for dax_update / 2 for dax_update_open_tasks
+        start_end   : 1 for starting date / 2 for ending date
+    """
+    if API_URL and API_KEY and REDCAP_VAR:
+        try:
+            rc = redcap.Project(API_URL,API_KEY)
+        except:
+            print'WARNING: Could not access redcap. Either wrong API_URL/API_KEY or redcap down.'
+        record_list = rc.export_records(fields=[rc.def_field,REDCAP_VAR['settingsfile']])
+        project_list=[r[rc.def_field] for r in record_list if r[REDCAP_VAR['settingsfile']]==filepath]
+        for project in project_list:
+            to_upload=dict()
+            to_upload[REDCAP_VAR['project']]=project
+            if type_update==1 and start_end==1:
+                to_upload[REDCAP_VAR['update_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now()) 
+            elif type_update==1 and start_end==2:
+                to_upload[REDCAP_VAR['update_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
+            elif type_update==2 and start_end==1:
+                to_upload[REDCAP_VAR['update_open_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now()) 
+            elif type_update==2 and start_end==2:
+                to_upload[REDCAP_VAR['update_open_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
+           
+            upload_dict_redcap(rc,to_upload)
+            
+def upload_list_records_redcap(rc,data):
+    """Upload data of a dict to a rc project"""
+    upload_data=True
+    if isinstance(data,dict):
+        data=[data]
+    elif isinstance(data,list):
+        pass
+    else:
+        upload_data=False
+    if upload_data:
+        try:
+            response = rc.import_records(data)
+            assert 'count' in response
+            print ' ->Record '+record_id+ ' uploaded to REDCap : ' + str(response['count'])
+        except AssertionError as e:
+            print '      -ERROR: Creation of record failed. The error is the following: '
+            print '      ' + response['error']
+            print response
