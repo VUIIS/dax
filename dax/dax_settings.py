@@ -34,6 +34,14 @@ RESULTS_DIR  --> where results from jobs are stored to be upload to xnat later.
 ROOT_JOB_DIR --> Directory used for temp job folder for intermediate results
 QUEUE_LIMIT  --> Number max of jobs authorized in the queue.
 
+    3) REDCap for dax_manager (optional)
+    
+API_URL    --> api url for redcap database
+API_KEY    --> api key for redcap project holding the information for the settings
+REDCAP_VAR --> dictionary to set up the general variables for the project
+
+PS: In this file, all variable default are read if the .bashrc or your configuration file doesn't have the environment variable
+set.
 """
 
 #Function for PBS cluster jobs:
@@ -77,7 +85,7 @@ DEFAULT_ROOT_JOB_DIR = '/tmp'
 DEFAULT_QUEUE_LIMIT = 600
 #Result dir
 DEFAULT_RESULTS_DIR=os.path.join(USER_HOME,'RESULTS_XNAT_SPIDER')
-
+#Upload directory
 if 'UPLOAD_SPIDER_DIR' not in os.environ:
     RESULTS_DIR=DEFAULT_RESULTS_DIR
     if not os.path.exists(RESULTS_DIR):
@@ -85,3 +93,32 @@ if 'UPLOAD_SPIDER_DIR' not in os.environ:
 else:
     RESULTS_DIR=os.environ['UPLOAD_SPIDER_DIR'] 
     
+#Management using REDCap (optional):
+#Variables for REDCap:
+#API_URL:
+DEFAULT_API_URL=None
+if 'API_URL' not in os.environ:
+    API_URL=DEFAULT_API_URL
+else:
+    RESULTS_DIR=os.environ['API_URL'] 
+#API_KEY for dax project (save here or in .bashrc and name the env variable API_KEY_DAX):
+if 'API_KEY_DAX' not in os.environ:
+    API_KEY=None
+else:
+    API_KEY=os.environ['API_KEY_DAX'] 
+#Dictionary with variable name on REDCap:                   Variable for:
+REDCAP_VAR={'project':'dax_project',                        #record_id (project on XNAT)
+            'settingsfile':'dax_settings_full_path',        #path on your computer to the settings file
+            'masimatlab':'dax_masimatlab',                  #path to masimatlab
+            'tmp':'dax_tmp_directory',                      #tmp folder to hold data for modules
+            'logsdir':'dax_logs_path',                      #folder to hold logs for updates
+            'user':'dax_cluster_user',                      #user that will run the project (USER env variable)
+            'gateway':'dax_gateway',                        #name of your computer set in this settings or from gateway if cluster
+            'email':'dax_email_address',                    #email address for report
+            'queue':'dax_queue_limit',                      #queue limit that you allow for the project
+            'priority':'dax_proj_order',                    #project order number: 1 will be first and then ...
+            'email_opts':'dax_job_email_options',           #job options for job on cluster (bae)
+            'update_start_date':'dax_update_start_date',    #date for dax_update, the last one starting
+            'update_end_date':'dax_update_end_date',        #date for dax_update, the last one ending
+            'open_start_date':'dax_update_open_start_date', #date for dax_update_open_tasks, the last one starting
+            'open_end_date':'dax_update_open_end_date'}     #date for dax_update_open_tasks, the last one ending
