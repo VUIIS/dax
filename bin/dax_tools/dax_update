@@ -3,6 +3,7 @@
 
 import os, imp
 from datetime import datetime
+from dax import XnatUtils
 
 def parse_args():
     from argparse import ArgumentParser
@@ -21,5 +22,7 @@ if __name__ == '__main__':
 
     # Run the updates
     print('INFO:running update, Start Time:'+str(datetime.now()))
+    XnatUtils.upload_update_date_redcap(1,1) 
     settings.myLauncher.update(lockfile_prefix)
     print('INFO:finished update, End Time: '+str(datetime.now()))
+    XnatUtils.upload_update_date_redcap(1,2) 
