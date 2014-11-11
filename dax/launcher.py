@@ -101,6 +101,8 @@ class Launcher(object):
             print('ERROR:failed to get lock on open tasks update')
             exit(1)                              
 
+        #Set the date on REDCAP for update starting
+        XnatUtils.upload_update_date_redcap(type_update=2,start_end=1)
         try:
             print('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
@@ -126,7 +128,9 @@ class Launcher(object):
             self.launch_jobs(task_queue)
             
         finally:       
-            self.unlock_open_tasks(lockfile_prefix)                                                      
+            self.unlock_open_tasks(lockfile_prefix)  
+            #Set the date on REDCAP for update ending
+            XnatUtils.upload_update_date_redcap(type_update=2,start_end=2)
             xnat.disconnect()
             print('Connection to XNAT closed')
                            
@@ -207,6 +211,8 @@ class Launcher(object):
             print('ERROR:failed to get lock on new update')
             exit(1)   
         
+        #Set the date on REDCAP for update starting
+        XnatUtils.upload_update_date_redcap(type_update=1,start_end=1) 
         try:
             print('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
@@ -223,9 +229,11 @@ class Launcher(object):
                 self.update_project(xnat, project_id, lockfile_prefix)
                 
         finally:  
-                self.unlock_update(lockfile_prefix)                                 
-                xnat.disconnect()
-                print('Connection to XNAT closed')
+            self.unlock_update(lockfile_prefix)  
+            #Set the date on REDCAP for update ending
+            XnatUtils.upload_update_date_redcap(type_update=1,start_end=2)
+            xnat.disconnect()
+            print('Connection to XNAT closed')
    
     def update_project(self, xnat, project_id, lockfile_prefix):
         exp_mod_list, scan_mod_list = [],[]
