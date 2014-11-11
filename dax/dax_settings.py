@@ -121,4 +121,6 @@ REDCAP_VAR={'project':'dax_project',                        #record_id (project 
             'update_start_date':'dax_update_start_date',    #date for dax_update, the last one starting
             'update_end_date':'dax_update_end_date',        #date for dax_update, the last one ending
             'open_start_date':'dax_update_open_start_date', #date for dax_update_open_tasks, the last one starting
-            'open_end_date':'dax_update_open_end_date'}     #date for dax_update_open_tasks, the last one ending
+            'open_end_date':'dax_update_open_end_date',     #date for dax_update_open_tasks, the last one ending
+            'update_pid':'dax_update_pid',                  #pid for update
+            'update_open_pid':'dax_update_open_pid'}        #pid for update_open
