@@ -1174,7 +1174,6 @@ def upload_list_records_redcap(rc,data):
         try:
             response = rc.import_records(data)
             assert 'count' in response
-            print ' ->Record '+record_id+ ' uploaded to REDCap : ' + str(response['count'])
         except AssertionError as e:
             print '      -ERROR: Creation of record failed. The error is the following: '
             print '      ' + response['error']
