@@ -1,0 +1,458 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY
+from string import Template 
+import os,redcap,sys,multiprocessing,smtplib,dax
+from email.mime.text import MIMEText
+from datetime import datetime
+
+#Information on user and gateway if one
+user=os.environ['USER']
+if 'HOSTNAME' in os.environ:
+    gateway=os.environ['HOSTNAME']
+else:
+    gateway=DEFAULT_GATEWAY
+ 
+#Template for Module:
+ModTemplate = Template("""${PROJECT}_${MODNAME}=${MODNAME}(${ARGUMENTS})""")    
+#Template for Process:
+ProcTemplate = Template("""${PROJECT}_${PROCNAME}=${PROCNAME}(${ARGUMENTS})""")
+#Template for settings files:
+settingsTemplate = Template("""#import packages:
+import os
+from dax import Launcher
+from Xnat_process_importer import *
+from Xnat_module_importer import *
+
+#Email & tmp folder:
+email="${EMAIL}"
+tmpdir="${TMPDIR}"
+
+#Create TEMP if doesn't exist
+if not os.path.exists(tmpdir):
+    os.mkdir(tmpdir)
+
+## Init proc and mod ##
+#Mod
+${MOD}
+#Proc
+${PROC}
+
+#Set up modules for projects
+proj_mod = ${PROJ_MOD}
+#Set up processors for projects
+proj_proc = ${PROJ_PROC}
+
+#Order project:
+p_order=${PROJ_ORDER}
+
+#Launch jobs:
+myLauncher = Launcher(proj_proc,proj_mod,priority_project=p_order,job_email=email,job_email_options="${EMAIL_OPTS}",queue_limit=${QUEUE_LIMIT})
+""")
+
+#Class for settings:
+class Settings_File:
+    def __init__(self,filepath,tmpdir='/tmp/',email=None,email_opts='a',dax_logs_path='/tmp/',queue_limit=200):
+        self.filepath = filepath
+        #email
+        if isinstance(email, list):
+            self.email = email
+        else:
+            self.email=email.split(',')
+        #email_opts
+        self.email_opts = email_opts
+        #tmpdir
+        self.tmpdir = tmpdir
+        #Project order
+        self.proj_order = list()
+        #String with all modules definitions
+        self.mod_str = ''
+        #dict with project: [] list of modules
+        self.pm_dict = dict()
+        #String with all processes definitions
+        self.proc_str = ''
+        #dict with project: [] list of processes
+        self.pp_dict = dict()
+        #logs for dax path
+        self.dax_logs_path = dax_logs_path
+        #Maximum Number of job that can be submitted
+        if queue_limit.isdigit():
+            self.queue_limit = int(queue_limit)
+        else:
+            self.queue_limit = 400
+    
+    def add_mod_str(self,project,mod_str):
+        self.mod_str+=mod_str+'\n'
+        if project in self.pm_dict.keys():
+            self.pm_dict[project].append(mod_str.split('=')[0])
+        else:
+            self.pm_dict[project]=[mod_str.split('=')[0]]
+        
+    def add_proc_str(self,project,proc_str):
+        self.proc_str+=proc_str+'\n'
+        if project in self.pp_dict.keys():
+            self.pp_dict[project].append(proc_str.split('=')[0])
+        else:
+            self.pp_dict[project]=[proc_str.split('=')[0]]
+        
+    def get_project_list(self):
+        return set(self.pm_dict.keys()+self.pp_dict.keys())
+        
+    def merge_settings(self,settings):
+        #Email:
+        if list(set(self.email) - set(settings.email)):
+            self.email+=list(set(self.email) - set(settings.email))
+        #queue_limit (difference divide by 2):
+        self.queue_limit=(self.queue_limit+settings.queue_limit)/2
+        #Add mod_str and proc_str
+        self.mod_str += settings.mod_str
+        self.proc_str += settings.proc_str
+        #Add project to dict:
+        self.pm_dict.update(settings.pm_dict)
+        self.pp_dict.update(settings.pp_dict)
+        
+    def set_order(self,Proj_order):
+        self.proj_order = Proj_order
+        
+    def get_order(self):
+        order_str='['
+        for project in self.proj_order:
+            order_str+='"'+project+'",'
+        if order_str[-1]==',':
+            order_str=order_str[:-1]
+        order_str+=']'
+        return order_str
+        
+    def get_email_list(self):
+        email_list=list()
+        if '' in self.email:
+            self.email.remove('')
+        if not self.email:
+            return ''
+        else:
+            for email in self.email:
+                if email.find('@')==-1:
+                    e_addr=email+'@vanderbilt.edu'
+                else:
+                    e_addr=email
+                email_list.append(e_addr)
+            return email_list  
+    
+    def get_email_opts(self):
+        if self.email_opts=='':
+            return 'a'
+        else:
+            return self.email_opts
+        
+    def get_pm_dict(self):
+        pm_dict_str='{'
+        first_elem=True
+        spacing=12*" "
+        for project in sorted(self.pm_dict):
+            #Generate the string:
+            dict_elem='"'+project+'":['
+            for m in self.pm_dict[project]:
+                dict_elem+=m+','
+            if dict_elem[-1]==',':
+                dict_elem=dict_elem[:-1]
+            dict_elem+='],\n'
+            #Keep a nice format:
+            if not first_elem:
+                pm_dict_str+=spacing+dict_elem
+            else:
+                pm_dict_str+=dict_elem
+            first_elem=False
+        #Remove the last comma
+        if pm_dict_str.strip().endswith(','):
+            pm_dict_str=pm_dict_str[:-2] #for the \n
+        pm_dict_str+='}'
+        return pm_dict_str
+    
+    def get_pp_dict(self):
+        pp_dict_str='{'
+        first_elem=True
+        spacing=13*" "
+        for project in sorted(self.pp_dict):
+            #Generate the string:
+            dict_elem='"'+project+'":['
+            for m in self.pp_dict[project]:
+                dict_elem+=m+','
+            if dict_elem[-1]==',':
+                dict_elem=dict_elem[:-1]
+            dict_elem+='],\n'
+            #Keep a nice format:
+            if not first_elem:
+                pp_dict_str+=spacing+dict_elem
+            else:
+                pp_dict_str+=dict_elem
+            first_elem=False
+        #Remove the last comma
+        if pp_dict_str.strip().endswith(','):
+            pp_dict_str=pp_dict_str[:-2] #for the \n
+        pp_dict_str+='}'
+        return pp_dict_str
+
+def get_list_modproc(rc):
+    #Getting modules/processors
+    all_forms=list()
+    fnames,_=rc.names_labels()
+    for k in fnames:
+        try:
+            field = filter(lambda x: x['field_name'] == k, rc.metadata)[0]
+            all_forms.append(field['form_name'])
+        except IndexError as e:
+            print 'ERROR: IndexError when checking the libraries.'
+            print e
+            sys.exit()      
+    #split module from process:
+    l=set(all_forms)
+    mod = [name for name in l if name[:6]=='module']
+    proc = [name for name in l if name[:7]=='process']
+    return mod,proc
+
+def get_field_for_modproc(rc,form_name):
+    avoid_labels=[form_name[7:]+'_inputs',form_name[7:]+'_on',form_name[8:]+'_inputs',form_name[8:]+'_on']
+    fields_list=list()
+    fnames,_=rc.names_labels()
+    for k in fnames:
+        try:
+            field = filter(lambda x: x['field_name'] == k, rc.metadata)[0]
+            if field['form_name']==form_name and k not in avoid_labels:
+                fields_list.append(field)
+        except IndexError as e:
+            print 'ERROR: IndexError when checking the libraries.'
+            print e
+            sys.exit() 
+    return fields_list     
+
+def read_redcap_db(rc):
+    #Extract all attributes for the records that belong to the gateway/user we are on:
+    record_list = rc.export_records(fields=[rc.def_field,REDCAP_VAR['user'],REDCAP_VAR['gateway']])
+    records = [r[rc.def_field] for r in record_list if r[REDCAP_VAR['user']]==user and r[REDCAP_VAR['gateway']]==gateway]
+    if records:
+        return rc.export_records(records=records)
+    else:
+        return list()
+        
+def generate_settings(rc,settings_info):
+    #Variable:
+    settings_dict=dict()
+    modules_list,processes_list=get_list_modproc(rc)
+    #Organize the data to in complex dictionaries:
+    for project_settings in settings_info:
+        if project_settings['general_complete']=='2':
+            #New PSettings
+            PSettings=Settings_File(filepath=project_settings[REDCAP_VAR['settingsfile']],tmpdir=project_settings[REDCAP_VAR['tmp']],
+                                    email=project_settings[REDCAP_VAR['email']],email_opts=project_settings[REDCAP_VAR['email_opts']],
+                                    dax_logs_path=project_settings[REDCAP_VAR['logsdir']],queue_limit=project_settings[REDCAP_VAR['queue']])
+            #PSettings.clear_dict()
+            #Look for modules
+            for mod_name in modules_list:
+                args_mod_dict=dict()
+                #If module on:
+                if project_settings[mod_name[7:]+'_on']=='1' and project_settings[mod_name+'_complete']=='2':
+                    #for variables from the module:
+                    for field in get_field_for_modproc(rc,mod_name):
+                        args_mod_dict[field['field_name'].split(mod_name[7:]+'_')[1]]=project_settings[field['field_name']]
+                        #Get ModName:
+                        if field['field_name']==mod_name[7:]+'_mod_name':
+                            if project_settings[field['field_name']]=='':
+                                modname=field['field_note'].strip().split('Default: ')[1]
+                            else:
+                                modname=project_settings[field['field_name']]
+                    #Add tmpdir for modules:
+                    args_mod_dict['directory']=os.path.join(project_settings[REDCAP_VAR['tmp']],project_settings[REDCAP_VAR['project']]+'_'+mod_name[7:])
+                    PSettings.add_mod_str(project_settings[REDCAP_VAR['project']], generate_mod(project_settings[REDCAP_VAR['project']],modname,args_mod_dict))
+            
+            #Look for processes   
+            for proc_name in processes_list:
+                args_proc_dict=dict()
+                #If process on:
+                if project_settings[proc_name[8:]+'_on']=='1' and project_settings[proc_name+'_complete']=='2':
+                    #for variables from the process:
+                    for field in get_field_for_modproc(rc,proc_name):
+                        args_proc_dict[field['field_name'].split(proc_name[8:]+'_')[1]]=project_settings[field['field_name']]
+                        #Get ProcName:
+                        if field['field_name']==proc_name[8:]+'_proc_name':
+                            if project_settings[field['field_name']]=='':
+                                procname=field['field_note'].strip().split('Default: ')[1]
+                            else:
+                                procname=project_settings[field['field_name']]
+                    PSettings.add_proc_str(project_settings[REDCAP_VAR['project']], generate_proc(project_settings[REDCAP_VAR['project']],procname,args_proc_dict))
+            
+            if PSettings.filepath in settings_dict.keys():
+                settings_dict[PSettings.filepath].merge_settings(PSettings)
+            else:
+                settings_dict[PSettings.filepath]=PSettings
+
+    return settings_dict
+    
+def generate_proc(project,procname,args_dict):
+    #Get the arguments
+    arguments=dict2str(args_dict)
+    #Get the string for a processor
+    Proc_data = {'PROJECT': project,
+                 'PROCNAME': procname,
+                 'ARGUMENTS': arguments}
+
+    return ProcTemplate.safe_substitute(**Proc_data)
+    
+def generate_mod(project,modname,args_dict):
+    #Get the arguments
+    arguments=dict2str(args_dict)
+    #Get the string for a processor
+    Mod_data = {'PROJECT': project,
+                'MODNAME': modname,
+                'ARGUMENTS': arguments}
+
+    return ModTemplate.safe_substitute(**Mod_data)
+
+def dict2str(arg_dict):
+    arg_str=''
+    for key,value in arg_dict.items():
+        if value!='':
+            arg_str+=key+'="'+value+'",'
+    if arg_str:
+        return arg_str[:-1]  #remove last comma
+    else:
+        return ''
+    
+def ordering_project(setting,settings_info):
+    list_priority=dict()
+    #Organize the data to in complex dictionaries:
+    for project in setting.get_project_list():
+        for project_settings in settings_info:
+            if project_settings[REDCAP_VAR['project']]==project and project_settings[REDCAP_VAR['priority']]!='':
+                list_priority[project]=int(project_settings[REDCAP_VAR['priority']])
+    return sorted(list_priority, key=list_priority.get)
+
+def write_settings(settings):
+    # Write the Settings file
+    Settings_data = {'EMAIL': ','.join(settings.get_email_list()),
+                     'EMAIL_OPTS':settings.get_email_opts(),
+                     'TMPDIR': settings.tmpdir,
+                     'PROJ_ORDER': settings.get_order(),
+                     'QUEUE_LIMIT': settings.queue_limit,
+                     'MOD': settings.mod_str,
+                     'PROC': settings.proc_str,
+                     'PROJ_MOD': settings.get_pm_dict(),
+                     'PROJ_PROC': settings.get_pp_dict()}
+
+    with open(settings.filepath, 'w') as f:
+        f.write(settingsTemplate.safe_substitute(**Settings_data))
+
+def email(TEXT,FROM,PWS,TO,SUBJECT,SERVER):
+    """send an email from FROM (with the password PWS) to TO with the subject and text given.
+    
+    parameters:
+        - FROM = email address from where the e-amil is sent
+        - PWS = password of the email address
+        - TO = list of email address which will receive the email
+        - SUBJECT =  subject of the email
+        - TEXT = inside of the email
+        - server = server used to send the email
+        - filename = fullpath to a file that need to be attached
+    """
+    # Create the container (outer) email message.
+    msg = MIMEText(TEXT)
+    msg['Subject'] = SUBJECT
+    # me == the sender's email address
+    # family = the list of all recipients' email addresses
+    msg['From'] = FROM
+    msg['To'] = ",".join(TO)
+    
+    # Send the email via our own SMTP server.
+    s = smtplib.SMTP(SERVER)
+    s.starttls()
+    s.login(FROM,PWS)
+    s.sendmail(FROM, TO, msg.as_string())
+    s.quit()
+    
+####################################################################################
+#####################           Principal functions            #####################
+####################################################################################
+def generate_settings_REDCap(api_key):
+    """Extract information from REDCap and generate the settings file"""
+    settings_path_list=list()    
+    #get the information for xnat from redcap for the projects:
+    print 'INFO: Loading RedCap to extract information to run dax_updates...'
+    try:
+        rc = redcap.Project(API_URL,api_key)
+    except:
+        print'WARNING: Could not access redcap. Either wrong API_URL/API_KEY or redcap down.'
+    
+    #Extract the information about the settings from redcap
+    settings_info=read_redcap_db(rc)
+    #Generate information for the settings
+    settings_dict=generate_settings(rc,settings_info)
+    #For each settings in the dict:
+    for filepath,setting in settings_dict.items():
+        #Ordering project:
+        setting.set_order(ordering_project(setting,settings_info))
+        #Write the settings:
+        print ' -> Writing settings : '+filepath
+        write_settings(setting)
+        settings_path_list.append(setting.filepath)
+        
+    return settings_path_list
+        
+def submit_open_update(filepath):
+    """Submit dax_update_open_task on the settings file"""
+    if not os.path.exists(os.path.join(RESULTS_DIR,'FlagFiles',filepath.split('_settings')[0]+'_OPEN_TASKS_UPDATE_RUNNING.txt')):
+        p = multiprocessing.Process(target=dax.update_open_tasks, args=(filepath,))
+        p.start()
+        if p.is_alive():
+            print '  -> Submitted dax_update_open_tasks '+filepath+' with pid: '
+    else:
+        print 'WARNING: Process dax_update '+filepath+' is already running. Pass...'
+        
+def submit_update(filepath):
+    """Submit dax_update on the settings file"""
+    if not os.path.exists(os.path.join(RESULTS_DIR,'FlagFiles',filepath.split('_settings')[0]+'_UPDATE_RUNNING.txt')):
+        p = multiprocessing.Process(target=dax.update, args=(filepath,))
+        p.start()
+        if p.is_alive():
+            print '  -> Submitted dax_update '+filepath+' with pid: '
+    else:
+        print 'WARNING: Process dax_update '+filepath+' is already running. Pass...'
+        
+def parse_args():
+    from argparse import ArgumentParser
+    ap = ArgumentParser(prog='dax_manager', description="Manage dax_updates/dax_updates_open_tasks from redcap database or lists of settings files")
+    ap.add_argument('--key',dest='key',help='API Key for redcap project containing dax informations.',default=None)
+    ap.add_argument('--settings',dest='settings', help='List of Settings Path',default=None)
+    ap.add_argument('--writeonly', dest='writeonly', action='store_true',help='Write the settings from REDCap only')
+    return ap.parse_args()
+
+if __name__ == '__main__':
+    # Arguments:
+    args = parse_args()
+    writeOnly=args.writeonly
+    api_key = args.key
+    if not api_key and API_KEY:
+        api_key=API_KEY
+    if args.settings:
+        settings_path_list = args.settings.split(',')
+    else:
+        settings_path_list=list()
+    
+    daxlogsdir=args.daxlogsdir
+    dax_logsdir_dict=dict()
+    print 'Time at the beginning of the DAX Manager: ', str(datetime.now()),''
+    print 'Current Process ID: '+str(os.getpid())
+    print 'Current Name: '+os.path.basename(__file__)+'\n'
+    
+    #If api_key given, use the redcap db:
+    if api_key:
+        settings_path_list=generate_settings_REDCap(api_key)
+    
+    if not writeOnly:   
+        #Submit Update and Update Open Tasks:
+        print 'INFO: Submitting dax updates and updates open tasks for each settings file...'
+        if filepath in dax_logsdir_dict.keys():
+                daxlogsdir=dax_logsdir_dict[filepath]
+            submit_open_update(filepath,daxlogsdir)
+            submit_update(filepath,daxlogsdir)
+        
+    print 'Time at the end of the DAX Manager: ', str(datetime.now()),'\n'
