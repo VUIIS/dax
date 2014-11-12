@@ -374,7 +374,8 @@ def email(TEXT,FROM,PWS,TO,SUBJECT,SERVER):
 ####################################################################################
 def generate_settings_REDCap(api_key):
     """Extract information from REDCap and generate the settings file"""
-    settings_path_list=list()    
+    settings_path_list=list()
+    daxlogsdir_dict=dict()
     #get the information for xnat from redcap for the projects:
     print 'INFO: Loading RedCap to extract information to run dax_updates...'
     try:
@@ -394,29 +395,30 @@ def generate_settings_REDCap(api_key):
         print ' -> Writing settings : '+filepath
         write_settings(setting)
         settings_path_list.append(setting.filepath)
+        daxlogsdir_dict[filepath]=setting.dax_logs_path
         
-    return settings_path_list
+    return settings_path_list,daxlogsdir_dict
         
-def submit_open_update(filepath):
-    """Submit dax_update_open_task on the settings file"""
-    if not os.path.exists(os.path.join(RESULTS_DIR,'FlagFiles',filepath.split('_settings')[0]+'_OPEN_TASKS_UPDATE_RUNNING.txt')):
-        p = multiprocessing.Process(name='dax_update_open_tasks '+os.path.basename(filepath),target=dax.update_open_tasks, args=(filepath,))
-        p.start()
-        if p.is_alive():
-            print '  -> Submitted dax_update_open_tasks '+filepath+' with pid: '
-    else:
-        print 'WARNING: Process dax_update '+filepath+' is already running. Pass...'
-        
-def submit_update(filepath):
-    """Submit dax_update on the settings file"""
-    if not os.path.exists(os.path.join(RESULTS_DIR,'FlagFiles',filepath.split('_settings')[0]+'_UPDATE_RUNNING.txt')):
-        p = multiprocessing.Process(name='dax_update '+os.path.basename(filepath),target=dax.update, args=(filepath,))
-        p.start()
-        if p.is_alive():
-            print '  -> Submitted dax_update '+filepath+' with pid: '
-    else:
-        print 'WARNING: Process dax_update '+filepath+' is already running. Pass...'
-        
+def run_update_open_tasks((filepath,logdir)):
+    """Run dax_update_open_task with the settings file and redirect output to the logfile"""
+    try: 
+        if os.path.exists(logdir):
+            logfile=os.path.join(logdir,'launcherlog_'+os.path.basename(filepath).split('.')[0]+'_'+'{:%Y%m%d_%H:%M:%S}'.format(datetime.now())+'.log')
+            sys.stdout = open(logfile, "w")
+        dax.update_open_tasks(filepath)
+    except Exception as e:
+        print("error: %s run_update_open_tasks(*%r, **%r)" % (e, filepath, logdir))
+
+def run_update((filepath,logdir)):
+    """Run dax_update with the settings file and redirect output to the logfile"""
+    try: 
+        if os.path.exists(logdir):
+            logfile=os.path.join(logdir,'updatelog_'+os.path.basename(filepath).split('.')[0]+'_'+'{:%Y%m%d_%H:%M:%S}'.format(datetime.now())+'.log')
+            sys.stdout = open(logfile, "w")
+        dax.update(filepath)
+    except Exception as e:
+        print("error: %s run_update(*%r, **%r)" % (e, filepath, logdir))
+
 def parse_args():
     from argparse import ArgumentParser
     ap = ArgumentParser(prog='dax_manager', description="Manage dax_updates/dax_updates_open_tasks from redcap database or lists of settings files")
@@ -438,21 +440,30 @@ if __name__ == '__main__':
         settings_path_list=list()
     
     daxlogsdir=args.daxlogsdir
-    dax_logsdir_dict=dict()
+    daxlogsdir_dict=dict()
     print 'Time at the beginning of the DAX Manager: ', str(datetime.now()),''
     print 'Current Process ID: '+str(os.getpid())
     print 'Current Name: '+os.path.basename(__file__)+'\n'
     
     #If api_key given, use the redcap db:
     if api_key:
-        settings_path_list=generate_settings_REDCap(api_key)
+        settings_path_list,daxlogsdir_dict=generate_settings_REDCap(api_key)
     
     if not writeOnly:   
         #Submit Update and Update Open Tasks:
-        print 'INFO: Submitting dax updates and updates open tasks for each settings file...'
-        if filepath in dax_logsdir_dict.keys():
-                daxlogsdir=dax_logsdir_dict[filepath]
-            submit_open_update(filepath,daxlogsdir)
-            submit_update(filepath,daxlogsdir)
+        files=list()
+        for filepath in settings_path_list:
+            if filepath in daxlogsdir_dict.keys():
+                daxlogsdir=daxlogsdir_dict[filepath]
+            files.append([filepath,daxlogsdir])
+        
+        # start processes
+        pool = multiprocessing.Pool() # use all available CPUs
+        #Update
+        print 'INFO: Submitting dax updates for each settings file...'
+        pool.map(run_update, files)
+        #Update open tasks
+        print 'INFO: Submitting dax updates open tasks for each settings file...'
+        pool.map(run_update_open_tasks, files)
         
     print 'Time at the end of the DAX Manager: ', str(datetime.now()),'\n'
