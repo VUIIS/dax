@@ -400,7 +400,7 @@ def generate_settings_REDCap(api_key):
 def submit_open_update(filepath):
     """Submit dax_update_open_task on the settings file"""
     if not os.path.exists(os.path.join(RESULTS_DIR,'FlagFiles',filepath.split('_settings')[0]+'_OPEN_TASKS_UPDATE_RUNNING.txt')):
-        p = multiprocessing.Process(target=dax.update_open_tasks, args=(filepath,))
+        p = multiprocessing.Process(name='dax_update_open_tasks '+os.path.basename(filepath),target=dax.update_open_tasks, args=(filepath,))
         p.start()
         if p.is_alive():
             print '  -> Submitted dax_update_open_tasks '+filepath+' with pid: '
@@ -410,7 +410,7 @@ def submit_open_update(filepath):
 def submit_update(filepath):
     """Submit dax_update on the settings file"""
     if not os.path.exists(os.path.join(RESULTS_DIR,'FlagFiles',filepath.split('_settings')[0]+'_UPDATE_RUNNING.txt')):
-        p = multiprocessing.Process(target=dax.update, args=(filepath,))
+        p = multiprocessing.Process(name='dax_update '+os.path.basename(filepath),target=dax.update, args=(filepath,))
         p.start()
         if p.is_alive():
             print '  -> Submitted dax_update '+filepath+' with pid: '
