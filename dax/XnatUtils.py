@@ -1135,7 +1135,7 @@ def copy_resource(intf, scan_dict,directory,old_res,new_res):
     #clean directory
     clean_directory(directory)
 
-def upload_update_date_redcap(pid,type_update,start_end):
+def upload_update_date_redcap(type_update,start_end):
     """ 
         type_update : 1 for dax_update / 2 for dax_update_open_tasks
         start_end   : 1 for starting date / 2 for ending date
@@ -1153,13 +1153,13 @@ def upload_update_date_redcap(pid,type_update,start_end):
             if type_update==1 and start_end==1:
                 to_upload[REDCAP_VAR['update_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now()) 
                 to_upload[REDCAP_VAR['update_end_date']]=''
-                to_upload[REDCAP_VAR['update_pid']]=pid
+                to_upload[REDCAP_VAR['update_pid']]=str(os.getpid())
             elif type_update==1 and start_end==2:
                 to_upload[REDCAP_VAR['update_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
             elif type_update==2 and start_end==1:
                 to_upload[REDCAP_VAR['update_open_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
                 to_upload[REDCAP_VAR['update_open_end_date']]=''
-                to_upload[REDCAP_VAR['update_open_pid']]=pid
+                to_upload[REDCAP_VAR['update_open_pid']]=str(os.getpid())
             elif type_update==2 and start_end==2:
                 to_upload[REDCAP_VAR['update_open_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
            
