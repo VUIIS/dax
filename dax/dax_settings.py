@@ -103,7 +103,7 @@ DEFAULT_API_URL=None
 if 'API_URL' not in os.environ:
     API_URL=DEFAULT_API_URL
 else:
-    RESULTS_DIR=os.environ['API_URL'] 
+    API_URL=os.environ['API_URL'] 
 #API_KEY for dax project (save here or in .bashrc and name the env variable API_KEY_DAX):
 if 'API_KEY_DAX' not in os.environ:
     API_KEY=None
