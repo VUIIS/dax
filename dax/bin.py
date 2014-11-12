@@ -5,6 +5,8 @@ import os, imp
 from datetime import datetime
 
 def update(settings_path):
+    print 'Current Process ID: '+str(os.getpid())
+    print 'Current Process Name: dax.bin.update('+settings_path+')'
     # Load the settings file
     print('INFO:loading settings from:'+settings_path)
     settings = imp.load_source('settings', settings_path)
@@ -16,6 +18,8 @@ def update(settings_path):
     print('INFO:finished update, End Time: '+str(datetime.now()))
 
 def update_open_tasks(settings_path):
+    print 'Current Process ID: '+str(os.getpid())
+    print 'Current Process Name: dax.bin.update_open_tasks('+settings_path+')'
     # Load the settings file
     print('INFO:loading settings from:'+settings_path)
     settings = imp.load_source('settings', settings_path)
