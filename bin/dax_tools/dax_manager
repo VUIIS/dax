@@ -444,7 +444,9 @@ if __name__ == '__main__':
     daxlogsdir_dict=dict()
     print 'Time at the beginning of the DAX Manager: ', str(datetime.now()),''
     print 'Current Process ID: '+str(os.getpid())
-    print 'Current Name: '+os.path.basename(__file__)+'\n'
+    print 'Current Process Name: '+os.path.basename(__file__)
+    print 'Current User: '+user
+    print 'Current Gateway/Computer: '+gateway+'\n'
     
     #If api_key given, use the redcap db:
     if api_key:
