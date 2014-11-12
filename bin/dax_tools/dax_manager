@@ -424,6 +424,7 @@ def parse_args():
     ap = ArgumentParser(prog='dax_manager', description="Manage dax_updates/dax_updates_open_tasks from redcap database or lists of settings files")
     ap.add_argument('--key',dest='key',help='API Key for redcap project containing dax informations.',default=None)
     ap.add_argument('--settings',dest='settings', help='List of Settings Path',default=None)
+    ap.add_argument('--daxlogsdir',dest='daxlogsdir', help='Directory for dax logs file.Default: /tmp',default='/tmp')
     ap.add_argument('--writeonly', dest='writeonly', action='store_true',help='Write the settings from REDCap only')
     return ap.parse_args()
 
