@@ -407,7 +407,7 @@ def run_update_open_tasks((filepath,logdir)):
             sys.stdout = open(logfile, "w")
         dax.update_open_tasks(filepath)
     except Exception as e:
-        print("error: %s run_update_open_tasks(*%r, **%r)" % (e, filepath, logdir))
+        print("In dax_manager in run_update_open_tasks(*%r, **%r): error: %s " % (filepath, logdir ,e))
 
 def run_update((filepath,logdir)):
     """Run dax_update with the settings file and redirect output to the logfile"""
@@ -417,7 +417,7 @@ def run_update((filepath,logdir)):
             sys.stdout = open(logfile, "w")
         dax.update(filepath)
     except Exception as e:
-        print("error: %s run_update(*%r, **%r)" % (e, filepath, logdir))
+        print("In dax_manager in run_update(*%r, **%r): error: %s " % (filepath, logdir ,e))
 
 def parse_args():
     from argparse import ArgumentParser
