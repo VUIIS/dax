@@ -6,3 +6,5 @@ from .processors import ScanProcessor, SessionProcessor
 from .task import Task
 from .XnatUtils import SpiderProcessHandler
 import XnatUtils
+import update
+import update_open_tasks
