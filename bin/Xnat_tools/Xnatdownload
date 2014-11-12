@@ -472,7 +472,7 @@ def download_xnat_data(directory,xnat,project,subject_labels,session_labels,Scan
                 scanpath=directory
             else:
                 scanpath=make_directory(scan,proj_path)
-                scanpath=os.path.join(scanpath,scan['ID']+'-x-'+scan['type'])
+                scanpath=os.path.join(scanpath,scan['ID']+'-x-'+scan['type'].strip().replace('/','_').replace(" ", ""))
                 if scan['series_description']!='': 
                     scanpath=scanpath+'-x-'+scan['series_description'].strip().replace('/','_').replace(" ", "")
                 if not os.path.exists(scanpath):
