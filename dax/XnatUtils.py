@@ -1135,7 +1135,7 @@ def copy_resource(intf, scan_dict,directory,old_res,new_res):
     #clean directory
     clean_directory(directory)
 
-def upload_update_date_redcap(type_update,start_end):
+def upload_update_date_redcap(filepath,type_update,start_end):
     """ 
         type_update : 1 for dax_update / 2 for dax_update_open_tasks
         start_end   : 1 for starting date / 2 for ending date
