@@ -1135,8 +1135,9 @@ def copy_resource(intf, scan_dict,directory,old_res,new_res):
     #clean directory
     clean_directory(directory)
 
-def upload_update_date_redcap(filepath,type_update,start_end):
+def upload_update_date_redcap(project_list,type_update,start_end):
     """ 
+        project_list: projects from XNAT that corresponds to record on REDCap
         type_update : 1 for dax_update / 2 for dax_update_open_tasks
         start_end   : 1 for starting date / 2 for ending date
     """
@@ -1145,8 +1146,6 @@ def upload_update_date_redcap(filepath,type_update,start_end):
             rc = redcap.Project(API_URL,API_KEY)
         except:
             print'WARNING: Could not access redcap. Either wrong API_URL/API_KEY or redcap down.'
-        record_list = rc.export_records(fields=[rc.def_field,REDCAP_VAR['settingsfile']])
-        project_list=[r[rc.def_field] for r in record_list if r[REDCAP_VAR['settingsfile']]==filepath]
         for project in project_list:
             to_upload=dict()
             to_upload[REDCAP_VAR['project']]=project
