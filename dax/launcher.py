@@ -132,7 +132,7 @@ class Launcher(object):
         finally:       
             self.unlock_open_tasks(lockfile_prefix)  
             #Set the date on REDCAP for update ending
-            XnatUtils.upload_update_date_redcap(type_update=2,start_end=2)
+            XnatUtils.upload_update_date_redcap(project_list,type_update=2,start_end=2)
             xnat.disconnect()
             print('Connection to XNAT closed')
                            
@@ -234,7 +234,7 @@ class Launcher(object):
         finally:  
             self.unlock_update(lockfile_prefix)  
             #Set the date on REDCAP for update ending
-            XnatUtils.upload_update_date_redcap(type_update=1,start_end=2)
+            XnatUtils.upload_update_date_redcap(project_list,type_update=1,start_end=2)
             xnat.disconnect()
             print('Connection to XNAT closed')
    
