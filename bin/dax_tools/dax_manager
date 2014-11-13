@@ -454,12 +454,18 @@ if __name__ == '__main__':
     
     if not writeOnly:   
         #Submit Update and Update Open Tasks:
+        print 'INFO: Submitting dax updates and dax updates open tasks for each settings file...'
         files=list()
         for filepath in settings_path_list:
             if filepath in daxlogsdir_dict.keys():
                 daxlogsdir=daxlogsdir_dict[filepath]
-            files.append([filepath,daxlogsdir])
-        
+            # start processes
+            p = multiprocessing.Process(target=run_update,args=(filepath,daxlogsdir,))
+            p.start()
+            p = multiprocessing.Process(target=run_update_open_tasks,args=(filepath,daxlogsdir,))
+            p.start()
+            
+    """
         # start processes
         pool = multiprocessing.Pool() # use all available CPUs
         #Update
@@ -468,5 +474,6 @@ if __name__ == '__main__':
         #Update open tasks
         print 'INFO: Submitting dax updates open tasks for each settings file...'
         pool.map(run_update_open_tasks, files)
+    """
         
     print 'Time at the end of the DAX Manager: ', str(datetime.now()),'\n'
