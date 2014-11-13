@@ -100,9 +100,11 @@ class Launcher(object):
         if not success:
             print('ERROR:failed to get lock on open tasks update')
             exit(1)                              
-
+        
+        #Get default project list for XNAT out of the module and process dict
+        project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
         #Set the date on REDCAP for update starting
-        XnatUtils.upload_update_date_redcap(type_update=2,start_end=1)
+        XnatUtils.upload_update_date_redcap(project_list,type_update=2,start_end=1)
         try:
             print('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
@@ -211,18 +213,19 @@ class Launcher(object):
             print('ERROR:failed to get lock on new update')
             exit(1)   
         
+        #Get default project list for XNAT out of the module and process dict
+        project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
         #Set the date on REDCAP for update starting
-        XnatUtils.upload_update_date_redcap(type_update=1,start_end=1) 
+        XnatUtils.upload_update_date_redcap(project_list,type_update=1,start_end=1) 
+            
         try:
             print('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
 
-            #Priority:
+            #Priority if set:
             if self.priority_project:
                 project_list=self.get_project_list(list(set(self.project_process_dict.keys() + self.project_modules_dict.keys())))
-            else:
-                project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
-  
+            
             # Update projects
             for project_id in project_list:  
                 print('===== PROJECT:'+project_id+' =====')         
