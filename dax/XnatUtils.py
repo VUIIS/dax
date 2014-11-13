@@ -1157,11 +1157,11 @@ def upload_update_date_redcap(project_list,type_update,start_end):
             elif type_update==1 and start_end==2:
                 to_upload[REDCAP_VAR['update_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
             elif type_update==2 and start_end==1:
-                to_upload[REDCAP_VAR['update_open_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-                to_upload[REDCAP_VAR['update_open_end_date']]=''
+                to_upload[REDCAP_VAR['open_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
+                to_upload[REDCAP_VAR['open_end_date']]=''
                 to_upload[REDCAP_VAR['update_open_pid']]=str(os.getpid())
             elif type_update==2 and start_end==2:
-                to_upload[REDCAP_VAR['update_open_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
+                to_upload[REDCAP_VAR['open_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
             data.append(to_upload)
         upload_list_records_redcap(rc,data)
             
