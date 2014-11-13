@@ -1146,6 +1146,7 @@ def upload_update_date_redcap(project_list,type_update,start_end):
             rc = redcap.Project(API_URL,API_KEY)
         except:
             print'WARNING: Could not access redcap. Either wrong API_URL/API_KEY or redcap down.'
+        data=list()
         for project in project_list:
             to_upload=dict()
             to_upload[REDCAP_VAR['project']]=project
@@ -1161,8 +1162,8 @@ def upload_update_date_redcap(project_list,type_update,start_end):
                 to_upload[REDCAP_VAR['update_open_pid']]=str(os.getpid())
             elif type_update==2 and start_end==2:
                 to_upload[REDCAP_VAR['update_open_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-           
-            upload_dict_redcap(rc,to_upload)
+            data.append(to_upload)
+        upload_list_records_redcap(rc,data)
             
 def upload_list_records_redcap(rc,data):
     """Upload data of a dict to a rc project"""
