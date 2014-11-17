@@ -386,7 +386,7 @@ def Main_display(parser):
     print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
     print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
     print '# Parameters :                                                                                     #'
-    if options=={'directory': None,'force': False}:
+    if options=={'directory': None,'force': False,'csv': None,'delete': False,'deleteAll': False,'report': False}:
         print '#     No Arguments given                                                                           #'
         print '#     Use "Xnatprocessupload -h" to see the options                                                #'
         print '####################################################################################################'
@@ -403,7 +403,7 @@ def Main_display(parser):
             print '#     %*s ->  %*s#' %(-30,'Force',-58,'on')
         if options.delete:
             print '#     %*s ->  %*s#' %(-30,'Delete Resource',-58,'on')
-        if options.force:
+        if options.deleteAll:
             print '#     %*s ->  %*s#' %(-30,'Delete All Resources',-58,'on')
         print '####################################################################################################'
 
