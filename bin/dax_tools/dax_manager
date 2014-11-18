@@ -420,7 +420,7 @@ def run_update_open_tasks(filepath,logdir,debug,email_add):
         dax.bin.update_open_tasks(filepath,logfile,debug)
     except Exception as e:
         logger.exception('Caught exception in worker "dax_update_open_tasks '+filepath+'" : ',e)
-        TEXT='Caught exception in worker "dax_update_open_tasks "'+filepath+' : '+traceback.format_exc())
+        TEXT='Caught exception in worker "dax_update_open_tasks "'+filepath+' : '+traceback.format_exc()
         if email_add:
             email(TEXT,email_add,'Error in dax_update_open_tasks for '+filepath)
  
@@ -433,7 +433,7 @@ def run_update(filepath,logdir,debug,email_add):
     except Exception as e:
         logger.exception('Caught exception in worker "dax_update '+filepath+'" : ',e)
         if email_add:
-            TEXT='Caught exception in worker "dax_update "'+filepath+' : '+traceback.format_exc())
+            TEXT='Caught exception in worker "dax_update "'+filepath+' : '+traceback.format_exc()
             email(TEXT,email_add,'Error in dax_update_open_tasks for '+filepath)
 
 def parse_args():
