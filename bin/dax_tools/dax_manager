@@ -6,7 +6,6 @@ from string import Template
 import os,redcap,sys,multiprocessing,smtplib,dax
 from email.mime.text import MIMEText
 from datetime import datetime
-from dax import log
 
 #Information on user and gateway if one
 user=os.environ['USER']
@@ -441,10 +440,7 @@ if __name__ == '__main__':
         settings_path_list=list()
     
     #Logger for logs
-    if args.debug:
-        logger = log.setup_debug_logger('manager')
-    else:
-        logger = log.setup_info_logger('manager')
+    logger = dax.bin.set_logger('manager',args.logfile,args.debug)
     
     daxlogsdir=args.daxlogsdir
     daxlogsdir_dict=dict()
