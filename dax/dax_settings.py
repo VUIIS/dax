@@ -37,9 +37,9 @@ QUEUE_LIMIT     --> Number max of jobs authorized in the queue.
 
 2) Email information to send email (optional)
 
-STPM_FROM --> address from where you will send the email.
-STPM_PASS --> password for the email address.
-STPM_HOST --> server HOST ID (e.g: google --> stmp.gmail.com)
+STMP_FROM --> address from where you will send the email.
+STMP_PASS --> password for the email address.
+STMP_HOST --> server HOST ID (e.g: google --> stmp.gmail.com)
 
     4) REDCap for dax_manager (optional)
     
