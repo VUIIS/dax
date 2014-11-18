@@ -110,7 +110,7 @@ if 'STMP_FROM' not in os.environ:
 else:
     STMP_FROM=os.environ['STMP_FROM'] 
 #API_URL:
-DEFAULT_API_URL=None
+DEFAULT_STMP_PASS=None
 if 'STMP_PASS' not in os.environ:
     STMP_PASS=DEFAULT_STMP_PASS
 else:
