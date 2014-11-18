@@ -11,7 +11,7 @@ import multiprocessing
 from email.mime.text import MIMEText
 from datetime import datetime
 
-from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY,STMP_FROM,STMP_HOST,STMP_PASS
+from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY,SMTP_FROM,SMTP_HOST,SMTP_PASS
 import dax
 from dax.launcher import UPDATE_LOCK_FILE,OPEN_TASKS_LOCK_FILE
 
@@ -349,34 +349,20 @@ def write_settings(settings):
         f.write(settingsTemplate.safe_substitute(**Settings_data))
 
 def email(TEXT,TO,SUBJECT):
-    """send an email from FROM (with the password PWS) to TO with the subject and text given.
-    
-    parameters:
-        - FROM = email address from where the e-amil is sent
-        - PWS = password of the email address
-        - TO = list of email address which will receive the email
-        - SUBJECT =  subject of the email
-        - TEXT = inside of the email
-        - server = server used to send the email
-        - filename = fullpath to a file that need to be attached
-    """
-    if STMP_FROM and STMP_HOST and STMP_PASS:
-        print TEXT
-        print TO
-        print SUBJECT
+    if SMTP_FROM and SMTP_HOST and SMTP_PASS:
         # Create the container (outer) email message.
         msg = MIMEText(TEXT)
         msg['Subject'] = SUBJECT
         # me == the sender's email address
         # family = the list of all recipients' email addresses
-        msg['From'] = STMP_FROM
+        msg['From'] = SMTP_FROM
         msg['To'] = ','.join(TO)
         
         # Send the email via our own SMTP server.
-        s = smtplib.SMTP(STMP_HOST)
+        s = smtplib.SMTP(SMTP_HOST)
         s.starttls()
-        s.login(STMP_FROM,STMP_PASS)
-        s.sendmail(STMP_FROM, TO, msg.as_string())
+        s.login(SMTP_FROM,SMTP_PASS)
+        s.sendmail(SMTP_FROM, TO, msg.as_string())
         s.quit()
 
 def unlock_open_tasks(settings_path):
@@ -494,7 +480,7 @@ if __name__ == '__main__':
     logger.info('Current Process ID: '+str(os.getpid()))
     logger.info('Current Process Name: '+os.path.basename(__file__))
     logger.info('Current User: '+user)
-    logger.info('Current Gateway/Computer: '+gateway)
+    logger.info('Current Gateway/Computer: '+gateway+'\n')
     
     #If api_key given, use the redcap db:
     if api_key:
