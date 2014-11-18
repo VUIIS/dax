@@ -7,4 +7,4 @@ from .task import Task
 from .XnatUtils import SpiderProcessHandler
 import XnatUtils
 import bin
-import loggin
+import log
