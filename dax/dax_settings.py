@@ -35,7 +35,13 @@ RESULTS_DIR     --> where results from jobs are stored to be upload to xnat late
 ROOT_JOB_DIR    --> Directory used for temp job folder for intermediate results
 QUEUE_LIMIT     --> Number max of jobs authorized in the queue.
 
-    3) REDCap for dax_manager (optional)
+2) Email information to send email (optional)
+
+STPM_FROM --> address from where you will send the email.
+STPM_PASS --> password for the email address.
+STPM_HOST --> server HOST ID (e.g: google --> stmp.gmail.com)
+
+    4) REDCap for dax_manager (optional)
     
 API_URL    --> api url for redcap database
 API_KEY    --> api key for redcap project holding the information for the settings
@@ -95,6 +101,26 @@ if 'UPLOAD_SPIDER_DIR' not in os.environ:
         os.mkdir(RESULTS_DIR)
 else:
     RESULTS_DIR=os.environ['UPLOAD_SPIDER_DIR'] 
+    
+#Settings to send email (optional):
+#STMP_FROM:
+DEFAULT_STMP_FROM=None
+if 'STMP_FROM' not in os.environ:
+    STMP_FROM=DEFAULT_STMP_FROM
+else:
+    STMP_FROM=os.environ['STMP_FROM'] 
+#API_URL:
+DEFAULT_API_URL=None
+if 'STMP_PASS' not in os.environ:
+    STMP_PASS=DEFAULT_STMP_PASS
+else:
+    STMP_PASS=os.environ['STMP_PASS'] 
+#API_URL:
+DEFAULT_STMP_HOST='stmp.gmail.com'  #google
+if 'STMP_HOST' not in os.environ:
+    STMP_HOST=DEFAULT_STMP_HOST
+else:
+    STMP_HOST=os.environ['STMP_HOST'] 
     
 #Management using REDCap (optional):
 #Variables for REDCap:
