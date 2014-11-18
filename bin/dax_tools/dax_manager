@@ -399,17 +399,17 @@ def generate_settings_REDCap(api_key):
         
     return settings_path_list,daxlogsdir_dict,email_dict
         
-def run_update_open_tasks(filepath,logdir,email):
+def run_update_open_tasks(filepath,logdir,debug):
     """Run dax_update_open_task with the settings file and redirect output to the logfile"""
     if os.path.isdir(logdir):
         logfile=os.path.join(logdir,'launcherlog_'+os.path.basename(filepath).split('.')[0]+'_'+'{:%Y%m%d_%H:%M:%S}'.format(datetime.now())+'.log')
-    dax.bin.update_open_tasks(filepath,logfile)
+    dax.bin.update_open_tasks(filepath,logfile,debug)
  
-def run_update(filepath,logdir,email):
+def run_update(filepath,logdir,debug):
     """Run dax_update with the settings file and redirect output to the logfile"""
     if os.path.isdir(logdir):
         logfile=os.path.join(logdir,'updatelog_'+os.path.basename(filepath).split('.')[0]+'_'+'{:%Y%m%d_%H:%M:%S}'.format(datetime.now())+'.log')
-    dax.bin.update(filepath,logfile)
+    dax.bin.update(filepath,logfile,debug)
 
 def parse_args():
     from argparse import ArgumentParser
@@ -469,10 +469,10 @@ if __name__ == '__main__':
                 email=email_dict[filepath]
             # start processes
             logger.debug('new process dax_update on '+filepath)
-            p = multiprocessing.Process(target=run_update,args=(filepath,daxlogsdir,email,))
+            p = multiprocessing.Process(target=run_update,args=(filepath,daxlogsdir,args.debug,))
             p.start()
             logger.debug('new process dax_update_open_tasks on '+filepath)
-            p = multiprocessing.Process(target=run_update_open_tasks,args=(filepath,daxlogsdir,email,))
+            p = multiprocessing.Process(target=run_update_open_tasks,args=(filepath,daxlogsdir,args.debug,))
             p.start()
         
     logger.info('Time at the end of the DAX Manager: ', str(datetime.now()))
