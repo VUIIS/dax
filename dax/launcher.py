@@ -8,7 +8,7 @@ __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 
 import os
 import sys
-import loggin
+import logging
 from datetime import datetime, timedelta
 
 from pyxnat import Interface
