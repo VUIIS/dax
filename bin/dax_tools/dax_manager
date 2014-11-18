@@ -346,7 +346,7 @@ def write_settings(settings):
     with open(settings.filepath, 'w') as f:
         f.write(settingsTemplate.safe_substitute(**Settings_data))
 
-def email(TEXT,FROM,PWS,TO,SUBJECT,SERVER):
+def email(TEXT,TO,SUBJECT):
     """send an email from FROM (with the password PWS) to TO with the subject and text given.
     
     parameters:
@@ -358,20 +358,27 @@ def email(TEXT,FROM,PWS,TO,SUBJECT,SERVER):
         - server = server used to send the email
         - filename = fullpath to a file that need to be attached
     """
-    # Create the container (outer) email message.
-    msg = MIMEText(TEXT)
-    msg['Subject'] = SUBJECT
-    # me == the sender's email address
-    # family = the list of all recipients' email addresses
-    msg['From'] = FROM
-    msg['To'] = ','.join(TO)
-    
-    # Send the email via our own SMTP server.
-    s = smtplib.SMTP(SERVER)
-    s.starttls()
-    s.login(FROM,PWS)
-    s.sendmail(FROM, TO, msg.as_string())
-    s.quit()
+    try:
+        FROM = os.environ['STMP_FROM']
+        PWS = os.environ['STMP_PASS']
+        SERVER = os.environ['STMP_HOST']
+        
+        # Create the container (outer) email message.
+        msg = MIMEText(TEXT)
+        msg['Subject'] = SUBJECT
+        # me == the sender's email address
+        # family = the list of all recipients' email addresses
+        msg['From'] = FROM
+        msg['To'] = ','.join(TO)
+        
+        # Send the email via our own SMTP server.
+        s = smtplib.SMTP(SERVER)
+        s.starttls()
+        s.login(FROM,PWS)
+        s.sendmail(FROM, TO, msg.as_string())
+        s.quit()
+    except KeyError as e:
+        logger.error("You must set the environment variable %s" % str(e))
     
 ####################################################################################
 #####################           Principal functions            #####################
@@ -405,17 +412,29 @@ def generate_settings_REDCap(api_key):
         
     return settings_path_list,daxlogsdir_dict,email_dict
         
-def run_update_open_tasks(filepath,logdir,debug):
+def run_update_open_tasks(filepath,logdir,debug,email_add):
     """Run dax_update_open_task with the settings file and redirect output to the logfile"""
-    if os.path.isdir(logdir):
-        logfile=os.path.join(logdir,'launcherlog_'+os.path.basename(filepath).split('.')[0]+'_'+'{:%Y%m%d_%H:%M:%S}'.format(datetime.now())+'.log')
-    dax.bin.update_open_tasks(filepath,logfile,debug)
+    try:
+        if os.path.isdir(logdir):
+            logfile=os.path.join(logdir,'launcherlog_'+os.path.basename(filepath).split('.')[0]+'_'+'{:%Y%m%d_%H:%M:%S}'.format(datetime.now())+'.log')
+        dax.bin.update_open_tasks(filepath,logfile,debug)
+    except Exception as e:
+        logger.exception('Caught exception in worker "dax_update_open_tasks "+filepath+" : ",e)
+        TEXT='Caught exception in worker "dax_update_open_tasks "'+filepath+' : '+traceback.format_exc())
+        if email_add:
+            email(TEXT,email_add,'Error in dax_update_open_tasks for '+filepath)
  
-def run_update(filepath,logdir,debug):
+def run_update(filepath,logdir,debug,email_add):
     """Run dax_update with the settings file and redirect output to the logfile"""
-    if os.path.isdir(logdir):
-        logfile=os.path.join(logdir,'updatelog_'+os.path.basename(filepath).split('.')[0]+'_'+'{:%Y%m%d_%H:%M:%S}'.format(datetime.now())+'.log')
-    dax.bin.update(filepath,logfile,debug)
+    try:
+        if os.path.isdir(logdir):
+            logfile=os.path.join(logdir,'updatelog_'+os.path.basename(filepath).split('.')[0]+'_'+'{:%Y%m%d_%H:%M:%S}'.format(datetime.now())+'.log')
+        dax.bin.update(filepath,logfile,debug)
+    except Exception as e:
+        logger.exception('Caught exception in worker "dax_update "+filepath+" : ",e)
+        if email_add:
+            TEXT='Caught exception in worker "dax_update "'+filepath+' : '+traceback.format_exc())
+            email(TEXT,email_add,'Error in dax_update_open_tasks for '+filepath)
 
 def parse_args():
     from argparse import ArgumentParser
