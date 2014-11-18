@@ -1,5 +1,5 @@
 from .cluster import PBS
-from .dax_settings import RESULTS_DIR,API_URL,API_KEY,REDCAP_VAR,DEFAULT_GATEWAY
+from .dax_settings import RESULTS_DIR,API_URL,API_KEY,REDCAP_VAR,DEFAULT_GATEWAY,STMP_HOST,STMP_FROM,STMP_USER
 from .launcher import Launcher
 from .modules import ScanModule, SessionModule
 from .processors import ScanProcessor, SessionProcessor
