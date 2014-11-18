@@ -440,8 +440,11 @@ if __name__ == '__main__':
         settings_path_list=list()
     
     #Logger for logs
-    logger = dax.bin.set_logger('manager',args.logfile,args.debug)
-    
+    if args.debug:
+        logger = log.setup_debug_logger('manager',args.logfile)
+    else:
+        logger = log.setup_info_logger('manager',args.logfile)
+
     daxlogsdir=args.daxlogsdir
     daxlogsdir_dict=dict()
     email_dict=dict()
