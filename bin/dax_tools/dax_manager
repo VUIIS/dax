@@ -12,6 +12,7 @@ from datetime import datetime
 
 from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY
 import dax
+from dax.launcher import UPDATE_LOCK_FILE,OPEN_TASKS_LOCK_FILE
 
 #Information on user and gateway if one
 user=os.environ['USER']
@@ -379,7 +380,19 @@ def email(TEXT,TO,SUBJECT):
         s.quit()
     except KeyError as e:
         logger.error("You must set the environment variable %s" % str(e))
-    
+
+def unlock_open_tasks(settings_path):
+    lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
+    lock_file = os.path.join(RESULTS_DIR,'FlagFiles',lockfile_prefix+'_'+OPEN_TASKS_LOCK_FILE)
+    if os.path.exists(lock_file):
+        os.remove(lock_file)
+               
+def unlock_update(settings_path):
+    lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
+    lock_file = os.path.join(RESULTS_DIR,'FlagFiles',lockfile_prefix+'_'+UPDATE_LOCK_FILE)
+    if os.path.exists(lock_file):
+        os.remove(lock_file)
+            
 ####################################################################################
 #####################           Principal functions            #####################
 ####################################################################################
@@ -420,8 +433,10 @@ def run_update_open_tasks(filepath,logdir,debug,email_add):
         dax.bin.update_open_tasks(filepath,logfile,debug)
     except Exception as e:
         logger.exception('Caught exception in worker "dax_update_open_tasks '+filepath+'" : ',e)
-        TEXT='Caught exception in worker "dax_update_open_tasks "'+filepath+' : '+traceback.format_exc()
+        #Remove the flagfile:
+        unlock_open_tasks(filepath)
         if email_add:
+            TEXT='Caught exception in worker "dax_update_open_tasks "'+filepath+' : '+traceback.format_exc()
             email(TEXT,email_add,'Error in dax_update_open_tasks for '+filepath)
  
 def run_update(filepath,logdir,debug,email_add):
@@ -432,6 +447,8 @@ def run_update(filepath,logdir,debug,email_add):
         dax.bin.update(filepath,logfile,debug)
     except Exception as e:
         logger.exception('Caught exception in worker "dax_update '+filepath+'" : ',e)
+        #Remove the flagfile:
+        unlock_update(filepath)
         if email_add:
             TEXT='Caught exception in worker "dax_update "'+filepath+' : '+traceback.format_exc()
             email(TEXT,email_add,'Error in dax_update_open_tasks for '+filepath)
