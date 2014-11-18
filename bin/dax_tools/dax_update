@@ -25,6 +25,6 @@ if __name__ == '__main__':
     lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
 
     # Run the updates
-    logger.info('INFO:running update, Start Time:'+str(datetime.now()))
+    logger.info('running update, Start Time:'+str(datetime.now()))
     settings.myLauncher.update(lockfile_prefix,logger)
-    logger.info('INFO:finished update, End Time: '+str(datetime.now()))
+    logger.info('finished update, End Time: '+str(datetime.now()))
