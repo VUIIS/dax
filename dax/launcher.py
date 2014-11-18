@@ -114,7 +114,7 @@ class Launcher(object):
             logger.info('Getting task list...')
             task_list = self.get_open_tasks(xnat)
             
-            print(str(len(task_list))+' open jobs found')
+            logger.info(str(len(task_list))+' open jobs found')
 
             logger.info('Updating tasks...')
             for cur_task in task_list:
