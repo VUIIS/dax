@@ -3,23 +3,30 @@
 
 import os, imp
 from datetime import datetime
+from dax import log
 
 def parse_args():
     from argparse import ArgumentParser
     ap = ArgumentParser(prog='dax_update', description="Updates all tasks")
     ap.add_argument(dest='settings_path', help='Settings Path')
+    ap.add_argument('--debug', dest='debug', action='store_true',help='Print DEBUG information.')
     return ap.parse_args()
-
+    
 if __name__ == '__main__':   
     args = parse_args()
     settings_path = args.settings_path
-
+    
+    #Logger for logs
+    if args.debug:
+        logger = log.setup_debug_logger('root')
+    else:
+        logger = log.setup_info_logger('root')
     # Load the settings file
-    print('INFO:loading settings from:'+settings_path)
+    logger.info('loading settings from:'+settings_path)
     settings = imp.load_source('settings', settings_path)
     lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
 
     # Run the updates
-    print('INFO:running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.update(lockfile_prefix)
-    print('INFO:finished update, End Time: '+str(datetime.now()))
+    logger.info('INFO:running update, Start Time:'+str(datetime.now()))
+    settings.myLauncher.update(lockfile_prefix,logger)
+    logger.info('INFO:finished update, End Time: '+str(datetime.now()))
