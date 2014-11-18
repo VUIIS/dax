@@ -11,7 +11,7 @@ import multiprocessing
 from email.mime.text import MIMEText
 from datetime import datetime
 
-from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY
+from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY,STMP_FROM,STMP_HOST,STMP_PASS
 import dax
 from dax.launcher import UPDATE_LOCK_FILE,OPEN_TASKS_LOCK_FILE
 
@@ -360,27 +360,21 @@ def email(TEXT,TO,SUBJECT):
         - server = server used to send the email
         - filename = fullpath to a file that need to be attached
     """
-    try:
-        FROM = os.environ['STMP_FROM']
-        PWS = os.environ['STMP_PASS']
-        SERVER = os.environ['STMP_HOST']
-        
+    if STMP_FROM and STMP_HOST and STMP_PASS:
         # Create the container (outer) email message.
         msg = MIMEText(TEXT)
         msg['Subject'] = SUBJECT
         # me == the sender's email address
         # family = the list of all recipients' email addresses
-        msg['From'] = FROM
+        msg['From'] = STMP_FROM
         msg['To'] = ','.join(TO)
         
         # Send the email via our own SMTP server.
-        s = smtplib.SMTP(SERVER)
+        s = smtplib.SMTP(STMP_HOST)
         s.starttls()
-        s.login(FROM,PWS)
-        s.sendmail(FROM, TO, msg.as_string())
+        s.login(STMP_FROM,STMP_PASS)
+        s.sendmail(STMP_FROM, TO, msg.as_string())
         s.quit()
-    except KeyError as e:
-        logger.error("You must set the environment variable %s" % str(e))
 
 def unlock_open_tasks(settings_path):
     lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
