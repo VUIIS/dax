@@ -448,7 +448,7 @@ if __name__ == '__main__':
     daxlogsdir=args.daxlogsdir
     daxlogsdir_dict=dict()
     email_dict=dict()
-    logger.info('Time at the beginning of the DAX Manager: ', str(datetime.now()))
+    logger.info('Time at the beginning of the DAX Manager: '+ str(datetime.now()))
     logger.info('Current Process ID: '+str(os.getpid()))
     logger.info('Current Process Name: '+os.path.basename(__file__))
     logger.info('Current User: '+user)
