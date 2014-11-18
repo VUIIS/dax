@@ -1,5 +1,6 @@
 import os
 import time
+import logging
 from datetime import date
 
 import cluster
@@ -7,6 +8,9 @@ from cluster import PBS
 import XnatUtils
 
 from dax_settings import RESULTS_DIR
+
+#Logger to print logs
+logger = logging.getLogger('dax')
 
 # Job Statuses
 NO_DATA='NO_DATA'         # assessor that doesn't have data to run (for session assessor): E.G: dtiqa multi but no dti present.
@@ -87,7 +91,7 @@ class Task(object):
             
         if memusedmb.strip() != '':
             memused = memusedmb + 'mb'
-            #print 'DEBUG:copy memused:'+self.assessor_label+':'+memused
+            logger.debug('copy memused:'+self.assessor_label+':'+memused)
             self.set_memused(memused)
 
     def check_job_usage(self):
@@ -101,7 +105,7 @@ class Task(object):
                 self.set_memused('NotFound')
             else:
                 pass
-                #print('DEBUG:memused and walltime already set, skipping')
+                logger.debug('memused and walltime already set, skipping')
             
             return
         
@@ -166,11 +170,11 @@ class Task(object):
         out_resource_list = self.assessor.out_resources()
         for out_resource in out_resource_list:
             if out_resource.label() not in REPROC_RES_SKIP_LIST:
-                print('\t  Removing '+out_resource.label())
+                logger.info('\t  Removing '+out_resource.label())
                 try:
                     out_resource.delete()
                 except DatabaseError:
-                    print('\t ERROR:deleting resource.')
+                    logger.error('\t ERROR:deleting resource.')
                     pass
             
     def reproc_processing(self):
@@ -187,7 +191,7 @@ class Task(object):
         for out_resource in out_resource_list:
             olabel = out_resource.label()
             if olabel not in REPROC_RES_SKIP_LIST:
-                print('\tDownloading:'+olabel)
+                logger.info('\tDownloading:'+olabel)
                 out_res = self.assessor.out_resource(olabel)
                 out_res.get(self.upload_dir+'/'+local_dir, extract=True)
         
@@ -199,7 +203,7 @@ class Task(object):
         
         # Zip it all up
         cmd = 'cd '+self.upload_dir + ' && zip -qr '+local_zip+' '+local_dir+'/'
-        print('DEBUG:running cmd:'+cmd)
+        logger.debug('running cmd:'+cmd)
         os.system(cmd)    
             
         # Upload it to Archive
@@ -218,11 +222,11 @@ class Task(object):
         if old_status == COMPLETE or old_status == JOB_FAILED:
             qcstatus = self.get_qcstatus()
             if qcstatus == REPROC:
-                print('\t *INFO:qcstatus=REPROC, running reproc_processing...')
+                logger.info('\t *qcstatus=REPROC, running reproc_processing...')
                 self.reproc_processing()
                 new_status = NEED_TO_RUN
             elif qcstatus == RERUN:
-                print('\t *INFO:qcstatus=RERUN, running undo_processing...')
+                logger.info('\t *qcstatus=RERUN, running undo_processing...')
                 self.undo_processing()  
                 new_status = NEED_TO_RUN
             else:
@@ -253,10 +257,10 @@ class Task(object):
         elif old_status == NO_DATA:
             pass
         else:
-            print('\t *ERROR:unknown status:'+old_status)
+            logger.warn('\t *unknown status:'+old_status)
             
         if (new_status != old_status):
-            print('\t *INFO:changing status from '+old_status+' to '+new_status)
+            logger.info('\t *changing status from '+old_status+' to '+new_status)
             self.set_status(new_status) 
         
             # Update QC Status        
@@ -293,7 +297,7 @@ class Task(object):
         
         if jobid == '' or jobid == '0':
             # TODO: raise exception
-            print('ERROR:failed to launch job on cluster')
+            logger.error('failed to launch job on cluster')
             return False
         else:
             self.set_status(JOB_RUNNING)
@@ -306,7 +310,7 @@ class Task(object):
             data,record_id=XnatUtils.create_record_redcap(project, SM_name)
             run=XnatUtils.save_job_redcap(data,record_id)
             if not run:
-                print(' ->ERROR: did not send the job to redcap for jobID <'+str(jobid)+'>: '+record_id)
+                logger.warn(' ->ERROR: did not send the job to redcap for jobID <'+str(jobid)+'>: '+record_id)
             
             return True
         
