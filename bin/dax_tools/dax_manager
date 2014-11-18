@@ -496,11 +496,11 @@ if __name__ == '__main__':
                 email=email_dict[filepath]
             # start processes
             logger.debug('new process dax_update on '+filepath)
-            p = multiprocessing.Process(target=run_update,args=(filepath,daxlogsdir,args.debug,))
+            p = multiprocessing.Process(target=run_update,args=(filepath,daxlogsdir,args.debug,email,))
             p.start()
             workers.append(p)
             logger.debug('new process dax_update_open_tasks on '+filepath)
-            p = multiprocessing.Process(target=run_update_open_tasks,args=(filepath,daxlogsdir,args.debug,))
+            p = multiprocessing.Process(target=run_update_open_tasks,args=(filepath,daxlogsdir,args.debug,email,))
             p.start()
             workers.append(p)
     
