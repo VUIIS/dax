@@ -475,4 +475,4 @@ if __name__ == '__main__':
             p = multiprocessing.Process(target=run_update_open_tasks,args=(filepath,daxlogsdir,args.debug,))
             p.start()
         
-    logger.info('Time at the end of the DAX Manager: ', str(datetime.now()))
+    logger.info('Time at the end of the DAX Manager: '+ str(datetime.now()))
