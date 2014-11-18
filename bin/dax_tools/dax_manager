@@ -404,13 +404,12 @@ def generate_settings_REDCap(api_key):
 def run_update_open_tasks(filepath,logdir,email):
     """Run dax_update_open_task with the settings file and redirect output to the logfile"""
     try: 
-        if os.path.exists(logdir):
+        if os.path.isdir(logdir):
             logfile=os.path.join(logdir,'launcherlog_'+os.path.basename(filepath).split('.')[0]+'_'+'{:%Y%m%d_%H:%M:%S}'.format(datetime.now())+'.log')
             sys.stdout = open(logfile, "w")
         dax.bin.update_open_tasks(filepath)
     except Exception as e:
-        print("In dax_manager in run_update_open_tasks(*%r, **%r): error: %s " % (filepath, logdir ,str(e)))
-        traceback.print_exc()
+        print("In dax_manager in run_update_open_tasks(*%r, **%r): error: %s " % (filepath, logdir ,traceback.print_exc()))
         if 'SMTP_FROM' in os.environ and 'SMTP_HOST' in os.environ and 'SMTP_PASS' in os.environ:
             TEXT='Dax_update_open_tasks failed with the following error for '+filepath+': '+traceback.print_exc()
             email(TEXT,os.environ['SMTP_FROM'],os.environ['SMTP_PASS'],email,'WARNING: dax_update_open_tasks failed',os.environ['SMTP_HOST'])
@@ -418,13 +417,12 @@ def run_update_open_tasks(filepath,logdir,email):
 def run_update(filepath,logdir,email):
     """Run dax_update with the settings file and redirect output to the logfile"""
     try: 
-        if os.path.exists(logdir):
+        if os.path.isdir(logdir):
             logfile=os.path.join(logdir,'updatelog_'+os.path.basename(filepath).split('.')[0]+'_'+'{:%Y%m%d_%H:%M:%S}'.format(datetime.now())+'.log')
             sys.stdout = open(logfile, "w")
         dax.bin.update(filepath)
     except Exception as e:
-        print("In dax_manager in run_update(*%r, **%r): error: %s " % (filepath, logdir ,str(e)))
-        traceback.print_exc()
+        print("In dax_manager in run_update(*%r, **%r): error: %s " % (filepath, logdir ,traceback.print_exc()))
         if 'SMTP_FROM' in os.environ and 'SMTP_HOST' in os.environ and 'SMTP_PASS' in os.environ:
             TEXT='Dax_update failed with the following error for '+filepath+': '+traceback.print_exc()
             email(TEXT,os.environ['SMTP_FROM'],os.environ['SMTP_PASS'],email,'WARNING: dax_update failed',os.environ['SMTP_HOST'])
