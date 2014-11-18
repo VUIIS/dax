@@ -37,9 +37,9 @@ QUEUE_LIMIT     --> Number max of jobs authorized in the queue.
 
 2) Email information to send email (optional)
 
-STMP_FROM --> address from where you will send the email.
-STMP_PASS --> password for the email address.
-STMP_HOST --> server HOST ID (e.g: google --> stmp.gmail.com)
+SMTP_FROM --> address from where you will send the email.
+SMTP_PASS --> password for the email address.
+SMTP_HOST --> server HOST ID (e.g: google --> stmp.gmail.com)
 
     4) REDCap for dax_manager (optional)
     
@@ -104,23 +104,23 @@ else:
     
 #Settings to send email (optional):
 #STMP_FROM:
-DEFAULT_STMP_FROM=None
+DEFAULT_SMTP_FROM=None
 if 'STMP_FROM' not in os.environ:
-    STMP_FROM=DEFAULT_STMP_FROM
+    SMTP_FROM=DEFAULT_SMTP_FROM
 else:
-    STMP_FROM=os.environ['STMP_FROM'] 
+    SMTP_FROM=os.environ['STMP_FROM'] 
 #API_URL:
-DEFAULT_STMP_PASS=None
+DEFAULT_SMTP_PASS=None
 if 'STMP_PASS' not in os.environ:
-    STMP_PASS=DEFAULT_STMP_PASS
+    SMTP_PASS=DEFAULT_SMTP_PASS
 else:
-    STMP_PASS=os.environ['STMP_PASS'] 
+    SMTP_PASS=os.environ['SMTP_PASS'] 
 #API_URL:
-DEFAULT_STMP_HOST='stmp.gmail.com'  #google
-if 'STMP_HOST' not in os.environ:
-    STMP_HOST=DEFAULT_STMP_HOST
+DEFAULT_SMTP_HOST='stmp.gmail.com'  #google
+if 'SMTP_HOST' not in os.environ:
+    SMTP_HOST=DEFAULT_SMTP_HOST
 else:
-    STMP_HOST=os.environ['STMP_HOST'] 
+    SMTP_HOST=os.environ['SMTP_HOST'] 
     
 #Management using REDCap (optional):
 #Variables for REDCap:
