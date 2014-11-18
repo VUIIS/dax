@@ -5,8 +5,9 @@ from string import Template
 import os
 import sys
 import redcap
-import multiprocessing
 import smtplib
+import traceback
+import multiprocessing
 from email.mime.text import MIMEText
 from datetime import datetime
 
