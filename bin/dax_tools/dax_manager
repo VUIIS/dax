@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY
 from string import Template 
-import os,redcap,sys,multiprocessing,smtplib,dax
+import os
+import sys
+import redcap
+import multiprocessing
+import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime
+
+from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY
+import dax
 
 #Information on user and gateway if one
 user=os.environ['USER']
@@ -458,7 +464,9 @@ if __name__ == '__main__':
     if api_key:
         settings_path_list,daxlogsdir_dict,email_dict=generate_settings_REDCap(api_key)
     
-    if not writeOnly:   
+    if not writeOnly: 
+        # Workers:
+        workers=[]
         #Submit Update and Update Open Tasks:
         logger.info('Submitting dax updates and dax updates open tasks for each settings file...')
         files=list()
@@ -471,8 +479,19 @@ if __name__ == '__main__':
             logger.debug('new process dax_update on '+filepath)
             p = multiprocessing.Process(target=run_update,args=(filepath,daxlogsdir,args.debug,))
             p.start()
+            workers.append(p)
             logger.debug('new process dax_update_open_tasks on '+filepath)
             p = multiprocessing.Process(target=run_update_open_tasks,args=(filepath,daxlogsdir,args.debug,))
             p.start()
+            workers.append(p)
+    
+    #If ctrl-c, kill all children
+    try:
+        for worker in workers:
+            worker.join()
+    except KeyboardInterrupt:
+        logger.warn('Dax_manager received ctrc-c/kill. All workers are going to be terminated.')
+        worker.terminate()
+        worker.join()
         
     logger.info('Time at the end of the DAX Manager: '+ str(datetime.now()))
