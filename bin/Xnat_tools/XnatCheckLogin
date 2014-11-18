@@ -61,8 +61,8 @@ def set_xnat_variables():
             xnat.disconnect()
             print '-->Good login.'
     except:
-        print 'ERROR: You must have set the wrong Username and Password.'
-        print 'Try again:'
+        print 'ERROR: You must have set the wrong Username and Password in your configuration file.'
+        print 'Try typing them:'
         XNAT_USER = raw_input("Username on XNAT: ")
         XNAT_PASS = getpass.getpass()
         xnat=Interface(XNAT_HOST,XNAT_USER,XNAT_PASS)
@@ -70,17 +70,18 @@ def set_xnat_variables():
             #check connection
             if xnat.select('/project/VUSTP/').exists():
                 xnat.disconnect()
-                print '-->Good login.'
+                print '-->Good login. You should change your configuration file. (.profile or .bashrc or .xnat*)'
         except:
-            print 'ERROR: Wrong login. Check on XNAT that you can log in.'
+            print 'ERROR: Wrong login. Check on XNAT that you can log in and check your settings in your configuration file.'
             sys.exit()        
         #Send to the bashrc
-        add_to_workstation('export XNAT_HOST='+XNAT_HOST,"#Xnat host address")
-        print "    *XNAT_HOST set up in ~/.xnat_profile"
-        add_to_workstation('export XNAT_USER='+XNAT_USER,"#Xnat username")
-        print "    *XNAT_USER set up in ~/.xnat_profile"
-        add_to_workstation('export XNAT_PASS='+XNAT_PASS,"#Xnat password")
-        print "    *XNAT_PASS set up in ~/.xnat_profile"
+        if not 'XNAT_HOST' in os.environ and not 'XNAT_USER' in os.environ and not 'XNAT_PASS' in os.environ:
+            add_to_workstation('export XNAT_HOST='+XNAT_HOST,"#Xnat host address")
+            print "    *XNAT_HOST set up in ~/.xnat_profile"
+            add_to_workstation('export XNAT_USER='+XNAT_USER,"#Xnat username")
+            print "    *XNAT_USER set up in ~/.xnat_profile"
+            add_to_workstation('export XNAT_PASS='+XNAT_PASS,"#Xnat password")
+            print "    *XNAT_PASS set up in ~/.xnat_profile"
                 
 def parse_args():
     from argparse import ArgumentParser
