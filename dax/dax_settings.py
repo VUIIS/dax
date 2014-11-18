@@ -105,13 +105,13 @@ else:
 #Settings to send email (optional):
 #STMP_FROM:
 DEFAULT_SMTP_FROM=None
-if 'STMP_FROM' not in os.environ:
+if 'SMTP_FROM' not in os.environ:
     SMTP_FROM=DEFAULT_SMTP_FROM
 else:
-    SMTP_FROM=os.environ['STMP_FROM'] 
+    SMTP_FROM=os.environ['SMTP_FROM'] 
 #API_URL:
 DEFAULT_SMTP_PASS=None
-if 'STMP_PASS' not in os.environ:
+if 'SMTP_PASS' not in os.environ:
     SMTP_PASS=DEFAULT_SMTP_PASS
 else:
     SMTP_PASS=os.environ['SMTP_PASS'] 
