@@ -21,12 +21,12 @@ if __name__ == '__main__':
     logger=bin.set_logger(args.logfile,args.debug)
         
     # Load the settings file
-    print('INFO:loading settings from:'+settings_path)
+    logger.info('loading settings from:'+settings_path)
     settings = imp.load_source('settings', settings_path)
     lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
 
     # Run the update
-    print('INFO:updating open tasks, Start Time:'+str(datetime.now()))
+    logger.info('updating open tasks, Start Time:'+str(datetime.now()))
     settings.myLauncher.update_open_tasks(lockfile_prefix)
-    print('INFO:finished open tasks, End Time: '+str(datetime.now()))
+    logger.info('finished open tasks, End Time: '+str(datetime.now()))
 
