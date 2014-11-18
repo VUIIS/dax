@@ -36,6 +36,7 @@ if __name__ == '__main__':
           install_requires=['pycap','lxml','pyxnat', 'httplib2'],
           zip_safe=True,
           scripts=[
+                   'bin/dax_tools/dax_manager', 
                    'bin/dax_tools/dax_update', 
                    'bin/dax_tools/dax_update_open_tasks', 
                    'bin/dax_tools/dax_upload',
@@ -49,7 +50,7 @@ if __name__ == '__main__':
                    'bin/Xnat_tools/Xnatquery',
                    'bin/Xnat_tools/Xnatreport',
                    'bin/Xnat_tools/Xnatsessionupdate',
-                   'bin/Xnat_tools/Xnatsetup',
+                   'bin/Xnat_tools/XnatCheckLogin',
                    'bin/Xnat_tools/XnatSwitchProcessStatus',
                    'bin/Xnat_tools/Xnatupload',
                    ],
