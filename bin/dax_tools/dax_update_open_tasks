@@ -19,9 +19,9 @@ if __name__ == '__main__':
     
     #Logger for logs
     if args.debug:
-        logger = log.setup_debug_logger('root',args.logfile)
+        logger = log.setup_debug_logger('dax',args.logfile)
     else:
-        logger = log.setup_info_logger('root',args.logfile)
+        logger = log.setup_info_logger('dax',args.logfile)
         
     # Load the settings file
     print('INFO:loading settings from:'+settings_path)
