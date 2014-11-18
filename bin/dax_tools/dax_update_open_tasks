@@ -3,7 +3,7 @@
 
 import os, imp
 from datetime import datetime
-from dax import log
+from dax import bin
 
 def parse_args():
     from argparse import ArgumentParser
@@ -18,10 +18,7 @@ if __name__ == '__main__':
     settings_path = args.settings_path
     
     #Logger for logs
-    if args.debug:
-        logger = log.setup_debug_logger('dax',args.logfile)
-    else:
-        logger = log.setup_info_logger('dax',args.logfile)
+    logger=bin.set_logger(args.logfile,args.debug)
         
     # Load the settings file
     print('INFO:loading settings from:'+settings_path)
