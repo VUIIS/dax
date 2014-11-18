@@ -1,8 +1,12 @@
 import os
 import shutil
 import smtplib
+import logging
 from email.mime.text import MIMEText
 from datetime import datetime
+
+#Logger for logs
+logger=logging.getLogger('dax')
 
 class Module(object):
     def __init__(self,module_name,directory,email,Text_report):
@@ -112,6 +116,6 @@ def modules_by_type(mod_list):
         elif issubclass(mod.__class__,SessionModule):
             exp_mod_list.append(mod)
         else:
-            print('ERROR:unknown module type:'+mod)
+            logger.warn('unknown module type:'+mod)
 
     return exp_mod_list, scan_mod_list
