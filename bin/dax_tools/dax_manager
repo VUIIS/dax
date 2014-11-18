@@ -419,7 +419,7 @@ def run_update_open_tasks(filepath,logdir,debug,email_add):
             logfile=os.path.join(logdir,'launcherlog_'+os.path.basename(filepath).split('.')[0]+'_'+'{:%Y%m%d_%H:%M:%S}'.format(datetime.now())+'.log')
         dax.bin.update_open_tasks(filepath,logfile,debug)
     except Exception as e:
-        logger.exception('Caught exception in worker "dax_update_open_tasks "+filepath+" : ",e)
+        logger.exception('Caught exception in worker "dax_update_open_tasks '+filepath+'" : ',e)
         TEXT='Caught exception in worker "dax_update_open_tasks "'+filepath+' : '+traceback.format_exc())
         if email_add:
             email(TEXT,email_add,'Error in dax_update_open_tasks for '+filepath)
@@ -431,7 +431,7 @@ def run_update(filepath,logdir,debug,email_add):
             logfile=os.path.join(logdir,'updatelog_'+os.path.basename(filepath).split('.')[0]+'_'+'{:%Y%m%d_%H:%M:%S}'.format(datetime.now())+'.log')
         dax.bin.update(filepath,logfile,debug)
     except Exception as e:
-        logger.exception('Caught exception in worker "dax_update "+filepath+" : ",e)
+        logger.exception('Caught exception in worker "dax_update '+filepath+'" : ',e)
         if email_add:
             TEXT='Caught exception in worker "dax_update "'+filepath+' : '+traceback.format_exc())
             email(TEXT,email_add,'Error in dax_update_open_tasks for '+filepath)
