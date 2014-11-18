@@ -3,7 +3,7 @@
 
 from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY
 from string import Template 
-import os,redcap,sys,multiprocessing,smtplib,dax
+import os,redcap,sys,multiprocessing,smtplib,dax,traceback
 from email.mime.text import MIMEText
 from datetime import datetime
 
