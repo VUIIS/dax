@@ -170,11 +170,11 @@ class Task(object):
         out_resource_list = self.assessor.out_resources()
         for out_resource in out_resource_list:
             if out_resource.label() not in REPROC_RES_SKIP_LIST:
-                logger.info('\t  Removing '+out_resource.label())
+                logger.info('   Removing '+out_resource.label())
                 try:
                     out_resource.delete()
                 except DatabaseError:
-                    logger.error('\t ERROR:deleting resource.')
+                    logger.error('   ERROR:deleting resource.')
                     pass
             
     def reproc_processing(self):
@@ -191,7 +191,7 @@ class Task(object):
         for out_resource in out_resource_list:
             olabel = out_resource.label()
             if olabel not in REPROC_RES_SKIP_LIST:
-                logger.info('\tDownloading:'+olabel)
+                logger.info('   Downloading:'+olabel)
                 out_res = self.assessor.out_resource(olabel)
                 out_res.get(self.upload_dir+'/'+local_dir, extract=True)
         
@@ -222,11 +222,11 @@ class Task(object):
         if old_status == COMPLETE or old_status == JOB_FAILED:
             qcstatus = self.get_qcstatus()
             if qcstatus == REPROC:
-                logger.info('\t *qcstatus=REPROC, running reproc_processing...')
+                logger.info('   *qcstatus=REPROC, running reproc_processing...')
                 self.reproc_processing()
                 new_status = NEED_TO_RUN
             elif qcstatus == RERUN:
-                logger.info('\t *qcstatus=RERUN, running undo_processing...')
+                logger.info('   *qcstatus=RERUN, running undo_processing...')
                 self.undo_processing()  
                 new_status = NEED_TO_RUN
             else:
@@ -257,10 +257,10 @@ class Task(object):
         elif old_status == NO_DATA:
             pass
         else:
-            logger.warn('\t *unknown status for '+self.assessor_label+': '+old_status)
+            logger.warn('   *unknown status for '+self.assessor_label+': '+old_status)
             
         if (new_status != old_status):
-            logger.info('\t *changing status from '+old_status+' to '+new_status)
+            logger.info('   *changing status from '+old_status+' to '+new_status)
             self.set_status(new_status) 
         
             # Update QC Status        
