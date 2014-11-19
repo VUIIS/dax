@@ -11,7 +11,7 @@ import multiprocessing
 from email.mime.text import MIMEText
 from datetime import datetime
 
-from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY,SMTP_FROM,SMTP_HOST,SMTP_PASS
+from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY_DAX,SMTP_FROM,SMTP_HOST,SMTP_PASS
 import dax
 from dax.launcher import UPDATE_LOCK_FILE,OPEN_TASKS_LOCK_FILE
 
@@ -460,8 +460,8 @@ if __name__ == '__main__':
     else:
         email_add_list = ()
     api_key = args.key
-    if not api_key and API_KEY:
-        api_key=API_KEY
+    if not api_key and API_KEY_DAX:
+        api_key=API_KEY_DAX
     if args.settings:
         settings_path_list = args.settings.split(',')
     else:
