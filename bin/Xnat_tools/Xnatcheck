@@ -117,24 +117,25 @@ def list_project_assessors(intf, projectid):
     assessor_list = intf._get_json(post_uri)
 
     for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['subject_label'] = a['label'].split('-x-')[1]
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['fs:fsdata/procstatus']
-        anew['qcstatus'] = a['fs:fsdata/validation/status']
-        anew['proctype'] = 'FreeSurfer'
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
+        if a['label'] and len(a['label'].split('-x-'))>2:
+             anew = {}
+             anew['ID'] = a['ID']
+             anew['label'] = a['label']
+             anew['uri'] = a['URI']
+             anew['assessor_id'] = a['ID']
+             anew['assessor_label'] = a['label']
+             anew['assessor_uri'] = a['URI']
+             anew['project_id'] = projectid
+             anew['project_label'] = projectid
+             anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+             anew['subject_label'] = a['label'].split('-x-')[1]
+             anew['session_id'] = a['session_ID']
+             anew['session_label'] = a['session_label']
+             anew['procstatus'] = a['fs:fsdata/procstatus']
+             anew['qcstatus'] = a['fs:fsdata/validation/status']
+             anew['proctype'] = 'FreeSurfer'
+             anew['xsiType'] = a['xsiType']
+             new_list.append(anew)
 
     # Then add genProcData    
     post_uri = '/REST/archive/experiments'
@@ -147,24 +148,25 @@ def list_project_assessors(intf, projectid):
     assessor_list = intf._get_json(post_uri)
 
     for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['subject_label'] = a['label'].split('-x-')[1]
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['proc:genprocdata/procstatus']
-        anew['proctype'] = a['proc:genprocdata/proctype']
-        anew['qcstatus'] = a['proc:genprocdata/validation/status']
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
+        if a['label'] and len(a['label'].split('-x-'))>2:
+             anew = {}
+             anew['ID'] = a['ID']
+             anew['label'] = a['label']
+             anew['uri'] = a['URI']
+             anew['assessor_id'] = a['ID']
+             anew['assessor_label'] = a['label']
+             anew['assessor_uri'] = a['URI']
+             anew['project_id'] = projectid
+             anew['project_label'] = projectid
+             anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+             anew['subject_label'] = a['label'].split('-x-')[1]
+             anew['session_id'] = a['session_ID']
+             anew['session_label'] = a['session_label']
+             anew['procstatus'] = a['proc:genprocdata/procstatus']
+             anew['proctype'] = a['proc:genprocdata/proctype']
+             anew['qcstatus'] = a['proc:genprocdata/validation/status']
+             anew['xsiType'] = a['xsiType']
+             new_list.append(anew)
 
     return new_list
 
