@@ -43,14 +43,16 @@ SMTP_HOST --> server HOST ID (e.g: google --> stmp.gmail.com)
 
     4) REDCap for dax_manager (optional)
     
-API_URL    --> api url for redcap database
-API_KEY    --> api key for redcap project holding the information for the settings
-REDCAP_VAR --> dictionary to set up the general variables for the project
+API_URL      --> api url for redcap database
+API_KEY_DAX  --> api key for redcap project holding the information for the settings
+API_KEY_XNAT --> api key for redcap project holding the jobID submit to the cluster
+REDCAP_VAR   --> dictionary to set up the general variables for the project
 
 PS: In this file, all variable default are read if the .bashrc or your configuration file doesn't have the environment variable
 set.
 """
 
+#### Default value set by users ####
 #Function for PBS cluster jobs:
 #Command to submit job to the cluster:
 CMD_SUBMIT_PBS='qsub'
@@ -69,7 +71,6 @@ SUFFIX_WALLTIME='\n'
 PREFIX_MEMORY='resources_used.mem='
 SUFFIX_MEMORY='kb'
 EXIT_STATUS='Exit_status'
-
 #Template for your PBS
 PBS_TEMPLATE = Template("""#!/bin/bash
 #PBS -M ${pbs_email}
@@ -84,7 +85,6 @@ export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${pbs_ppn} #set the variable to use 
 uname -a # outputs node info (name, date&time, type, OS, etc)
 ${pbs_cmds}
 """)
-
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
 DEFAULT_GATEWAY = 'poplar'
@@ -94,47 +94,14 @@ DEFAULT_ROOT_JOB_DIR = '/tmp'
 DEFAULT_QUEUE_LIMIT = 600
 #Result dir
 DEFAULT_RESULTS_DIR=os.path.join(USER_HOME,'RESULTS_XNAT_SPIDER')
-#Upload directory
-if 'UPLOAD_SPIDER_DIR' not in os.environ:
-    RESULTS_DIR=DEFAULT_RESULTS_DIR
-    if not os.path.exists(RESULTS_DIR):
-        os.mkdir(RESULTS_DIR)
-else:
-    RESULTS_DIR=os.environ['UPLOAD_SPIDER_DIR'] 
-    
-#Settings to send email (optional):
-#STMP_FROM:
-DEFAULT_SMTP_FROM=None
-if 'SMTP_FROM' not in os.environ:
-    SMTP_FROM=DEFAULT_SMTP_FROM
-else:
-    SMTP_FROM=os.environ['SMTP_FROM'] 
-#API_URL:
-DEFAULT_SMTP_PASS=None
-if 'SMTP_PASS' not in os.environ:
-    SMTP_PASS=DEFAULT_SMTP_PASS
-else:
-    SMTP_PASS=os.environ['SMTP_PASS'] 
-#API_URL:
+#Email
 DEFAULT_SMTP_HOST='stmp.gmail.com'  #google
-if 'SMTP_HOST' not in os.environ:
-    SMTP_HOST=DEFAULT_SMTP_HOST
-else:
-    SMTP_HOST=os.environ['SMTP_HOST'] 
-    
-#Management using REDCap (optional):
-#Variables for REDCap:
-#API_URL:
-DEFAULT_API_URL=None
-if 'API_URL' not in os.environ:
-    API_URL=DEFAULT_API_URL
-else:
-    API_URL=os.environ['API_URL'] 
-#API_KEY for dax project (save here or in .bashrc and name the env variable API_KEY_DAX):
-if 'API_KEY_DAX' not in os.environ:
-    API_KEY=None
-else:
-    API_KEY=os.environ['API_KEY_DAX'] 
+DEFAULT_SMTP_FROM=None
+DEFAULT_SMTP_PASS=None
+#REDCap
+DEFAULT_API_URL='https://redcap.vanderbilt.edu/api/'
+DEFAULT_API_KEY_DAX=None
+DEFAULT_API_KEY_XNAT=None
 #Dictionary with variable name on REDCap:                   Variable for:
 REDCAP_VAR={'project':'dax_project',                        #record_id (project on XNAT)
             'settingsfile':'dax_settings_full_path',        #path on your computer to the settings file
@@ -153,3 +120,45 @@ REDCAP_VAR={'project':'dax_project',                        #record_id (project 
             'open_end_date':'dax_update_open_end_date',     #date for dax_update_open_tasks, the last one ending
             'update_pid':'dax_update_pid',                  #pid for update
             'update_open_pid':'dax_update_open_pid'}        #pid for update_open
+
+#### Getting value from the environ variable if set or default value (do not touch) ####
+#Upload directory
+if 'UPLOAD_SPIDER_DIR' not in os.environ:
+    RESULTS_DIR=DEFAULT_RESULTS_DIR
+    if not os.path.exists(RESULTS_DIR):
+        os.mkdir(RESULTS_DIR)
+else:
+    RESULTS_DIR=os.environ['UPLOAD_SPIDER_DIR'] 
+#Settings to send email (optional):
+#STMP_FROM:
+if 'SMTP_FROM' not in os.environ:
+    SMTP_FROM=DEFAULT_SMTP_FROM
+else:
+    SMTP_FROM=os.environ['SMTP_FROM'] 
+#API_URL:
+if 'SMTP_PASS' not in os.environ:
+    SMTP_PASS=DEFAULT_SMTP_PASS
+else:
+    SMTP_PASS=os.environ['SMTP_PASS'] 
+#API_URL:
+if 'SMTP_HOST' not in os.environ:
+    SMTP_HOST=DEFAULT_SMTP_HOST
+else:
+    SMTP_HOST=os.environ['SMTP_HOST'] 
+#Management using REDCap (optional):
+#Variables for REDCap:
+#API_URL:
+if 'API_URL' not in os.environ:
+    API_URL=DEFAULT_API_URL
+else:
+    API_URL=os.environ['API_URL'] 
+#API_KEY for dax project (save here or in .bashrc and name the env variable API_KEY_DAX):
+if 'API_KEY_DAX' not in os.environ:
+    API_KEY_DAX=DEFAULT_API_KEY_DAX
+else:
+    API_KEY_DAX=os.environ['API_KEY_DAX']
+#API_KEY for XNAT project where each jobs will correspond to a job submit to cluster (save here or in .bashrc and name the env variable API_KEY_XNAT):
+if 'API_KEY_XNAT' not in os.environ:
+    API_KEY_XNAT=DEFAULT_API_KEY_XNAT
+else:
+    API_KEY_XNAT=os.environ['API_KEY_XNAT'] 
