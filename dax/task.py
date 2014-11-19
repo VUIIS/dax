@@ -257,7 +257,7 @@ class Task(object):
         elif old_status == NO_DATA:
             pass
         else:
-            logger.warn('\t *unknown status:'+old_status)
+            logger.debug('\t *unknown status:'+old_status)
             
         if (new_status != old_status):
             logger.info('\t *changing status from '+old_status+' to '+new_status)
