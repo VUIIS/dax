@@ -95,7 +95,7 @@ def extract_assessor_info(assessor_label):
     proc_dict=dict()
     #Get the Project Name, the subject label, the experiment label and the assessor label from the folder name :
     labels=assessor_label.split('-x-')
-    if len(labels)>4:
+    if len(labels)>3:
         proc_dict['label']=assessor_label
         proc_dict['project']=labels[0]
         proc_dict['subject']=labels[1]
@@ -145,46 +145,49 @@ def make_report(labels_dict,assessor_list):
 ########################################## SPECIFIC FUNCTIONS ##########################################
 ########################################################################################################
 def FS_Upload(session_obj,assessor_label,resource_dict,force,delete,deleteAll):
-    #Select the assessor
-    assessor_obj=experiment.assessor(assessor_label)
+    #Variable:
+    new_assessor=False
+    #Create the assessor if needed
+    assessor_obj=session_obj.assessor(assessor_label)
     if assessor_obj.exists() and deleteAll:
         #delete all resources previously on the assessor
         for resource in list_out_resources(xnat,assessor_label):
             assessor_obj.resource(resource['label']).delete()
-    # Upload the XML
-    xml_files_list = os.listdir(assessor_path+'/XML')
-    if len(xml_files_list) != 1:
-        print 'ERROR:cannot upload FreeSufer, unable to find XML file:'+assessor_path+'                                     '
-        #upload finish
-        assessor_obj.attrs.set('fs:fsData/procstatus','ERROR_UPLOAD_XML')
-        assessor_obj.attrs.set('fs:fsData/validation/status','Needs QA')
-    else:
-        xml_path = assessor_path+'/XML/'+xml_files_list[0]
-        assessor_obj.create(xml=xml_path,allowDataDeletion=False)
-        #Upload other resources:
-        for resource,fpath_list in resource_dict.items():
-            print '    -Upload resource: ' +resource
-            if not fpath_list:
-                print '    -->WARNING:cannot upload resource '+resource+', no path set.'
-            else:
-                if resource=='PDF':
-                    #make Snapshots and upload it:
-                    if len(fpath_list)>1:
-                        print '    -->WARNING:cannot upload PDF '+resource+', too much files given (Only one for PDF resource).'
-                    else:
-                        make_upload_snapshots(assessor_obj,fpath_list[0],force,delete)
-                else:
-                    upload_resource(assessor_obj.out_resource(resource),resource,fpath_list,force,delete) 
-                        
+        assessor_obj.attrs.set('proc:genProcData/procstatus','UPLOADING')
+        assessor_obj.attrs.set('proc:genProcData/validation/status','Job Pending')
+    elif not assessor_obj.exists():
+        create_assessor(session_obj,assessor_label,'FS')
+
+    #Upload other resources:
+    for resource,fpath_list in resource_dict.items():
+        print '    -Upload resource: ' +resource
+        if not fpath_list:
+            print '    -->WARNING:cannot upload resource '+resource+', no path set.'
+        else:
+            if resource=='XML':
+                if len(fpath_list)>1:
+                    print '    -->WARNING:more than one XML file, the first one found will be used.'
+                assessor_obj.create(xml=fpath_list[0],allowDataDeletion=False)
+            if resource=='PDF':
+                #make Snapshots and upload it:
+                if len(fpath_list)>1:
+                    print '    -->WARNING:more than one PDF file path, the first one found will be used to create the snapshots.'
+                make_upload_snapshots(assessor_obj,fpath_list[0],force,delete)
+            #Upload Resources:
+            upload_resource(assessor_obj.out_resource(resource),resource,fpath_list,force,delete) 
+        
+    if deleteAll or new_assessor:
         #upload finish
         assessor_obj.attrs.set('fs:fsData/procstatus','COMPLETE')
         assessor_obj.attrs.set('fs:fsData/validation/status','Needs QA')
-    
-def DefaultProcess_Upload(assessor_obj,resource_dict,force,delete,deleteAll):
+        
+def DefaultProcess_Upload(assessor_obj,resource_dict,force,delete,deleteAll,new_assessor):
     #delete all resources previously on the assessor
     if deleteAll:
         for resource in list_out_resources(xnat,assessor_obj.label()):
             assessor_obj.out_resource(resource['label']).delete()
+        assessor_obj.attrs.set('proc:genProcData/procstatus','UPLOADING')
+        assessor_obj.attrs.set('proc:genProcData/validation/status','Job Pending')
     #Upload
     for resource,fpath_list in resource_dict.items():
         print '    -Upload resource: ' +resource
@@ -194,57 +197,59 @@ def DefaultProcess_Upload(assessor_obj,resource_dict,force,delete,deleteAll):
             if resource=='PDF':
                 #make Snapshots and upload it:
                 if len(fpath_list)>1:
-                    print '    -->WARNING:cannot upload PDF '+resource+', too much files given (Only one for PDF resource).'
-                else:
-                    make_upload_snapshots(assessor_obj,fpath_list[0],force,delete)
-            else:
-                upload_resource(assessor_obj.out_resource(resource),resource,fpath_list,force,delete)                  
-    #upload finish
-    assessor_obj.attrs.set('proc:genProcData/procstatus','COMPLETE')
-    assessor_obj.attrs.set('proc:genProcData/validation/status','Needs QA')
+                    print '    -->WARNING:more than one PDF file path, the first one found will be used to create the snapshots.'
+                make_upload_snapshots(assessor_obj,fpath_list[0],force,delete)
+            #Upload Resources:
+            upload_resource(assessor_obj.out_resource(resource),resource,fpath_list,force,delete)                  
+    #If new or resources deleted:
+    if (deleteAll or new_assessor):
+        #upload finish
+        assessor_obj.attrs.set('proc:genProcData/procstatus','COMPLETE')
+        assessor_obj.attrs.set('proc:genProcData/validation/status','Needs QA')
 
 def make_upload_snapshots(assessor_obj,pdfpath,force,delete):
     #Check the path if it's a file or not:
-    if os.path.isfile(pdfpath) and pdfpath.endswith('.pdf'):
-        print '    -->WARNING:cannot upload PDF '+resource+', wrong format (not .pdf).'
+    if os.path.isfile(pdfpath) and not pdfpath.endswith('.pdf'):
+        print '    -->WARNING:cannot create snapshots from PDF, wrong format (not .pdf).'
     if os.path.isdir(pdfpath):
         pdf_list=glob.glob(os.path.join(pdfpath,'*.pdf'))
-        if len(pdf_list)==0 or len(pdf_list)>1:
-            print '    -->WARNING:cannot upload PDF '+resource+', no or too more ".pdf" file(s) in the path given for PDF. Will not be uploaded.'
+        if len(pdf_list)==0:
+            print '    -->WARNING:cannot create snapshots from PDF, no ".pdf" file in the path given for PDF.'
+            return
+        elif len(pdf_list)>1:
+            print '    -->WARNING:more than one PDF file path, the first one found will be used to create the snapshots.'
         else:
             pdfpath=pdf_list[0]
     
     if delete:
-        assessor_obj.out_resource('PDF').delete()
         assessor_obj.out_resource('SNAPSHOTS').delete()
-    #Upload the PDF:
-    if Upload_file_to_resource('PDF',assessor_obj.out_resource('PDF'),pdfpath,force):
-        #SNAPSHOTS : create it in the /tmp/ folder under the assessor name
-        tmppath=os.path.join('/tmp',assessor_obj.label()+'_snapshots')
-        if not os.path.exists(tmppath):
-            os.mkdir(tmppath)
-        #clear folder:
-        clean_directory(tmppath)
-        print '     +creating original SNAPSHOTS                                        '
-        #Make the snapshots for the assessors with ghostscript
-        snapshot_original = os.path.join(tmppath,'snapshot_original.png')
-        os.system('gs -q -o '+snapshot_original+' -sDEVICE=pngalpha -dLastPage=1 '+pdfpath)
-        #Name of the preview snapshot
-        if os.path.exists(snapshot_original):
-            print '     +creating preview of SNAPSHOTS                                        '
-            snapshot_preview = os.path.join(tmppath,'snapshot_preview.png')
-            #Make the snapshot_thumbnail
-            os.system('convert '+snapshot_original+' -resize x200 '+snapshot_preview)
-        
-        #Uploading:
-        if not os.path.exists(snapshot_original) or not os.path.exists(snapshot_preview):
-            print '     -ERROR: Failed to create preview/original for snapshots of PDF.                                     '
-        else:
-            print '     -Uploading SNAPSHOTS ...                                        '
-            #upload the THUMBNAIL & ORIFINAL:
-            assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(snapshot_preview)).put(snapshot_preview,(snapshot_preview.split('.')[1]).upper(),'THUMBNAIL')
-            assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(snapshot_original)).put(snapshot_original,(snapshot_original.split('.')[1]).upper(),'ORIGINAL')
-                
+
+    #SNAPSHOTS : create it in the /tmp/ folder under the assessor name
+    tmppath=os.path.join('/tmp',assessor_obj.label()+'_snapshots')
+    if not os.path.exists(tmppath):
+        os.mkdir(tmppath)
+    #clear folder:
+    clean_directory(tmppath)
+    print '     +creating original SNAPSHOTS                                        '
+    #Make the snapshots for the assessors with ghostscript
+    snapshot_original = os.path.join(tmppath,'snapshot_original.png')
+    os.system('gs -q -o '+snapshot_original+' -sDEVICE=pngalpha -dLastPage=1 '+pdfpath)
+    #Name of the preview snapshot
+    if os.path.exists(snapshot_original):
+        print '     +creating preview of SNAPSHOTS                                        '
+        snapshot_preview = os.path.join(tmppath,'snapshot_preview.png')
+        #Make the snapshot_thumbnail
+        os.system('convert '+snapshot_original+' -resize x200 '+snapshot_preview)
+    
+    #Uploading:
+    if not os.path.exists(snapshot_original) or not os.path.exists(snapshot_preview):
+        print '     -ERROR: Failed to create preview/original for snapshots of PDF.                                     '
+    else:
+        print '     -Uploading SNAPSHOTS ...                                        '
+        #upload the THUMBNAIL & ORIFINAL:
+        assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(snapshot_preview)).put(snapshot_preview,(snapshot_preview.split('.')[1]).upper(),'THUMBNAIL')
+        assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(snapshot_original)).put(snapshot_original,(snapshot_original.split('.')[1]).upper(),'ORIGINAL')
+            
 def upload_resource(resourceObj,resource,fpath_list,force,delete):
     #check if the resource exist, if yes remove it
     if delete:
@@ -253,7 +258,7 @@ def upload_resource(resourceObj,resource,fpath_list,force,delete):
                
     for fpath in fpath_list:
         if not os.path.exists(fpath):
-            print '    -->ERROR:cannot upload resource '+resource+', the path does not exist :'+fpath
+            print '    -->ERROR:cannot upload the file/folder path :'+fpath+'. It does not exist.'
         #Upload Folder
         if os.path.isdir(fpath):
             if fpath[-1]=='/':
@@ -281,7 +286,7 @@ def Upload_folder_to_resource(label,resourceObj,directory):
     initDir=os.getcwd()
     #Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip '+filenameZip+' *')
+    os.system('zip -r '+filenameZip+' *')
     #upload
     resourceObj.put_zip(os.path.join(directory,filenameZip),extract=True)
     #remove the tmp zip file:
@@ -294,11 +299,13 @@ def Upload_folder_to_resource(label,resourceObj,directory):
 def create_assessor(session_obj,assessor_label,proctype):
     #ASSESSOR in the experiment
     ASSESSOR=session_obj.assessor(assessor_label)
+    new_assessor=False
     #existence :
     if not ASSESSOR.exists():
+        new_assessor=True
         if proctype=='FS':
             #create the assessor and set the status 
-            ASSESSOR.create(assessors='fs:fsData')
+            ASSESSOR.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
             #Set attributes
             ASSESSOR.attrs.set('fs:fsData/procstatus','UPLOADING') #Set to uploading files
             ASSESSOR.attrs.set('fs:fsData/validation/status','Job Pending')
@@ -317,7 +324,7 @@ def create_assessor(session_obj,assessor_label,proctype):
             today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
             ASSESSOR.attrs.set('proc:genProcData/date',today)
             
-    return ASSESSOR
+    return ASSESSOR,new_assessor
 
 def generate_data_dict(uploaddir,csvfile):
     #Get the labels dictionary: {assessor_label:{'resource name1': 'resource path1',...},..}
@@ -359,7 +366,7 @@ def upload_assessor_xnat(xnat,uploaddir,csvfile,report,force,delete,deleteAll):
                     else:
                         #ASSESSOR in the experiment
                         ASSESSOR=create_assessor(session_obj,proc_dict['label'],proc_dict['proctype'])
-                        DefaultProcess_Upload(ASSESSOR,labels_dict[proc_dict['label']],force,delete,deleteAll)
+                        DefaultProcess_Upload(ASSESSOR,labels_dict[proc_dict['label']],force,delete,deleteAll,new_assessor)
 
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
