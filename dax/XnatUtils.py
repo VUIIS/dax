@@ -1007,112 +1007,14 @@ def download_resource_assessor(directory,xnat,project,subject,experiment,assesso
 
 
     print'\n'
-
-####################################################################################
-#                                 Useful Functions                                 #
-#################################################################################### 
-def clean_directory(folder_name):
-    files=os.listdir(folder_name)
-    for f in files:
-        if os.path.isdir(folder_name+'/'+f)==False:
-            os.remove(folder_name+'/'+f)
-        else:
-            shutil.rmtree(folder_name+'/'+f)
-    return 0
-
-####################################################################################
-#                           Save in REDCap jobs running                            #
-#################################################################################### 
-#function to send the data to the VUIIS XNAT Jobs redcap project about what is running
-def save_job_redcap(data,record_id):
-    try:
-        # Environs
-        redcap_api_url = os.environ['API_URL']
-        redcap_api_key = os.environ['API_KEY_XNAT']
-    except KeyError as e:
-        print "You must set the environment variable %s to save the job on redcap." % str(e)
-        return 0
-
-    try:
-        job_redcap_project = redcap.Project(redcap_api_url, redcap_api_key)
-        response = job_redcap_project.import_records([data])
-        assert 'count' in response
-        print ' ->Record '+record_id+ ' uploaded for <'+data['spider_module_name']+'> : ' + str(response['count'])
-        return 1
-    except AssertionError as e:
-        return 0
-
-#create the data record for redcap
-def create_record_redcap(project,SM_name):
-    """ SM_name means the spider name or modules name: name_v# or name_vDEV#
-    """
-    #data for redcap
-    data=dict()
-    #create the record_ID
-    date=str(datetime.now())
-    record_id=project+'-'+date.strip().replace(':','_').replace('.','_').replace(' ','_')
-    labels=SM_name.split('_v')
-    #version in the name, if not it's 0
-    if len(labels)>1:
-        # _v ( equals to 2 characters) + number of characters in the last labels that is the version number
-        nb_c=2+len(labels[-1])
-        name=SM_name[:-nb_c]
-        version='v'+labels[-1]
-    else:
-        name=SM_name
-        version='v0'
-
-    #create the data for redcap
-    data['record_id']=record_id
-    data['spider_module_name']=name
-    data['spider_module_version']=version
-    data['date']=date
-    data['xnat_project']=project
-    data['hostname'] = socket.gethostname()
-    data['pi_lastname'] = pi_from_project(project)
-    return data,record_id
-
-
-def pi_from_project(project):
-    pi = ''
-    try:
-        xnat = get_interface()
-        proj = xnat.select.project(project)
-        pi = proj.attrs.get('xnat:projectdata/pi/lastname')
-    except:
-        pass
-    finally:
-        xnat.disconnect()
-        return pi
-        
-def print_args(options):
-    print "--Arguments given to the spider--"
-    for info,value in vars(options).items():
-        if value:
-            print info,": ", value
-        else:
-            print info,": Not set. The process might fail without this argument."
-    print "---------------------------------"
-
-def makedir(jobdir):
-    if not os.path.exists(jobdir):
-        os.mkdir(jobdir)
-    else:
-        today=datetime.now()
-        jobdir=jobdir+'/TempDir_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day)
-        if not os.path.exists(jobdir):
-            os.mkdir(jobdir)
-        else:
-            clean_directory(jobdir)
-    return jobdir
- 
+    
 # Upload a folder to a resource all files are zip and then unzip in Xnat   
 def Upload_folder_to_resource(resourceObj,directory):
     filenameZip=resourceObj.label()+'.zip'
     initDir=os.getcwd()
     #Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip '+filenameZip+' *')
+    os.system('zip -r '+filenameZip+' *')
     #upload
     resourceObj.put_zip(directory+'/'+filenameZip,extract=True)
     #return to the initial directory:
@@ -1135,36 +1037,33 @@ def copy_resource(intf, scan_dict,directory,old_res,new_res):
     #clean directory
     clean_directory(directory)
 
-def upload_update_date_redcap(project_list,type_update,start_end):
-    """ 
-        project_list: projects from XNAT that corresponds to record on REDCap
-        type_update : 1 for dax_update / 2 for dax_update_open_tasks
-        start_end   : 1 for starting date / 2 for ending date
-    """
-    if API_URL and API_KEY and REDCAP_VAR:
-        try:
-            rc = redcap.Project(API_URL,API_KEY)
-        except:
-            print'WARNING: Could not access redcap. Either wrong API_URL/API_KEY or redcap down.'
-        data=list()
-        for project in project_list:
-            to_upload=dict()
-            to_upload[REDCAP_VAR['project']]=project
-            if type_update==1 and start_end==1:
-                to_upload[REDCAP_VAR['update_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now()) 
-                to_upload[REDCAP_VAR['update_end_date']]='In Process'
-                to_upload[REDCAP_VAR['update_pid']]=str(os.getpid())
-            elif type_update==1 and start_end==2:
-                to_upload[REDCAP_VAR['update_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-            elif type_update==2 and start_end==1:
-                to_upload[REDCAP_VAR['open_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-                to_upload[REDCAP_VAR['open_end_date']]='In Process'
-                to_upload[REDCAP_VAR['update_open_pid']]=str(os.getpid())
-            elif type_update==2 and start_end==2:
-                to_upload[REDCAP_VAR['open_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-            data.append(to_upload)
-        upload_list_records_redcap(rc,data)
-            
+####################################################################################
+#                                 Useful Functions                                 #
+#################################################################################### 
+def clean_directory(folder_name):
+    files=os.listdir(folder_name)
+    for f in files:
+        if os.path.isdir(folder_name+'/'+f)==False:
+            os.remove(folder_name+'/'+f)
+        else:
+            shutil.rmtree(folder_name+'/'+f)
+    return 0
+
+def makedir(jobdir):
+    if not os.path.exists(jobdir):
+        os.mkdir(jobdir)
+    else:
+        today=datetime.now()
+        jobdir=jobdir+'/TempDir_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day)
+        if not os.path.exists(jobdir):
+            os.mkdir(jobdir)
+        else:
+            clean_directory(jobdir)
+    return jobdir
+
+####################################################################################
+#                                 REDCap Functions                                 #
+#################################################################################### 
 def upload_list_records_redcap(rc,data):
     """Upload data of a dict to a rc project"""
     upload_data=True
