@@ -293,7 +293,7 @@ class Launcher(object):
                 self.update_session(xnat, sess_info, exp_proc_list, scan_proc_list, exp_mod_list, scan_mod_list)
             
         # Modules after run
-        logger.debug('  *Modules Afterrun')
+        logger.debug('*Modules Afterrun')
         self.module_afterrun(xnat,project_id)
      
     def update_session(self, xnat, sess_info, sess_proc_list, scan_proc_list, sess_mod_list, scan_mod_list):
@@ -303,13 +303,12 @@ class Launcher(object):
         if scan_proc_list or scan_mod_list:
             scan_list = XnatUtils.list_scans(xnat, sess_info['project'], sess_info['subject_ID'], sess_info['ID'])
             for scan_info in scan_list:
-                logger.debug('    +SCAN: '+scan_info['scan_id'])
+                logger.debug('+SCAN: '+scan_info['scan_id'])
                 self.update_scan(xnat, scan_info, scan_proc_list, scan_mod_list)
-        logger.debug('\n')
         logger.debug('Update on session')
         # Modules
         for sess_mod in sess_mod_list:
-            logger.debug('    * Module: '+sess_mod.getname())        
+            logger.debug('* Module: '+sess_mod.getname())        
             sess_obj = None
             if (sess_mod.needs_run(sess_info, xnat)):
                 if sess_obj == None:
@@ -321,7 +320,7 @@ class Launcher(object):
         for sess_proc in sess_proc_list:
             if sess_proc.should_run(sess_info, xnat):
                 sess_task = sess_proc.get_task(xnat, sess_info, RESULTS_DIR)
-                logger.debug('    *Processor:'+sess_proc.name+':updating status:'+sess_task.assessor_label)
+                logger.debug('* Processor:'+sess_proc.name+': updating status: '+sess_task.assessor_label)
                 sess_task.update_status()
         logger.debug('\n')
         
@@ -330,7 +329,7 @@ class Launcher(object):
         # Modules
         scan_obj = None
         for scan_mod in scan_mod_list:
-            logger.debug('      * Module: '+scan_mod.getname())
+            logger.debug('* Module: '+scan_mod.getname())
             if (scan_mod.needs_run(scan_info, xnat)):
                 if scan_obj == None:
                     scan_obj = XnatUtils.get_full_object(xnat, scan_info)
@@ -341,7 +340,7 @@ class Launcher(object):
         for scan_proc in scan_proc_list:
             if scan_proc.should_run(scan_info):
                 scan_task = scan_proc.get_task(xnat, scan_info, RESULTS_DIR)
-                logger.debug('      *Processor: '+scan_proc.name+':updating status:'+scan_task.assessor_label)
+                logger.debug('* Processor: '+scan_proc.name+': updating status: '+scan_task.assessor_label)
                 scan_task.update_status()
      
     def launch_jobs(self, task_list):
