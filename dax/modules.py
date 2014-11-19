@@ -72,7 +72,7 @@ class Module(object):
                 shutil.rmtree(self.directory+'/'+f)
                 
     def sendReport(self,SUBJECT):
-        if SMTP_HOST and SMTP_FROM and SMTP_PASS:
+        if SMTP_HOST and SMTP_FROM and SMTP_PASS and self.email:
             # Create the container (outer) email message.
             msg = MIMEText(self.Text_report)
             msg['Subject'] = SUBJECT
