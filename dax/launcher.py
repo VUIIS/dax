@@ -275,7 +275,9 @@ class Launcher(object):
                 pass #don't filter anything, we will run all session regarless of the session last modified date
             else:
                 #filter the list and keep the match between both list:
-                list_sessions=filter(lambda x: x['label'] in sessions_local, list_sessions)
+                list_sessions=filter(lambda x: x['label'] in sessions_local.split(','), list_sessions)
+                if not list_sessions:
+                    logger.warn('No sessions from XNAT matched with the session given in arguments: '+sessions_local+' .')
         # Update each session from the list:
         for sess_info in list_sessions:
             last_mod = datetime.strptime(sess_info['last_modified'][0:19], '%Y-%m-%d %H:%M:%S')
