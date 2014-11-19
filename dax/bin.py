@@ -8,6 +8,7 @@ import os
 import sys
 import shutil
 import re
+import logging
 from datetime import datetime
 
 from pyxnat import Interface
@@ -15,9 +16,8 @@ from lxml import etree
 
 import redcap
 
-import .log
-import .XnatUtils
-import logging
+import log
+import XnatUtils
 
 def set_logger(logfile,debug):
     #Logger for logs
