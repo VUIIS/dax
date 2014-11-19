@@ -18,6 +18,7 @@ import redcap
 
 import log
 import XnatUtils
+from dax_settings import  API_URL,API_KEY,REDCAP_VAR,API_KEY_XNAT
 
 def set_logger(logfile,debug):
     #Logger for logs
@@ -66,15 +67,7 @@ def update_open_tasks(settings_path,logfile,debug):
 def save_job_redcap(data,record_id):
     logger=logging.getLogger('dax')
     try:
-        # Environs
-        redcap_api_url = os.environ['API_URL']
-        redcap_api_key = os.environ['API_KEY_XNAT']
-    except KeyError as e:
-        logger.warn("You must set the environment variable %s to save the job on redcap." % str(e))
-        return 0
-
-    try:
-        job_redcap_project = redcap.Project(redcap_api_url, redcap_api_key)
+        job_redcap_project = redcap.Project(API_URL, API_KEY_XNAT)
         response = job_redcap_project.import_records([data])
         assert 'count' in response
         logger.info(' ->Record '+record_id+ ' uploaded for <'+data['spider_module_name']+'> : ' + str(response['count']))
