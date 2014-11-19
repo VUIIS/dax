@@ -119,7 +119,7 @@ def make_report(labels_dict,assessor_list):
     str_report+='----------------------------------------------------------------------------------------------------------------------------------------------------------\n'
     for assessor_label in sorted(assessor_list):
         if len(labels_dict[assessor_label])>0:
-            if len(assessor_label.split('-x-'))>4:
+            if len(assessor_label.split('-x-'))>3:
                 project=assessor_label.split('-x-')[0]
             else:
                 project=''
