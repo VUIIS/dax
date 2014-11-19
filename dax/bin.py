@@ -18,7 +18,7 @@ import redcap
 
 import log
 import XnatUtils
-from dax_settings import  API_URL,API_KEY,REDCAP_VAR,API_KEY_XNAT
+from dax_settings import  API_URL,API_KEY_DAX,API_KEY_XNAT,REDCAP_VAR
 
 def set_logger(logfile,debug):
     #Logger for logs
@@ -66,14 +66,17 @@ def update_open_tasks(settings_path,logfile,debug):
 #function to send the data to the VUIIS XNAT Jobs redcap project about what is running
 def save_job_redcap(data,record_id):
     logger=logging.getLogger('dax')
-    try:
-        job_redcap_project = redcap.Project(API_URL, API_KEY_XNAT)
-        response = job_redcap_project.import_records([data])
-        assert 'count' in response
-        logger.info(' ->Record '+record_id+ ' uploaded for <'+data['spider_module_name']+'> : ' + str(response['count']))
-        return 1
-    except AssertionError as e:
-        return 0
+    if API_URL and API_KEY_XNAT:
+        try:
+            job_redcap_project = redcap.Project(API_URL, API_KEY_XNAT)
+            response = job_redcap_project.import_records([data])
+            assert 'count' in response
+            logger.info(' ->Record '+record_id+ ' uploaded for <'+data['spider_module_name']+'> : ' + str(response['count']))
+            return 1
+        except AssertionError as e:
+            return 0
+    logger.info(' ->API_URL or API_KEY_XNAT not set')
+    return 0
 
 #create the data record for redcap
 def create_record_redcap(project,SM_name):
@@ -124,9 +127,9 @@ def upload_update_date_redcap(project_list,type_update,start_end):
         start_end   : 1 for starting date / 2 for ending date
     """
     logger=logging.getLogger('dax')
-    if API_URL and API_KEY and REDCAP_VAR:
+    if API_URL and API_KEY_DAX and REDCAP_VAR:
         try:
-            rc = redcap.Project(API_URL,API_KEY)
+            rc = redcap.Project(API_URL,API_KEY_DAX)
         except:
             logger.warn('Could not access redcap. Either wrong API_URL/API_KEY or redcap down. The last update PID and data will not be saved.')
         data=list()
