@@ -96,7 +96,7 @@ class Launcher(object):
     def update_open_tasks(self, lockfile_prefix):
         task_queue = []
         
-        logger.info('\n-------------- Open Tasks Update --------------')
+        logger.info('-------------- Open Tasks Update --------------')
         
         success = self.lock_open_tasks(lockfile_prefix)   
         if not success:
@@ -209,7 +209,7 @@ class Launcher(object):
         return None     
     
     def update(self, lockfile_prefix):        
-        logger.info('\n-------------- Update --------------')
+        logger.info('-------------- Update --------------')
         
         success = self.lock_update(lockfile_prefix)
         if not success:
