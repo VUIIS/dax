@@ -12,8 +12,8 @@ import sys
 from pyxnat import Interface
 from datetime import datetime
 
-DEFAULT_STATUS_DICT={'NEED_INPUTS':1, 'NEED_TO_RUN':2, 'JOB_RUNNING':3, 'JOB_FAILED':4, 'READY_TO_UPLOAD':5, 'UPLOADING':6, 'READY_TO_COMPLETE':7, 'COMPLETE':8, 'UNKNOWN':9}
-DEFAULT_STATUS_LIST=['NEED_INPUTS', 'NEED_TO_RUN', 'JOB_RUNNING', 'JOB_FAILED', 'READY_TO_UPLOAD', 'UPLOADING', 'READY_TO_COMPLETE', 'COMPLETE']
+DEFAULT_STATUS_DICT={'NEED_INPUTS':1, 'NEED_TO_RUN':2, 'JOB_RUNNING':3, 'JOB_FAILED':4, 'READY_TO_UPLOAD':5, 'UPLOADING':6, 'READY_TO_COMPLETE':7, 'COMPLETE':8, 'NO_DATA':9,'UNKNOWN':10}
+DEFAULT_STATUS_LIST=['NEED_INPUTS', 'NEED_TO_RUN', 'JOB_RUNNING', 'JOB_FAILED', 'READY_TO_UPLOAD', 'UPLOADING', 'READY_TO_COMPLETE', 'COMPLETE','NO_DATA']
 
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
@@ -148,24 +148,25 @@ def list_project_assessors(intf, projectid):
     assessor_list = intf._get_json(post_uri)
 
     for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['subject_label'] = a['label'].split('-x-')[1]
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['fs:fsdata/procstatus']
-        anew['qcstatus'] = a['fs:fsdata/validation/status']
-        anew['proctype'] = 'FreeSurfer'
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
+        if a['label']:
+            anew = {}
+            anew['ID'] = a['ID']
+            anew['label'] = a['label']
+            anew['uri'] = a['URI']
+            anew['assessor_id'] = a['ID']
+            anew['assessor_label'] = a['label']
+            anew['assessor_uri'] = a['URI']
+            anew['project_id'] = projectid
+            anew['project_label'] = projectid
+            anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+            anew['subject_label'] = a['label'].split('-x-')[1]
+            anew['session_id'] = a['session_ID']
+            anew['session_label'] = a['session_label']
+            anew['procstatus'] = a['fs:fsdata/procstatus']
+            anew['qcstatus'] = a['fs:fsdata/validation/status']
+            anew['proctype'] = 'FreeSurfer'
+            anew['xsiType'] = a['xsiType']
+            new_list.append(anew)
 
     # Then add genProcData    
     post_uri = '/REST/archive/experiments'
@@ -178,24 +179,25 @@ def list_project_assessors(intf, projectid):
     assessor_list = intf._get_json(post_uri)
 
     for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['subject_label'] = a['label'].split('-x-')[1]
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['proc:genprocdata/procstatus']
-        anew['proctype'] = a['proc:genprocdata/proctype']
-        anew['qcstatus'] = a['proc:genprocdata/validation/status']
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
+        if a['label']:
+            anew = {}
+            anew['ID'] = a['ID']
+            anew['label'] = a['label']
+            anew['uri'] = a['URI']
+            anew['assessor_id'] = a['ID']
+            anew['assessor_label'] = a['label']
+            anew['assessor_uri'] = a['URI']
+            anew['project_id'] = projectid
+            anew['project_label'] = projectid
+            anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+            anew['subject_label'] = a['label'].split('-x-')[1]
+            anew['session_id'] = a['session_ID']
+            anew['session_label'] = a['session_label']
+            anew['procstatus'] = a['proc:genprocdata/procstatus']
+            anew['proctype'] = a['proc:genprocdata/proctype']
+            anew['qcstatus'] = a['proc:genprocdata/validation/status']
+            anew['xsiType'] = a['xsiType']
+            new_list.append(anew)
 
     return new_list
 
@@ -258,7 +260,7 @@ def add_process_to_dict(dictionary,proctype,procstatus):
     if proctype in dictionary:
         dictionary[proctype][0] += 1                                    
     else:
-        dictionary[proctype] = [1,0,0,0,0,0,0,0,0,0]
+        dictionary[proctype] = [1,0,0,0,0,0,0,0,0,0,0]
         
     #procstatus:
     dictionary[proctype][DEFAULT_STATUS_DICT[procstatus]] += 1
@@ -339,9 +341,9 @@ def report_information_on_project(xnat,project,filetxt):
         report_str+='\n'
     report_str+='Process info :\n'
     report_str+='--------------------------------------------------------------------------\n'
-    report_str+='\t%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-30, 'Process type', -10, 'Count',-10,'COMPLETE',-20, 'READY_TO_COMPLETE',-10,'UPLOADING',-15, 'READY_TO_UPLOAD',-11, 'JOB_FAILED',-12,'JOB_RUNNING',-12, 'NEED_TO_RUN',-11, 'NEED_INPUTS',-10,'UNKNOWN')+'\n'
+    report_str+='\t%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-30, 'Process type', -5, 'Count',-8,'COMPLETE',-17, 'READY_TO_COMPLETE',-9,'UPLOADING',-15, 'READY_TO_UPLOAD',-10, 'JOB_FAILED',-11,'JOB_RUNNING',-11, 'NEED_TO_RUN',-11, 'NEED_INPUTS',-7,'NO_DATA',-7,'UNKNOWN')+'\n'
     for key in sorted(assessor_dict) :
-        report_str+='\t%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-30, key, -10, assessor_dict[key][0], -10, assessor_dict[key][DEFAULT_STATUS_DICT['COMPLETE']], -20, assessor_dict[key][DEFAULT_STATUS_DICT['READY_TO_COMPLETE']],-10, assessor_dict[key][DEFAULT_STATUS_DICT['UPLOADING']],-15, assessor_dict[key][DEFAULT_STATUS_DICT['READY_TO_UPLOAD']],-11, assessor_dict[key][DEFAULT_STATUS_DICT['JOB_FAILED']],-12, assessor_dict[key][DEFAULT_STATUS_DICT['JOB_RUNNING']],-12, assessor_dict[key][DEFAULT_STATUS_DICT['NEED_TO_RUN']],-11, assessor_dict[key][DEFAULT_STATUS_DICT['NEED_INPUTS']],-10, assessor_dict[key][DEFAULT_STATUS_DICT['UNKNOWN']]) +'\n'   
+        report_str+='\t%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-30, key, -5, assessor_dict[key][0], -8, assessor_dict[key][DEFAULT_STATUS_DICT['COMPLETE']], -17, assessor_dict[key][DEFAULT_STATUS_DICT['READY_TO_COMPLETE']],-9, assessor_dict[key][DEFAULT_STATUS_DICT['UPLOADING']],-15, assessor_dict[key][DEFAULT_STATUS_DICT['READY_TO_UPLOAD']],-10, assessor_dict[key][DEFAULT_STATUS_DICT['JOB_FAILED']],-11, assessor_dict[key][DEFAULT_STATUS_DICT['JOB_RUNNING']],-11, assessor_dict[key][DEFAULT_STATUS_DICT['NEED_TO_RUN']],-11, assessor_dict[key][DEFAULT_STATUS_DICT['NEED_INPUTS']],-7, assessor_dict[key][DEFAULT_STATUS_DICT['NO_DATA']],-7, assessor_dict[key][DEFAULT_STATUS_DICT['UNKNOWN']]) +'\n'   
     if unknow_status:
         unknow_status=list(set(unknow_status))
         report_str+='\n'
