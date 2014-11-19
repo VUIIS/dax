@@ -15,7 +15,8 @@ from lxml import etree
 
 import redcap
 
-from dax import log
+import .log
+import .XnatUtils
 import logging
 
 def set_logger(logfile,debug):
@@ -114,7 +115,7 @@ def create_record_redcap(project,SM_name):
 def pi_from_project(project):
     pi = ''
     try:
-        xnat = get_interface()
+        xnat = XnatUtils.get_interface()
         proj = xnat.select.project(project)
         pi = proj.attrs.get('xnat:projectdata/pi/lastname')
     except:
@@ -152,4 +153,4 @@ def upload_update_date_redcap(project_list,type_update,start_end):
             elif type_update==2 and start_end==2:
                 to_upload[REDCAP_VAR['open_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
             data.append(to_upload)
-        upload_list_records_redcap(rc,data)
+        XnatUtils.upload_list_records_redcap(rc,data)
