@@ -20,6 +20,10 @@ def get_interface():
     host = os.environ['XNAT_HOST']
     # Don't sys.exit, let callers catch KeyErrors
     return Interface(host, user, pwd)
+    
+def list_subjs(xnat,project):
+    post_uri_subject = '/REST/projects/'+project+'/subjects'
+    return xnat._get_json(post_uri_subject)
 
 def list_project_scans(intf, projectid, include_shared=True):
     new_list = []
