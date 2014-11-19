@@ -2,6 +2,7 @@ import os
 import shutil
 import smtplib
 import logging
+from .dax_settings import SMTP_HOST,SMTP_FROM,SMTP_PASS
 from email.mime.text import MIMEText
 from datetime import datetime
 
@@ -12,7 +13,13 @@ class Module(object):
     def __init__(self,module_name,directory,email,Text_report):
         self.module_name=module_name
         self.directory=directory
-        self.email=email
+        if isinstance(email,list):
+            self.email=email
+        else:
+            if email:
+                self.email=[email]
+            else:
+                self.email=None
         self.Text_report=Text_report
         self.send_an_email=0
         
@@ -64,32 +71,22 @@ class Module(object):
             else:
                 shutil.rmtree(self.directory+'/'+f)
                 
-    def sendReport(self,FROM,PWS,TO,SUBJECT,SERVER):
-        """send an email from FROM (with the password PWS) to TO with the subject and text given.
-        
-        parameters:
-            - FROM = email address from where the e-amil is sent
-            - PWS = password of the email address
-            - TO = list of email address which will receive the email
-            - SUBJECT =  subject of the email
-            - TEXT = inside of the email
-            - server = server used to send the email
-            - filename = fullpath to a file that need to be attached
-        """
-        # Create the container (outer) email message.
-        msg = MIMEText(self.Text_report)
-        msg['Subject'] = SUBJECT
-        # me == the sender's email address
-        # family = the list of all recipients' email addresses
-        msg['From'] = FROM
-        msg['To'] = ",".join(TO)
-        
-        # Send the email via our own SMTP server.
-        s = smtplib.SMTP(SERVER)
-        s.starttls()
-        s.login(FROM,PWS)
-        s.sendmail(FROM, TO, msg.as_string())
-        s.quit()
+    def sendReport(self,SUBJECT):
+        if SMTP_HOST and SMTP_FROM and SMTP_PASS:
+            # Create the container (outer) email message.
+            msg = MIMEText(self.Text_report)
+            msg['Subject'] = SUBJECT
+            # me == the sender's email address
+            # family = the list of all recipients' email addresses
+            msg['From'] = SMTP_FROM
+            msg['To'] = ",".join(self.email)
+            
+            # Send the email via our own SMTP server.
+            s = smtplib.SMTP(SMTP_HOST)
+            s.starttls()
+            s.login(SMTP_FROM,SMTP_PASS)
+            s.sendmail(SMTP_FROM, self.email, msg.as_string())
+            s.quit()
         
 class ScanModule(Module):
     def __init__(self,module_name,directory,email,Text_report):
