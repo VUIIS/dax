@@ -97,7 +97,7 @@ class Launcher(object):
     def update_open_tasks(self, lockfile_prefix):
         task_queue = []
         
-        logger.info('-------------- Open Tasks Update --------------')
+        logger.info('-------------- Open Tasks Update --------------\n')
         
         success = self.lock_open_tasks(lockfile_prefix)   
         if not success:
@@ -149,12 +149,12 @@ class Launcher(object):
                 logger.info(' ->ERROR: did not send the job to redcap for <'+mod.getname()+'> : '+record_id)
                 
             mod.prerun(settings_filename)
-            logger.debug('\n')
+        logger.debug('\n')
             
     def module_afterrun(self,xnat,projectID):    
         for mod in self.project_modules_dict[projectID]:
             mod.afterrun(xnat,projectID)
-            logger.debug('\n')
+        logger.debug('\n')
     
     def get_open_tasks(self, xnat):
         task_list = []
@@ -212,7 +212,7 @@ class Launcher(object):
         return None     
     
     def update(self, lockfile_prefix,project_local,sessions_local):        
-        logger.info('-------------- Update --------------')
+        logger.info('-------------- Update --------------\n')
         
         if project_local:
             if project_local in self.project_process_dict.keys():
