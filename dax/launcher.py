@@ -300,13 +300,13 @@ class Launcher(object):
     def update_session(self, xnat, sess_info, sess_proc_list, scan_proc_list, sess_mod_list, scan_mod_list):
         
         # Scans
-        logger.debug('Update on scans')
+        logger.debug('==Update for scans in session==')
         if scan_proc_list or scan_mod_list:
             scan_list = XnatUtils.list_scans(xnat, sess_info['project'], sess_info['subject_ID'], sess_info['ID'])
             for scan_info in scan_list:
                 logger.debug('+SCAN: '+scan_info['scan_id'])
                 self.update_scan(xnat, scan_info, scan_proc_list, scan_mod_list)
-        logger.debug('Update on session')
+        logger.debug('==Update for session==')
         # Modules
         for sess_mod in sess_mod_list:
             logger.debug('* Module: '+sess_mod.getname())        
