@@ -18,6 +18,7 @@ import modules
 import XnatUtils
 import task
 import cluster
+import bin
 from task import Task
 from dax_settings import RESULTS_DIR,DEFAULT_ROOT_JOB_DIR,DEFAULT_QUEUE_LIMIT
 
@@ -106,7 +107,7 @@ class Launcher(object):
         #Get default project list for XNAT out of the module and process dict
         project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
         #Set the date on REDCAP for update starting
-        XnatUtils.upload_update_date_redcap(project_list,type_update=2,start_end=1)
+        bin.upload_update_date_redcap(project_list,type_update=2,start_end=1)
         try:
             logger.info('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
@@ -135,15 +136,15 @@ class Launcher(object):
         finally:       
             self.unlock_open_tasks(lockfile_prefix)  
             #Set the date on REDCAP for update ending
-            XnatUtils.upload_update_date_redcap(project_list,type_update=2,start_end=2)
+            bin.upload_update_date_redcap(project_list,type_update=2,start_end=2)
             xnat.disconnect()
             logger.info('Connection to XNAT closed')
                            
     def module_prerun(self,projectID,settings_filename=''):  
         for mod in self.project_modules_dict[projectID]:
             #save the modules to redcap project vuiis xnat job before the prerun:
-            data,record_id=XnatUtils.create_record_redcap(projectID, mod.getname())
-            run=XnatUtils.save_job_redcap(data,record_id)
+            data,record_id=bin.create_record_redcap(projectID, mod.getname())
+            run=bin.save_job_redcap(data,record_id)
             if not run:
                 logger.info(' ->ERROR: did not send the job to redcap for <'+mod.getname()+'> : '+record_id)
                 
@@ -229,7 +230,7 @@ class Launcher(object):
             #Get default project list for XNAT out of the module and process dict
             project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
             #Set the date on REDCAP for update starting
-            XnatUtils.upload_update_date_redcap(project_list,type_update=1,start_end=1) 
+            bin.upload_update_date_redcap(project_list,type_update=1,start_end=1) 
             
         try:
             logger.info('Connecting to XNAT at '+self.xnat_host)
@@ -249,7 +250,7 @@ class Launcher(object):
             if not project_local: 
                 self.unlock_update(lockfile_prefix)  
                 #Set the date on REDCAP for update ending
-                XnatUtils.upload_update_date_redcap(project_list,type_update=1,start_end=2)
+                bin.upload_update_date_redcap(project_list,type_update=1,start_end=2)
             xnat.disconnect()
             logger.info('Connection to XNAT closed')
    
