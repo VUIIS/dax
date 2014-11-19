@@ -284,7 +284,7 @@ class Launcher(object):
             last_up = self.get_lastupdated(sess_info)
             
             #If sessions_local is set, skip checking the date
-            if (last_up != None and last_mod < last_up) or sessions_local:
+            if (last_up != None and last_mod < last_up) and not sessions_local:
                 logger.info('  +Session:'+sess_info['label']+': skipping, last_mod='+str(last_mod)+',last_up='+str(last_up))
             else: 
                 logger.info('  +Session:'+sess_info['label']+': updating...')
