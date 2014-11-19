@@ -148,10 +148,12 @@ class Launcher(object):
                 logger.info(' ->ERROR: did not send the job to redcap for <'+mod.getname()+'> : '+record_id)
                 
             mod.prerun(settings_filename)
+            logger.debug('\n')
             
     def module_afterrun(self,xnat,projectID):    
         for mod in self.project_modules_dict[projectID]:
             mod.afterrun(xnat,projectID)
+            logger.debug('\n')
     
     def get_open_tasks(self, xnat):
         task_list = []
@@ -273,12 +275,14 @@ class Launcher(object):
     def update_session(self, xnat, sess_info, sess_proc_list, scan_proc_list, sess_mod_list, scan_mod_list):
         
         # Scans
+        logger.debug('Update on scans')
         if scan_proc_list or scan_mod_list:
             scan_list = XnatUtils.list_scans(xnat, sess_info['project'], sess_info['subject_ID'], sess_info['ID'])
             for scan_info in scan_list:
                 logger.debug('    +SCAN: '+scan_info['scan_id'])
                 self.update_scan(xnat, scan_info, scan_proc_list, scan_mod_list)
-
+        logger.debug('\n')
+        logger.debug('Update on session')
         # Modules
         for sess_mod in sess_mod_list:
             logger.debug('    * Module: '+sess_mod.getname())        
@@ -288,14 +292,15 @@ class Launcher(object):
                     sess_obj = XnatUtils.get_full_object(xnat, sess_info)
                         
                 sess_mod.run(sess_info, sess_obj)
-                        
+
         # Processors
         for sess_proc in sess_proc_list:
             if sess_proc.should_run(sess_info, xnat):
                 sess_task = sess_proc.get_task(xnat, sess_info, RESULTS_DIR)
                 logger.debug('    *Processor:'+sess_proc.name+':updating status:'+sess_task.assessor_label)
                 sess_task.update_status()
-            
+        logger.debug('\n')
+        
     def update_scan(self, xnat, scan_info, scan_proc_list, scan_mod_list):
 
         # Modules
@@ -307,7 +312,7 @@ class Launcher(object):
                     scan_obj = XnatUtils.get_full_object(xnat, scan_info)
                         
                 scan_mod.run(scan_info, scan_obj)
-                 
+
         # Processors   
         for scan_proc in scan_proc_list:
             if scan_proc.should_run(scan_info):
