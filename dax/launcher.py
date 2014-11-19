@@ -246,7 +246,7 @@ class Launcher(object):
                 
         finally:
             #If normal update (not local), remove flagfile at the end and set the date
-            if not project: 
+            if not project_local: 
                 self.unlock_update(lockfile_prefix)  
                 #Set the date on REDCAP for update ending
                 XnatUtils.upload_update_date_redcap(project_list,type_update=1,start_end=2)
@@ -271,8 +271,11 @@ class Launcher(object):
         # Get the list of sessions:
         list_sessions=XnatUtils.list_sessions(xnat, project_id)
         if sessions_local:
-            #filter the list and keep the match between both list:
-            list_sessions=filter(lambda x: x['label'] in sessions_local, list_sessions)
+            if sessions_local=='all':
+                pass #don't filter anything, we will run all session regarless of the session last modified date
+            else:
+                #filter the list and keep the match between both list:
+                list_sessions=filter(lambda x: x['label'] in sessions_local, list_sessions)
         # Update each session from the list:
         for sess_info in list_sessions:
             last_mod = datetime.strptime(sess_info['last_modified'][0:19], '%Y-%m-%d %H:%M:%S')
