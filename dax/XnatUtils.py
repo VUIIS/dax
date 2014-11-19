@@ -10,7 +10,7 @@ from lxml import etree
 
 import redcap
 
-from dax_settings import RESULTS_DIR,API_URL,API_KEY,REDCAP_VAR
+from dax_settings import RESULTS_DIR
 
 ####################################################################################
 #            Class JobHandler to copy file after the end of a Job                  #
