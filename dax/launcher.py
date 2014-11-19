@@ -210,57 +210,76 @@ class Launcher(object):
                     
         return None     
     
-    def update(self, lockfile_prefix):        
+    def update(self, lockfile_prefix,project_local,sessions_local):        
         logger.info('-------------- Update --------------')
         
-        success = self.lock_update(lockfile_prefix)
-        if not success:
-            logger.warn('failed to get lock on open tasks update. Already running.')
-            exit(1)   
+        if project_local:
+            if project_local in self.project_process_dict.keys():
+                #Updating session for a specific project
+                project_list=[project_local]
+            else:
+                logger.error('failed to run locally on project '+project_local+'.The project is not part of the settings.')
+                exit(1) 
+        else:
+            success = self.lock_update(lockfile_prefix)
+            if not success:
+                logger.warn('failed to get lock on open tasks update. Already running.')
+                exit(1)   
         
-        #Get default project list for XNAT out of the module and process dict
-        project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
-        #Set the date on REDCAP for update starting
-        XnatUtils.upload_update_date_redcap(project_list,type_update=1,start_end=1) 
+            #Get default project list for XNAT out of the module and process dict
+            project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
+            #Set the date on REDCAP for update starting
+            XnatUtils.upload_update_date_redcap(project_list,type_update=1,start_end=1) 
             
         try:
             logger.info('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
 
             #Priority if set:
-            if self.priority_project:
+            if self.priority_project and not project_local:
                 project_list=self.get_project_list(list(set(self.project_process_dict.keys() + self.project_modules_dict.keys())))
             
             # Update projects
             for project_id in project_list:  
                 logger.info('===== PROJECT:'+project_id+' =====')         
-                self.update_project(xnat, project_id, lockfile_prefix)
+                self.update_project(xnat, project_id, lockfile_prefix,sessions_local)
                 
-        finally:  
-            self.unlock_update(lockfile_prefix)  
-            #Set the date on REDCAP for update ending
-            XnatUtils.upload_update_date_redcap(project_list,type_update=1,start_end=2)
+        finally:
+            #If normal update (not local), remove flagfile at the end and set the date
+            if not project: 
+                self.unlock_update(lockfile_prefix)  
+                #Set the date on REDCAP for update ending
+                XnatUtils.upload_update_date_redcap(project_list,type_update=1,start_end=2)
             xnat.disconnect()
             logger.info('Connection to XNAT closed')
    
-    def update_project(self, xnat, project_id, lockfile_prefix):
+    def update_project(self, xnat, project_id, lockfile_prefix,sessions_local):
         exp_mod_list, scan_mod_list = [],[]
         exp_proc_list, scan_proc_list = [],[]
         
         #Modules prerun
         logger.info('  *Modules Prerun')
-        self.module_prerun(project_id, lockfile_prefix)
+        if sessions_local:
+            self.module_prerun(project_id, 'manual_update')
+        else:
+            self.module_prerun(project_id, lockfile_prefix)
         
         # Get lists of modules/processors per scan/exp for this project
         exp_mod_list, scan_mod_list = modules.modules_by_type(self.project_modules_dict[project_id])        
         exp_proc_list, scan_proc_list = processors.processors_by_type(self.project_process_dict[project_id])  
-                
-        # Update each session
-        for sess_info in XnatUtils.list_sessions(xnat, project_id):
+        
+        # Get the list of sessions:
+        list_sessions=XnatUtils.list_sessions(xnat, project_id)
+        if sessions_local:
+            #filter the list and keep the match between both list:
+            list_sessions=filter(lambda x: x['label'] in sessions_local, list_sessions)
+        # Update each session from the list:
+        for sess_info in list_sessions:
             last_mod = datetime.strptime(sess_info['last_modified'][0:19], '%Y-%m-%d %H:%M:%S')
             last_up = self.get_lastupdated(sess_info)
-                    
-            if (last_up != None and last_mod < last_up):
+            
+            #If sessions_local is set, skip checking the date
+            if (last_up != None and last_mod < last_up) or sessions_local:
                 logger.info('  +Session:'+sess_info['label']+': skipping, last_mod='+str(last_mod)+',last_up='+str(last_up))
             else: 
                 logger.info('  +Session:'+sess_info['label']+': updating...')
