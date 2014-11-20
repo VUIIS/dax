@@ -41,7 +41,7 @@ def update(settings_path,logfile,debug):
 
     # Run the updates
     logger.info('running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.update(lockfile_prefix)
+    settings.myLauncher.update(lockfile_prefix,None,None)
     logger.info('finished update, End Time: '+str(datetime.now()))
 
 def update_open_tasks(settings_path,logfile,debug):
