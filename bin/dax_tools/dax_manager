@@ -460,7 +460,7 @@ if __name__ == '__main__':
     else:
         email_add_list = ()
     api_key = args.key
-    if not api_key and API_KEY_DAX:
+    if not api_key and not args.settings and API_KEY_DAX:
         api_key=API_KEY_DAX
     if args.settings:
         settings_path_list = args.settings.split(',')
