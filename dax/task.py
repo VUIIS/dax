@@ -5,7 +5,7 @@ from datetime import date
 
 import cluster
 from cluster import PBS
-import XnatUtils
+import XnatUtils,bin
 
 from dax_settings import RESULTS_DIR
 
@@ -307,7 +307,7 @@ class Task(object):
             #save record on redcap for the job that has been launch
             project=self.assessor_label.split('-x-')[0]
             SM_name=self.get_processor_name()
-            data,record_id=XnatUtils.create_record_redcap(project, SM_name)
+            data,record_id=bin.create_record_redcap(project, SM_name)
             run=XnatUtils.save_job_redcap(data,record_id)
             if not run:
                 logger.warn(' ->ERROR: did not send the job to redcap for jobID <'+str(jobid)+'>: '+record_id)
