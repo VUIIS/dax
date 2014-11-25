@@ -308,7 +308,7 @@ class Task(object):
             project=self.assessor_label.split('-x-')[0]
             SM_name=self.get_processor_name()
             data,record_id=bin.create_record_redcap(project, SM_name)
-            run=XnatUtils.save_job_redcap(data,record_id)
+            run=bin.save_job_redcap(data,record_id)
             if not run:
                 logger.warn(' ->ERROR: did not send the job to redcap for jobID <'+str(jobid)+'>: '+record_id)
             
