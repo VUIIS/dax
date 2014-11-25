@@ -37,8 +37,8 @@ def parse_args():
     parser = OptionParser(usage=usage)
     parser.add_option("-e", "--emailaddress", dest="emailaddress",default='',
                   help="Email address to prevent if an assessor already exists.", metavar="EMAIL ADDRESS")
-    parser.add_argument('--logfile',dest='logfile', help='Logs file path if needed.',default=None)
-    parser.add_argument('--debug', dest='debug', action='store_true',help='Print DEBUG information.')
+    parser.add_option('-l','--logfile',dest='logfile', help='Logs file path if needed.',default=None)
+    parser.add_option('--debug', dest='debug', action='store_true',help='Print DEBUG information.')
     return parser.parse_args()
 
 def sendMail(FROM,PWS,TO,SUBJECT,TEXT,SERVER,filename='nan'):
