@@ -128,25 +128,28 @@ def upload_update_date_redcap(project_list,type_update,start_end):
     """
     logger=logging.getLogger('dax')
     if API_URL and API_KEY_DAX and REDCAP_VAR:
+        rc=None
         try:
             rc = redcap.Project(API_URL,API_KEY_DAX)
         except:
             logger.warn('Could not access redcap. Either wrong API_URL/API_KEY or redcap down. The last update PID and data will not be saved.')
-        data=list()
-        for project in project_list:
-            to_upload=dict()
-            to_upload[REDCAP_VAR['project']]=project
-            if type_update==1 and start_end==1:
-                to_upload[REDCAP_VAR['update_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now()) 
-                to_upload[REDCAP_VAR['update_end_date']]='In Process'
-                to_upload[REDCAP_VAR['update_pid']]=str(os.getpid())
-            elif type_update==1 and start_end==2:
-                to_upload[REDCAP_VAR['update_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-            elif type_update==2 and start_end==1:
-                to_upload[REDCAP_VAR['open_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-                to_upload[REDCAP_VAR['open_end_date']]='In Process'
-                to_upload[REDCAP_VAR['update_open_pid']]=str(os.getpid())
-            elif type_update==2 and start_end==2:
-                to_upload[REDCAP_VAR['open_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-            data.append(to_upload)
-        XnatUtils.upload_list_records_redcap(rc,data)
+        
+        if not rc:
+            data=list()
+            for project in project_list:
+                to_upload=dict()
+                to_upload[REDCAP_VAR['project']]=project
+                if type_update==1 and start_end==1:
+                    to_upload[REDCAP_VAR['update_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now()) 
+                    to_upload[REDCAP_VAR['update_end_date']]='In Process'
+                    to_upload[REDCAP_VAR['update_pid']]=str(os.getpid())
+                elif type_update==1 and start_end==2:
+                    to_upload[REDCAP_VAR['update_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
+                elif type_update==2 and start_end==1:
+                    to_upload[REDCAP_VAR['open_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
+                    to_upload[REDCAP_VAR['open_end_date']]='In Process'
+                    to_upload[REDCAP_VAR['update_open_pid']]=str(os.getpid())
+                elif type_update==2 and start_end==2:
+                    to_upload[REDCAP_VAR['open_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
+                data.append(to_upload)
+            XnatUtils.upload_list_records_redcap(rc,data)
