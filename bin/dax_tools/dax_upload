@@ -31,16 +31,6 @@ _FLAG_FILES = 'FlagFiles'
 _UPLOAD_SKIP_LIST = [_OUTLOG, _TRASH, _PBS, _FLAG_FILES]
 _SMTP_HOST = 'smtp.gmail.com'
 
-def parse_args():
-    from optparse import OptionParser
-    usage = "usage: %prog [options] \nWhat is the script doing : Upload Data on Xnat from a Directory as an Assessor. "
-    parser = OptionParser(usage=usage)
-    parser.add_option("-e", "--emailaddress", dest="emailaddress",default='',
-                  help="Email address to prevent if an assessor already exists.", metavar="EMAIL ADDRESS")
-    parser.add_option('-l','--logfile',dest='logfile', help='Logs file path if needed.',default=None)
-    parser.add_option('--debug', dest='debug', action='store_true',help='Print DEBUG information.')
-    return parser.parse_args()
-
 def sendMail(FROM,PWS,TO,SUBJECT,TEXT,SERVER,filename='nan'):
     """send an email from FROM (with the password PWS) to TO with the subject and text given.
     
@@ -471,6 +461,16 @@ def get_version_assessor(assessor_path):
     f.close()
     return version
     
+def parse_args():
+    from optparse import OptionParser
+    usage = "usage: %prog [options] \nWhat is the script doing : Upload Data on Xnat from a Directory as an Assessor. "
+    parser = OptionParser(usage=usage)
+    parser.add_option("-e", "--emailaddress", dest="emailaddress",default='',
+                  help="Email address to prevent if an assessor already exists.", metavar="EMAIL ADDRESS")
+    parser.add_option('-l','--logfile',dest='logfile', help='Logs file path if needed.',default=None)
+    parser.add_option('--debug', dest='debug', action='store_true',help='Print DEBUG information.')
+    return parser.parse_args()
+    
 #########################################################################################################################################################
 ###############################################################  MAIN FUNCTION ##########################################################################
 #########################################################################################################################################################
@@ -482,7 +482,7 @@ if __name__ == '__main__':
     flag_files_list = list()
     warning_list = list()
     #Logger for logs
-    logger=bin.set_logger(args.logfile,args.debug)
+    logger=bin.set_logger(options.logfile,options.debug)
     TEXT = None
     
     logger.info('Time at the beginning of the Process_Upload: '+ str(datetime.now()),'\n')
