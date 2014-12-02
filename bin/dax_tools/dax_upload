@@ -485,7 +485,7 @@ if __name__ == '__main__':
     logger=bin.set_logger(options.logfile,options.debug)
     TEXT = None
     
-    logger.info('Time at the beginning of the Process_Upload: '+ str(datetime.now()),'\n')
+    logger.info('Time at the beginning of the Process_Upload: '+ str(datetime.now())+'\n')
 
     #Upload Directory for Spider_Process_Upload.py
     try:
