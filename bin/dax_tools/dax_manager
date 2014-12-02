@@ -298,7 +298,7 @@ def generate_proc(project,procname,args_dict):
     #Get the arguments
     arguments=dict2str(args_dict)
     #Get the string for a processor
-    Proc_data = {'PROJECT': project,
+    Proc_data = {'PROJECT': project.replace('-','_'),
                  'PROCNAME': procname,
                  'ARGUMENTS': arguments}
 
@@ -308,7 +308,7 @@ def generate_mod(project,modname,args_dict):
     #Get the arguments
     arguments=dict2str(args_dict)
     #Get the string for a processor
-    Mod_data = {'PROJECT': project,
+    Mod_data = {'PROJECT': project.replace('-','_'),
                 'MODNAME': modname,
                 'ARGUMENTS': arguments}
 
