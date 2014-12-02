@@ -7,12 +7,23 @@ Created on May 6, 2013
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
-import os,sys
+import os,sys,logging
 from pyxnat import Interface
 
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################
+def setup_info_logger(name,logfile):
+    if logfile:
+        handler=logging.FileHandler(logfile,'w')
+    else:
+        handler=logging.StreamHandler()
+    
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    return logger
+
 def get_interface():
     # Environs
     user = os.environ['XNAT_USER']
@@ -20,7 +31,7 @@ def get_interface():
     host = os.environ['XNAT_HOST']
     # Don't sys.exit, let callers catch KeyErrors
     return Interface(host, user, pwd)
-    
+
 def list_subjs(xnat,project):
     post_uri_subject = '/REST/projects/'+project+'/subjects'
     return xnat._get_json(post_uri_subject)
@@ -177,8 +188,14 @@ def list_project_assessors(intf, projectid):
         
     return new_list
 
+def get_xnat_resource(xnat_dict,resource):
+    if 'scan_id' in xnat_dict:
+        return xnat.select('/projects/'+xnat_dict['project_id']+'/subjects/'+xnat_dict['subject_id']+'/experiments/'+xnat_dict['session_id']+'/scans/'+xnat_dict['ID']+'/resource/'+resource)
+    else:
+        return xnat.select('/projects/'+xnat_dict['project_id']+'/subjects/'+xnat_dict['subject_id']+'/experiments/'+xnat_dict['session_id']+'/assessors/'+xnat_dict['label']+'/out/resource/'+resource)
+
 def display_count(nb):
-    sys.stdout.write("-- Number of Processes/scans found: "+str(nb)+"                                \n\n")
+    sys.stdout.write("   -- Number of Processes/scans found missing the resource(s): "+str(nb)+" --\n")
     sys.stdout.flush()
 
 def get_proper_str(str_option,end=False):
@@ -213,7 +230,6 @@ def get_size(size):
         size=int(size)
     return size
     
-    
 def filter_subj_sess(subjects,sessions,obj_list):
     obj_list_subj=[]
     obj_list_sess=[]
@@ -223,164 +239,163 @@ def filter_subj_sess(subjects,sessions,obj_list):
         obj_list_sess=filter(lambda x: x['session_label'] in sessions, obj_list)
     return obj_list_subj+obj_list_sess
 
-def filter_scans(scantypes,qualities,SDs,obj_list):
-    if scantypes and scantypes!='all':
-        obj_list=filter(lambda x: x['type'] in scantypes, obj_list)
-    if qualities and qualities!='all':
-        obj_list=filter(lambda x: x['quality'] in qualities, obj_list)
-    if SDs and SDs!='all':
-        obj_list=filter(lambda x: x['series_description'] in SDs, obj_list)
-    return obj_list
-
-def filter_assessors(proctypes,status,qastatus,obj_list):
-    if proctypes and proctypes!='all':
-        obj_list=filter(lambda x: x['proctype'] in proctypes, obj_list)
-    if status and status!='all':
-        obj_list=filter(lambda x: x['procstatus'] in status, obj_list)
-    if qastatus and qastatus!='all':
-        obj_list=filter(lambda x: x['qcstatus'] in qastatus, obj_list)
+def filter_attributes(scantypes,qualities,SDs,proctypes,status,qastatus,obj_list):
+    if 'type' in obj_list[0].keys():
+        if scantypes and scantypes!='all':
+            obj_list=filter(lambda x: x['type'] in scantypes, obj_list)
+        if qualities and qualities!='all':
+            obj_list=filter(lambda x: x['quality'] in qualities, obj_list)
+        if SDs and SDs!='all':
+            obj_list=filter(lambda x: x['series_description'] in SDs, obj_list)
+    if 'proctype' in obj_list[0].keys():
+        if proctypes and proctypes!='all':
+            obj_list=filter(lambda x: x['proctype'] in proctypes, obj_list)
+        if status and status!='all':
+            obj_list=filter(lambda x: x['procstatus'] in status, obj_list)
+        if qastatus and qastatus!='all':
+            obj_list=filter(lambda x: x['qcstatus'] in qastatus, obj_list)
         
     return obj_list
+
+def read_project_list(inputfile,delimiter):
+    project_list=list()
+    f = open(report_file,'r')
+    for line in f:
+        if line.strip().split(delimiter)[0]!='Project':
+            project_list.append(line.strip().split(delimiter)[0])
+    return project_list
+
+def extract_xnat_info(xnat,options,project):
+    #Options:
+    #scan attrs:
+    scantypes = get_option_list(options.scantype)
+    qualities = get_option_list(options.quality)
+    SDs = get_option_list(options.SD)
+    #Proc attrs
+    proctypes = get_option_list(options.assessortype)
+    status = get_option_list(options.status)
+    qastatus = get_option_list(options.qastatus)
+    #XNAT option
+    if not options.subject:
+        subjects=None
+    elif options.subject=='all':
+        subjects=None
+    else:
+        subjects=options.subject.split(',')
+    if not options.session:
+        sessions=None
+    elif options.session=='all':
+        sessions=None
+    else:
+        sessions=options.session.split(',')
+    
+    #If inputfile, get data from it:
+    if options.inputfile:
+        xnat_dict_list=[]
+        f = open(options.inputfile,'r')
+        for line in f:
+            #Not the header
+            labels=line.strip().split(options.delimiter)
+            if labels[0]==project:
+                obj_dict=dict()
+                obj_dict['project_id']=labels[0]
+                obj_dict['subject_id']=labels[1]
+                obj_dict['subject_label']=labels[1]
+                obj_dict['session_id']=labels[2]
+                obj_dict['session_label']=labels[2]
+                if '-x-' in labels[3]:
+                    obj_dict['label']=labels[3]
+                else:
+                    obj_dict['ID']=labels[3]
+                    obj_dict['scan_id']=labels[3]
+                if len(labels)>4 and not options.resource:
+                    obj_dict['resource_label']=labels[4]
+                xnat_dict_list.append(obj_dict)
+        
+        #if resource set, remove the multiple same line.
+        if options.resource:
+            unique_sets = set(frozenset(d.items()) for d in xnat_dict_list)
+            xnat_dict_list = [dict(s) for s in unique_sets]
+            
+    #If not, read from xnat
+    else:
+        #Extract informations: 
+        if scantypes or qualities or SDs:
+            xnat_dict_list=list_project_scans(xnat, project)
+        elif proctypes or status or qastatus_list:
+            xnat_dict_list=list_project_assessors(xnat, project)
+        else:
+            return []
+        #filter the subject or session if exists:
+        if subjects or sessions:
+            xnat_dict_list=filter_subj_sess(subjects,sessions,xnat_dict_list)
+        #filter attributes
+        xnat_dict_list=filter_attributes(scantypes,qualities,SDs,proctypes,status,qastatus,xnat_dict_list)
+    
+    #Sort the list
+    xnat_dict_list=sorted(xnat_dict_list, key=lambda k: k['subject_label'])
+        
+    return xnat_dict_list
 
 ########################################################################################################
 ########################################## SPECIFIC FUNCTIONS ##########################################
 ########################################################################################################
-def check_resource(Resource,ID,size,nb_p):
+def check_resource(Resource,ID,size,count):
     #if resource doesn't exist, print label
     if not Resource.exists():
-        sys.stdout.write(ID+"                            \n")
-        nb_p+=1
+        logger.info(ID)
+        count+=1
     else:
         if len(Resource.files().get())==0:
-            sys.stdout.write(ID+"                            \n")
-            nb_p+=1
-        
-        if size:
-            Bigger_file_size=0
-            for fname in Resource.files().get()[:]:
-                size_file=int(Resource.file(fname).size())
-                if Bigger_file_size<size_file:
-                    Bigger_file_size=size_file
-            
-            #if the size of the resource is less that the size
-            if Bigger_file_size<size:
-                sys.stdout.write(ID+"                            \n")
-                nb_p+=1
+            logger.info(ID)
+            count+=1
+        elif size:
+                Bigger_file_size=0
+                for fname in Resource.files().get()[:]:
+                    size_file=int(Resource.file(fname).size())
+                    if Bigger_file_size<size_file:
+                        Bigger_file_size=size_file
                 
-    return nb_p
+                #if the size of the resource is less that the size
+                if Bigger_file_size<size:
+                    logger.info(ID)
+                    count+=1               
+    return count
 
 ########################################## CHECK SCANS ########################################## 
-def check_xnat_scans(xnat,project,subjects,sessions,scantypes,qualities,SDs,resources,size):
-    nb_s=0
-    scan_list=list_project_scans(xnat, project)
-    #filter the subject or session if exists:
-    if subjects or sessions:
-        scan_list=filter_subj_sess(subjects,sessions,scan_list)
-    #filter scantype/qualitys:
-    scan_list=filter_scans(scantypes,qualities,SDs,scan_list)
-    #sort the list
-    scan_list=sorted(scan_list, key=lambda k: k['subject_label'])
-    print '------------------------'
-    print 'Subject | Session | Scan'
-    print '------------------------'
-    for scan in scan_list:
+def check_xnat_list(xnat,xnat_dict_list,resources,size,delimiter):
+    count=0
+    print '  --info: checking xnat objects ...'
+    logger.info(delimiter.join(['Project','Subject','Session','Scan/assessor','Resource missing or under-size']))
+    for xnat_dict in xnat_dict_list:
+        if 'scan_id' in xnat_dict:
+            key='ID'
+        else:
+            key='label'
         if resources:
             for resource in resources:
-                Resource=xnat.select('/projects/'+scan['project_id']+'/subjects/'+scan['subject_id']+'/experiments/'+scan['session_id']+'/scans/'+scan['ID']+'/resource/'+resource)
-                nb_s=check_resource(Resource,scan['subject_label']+' | '+scan['session_label']+' | '+scan['ID'],size,nb_s)
+                Resource=get_xnat_resource(xnat_dict,resource)
+                ID=delimiter.join([project,xnat_dict['subject_label'],xnat_dict['session_label'],xnat_dict[key],resource])
+                count=check_resource(Resource,ID,size,count)
+        elif 'resource_label' in xnat_dict:
+            Resource=get_xnat_resource(xnat_dict,xnat_dict['resource_label'])
+            ID=delimiter.join([project,xnat_dict['subject_label'],xnat_dict['session_label'],xnat_dict[key],xnat_dict['resource_label']])
+            count=check_resource(Resource,ID,size,count)
         else:
-            nb_s+=1
-            print scan['subject_label']+' | '+scan['session_label']+' | '+scan['ID']
-    print '------------------------'
-    return nb_s 
-
-########################################## CHECK ASSESSORS ########################################## 
-def check_xnat_assessors(xnat,project,subjects,sessions,proctypes,status,qastatus_list,resources,size):
-    nb_p=0
-    proc_list=list_project_assessors(xnat, project)
-    #filter the subject or session if exists:
-    if subjects or sessions:
-        proc_list=filter_subj_sess(subjects,sessions,proc_list)
-    #filter proctype/procstatus:
-    proc_list=filter_assessors(proctypes,status,qastatus_list,proc_list)
-    #sort the list
-    proc_list=sorted(proc_list, key=lambda k: k['label'])
-    print '-----------------------------------------'
-    print '              Process Label              '
-    print '-----------------------------------------'
-    for proc in proc_list:
-        if resources:
-            for resource in resources:
-                Resource=xnat.select('/projects/'+proc['project_id']+'/subjects/'+proc['subject_id']+'/experiments/'+proc['session_id']+'/assessors/'+proc['label']+'/out/resource/'+resource)
-                nb_p=check_resource(Resource,proc['label'],size,nb_p)
-        else:
-            nb_p+=1
-            print proc['label']
-    print '-----------------------------------------'
-    return nb_p 
-
-########################################## CHECK SPECIFIC ASSESSOR ##########################################   
-def check_assessor_label(xnat,assessor_label,status_list,qastatus_list,resource_list,size,nb_p):
-    #get labels:
-    labels=assessor_label.split('-x-')
-    if len(labels)==1:
-        print'ERROR: the assessor label can not be set (ERROR no "-x-" in the name)'
-        sys.exit()
-    else:
-        #labels
-        project=labels[0]
-        subject=labels[1]
-        experiment=labels[2]
-        procname=labels[-1]
-        
-        Assessor_xnat=xnat.select('/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label)
-        if Assessor_xnat.exists():
-            #Assessor exists
-            if status_list or qastatus_list:
-                res_need_to_be_check=False
-                if procname=='FS':
-                    #FreeSurfer:
-                    assessor_status=Assessor_xnat.attrs.get('fs:fsData/procstatus')
-                    assessor_qastatus=Assessor_xnat.attrs.get('fs:fsData/qcstatus')
-                else:
-                    assessor_status=Assessor_xnat.attrs.get('proc:genProcData/procstatus')
-                    assessor_qastatus=Assessor_xnat.attrs.get('proc:genProcData/qcstatus')
-                
-                if status_list and assessor_status in status_list:
-                    if not resource_list:
-                        #checking only status, meaning that the satus was the one we are looking for
-                        sys.stdout.write(assessor_label+"                            \n")
-                        nb_p+=1
-                    else:
-                        res_need_to_be_check=True
-                if (qastatus_list in assessor_qastatus in qastatus_list):
-                    if not resource_list:
-                        #checking only status, meaning that the satus was the one we are looking for
-                        sys.stdout.write(assessor_label+"                            \n")
-                        nb_p+=1
-                    else:
-                        res_need_to_be_check=True
-                    
-                if res_need_to_be_check:
-                    for res_label in resource_list:
-                        nb_p=check_resource(Assessor_xnat.out_resource(res_label),assessor_label,size,nb_p)                    
-            else:
-                #checking only the resource
-                if resource_list:
-                    for res_label in resource_list:
-                        nb_p=check_resource(Assessor_xnat.out_resource(res_label),assessor_label,size,nb_p)
-                        
-    return nb_p
+            logger.info(delimiter.join([project,xnat_dict['subject_label'],xnat_dict['session_label'],xnat_dict[key]]))
+            count+=1
+    
+    #display the count found:
+    display_count(count)
 
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
     #Checked argument values if not:
-    if options.txtfile:
-        if not os.path.exists(options.txtfile):
-            print "OPTION ERROR: the file "+options.txtfile+" does not exist."
-            return False    
-    if not options.project and not options.txtfile :
-        print 'OPTION ERROR: You need at least to set the project with the option -p/--project or use a txt file with the options -x/--txtfile.'
+    if options.outputfile and not os.path.exists(os.path.dirname(os.path.abspath(options.outputfile))):
+        print "OPTION ERROR: the main folder for "+options.outputfile+" does not exist."
+        return False
+    if options.inputfile and not os.path.exists(os.path.abspath(options.inputfile)):
+        print 'OPTION ERROR: the inputfile options: '+options.outputfile+' does not exist.'
         return False
     return True
 
@@ -399,18 +414,21 @@ def Main_display(parser):
         print '####################################################################################################'
         parser.print_help()
         sys.exit()
-    else:   
-        if options.txtfile:
-            print '#     %*s ->  %*s#' %(-30,'Text File Path',-58,get_proper_str(options.txtfile,True))
-        else:
-            if options.project:
-                print '#     %*s ->  %*s#' %(-30,'Project(s)',-58,get_proper_str(options.project))
-            #Subjects
-            if options.subject:
-                print '#     %*s ->  %*s#' %(-30,'Subject(s)',-58,get_proper_str(options.subject))
-            #Experiment
-            if options.session:
-                print '#     %*s ->  %*s#' %(-30,'Session(s)',-58,get_proper_str(options.session))
+    else:
+        if options.inputfile:
+            print '#     %*s ->  %*s#' %(-30,'Input File Path',-58,get_proper_str(options.inputfile,True))
+        if options.outputfile:
+            print '#     %*s ->  %*s#' %(-30,'Output File Path',-58,get_proper_str(options.outputfile,True))
+        if options.delimiter:
+            print '#     %*s ->  %*s#' %(-30,'Delimiter for output',-58,get_proper_str(options.delimiter))
+        if options.project:
+            print '#     %*s ->  %*s#' %(-30,'Project(s)',-58,get_proper_str(options.project))
+        #Subjects
+        if options.subject:
+            print '#     %*s ->  %*s#' %(-30,'Subject(s)',-58,get_proper_str(options.subject))
+        #Experiment
+        if options.session:
+            print '#     %*s ->  %*s#' %(-30,'Session(s)',-58,get_proper_str(options.session))
         
         if options.scantype or options.quality or options.SD:
             print '#     %*s#' %(-93,'--Scan Options--')
@@ -476,8 +494,12 @@ def parse_args():
                   help="Check the size of the resource. If the file with the bigger size in the resource is under the size you are giving or if the resource doesn't exist, it will display the label on the screen. Units by default bytes. E.G: 6M or 7G or 8k or 10K or 10000", metavar="SIZE")
     
     #File text with the assessor to check
-    parser.add_option("-x","--txtfile",dest="txtfile",default=None,
-                  help="File txt with at each line the label of the assessor where the status need to be checked or the resource (ONLY for ASSESSOR). E.G for label: project-x-subject-x-experiment-x-scan-x-process_name.", metavar="FILEPATH")
+    parser.add_option("-i","--inputfile",dest="inputfile",default=None,
+                  help="File path as inputs that will be read for XNAT information. E.G: Project,subject,session,scan/assessor,resource. Delimiter can be set as an options.", metavar="FILEPATH")
+    parser.add_option("-o","--outputfile",dest="outputfile",default=None,
+                  help="File path to save the output.", metavar="FILEPATH")
+    parser.add_option("-d","--delimiter",dest="delimiter",default=',',
+                  help="Delimiter for the output file. Default: comma.", metavar="FILEPATH")
     return parser
 
 ###################################################################################################
@@ -486,13 +508,13 @@ def parse_args():
 if __name__ == '__main__':
     parser=parse_args()
     (options,args) = parser.parse_args()
-    
     #############################
     #Main display:
     Main_display(parser)
     #check options:
     run=check_options(options)
     #############################
+    logger = setup_info_logger('xnatcheck',options.outputfile)
     
     #############################
     # RUN                       #
@@ -500,83 +522,37 @@ if __name__ == '__main__':
     if run:
         #############################
         #Arguments :
-        ProjectList = get_option_list(options.project)
-        #scan attrs:
-        scantypes = get_option_list(options.scantype)
-        qualities = get_option_list(options.quality)
-        SDs = get_option_list(options.SD)
-        #Proc attrs
-        proctypes = get_option_list(options.assessortype)
-        status = get_option_list(options.status)
-        qastatus = get_option_list(options.qastatus)
+        project_list = get_option_list(options.project)
         #resources
         resources = get_option_list(options.resource)
         size = get_size(options.size)
-        #textfile
-        txtfile=options.txtfile
-        #XNAT option
-        if not options.subject:
-            subjects=None
-        elif options.subject=='all':
-            subjects=None
-        else:
-            subjects=options.subject.split(',')
-        if not options.session:
-            sessions=None
-        elif options.session=='all':
-            sessions=None
-        else:
-            sessions=options.session.split(',')
         
-        """ Check that the scan or assessor type or resources exist for a project on Xnat"""
+        if options.inputfile and not project_list:
+            project_list=read_project_list(options.inputfile,options.delimiter)
+            
         # Connection to Xnat
         try:   
-            xnat = get_interface() 
-            #initiate nb of processes/scans:
-            nb_sp=0
-            ####################
-            #      TXTFILE     #
-            ####################
-            if txtfile:
-                input_file = open(txtfile, 'r')
-                for index,line in enumerate(input_file):
-                    assessor_label=line.split('\n')[0]
-                    #check_assessor with label
-                    nb_sp=check_assessor_label(xnat,assessor_label,satus,qastatus,resources,size,nb_sp)     
-                
-                #display the counts of processes or scan found        
-                display_count(nb_sp)
-            #####################
-            #      PROJECTS     #
-            #####################
-            else:
-                for project in options.project.split(','):
-                    sys.stdout.write("  *Project: "+project+'                                                  \n')
-                    #check access
-                    proj=xnat.select('/project/'+project)
-                    if not proj.exists():
-                        print'   -->ERROR: Project '+project+' does not exist on XNAT.'
+            xnat = get_interface()
+            for project in project_list:
+                print" *Project: "+project
+                #check access
+                proj=xnat.select('/project/'+project)
+                if not proj.exists():
+                    print'  -->ERROR: Project '+project+' does not exist on XNAT.'
+                    continue
+                else:
+                    post_uri_subject = '/REST/projects/'+project+'/subjects'
+                    subject_list = xnat._get_json(post_uri_subject)
+                    number_subjs=len(subject_list) 
+                    if not number_subjs>0:
+                        print"  -->ERROR: You don't access to the project: "+project+"."
                         continue
-                    else:
-                        post_uri_subject = '/REST/projects/'+project+'/subjects'
-                        subject_list = xnat._get_json(post_uri_subject)
-                        number_subjs=len(subject_list) 
-                        if not number_subjs>0:
-                            print"   -->ERROR: You don't access to the project: "+project+"."
-                            continue
                 
-                ### SCAN ###
-                if scantypes or qualities or SDs:  
-                    nb_sp=check_xnat_scans(xnat,project,subjects,sessions,scantypes,qualities,SDs,resources,size)
-                    #display the counts of processes or scan found        
-                    display_count(nb_sp)
-                
-                ### ASSESSOR ### 
-                if proctypes or status:
-                    nb_sp=check_xnat_assessors(xnat,project,subjects,sessions,proctypes,status,qastatus,resources,size)
-                    #display the counts of processes or scan found        
-                    display_count(nb_sp)
-                                            
+                #Read data from inputfile if it exists:
+                xnat_dict_list=extract_xnat_info(xnat,options,project)
+                #Check all the xnat objects from the inputs
+                check_xnat_list(xnat,xnat_dict_list,resources,size,options.delimiter)
+                                
         finally:                                        
             xnat.disconnect()
     print '===================================================================\n'
