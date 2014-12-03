@@ -245,8 +245,10 @@ def generate_settings(rc,settings_info):
     #Variable:
     settings_dict=dict()
     modules_list,processes_list=get_list_modproc(rc)
+    logger.info(' Projects found on Redcap: \n')
     #Organize the data to in complex dictionaries:
     for project_settings in settings_info:
+        logger.info('  -'+project_settings[REDCAP_VAR['project']]+' for settings '+project_settings[REDCAP_VAR['settingsfile']])
         if project_settings['general_complete']=='2':
             #New PSettings
             PSettings=Settings_File(filepath=project_settings[REDCAP_VAR['settingsfile']],tmpdir=project_settings[REDCAP_VAR['tmp']],
@@ -486,6 +488,11 @@ if __name__ == '__main__':
     if api_key:
         settings_path_list,daxlogsdir_dict,email_dict=generate_settings_REDCap(api_key)
     
+    if args.debug:
+        logger.debug('Settings file found: \n')
+        for filepath in settings_path_list:
+            logger.debug('  -'+project_settings[REDCAP_VAR['project']]+'\n')
+        
     if not writeOnly: 
         # Workers:
         workers=[]
