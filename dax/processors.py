@@ -63,7 +63,10 @@ class ScanProcessor(Processor):
         if isinstance(scan_types,list):
             self.scan_types=scan_types
         elif isinstance(scan_types,str):
-            self.scan_types=scan_types.split(',')
+            if scan_types=='all':
+                self.scan_types='all'
+            else:
+                self.scan_types=scan_types.split(',')
         else:
             self.scan_types=[]
 
