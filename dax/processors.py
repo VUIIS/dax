@@ -60,8 +60,13 @@ class ScanProcessor(Processor):
     
     def __init__(self,scan_types,walltime_str,memreq_mb,spider_path,version=None, ppn=1):
         super(ScanProcessor, self).__init__(walltime_str, memreq_mb,spider_path,version,ppn)
-        self.scan_types=scan_types
-         
+        if isinstance(scan_types,list):
+            self.scan_types=scan_types
+        elif isinstance(scan_types,str):
+            self.scan_types=scan_types.split(',')
+        else:
+            self.scan_types=[]
+
     def get_assessor_name(self,scan_dict):
         subj_label = scan_dict['subject_label']
         sess_label = scan_dict['session_label']
