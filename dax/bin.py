@@ -134,7 +134,7 @@ def upload_update_date_redcap(project_list,type_update,start_end):
         except:
             logger.warn('Could not access redcap. Either wrong API_URL/API_KEY or redcap down. The last update PID and data will not be saved.')
         
-        if not rc:
+        if rc:
             data=list()
             for project in project_list:
                 to_upload=dict()
