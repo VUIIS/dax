@@ -507,10 +507,10 @@ if __name__ == '__main__':
             p.start()
             workers.append(p)
     
-    #If ctrl-c, kill all children
-    try:
-        for worker in workers:
-            worker.join()
+        #If ctrl-c, kill all children
+        try:
+            for worker in workers:
+                worker.join()
     except KeyboardInterrupt:
         logger.warn('Dax_manager received ctrc-c/kill. All workers are going to be terminated.')
         worker.terminate()
