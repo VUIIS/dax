@@ -11,16 +11,12 @@ import multiprocessing
 from email.mime.text import MIMEText
 from datetime import datetime
 
-from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY_DAX,SMTP_FROM,SMTP_HOST,SMTP_PASS
+from dax import XnatUtils,RESULTS_DIR,GATEWAY,REDCAP_VAR,API_URL,API_KEY_DAX,SMTP_FROM,SMTP_HOST,SMTP_PASS
 import dax
 from dax.launcher import UPDATE_LOCK_FILE,OPEN_TASKS_LOCK_FILE
 
-#Information on user and gateway if one
+#Information on user 
 user=os.environ['USER']
-if 'HOSTNAME' in os.environ:
-    gateway=os.environ['HOSTNAME']
-else:
-    gateway=DEFAULT_GATEWAY
  
 #Template for Module:
 ModTemplate = Template("""${PROJECT}_${MODNAME}=${MODNAME}(${ARGUMENTS})""")    
@@ -235,7 +231,7 @@ def get_field_for_modproc(rc,form_name):
 def read_redcap_db(rc):
     #Extract all attributes for the records that belong to the gateway/user we are on:
     record_list = rc.export_records(fields=[rc.def_field,REDCAP_VAR['user'],REDCAP_VAR['gateway']])
-    records = [r[rc.def_field] for r in record_list if r[REDCAP_VAR['user']]==user and r[REDCAP_VAR['gateway']]==gateway]
+    records = [r[rc.def_field] for r in record_list if r[REDCAP_VAR['user']]==user and r[REDCAP_VAR['gateway']]==GATEWAY]
     if records:
         return rc.export_records(records=records)
     else:
@@ -482,7 +478,7 @@ if __name__ == '__main__':
     logger.info('Current Process ID: '+str(os.getpid()))
     logger.info('Current Process Name: '+os.path.basename(__file__))
     logger.info('Current User: '+user)
-    logger.info('Current Gateway/Computer: '+gateway+'\n')
+    logger.info('Current Gateway/Computer: '+GATEWAY+'\n')
     
     #If api_key given, use the redcap db:
     if api_key:
@@ -492,7 +488,7 @@ if __name__ == '__main__':
         if args.debug:
             logger.debug('Settings file found: \n')
             for filepath in settings_path_list:
-                logger.debug('  -'+project_settings[REDCAP_VAR['project']]+'\n')
+                logger.debug('  -'+os.path.basename(filepath))
             
         # Workers:
         workers=[]
