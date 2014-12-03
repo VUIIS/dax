@@ -478,7 +478,8 @@ if __name__ == '__main__':
     logger.info('Current Process ID: '+str(os.getpid()))
     logger.info('Current Process Name: '+os.path.basename(__file__))
     logger.info('Current User: '+user)
-    logger.info('Current Gateway/Computer: '+GATEWAY+'\n')
+    if GATEWAY:
+     logger.info('Current Gateway/Computer: '+GATEWAY+'\n')
     
     #If api_key given, use the redcap db:
     if api_key:
