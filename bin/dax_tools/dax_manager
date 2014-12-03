@@ -514,9 +514,9 @@ if __name__ == '__main__':
         try:
             for worker in workers:
                 worker.join()
-    except KeyboardInterrupt:
-        logger.warn('Dax_manager received ctrc-c/kill. All workers are going to be terminated.')
-        worker.terminate()
-        worker.join()
+        except KeyboardInterrupt:
+            logger.warn('Dax_manager received ctrc-c/kill. All workers are going to be terminated.')
+            worker.terminate()
+            worker.join()
         
     logger.info('Time at the end of the DAX Manager: '+ str(datetime.now()))
