@@ -487,13 +487,13 @@ if __name__ == '__main__':
     #If api_key given, use the redcap db:
     if api_key:
         settings_path_list,daxlogsdir_dict,email_dict=generate_settings_REDCap(api_key)
-    
-    if args.debug:
-        logger.debug('Settings file found: \n')
-        for filepath in settings_path_list:
-            logger.debug('  -'+project_settings[REDCAP_VAR['project']]+'\n')
         
-    if not writeOnly: 
+    if not writeOnly:
+        if args.debug:
+            logger.debug('Settings file found: \n')
+            for filepath in settings_path_list:
+                logger.debug('  -'+project_settings[REDCAP_VAR['project']]+'\n')
+            
         # Workers:
         workers=[]
         #Submit Update and Update Open Tasks:
