@@ -241,7 +241,7 @@ def generate_settings(rc,settings_info):
     #Variable:
     settings_dict=dict()
     modules_list,processes_list=get_list_modproc(rc)
-    logger.info(' Projects found on Redcap: \n')
+    logger.info(' Projects found on Redcap: ')
     if not settings_info:
      logger.info('  - No project found')
     #Organize the data to in complex dictionaries:
