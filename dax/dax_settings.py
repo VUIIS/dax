@@ -131,7 +131,7 @@ if 'UPLOAD_SPIDER_DIR' not in os.environ:
 else:
     RESULTS_DIR=os.environ['UPLOAD_SPIDER_DIR'] 
 #STMP_FROM:
-if 'GATEWAY' not in os.environ:
+if gateway_env not in os.environ:
     GATEWAY=DEFAULT_GATEWAY
 else:
     GATEWAY=os.environ[gateway_env] 
