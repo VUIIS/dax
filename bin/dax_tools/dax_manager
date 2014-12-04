@@ -241,7 +241,7 @@ def generate_settings(rc,settings_info):
     #Variable:
     settings_dict=dict()
     modules_list,processes_list=get_list_modproc(rc)
-    logger.info(' Projects found on Redcap: ')
+    logger.info('Projects found on Redcap: ')
     if not settings_info:
      logger.info('  - No project found')
     #Organize the data to in complex dictionaries:
@@ -482,6 +482,8 @@ if __name__ == '__main__':
     logger.info('Current User: '+user)
     if GATEWAY:
      logger.info('Current Gateway/Computer: '+GATEWAY+'\n')
+    else:
+     logger.debug('\n')
     
     #If api_key given, use the redcap db:
     if api_key:
@@ -489,9 +491,10 @@ if __name__ == '__main__':
         
     if not writeOnly:
         if args.debug:
-            logger.debug('Settings file found: \n')
+            logger.debug('Settings file found: ')
             for filepath in settings_path_list:
                 logger.debug('  -'+os.path.basename(filepath))
+            logger.debug('\n')
             
         # Workers:
         workers=[]
