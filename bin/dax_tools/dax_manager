@@ -291,7 +291,7 @@ def generate_settings(rc,settings_info):
                 settings_dict[PSettings.filepath].merge_settings(PSettings)
             else:
                 settings_dict[PSettings.filepath]=PSettings
-
+    logger.info('\n')
     return settings_dict
     
 def generate_proc(project,procname,args_dict):
