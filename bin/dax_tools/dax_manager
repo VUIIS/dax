@@ -15,9 +15,13 @@ from dax import XnatUtils,RESULTS_DIR,GATEWAY,REDCAP_VAR,API_URL,API_KEY_DAX,SMT
 import dax
 from dax.launcher import UPDATE_LOCK_FILE,OPEN_TASKS_LOCK_FILE
 
-#Information on user 
+#Information on gateway/user 
 user=os.environ['USER']
- 
+if gateway_env in os.environ:
+ gateway=os.environ[gateway_env]
+else:
+ gateway=GATEWAY
+
 #Template for Module:
 ModTemplate = Template("""${PROJECT}_${MODNAME}=${MODNAME}(${ARGUMENTS})""")    
 #Template for Process:
@@ -480,10 +484,10 @@ if __name__ == '__main__':
     logger.info('Current Process ID: '+str(os.getpid()))
     logger.info('Current Process Name: '+os.path.basename(__file__))
     logger.info('Current User: '+user)
-    if GATEWAY:
-     logger.info('Current Gateway/Computer: '+GATEWAY+'\n')
+    if gateway:
+     logger.info('Current Gateway/Computer: '+gateway+'\n')
     else:
-     logger.debug('\n')
+     logger.debug('Current Gateway/Computer: not found...\n')
     
     #If api_key given, use the redcap db:
     if api_key:
