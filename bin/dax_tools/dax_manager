@@ -11,7 +11,7 @@ import multiprocessing
 from email.mime.text import MIMEText
 from datetime import datetime
 
-from dax import XnatUtils,RESULTS_DIR,GATEWAY,REDCAP_VAR,API_URL,API_KEY_DAX,SMTP_FROM,SMTP_HOST,SMTP_PASS
+from dax import XnatUtils,RESULTS_DIR,GATEWAY,gateway_env,REDCAP_VAR,API_URL,API_KEY_DAX,SMTP_FROM,SMTP_HOST,SMTP_PASS
 import dax
 from dax.launcher import UPDATE_LOCK_FILE,OPEN_TASKS_LOCK_FILE
 
