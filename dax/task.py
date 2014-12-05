@@ -59,11 +59,12 @@ class Task(object):
                 assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name())
                 assessor.attrs.set('proc:genprocdata/validation/status', JOB_PENDING)
                 assessor.attrs.set('proc:genprocdata/procversion', self.get_processor_version())
-            has_inputs=processor.has_inputs(assessor)
+            has_inputs,qcstatus=processor.has_inputs(assessor)
             if has_inputs==1:
                 self.set_status(NEED_TO_RUN)
             elif has_inputs==-1:
                 self.set_status(NO_DATA)
+                self.set_qcstatus(qcstatus)
             else:
                 self.set_status(NEED_INPUTS)
         
@@ -241,10 +242,12 @@ class Task(object):
             new_status = COMPLETE
         elif old_status == NEED_INPUTS:
             # Check it again in case available inputs changed
-            if self.has_inputs()==1:
+            has_inputs,qcstatus=self.has_inputs()
+            if has_inputs==1:
                 new_status = NEED_TO_RUN
-            elif self.has_inputs()==-1:
+            elif has_inputs==-1:
                 new_status = NO_DATA
+                self.set_qcstatus(qcstatus)
         elif old_status == JOB_RUNNING:
             new_status = self.check_running()
         elif old_status == READY_TO_UPLOAD:
