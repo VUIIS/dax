@@ -11,16 +11,16 @@ import multiprocessing
 from email.mime.text import MIMEText
 from datetime import datetime
 
-from dax import XnatUtils,RESULTS_DIR,GATEWAY,gateway_env,REDCAP_VAR,API_URL,API_KEY_DAX,SMTP_FROM,SMTP_HOST,SMTP_PASS
+from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY_DAX,SMTP_FROM,SMTP_HOST,SMTP_PASS
 import dax
 from dax.launcher import UPDATE_LOCK_FILE,OPEN_TASKS_LOCK_FILE
 
 #Information on gateway/user 
 user=os.environ['USER']
-if gateway_env in os.environ:
- gateway=os.environ[gateway_env]
-else:
- gateway=GATEWAY
+try:
+ gateway = subprocess.check_output('hostname', stderr=subprocess.STDOUT, shell=True)
+except (CalledProcessError,ValueError):
+ gateway=DEFAULT_GATEWAY
 
 #Template for Module:
 ModTemplate = Template("""${PROJECT}_${MODNAME}=${MODNAME}(${ARGUMENTS})""")    
