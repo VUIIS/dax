@@ -57,16 +57,17 @@ class Task(object):
             self.set_createdate_today()
             if self.atype == 'proc:genprocdata':
                 assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name())
-                assessor.attrs.set('proc:genprocdata/validation/status', JOB_PENDING)
                 assessor.attrs.set('proc:genprocdata/procversion', self.get_processor_version())
             has_inputs,qcstatus=processor.has_inputs(assessor)
             if has_inputs==1:
                 self.set_status(NEED_TO_RUN)
+                self.set_qcstatus(JOB_PENDING)
             elif has_inputs==-1:
                 self.set_status(NO_DATA)
                 self.set_qcstatus(qcstatus)
             else:
                 self.set_status(NEED_INPUTS)
+                self.set_qcstatus(qcstatus)
         
         # Cache for convenience
         self.assessor_id = assessor.id()
@@ -245,8 +246,11 @@ class Task(object):
             has_inputs,qcstatus=self.has_inputs()
             if has_inputs==1:
                 new_status = NEED_TO_RUN
+                self.set_qcstatus(JOB_PENDING)
             elif has_inputs==-1:
                 new_status = NO_DATA
+                self.set_qcstatus(qcstatus)
+            else:
                 self.set_qcstatus(qcstatus)
         elif old_status == JOB_RUNNING:
             new_status = self.check_running()
