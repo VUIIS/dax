@@ -20,7 +20,7 @@ from dax.launcher import UPDATE_LOCK_FILE,OPEN_TASKS_LOCK_FILE
 #Information on gateway/user 
 user=os.environ['USER']
 try:
- gateway = subprocess.check_output('hostname', stderr=subprocess.STDOUT, shell=True)
+ gateway = subprocess.check_output('hostname', stderr=subprocess.STDOUT, shell=True).strip()
 except (CalledProcessError,ValueError):
  gateway=DEFAULT_GATEWAY
 
