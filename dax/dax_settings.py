@@ -88,7 +88,6 @@ ${pbs_cmds}
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
 DEFAULT_GATEWAY = None
-gateway_env='HOSTNAME'
 #Root directory for jobs
 DEFAULT_ROOT_JOB_DIR = '/tmp'
 #Number maximun of job in the queue:
@@ -130,11 +129,6 @@ if 'UPLOAD_SPIDER_DIR' not in os.environ:
         os.mkdir(RESULTS_DIR)
 else:
     RESULTS_DIR=os.environ['UPLOAD_SPIDER_DIR'] 
-#STMP_FROM:
-if gateway_env not in os.environ:
-    GATEWAY=DEFAULT_GATEWAY
-else:
-    GATEWAY=os.environ[gateway_env] 
 #Settings to send email (optional):
 #STMP_FROM:
 if 'SMTP_FROM' not in os.environ:
