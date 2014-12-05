@@ -7,7 +7,9 @@ import sys
 import redcap
 import smtplib
 import traceback
+import subprocess
 import multiprocessing
+from subprocess import CalledProcessError
 from email.mime.text import MIMEText
 from datetime import datetime
 
