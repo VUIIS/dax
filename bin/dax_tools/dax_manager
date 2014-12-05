@@ -237,7 +237,7 @@ def get_field_for_modproc(rc,form_name):
 def read_redcap_db(rc):
     #Extract all attributes for the records that belong to the gateway/user we are on:
     record_list = rc.export_records(fields=[rc.def_field,REDCAP_VAR['user'],REDCAP_VAR['gateway']])
-    records = [r[rc.def_field] for r in record_list if r[REDCAP_VAR['user']]==user and r[REDCAP_VAR['gateway']]==GATEWAY]
+    records = [r[rc.def_field] for r in record_list if r[REDCAP_VAR['user']]==user and r[REDCAP_VAR['gateway']]==gateway]
     if records:
         return rc.export_records(records=records)
     else:
