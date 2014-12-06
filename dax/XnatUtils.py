@@ -857,7 +857,7 @@ def download_biggest_resources(Resource,directory,filename='0'):
             else:
                 DLFileName = os.path.join(directory,filename)
             Resource.file(Input_res_label_fname).get(DLFileName)
-            return 1,DLFileName
+            return 1,str(DLFileName)
     else:
         print'ERROR download_biggest_resources in XnatUtils: Folder '+directory+' does not exist.'
 
