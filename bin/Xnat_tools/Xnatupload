@@ -321,7 +321,7 @@ def Upload_folder_to_resource(label,resourceObj,directory,quiet):
     initDir=os.getcwd()
     #Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip '+filenameZip+' *')
+    os.system('zip -r '+filenameZip+' *')
     #upload
     resourceObj.put_zip(os.path.join(directory,filenameZip),extract=True)
     #remove the tmp zip file:

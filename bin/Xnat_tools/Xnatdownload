@@ -31,7 +31,7 @@ def list_subjs(xnat,project):
     return xnat._get_json(post_uri_subject)
 
 def list_assessors(xnat,project,subject,experiment):
-    post_uri_assessor = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors' 
+    post_uri_assessor = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors'
     return xnat._get_json(post_uri_assessor)
 
 def list_scans(xnat,project,subject,experiment):
@@ -134,24 +134,25 @@ def list_project_assessors(intf, projectid):
     assessor_list = intf._get_json(post_uri)
 
     for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['subject_label'] = a['subject_label']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['fs:fsdata/procstatus']
-        anew['qcstatus'] = a['fs:fsdata/validation/status']
-        anew['proctype'] = 'FreeSurfer'
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
+        if a['label']:
+            anew = {}
+            anew['ID'] = a['ID']
+            anew['label'] = a['label']
+            anew['uri'] = a['URI']
+            anew['assessor_id'] = a['ID']
+            anew['assessor_label'] = a['label']
+            anew['assessor_uri'] = a['URI']
+            anew['project_id'] = projectid
+            anew['project_label'] = projectid
+            anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+            anew['subject_label'] = a['subject_label']
+            anew['session_id'] = a['session_ID']
+            anew['session_label'] = a['session_label']
+            anew['procstatus'] = a['fs:fsdata/procstatus']
+            anew['qcstatus'] = a['fs:fsdata/validation/status']
+            anew['proctype'] = 'FreeSurfer'
+            anew['xsiType'] = a['xsiType']
+            new_list.append(anew)
 
     # Then add genProcData    
     post_uri = '/REST/archive/experiments'
@@ -167,26 +168,25 @@ def list_project_assessors(intf, projectid):
     subj_id2lab = dict((subj['ID'], subj['label']) for subj in subj_list)
 
     for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['proc:genprocdata/procstatus']
-        anew['proctype'] = a['proc:genprocdata/proctype']
-        anew['qcstatus'] = a['proc:genprocdata/validation/status']
-        anew['xsiType'] = a['xsiType']
-        
-        anew['subject_label'] = subj_id2lab[anew['subject_id']]
-
-        new_list.append(anew)
+        if a['label']:
+            anew = {}
+            anew['ID'] = a['ID']
+            anew['label'] = a['label']
+            anew['uri'] = a['URI']
+            anew['assessor_id'] = a['ID']
+            anew['assessor_label'] = a['label']
+            anew['assessor_uri'] = a['URI']
+            anew['project_id'] = projectid
+            anew['project_label'] = projectid
+            anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+            anew['session_id'] = a['session_ID']
+            anew['session_label'] = a['session_label']
+            anew['procstatus'] = a['proc:genprocdata/procstatus']
+            anew['proctype'] = a['proc:genprocdata/proctype']
+            anew['qcstatus'] = a['proc:genprocdata/validation/status']
+            anew['xsiType'] = a['xsiType']
+            anew['subject_label'] = subj_id2lab[anew['subject_id']]
+            new_list.append(anew)
         
     return new_list
 
@@ -216,7 +216,7 @@ def get_option_list(option):
         return None
     else:
         return option.split(',')
-    
+
 def clean_directory(folder_name):
     files=os.listdir(folder_name)
     for f in files:
@@ -230,14 +230,14 @@ def write_report(report_file,string):
     f = open(report_file,'a')
     f.write(string+'\n')
     f.close()
-    
+
 def write_cmd(cmd_file):
     cmdargs = sys.argv
     string=os.path.abspath(cmdargs[0])+" ".join(cmdargs[1:])
     f = open(cmd_file,'w')
     f.write('python '+string+'\n')
     f.close()
-    
+
 def read_report(report_file):
     proj_dict=dict()
     last_update=0
@@ -262,7 +262,7 @@ def date_prepender(filename):
         #new filename:
         new_filename=filename.split('.')[0]+'_new.txt'
         #Today date
-        date='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now()) 
+        date='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
         #Read subjects from report filename
         f_old=open(filename,'r')
         for line in f_old:
@@ -285,18 +285,18 @@ def get_resource_modified(xnat,resource):
     # xpaths for times in resource xml
     CREATED_XPATH = "/cat:Catalog/cat:entries/cat:entry/@createdTime"
     MODIFIED_XPATH = "/cat:Catalog/cat:entries/cat:entry/@modifiedTime"
-    
+
     # Get the resource object and its uri
     res_xml_uri = resource._uri+'?format=xml'
-    
+
     # Get the XML for resource
     xmlstr = xnat._exec(res_xml_uri, 'GET')
-    
+
     # Parse out the times
     root = etree.fromstring(xmlstr)
     create_times = root.xpath(CREATED_XPATH, namespaces=root.nsmap)
     mod_times = root.xpath(MODIFIED_XPATH, namespaces=root.nsmap)
-    
+
     # Find the most recent time
     all_times = create_times + mod_times
     if all_times:
@@ -324,7 +324,7 @@ def filter_scans(scantypes,without,qualities,obj_list):
     if not scantypes:
         return list()
     
-    if scantypes!='all':
+    if scantypes and scantypes!='all':
         obj_list=filter(lambda x: x['type'] in scantypes, obj_list)
     if without:
         obj_list=filter(lambda x: x['type'] not in without, obj_list)
@@ -336,7 +336,7 @@ def filter_assessors(proctypes,without,status,obj_list):
     if not proctypes:
         return list()
     
-    if proctypes!='all':
+    if proctypes and proctypes!='all':
         obj_list=filter(lambda x: x['proctype'] in proctypes, obj_list)
     if without:
         obj_list=filter(lambda x: x['proctype'] not in without, obj_list)
@@ -352,7 +352,7 @@ def make_directory(obj_dict,directory):
     if not os.path.exists(sess_path):
         os.mkdir(sess_path)
     return sess_path
-    
+
 ########################################################################################################
 ########################################## SPECIFIC FUNCTIONS ##########################################
 ########################################################################################################
@@ -406,7 +406,7 @@ def download_resource(directory,xnat,Resource,Resource_label,quiet,oneDir,label=
                 else:
                     if not quiet: print '    ->Skipping resource. Up-to-date.'            
 
-########################################## DOWNLOAD FROM ASSESSOR ##########################################                   
+########################################## DOWNLOAD FROM ASSESSOR ##########################################
 def download_assessor(directory,xnat,assessor_dict,resources_list,quiet,oneDir,last_download):
     assessor=xnat.select('/project/'+assessor_dict['project_id']+'/subjects/'+assessor_dict['subject_label']+'/experiments/'+assessor_dict['session_label']+'/assessors/'+assessor_dict['label'])
     if not assessor.exists():
@@ -434,10 +434,16 @@ def download_scan(directory,xnat,scan_dict,resources_list,quiet,oneDir,last_down
             reslist= resources_list
         #download resources from list
         for ResourceName in reslist:
-            label=scan_dict['project_id']+'-x-'+scan_dict['subject_label']+'-x-'+scan_dict['session_label']+'-x-'+scan_dict['ID']+'-x-'+ResourceName
-            download_resource(directory,xnat,scan.resource(ResourceName),ResourceName,quiet,oneDir,label,last_download=last_download)
+            if ResourceName=='PARREC':
+                directory=os.path.join(directory,'PARREC')
+                if not os.path.exists(directory): os.mkdir(directory)
+                download_resource(directory,xnat,scan.resource('PAR'),'PAR',quiet,True,'file',last_download=last_download)
+                download_resource(directory,xnat,scan.resource('REC'),'REC',quiet,True,'file',last_download=last_download)
+            else:
+                label=scan_dict['project_id']+'-x-'+scan_dict['subject_label']+'-x-'+scan_dict['session_label']+'-x-'+scan_dict['ID']+'-x-'+ResourceName
+                download_resource(directory,xnat,scan.resource(ResourceName),ResourceName,quiet,oneDir,label,last_download=last_download)
                         
-########################################## DOWNLOAD SUBJECT ##########################################                  
+########################################## DOWNLOAD SUBJECT ##########################################
 def download_xnat_data(directory,xnat,project,subject_labels,session_labels,ScanResources,ProcResources,scantypes,withoutS_list,proctypes,withoutA_list,quiet,qualities,status,oneDir=False,last_download=None):
     #display:
     if not quiet: print '## Project: '+project+'##'
@@ -472,13 +478,14 @@ def download_xnat_data(directory,xnat,project,subject_labels,session_labels,Scan
                 scanpath=directory
             else:
                 scanpath=make_directory(scan,proj_path)
-                scanpath=os.path.join(scanpath,scan['ID']+'-x-'+scan['type'])
+                scanpath=os.path.join(scanpath,scan['ID']+'-x-'+scan['type'].strip().replace('/','_').replace(" ", ""))
                 if scan['series_description']!='': 
                     scanpath=scanpath+'-x-'+scan['series_description'].strip().replace('/','_').replace(" ", "")
                 if not os.path.exists(scanpath):
                     os.mkdir(scanpath)
             if not quiet: print '  +session '+scan['session_label']+' -- scan '+scan['ID']+' -- type: '+scan['type']
-            download_scan(scanpath,xnat,scan,ScanResources,quiet,oneDir,last_download)
+            if ScanResources:
+                download_scan(scanpath,xnat,scan,ScanResources,quiet,oneDir,last_download)
         for assessor in filter_subj_sess(subj,session_labels,assessor_list):
             if oneDir:
                 procpath=directory
@@ -488,7 +495,8 @@ def download_xnat_data(directory,xnat,project,subject_labels,session_labels,Scan
                 if not os.path.exists(procpath): 
                     os.mkdir(procpath)
             if not quiet: print '  +proc '+assessor['label']
-            download_assessor(procpath,xnat,assessor,ProcResources,quiet,oneDir,last_download)
+            if ProcResources:
+                download_assessor(procpath,xnat,assessor,ProcResources,quiet,oneDir,last_download)
         #write down the subject in the report
         write_report(os.path.join(directory,DEFAULT_REPORT_NAME),project+'-x-'+subj)
     
@@ -519,7 +527,7 @@ def get_list(xnat,project,list1,list2=None):
         for subject in list1:
             if not subject in list1:
                 list3.append(subject)
-    #compare the list1 and keep the subject comming from xnat that are not in the list1 
+    #compare the list1 and keep the subject comming from xnat that are not in the list1
     else:
         subject_list=list_subjs(xnat,project)
         for subject in subject_list:
@@ -527,7 +535,7 @@ def get_list(xnat,project,list1,list2=None):
                 list3.append(subject['label'])
     return list3
 
-########################################## DOWNLOAD FROM TEXT FILE ##########################################                   
+########################################## DOWNLOAD FROM TEXT FILE ##########################################
 def download_textfile(directory,filetxt,xnat,ScanResource,ProcResource,quiet,qualities,status,oneDir=False,last_download=None):
     #variables :  
     scanList=list()
@@ -583,7 +591,7 @@ def download_specific_assessor(assessor_path,label,ProcResource,quiet,status,one
     assessor['label']=label
     Assessor=xnat.select('/project/'+assessor['project_id']+'/subjects/'+assessor['subject_label']+'/experiments/'+assessor['session_label']+'/assessor/'+assessor['label'])
     if Assessor.exists():
-        if 'FS'==label[-1]:
+        if 'FS'==labels[-1]:
             jobstatus=Assessor.attrs.get('fs:fsData/procstatus')
         else:
             jobstatus=Assessor.attrs.get('proc:genProcData/procstatus')
@@ -611,7 +619,7 @@ def check_projects(projectList):
     finally:                                        
         xnat.disconnect()
     return projectList
-      
+
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
     # The options :
@@ -644,7 +652,7 @@ def check_options(options):
         print 'OPTION WARNING: You use option --WOA: the script will download from process with a type different that the ones given.'           
     return True
 
-########################################## MAIN DISPLAY FUNCTION ##########################################   
+########################################## MAIN DISPLAY FUNCTION ##########################################
 def Main_display(parser):
     (options,_)=parser.parse_args()
     print '####################################################################################################'
@@ -666,7 +674,7 @@ def Main_display(parser):
         elif options.selectionAssessor:
             print '#     %*s ->  %*s#' %(-30,'selected Process',-58,get_proper_str(options.selectionAssessor,True))
             print '#     %*s ->  %*s#' %(-30,'Resources Process',-58,get_proper_str(options.resourcesA))
-            
+
         else:
             if options.filetext:
                 print '#     %*s ->  %*s#' %(-30,'File txt',-58,get_proper_str(options.filetext,True))
@@ -771,7 +779,7 @@ if __name__ == '__main__':
     #check options:
     run=check_options(options)
     #############################
-    
+
     #############################
     # RUN                       #
     #############################
@@ -779,7 +787,7 @@ if __name__ == '__main__':
         #extract dir:
         directory = options.directory
         #report file:
-        report_file=os.path.join(directory,DEFAULT_REPORT_NAME)        
+        report_file=os.path.join(directory,DEFAULT_REPORT_NAME)
         #############################
         #Extract values from Options
         projectList = get_option_list(options.project)
@@ -806,10 +814,8 @@ if __name__ == '__main__':
             proj_dict,last_download=read_report(os.path.join(directory,DEFAULT_REPORT_NAME))
             pass
         elif options.missing:
-            if options.filetext:
-                pass
-            else:
-                run=False
+            run=False
+            if not options.filetext:
                 for project in projectList:
                     if os.path.exists(os.path.join(directory,project)):
                         run=True
@@ -839,7 +845,7 @@ if __name__ == '__main__':
         try:
             if not options.quiet: print "INFO: Connection to Xnat"
             xnat = get_interface()
-            
+
             #############################
             #Start Download
             #############################
@@ -868,10 +874,10 @@ if __name__ == '__main__':
                         download_xnat_data(directory,xnat,project,SubjectLabels,SessionLabels,ScanResources,ProcResources,scantypes,withoutS,proctypes,withoutA,options.quiet,qualities,status,options.oneDir)
         finally:
             #write report date at the beginning of the file:
-            date_prepender(report_file)    
-            #disconnect                         
+            date_prepender(report_file)
+            #disconnect
             xnat.disconnect()
             if not options.quiet:
                 print 'INFO: Connection to Xnat closed'
-    
+
     print '===================================================================\n'

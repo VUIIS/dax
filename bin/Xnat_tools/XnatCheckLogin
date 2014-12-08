@@ -1,0 +1,95 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+'''
+Created on Jan 24, 2013
+
+@author: yvernabc
+'''
+
+import os,sys,getpass
+    
+########################################################################################################
+########################################## INSTALL FUNCTIONS ###########################################
+########################################################################################################
+#add to .xnat_setup    
+def add_to_workstation(line,comments):
+    #.profile
+    profile_path=os.environ['HOME']+'/.xnat_profile'
+    if comments[1]!='#':
+        comments='#'+comments
+    #add line:
+    if not os.path.exists(profile_path):
+        comments= '###### XNAT SETUP FILE ######\n#File running everytime you open a new terminal : edited and created by Xnatsetup, tool to set up your computer to use Xnat tools.\n'+comments
+        #link the file in the bashrc or profile
+        bash_profile_path=os.environ['HOME']+'/.bash_profile'
+        #Add the line in bash_profile
+        if os.path.exists(bash_profile_path):
+            if not 'source ~/.xnat_profile' in open(bash_profile_path).read():
+                with open(bash_profile_path, "a") as bash_profile:
+                    bash_profile.write("#call for .xnat_profile file where the XNAT setup has been done: \n")
+                    bash_profile.write("source ~/.xnat_setup\n")
+    #add the line and comments
+    if not line in open(profile_path).read():
+        with open(profile_path,"a") as bashrc:
+            bashrc.write(comments+'\n')
+            bashrc.write(line+'\n')  
+
+def check_env(variableName,encrypted=False):
+    if variableName in os.environ:
+        return os.environ[variableName]
+    else:
+        if encrypted:
+            return getpass.getpass()
+        else:
+            return raw_input('Enter '+variableName+':')
+        
+def set_xnat_variables():
+    # XNAT_HOST URL
+    XNAT_HOST=check_env('XNAT_HOST')
+    # XNAT_USER username
+    XNAT_USER=check_env('XNAT_USER')
+    # XNAT_PASS password
+    XNAT_PASS=check_env('XNAT_PASS')   
+    print "INFO: Trying to open a connection with XNAT with your login..."
+    #Check that the the user can open a connection to XNAT and close it
+    #connection
+    from pyxnat import Interface
+    xnat=Interface(XNAT_HOST,XNAT_USER,XNAT_PASS)
+    try:
+        #check connection
+        if xnat.select('/project/VUSTP/').exists():
+            xnat.disconnect()
+            print '-->Good login.'
+    except:
+        print 'ERROR: You must have set the wrong Username and Password in your configuration file.'
+        print 'Try typing them:'
+        XNAT_USER = raw_input("Username on XNAT: ")
+        XNAT_PASS = getpass.getpass()
+        xnat=Interface(XNAT_HOST,XNAT_USER,XNAT_PASS)
+        try:
+            #check connection
+            if xnat.select('/project/VUSTP/').exists():
+                xnat.disconnect()
+                print '-->Good login. You should change your configuration file. (.profile or .bashrc or .xnat*)'
+        except:
+            print 'ERROR: Wrong login. Check on XNAT that you can log in and check your settings in your configuration file.'
+            sys.exit()        
+        #Send to the bashrc
+        if not 'XNAT_HOST' in os.environ and not 'XNAT_USER' in os.environ and not 'XNAT_PASS' in os.environ:
+            add_to_workstation('export XNAT_HOST='+XNAT_HOST,"#Xnat host address")
+            print "    *XNAT_HOST set up in ~/.xnat_profile"
+            add_to_workstation('export XNAT_USER='+XNAT_USER,"#Xnat username")
+            print "    *XNAT_USER set up in ~/.xnat_profile"
+            add_to_workstation('export XNAT_PASS='+XNAT_PASS,"#Xnat password")
+            print "    *XNAT_PASS set up in ~/.xnat_profile"
+                
+def parse_args():
+    from argparse import ArgumentParser
+    ap = ArgumentParser(prog='Xnatsetup', description="Set and Check the logins for XNAT.")
+    return ap.parse_args()
+         
+if __name__ == '__main__':
+    args = parse_args()
+    set_xnat_variables()
+    
+    

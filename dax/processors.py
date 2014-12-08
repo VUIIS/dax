@@ -1,7 +1,11 @@
-import os,re
-
+import os
+import re
+import logging
 import task
 import XnatUtils
+
+#Logger for logs
+logger=logging.getLogger('dax')
 
 class Processor(object):
     def __init__(self,walltime_str,memreq_mb,spider_path,version=None,ppn=1,xsitype='proc:genProcData'):
@@ -56,8 +60,16 @@ class ScanProcessor(Processor):
     
     def __init__(self,scan_types,walltime_str,memreq_mb,spider_path,version=None, ppn=1):
         super(ScanProcessor, self).__init__(walltime_str, memreq_mb,spider_path,version,ppn)
-        self.scan_types=scan_types
-         
+        if isinstance(scan_types,list):
+            self.scan_types=scan_types
+        elif isinstance(scan_types,str):
+            if scan_types=='all':
+                self.scan_types='all'
+            else:
+                self.scan_types=scan_types.split(',')
+        else:
+            self.scan_types=[]
+
     def get_assessor_name(self,scan_dict):
         subj_label = scan_dict['subject_label']
         sess_label = scan_dict['session_label']
@@ -104,6 +116,6 @@ def processors_by_type(proc_list):
         elif issubclass(proc.__class__,SessionProcessor):
             exp_proc_list.append(proc)
         else:
-            print('ERROR:unknown processor type:'+proc)
+            logger.warn('unknown processor type:'+proc)
 
     return exp_proc_list, scan_proc_list
