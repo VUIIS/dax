@@ -912,7 +912,7 @@ def upload_zip(Resource,directory):
     initDir=os.getcwd()
     #Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip '+filenameZip+' *')
+    os.system('zip -r '+filenameZip+' *')
     #upload
     Resource.put_zip(directory+'/'+filenameZip,extract=True)
     #return to the initial directory:
