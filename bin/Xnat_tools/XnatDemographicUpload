@@ -1,0 +1,196 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+'''
+Created on May 6, 2013
+
+@author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
+'''
+
+import os,sys,datetime
+from pyxnat import Interface
+
+######################################################################################################
+########################################## USEFUL FUNCTIONS ##########################################
+######################################################################################################
+
+def get_interface():
+    # Environs
+    user = os.environ['XNAT_USER']
+    pwd = os.environ['XNAT_PASS']
+    host = os.environ['XNAT_HOST']
+    # Don't sys.exit, let callers catch KeyErrors
+    return Interface(host, user, pwd)
+    
+def get_xnat_object(obj_dict):
+    return xnat.select('/project/'+obj_dict['project']+'/subject/'+obj_dict['subject'])
+   
+def get_proper_str(str_option,end=False):
+    if len(str_option)>55:
+        if end:
+            return '...'+str_option[-50:]
+        else:
+            return str_option[:50]+'...'
+    else:
+        return str_option
+
+def get_gender_from_label(gender):
+    if gender.upper()=='F' or gender.lower()=='female':
+        return 'female'
+    elif gender.upper()=='M' or gender.lower()=='male':
+        return 'male'
+    else:
+        return 'unknown'
+    
+def get_handedness_from_label(handedness):
+    if handedness.upper()=='R' or handedness.lower()=='right':
+        return 'right'
+    elif handedness.upper()=='L' or handedness.lower()=='left':
+        return 'left'
+    else:
+        return 'unknown'
+    
+def read_csv(inputfile,delimiter):
+    demo_list=list()
+    f = open(inputfile,'r')
+    for line in f:
+        labels=line.strip().split(delimiter)
+        if labels[0].lower()!='project':
+            obj_dict=dict()
+            #XNATinfo
+            obj_dict['project']=labels[0]
+            obj_dict['subject']=labels[1]
+            obj_dict['session']=labels[2]
+            #info
+            obj_dict['handedness']=get_handedness_from_label(labels[3])
+            obj_dict['gender']=get_gender_from_label(labels[4])
+            obj_dict['age']=labels[-1]
+            demo_list.append(obj_dict)
+    f.close()
+    return demo_list
+
+def smaller_str(str_option,size=10,end=False):
+    if len(str_option)>size:
+        if end:
+            return '...'+str_option[-size:]
+        else:
+            return str_option[:size]+'...'
+    else:
+        return str_option
+    
+######################################### REPORT ###############################################
+def make_report(demo_list):
+    #Display:
+    print 'Report information about uploading :'
+    print 'Date: '+str(datetime.datetime.now())
+    print '==================================================================='
+    print 'List of the data that need to be upload : '
+    print '-----------------------------------------'
+    print '%*s | %*s | %*s | %*s | %*s | %*s ' % (-10, 'Project ID',-10, 'Subject', -15, 'Session', -10, 'Handedness',-7, 'Gender',-5,'Age')+''
+    print '-----------------------------------------------------------------------------'
+    newlist = sorted(demo_list, key=lambda k: k['project']) 
+    for obj_dict in sorted(newlist):
+        p=smaller_str(obj_dict['project'])
+        s=smaller_str(obj_dict['subject'])
+        se=smaller_str(obj_dict['session'],size=15)
+        h=smaller_str(obj_dict['handedness'])
+        g=smaller_str(obj_dict['gender'],size=7)
+        a=smaller_str(obj_dict['age'],size=5)
+        print '%*s | %*s | %*s | %*s | %*s | %*s ' % (-10,p,-10,s,-15,se,-10,h,-7,g,-5,a)+''
+    print '-----------------------------------------------------------------------------\n'
+
+########################################## CHECK OPTIONS ##########################################
+def check_options(options):
+    if not options.inputfile:
+        print "OPTION ERROR: the file "+options.txtfile+" does not exist."
+        return False
+    elif not os.path.exists(options.inputfile):
+        print "OPTION ERROR: the file "+options.inputfile+" does not exist."
+        return False
+    
+    return True
+
+########################################## MAIN DISPLAY ##########################################
+def Main_display(parser):
+    (options,args) = parser.parse_args()
+    print '####################################################################################################'
+    print '#                                             XNATCHECK                                            #'
+    print '#                                                                                                  #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
+    print '# Parameters :                                                                                     #'
+    if options=={ 'inputfile':None,'delimiter': ',', 'report': False}:
+        print '#     No Arguments given                                                                           #'
+        print '#     Use "Xnatcheck -h" to see the options                                                        #'
+        print '####################################################################################################'
+        parser.print_help()
+        sys.exit()
+    else:
+        if options.inputfile:
+            print '#     %*s ->  %*s#' %(-30,'Input File Path',-58,get_proper_str(options.inputfile,True))
+        if options.delimiter:
+            print '#     %*s ->  %*s#' %(-30,'Delimiter for output',-58,get_proper_str(options.delimiter))
+        if options.report:
+            print '#     %*s ->  %*s#' %(-30,'Report Mode',-58,'on')   
+        print '####################################################################################################'
+
+########################################## OPTIONS ##########################################
+def parse_args():
+    from optparse import OptionParser
+    usage = "usage: %prog [options] \nWhat is the script doing : Upload Handedness/Gender and Age to XNAT. Input: CSV file."
+    parser = OptionParser(usage=usage)
+    #need this options
+    parser.add_option("-i","--inputfile",dest="inputfile",default=None,
+                  help="File path as inputs that will be read for XNAT information. E.G: Project,Subject,session,handedness,gender,age. Delimiter can be set as an options. By default comma for the delimiter.", metavar="FILEPATH")
+    parser.add_option("-d","--delimiter",dest="delimiter",default=',',
+                  help="Delimiter for the output file. Default: comma.", metavar="FILEPATH")
+    parser.add_option("--report",dest="report",action="store_true", default=False,
+                  help="Show what information the script will upload to XNAT.", metavar="FILEPATH")
+    return parser
+
+###################################################################################################
+########################################## MAIN FUNCTION ##########################################
+###################################################################################################
+if __name__ == '__main__':
+    parser=parse_args()
+    (options,args) = parser.parse_args()
+    #############################
+    #Main display:
+    Main_display(parser)
+    #check options:
+    run=check_options(options)
+    #############################
+    #############################
+    # RUN                       #
+    #############################
+    if run:
+        #############################
+        demo_list=read_csv(options.inputfile,options.delimiter)   
+        
+        if options.report:
+            make_report(demo_list)
+        else:     
+            try:
+                xnat=get_interface()
+                #Update age first:
+                newlist = sorted(demo_list, key=lambda k: k['project']) 
+                for obj_dict in newlist:
+                    Subject_obj=get_xnat_object(obj_dict)
+                    if not Subject_obj.exists():
+                        print " --> WARNING: Subject "+obj_dict['subject']+" doesn't exist. No information will be uploaded."
+                    else:
+                        #set the handedness
+                        Subject_obj.attrs.set('xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/handedness',obj_dict['handedness'])
+                        #set the gender
+                        Subject_obj.attrs.set('xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/gender',obj_dict['gender'])
+                        print " --> Subject "+obj_dict['subject']+" Handedness and Gender set."
+                        
+                        Session_obj=Subject_obj.experiment(obj_dict['session'])
+                        if not Session_obj.exists():
+                            print "  --> WARNING: Session "+obj_dict['session']+" doesn't exist. The age will not be uploaded."
+                        else:
+                            #set the age
+                            Session_obj.attrs.set('xnat:mrsessionData/age',obj_dict['age'])
+                            print "   -->Session "+obj_dict['session']+" Age set."
+    
+            finally:
+                xnat.disconnect()
