@@ -156,7 +156,7 @@ def FS_Upload(session_obj,assessor_label,resource_dict,force,delete,deleteAll):
         assessor_obj.attrs.set('proc:genProcData/procstatus','UPLOADING')
         assessor_obj.attrs.set('proc:genProcData/validation/status','Job Pending')
     elif not assessor_obj.exists():
-        create_assessor(session_obj,assessor_label,'FS')
+        assessor_obj,new_assessor=create_assessor(session_obj,assessor_label,'FS')
 
     #Upload other resources:
     for resource,fpath_list in resource_dict.items():
@@ -181,7 +181,7 @@ def FS_Upload(session_obj,assessor_label,resource_dict,force,delete,deleteAll):
         assessor_obj.attrs.set('fs:fsData/procstatus','COMPLETE')
         assessor_obj.attrs.set('fs:fsData/validation/status','Needs QA')
         
-def DefaultProcess_Upload(assessor_obj,resource_dict,force,delete,deleteAll,new_assessor):
+def DefaultProcess_Upload(assessor_obj,resource_dict,force,delete,deleteAll,new_assessor=False):
     #delete all resources previously on the assessor
     if deleteAll:
         for resource in list_out_resources(xnat,assessor_obj.label()):
@@ -365,7 +365,7 @@ def upload_assessor_xnat(xnat,uploaddir,csvfile,report,force,delete,deleteAll):
                     ## Default Processor ##
                     else:
                         #ASSESSOR in the experiment
-                        ASSESSOR=create_assessor(session_obj,proc_dict['label'],proc_dict['proctype'])
+                        ASSESSOR,new_assessor=create_assessor(session_obj,proc_dict['label'],proc_dict['proctype'])
                         DefaultProcess_Upload(ASSESSOR,labels_dict[proc_dict['label']],force,delete,deleteAll,new_assessor)
 
 ########################################## CHECK OPTIONS ##########################################
