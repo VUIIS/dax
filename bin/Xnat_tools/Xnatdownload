@@ -5,6 +5,11 @@
 Download almost everything you need from Xnat
 
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
+
+WARNING: very important,--update options isn't working completely.
+         The last modified resources date can't be access right now on XNAT.
+         This options will only download the resources that you don't have the previous download or the one that where deleted and reuploaded since your last upload.
+         If this message appears, it means the attributes hasn't been added yet to XNAT.
 '''
 
 import os,sys,shutil
@@ -281,8 +286,10 @@ def date_prepender(filename):
         os.remove(filename)
         os.rename(new_filename,filename)
 
-def get_resource_modified(xnat,resource):
+def get_resource_modified(xnat,resource):    ###### Not working for DICOM and for the modified time that is missing in the xml file, should be added soon #######
     # xpaths for times in resource xml
+    CREATED_DICOM_XPATH = "/cat:DCMCatalog/cat:entries/cat:entry/@createdTime"
+    MODIFIED_DICOM_XPATH = "/cat:DCMCatalog/cat:entries/cat:entry/@modifiedTime"
     CREATED_XPATH = "/cat:Catalog/cat:entries/cat:entry/@createdTime"
     MODIFIED_XPATH = "/cat:Catalog/cat:entries/cat:entry/@modifiedTime"
 
@@ -295,8 +302,12 @@ def get_resource_modified(xnat,resource):
     # Parse out the times
     root = etree.fromstring(xmlstr)
     create_times = root.xpath(CREATED_XPATH, namespaces=root.nsmap)
+    if not create_times:
+        create_times = root.xpath(CREATED_DICOM_XPATH, namespaces=root.nsmap)
     mod_times = root.xpath(MODIFIED_XPATH, namespaces=root.nsmap)
-
+    if not mod_times:
+        mod_times = root.xpath(MODIFIED_DICOM_XPATH, namespaces=root.nsmap)
+    
     # Find the most recent time
     all_times = create_times + mod_times
     if all_times:
@@ -304,7 +315,7 @@ def get_resource_modified(xnat,resource):
         date = max_time.split('.')[0]
         res_date=date.split('T')[0].replace('-','')+date.split('T')[1].replace(':','')
     else:
-        res_date=('{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())).strip().replace('-','').replace(':','').replace(' ','')
+        res_date=resource.parent().parent().attrs.get('date').strip().replace('-','')+'000000'
     return res_date
 
 def filter_subj_sess(subjects,sessions,obj_list):
@@ -363,48 +374,45 @@ def dl_files(Resource,directory):
         Outputdir=os.path.join(directory,Resource.label())
         if not os.path.exists(Outputdir):
             os.mkdir(Outputdir)
-        print '   ->Downloading all resources for '+Resource.label()+' as a zip'
+        print '   >Resource '+Resource.label()+': Downloading all resources as a zip and unzipping it...'
         Resource.get(Outputdir,extract=False) #not sure the extract True is working
-        print '   ->Unzipping ...' 
-        os.system('unzip -d '+Outputdir+' '+os.path.join(Outputdir,Resource.label()+'.zip')+" > /dev/null")
+        os.system('unzip -o -d '+Outputdir+' '+os.path.join(Outputdir,Resource.label()+'.zip')+" > /dev/null")
         os.remove(os.path.join(Outputdir,Resource.label()+'.zip'))
     #if only one, if using download all resources, download it and unzip it if it's a zip
     else:
-        print '   ->Downloading resource for '+Resource.label()
+        print '   >Resource '+Resource.label()+': Downloading resource.'
         Input_res_label_fname = Resource.files().get()[0]
         Outputdir=os.path.join(directory,Resource.label())
         if not os.path.exists(Outputdir):
             os.mkdir(Outputdir)
         Resource.file(Input_res_label_fname).get(os.path.join(Outputdir,Input_res_label_fname))
         if os.path.join(directory,Input_res_label_fname)[-3:]=='zip':
-            print '   -> Unzipping ...'
-            os.system('unzip -d '+directory+' '+os.path.join(Outputdir,Input_res_label_fname)+" > /dev/null")
+            os.system('unzip -o -d '+directory+' '+os.path.join(Outputdir,Input_res_label_fname)+" > /dev/null")
             os.remove(os.path.join(Outputdir,Input_res_label_fname))
     
 def dl_file(Resource,fpath):
     Resource.file(Resource.files().get()[0]).get(fpath+'__'+Resource.files().get()[0])
     
 def download_resource(directory,xnat,Resource,Resource_label,quiet,oneDir,label=None,last_download=None):
-    if not quiet: print '   >download resource '+Resource_label
     if not Resource.exists(): 
-        if not quiet: print '    ->WARNING : no resource '+Resource_label
+        if not quiet: print '   >Resource '+Resource_label+': WARNING -- no resource '+Resource_label
     else:  
         if len(Resource.files().get()) == 0:
-            if not quiet: print "    ->ERROR : The size of the resource is 0."
+            if not quiet: print '   >Resource '+Resource_label+': ERROR -- The size of the resource is 0.'
         else:
             if oneDir:
-                if len(Resource.files().get())>1:
-                    if (last_download and last_download<int(get_resource_modified(xnat,Resource))) or not os.path.exists(os.path.join(directory,label)):
+                if (last_download and last_download<int(get_resource_modified(xnat,Resource))) or not os.path.exists(os.path.join(directory,label)):
+                    if len(Resource.files().get())>1:
                         dl_files(Resource,directory)
                         os.system('mv '+os.path.join(directory,Resource_label)+' '+os.path.join(directory,label))
-                else:
-                    dl_file(Resource,os.path.join(directory,label))
+                    else:
+                        dl_file(Resource,os.path.join(directory,label))
+                elif not quiet: print '   >Resource '+Resource_label+': Skipping resource. Up-to-date.' 
             else:
                 Res_path=os.path.join(directory,Resource_label)
                 if not os.path.exists(Res_path) or (last_download and last_download<int(get_resource_modified(xnat,Resource))) or len(os.listdir(Res_path))==0:
                     dl_files(Resource,directory)
-                else:
-                    if not quiet: print '    ->Skipping resource. Up-to-date.'            
+                elif not quiet: print '   >Resource '+Resource_label+': Skipping resource. Up-to-date.'            
 
 ########################################## DOWNLOAD FROM ASSESSOR ##########################################
 def download_assessor(directory,xnat,assessor_dict,resources_list,quiet,oneDir,last_download):
@@ -708,6 +716,11 @@ def Main_display(parser):
         if options.update:
             print '#     %*s ->  %*s#' %(-30,'Update mode',-58,'on')
         print '####################################################################################################'
+        print "IMPORTANT WARNING FOR ALL USERS: --update options isn't working completely."
+        print "         The last modified resources date can't be access right now on XNAT."
+        print "         This options will only download the resources that you don't have in the previous download or the one that where deleted and reuploaded since your last upload."
+        print "         If this message appears, it means the attributes hasn't been added yet to XNAT."
+        print '================================================================================================='
 
 ########################################## OPTIONS ##########################################
 def parse_args():
