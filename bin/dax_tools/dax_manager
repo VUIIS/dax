@@ -280,19 +280,22 @@ def generate_settings(rc,settings_info):
             #Look for processes   
             for proc_name in processes_list:
                 args_proc_dict=dict()
+                nb_proc=1  #Number of process of this type: if ';' in version or processName or spiderpath
                 #If process on:
                 if project_settings[proc_name[8:]+'_on']=='1' and project_settings[proc_name+'_complete']=='2':
-                    #for variables from the process:
-                    for field in get_field_for_modproc(rc,proc_name):
-                        args_proc_dict[field['field_name'].split(proc_name[8:]+'_')[1]]=project_settings[field['field_name']]
-                        #Get ProcName:
-                        if field['field_name']==proc_name[8:]+'_proc_name':
-                            if project_settings[field['field_name']]=='':
-                                procname=field['field_note'].strip().split('Default: ')[1]
+                    #Check the number of process (fiels version, processname,spiderpath
+                    nb_proc=check_number_process(project_settings,proc_name)
+                    #For each proc define by the tag (version or processName)
+                    for index in range(nb_proc):
+                        #for variables from the process:
+                        for field in get_field_for_modproc(rc,proc_name):
+                            #Get ProcName:
+                            if field['field_name']==proc_name[8:]+'_proc_name':
+                                procname=read_procname(project_settings,index,field['field_name'],field['field_note'])
                             else:
-                                procname=project_settings[field['field_name']]
-                    PSettings.add_proc_str(project_settings[REDCAP_VAR['project']], generate_proc(project_settings[REDCAP_VAR['project']],procname,args_proc_dict))
-            
+                                args_proc_dict[field['field_name'].split(proc_name[8:]+'_')[1]]=read_value(project_settings,index,field['field_name'],field['field_note'])
+                        PSettings.add_proc_str(project_settings[REDCAP_VAR['project']], generate_proc(project_settings[REDCAP_VAR['project']],procname,args_proc_dict,str(index)))
+
             if PSettings.filepath in settings_dict.keys():
                 settings_dict[PSettings.filepath].merge_settings(PSettings)
             else:
@@ -300,11 +303,48 @@ def generate_settings(rc,settings_info):
     logger.info('\n')
     return settings_dict
     
-def generate_proc(project,procname,args_dict):
+def check_number_process(project_settings,proc_name):
+    proc_name_tags=project_settings[proc_name[8:]+'_proc_name'].split(';')
+    spider_tags=project_settings[proc_name[8:]+'_spider_path'].split(';')
+    version_tags=project_settings[proc_name[8:]+'_version'].split(';')
+    return max(len(l) for l in [proc_name_tags,spider_tags,version_tags])
+
+def read_procname(project_settings,index,field_name,field_note):
+    if ';' in project_settings[field_name]:
+        value=project_settings[field_name].split(';')
+        if len(value)<=index:
+            logger.warn('wrong procname with ";" in '+project_settings[REDCAP_VAR['project']]+' and field '+field_name+': using default value')
+            return field_note.strip().split('Default: ')[1]
+        else:
+            if value[index]=='':
+                 return field_note.strip().split('Default: ')[1]
+            else:
+                 return value[index]
+    else:
+        if project_settings[field_name]=='':
+            return field_note.strip().split('Default: ')[1]
+        else:
+            return project_settings[field_name]
+
+def read_value(project_settings,index,field_name,field_note):
+    if ';' in project_settings[field_name]:
+        value=project_settings[field_name].split(';')
+        if len(value)<=index:
+            logger.warn('wrong options with ";" in '+project_settings[REDCAP_VAR['project']]+' and field '+field_name+': using default value')
+            return ''
+        else:
+            if value[index]=='':
+                return ''
+            else:
+                return value[index]
+    else:
+        return project_settings[field_name]
+
+def generate_proc(project,procname,args_dict,tag):
     #Get the arguments
     arguments=dict2str(args_dict)
     #Get the string for a processor
-    Proc_data = {'PROJECT': project.replace('-','_'),
+    Proc_data = {'PROJECT': project.replace('-','_')+'_'+tag,
                  'PROCNAME': procname,
                  'ARGUMENTS': arguments}
 
