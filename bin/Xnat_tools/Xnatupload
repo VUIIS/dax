@@ -170,6 +170,21 @@ def read_csv_info(fpath,project):
             labels_dict[new_label] = row[6].strip()
     return labels_dict
 
+def read_csv_only(fpath):
+    print'INFO: Reading the csv file: '+fpath
+    #variable:
+    labels_dict=dict()
+    f=open(fpath, "rU")
+    reader = csv.reader(f,delimiter=',', dialect=csv.excel_tab)
+    for row in reader:
+        if row[0].strip()=='Project':
+            continue
+        if len(row)>6:
+            new_label='-x-'.join([row[0].strip(),row[1].strip(),row[2].strip(),row[3].strip(),row[4].strip()])
+            labels_dict[new_label] = row[5].strip()
+    return labels_dict
+
+
 ######################################### REPORT ###############################################
 def make_report(project,text,labels_dict,junk_list=None):
     labels_list=[i.split('-x-') for i in labels_dict.keys()]
@@ -329,7 +344,6 @@ def Upload_folder_to_resource(label,resourceObj,directory,quiet):
         os.remove(os.path.join(directory,filenameZip))
     #return to the initial directory:
     os.chdir(initDir)
-    
 
 def Upload_XNAT(labels_dict,xnat,project,sessiontype,force,quiet):
     #init
@@ -504,7 +518,7 @@ def parse_args():
                   help="Upload method n 2 : The directory has a specific structure. Tree structure : folder/subject/experiment/scan-x-scantype-x-series_description/resourcename/file.extension. E.G : MAINFOLDER/BLSA_0000/BLSA_0000_0/scan_2-x-fMRI-x-FuncRun_gonogo/NIFTI/file.nii.gz", metavar="")
     #text file for report
     parser.add_option("-c","--csv", dest="csv",default=None,
-                  help="CSV file with the information for uploading data to XNAT. Columns: Subject,Session,Scan,Scantype,SeriesDescription,Resource,fpath; fpath is the path for the folder or the file where the resources file(s) are.", metavar="PATH")
+                  help="CSV file with the information for uploading data to XNAT. Columns: Subject,Session,Scan,Scantype,SeriesDescription,Resource,fpath. For -o/--only, Project,Subject,Session,Scan,Resource,fpatha.", metavar="PATH")
     #Verbose
     parser.add_option("--sess", dest="session",default=None,
                   help="Session type on Xnat. Choices : MR, CT and PET", metavar="SESSION_TYPE")
@@ -559,7 +573,7 @@ if __name__ == '__main__':
                 print 'INFO: only upload data -- all files in one folder with XNAT path in the name (project-x-subject-x-session-x-scan-x-resource.ext'
                 #get the labels/folder for the directory:
                 if options.csv:
-                    labels_dict=read_csv_info(options.csv,project)
+                    labels_dict=read_csv_only(options.csv)
                     junk_list=[]
                 else:
                     labels_dict,junk_list=loop_on_files(directory)
