@@ -558,7 +558,11 @@ if __name__ == '__main__':
             if options.onlyupload:
                 print 'INFO: only upload data -- all files in one folder with XNAT path in the name (project-x-subject-x-session-x-scan-x-resource.ext'
                 #get the labels/folder for the directory:
-                labels_dict,junk_list=loop_on_files(directory)
+                if options.csv:
+                    labels_dict=read_csv_info(options.csv,project)
+                    junk_list=[]
+                else:
+                    labels_dict,junk_list=loop_on_files(directory)
                 if options.report:
                     make_report(project,options.text,labels_dict,junk_list)
                 else:
