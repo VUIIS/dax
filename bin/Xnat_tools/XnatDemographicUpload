@@ -142,7 +142,7 @@ def parse_args():
     parser.add_option("-i","--inputfile",dest="inputfile",default=None,
                   help="File path as inputs that will be read for XNAT information. E.G: Project,Subject,session,handedness,gender,age. Delimiter can be set as an options. By default comma for the delimiter.", metavar="FILEPATH")
     parser.add_option("-d","--delimiter",dest="delimiter",default=',',
-                  help="Delimiter for the output file. Default: comma.", metavar="FILEPATH")
+                  help="Delimiter for the output file. Default: comma.", metavar="STRING")
     parser.add_option("--report",dest="report",action="store_true", default=False,
                   help="Show what information the script will upload to XNAT.", metavar="FILEPATH")
     return parser
