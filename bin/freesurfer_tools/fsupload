@@ -7,20 +7,29 @@ Upload manual edits to FreeSurfer subject on XNAT
 @author: Brian D. Boyd, Psychiatry, Vanderbilt University
 '''
 
-import os
-import sys
-import time
+import os, sys, time
+from subprocess import CalledProcessError
 
 from pyxnat import Interface
 
-from dax import XnatUtils
-from dax import task
+from dax import XnatUtils, task
+
+def mri_diff(file1, file2):
+    cmd = 'mri_diff '+file1+' '+file2
+
+    try:
+        #print(cmd)
+        output = subprocess.call(cmd, stderr=subprocess.STDOUT, shell=True)
+        return output
+    except (CalledProcessError,ValueError):
+        return -1
 
 def parse_args():
     from argparse import ArgumentParser
     ap = ArgumentParser(prog='fsupload', description="Upload FreeSurfer edits to subject on XNAT")
     ap.add_argument('project', help='Project Label')
     ap.add_argument('session', help='Session Label')
+    ap.add_argument('proc_suffix', help='Proc name suffix', nargs='?', default='')
     return ap.parse_args()
     
 if __name__ == '__main__':    
@@ -28,6 +37,10 @@ if __name__ == '__main__':
     proj_label = args.project
     sess_label = args.session
     fs = None
+    if not args.proc_suffix:
+        proc_suffix = ''
+    else:
+        proc_suffix = args.proc_suffix
                       
     try:
         # Environs
@@ -49,17 +62,47 @@ if __name__ == '__main__':
 
     # Find the FreeSurfer assessor
     sess_list = XnatUtils.list_experiments(xnat, projectid=proj_label)
+    fs_list = []
     for sess in sess_list:
         if sess['label'] == sess_label:
             assr_list = XnatUtils.list_assessors(xnat, proj_label, sess['subject_ID'], sess['ID'])
             for assr in assr_list:
                 # Skip if not FreeSurfer
                 if assr['proctype'] == 'FreeSurfer':
-                    fs = assr
-                    
-    if fs == None:
+                    fs_list.append(assr)
+        
+    if not fs_list:
         print('ERROR:FreeSurfer not found for project='+proj_label+ ', session='+sess_label)
         sys.exit(1)
+        
+            if len(fs_list) == 1:
+        fs = fs_list[0]
+    else:
+        if not proc_suffix:
+            print('ERROR:mutliple FreeSurfer runs found, you must specify an ID suffix, project='+proj_label+ ', session='+sess_label)
+            sys.exit(1)
+        
+        fs_list2 = []
+        for assr in fs_list:
+            if assr['assessor_label'].endswith(proc_suffix):
+                fs_list2.append(assr)
+                
+                if not fs_list2:
+                    print('ERROR:FreeSurfer not found for project='+proj_label+ ', session='+sess_label)
+                    sys.exit(1)
+        
+                if len(fs_list2) == 1:
+                    fs = fs_list2[0]
+                else:
+                    print('ERROR:mutliple FreeSurfer runs found with specified suffix, project='+proj_label+ ', session='+sess_label)
+                    sys.exit(1)
+                    
+    # TODO: Check for edits saved with original filenames
+    #res = mri_diff(local_subj_path+'/mri/brainmask.auto.mgz', local_subj_path+'/mri/brainmask.mgz')
+    #print('diff brainmask result='+str(res))
+    
+    #res = mri_diff(local_subj_path+'/mri/aseg.auto.mgz', local_subj_path+'/mri/aseg.mgz')
+    #print('diff aeg result='+str(res))
         
     # Upload the edits - brainmask, wm, aseg, control.dat,...
     assessor = XnatUtils.get_full_object(xnat,fs)    
