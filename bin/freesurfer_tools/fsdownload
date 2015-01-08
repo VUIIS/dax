@@ -7,9 +7,7 @@ Download a FreeSurfer subject from XNAT
 @author: Brian D. Boyd, Psychiatry, Vanderbilt University
 '''
 
-import os
-import sys
-import shutil
+import os, sys, shutil
 
 from pyxnat import Interface
 
@@ -20,6 +18,7 @@ def parse_args():
     ap = ArgumentParser(prog='fsdownload', description="Download FreeSurfer subject from XNAT")
     ap.add_argument('project', help='Project Label')
     ap.add_argument('session', help='Session Label')
+    ap.add_argument('proc_suffix', help='Proc name suffix', nargs='?', default='')
     return ap.parse_args()
     
 if __name__ == '__main__':    
@@ -27,6 +26,10 @@ if __name__ == '__main__':
     proj_label = args.project
     sess_label = args.session
     fs = None
+    if not args.proc_suffix:
+        proc_suffix = ''
+    else:
+        proc_suffix = args.proc_suffix
                       
     try:
         # Environs
@@ -49,16 +52,40 @@ if __name__ == '__main__':
     
     # Find the FreeSurfer assessor
     sess_list = XnatUtils.list_experiments(xnat, projectid=proj_label)
+    fs_list = []
     for sess in sess_list:
         if sess['label'] == sess_label:
             assr_list = XnatUtils.list_assessors(xnat, proj_label, sess['subject_ID'], sess['ID'])
             for assr in assr_list:
                 # Skip if not FreeSurfer
-                if assr['proctype'] == 'FreeSurfer': fs = assr
-                    
-    if fs == None:
+                if assr['proctype'] == 'FreeSurfer':
+                    fs_list.append(assr)
+
+    if not fs_list:
         print('ERROR:FreeSurfer not found for project='+proj_label+ ', session='+sess_label)
         sys.exit(1)
+        
+    if len(fs_list) == 1:
+        fs = fs_list[0]
+    else:
+        if not proc_suffix:
+            print('ERROR:mutliple FreeSurfer runs found, you must specify an ID suffix, project='+proj_label+ ', session='+sess_label)
+            sys.exit(1)
+        
+        fs_list2 = []
+        for assr in fs_list:
+            if assr['assessor_label'].endswith(proc_suffix):
+                fs_list2.append(assr)
+                
+                if not fs_list2:
+                    print('ERROR:FreeSurfer not found for project='+proj_label+ ', session='+sess_label)
+                    sys.exit(1)
+        
+                if len(fs_list2) == 1:
+                    fs = fs_list2[0]
+                else:
+                    print('ERROR:mutliple FreeSurfer runs found with specified suffix, project='+proj_label+ ', session='+sess_label)
+                    sys.exit(1)
                         
     # Download it
     assr_label = fs['assessor_label']
@@ -93,6 +120,8 @@ if __name__ == '__main__':
         '/out/resources/DATA/files/'+assr_label
     src_sess_id = subjects_dir+'/'+sess_label+'/assessors/'+fs['assessor_id']+\
         '/out/resources/DATA/files/'+assr_label
+    src_assr_label_subj = subjects_dir+'/'+assr_label+\
+        '/out/resources/DATA/files/Subjects/'+assr_label
         
     # Find the FS subject directory in the downloaded directory
     if os.path.exists(src_assr_label):
@@ -100,7 +129,9 @@ if __name__ == '__main__':
     elif os.path.exists(src_sess_label): 
         src = src_sess_label
     elif os.path.exists(src_sess_id): 
-        src = src_sess_id     
+        src = src_sess_id   
+    elif os.path.exists(src_assr_label_subj): 
+        src = src_assr_label_subj
     else: 
         print('ERROR:downloaded subject does not exist')
         sys,exit()
