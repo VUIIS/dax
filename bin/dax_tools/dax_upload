@@ -586,8 +586,6 @@ if __name__ == '__main__':
                 
                 ################# FreeSurfer #################
                 if Process_name.startswith('FS') and not Process_name.startswith('FSL'):
-                    print('DEBUG:FS')
-                        
                     if not ASSESSOR.exists():
                         #create the assessor and set the status 
                         ASSESSOR.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
@@ -611,7 +609,6 @@ if __name__ == '__main__':
                 
                 ################# Default Assessor #################
                 else:
-                    print('DEBUG:not FS')
                     if not ASSESSOR.exists():
                         # Create the assessor and set attributes 
                         ASSESSOR.create(assessors='proc:genProcData')
