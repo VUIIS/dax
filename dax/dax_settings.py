@@ -72,7 +72,7 @@ SUFFIX_MEMORY='kb'
 EXIT_STATUS='Exit_status'
 #Template for your script file to submit a job
 JOB_EXTENSION_FILE='.slurm' 
-PBS_TEMPLATE = Template("""#!/bin/bash
+JOB_TEMPLATE = Template("""#!/bin/bash
 #SBATCH --mail-user=${job_email}
 #SBATCH --mail-type=${job_email_options}
 #SBATCH --nodes=1
@@ -85,6 +85,9 @@ export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use 
 uname -a # outputs node info (name, date&time, type, OS, etc)
 ${job_cmds}
 """)
+#Default EMAIL options:
+DEFAULT_EMAIL_OPTS='ALL'
+
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
 DEFAULT_GATEWAY = None
