@@ -55,12 +55,12 @@ set.
 #Function for PBS cluster jobs:
 #Command to submit job to the cluster:
 CMD_SUBMIT='sbatch'
-PREFIX_JOBID=None
-SUFFIX_JOBID='.'
+PREFIX_JOBID='Submitted batch job '
+SUFFIX_JOBID=None
 #Command to count the number of jobs running for a user
-CMD_COUNT_NB_JOBS="squeue -A $USER --noheader | wc -l"
+CMD_COUNT_NB_JOBS="squeue -u $USER --noheader | wc -l"
 #Command to get the status of a job giving it jobid. Shoudl return R/Q/C for running/queue or others that will mean clear
-CMD_GET_JOB_STATUS=Template("""qstat -f ${jobid} | grep job_state | awk {'print $3'}""")
+CMD_GET_JOB_STATUS=Template("""squeue -j ${jobid} --noheader | awk {'print $5'}""")
 RUNNING_STATUS='R'
 QUEUE_STATUS='Q'
 #Command to get the walltime and memory used by the jobs at the end of the job
