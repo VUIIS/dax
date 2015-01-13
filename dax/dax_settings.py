@@ -27,7 +27,9 @@ SUFFIX_WALLTIME       --> string after the Walltime used in the output of the CM
 PREFIX_MEMORY         --> string before the Memory used in the output of the CMD_GET_JOB_DONE_INFO
 SUFFIX_MEMORY         --> string after the Memory used in the output of the CMD_GET_JOB_DONE_INFO
 EXIT_STATUS           --> string to check in the output to be sure the value for walltime and memory are there
+
 DEFAULT_EMAIL_OPTS    --> EMAIL options (default: ALL)
+DEFAULT_OUTLOG_OPTS   --> 1 if OUTLOG are created in tmp and copy / 2 if OUTLOG are created while processing
 
     2) PATH / default value for cluster
 
@@ -89,6 +91,8 @@ ${job_cmds}
 """)
 #Default EMAIL options:
 DEFAULT_EMAIL_OPTS='ALL'
+#Default OUTLOG Opts: 1 if OUTLOG are created in tmp and copy / 2 if OUTLOG are created while processing
+DEFAULT_OUTLOG_OPTS=2
 
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
