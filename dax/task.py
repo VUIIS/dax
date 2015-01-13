@@ -7,7 +7,7 @@ import cluster
 from cluster import PBS
 import XnatUtils,bin
 
-from dax_settings import RESULTS_DIR,DEFAULT_EMAIL_OPTS,JOB_EXTENSION_FILE
+from dax_settings import RESULTS_DIR,DEFAULT_EMAIL_OPTS,JOB_EXTENSION_FILE,DEFAULT_OUTLOG_OPTS
 
 #Logger to print logs
 logger = logging.getLogger('dax')
@@ -39,6 +39,7 @@ OPEN_QC_LIST = [RERUN, REPROC]
 # Other Constants
 DEFAULT_PBS_DIR=os.path.join(RESULTS_DIR,'PBS')
 DEFAULT_OUT_DIR=os.path.join(RESULTS_DIR,'OUTLOG')
+DEFAULT_SLURM_OUT_DIR=os.path.join(RESULTS_DIR,'SLURMOUTLOG')
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
 OLD_RESOURCE = 'OLD'
 EDITS_RESOURCE = 'EDITS'
@@ -422,7 +423,10 @@ class Task(object):
         return DEFAULT_PBS_DIR+'/'+self.assessor_label+JOB_EXTENSION_FILE
     
     def outlog_path(self):
-        return DEFAULT_OUT_DIR+'/'+self.assessor_label+'.output'
+        if DEFAULT_OUTLOG_OPTS==1:
+            return DEFAULT_OUT_DIR+'/'+self.assessor_label+'.output'
+        elif DEFAULT_OUTLOG_OPTS==2:
+            return DEFAULT_SLURM_OUT_DIR+'/'+self.assessor_label+'.output'
     
     def ready_flag_exists(self):
         flagfile = self.upload_dir+'/'+self.assessor_label+'/'+READY_TO_UPLOAD_FLAG_FILENAME
