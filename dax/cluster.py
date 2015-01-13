@@ -10,7 +10,7 @@ __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 import subprocess,os
 from subprocess import CalledProcessError
 from datetime import datetime
-from dax_settings import PBS_TEMPLATE,CMD_SUBMIT_PBS,CMD_COUNT_NB_JOBS,CMD_GET_JOB_STATUS,CMD_GET_JOB_DONE_INFO,PREFIX_WALLTIME,SUFFIX_WALLTIME,PREFIX_MEMORY,SUFFIX_MEMORY,EXIT_STATUS,RUNNING_STATUS,QUEUE_STATUS,PREFIX_JOBID,SUFFIX_JOBID
+from dax_settings import DEFAULT_EMAIL,JOB_TEMPLATE,CMD_SUBMIT,CMD_COUNT_NB_JOBS,CMD_GET_JOB_STATUS,CMD_GET_JOB_DONE_INFO,PREFIX_WALLTIME,SUFFIX_WALLTIME,PREFIX_MEMORY,SUFFIX_MEMORY,EXIT_STATUS,RUNNING_STATUS,QUEUE_STATUS,PREFIX_JOBID,SUFFIX_JOBID
 
 MAX_TRACE_DAYS=30
 
@@ -77,9 +77,9 @@ def tracejob_info(jobid, jobdate):
 
     return jobinfo
   
-class PBS:  
+class PBS:   #The script file generator class
     #constructor
-    def __init__(self,filename,outfile,cmds,walltime_str,mem_mb=2048,ppn=1,email=None,email_options='bae'):
+    def __init__(self,filename,outfile,cmds,walltime_str,mem_mb=2048,ppn=1,email=None,email_options=DEFAULT_EMAIL):
         self.filename=filename
         self.outfile=outfile
         self.cmds=cmds
@@ -91,24 +91,24 @@ class PBS:
 
     def write(self):
         #pbs_dir
-        pbs_dir = os.path.dirname(self.filename)
-        if not os.path.exists(pbs_dir):
-            os.makedirs(pbs_dir)
+        job_dir = os.path.dirname(self.filename)
+        if not os.path.exists(job_dir):
+            os.makedirs(job_dir)
         # Write the Bedpost script (default value)
-        PBS_data = {'pbs_email': self.email,
-                    'pbs_email_options': self.email_options,
-                    'pbs_ppn': str(self.ppn),
-                    'pbs_walltime': str(self.walltime_str),
-                    'pbs_memory': str(self.mem_mb),
-                    'pbs_output_file': self.outfile,
-                    'pbs_output_file_options': 'oe',
-                    'pbs_cmds':'\n'.join(self.cmds)}
+        JOB_data = {'job_email': self.email,
+                    'job_email_options': self.email_options,
+                    'job_ppn': str(self.ppn),
+                    'job_walltime': str(self.walltime_str),
+                    'job_memory': str(self.mem_mb),
+                    'job_output_file': self.outfile,
+                    'job_output_file_options': 'oe',
+                    'job_cmds':'\n'.join(self.cmds)}
         with open(self.filename, 'w') as f:
-            f.write(PBS_TEMPLATE.safe_substitute(**PBS_data))
+            f.write(JOB_TEMPLATE.safe_substitute(**JOB_data))
 
     def submit(self):
         try:
-            cmd = CMD_SUBMIT_PBS +' '+ self.filename
+            cmd = CMD_SUBMIT +' '+ self.filename
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
             jobid = get_specific_str(output,PREFIX_JOBID,SUFFIX_JOBID)
         except CalledProcessError:
