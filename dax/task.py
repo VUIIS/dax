@@ -7,7 +7,7 @@ import cluster
 from cluster import PBS
 import XnatUtils,bin
 
-from dax_settings import RESULTS_DIR
+from dax_settings import RESULTS_DIR,DEFAULT_EMAIL_OPTS,JOB_EXTENSION_FILE
 
 #Logger to print logs
 logger = logging.getLogger('dax')
@@ -294,7 +294,7 @@ class Task(object):
        
         return jobstatus
             
-    def launch(self,jobdir,job_email=None,job_email_options='bae'):
+    def launch(self,jobdir,job_email=None,job_email_options=DEFAULT_EMAIL_OPTS):
         cmds = self.commands(jobdir)
         pbsfile = self.pbs_path()
         outlog = self.outlog_path()
@@ -419,7 +419,7 @@ class Task(object):
         return self.processor.get_cmds(self.assessor,jobdir+"/"+self.assessor_label)
     
     def pbs_path(self):
-        return DEFAULT_PBS_DIR+'/'+self.assessor_label+'.pbs'
+        return DEFAULT_PBS_DIR+'/'+self.assessor_label+JOB_EXTENSION_FILE
     
     def outlog_path(self):
         return DEFAULT_OUT_DIR+'/'+self.assessor_label+'.output'
