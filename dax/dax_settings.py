@@ -7,13 +7,12 @@ USER_HOME = expanduser("~")
 
 """ This file can be edited by users to match their cluster commands.
     
-    1) PBS:
-You can customize the command for PBS.
-One command is to count the number of jobs from the cluster running under the USER.
+    1) Submission System (by default SLURM) and script file:
+You can customize the command for your Submission System.
 
-CMD_SUBMIT_PBS        --> command to submit jobs (default: qsub)
-PREFIX_JOBID          --> string before the job ID in the output of the CMD_SUBMIT_PBS
-SUFFIX_JOBID          --> string after the job ID in the output of the CMD_SUBMIT_PBS
+CMD_SUBMIT            --> command to submit jobs (default: sbatch)
+PREFIX_JOBID          --> string before the job ID in the output of the CMD_SUBMIT
+SUFFIX_JOBID          --> string after the job ID in the output of the CMD_SUBMIT
 
 CMD_COUNT_NB_JOBS     --> command to return the number of jobs 
 
@@ -55,11 +54,11 @@ set.
 #### Default value set by users ####
 #Function for PBS cluster jobs:
 #Command to submit job to the cluster:
-CMD_SUBMIT_PBS='qsub'
+CMD_SUBMIT='sbatch'
 PREFIX_JOBID=None
 SUFFIX_JOBID='.'
 #Command to count the number of jobs running for a user
-CMD_COUNT_NB_JOBS="qstat | grep $USER | wc -l"
+CMD_COUNT_NB_JOBS="squeue -A $USER --noheader | wc -l"
 #Command to get the status of a job giving it jobid. Shoudl return R/Q/C for running/queue or others that will mean clear
 CMD_GET_JOB_STATUS=Template("""qstat -f ${jobid} | grep job_state | awk {'print $3'}""")
 RUNNING_STATUS='R'
@@ -71,19 +70,20 @@ SUFFIX_WALLTIME='\n'
 PREFIX_MEMORY='resources_used.mem='
 SUFFIX_MEMORY='kb'
 EXIT_STATUS='Exit_status'
-#Template for your PBS
+#Template for your script file to submit a job
+JOB_EXTENSION_FILE='.slurm' 
 PBS_TEMPLATE = Template("""#!/bin/bash
-#PBS -M ${pbs_email}
-#PBS -m ${pbs_email_options}
-#PBS -l nodes=1:ppn=${pbs_ppn}
-#PBS -l walltime=${pbs_walltime}
-#PBS -l mem=${pbs_memory}mb
-#PBS -o ${pbs_output_file}
-#PBS -j ${pbs_output_file_options}
-
-export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${pbs_ppn} #set the variable to use only good amount of ppn
+#SBATCH --mail-user=${job_email}
+#SBATCH --mail-type=${job_email_options}
+#SBATCH --nodes=1
+#SBATCH --ntasks=${job_ppn}
+#SBATCH --time=${job_walltime}
+#SBATCH --mem=${job_memory}mb
+#SBATCH -o ${job_output_file}
+ 
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use only good amount of ppn
 uname -a # outputs node info (name, date&time, type, OS, etc)
-${pbs_cmds}
+${job_cmds}
 """)
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
