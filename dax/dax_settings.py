@@ -20,12 +20,14 @@ CMD_GET_JOB_STATUS    --> command to return the status of a job given it jobid
 RUNNING_STATUS        --> string return for RUNNING Job (e.g: 'r')
 QUEUE_STATUS          --> string return for IN QUEUE Job (e.g: 'qw')
 
-CMD_GET_JOB_DONE_INFO --> command to submit jobs (default: qsub)
+JOB_EXTENSION_FILE    --> extension for script file (default: .slurm)
+CMD_GET_JOB_DONE_INFO --> command to submit jobs (default: sbatch)
 PREFIX_WALLTIME       --> string before the Walltime used in the output of the CMD_GET_JOB_DONE_INFO
 SUFFIX_WALLTIME       --> string after the Walltime used in the output of the CMD_GET_JOB_DONE_INFO
 PREFIX_MEMORY         --> string before the Memory used in the output of the CMD_GET_JOB_DONE_INFO
 SUFFIX_MEMORY         --> string after the Memory used in the output of the CMD_GET_JOB_DONE_INFO
 EXIT_STATUS           --> string to check in the output to be sure the value for walltime and memory are there
+DEFAULT_EMAIL_OPTS    --> EMAIL options (default: ALL)
 
     2) PATH / default value for cluster
 
