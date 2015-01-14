@@ -29,7 +29,6 @@ SUFFIX_MEMORY         --> string after the Memory used in the output of the CMD_
 EXIT_STATUS           --> string to check in the output to be sure the value for walltime and memory are there
 
 DEFAULT_EMAIL_OPTS    --> EMAIL options (default: ALL)
-DEFAULT_OUTLOG_OPTS   --> 1 if OUTLOG are created in tmp and copy / 2 if OUTLOG are created while processing
 
     2) PATH / default value for cluster
 
@@ -68,7 +67,7 @@ CMD_GET_JOB_STATUS=Template("""squeue -j ${jobid} --noheader | awk {'print $5'}"
 RUNNING_STATUS='R'
 QUEUE_STATUS='Q'
 #Command to get the walltime and memory used by the jobs at the end of the job
-CMD_GET_JOB_DONE_INFO=Template("""rsh vmpsched "tracejob -n ${numberofdays} ${jobid}" """)
+CMD_GET_JOB_DONE_INFO=Template("""sacct -j ${jobid} --format JobID,user,TotalCPU,MaxRss""")
 PREFIX_WALLTIME='resources_used.walltime='
 SUFFIX_WALLTIME='\n'
 PREFIX_MEMORY='resources_used.mem='
@@ -91,8 +90,6 @@ ${job_cmds}
 """)
 #Default EMAIL options:
 DEFAULT_EMAIL_OPTS='ALL'
-#Default OUTLOG Opts: 1 if OUTLOG are created in tmp and copy / 2 if OUTLOG are created while processing
-DEFAULT_OUTLOG_OPTS=2
 
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
