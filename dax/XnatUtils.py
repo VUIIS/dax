@@ -1049,12 +1049,12 @@ def clean_directory(folder_name):
             shutil.rmtree(folder_name+'/'+f)
     return 0
 
-def makedir(jobdir):
+def makedir(jobdir,prefix='TempDir'):
     if not os.path.exists(jobdir):
         os.mkdir(jobdir)
     else:
         today=datetime.now()
-        jobdir=jobdir+'/TempDir_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day)
+        jobdir=os.path.join(jobdir,prefix+'_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day))
         if not os.path.exists(jobdir):
             os.mkdir(jobdir)
         else:
