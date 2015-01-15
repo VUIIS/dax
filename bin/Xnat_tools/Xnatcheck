@@ -34,15 +34,6 @@ def display_count(nb):
     sys.stdout.write("   -- Number of Processes/scans found missing the resource(s): "+str(nb)+" --\n")
     sys.stdout.flush()
 
-def get_proper_str(str_option,end=False):
-    if len(str_option)>55:
-        if end:
-            return '...'+str_option[-50:]
-        else:
-            return str_option[:50]+'...'
-    else:
-        return str_option
-    
 def get_option_list(option):
     if not option:
         return None
@@ -238,60 +229,71 @@ def check_options(options):
 ########################################## MAIN DISPLAY ##########################################
 def Main_display(parser):
     (options,args) = parser.parse_args()
-    print '####################################################################################################'
-    print '#                                             XNATCHECK                                            #'
-    print '#                                                                                                  #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
-    print '# Parameters :                                                                                     #'
-    if options=={'SD':None, 'qastatus':None,'status': None, 'assessortype': None, 'scantype': None, 'resource': None, 'txtfile': None, 'project': None, 'session': None, 'size': None, 'quality': None, 'subject': None}:
-        print '#     No Arguments given                                                                           #'
-        print '#     Use "Xnatcheck -h" to see the options                                                        #'
-        print '####################################################################################################'
+    print '################################################################'
+    print '#                           XNATCHECK                          #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '# Usage:                                                       #'
+    print '#     Check data (resource/scan/assessor) on XNAT              #'
+    print '# Parameters :                                                 #'
+    if options=={'status': None, 'assessortype': None, 'scantype': None, 'resource': None, 'session': None, 'qastatus': None, 'quality': None, 'size': None, 'project': None, 'delimiter': ',', 'outputfile': None, 'SD': None, 'inputfile': None, 'subject': None}:
+        print '#     No Arguments given                                       #'
+        print '#     Use "Xnatcheck -h" to see the options                    #'
+        print '################################################################'
         parser.print_help()
         sys.exit()
     else:
         if options.inputfile:
-            print '#     %*s ->  %*s#' %(-30,'Input File Path',-58,get_proper_str(options.inputfile,True))
+            print '#     %*s -> %*s#' %(-20,'Input File Path',-33,get_proper_str(options.inputfile,True))
         if options.outputfile:
-            print '#     %*s ->  %*s#' %(-30,'Output File Path',-58,get_proper_str(options.outputfile,True))
+            print '#     %*s -> %*s#' %(-20,'Output File Path',-33,get_proper_str(options.outputfile,True))
         if options.delimiter:
-            print '#     %*s ->  %*s#' %(-30,'Delimiter for output',-58,get_proper_str(options.delimiter))
+            print '#     %*s -> %*s#' %(-20,'Delimiter for output',-33,get_proper_str(options.delimiter))
         if options.project:
-            print '#     %*s ->  %*s#' %(-30,'Project(s)',-58,get_proper_str(options.project))
+            print '#     %*s -> %*s#' %(-20,'Project(s)',-33,get_proper_str(options.project))
         #Subjects
         if options.subject:
-            print '#     %*s ->  %*s#' %(-30,'Subject(s)',-58,get_proper_str(options.subject))
+            print '#     %*s -> %*s#' %(-20,'Subject(s)',-33,get_proper_str(options.subject))
         #Experiment
         if options.session:
-            print '#     %*s ->  %*s#' %(-30,'Session(s)',-58,get_proper_str(options.session))
+            print '#     %*s -> %*s#' %(-20,'Session(s)',-33,get_proper_str(options.session))
         
         if options.scantype or options.quality or options.SD:
-            print '#     %*s#' %(-93,'--Scan Options--')
+            print '#     %*s#' %(-57,'--Scan Options--')
             if options.scantype:
-                print '#     %*s ->  %*s#' %(-30,'Types',-58,get_proper_str(options.scantype))
+                print '#     %*s -> %*s#' %(-20,'Types',-33,get_proper_str(options.scantype))
             if options.quality:
-                print '#     %*s ->  %*s#' %(-30,'Quality',-58,get_proper_str(options.quality))
+                print '#     %*s -> %*s#' %(-20,'Quality',-33,get_proper_str(options.quality))
             if options.SD:
-                print '#     %*s ->  %*s#' %(-30,'Series Description',-58,get_proper_str(options.SD))
+                print '#     %*s -> %*s#' %(-20,'Series Description',-33,get_proper_str(options.SD))
         
         if options.assessortype or options.status:
-            print '#     %*s#' %(-93,'--Process Options--') 
+            print '#     %*s#' %(-57,'--Process Options--') 
             if options.assessortype:
-                print '#     %*s ->  %*s#' %(-30,'Types',-58,get_proper_str(options.assessortype))
+                print '#     %*s -> %*s#' %(-20,'Types',-33,get_proper_str(options.assessortype))
             if options.status:
-                print '#     %*s ->  %*s#' %(-30,'Status',-58,get_proper_str(options.status))
+                print '#     %*s -> %*s#' %(-20,'Status',-33,get_proper_str(options.status))
             if options.qastatus:
-                print '#     %*s ->  %*s#' %(-30,'QA Status',-58,get_proper_str(options.qastatus))
+                print '#     %*s -> %*s#' %(-20,'QA Status',-33,get_proper_str(options.qastatus))
         
         if options.resource or options.size:
-            print '#     %*s#' %(-93,'--Resource Options--')
+            print '#     %*s#' %(-55,'--Resource Options--')
             if options.resource:
-                print '#     %*s ->  %*s#' %(-30,'Types',-58,get_proper_str(options.resource))
+                print '#     %*s -> %*s#' %(-20,'Types',-33,get_proper_str(options.resource))
             if options.size:
-                print '#     %*s ->  %*s#' %(-30,'Minimal size to check (Kb)',-58,options.size)           
-        print '####################################################################################################'
+                print '#     %*s -> %*s#' %(-20,'Minimal size to check (Kb)',-33,options.size)           
+        print '################################################################'
 
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
+        
 ########################################## OPTIONS ##########################################
 def parse_args():
     from optparse import OptionParser
