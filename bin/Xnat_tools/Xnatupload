@@ -17,15 +17,6 @@ DEFAULT_NOTE='Xnatupload'
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################
-def get_proper_str(str_option,end=False):
-    if len(str_option)>55:
-        if end:
-            return '...'+str_option[-50:]
-        else:
-            return str_option[:50]+'...'
-    else:
-        return str_option
-
 def smaller_str(str_option,size=10,end=False):
     if len(str_option)>size:
         if end:
@@ -452,50 +443,62 @@ def check_options(options):
 def Main_display(parser):
     (options,args)=parser.parse_args()
     #Display:
-    print '####################################################################################################'
-    print '#                                            XNATUPLOAD                                            #'
-    print '#                                                                                                  #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
-    print '# Parameters :                                                                                     #'
+    print '################################################################'
+    print '#                          XNATUPLOAD                          #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '#                                                              #'
+    print '# Function:                                                    #'
+    print '#     Upload data to XNAT following the csv file information   #'
+    print '#                                                              #'
+    print '# Parameters :                                                 #'
     if options=={'csv':None, 'force': False, 'onlyupload': False, 'text': None, 'quiet': False, 'project': None, 'report': False, 'session': None, 'directory': None, 'up2': False, 'up1': False,'add':False}:
-        print '#     No Arguments given                                                                           #'
-        print '#     See the help bellow or "Xnatupload -h" to see the options                                    #'
-        print '####################################################################################################'
+        print '#     No Arguments given                                       #'
+        print '#     See the help bellow or use "Xnatupload -h"               #'
+        print '################################################################'
         parser.print_help()
         sys.exit()
     else:
         if options.project:
-            print '#     %*s ->  %*s#' %(-30,'Project',-58,options.project)
+            print '#     %*s ->  %*s#' %(-20,'Project',-33,options.project)
         if options.directory:
-            print '#     %*s ->  %*s#' %(-30,'Directory',-58,get_proper_str(options.directory))
+            print '#     %*s ->  %*s#' %(-20,'Directory',-33,get_proper_str(options.directory))
         if options.onlyupload:
-            print '#     %*s ->  %*s#' %(-30,'Upload Method',-58,'Only upload to scan')
+            print '#     %*s ->  %*s#' %(-20,'Upload Method',-33,'Only upload to scan')
         elif options.up1:
-            print '#     %*s ->  %*s#' %(-30,'Upload Method',-58,'up1 - all files in the directory')
+            print '#     %*s ->  %*s#' %(-20,'Upload Method',-33,'up1 - all files in the directory')
             if options.session:
-                print '#     %*s ->  %*s#' %(-30,'Session type',-58,options.session)
+                print '#     %*s ->  %*s#' %(-20,'Session type',-33,options.session)
         elif options.up2:
-            print '#     %*s ->  %*s#' %(-30,'Upload Method',-58,'up2 - one folder per object in the directory')
+            print '#     %*s ->  %*s#' %(-20,'Upload Method',-33,'up2 - one folder per object')
             if options.session:
-                print '#     %*s ->  %*s#' %(-30,'Session type',-58,options.session)
+                print '#     %*s ->  %*s#' %(-20,'Session type',-33,options.session)
         if options.report:
-            print '#     %*s ->  %*s#' %(-30,'Report',-58,'on')
+            print '#     %*s ->  %*s#' %(-20,'Report',-33,'on')
             if options.text :
-                print '#     %*s ->  %*s#' %(-30,'Path for the report file',-58,get_proper_str(options.text))
+                print '#     %*s ->  %*s#' %(-20,'Path for the report',-33,get_proper_str(options.text))
         if options.csv:
-            print '#     %*s ->  %*s#' %(-30,'CSV file',-58,get_proper_str(options.csv))
+            print '#     %*s ->  %*s#' %(-20,'CSV file',-33,get_proper_str(options.csv))
         if options.force:
-            print '#     %*s ->  %*s#' %(-30,'Force',-58,'on')
+            print '#     %*s ->  %*s#' %(-20,'Force',-33,'on')
         if options.quiet:
-            print '#     %*s ->  %*s#' %(-30,'Quiet',-58,'on')
+            print '#     %*s ->  %*s#' %(-20,'Quiet',-33,'on')
         if options.add:
-            print '#     %*s ->  %*s#' %(-30,'Add',-58,'on')
-        print '####################################################################################################'
+            print '#     %*s ->  %*s#' %(-20,'Add',-33,'on')
+        print '################################################################'
         print "IMPORTANT WARNING FOR ALL USERS ABOUT XNAT:"
         print "     session_label needs to be unique for each session. Two subjects can NOT have the same session_label"
-        print '================================================================================================='
-    
+        print '================================================================'
+
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
     
 def parse_args():
     from optparse import OptionParser
