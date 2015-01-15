@@ -13,7 +13,7 @@ WARNING: very important,--update options isn't working completely.
 '''
 
 import os,sys,shutil
-from pyxnat import Interface
+from dax import XnatUtils
 from datetime import datetime
 from lxml import etree
 
@@ -23,186 +23,6 @@ DEFAULT_COMMAND_LINE='download_commandLine.txt'
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################
-def get_interface():
-    # Environs
-    user = os.environ['XNAT_USER']
-    pwd = os.environ['XNAT_PASS']
-    host = os.environ['XNAT_HOST']
-    # Don't sys.exit, let callers catch KeyErrors
-    return Interface(host, user, pwd)
-
-def list_subjs(xnat,project):
-    post_uri_subject = '/REST/projects/'+project+'/subjects'
-    return xnat._get_json(post_uri_subject)
-
-def list_assessors(xnat,project,subject,experiment):
-    post_uri_assessor = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors'
-    return xnat._get_json(post_uri_assessor)
-
-def list_scans(xnat,project,subject,experiment):
-    post_uri_scan = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans'
-    return xnat._get_json(post_uri_scan)
-
-def list_project_scans(intf, projectid, include_shared=True):
-    new_list = []
-
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=xnat:imageSessionData'
-    post_uri += '&columns=ID,URI,label,subject_label,project'
-    post_uri += ',xnat:imagesessiondata/subject_id'
-    post_uri += ',xnat:imagescandata/id'
-    post_uri += ',xnat:imagescandata/type'
-    post_uri += ',xnat:imagescandata/quality'
-    post_uri += ',xnat:imagescandata/note'
-    post_uri += ',xnat:imagescandata/frames'
-    post_uri += ',xnat:imagescandata/series_description'
-    scan_list = intf._get_json(post_uri)
-
-    for s in scan_list:
-        snew = {}
-        snew['scan_id']      = s['xnat:imagescandata/id']
-        snew['scan_label']   = s['xnat:imagescandata/id']
-        snew['scan_quality'] = s['xnat:imagescandata/quality']
-        snew['scan_note']    = s['xnat:imagescandata/note']
-        snew['scan_frames']  = s['xnat:imagescandata/frames']
-        snew['scan_description'] = s['xnat:imagescandata/series_description']
-        snew['scan_type']    = s['xnat:imagescandata/type']
-        snew['ID']           = s['xnat:imagescandata/id']
-        snew['label']        = s['xnat:imagescandata/id']
-        snew['quality']      = s['xnat:imagescandata/quality']
-        snew['note']         = s['xnat:imagescandata/note']
-        snew['frames']       = s['xnat:imagescandata/frames']
-        snew['series_description'] = s['xnat:imagescandata/series_description']
-        snew['type']         = s['xnat:imagescandata/type']
-        snew['project_id'] = projectid
-        snew['project_label'] = projectid
-        snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
-        snew['subject_label'] = s['subject_label']
-        snew['session_id'] = s['ID']
-        snew['session_label'] = s['label']
-        snew['session_uri'] = s['URI']
-        new_list.append(snew)
-        
-    if (include_shared):
-        post_uri = '/REST/archive/experiments'
-        post_uri += '?xnat:imagesessiondata/sharing/share/project='+projectid
-        post_uri += '&xsiType=xnat:imageSessionData'
-        post_uri += '&columns=ID,URI,label,subject_label,project'
-        post_uri += ',xnat:imagesessiondata/subject_id'
-        post_uri += ',xnat:imagescandata/id'
-        post_uri += ',xnat:imagescandata/type'
-        post_uri += ',xnat:imagescandata/quality'
-        post_uri += ',xnat:imagescandata/note'
-        post_uri += ',xnat:imagescandata/frames'
-        post_uri += ',xnat:imagescandata/series_description'
-        scan_list = intf._get_json(post_uri)
-    
-        for s in scan_list:
-            snew = {}
-            snew['scan_id']      = s['xnat:imagescandata/id']
-            snew['scan_label']   = s['xnat:imagescandata/id']
-            snew['scan_quality'] = s['xnat:imagescandata/quality']
-            snew['scan_note']    = s['xnat:imagescandata/note']
-            snew['scan_frames']  = s['xnat:imagescandata/frames']
-            snew['scan_description'] = s['xnat:imagescandata/series_description']
-            snew['scan_type']    = s['xnat:imagescandata/type']
-            snew['ID']           = s['xnat:imagescandata/id']
-            snew['label']        = s['xnat:imagescandata/id']
-            snew['quality']      = s['xnat:imagescandata/quality']
-            snew['note']         = s['xnat:imagescandata/note']
-            snew['frames']       = s['xnat:imagescandata/frames']
-            snew['series_description'] = s['xnat:imagescandata/series_description']
-            snew['type']         = s['xnat:imagescandata/type']
-            snew['project_id'] = projectid
-            snew['project_label'] = projectid
-            snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
-            snew['subject_label'] = s['subject_label']
-            snew['session_id'] = s['ID']
-            snew['session_label'] = s['label']
-            snew['session_uri'] = s['URI']
-            new_list.append(snew)
-            
-    return new_list
-
-def list_project_assessors(intf, projectid):
-    new_list = []
-            
-    # First get FreeSurfer
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=fs:fsdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,subject_label,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
-    post_uri += ',fs:fsData/validation/status'
-    assessor_list = intf._get_json(post_uri)
-
-    for a in assessor_list:
-        if a['label']:
-            anew = {}
-            anew['ID'] = a['ID']
-            anew['label'] = a['label']
-            anew['uri'] = a['URI']
-            anew['assessor_id'] = a['ID']
-            anew['assessor_label'] = a['label']
-            anew['assessor_uri'] = a['URI']
-            anew['project_id'] = projectid
-            anew['project_label'] = projectid
-            anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-            anew['subject_label'] = a['subject_label']
-            anew['session_id'] = a['session_ID']
-            anew['session_label'] = a['session_label']
-            anew['procstatus'] = a['fs:fsdata/procstatus']
-            anew['qcstatus'] = a['fs:fsdata/validation/status']
-            anew['proctype'] = 'FreeSurfer'
-            anew['xsiType'] = a['xsiType']
-            new_list.append(anew)
-
-    # Then add genProcData    
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=proc:genprocdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
-    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
-    assessor_list = intf._get_json(post_uri)
-    
-    subj_list = list_subjs(intf, projectid)
-    subj_id2lab = dict((subj['ID'], subj['label']) for subj in subj_list)
-
-    for a in assessor_list:
-        if a['label']:
-            anew = {}
-            anew['ID'] = a['ID']
-            anew['label'] = a['label']
-            anew['uri'] = a['URI']
-            anew['assessor_id'] = a['ID']
-            anew['assessor_label'] = a['label']
-            anew['assessor_uri'] = a['URI']
-            anew['project_id'] = projectid
-            anew['project_label'] = projectid
-            anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-            anew['session_id'] = a['session_ID']
-            anew['session_label'] = a['session_label']
-            anew['procstatus'] = a['proc:genprocdata/procstatus']
-            anew['proctype'] = a['proc:genprocdata/proctype']
-            anew['qcstatus'] = a['proc:genprocdata/validation/status']
-            anew['xsiType'] = a['xsiType']
-            anew['subject_label'] = subj_id2lab[anew['subject_id']]
-            new_list.append(anew)
-        
-    return new_list
-
-def list_out_resources(xnat,project,subject,experiment,assessor_label):
-    post_uri_out_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources'
-    return xnat._get_json(post_uri_out_resource)
-
-def list_resources(xnat,project,subject,experiment,scan):
-    post_uri_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan+'/resources'
-    return xnat._get_json(post_uri_resource)
-
 def get_proper_str(str_option,end=False):
     if len(str_option)>55:
         if end:
@@ -422,7 +242,7 @@ def download_assessor(directory,xnat,assessor_dict,resources_list,quiet,oneDir,l
     else:
         #Get the list of label for the resources
         if resources_list=='all':
-            out_reslist=[r['label'] for r in list_out_resources(xnat,assessor_dict['project_id'],assessor_dict['subject_label'],assessor_dict['session_label'],assessor_dict['label'])]
+            out_reslist=[r['label'] for r in XnatUtils.list_out_resources(xnat,assessor_dict['project_id'],assessor_dict['subject_label'],assessor_dict['session_label'],assessor_dict['label'])]
         else:
             out_reslist=resources_list
         #download resources from list
@@ -437,7 +257,7 @@ def download_scan(directory,xnat,scan_dict,resources_list,quiet,oneDir,last_down
     else:
         #Get list of resources' label
         if resources_list=='all':
-            reslist=[r['label'] for r in list_resources(xnat,scan_dict['project_id'],scan_dict['subject_label'],scan_dict['session_label'],scan_dict['ID'])]
+            reslist=[r['label'] for r in XnatUtils.list_resources(xnat,scan_dict['project_id'],scan_dict['subject_label'],scan_dict['session_label'],scan_dict['ID'])]
         else:
             reslist= resources_list
         #download resources from list
@@ -462,14 +282,14 @@ def download_xnat_data(directory,xnat,project,subject_labels,session_labels,Scan
             os.mkdir(proj_path)
     if not quiet: print 'INFO: Loading scans/assessors information from XNAT.'
     #list of scans and assessors for the full project
-    scan_list=list_project_scans(xnat,project)
-    assessor_list=list_project_assessors(xnat,project)
+    scan_list=XnatUtils.list_project_scans(xnat,project)
+    assessor_list=XnatUtils.list_project_assessors(xnat,project)
     #filter:
     scan_list=filter_scans(scantypes,withoutS_list,qualities,scan_list)
     assessor_list=filter_assessors(proctypes,withoutA_list,status,assessor_list)
     #List of subject
     if not subject_labels and not session_labels:
-        subj_list=[s['label'] for s in list_subjs(xnat,project)]
+        subj_list=[s['label'] for s in XnatUtils.list_subjects(xnat,project)]
     elif not subject_labels and session_labels :
         subj_list=set([s['subject_label'] for s in filter_subj_sess(subject_labels,session_labels,scan_list)])
     else:
@@ -537,7 +357,7 @@ def get_list(xnat,project,list1,list2=None):
                 list3.append(subject)
     #compare the list1 and keep the subject comming from xnat that are not in the list1
     else:
-        subject_list=list_subjs(xnat,project)
+        subject_list=XnatUtils.list_subjects(xnat,project)
         for subject in subject_list:
             if not subject['label'] in list1:
                 list3.append(subject['label'])
@@ -621,7 +441,7 @@ def check_projects(projectList):
                 print'OPTION ERROR: Project '+project+' does not exist on XNAT. Remove this project from the list.'
                 projectList.remove(project)
             else:
-                if not len(list_subjs(xnat,project))>0:
+                if not len(XnatUtils.list_subjects(xnat,project))>0:
                     print"OPTION ERROR: You don't access to the project: "+project+". Remove this project from the list."
                     projectList.remove(project)
     finally:                                        
