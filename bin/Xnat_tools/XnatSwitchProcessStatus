@@ -8,88 +8,12 @@ Created on Jan 24, 2013
 
 import os
 import sys
-from pyxnat import Interface
+from dax import XnatUtils
 import fileinput
 
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################
-def get_interface():
-	# Environs
-	user = os.environ['XNAT_USER']
-	pwd = os.environ['XNAT_PASS']
-	host = os.environ['XNAT_HOST']
-	# Don't sys.exit, let callers catch KeyErrors
-	return Interface(host, user, pwd)
-
-def list_out_resources(xnat,project,subject,experiment,assessor_label):
-	post_uri_out_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources'
-	out_resource_list = xnat._get_json(post_uri_out_resource)
-	return out_resource_list
-    
-def list_project_assessors(intf, projectid):
-    new_list = []
-        
-    # First get FreeSurfer
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=fs:fsdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
-    post_uri += ',fs:fsData/validation/status'
-    assessor_list = intf._get_json(post_uri)
-
-    for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['fs:fsdata/procstatus']
-        anew['qcstatus'] = a['fs:fsdata/validation/status']
-        anew['proctype'] = 'FreeSurfer'
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
-
-    # Then add genProcData    
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=proc:genprocdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
-    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
-    assessor_list = intf._get_json(post_uri)
-
-    for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['proc:genprocdata/procstatus']
-        anew['proctype'] = a['proc:genprocdata/proctype']
-        anew['qcstatus'] = a['proc:genprocdata/validation/status']
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
-
-    return new_list
-
 def get_proper_str(str_option,end=False):
     if len(str_option)>55:
         if end:
@@ -234,7 +158,7 @@ def Switch_XNAT_PROCESS_status(xnat,ProjectList,subjects,sessions,Processes_List
 	for project in ProjectList:
 		sys.stdout.write("  *Project: "+project+'                                                \n')
         #for all processors in the project:
-        proc_list=list_project_assessors(xnat, project)
+        proc_list=XnatUtils.list_project_assessors(xnat, project)
         if not proc_list:
             sys.stdout.write("   !!ERROR: You don't have access to the project: "+project+".!!\n")
         #if subjects or sessions set:
@@ -259,7 +183,7 @@ def Switch_XNAT_PROCESS_status(xnat,ProjectList,subjects,sessions,Processes_List
                 else:
                     Switch_Default_PROC_JOB_status(ASSESSOR,status,scanNprocesses,sessionNprocesses)
                 if deleteR:
-                    for resource_name in list_out_resources(xnat,project,proc_dict['subject_id'],proc_dict['session_id'],proc_dict['label']):
+                    for resource_name in XnatUtils.list_out_resources(xnat,project,proc_dict['subject_id'],proc_dict['session_id'],proc_dict['label']):
                         delete_Out_Resource(ASSESSOR,resource_name)
                     
 def filter_proc(subjects,sessions,proc_list):
@@ -313,7 +237,7 @@ def set_Status_assessor(xnat,assessor_label,scanNprocesses,sessionNprocesses,sta
                     Switch_Default_PROC_JOB_status(ASSESSOR,status,scanNprocesses,sessionNprocesses)
                 if deleteR:
                     #resource loop
-                    for resource_name in list_out_resources(xnat,project,subject,experiment,assessor_label):
+                    for resource_name in XnatUtils.list_out_resources(xnat,project,subject,experiment,assessor_label):
                         delete_Out_Resource(ASSESSOR,resource_name)
 
 def should_switch_assessor(ASSESSOR,proctype,check_status_list,qastatus):
@@ -552,7 +476,7 @@ if __name__ == '__main__':
 		
 		# Connection to Xnat
         try:
-			xnat = get_interface()
+			xnat = XnatUtils.get_interface()
 			#if select a specific assessor
 			if selectA:
 				print "Changing Status on assessor "+selectA+" to "+status
