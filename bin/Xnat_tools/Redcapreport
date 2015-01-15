@@ -15,15 +15,6 @@ DEFAULT_API_URL='https://redcap.vanderbilt.edu/api/'
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################   
-def get_proper_str(str_option,end=False):
-	if len(str_option)>55:
-		if end:
-			return '...'+str_option[-50:]
-		else:
-			return str_option[:50]+'...'
-	else:
-		return str_option
-
 def read_txt(filepath):
 	print 'INFO: Export data from text file '+filepath+' ...'
 	obj_list=list()
@@ -147,44 +138,57 @@ def check_options(options):
 ########################################## MAIN DISPLAY FUNCTION ##########################################   
 def Main_display(parser):
     (options,_)=parser.parse_args()
-    print '####################################################################################################'
-    print '#                                            REDCAPREPORT                                          #'
-    print '#                                                                                                  #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
-    print '# Parameters :                                                                                     #'
+    print '################################################################'
+    print '#                         REDCAPREPORT                         #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '# Usage:                                                       #'
+    print '#     Generate REDCap report from a redcap project             #'
+    print '#     (Need API key)                                           #'
+    print '# Parameters :                                                 #'
     if options=={'procfile': None, 'lib': False, 'proctype': None,'project':None, 'all': False, 'csvfile': None, 'libraries': None, 'txtfile': None, 'session': None, 'names': False, 'key': None, 'assessor': None, 'subject': None}:
-        print '#     No Arguments given                                                                           #'
-        print '#     See the help bellow or Use "Redcapreport" -h                                                 #'
-        print '####################################################################################################'
+        print '#     No Arguments given                                       #'
+        print '#     See the help bellow or Use "Redcapreport" -h             #'
+        print '################################################################'
         parser.print_help()
         sys.exit()
     else:
         if options.names:
-            print '#     %*s ->  %*s#' %(-30,'Print field names/labels',-58,'on')
+            print '#     %*s ->  %*s#' %(-20,'Print field names/labels',-33,'on')
         elif options.lib:
-            print '#     %*s ->  %*s#' %(-30,'Print libraries names',-58,'on')
+            print '#     %*s ->  %*s#' %(-20,'Print libraries names',-33,'on')
         else:
             if options.all:
-                print '#     %*s ->  %*s#' %(-30,'Records',-58,'all')
+                print '#     %*s ->  %*s#' %(-20,'Records',-33,'all')
             if options.csvfile:
-                print '#     %*s ->  %*s#' %(-30,'OUPUT CSV File',-58,get_proper_str(options.csvfile,True))
+                print '#     %*s ->  %*s#' %(-20,'OUPUT CSV File',-33,get_proper_str(options.csvfile,True))
             if options.txtfile:
-                print '#     %*s ->  %*s#' %(-30,'Records-field File',-58,get_proper_str(options.txtfile,True))
+                print '#     %*s ->  %*s#' %(-20,'Records-field File',-33,get_proper_str(options.txtfile,True))
             if options.procfile:
-                print '#     %*s ->  %*s#' %(-30,'Records File',-58,get_proper_str(options.procfile,True))
+                print '#     %*s ->  %*s#' %(-20,'Records File',-33,get_proper_str(options.procfile,True))
             if options.project:
-                print '#     %*s ->  %*s#' %(-30,'Records-Project(s)',-58,get_proper_str(options.project))
+                print '#     %*s ->  %*s#' %(-20,'Records-Project(s)',-33,get_proper_str(options.project))
             if options.subject:
-                print '#     %*s ->  %*s#' %(-30,'Records-Subject(s)',-58,get_proper_str(options.subject))
+                print '#     %*s ->  %*s#' %(-20,'Records-Subject(s)',-33,get_proper_str(options.subject))
             if options.session:
-                print '#     %*s ->  %*s#' %(-30,'Records-Session(s)',-58,get_proper_str(options.session))
+                print '#     %*s ->  %*s#' %(-20,'Records-Session(s)',-33,get_proper_str(options.session))
             if options.assessor:
-                print '#     %*s ->  %*s#' %(-30,'Records',-58,get_proper_str(options.assessor))
+                print '#     %*s ->  %*s#' %(-20,'Records',-33,get_proper_str(options.assessor))
             if options.proctype:
-                print '#     %*s ->  %*s#' %(-30,'Records-Proctype(s)',-58,get_proper_str(options.proctype))
-        print '####################################################################################################'
+                print '#     %*s ->  %*s#' %(-20,'Records-Proctype(s)',-33,get_proper_str(options.proctype))
+        print '################################################################'
 
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
+
+########################################## OPTIONS ##########################################
 def parse_args():
     from optparse import OptionParser
     usage = "usage: %prog [options] \nWhat is the script doing : Extract data from REDCap as a csv file. "
