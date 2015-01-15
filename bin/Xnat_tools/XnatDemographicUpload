@@ -7,19 +7,11 @@ Created on May 6, 2013
 '''
 
 import os,sys,datetime
-from pyxnat import Interface
+from dax import XnatUtils
 
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################
-
-def get_interface():
-    # Environs
-    user = os.environ['XNAT_USER']
-    pwd = os.environ['XNAT_PASS']
-    host = os.environ['XNAT_HOST']
-    # Don't sys.exit, let callers catch KeyErrors
-    return Interface(host, user, pwd)
     
 def get_xnat_object(obj_dict):
     return xnat.select('/project/'+obj_dict['project']+'/subject/'+obj_dict['subject'])
@@ -170,7 +162,7 @@ if __name__ == '__main__':
             make_report(demo_list)
         else:     
             try:
-                xnat=get_interface()
+                xnat=XnatUtils.get_interface()
                 #Update age first:
                 newlist = sorted(demo_list, key=lambda k: k['project']) 
                 for obj_dict in newlist:
