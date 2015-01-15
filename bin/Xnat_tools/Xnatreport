@@ -240,30 +240,41 @@ def check_options(options):
 def Main_display(parser):
     (options,args) = parser.parse_args()
     #Display:
-    print '####################################################################################################'
-    print '#                                            XNATREPORT                                            #'
-    print '#                                                                                                  #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
-    print '# Parameters :                                                                                     #'
+    print '################################################################'
+    print '#                          XNATREPORT                          #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '# Usage:                                                       #'
+    print '#     Print a detailed report from XNAT project                #'
+    print '# Parameters :                                                 #'
     if options=={'txtfilename': None, 'csv': False, 'emailAddress': None, 'List_project': None, 'filename': None}:
-        print '#     No Arguments given                                                                           #'
-        print '#     Use "Xnatreport -h" to see the options                                                       #'
-        print '####################################################################################################'
+        print '#     No Arguments given                                       #'
+        print '#     Use "Xnatreport -h" to see the options                   #'
+        print '################################################################'
         parser.print_help()
         sys.exit()
     else:
         if options.List_project:
-            print '#     %*s ->  %*s#' %(-30,'Project(s)',-58,get_proper_str(options.List_project))
+            print '#     %*s -> %*s#' %(-20,'Project(s)',-33,get_proper_str(options.List_project))
         if options.emailAddress:
-            print '#     %*s ->  %*s#' %(-30,'Email address(es)',-58,get_proper_str(options.emailAddress))
+            print '#     %*s -> %*s#' %(-20,'Email address(es)',-33,get_proper_str(options.emailAddress))
         if options.csv:
-            print '#     %*s ->  %*s#' %(-30,'CSV format',-58,'on')
+            print '#     %*s -> %*s#' %(-20,'CSV format',-33,'on')
         if options.filename:
-            print '#     %*s ->  %*s#' %(-30,'CSV filename',-58,get_proper_str(options.filename,True))
+            print '#     %*s -> %*s#' %(-20,'CSV filename',-33,get_proper_str(options.filename,True))
         if options.txtfilename:
-            print '#     %*s ->  %*s#' %(-30,'TXT filename',-58,get_proper_str(options.txtfilename,True))
-        print '####################################################################################################'
+            print '#     %*s -> %*s#' %(-20,'TXT filename',-33,get_proper_str(options.txtfilename,True))
+        print '################################################################'
+
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
     
 def parse_args():
     from optparse import OptionParser
@@ -327,6 +338,7 @@ if __name__ == '__main__':
                 project_xnat=xnat.select('/project/'+project)
                 if not project_xnat.exists():
                     print 'ERROR: Project '+project+' does not exist on Xnat.'
+                    sys.exit()
                 else:
                     str_re=report_project(xnat,project,options.csv)
         finally:                                        
