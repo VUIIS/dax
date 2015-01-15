@@ -6,7 +6,7 @@ Created on May 6, 2013
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 import os,sys,csv
-from pyxnat import Interface
+from dax import XnatUtils
 from pyxnat.core.errors import DatabaseError
 from email.mime.text import MIMEText
 from datetime import datetime
@@ -17,14 +17,6 @@ DEFAULT_NOTE='Xnatupload'
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################
-def get_interface():
-    # Environs
-    user = os.environ['XNAT_USER']
-    pwd = os.environ['XNAT_PASS']
-    host = os.environ['XNAT_HOST']
-    # Don't sys.exit, let callers catch KeyErrors
-    return Interface(host, user, pwd)
-
 def get_proper_str(str_option,end=False):
     if len(str_option)>55:
         if end:
@@ -437,7 +429,7 @@ def check_options(options):
             return False
         else:
             try:
-                xnat=get_interface()
+                xnat=XnatUtils.get_interface()
                 if not (xnat.select('/project/'+options.project)).exists():
                     print "OPTION ERROR: The project ID you gave doesn't exist on XNAT. If it is a new project, create the project first on XNAT."
             finally:
@@ -568,7 +560,7 @@ if __name__ == '__main__':
         """ Upload all the files in the directory on Xnat"""
         # Connection to Xnat
         try:
-            xnat = get_interface()
+            xnat = XnatUtils.get_interface()
             if options.onlyupload:
                 print 'INFO: only upload data -- all files in one folder with XNAT path in the name (project-x-subject-x-session-x-scan-x-resource.ext'
                 #get the labels/folder for the directory:
