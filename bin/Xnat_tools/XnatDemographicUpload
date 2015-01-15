@@ -12,19 +12,9 @@ from dax import XnatUtils
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################
-    
 def get_xnat_object(obj_dict):
     return xnat.select('/project/'+obj_dict['project']+'/subject/'+obj_dict['subject'])
-   
-def get_proper_str(str_option,end=False):
-    if len(str_option)>55:
-        if end:
-            return '...'+str_option[-50:]
-        else:
-            return str_option[:50]+'...'
-    else:
-        return str_option
-
+    
 def get_gender_from_label(gender):
     if gender.upper()=='F' or gender.lower()=='female':
         return 'female'
@@ -104,26 +94,37 @@ def check_options(options):
 ########################################## MAIN DISPLAY ##########################################
 def Main_display(parser):
     (options,args) = parser.parse_args()
-    print '####################################################################################################'
-    print '#                                             XNATCHECK                                            #'
-    print '#                                                                                                  #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
-    print '# Parameters :                                                                                     #'
+    print '################################################################'
+    print '#                      XNATDEMOGRAPHICUPLOAD                   #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '# Usage:                                                       #'
+    print '#     Upload demographic data following csv file               #'
+    print '# Parameters :                                                 #'
     if options=={ 'inputfile':None,'delimiter': ',', 'report': False}:
-        print '#     No Arguments given                                                                           #'
-        print '#     Use "Xnatcheck -h" to see the options                                                        #'
-        print '####################################################################################################'
+        print '#     No Arguments given                                       #'
+        print '#     Use "Xnatcheck -h" to see the options                    #'
+        print '################################################################'
         parser.print_help()
         sys.exit()
     else:
         if options.inputfile:
-            print '#     %*s ->  %*s#' %(-30,'Input File Path',-58,get_proper_str(options.inputfile,True))
+            print '#     %*s ->  %*s#' %(-20,'Input File Path',-33,get_proper_str(options.inputfile,True))
         if options.delimiter:
-            print '#     %*s ->  %*s#' %(-30,'Delimiter for output',-58,get_proper_str(options.delimiter))
+            print '#     %*s ->  %*s#' %(-20,'Delimiter for output',-33,get_proper_str(options.delimiter))
         if options.report:
-            print '#     %*s ->  %*s#' %(-30,'Report Mode',-58,'on')   
-        print '####################################################################################################'
+            print '#     %*s ->  %*s#' %(-20,'Report Mode',-33,'on')   
+        print '################################################################'
+        
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
 
 ########################################## OPTIONS ##########################################
 def parse_args():
