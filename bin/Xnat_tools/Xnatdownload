@@ -679,7 +679,7 @@ if __name__ == '__main__':
         write_cmd(os.path.join(directory,DEFAULT_COMMAND_LINE))
         try:
             if not options.quiet: print "INFO: Connection to Xnat"
-            xnat = get_interface()
+            xnat = XnatUtils.get_interface()
 
             #############################
             #Start Download
