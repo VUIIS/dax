@@ -155,28 +155,28 @@ def Main_display(parser):
         sys.exit()
     else:
         if options.names:
-            print '#     %*s ->  %*s#' %(-20,'Print field names/labels',-33,'on')
+            print '#     %*s -> %*s#' %(-20,'Print field names/labels',-33,'on')
         elif options.lib:
-            print '#     %*s ->  %*s#' %(-20,'Print libraries names',-33,'on')
+            print '#     %*s -> %*s#' %(-20,'Print libraries names',-33,'on')
         else:
             if options.all:
-                print '#     %*s ->  %*s#' %(-20,'Records',-33,'all')
+                print '#     %*s -> %*s#' %(-20,'Records',-33,'all')
             if options.csvfile:
-                print '#     %*s ->  %*s#' %(-20,'OUPUT CSV File',-33,get_proper_str(options.csvfile,True))
+                print '#     %*s -> %*s#' %(-20,'OUPUT CSV File',-33,get_proper_str(options.csvfile,True))
             if options.txtfile:
-                print '#     %*s ->  %*s#' %(-20,'Records-field File',-33,get_proper_str(options.txtfile,True))
+                print '#     %*s -> %*s#' %(-20,'Records-field File',-33,get_proper_str(options.txtfile,True))
             if options.procfile:
-                print '#     %*s ->  %*s#' %(-20,'Records File',-33,get_proper_str(options.procfile,True))
+                print '#     %*s -> %*s#' %(-20,'Records File',-33,get_proper_str(options.procfile,True))
             if options.project:
-                print '#     %*s ->  %*s#' %(-20,'Records-Project(s)',-33,get_proper_str(options.project))
+                print '#     %*s -> %*s#' %(-20,'Records-Project(s)',-33,get_proper_str(options.project))
             if options.subject:
-                print '#     %*s ->  %*s#' %(-20,'Records-Subject(s)',-33,get_proper_str(options.subject))
+                print '#     %*s -> %*s#' %(-20,'Records-Subject(s)',-33,get_proper_str(options.subject))
             if options.session:
-                print '#     %*s ->  %*s#' %(-20,'Records-Session(s)',-33,get_proper_str(options.session))
+                print '#     %*s -> %*s#' %(-20,'Records-Session(s)',-33,get_proper_str(options.session))
             if options.assessor:
-                print '#     %*s ->  %*s#' %(-20,'Records',-33,get_proper_str(options.assessor))
+                print '#     %*s -> %*s#' %(-20,'Records',-33,get_proper_str(options.assessor))
             if options.proctype:
-                print '#     %*s ->  %*s#' %(-20,'Records-Proctype(s)',-33,get_proper_str(options.proctype))
+                print '#     %*s -> %*s#' %(-20,'Records-Proctype(s)',-33,get_proper_str(options.proctype))
         print '################################################################'
 
 def get_proper_str(str_option,end=False):
