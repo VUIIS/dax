@@ -9,19 +9,11 @@ Query through Xnat
 
 import os
 import sys
-from pyxnat import Interface
+from dax import XnatUtils
 
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################
-def get_interface():
-    # Environs
-    user = os.environ['XNAT_USER']
-    pwd = os.environ['XNAT_PASS']
-    host = os.environ['XNAT_HOST']
-    # Don't sys.exit, let callers catch KeyErrors
-    return Interface(host, user, pwd)
-
 def get_proper_str(str_option,end=False):
     if len(str_option)>55:
         if end:
@@ -30,31 +22,6 @@ def get_proper_str(str_option,end=False):
             return str_option[:50]+'...'
     else:
         return str_option
-
-def list_experiments(intf, projectid=None, subjectid=None):
-    if projectid and subjectid:
-        post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
-    elif projectid == None and subjectid == None:
-        post_uri = '/REST/experiments'
-    elif projectid and subjectid == None:
-        post_uri = '/REST/projects/'+projectid+'/experiments'
-    else:
-        return None
-
-    post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:subjectdata/meta/last_modified'
-    experiment_list = intf._get_json(post_uri)
-
-    # Override the project returned to be the one we queried and add others for convenience
-    if (projectid != None):
-        for e in experiment_list:
-            e['project'] = projectid
-            e['project_id'] = projectid
-            e['project_label'] = projectid
-            e['subject_id'] = e['subject_ID'] 
-            e['session_id'] = e['ID']
-            e['session_label'] = e['label']
-
-    return experiment_list
 
 ########################################################################################################
 ########################################## SPECIFIC FUNCTIONS ##########################################
@@ -94,71 +61,8 @@ def change_date(xnat,project,session,list_experiment):
     Session.attrs.set('xnat:mrSessionData/original',' ')
     print '   ->Session changed to need update.'
 
-def list_project_assessors(intf, projectid):
-    new_list = []
-        
-    # First get FreeSurfer
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=fs:fsdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
-    post_uri += ',fs:fsData/validation/status'
-    assessor_list = intf._get_json(post_uri)
-
-    for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['fs:fsdata/procstatus']
-        anew['qcstatus'] = a['fs:fsdata/validation/status']
-        anew['proctype'] = 'FreeSurfer'
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
-
-    # Then add genProcData    
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=proc:genprocdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
-    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
-    assessor_list = intf._get_json(post_uri)
-
-    for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['proc:genprocdata/procstatus']
-        anew['proctype'] = a['proc:genprocdata/proctype']
-        anew['qcstatus'] = a['proc:genprocdata/validation/status']
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
-
-    return new_list
-
 def get_xnat_subject_need_inputs(xnat,project):
-    proc_list=list_project_assessors(xnat, project)
+    proc_list=XnatUtils.list_project_assessors(xnat, project)
     if not proc_list:
         sys.stdout.write("   !!ERROR: You don't have access to the project: "+project+".!!\n")
         sys.exit()
@@ -189,7 +93,7 @@ def check_options(options):
             return False
     else:
         try:
-            xnat = get_interface()
+            xnat = XnatUtils.get_interface()
             #PROJECT
             for project in options.project.split(','):
                 P=xnat.select('/project/'+project)
@@ -268,12 +172,12 @@ if __name__ == '__main__':
     if run:
         # Connection to Xnat
         try:
-            xnat = get_interface()
+            xnat = XnatUtils.get_interface()
             
             for indexP,project in enumerate(options.project.split(',')):
                 print '-> Project : '+project
                 print ' INFO: Getting Sessions from XNAT...'
-                list_sessions_xnat=list_experiments(xnat, project)
+                list_sessions_xnat=XnatUtils.list_experiments(xnat, project)
                 if options.all:
                     print' INFO: Getting all XNAT sessions...'
                     session_list=list(set([x['session_label'] for x in list_sessions_xnat]))
