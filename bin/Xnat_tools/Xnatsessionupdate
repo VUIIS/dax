@@ -11,18 +11,6 @@ import os
 import sys
 from dax import XnatUtils
 
-######################################################################################################
-########################################## USEFUL FUNCTIONS ##########################################
-######################################################################################################
-def get_proper_str(str_option,end=False):
-    if len(str_option)>55:
-        if end:
-            return '...'+str_option[-50:]
-        else:
-            return str_option[:50]+'...'
-    else:
-        return str_option
-
 ########################################################################################################
 ########################################## SPECIFIC FUNCTIONS ##########################################
 ########################################################################################################
@@ -109,32 +97,43 @@ def check_options(options):
 ########################################## MAIN DISPLAY FUNCTION ##########################################   
 def Main_display(parser):
     (options,args)=parser.parse_args()
-    print '####################################################################################################'
-    print '#                                            XNATSUBJECTUPDATE                                     #'
-    print '#                                                                                                  #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
-    print '# Parameters :                                                                                     #'
+    print '################################################################'
+    print '#                      XNATSESSIONUPDATE                       #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '# Usage:                                                       #'
+    print '#     Reset sessions to be seen by the nex dax_update          #'
+    print '# Parameters :                                                 #'
     if options=={'project': None, 'needinputs': False, 'txtfile': None, 'session': None,'all':False}:
-        print '#     No Arguments given                                                                           #'
-        print '#     See the help bellow or Use "Xnatsubjectupdate" -h                                            #'
-        print '####################################################################################################'
+        print '#     No Arguments given                                       #'
+        print '#     See the help bellow or Use "Xnatsessionupdate" -h        #'
+        print '################################################################'
         parser.print_help()
         sys.exit()
     else:
         if options.all:
-            print '#     %*s ->  %*s#' %(-30,'All',-58,'on')
+            print '#     %*s -> %*s#' %(-20,'All',-33,'on')
         if options.project:
-            print '#     %*s ->  %*s#' %(-30,'Project(s)',-58,options.project)
+            print '#     %*s -> %*s#' %(-20,'Project(s)',-33,options.project)
         if options.needinputs:
-            print '#     %*s ->  %*s#' %(-30,'Mode',-58,'Sessions with NEED_INPUTS processes')
+            print '#     %*s -> %*s#' %(-20,'Mode',-33,'Sessions with NEED_INPUTS processes')
         if options.session:
-            print '#     %*s ->  %*s#' %(-30,'Mode',-58,'Selected Sessions')
-            print '#     %*s ->  %*s#' %(-30,'Session(s)',-58,get_proper_str(options.session))
+            print '#     %*s -> %*s#' %(-20,'Mode',-33,'Selected Sessions')
+            print '#     %*s -> %*s#' %(-20,'Session(s)',-33,get_proper_str(options.session))
         if options.txtfile:
-            print '#     %*s ->  %*s#' %(-30,'Mode',-58,'TEXT file with list of sessions/processors')
-            print '#     %*s ->  %*s#' %(-30,'Text File',-58,get_proper_str(options.txtfile,True))
-        print '####################################################################################################'
+            print '#     %*s -> %*s#' %(-20,'Mode',-33,'TEXT file with list of sessions/processors')
+            print '#     %*s -> %*s#' %(-20,'Text File',-33,get_proper_str(options.txtfile,True))
+        print '################################################################'
+
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
 
 def parse_args():
     from optparse import OptionParser
