@@ -19,19 +19,11 @@ from lxml import etree
 
 DEFAULT_REPORT_NAME='download_report.txt'
 DEFAULT_COMMAND_LINE='download_commandLine.txt'
+DEFAULT_CSV_LIST=['project_id','subject_label', 'session_label', 'scan', 'scan_type', 'series_description', 'resource']
 
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################
-def get_proper_str(str_option,end=False):
-    if len(str_option)>55:
-        if end:
-            return '...'+str_option[-50:]
-        else:
-            return str_option[:50]+'...'
-    else:
-        return str_option
-
 def get_option_list(option):
     if not option:
         return None
@@ -41,15 +33,6 @@ def get_option_list(option):
         return None
     else:
         return option.split(',')
-
-def clean_directory(folder_name):
-    files=os.listdir(folder_name)
-    for f in files:
-        if os.path.isdir(folder_name+'/'+f)==False:
-            os.remove(folder_name+'/'+f)
-        else:
-            shutil.rmtree(folder_name+'/'+f)
-    return 0
 
 def write_report(report_file,string):
     f = open(report_file,'a')
@@ -483,64 +466,78 @@ def check_options(options):
 ########################################## MAIN DISPLAY FUNCTION ##########################################
 def Main_display(parser):
     (options,_)=parser.parse_args()
-    print '####################################################################################################'
-    print '#                                                XNATDOWNLOAD                                      #'
-    print '#                                                                                                  #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
-    print '# Parameters :                                                                                     #'
+    print '################################################################'
+    print '#                         XNATDOWNLOAD                         #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '#                                                              #'
+    print '# Function:                                                    #'
+    print '#     Download data from XNAT with specific search precised by #'
+    print '#     the different options                                    #'
+    print '#                                                              #'
+    print '# Parameters :                                                 #'
     if options=={'update':False, 'oneDir': False,'assessortype': 'all', 'status':None,'qualities':None, 'scantype': 'all', 'selectionScan': None, 'experiment': None, 'withoutS': None, 'missing': False, 'continu': False, 'resourcesA': 'all', 'filetext': None, 'project': None, 'quiet': False, 'withoutA': None, 'selectionAssessor': None, 'directory': None, 'resourcesS': 'all', 'subject': None}:
-        print '#     No Arguments given                                                                           #'
-        print '#     See the help bellow or Use "Xnatdownload" -h                                                 #'
-        print '####################################################################################################'
+        print '#     No Arguments given                                       #'
+        print '#     See the help bellow or Use "Xnatdownload" -h             #'
+        print '################################################################'
         parser.print_help()
         sys.exit()
     else:
         if options.selectionScan:
-            print '#     %*s ->  %*s#' %(-30,'selected Scan',-58,get_proper_str(options.selectionScan,True))
-            print '#     %*s ->  %*s#' %(-30,'Resources Scan',-58,get_proper_str(options.resourcesS))
+            print '#     %*s ->  %*s#' %(-20,'selected Scan',-33,get_proper_str(options.selectionScan,True))
+            print '#     %*s ->  %*s#' %(-20,'Resources Scan',-33,get_proper_str(options.resourcesS))
         elif options.selectionAssessor:
-            print '#     %*s ->  %*s#' %(-30,'selected Process',-58,get_proper_str(options.selectionAssessor,True))
-            print '#     %*s ->  %*s#' %(-30,'Resources Process',-58,get_proper_str(options.resourcesA))
+            print '#     %*s ->  %*s#' %(-20,'selected Process',-33,get_proper_str(options.selectionAssessor,True))
+            print '#     %*s ->  %*s#' %(-20,'Resources Process',-33,get_proper_str(options.resourcesA))
 
         else:
             if options.filetext:
-                print '#     %*s ->  %*s#' %(-30,'File txt',-58,get_proper_str(options.filetext,True))
-                print '#     %*s ->  %*s#' %(-30,'Resources Scan',-58,get_proper_str(options.resourcesS))
-                print '#     %*s ->  %*s#' %(-30,'Resources Process',-58,get_proper_str(options.resourcesA))
+                print '#     %*s ->  %*s#' %(-20,'File txt',-33,get_proper_str(options.filetext,True))
+                print '#     %*s ->  %*s#' %(-20,'Resources Scan',-33,get_proper_str(options.resourcesS))
+                print '#     %*s ->  %*s#' %(-20,'Resources Process',-33,get_proper_str(options.resourcesA))
             elif options.project:
-                print '#     %*s ->  %*s#' %(-30,'Project(s)',-58,get_proper_str(options.project))
+                print '#     %*s ->  %*s#' %(-20,'Project(s)',-33,get_proper_str(options.project))
                 if options.subject:
-                    print '#     %*s ->  %*s#' %(-30,'Subject(s)',-58,get_proper_str(options.subject))
+                    print '#     %*s ->  %*s#' %(-20,'Subject(s)',-33,get_proper_str(options.subject))
                 if options.experiment:
-                    print '#     %*s ->  %*s#' %(-30,'Experiment(s)',-58,get_proper_str(options.experiment))
-                print '#     %*s ->  %*s#' %(-30,'Scan types',-58,get_proper_str(options.scantype))
+                    print '#     %*s ->  %*s#' %(-20,'Experiment(s)',-33,get_proper_str(options.experiment))
+                print '#     %*s ->  %*s#' %(-20,'Scan types',-33,get_proper_str(options.scantype))
                 if options.scantype!='nan':
-                    print '#     %*s ->  %*s#' %(-30,'Resources Scan',-58,get_proper_str(options.resourcesS))
+                    print '#     %*s ->  %*s#' %(-20,'Resources Scan',-33,get_proper_str(options.resourcesS))
                     if options.qualities:
-                        print '#     %*s ->  %*s#' %(-30,'Qualities',-58,get_proper_str(options.qualities))
-                print '#     %*s ->  %*s#' %(-30,'Process types',-58,get_proper_str(options.assessortype))
+                        print '#     %*s ->  %*s#' %(-20,'Qualities',-33,get_proper_str(options.qualities))
+                print '#     %*s ->  %*s#' %(-20,'Process types',-33,get_proper_str(options.assessortype))
                 if options.assessortype!='nan':
-                    print '#     %*s ->  %*s#' %(-30,'Resources Process',-58,get_proper_str(options.resourcesA))
+                    print '#     %*s ->  %*s#' %(-20,'Resources Process',-33,get_proper_str(options.resourcesA))
                     if options.status:
-                        print '#     %*s ->  %*s#' %(-30,'Status',-58,get_proper_str(options.status))
+                        print '#     %*s ->  %*s#' %(-20,'Status',-33,get_proper_str(options.status))
             
         if options.directory:
-            print '#     %*s ->  %*s#' %(-30,'Directory',-58,get_proper_str(options.directory,True))
+            print '#     %*s ->  %*s#' %(-20,'Directory',-33,get_proper_str(options.directory,True))
         if options.oneDir:
-            print '#     %*s ->  %*s#' %(-30,'No sub-dir mode',-58,'on')
+            print '#     %*s ->  %*s#' %(-20,'No sub-dir mode',-33,'on')
         if options.continu:
-            print '#     %*s ->  %*s#' %(-30,'Continue mode',-58,'on')
+            print '#     %*s ->  %*s#' %(-20,'Continue mode',-33,'on')
         if options.missing:
-            print '#     %*s ->  %*s#' %(-30,'Missing mode',-58,'on')
+            print '#     %*s ->  %*s#' %(-20,'Missing mode',-33,'on')
         if options.update:
-            print '#     %*s ->  %*s#' %(-30,'Update mode',-58,'on')
-        print '####################################################################################################'
+            print '#     %*s ->  %*s#' %(-20,'Update mode',-33,'on')
+        print '################################################################'
         print "IMPORTANT WARNING FOR ALL USERS: --update options isn't working completely."
-        print "         The last modified resources date can't be access right now on XNAT."
-        print "         This options will only download the resources that you don't have in the previous download or the one that where deleted and reuploaded since your last upload."
-        print "         If this message appears, it means the attributes hasn't been added yet to XNAT."
-        print '================================================================================================='
+        print "    The last modified resources date can't be access right now on XNAT."
+        print "    This options will only download the resources that you don't have in the previous download or the one that where deleted and reuploaded since your last upload."
+        print "    If this message appears, it means the attributes hasn't been added yet to XNAT."
+        print '================================================================'
+
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
 
 ########################################## OPTIONS ##########################################
 def parse_args():
@@ -665,15 +662,7 @@ if __name__ == '__main__':
                         sys.exit()
                     print'========'
         else:
-            if not os.path.exists(directory):
-                os.mkdir(directory)
-            else:
-                today=datetime.now()
-                directory=directory+'/DownloadDir_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day)
-                if not os.path.exists(directory):
-                    os.mkdir(directory)
-                else:
-                    clean_directory(directory)
+            XnatUtils.makedir(jobdir,prefix='DownloadDir')
         
         #write the command:
         write_cmd(os.path.join(directory,DEFAULT_COMMAND_LINE))
