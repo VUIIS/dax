@@ -483,44 +483,44 @@ def Main_display(parser):
         sys.exit()
     else:
         if options.selectionScan:
-            print '#     %*s ->  %*s#' %(-20,'selected Scan',-33,get_proper_str(options.selectionScan,True))
-            print '#     %*s ->  %*s#' %(-20,'Resources Scan',-33,get_proper_str(options.resourcesS))
+            print '#     %*s -> %*s#' %(-20,'selected Scan',-33,get_proper_str(options.selectionScan,True))
+            print '#     %*s -> %*s#' %(-20,'Resources Scan',-33,get_proper_str(options.resourcesS))
         elif options.selectionAssessor:
-            print '#     %*s ->  %*s#' %(-20,'selected Process',-33,get_proper_str(options.selectionAssessor,True))
-            print '#     %*s ->  %*s#' %(-20,'Resources Process',-33,get_proper_str(options.resourcesA))
+            print '#     %*s -> %*s#' %(-20,'selected Process',-33,get_proper_str(options.selectionAssessor,True))
+            print '#     %*s -> %*s#' %(-20,'Resources Process',-33,get_proper_str(options.resourcesA))
 
         else:
             if options.filetext:
-                print '#     %*s ->  %*s#' %(-20,'File txt',-33,get_proper_str(options.filetext,True))
-                print '#     %*s ->  %*s#' %(-20,'Resources Scan',-33,get_proper_str(options.resourcesS))
-                print '#     %*s ->  %*s#' %(-20,'Resources Process',-33,get_proper_str(options.resourcesA))
+                print '#     %*s -> %*s#' %(-20,'File txt',-33,get_proper_str(options.filetext,True))
+                print '#     %*s -> %*s#' %(-20,'Resources Scan',-33,get_proper_str(options.resourcesS))
+                print '#     %*s -> %*s#' %(-20,'Resources Process',-33,get_proper_str(options.resourcesA))
             elif options.project:
-                print '#     %*s ->  %*s#' %(-20,'Project(s)',-33,get_proper_str(options.project))
+                print '#     %*s -> %*s#' %(-20,'Project(s)',-33,get_proper_str(options.project))
                 if options.subject:
-                    print '#     %*s ->  %*s#' %(-20,'Subject(s)',-33,get_proper_str(options.subject))
+                    print '#     %*s -> %*s#' %(-20,'Subject(s)',-33,get_proper_str(options.subject))
                 if options.experiment:
-                    print '#     %*s ->  %*s#' %(-20,'Experiment(s)',-33,get_proper_str(options.experiment))
-                print '#     %*s ->  %*s#' %(-20,'Scan types',-33,get_proper_str(options.scantype))
+                    print '#     %*s -> %*s#' %(-20,'Experiment(s)',-33,get_proper_str(options.experiment))
+                print '#     %*s -> %*s#' %(-20,'Scan types',-33,get_proper_str(options.scantype))
                 if options.scantype!='nan':
-                    print '#     %*s ->  %*s#' %(-20,'Resources Scan',-33,get_proper_str(options.resourcesS))
+                    print '#     %*s -> %*s#' %(-20,'Resources Scan',-33,get_proper_str(options.resourcesS))
                     if options.qualities:
-                        print '#     %*s ->  %*s#' %(-20,'Qualities',-33,get_proper_str(options.qualities))
+                        print '#     %*s -> %*s#' %(-20,'Qualities',-33,get_proper_str(options.qualities))
                 print '#     %*s ->  %*s#' %(-20,'Process types',-33,get_proper_str(options.assessortype))
                 if options.assessortype!='nan':
-                    print '#     %*s ->  %*s#' %(-20,'Resources Process',-33,get_proper_str(options.resourcesA))
+                    print '#     %*s -> %*s#' %(-20,'Resources Process',-33,get_proper_str(options.resourcesA))
                     if options.status:
-                        print '#     %*s ->  %*s#' %(-20,'Status',-33,get_proper_str(options.status))
+                        print '#     %*s -> %*s#' %(-20,'Status',-33,get_proper_str(options.status))
             
         if options.directory:
-            print '#     %*s ->  %*s#' %(-20,'Directory',-33,get_proper_str(options.directory,True))
+            print '#     %*s -> %*s#' %(-20,'Directory',-33,get_proper_str(options.directory,True))
         if options.oneDir:
-            print '#     %*s ->  %*s#' %(-20,'No sub-dir mode',-33,'on')
+            print '#     %*s -> %*s#' %(-20,'No sub-dir mode',-33,'on')
         if options.continu:
-            print '#     %*s ->  %*s#' %(-20,'Continue mode',-33,'on')
+            print '#     %*s -> %*s#' %(-20,'Continue mode',-33,'on')
         if options.missing:
-            print '#     %*s ->  %*s#' %(-20,'Missing mode',-33,'on')
+            print '#     %*s -> %*s#' %(-20,'Missing mode',-33,'on')
         if options.update:
-            print '#     %*s ->  %*s#' %(-20,'Update mode',-33,'on')
+            print '#     %*s -> %*s#' %(-20,'Update mode',-33,'on')
         print '################################################################'
         print "IMPORTANT WARNING FOR ALL USERS: --update options isn't working completely."
         print "    The last modified resources date can't be access right now on XNAT."
