@@ -471,11 +471,9 @@ def Main_display(parser):
     print '#                                                              #'
     print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
     print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
-    print '#                                                              #'
-    print '# Function:                                                    #'
+    print '# Usage:                                                       #'
     print '#     Download data from XNAT with specific search precised by #'
     print '#     the different options                                    #'
-    print '#                                                              #'
     print '# Parameters :                                                 #'
     if options=={'update':False, 'oneDir': False,'assessortype': 'all', 'status':None,'qualities':None, 'scantype': 'all', 'selectionScan': None, 'experiment': None, 'withoutS': None, 'missing': False, 'continu': False, 'resourcesA': 'all', 'filetext': None, 'project': None, 'quiet': False, 'withoutA': None, 'selectionAssessor': None, 'directory': None, 'resourcesS': 'all', 'subject': None}:
         print '#     No Arguments given                                       #'
