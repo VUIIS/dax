@@ -8,7 +8,7 @@ Query through Xnat
 '''
 import os
 import sys
-from pyxnat import Interface
+from dax import XnatUtils
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.MIMEBase import MIMEBase
@@ -19,14 +19,6 @@ import smtplib
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################
-def get_interface():
-    # Environs
-    user = os.environ['XNAT_USER']
-    pwd = os.environ['XNAT_PASS']
-    host = os.environ['XNAT_HOST']
-    # Don't sys.exit, let callers catch KeyErrors
-    return Interface(host, user, pwd)
-
 def list_subjs(xnat,project):
     post_uri_subject = '/REST/projects/'+project+'/subjects'
     subj_list=xnat._get_json(post_uri_subject)
@@ -34,26 +26,6 @@ def list_subjs(xnat,project):
     if not subj_count>0:
         print "WARNING: You don't access to the project "+project+" ."
     return subj_count,subj_list
-
-def list_exps(xnat,project,subject):
-    post_uri_experiment = '/REST/projects/'+project+'/subjects/'+subject+'/experiments'
-    return xnat._get_json(post_uri_experiment)
-
-def list_assessors(xnat, project, subject, experiment):
-    post_uri_assessor = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors'
-    return xnat._get_json(post_uri_assessor)
-
-def list_scans(xnat,project,subject,experiment):
-    post_uri_scan = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans'
-    return xnat._get_json(post_uri_scan)
-
-def list_out_resources(xnat,project,subject,experiment,assessor_label):
-    post_uri_out_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources'
-    return xnat._get_json(post_uri_out_resource)
-
-def list_resources(xnat,project,subject,experiment,scan):
-    post_uri_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan+'/resources'
-    return xnat._get_json(post_uri_resource)
 
 def get_proper_str(str_option,end=False):
     if len(str_option)>55:
@@ -154,14 +126,14 @@ def report_project(xnat,project,csv):
     for subject in subj_list:
         sys.stdout.write('.')
         sys.stdout.flush()
-        for experiment in list_exps(xnat,project,subject['ID']):
+        for experiment in XnatUtils.list_experiments(xnat,project,subject['ID']):
             sys.stdout.write('.')
             sys.stdout.flush()
-            for scan in list_scans(xnat,project,subject['ID'],experiment['ID']):
+            for scan in XnatUtils.list_scans(xnat,project,subject['ID'],experiment['ID']):
                 sys.stdout.write('.')
                 sys.stdout.flush()
                 Resources_str=''
-                for res in list_resources(xnat,project,subject['ID'],experiment['ID'],scan['ID']):
+                for res in XnatUtils.list_resources(xnat,project,subject['ID'],experiment['ID'],scan['ID']):
                     RES=xnat.select('/project/'+project+'/subject/'+subject['ID']+'/experiment/'+experiment['ID']+'/scan/'+scan['ID']+'/resource/'+res['label'])
                     if len(RES.files().get()) > 0:
                         Resources_str+=res['label']+' / '
@@ -174,13 +146,13 @@ def report_project(xnat,project,csv):
                 string_s+=str_s
                                
             #assessor
-            for assessor in list_assessors(xnat, project, subject['ID'], experiment['ID']):
+            for assessor in XnatUtils.list_assessors(xnat, project, subject['ID'], experiment['ID']):
                 sys.stdout.write('.')
                 sys.stdout.flush()
                 if assessor['xsiType']=='proc:genProcData':
                     Assessor_Xnat=xnat.select('/project/'+project+'/subjects/'+subject['ID']+'/experiments/'+experiment['ID']+'/assessors/'+assessor['ID'])
                     out_Resources_str=''
-                    for outres in list_out_resources(xnat,project,subject['ID'],experiment['ID'],assessor['label']):
+                    for outres in XnatUtils.list_out_resources(xnat,project,subject['ID'],experiment['ID'],assessor['label']):
                         ORES=Assessor_Xnat.out_resource(outres['label'])
                         if len(ORES.files().get()) > 0:
                             out_Resources_str+=outres['label']+' / '
@@ -344,7 +316,7 @@ if __name__ == '__main__':
             str_report+='Date: '+str(datetime.now())+'\n'
             
             #connection to Xnat
-            xnat = get_interface()
+            xnat = XnatUtils.get_interface()
             
             #Starting querying :
             for project in project_list:
