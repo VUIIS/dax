@@ -225,7 +225,7 @@ def get_value(header,subject_record,scan_record,ds):
         val=scan_record['citation']
     elif header=='qc_outcome' and 'qc_outcome' in scan_record.keys():
         val=scan_record['qc_outcome']
-    elif header=='slice_acquisition' and 'slice_acquisition' in scan_record.keys()
+    elif header=='slice_acquisition' and 'slice_acquisition' in scan_record.keys():
         val=scan_record['slice_acquisition']
     return val
                     
@@ -411,10 +411,15 @@ def check_options(options):
 def Main_display(parser):
     (options,args) = parser.parse_args()
     print '################################################################'
-    print '#               XNATNDAR                                       #'
+    print '#                           XNATNDAR                           #'
     print '#                                                              #'
     print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
     print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '#                                                              #'
+    print '# Function:                                                    #'
+    print '#     prepare a directory for NDAR submission using image03    #'
+    print '#     template (download data and generate csv)                #'
+    print '#                                                              #'
     print '# Parameters :                                                 #'
     if options=={'directory':None, 'project':None,'scaninfo': None, 'csvinfo': None, 'continu': False}:
         print '#     No Arguments given                                       #'
@@ -424,17 +429,26 @@ def Main_display(parser):
         sys.exit()
     else:
         if options.directory:
-            print '#     %*s ->  %*s#' %(-26,'Submission Folder',-26,get_proper_str(options.submissionDir,True))
+            print '#     %*s -> %*s#' %(-20,'Submission Folder',-33,get_proper_str(options.directory,True))
         if options.project:
-            print '#     %*s ->  %*s#' %(-26,'XNAT Project',-26,get_proper_str(options.project))
+            print '#     %*s -> %*s#' %(-20,'XNAT Project',-33,get_proper_str(options.project))
         if options.scaninfo:
-            print '#     %*s ->  %*s#' %(-26,'CSV scan',-26,get_proper_str(options.scaninfo,True))
+            print '#     %*s -> %*s#' %(-20,'CSV scan',-33,get_proper_str(options.scaninfo,True))
         if options.csvinfo:
-            print '#     %*s ->  %*s#' %(-26,'CSV subject',-26,get_proper_str(options.csvinfo,True))
+            print '#     %*s -> %*s#' %(-20,'CSV subject',-33,get_proper_str(options.csvinfo,True))
         if options.continu:
-            print '#     %*s ->  %*s#' %(-26,'Mode Continue',-26,'on')           
-        print '####################################################################################################'
+            print '#     %*s -> %*s#' %(-20,'Mode Continue',-33,'on')           
+        print '################################################################'
 
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
+    
 ########################################## OPTIONS ##########################################
 def parse_args():
     from optparse import OptionParser
@@ -477,7 +491,7 @@ if __name__ == '__main__':
         OutputCSV=os.path.join(options.directory,'NDAR_submission.csv')
         previous_row=[]
         previous_GUID=[]
-       
+        
         #Continu options
         if options.continu and os.path.exists(OutputCSV):
             with open(OutputCSV,'rb') as csvfile:
@@ -487,7 +501,7 @@ if __name__ == '__main__':
                 for row in spamreader:
                     previous_GUID.append(row[0])
                     previous_row.append(row)
-                
+        
         #Read from CSV files
         subject_records=read_csv(options.csvinfo,DEFAULT_SCAN_HEADER)
         
@@ -497,14 +511,14 @@ if __name__ == '__main__':
         
         #Open the CSV file NDAR_submission.csv:
         with open(OutputCSV,'wb') as csvfile:
-        	spamwriter = csv.writer(csvfile,delimiter=',')
-        	spamwriter.writerow(['image','03'])
-        	spamwriter.writerow(Ordered_keys)
-            
+            spamwriter = csv.writer(csvfile,delimiter=',')
+            spamwriter.writerow(['image','03'])
+            spamwriter.writerow(Ordered_keys)
+        
             for row in previous_row:
                 spamwriter.writerow(row)
-    	
-        	for scan_record in scan_records:
+            
+            for scan_record in scan_records:
                 if subject_records[scan_record['subject_id']]['GUID'] not in previous_GUID:
                     row=get_row(subject_records[scan_record['subject_id']],scan_record)
                     if row:
