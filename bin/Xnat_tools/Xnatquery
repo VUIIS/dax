@@ -260,57 +260,72 @@ def check_options(options):
 ########################################## MAIN DISPLAY FUNCTION ##########################################   
 def Main_display(parser):
     (options,args)=parser.parse_args()
-    print '####################################################################################################'
-    print '#                                                XNATQUERY                                         #'
-    print '#                                                                                                  #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
-    print '# Parameters :                                                                                     #'
+    print '################################################################'
+    print '#                          XNATQUERY                           #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '# Usage:                                                       #'
+    print '#     Query through XNAT for a project on each level           #'
+    print '#     or give a report with options --info                     #'
+    print '# Parameters :                                                 #'
     if options=={'me': False, 'info': False, 'all': False, 'scan': None, 'filetxt': None, 'project': None, 'experiment': None, 'assessor': None, 'subject': None}:
-        print '#     No Arguments given                                                                           #'
-        print '#     See the help bellow or Use "Xnatquery" -h                                                    #'
-        print '####################################################################################################'
+        print '#     No Arguments given                                       #'
+        print '#     See the help bellow or Use "Xnatquery" -h                #'
+        print '################################################################'
         parser.print_help()
         sys.exit()
     else:
         if options.me:
-            print '#     %*s#' %(-93,'->List of projects on Xnat you have access to.')
+            print '#     %*s#' %(-57,'->List of projects on Xnat you have access to.')
         elif options.info:
-            print '#     %*s#' %(-93,'->Getting report on the following project.')
-            print '#     %*s ->  %*s#' %(-30,'Project',-58,options.project)
+            print '#     %*s#' %(-57,'->Getting report on the following project.')
+            print '#     %*s -> %*s#' %(-20,'Project',-33,get_proper_str(options.project))
             if options.filetxt:
-                print '#     %*s ->  %*s#' %(-30,'file text',-58,get_proper_str(options.filetxt,True))
+                print '#     %*s -> %*s#' %(-20,'file text',-33,get_proper_str(options.filetxt,True))
         else:
             if options.assessor:
-                print '#     %*s ->  %*s#' %(-30,'Query level',-58,'resources')
-                print '#     %*s ->  %*s#' %(-30,'Process',-58,options.assessor)
+                print '#     %*s -> %*s#' %(-20,'Query level',-33,'resources')
+                print '#     %*s -> %*s#' %(-20,'Process',-33,get_proper_str(options.assessor))
             elif not options.project:
-                    print '#     %*s ->  %*s#' %(-30,'Query level',-58,'projects')
+                    print '#     %*s -> %*s#' %(-20,'Query level',-33,'projects')
             else:
                 if not options.subject:
-                    print '#     %*s ->  %*s#' %(-30,'Query level',-58,'subjects')
-                    print '#     %*s ->  %*s#' %(-30,'Project',-58,options.project)
+                    print '#     %*s -> %*s#' %(-20,'Query level',-33,'subjects')
+                    print '#     %*s -> %*s#' %(-20,'Project',-33,get_proper_str(options.project))
                 else:
                     if not options.experiment:
-                        print '#     %*s ->  %*s#' %(-30,'Query level',-58,'sessions')
-                        print '#     %*s ->  %*s#' %(-30,'Project',-58,options.project)
-                        print '#     %*s ->  %*s#' %(-30,'Subject',-58,options.subject)
+                        print '#     %*s -> %*s#' %(-20,'Query level',-33,'sessions')
+                        print '#     %*s -> %*s#' %(-20,'Project',-33,get_proper_str(options.project))
+                        print '#     %*s -> %*s#' %(-20,'Subject',-33,get_proper_str(options.subject))
                     else:
                         if not options.scan or not options.assessor:
-                            print '#     %*s ->  %*s#' %(-30,'Query level',-58,'scans/processes')
-                            print '#     %*s ->  %*s#' %(-30,'Project',-58,options.project)
-                            print '#     %*s ->  %*s#' %(-30,'Subject',-58,options.subject)
-                            print '#     %*s ->  %*s#' %(-30,'Session',-58,options.experiment)
+                            print '#     %*s -> %*s#' %(-20,'Query level',-33,'scans/processes')
+                            print '#     %*s -> %*s#' %(-20,'Project',-33,get_proper_str(options.project))
+                            print '#     %*s -> %*s#' %(-20,'Subject',-33,get_proper_str(options.subject))
+                            print '#     %*s -> %*s#' %(-20,'Session',-33,get_proper_str(options.experiment))
                         elif options.scan:
-                            print '#     %*s ->  %*s#' %(-30,'Query level',-58,'resources')
-                            print '#     %*s ->  %*s#' %(-30,'Project',-58,options.project)
-                            print '#     %*s ->  %*s#' %(-30,'Subject',-58,options.subject)
-                            print '#     %*s ->  %*s#' %(-30,'Session',-58,options.experiment)
-                            print '#     %*s ->  %*s#' %(-30,'Scan',-58,options.scan)
+                            print '#     %*s -> %*s#' %(-20,'Query level',-33,'resources')
+                            print '#     %*s -> %*s#' %(-20,'Project',-33,get_proper_str(options.project))
+                            print '#     %*s -> %*s#' %(-20,'Subject',-33,get_proper_str(options.subject))
+                            print '#     %*s -> %*s#' %(-20,'Session',-33,get_proper_str(options.experiment))
+                            print '#     %*s -> %*s#' %(-20,'Scan',-33,get_proper_str(options.scan))
                             
                 if options.all:
-                    print '#     %*s ->  %*s#' %(-30,'All',-58,'on')
-        print '####################################################################################################'
+                    print '#     %*s -> %*s#' %(-20,'All',-33,'on')
+        print '################################################################'
+        
+def get_proper_str(str_option,end=False):
+    if str_option:
+        if len(str_option)>32:
+            if end:
+                return '...'+str_option[-29:]
+            else:
+                return str_option[:29]+'...'
+        else:
+            return str_option
+    else:
+        return str_option
 
 def parse_args():
     from optparse import OptionParser
