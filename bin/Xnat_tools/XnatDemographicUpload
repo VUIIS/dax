@@ -110,11 +110,11 @@ def Main_display(parser):
         sys.exit()
     else:
         if options.inputfile:
-            print '#     %*s ->  %*s#' %(-20,'Input File Path',-33,get_proper_str(options.inputfile,True))
+            print '#     %*s -> %*s#' %(-20,'Input File Path',-33,get_proper_str(options.inputfile,True))
         if options.delimiter:
-            print '#     %*s ->  %*s#' %(-20,'Delimiter for output',-33,get_proper_str(options.delimiter))
+            print '#     %*s -> %*s#' %(-20,'Delimiter for output',-33,get_proper_str(options.delimiter))
         if options.report:
-            print '#     %*s ->  %*s#' %(-20,'Report Mode',-33,'on')   
+            print '#     %*s -> %*s#' %(-20,'Report Mode',-33,'on')   
         print '################################################################'
         
 def get_proper_str(str_option,end=False):
