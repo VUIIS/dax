@@ -492,6 +492,9 @@ def Main_display(parser):
         if options.add:
             print '#     %*s ->  %*s#' %(-30,'Add',-58,'on')
         print '####################################################################################################'
+        print "IMPORTANT WARNING FOR ALL USERS ABOUT XNAT:"
+        print "     session_label needs to be unique for each session. Two subjects can NOT have the same session_label"
+        print '================================================================================================='
     
     
 def parse_args():
