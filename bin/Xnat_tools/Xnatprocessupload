@@ -9,19 +9,11 @@ Created on Mar 13, 2013
 
 import os,sys,csv,glob
 from datetime import datetime
-from pyxnat import Interface
+from dax import XnatUtils
 
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################
-def get_interface():
-    # Environs
-    user = os.environ['XNAT_USER']
-    pwd = os.environ['XNAT_PASS']
-    host = os.environ['XNAT_HOST']
-    # Don't sys.exit, let callers catch KeyErrors
-    return Interface(host, user, pwd)
-
 def list_out_resources(xnat,assessor_label):
     labels=assessor_label.split('-x-')
     post_uri_out_resource = '/REST/projects/'+labels[0]+'/subjects/'+labels[1]+'/experiments/'+labels[2]+'/assessors/'+assessor_label+'/out/resources'
@@ -453,7 +445,7 @@ if __name__ == '__main__':
     if run:
         #############################
         try:
-            xnat = get_interface()
+            xnat = XnatUtils.get_interface()
             #Upload data:
             upload_assessor_xnat(xnat,options.directory,options.csv,options.report,options.force,options.delete,options.deleteAll)
             
