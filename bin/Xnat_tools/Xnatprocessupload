@@ -19,15 +19,6 @@ def list_out_resources(xnat,assessor_label):
     post_uri_out_resource = '/REST/projects/'+labels[0]+'/subjects/'+labels[1]+'/experiments/'+labels[2]+'/assessors/'+assessor_label+'/out/resources'
     return xnat._get_json(post_uri_out_resource)
 
-def get_proper_str(str_option,end=False):
-    if len(str_option)>55:
-        if end:
-            return '...'+str_option[-50:]
-        else:
-            return str_option[:50]+'...'
-    else:
-        return str_option
-
 def read_csv_info(csvfile):
     print'INFO: Reading the csv file: '+csvfile
     #variables:
@@ -379,32 +370,43 @@ def check_options(options):
 def Main_display(parser):
     (options,args)=parser.parse_args()
     #Display:
-    print '####################################################################################################'
-    print '#                                        XNATPROCESSUPLOAD                                         #'
-    print '#                                                                                                  #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
-    print '# Parameters :                                                                                     #'
+    print '################################################################'
+    print '#                       XNATPROCESSUPLOAD                      #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '# Usage:                                                       #'
+    print '#     Upload data (resources) for assessor on XNAT             #'
+    print '# Parameters :                                                 #'
     if options=={'directory': None,'force': False,'csv': None,'delete': False,'deleteAll': False,'report': False}:
-        print '#     No Arguments given                                                                           #'
-        print '#     Use "Xnatprocessupload -h" to see the options                                                #'
-        print '####################################################################################################'
+        print '#     No Arguments given                                       #'
+        print '#     Use "Xnatprocessupload -h" to see the options            #'
+        print '################################################################'
         parser.print_help()
         sys.exit()
     else:
         if options.directory:
-            print '#     %*s ->  %*s#' %(-30,'Directory',-58,get_proper_str(options.directory,True))
+            print '#     %*s -> %*s#' %(-20,'Directory',-33,get_proper_str(options.directory,True))
         if options.csv:
-            print '#     %*s ->  %*s#' %(-30,'CSV file',-58,get_proper_str(options.csv,True))
+            print '#     %*s -> %*s#' %(-20,'CSV file',-33,get_proper_str(options.csv,True))
         if options.report:
-            print '#     %*s ->  %*s#' %(-30,'Report',-58,'on')
+            print '#     %*s -> %*s#' %(-20,'Report',-33,'on')
         if options.force:
-            print '#     %*s ->  %*s#' %(-30,'Force',-58,'on')
+            print '#     %*s -> %*s#' %(-20,'Force',-33,'on')
         if options.delete:
-            print '#     %*s ->  %*s#' %(-30,'Delete Resource',-58,'on')
+            print '#     %*s -> %*s#' %(-20,'Delete Resource',-33,'on')
         if options.deleteAll:
-            print '#     %*s ->  %*s#' %(-30,'Delete All Resources',-58,'on')
-        print '####################################################################################################'
+            print '#     %*s -> %*s#' %(-20,'Delete All Resources',-33,'on')
+        print '################################################################'
+        
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
 
 ########################################## OPTIONS ##########################################
 def parse_args():
