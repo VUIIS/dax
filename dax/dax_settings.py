@@ -67,12 +67,12 @@ CMD_GET_JOB_STATUS=Template("""squeue -j ${jobid} --noheader | awk {'print $5'}"
 RUNNING_STATUS='R'
 QUEUE_STATUS='Q'
 #Command to get the walltime and memory used by the jobs at the end of the job
-CMD_GET_JOB_DONE_INFO=Template("""sacct -j ${jobid} --format JobID,user,TotalCPU,MaxRss""")
+CMD_GET_JOB_DONE_INFO=Template("""sacct -j ${jobid} --format JobID,TotalCPU,MaxRss --noheader""")
 PREFIX_WALLTIME='resources_used.walltime='
 SUFFIX_WALLTIME='\n'
 PREFIX_MEMORY='resources_used.mem='
 SUFFIX_MEMORY='kb'
-EXIT_STATUS='Exit_status'
+EXIT_STATUS='Exit_status
 #Template for your script file to submit a job
 JOB_EXTENSION_FILE='.slurm' 
 JOB_TEMPLATE = Template("""#!/bin/bash
