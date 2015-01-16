@@ -43,39 +43,44 @@ def is_traceable_date(jobdate):
         return (diff_days <= MAX_TRACE_DAYS)
     except ValueError:
         return False
-    
-def get_specific_str(big_str,prefix,suffix):
-    specific_str = big_str
-    if prefix and len(specific_str.split(prefix))>1:
-        specific_str = specific_str.split(prefix)[1]
-    if suffix and len(specific_str.split(suffix))>1:
-        specific_str = specific_str.split(suffix)[0]
-    if specific_str!=big_str:
-        return specific_str
-    else:
-        return ''
-    
+
 def tracejob_info(jobid, jobdate):
     d = datetime.strptime(jobdate, "%Y-%m-%d")
     diff_days = (datetime.today() - d).days + 1
-    jobinfo = {'mem_used' : '', 'walltime_used' : ''}
+    jobinfo = dict()
+    jobinfo['mem_used']=get_job_mem_used(jobid,diff_days)
+    jobinfo['walltime_used']=get_job_walltime_used(jobid,diff_days)
     
-    cmd = CMD_GET_JOB_DONE_INFO.safe_substitute(**{'numberofdays':diff_days,'jobid':jobid})
+    return jobinfo
+    
+def get_job_mem_used(jobid,diff_days):
+    mem=''
+    cmd = CMD_GET_JOB_MEMORY.safe_substitute(**{'numberofdays':diff_days,'jobid':jobid})
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)        
-        if EXIT_STATUS and EXIT_STATUS in output:
-            #get the walltime used
-            jobinfo['walltime_used'] = get_specific_str(output,PREFIX_WALLTIME,SUFFIX_WALLTIME)
-            #get the mem used
-            jobinfo['mem_used'] = get_specific_str(output,PREFIX_MEMORY,SUFFIX_MEMORY)
+        if output:
+            mem=output
                 
     except CalledProcessError:
         pass
     
-    if jobinfo['walltime_used'] == '' and diff_days > 3: 
-        jobinfo['walltime_used'] = 'NotFound'
+    return mem
 
-    return jobinfo
+def get_job_walltime_used(jobid,diff_days)
+    walltime=''
+    cmd = CMD_GET_JOB_WALLTIME.safe_substitute(**{'numberofdays':diff_days,'jobid':jobid})
+    try:
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)        
+        if output:
+            walltime=output
+                
+    except CalledProcessError:
+        pass
+    
+    if walltime == '' and diff_days > 3: 
+        walltime = 'NotFound'
+
+    return walltime
   
 class PBS:   #The script file generator class
     #constructor
