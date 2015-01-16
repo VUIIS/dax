@@ -13,21 +13,14 @@ You can customize the command for your Submission System.
 CMD_SUBMIT            --> command to submit jobs (default: sbatch)
 PREFIX_JOBID          --> string before the job ID in the output of the CMD_SUBMIT
 SUFFIX_JOBID          --> string after the job ID in the output of the CMD_SUBMIT
-
 CMD_COUNT_NB_JOBS     --> command to return the number of jobs 
-
 CMD_GET_JOB_STATUS    --> command to return the status of a job given it jobid
 RUNNING_STATUS        --> string return for RUNNING Job (e.g: 'r')
 QUEUE_STATUS          --> string return for IN QUEUE Job (e.g: 'qw')
-
 JOB_EXTENSION_FILE    --> extension for script file (default: .slurm)
-CMD_GET_JOB_DONE_INFO --> command to submit jobs (default: sbatch)
-PREFIX_WALLTIME       --> string before the Walltime used in the output of the CMD_GET_JOB_DONE_INFO
-SUFFIX_WALLTIME       --> string after the Walltime used in the output of the CMD_GET_JOB_DONE_INFO
-PREFIX_MEMORY         --> string before the Memory used in the output of the CMD_GET_JOB_DONE_INFO
-SUFFIX_MEMORY         --> string after the Memory used in the output of the CMD_GET_JOB_DONE_INFO
-EXIT_STATUS           --> string to check in the output to be sure the value for walltime and memory are there
-
+CMD_GET_JOB_MEMORY    --> command to get job memory used 
+CMD_GET_JOB_WALLTIME  --> command to get job walltime used
+JOB_EXTENSION_FILE    --> extension for job script (default: .slurm)
 DEFAULT_EMAIL_OPTS    --> EMAIL options (default: ALL)
 
     2) PATH / default value for cluster
@@ -37,7 +30,7 @@ RESULTS_DIR     --> where results from jobs are stored to be upload to xnat late
 ROOT_JOB_DIR    --> Directory used for temp job folder for intermediate results
 QUEUE_LIMIT     --> Number max of jobs authorized in the queue.
 
-2) Email information to send email (optional)
+    3) Email information to send email (optional)
 
 SMTP_FROM --> address from where you will send the email.
 SMTP_PASS --> password for the email address.
@@ -68,11 +61,8 @@ RUNNING_STATUS='R'
 QUEUE_STATUS='Q'
 #Command to get the walltime and memory used by the jobs at the end of the job
 CMD_GET_JOB_DONE_INFO=Template("""sacct -j ${jobid} --format JobID,TotalCPU,MaxRss --noheader""")
-PREFIX_WALLTIME='resources_used.walltime='
-SUFFIX_WALLTIME='\n'
-PREFIX_MEMORY='resources_used.mem='
-SUFFIX_MEMORY='kb'
-EXIT_STATUS='Exit_status
+CMD_GET_JOB_MEMORY=Template("""sacct -j ${jobid} --format JobID,TotalCPU,MaxRss --noheader | grep .batch | awk '{print $3}'""")
+CMD_GET_JOB_WALLTIME=Template("""sacct -j ${jobid} --format JobID,TotalCPU,MaxRss --noheader | grep .batch | awk '{print $2}'""")
 #Template for your script file to submit a job
 JOB_EXTENSION_FILE='.slurm' 
 JOB_TEMPLATE = Template("""#!/bin/bash
