@@ -61,8 +61,8 @@ RUNNING_STATUS='R'
 QUEUE_STATUS='Q'
 #Command to get the walltime and memory used by the jobs at the end of the job
 CMD_GET_JOB_DONE_INFO=Template("""sacct -j ${jobid} --format JobID,TotalCPU,MaxRss --noheader""")
-CMD_GET_JOB_MEMORY=Template("""sacct -j ${jobid} --format JobID,TotalCPU,MaxRss --noheader | grep .batch | awk '{print $3}'""")
-CMD_GET_JOB_WALLTIME=Template("""sacct -j ${jobid} --format JobID,TotalCPU,MaxRss --noheader | grep .batch | awk '{print $2}'""")
+CMD_GET_JOB_MEMORY=Template("""sacct -j ${jobid}.batch --format JobID,TotalCPU,MaxRss --noheader | awk '{print $3}'""")
+CMD_GET_JOB_WALLTIME=Template("""sacct -j ${jobid}.batch --format JobID,TotalCPU,MaxRss --noheader | awk '{print $2}'""")
 #Template for your script file to submit a job
 JOB_EXTENSION_FILE='.slurm' 
 JOB_TEMPLATE = Template("""#!/bin/bash
