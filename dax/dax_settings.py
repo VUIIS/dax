@@ -10,6 +10,8 @@ USER_HOME = expanduser("~")
     1) Submission System (by default SLURM) and script file:
 You can customize the command for your Submission System.
 
+ADMIN_EMAIL           --> admin for dax_manager 
+
 CMD_SUBMIT            --> command to submit jobs (default: sbatch)
 PREFIX_JOBID          --> string before the job ID in the output of the CMD_SUBMIT
 SUFFIX_JOBID          --> string after the job ID in the output of the CMD_SUBMIT
@@ -46,6 +48,8 @@ REDCAP_VAR   --> dictionary to set up the general variables for the project
 PS: In this file, all variable default are read if the .bashrc or your configuration file doesn't have the environment variable
 set.
 """
+#### Admin email for dax_manager ####
+ADMIN_EMAIL=[]
 
 #### Default value set by users ####
 #Function for PBS cluster jobs:
