@@ -13,8 +13,8 @@ from subprocess import CalledProcessError
 from email.mime.text import MIMEText
 from datetime import datetime
 
-from dax import XnatUtils,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY_DAX,SMTP_FROM,SMTP_HOST,SMTP_PASS
 import dax
+from dax import XnatUtils,ADMIN_EMAIL,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY_DAX,SMTP_FROM,SMTP_HOST,SMTP_PASS
 from dax.launcher import UPDATE_LOCK_FILE,OPEN_TASKS_LOCK_FILE
 
 #Information on gateway/user 
@@ -249,11 +249,14 @@ def generate_settings(rc,settings_info):
     modules_list,processes_list=get_list_modproc(rc)
     logger.info('Projects found on Redcap: ')
     if not settings_info:
-     logger.info('  - No project found')
+        logger.info('  - No project found')
+    update_email_dict={'dax_update 2 days':[],'dax_update 7 days':[],'dax_update_open_jobs 2 days':[],'dax_update_open_jobs 7 days':[]}
     #Organize the data to in complex dictionaries:
     for project_settings in settings_info:
         logger.info('  -'+project_settings[REDCAP_VAR['project']]+' for settings '+project_settings[REDCAP_VAR['settingsfile']])
         if project_settings['general_complete']=='2':
+            #Check the process:
+            check_process(project_settings,update_email_dict)
             #New PSettings
             PSettings=Settings_File(filepath=project_settings[REDCAP_VAR['settingsfile']],tmpdir=project_settings[REDCAP_VAR['tmp']],
                                     email=project_settings[REDCAP_VAR['email']],email_opts=project_settings[REDCAP_VAR['email_opts']],
@@ -301,6 +304,15 @@ def generate_settings(rc,settings_info):
             else:
                 settings_dict[PSettings.filepath]=PSettings
     logger.info('\n')
+    
+    email_text=[]
+    for key,value in update_email_dict:
+        if value:
+            email_text+=key+': '+','.join(value)+'\n'
+    if text:
+        SUBJECT='Dax_manager ADMIN: updates 2/7days running'
+        email(email_text,ADMIN_EMAIL,SUBJECT)
+    
     return settings_dict
     
 def check_number_process(project_settings,proc_name):
@@ -422,7 +434,30 @@ def unlock_update(settings_path):
     lock_file = os.path.join(RESULTS_DIR,'FlagFiles',lockfile_prefix+'_'+UPDATE_LOCK_FILE)
     if os.path.exists(lock_file):
         os.remove(lock_file)
+
+def check_process(project_settings,update_email_dict):
+    todayDate=int('{:%Y%m%d%H%M%S}'.format(datetime.now()))
+    #dax_update:
+    if 'In Process' in project_settings['dax_update_end_date']:
+        startDate_2days=int('{:%Y%m%d%H%M%S}'.project_settings['dax_update_start_date'])+2000000 #adding 2 days
+        startDate_2days2hours=int('{:%Y%m%d%H%M%S}'.project_settings['dax_update_start_date'])+2020000 #adding 2 days - 2 hours
+        startDate_7days=int('{:%Y%m%d%H%M%S}'.project_settings['dax_update_start_date'])+7000000 #adding 7 days
+        if startDate_2days>todayDate and startDate_2days2hours<todayDate:
+            update_email_dict['dax_update still running after 2 days'].append(project_settings[REDCAP_VAR['settingsfile']])
+        if startDate_7days>todayDate:
+            update_email_dict['dax_update still running after 7 days'].append(project_settings[REDCAP_VAR['settingsfile']])
+    #dax_update_open
+    if 'In Process' in project_settings['dax_update_open_end_date']:
+        startDate_2days=int('{:%Y%m%d%H%M%S}'.project_settings['dax_update_open_start_date'])+2000000 #adding 2 days
+        startDate_2days2hours=int('{:%Y%m%d%H%M%S}'.project_settings['dax_update_open_start_date'])+2020000 #adding 2 days - 2 hours
+        startDate_7days=int('{:%Y%m%d%H%M%S}'.project_settings['dax_update_open_start_date'])+7000000 #adding 7 days
+        if startDate_2days>todayDate and startDate_2days2hours<todayDate:
+            update_email_dict['dax_update_open_jobs still running after 2 days'].append(project_settings[REDCAP_VAR['settingsfile']])
+        if startDate_7days>todayDate:
+            update_email_dict['dax_update_open_jobs still running after 7 days'].append(project_settings[REDCAP_VAR['settingsfile']])
             
+    return update_email_dict
+    
 ####################################################################################
 #####################           Principal functions            #####################
 ####################################################################################
@@ -534,6 +569,7 @@ if __name__ == '__main__':
     #If api_key given, use the redcap db:
     if api_key:
         settings_path_list,daxlogsdir_dict,email_dict=generate_settings_REDCap(api_key)
+        check_process(settings_path_list)
         
     if not writeOnly:
         if args.debug:
