@@ -256,7 +256,7 @@ def generate_settings(rc,settings_info):
         logger.info('  -'+project_settings[REDCAP_VAR['project']]+' for settings '+project_settings[REDCAP_VAR['settingsfile']])
         if project_settings['general_complete']=='2':
             #Check the process:
-            check_process(project_settings,update_email_dict)
+            update_email_dict=check_process(project_settings,update_email_dict)
             #New PSettings
             PSettings=Settings_File(filepath=project_settings[REDCAP_VAR['settingsfile']],tmpdir=project_settings[REDCAP_VAR['tmp']],
                                     email=project_settings[REDCAP_VAR['email']],email_opts=project_settings[REDCAP_VAR['email_opts']],
@@ -311,7 +311,8 @@ def generate_settings(rc,settings_info):
             email_text+=key+': '+','.join(value)+'\n'
     if text:
         SUBJECT='Dax_manager ADMIN: updates 2/7days running'
-        email(email_text,ADMIN_EMAIL,SUBJECT)
+        if ADMIN_EMAIL:
+         email(email_text,ADMIN_EMAIL,SUBJECT)
     
     return settings_dict
     
