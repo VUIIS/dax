@@ -323,11 +323,11 @@ def generate_settings(rc,settings_info,status=False):
 
 def get_status(settings_info):
     logger.info('Status on each settings updates:')
-    h='%*s | %*s | %*s | %*s | %s' % (-20,'Project',-10,'dax_update start',-10,'dax_update end',-10,'dax_update_open_jobs start',-10,'dax_update_open_job end')
+    h='%*s | %*s | %*s | %*s | %s' % (-20,'Project',-20,'Update start',-20,'Update end',-20,'Update Job start',-20,'Update Job end')
     logger.info(h)
     for ps in settings_info:
-        for key in sorted(assessor_dict) :
-            v='%*s | %*s | %*s | %*s | %s' % (-20,ps[REDCAP_VAR['project']],-10,ps['dax_update_start_date'],-10,ps['dax_update_end_date'],-10,ps['dax_update_open_start_date'],-10,ps['dax_update_open_end_date'])
+        if ps:
+            v='%*s | %*s | %*s | %*s | %s' % (-20,ps[REDCAP_VAR['project']],-20,ps['dax_update_start_date'],-20,ps['dax_update_end_date'],-20,ps['dax_update_open_start_date'],-20,ps['dax_update_open_end_date'])
             logger.info(v)
 
 def check_number_process(project_settings,proc_name):
