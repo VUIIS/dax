@@ -253,6 +253,8 @@ def generate_settings(rc,settings_info):
     update_email_dict={'dax_update still running after 2 days':[],'dax_update still running after 7 days':[],'dax_update_open_jobs still running after 2 days':[],'dax_update_open_jobs still running after 7 days':[]}
     #Organize the data to in complex dictionaries:
     for project_settings in settings_info:
+        user=project_settings[REDCAP_VAR['user']]
+        gateway=project_settings[REDCAP_VAR['gateway']]
         logger.info('  -'+project_settings[REDCAP_VAR['project']]+' for settings '+project_settings[REDCAP_VAR['settingsfile']])
         if project_settings['general_complete']=='2':
             #Check the process:
@@ -305,11 +307,12 @@ def generate_settings(rc,settings_info):
                 settings_dict[PSettings.filepath]=PSettings
     logger.info('\n')
     
-    email_text=''
+    email_header='Long updates running on <'+gateway+'> for the user <'+user+'> \n'
+    email_text=email_header
     for header,settings_file_list in update_email_dict.items():
         if settings_file_list:
             email_text+=header+': '+','.join(settings_file_list)+'\n'
-    if email_text:
+    if email_text!=email_header:
         SUBJECT='Dax_manager ADMIN: updates 2/7days running'
         if ADMIN_EMAIL:
          email(email_text,ADMIN_EMAIL,SUBJECT)
