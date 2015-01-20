@@ -47,6 +47,7 @@ if __name__ == '__main__':
                    'bin/Xnat_tools/Xnatcheck',
                    'bin/Xnat_tools/Xnatdownload',
                    'bin/Xnat_tools/XnatDemographicUpload',
+                   'bin/Xnat_tools/Xnatinfo',
                    'bin/Xnat_tools/Xnatmirror',
                    'bin/Xnat_tools/XnatNDAR',
                    'bin/Xnat_tools/Xnatprocessupload',
