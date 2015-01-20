@@ -307,12 +307,12 @@ def generate_settings(rc,settings_info):
                 settings_dict[PSettings.filepath]=PSettings
     logger.info('\n')
     
-    email_header='Long updates running on <'+gateway+'> for the user <'+user+'> \n'
+    email_header='Long updates running on <'+gateway+'> for the user <'+user+'>: \n----------------------------------------------------------------------------------\n'
     email_text=email_header
     for header,proj_list in update_email_dict.items():
         if proj_list:
-            email_text+='\t'+header+':  '+' , '.join(proj_list)+'\n'
-            email_text+='-----------------------------------------\n'
+            email_text+='\t'+header+' -->  '+' , '.join(proj_list)+'\n'
+            email_text+='----------------------------------------------------------------------------------\n'
         
     if email_text!=email_header:
         SUBJECT='Dax_manager ADMIN: updates 2/7days running'
@@ -455,9 +455,10 @@ def check_process(project_settings,update_email_dict):
         startDate_2days=startDate+2000000 #adding 2 days
         startDate_2days2hours=startDate+2020000 #adding 2 days - 2 hours
         startDate_7days=startDate+7000000 #adding 7 days
-        if startDate_2days>todayDate and startDate_2days2hours<todayDate:
+        print todayDate,
+        if startDate_2days <= todayDate <= startDate_2days2hours:
             update_email_dict['dax_update still running after 2 days'].append(project_settings[REDCAP_VAR['project']])
-        if startDate_7days>todayDate:
+        if startDate_7days <= todayDate:
             update_email_dict['dax_update still running after 7 days'].append(project_settings[REDCAP_VAR['project']])
     #dax_update_open
     if 'In Process' in project_settings['dax_update_open_end_date']:
