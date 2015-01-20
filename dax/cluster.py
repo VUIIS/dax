@@ -81,6 +81,17 @@ def get_job_walltime_used(jobid,diff_days):
         walltime = 'NotFound'
 
     return walltime
+    
+def get_specific_str(big_str,prefix,suffix):
+    specific_str = big_str
+    if prefix and len(specific_str.split(prefix))>1:
+        specific_str = specific_str.split(prefix)[1]
+    if suffix and len(specific_str.split(suffix))>1:
+        specific_str = specific_str.split(suffix)[0]
+    if specific_str!=big_str:
+        return specific_str
+    else:
+        return ''
   
 class PBS:   #The script file generator class
     #constructor
