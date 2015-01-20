@@ -455,7 +455,6 @@ def check_process(project_settings,update_email_dict):
         startDate_2days=startDate+2000000 #adding 2 days
         startDate_2days2hours=startDate+2020000 #adding 2 days - 2 hours
         startDate_7days=startDate+7000000 #adding 7 days
-        print todayDate,
         if startDate_2days <= todayDate <= startDate_2days2hours:
             update_email_dict['dax_update still running after 2 days'].append(project_settings[REDCAP_VAR['project']])
         if startDate_7days <= todayDate:
