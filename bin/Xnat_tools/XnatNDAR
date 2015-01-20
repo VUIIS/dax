@@ -375,8 +375,8 @@ def filter_assessors(subjects,obj_list):
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
     #Checked argument values if not:
-    if options.csvinfo and not os.path.exists(os.path.abspath(options.csvinfo)):
-        print "OPTION ERROR: the CSV file for the subjects information "+options.csvinfo+" does not exist."
+    if options.subjectinfo and not os.path.exists(os.path.abspath(options.subjectinfo)):
+        print "OPTION ERROR: the CSV file for the subjects information "+options.subjectinfo+" does not exist."
         return False
     if options.scaninfo and not os.path.exists(os.path.abspath(options.scaninfo)):
         print "OPTION ERROR: the CSV file for the scans information "+options.scaninfo+" does not exist."
@@ -421,7 +421,7 @@ def Main_display(parser):
     print '#     template (download data and generate csv)                #'
     print '#                                                              #'
     print '# Parameters :                                                 #'
-    if options=={'directory':None, 'project':None,'scaninfo': None, 'csvinfo': None, 'continu': False}:
+    if options=={'directory':None, 'project':None,'scaninfo': None, 'subjectinfo': None, 'continu': False}:
         print '#     No Arguments given                                       #'
         print '#     Use "XnatNDAR -h" to see the options                     #'
         print '################################################################'
@@ -434,8 +434,8 @@ def Main_display(parser):
             print '#     %*s -> %*s#' %(-20,'XNAT Project',-33,get_proper_str(options.project))
         if options.scaninfo:
             print '#     %*s -> %*s#' %(-20,'CSV scan',-33,get_proper_str(options.scaninfo,True))
-        if options.csvinfo:
-            print '#     %*s -> %*s#' %(-20,'CSV subject',-33,get_proper_str(options.csvinfo,True))
+        if options.subjectinfo:
+            print '#     %*s -> %*s#' %(-20,'CSV subject',-33,get_proper_str(options.subjectinfo,True))
         if options.continu:
             print '#     %*s -> %*s#' %(-20,'Mode Continue',-33,'on')           
         print '################################################################'
@@ -461,9 +461,9 @@ def parse_args():
     parser.add_option("-p", "--project", dest="project",default=None,
                   help="Project ID on Xnat", metavar="PROJECT_ID")
     #Outside information
-    parser.add_option("-i", "--scaninfo", dest="scaninfo",default=None,
+    parser.add_option("-s", "--scaninfo", dest="scaninfo",default=None,
                   help="CSV file with the following header: xnat_scantype,xnat_series_description,assessor_type_qc,ndar_scantype,image_num_dimensions,slice_acquisition,pulse_sequence,citation,experiment_id,image_file,image_thumbnail_file,data_file2,data_file2_definition. See script header for more information and an example.", metavar="CSV")
-    parser.add_option("-C","--csv", dest="csvinfo",default=None,
+    parser.add_option("-S","--subjectinfo", dest="subjectinfo",default=None,
                   help="CSV file with the following header xnat_subject_id,GUID,study_subject_id,interview_date,interview_age,gender", metavar="CSV")
     #options
     parser.add_option("-c","--continue",dest="continu",action="store_true", default=False,
@@ -503,7 +503,7 @@ if __name__ == '__main__':
                     previous_row.append(row)
         
         #Read from CSV files
-        subject_records=read_csv(options.csvinfo,DEFAULT_SCAN_HEADER)
+        subject_records=read_csv(options.subjectinfo,DEFAULT_SCAN_HEADER)
         
         #Get Xnat info and download files:
         print 'INFO: Querying XNAT project '+options.project+' to download data.'
