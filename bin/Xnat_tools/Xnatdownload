@@ -475,7 +475,7 @@ def Main_display(parser):
     print '#     Download data from XNAT with specific search precised by #'
     print '#     the different options                                    #'
     print '# Parameters :                                                 #'
-    if options=={'update':False, 'oneDir': False,'assessortype': 'all', 'status':None,'qualities':None, 'scantype': 'all', 'selectionScan': None, 'experiment': None, 'withoutS': None, 'missing': False, 'continu': False, 'resourcesA': 'all', 'filetext': None, 'project': None, 'quiet': False, 'withoutA': None, 'selectionAssessor': None, 'directory': None, 'resourcesS': 'all', 'subject': None}:
+    if options=={'update':False, 'oneDir': False,'assessortype': None, 'status':None,'qualities':None, 'scantype': None, 'selectionScan': None, 'experiment': None, 'withoutS': None, 'missing': False, 'continu': False, 'resourcesA': None, 'filetext': None, 'project': None, 'quiet': False, 'withoutA': None, 'selectionAssessor': None, 'directory': None, 'resourcesS': None, 'subject': None}:
         print '#     No Arguments given                                       #'
         print '#     See the help bellow or Use "Xnatdownload" -h             #'
         print '################################################################'
@@ -556,9 +556,9 @@ def parse_args():
     parser.add_option("--sess", dest="experiment",default=None,
                   help="Download resources from the list of experiments given (separate by a coma). Use the options --subj with it. E.G: --exp VUSTP2a,VUSTP3b", metavar="LIST_OF_EXPERIMENTS")
     #for a specific scantype or specific Assessor
-    parser.add_option("-s", "--scantype", dest="scantype",default='all',
+    parser.add_option("-s", "--scantype", dest="scantype",default=None,
                   help="Scan type on Xnat from where you want the resources to be download (E.G : MPRAGE or T1 or MPRAGE,REST). By default : for all the scan.If you set it to 'nan', it will not download from scans.", metavar="SCAN_TYPE")
-    parser.add_option("-a", "--assessortype", dest="assessortype",default='all',
+    parser.add_option("-a", "--assessortype", dest="assessortype",default=None,
                   help="Process type on Xnat from where you want the resources to be download (E.G : fMRIQA or dtiQA or fMRIQA,dtiQA). By default : from all the assessor. If you set it to 'nan', it will not download from processors.", metavar="ASSESSOR_TYPE")
     parser.add_option("--WOS", dest="withoutS",default=None,
                   help="All the scan except the scantype you will give after this options. (E.G : MPRAGE,REST)", metavar="SCAN_TYPE")
@@ -566,17 +566,17 @@ def parse_args():
                   help="All the process except the process you will give after this options. (E.G : fMRIQA,dtiQA)", metavar="PROCESS_TYPE")
     #specific attributes
     parser.add_option("--status", dest="status",default=None,
-                  help="Status of the process you want to download. by default : all the processes.", metavar="RESOURCES")
+                  help="Status of the process you want to download.", metavar="RESOURCES")
     parser.add_option("--quality", dest="qualities",default=None,
-                  help="Quality of the scan you want to download (usable,questionable,unusable). by default : all the scans.", metavar="RESOURCES")
+                  help="Quality of the scan you want to download (usable,questionable,unusable).", metavar="RESOURCES")
     #from a file, get the subject/exp/scan / assessor that you want to download
     parser.add_option("-f", "--filetext", dest="filetext",default=None,
                   help="File .txt with the name of the subject/experiment/scan or subject/experiment/assessor_label from where the resources will be download. Needs to be the label with 'scan:' or 'process:' in front. E.G: scan:proj2-x-subj0001-x-exp1-x-4\nprocess:proj2-x-subj0001-x-exp1-x-4-x-fMRIQA", metavar="FILE_TEXT_PATH")
     #specific Resources
-    parser.add_option("--rs", dest="resourcesS",default='all',
-                  help="Resources you want to download for the scan. E.g : NIFTI,PAR,REC ; by default : all the resources.", metavar="RESOURCES")
-    parser.add_option("--ra", dest="resourcesA",default='all',
-                  help="Resources you want to download for assessor. E.g : NIFTI,PAR,REC ; by default : all the resources.", metavar="RESOURCES")
+    parser.add_option("--rs", dest="resourcesS",default=None,
+                  help="Resources you want to download for the scan. E.g : NIFTI,PAR,REC.", metavar="RESOURCES")
+    parser.add_option("--ra", dest="resourcesA",default=None,
+                  help="Resources you want to download for assessor. E.g : NIFTI,PAR,REC.", metavar="RESOURCES")
     #select only one scan
     parser.add_option("--selectionS", dest="selectionScan",default=None,
                   help="Download from only one selected scan.By default : no selection. E.G : project-x-subject-x-experiment-x-scan ", metavar="SELECTED_SCAN")
