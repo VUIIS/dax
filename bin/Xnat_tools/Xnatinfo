@@ -133,7 +133,7 @@ def check_options(options):
             print 'OPTION ERROR: the path '+folder+' does not exist. Please check the path given.'
             return False
     if not options.project:
-        print 'OPTION ERROR: You didn't set a project ID.'
+        print 'OPTION ERROR: You did not give a project ID.'
         return False
     else:
         try:
