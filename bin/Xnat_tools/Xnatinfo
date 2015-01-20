@@ -182,7 +182,8 @@ def get_proper_str(str_option,end=False):
     else:
         return str_option
 
-from argparse import ArgumentParser
+def parse_args():
+    from argparse import ArgumentParser
     ap = ArgumentParser(prog='Xnatinfo', description="Generate information on a XNAT project.")
     ap.add_argument(dest='project', help='Project ID on XNAT',default=None)
     ap.add_argument("-x","--filetxt",dest='filetxt', help='Path to a txt file to save the report',default=None)
