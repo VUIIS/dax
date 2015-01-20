@@ -322,10 +322,11 @@ def generate_settings(rc,settings_info,status=False):
     return settings_dict
 
 def get_status(settings_info):
-    logger.info('Status on each settings updates:)
+    logger.info('Status on each settings updates:')
+    logger.info('%*s | %*s | %*s | %*s | %s' % (-20,'Project',-10,'dax_update start',-10,'dax_update end',-10,'dax_update_open_jobs start',-10,'dax_update_open_job end'))
     for ps in settings_info:
         for key in sorted(assessor_dict) :
-            logger.info('%*s | %*s | %*s | %*s | %s' % (-20,ps[REDCAP_VAR['project']],-10,ps['dax_update_start_date'],-10,ps['dax_update_end_date'],-10,ps['dax_update_open_end_date'],-10,ps['dax_update_open_start_date']))
+            logger.info('%*s | %*s | %*s | %*s | %s' % (-20,ps[REDCAP_VAR['project']],-10,ps['dax_update_start_date'],-10,ps['dax_update_end_date'],-10,ps['dax_update_open_start_date'],-10,ps['dax_update_open_end_date']))
 
 def check_number_process(project_settings,proc_name):
     proc_name_tags=project_settings[proc_name[8:]+'_proc_name'].split(';')
