@@ -20,9 +20,9 @@ from dax.launcher import UPDATE_LOCK_FILE,OPEN_TASKS_LOCK_FILE
 #Information on gateway/user 
 user=os.environ['USER']
 try:
- gateway = subprocess.check_output('hostname', stderr=subprocess.STDOUT, shell=True).strip()
+    gateway = subprocess.check_output('hostname', stderr=subprocess.STDOUT, shell=True).strip()
 except (CalledProcessError,ValueError):
- gateway=DEFAULT_GATEWAY
+    gateway=DEFAULT_GATEWAY
 
 #Template for Module:
 ModTemplate = Template("""${PROJECT}_${MODNAME}=${MODNAME}(${ARGUMENTS})""")    
@@ -440,18 +440,20 @@ def check_process(project_settings,update_email_dict):
     todayDate=int('{:%Y%m%d%H%M%S}'.format(datetime.now()))
     #dax_update:
     if 'In Process' in project_settings['dax_update_end_date']:
-        startDate_2days=int('{:%Y%m%d%H%M%S}'.project_settings['dax_update_start_date'])+2000000 #adding 2 days
-        startDate_2days2hours=int('{:%Y%m%d%H%M%S}'.project_settings['dax_update_start_date'])+2020000 #adding 2 days - 2 hours
-        startDate_7days=int('{:%Y%m%d%H%M%S}'.project_settings['dax_update_start_date'])+7000000 #adding 7 days
+        startDate=int(project_settings['dax_update_start_date'].replace('-','').replace(':','').replace(' ',''))
+        startDate_2days=startDate+2000000 #adding 2 days
+        startDate_2days2hours=startDate+2020000 #adding 2 days - 2 hours
+        startDate_7days=startDate+7000000 #adding 7 days
         if startDate_2days>todayDate and startDate_2days2hours<todayDate:
             update_email_dict['dax_update still running after 2 days'].append(project_settings[REDCAP_VAR['settingsfile']])
         if startDate_7days>todayDate:
             update_email_dict['dax_update still running after 7 days'].append(project_settings[REDCAP_VAR['settingsfile']])
     #dax_update_open
     if 'In Process' in project_settings['dax_update_open_end_date']:
-        startDate_2days=int('{:%Y%m%d%H%M%S}'.project_settings['dax_update_open_start_date'])+2000000 #adding 2 days
-        startDate_2days2hours=int('{:%Y%m%d%H%M%S}'.project_settings['dax_update_open_start_date'])+2020000 #adding 2 days - 2 hours
-        startDate_7days=int('{:%Y%m%d%H%M%S}'.project_settings['dax_update_open_start_date'])+7000000 #adding 7 days
+        startDate=int(project_settings['dax_update_open_start_date'].replace('-','').replace(':','').replace(' ',''))
+        startDate_2days=startDate+2000000 #adding 2 days
+        startDate_2days2hours=startDate+2020000 #adding 2 days - 2 hours
+        startDate_7days=startDate+7000000 #adding 7 days
         if startDate_2days>todayDate and startDate_2days2hours<todayDate:
             update_email_dict['dax_update_open_jobs still running after 2 days'].append(project_settings[REDCAP_VAR['settingsfile']])
         if startDate_7days>todayDate:
