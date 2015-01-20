@@ -305,11 +305,11 @@ def generate_settings(rc,settings_info):
                 settings_dict[PSettings.filepath]=PSettings
     logger.info('\n')
     
-    email_text=[]
+    email_text=''
     for header,settings_file_list in update_email_dict.items():
         if settings_file_list:
             email_text+=header+': '+','.join(settings_file_list)+'\n'
-    if text:
+    if email_text:
         SUBJECT='Dax_manager ADMIN: updates 2/7days running'
         if ADMIN_EMAIL:
          email(email_text,ADMIN_EMAIL,SUBJECT)
