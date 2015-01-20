@@ -575,8 +575,7 @@ if __name__ == '__main__':
     #If api_key given, use the redcap db:
     if api_key:
         settings_path_list,daxlogsdir_dict,email_dict=generate_settings_REDCap(api_key)
-        check_process(settings_path_list)
-        
+
     if not writeOnly:
         if args.debug:
             logger.debug('Settings file found: ')
