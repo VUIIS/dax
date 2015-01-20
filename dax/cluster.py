@@ -66,7 +66,7 @@ def get_job_mem_used(jobid,diff_days):
     
     return mem
 
-def get_job_walltime_used(jobid,diff_days)
+def get_job_walltime_used(jobid,diff_days):
     walltime=''
     cmd = CMD_GET_JOB_WALLTIME.safe_substitute(**{'numberofdays':diff_days,'jobid':jobid})
     try:
