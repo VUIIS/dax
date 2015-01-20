@@ -185,7 +185,7 @@ def get_proper_str(str_option,end=False):
 def parse_args():
     from argparse import ArgumentParser
     ap = ArgumentParser(prog='Xnatinfo', description="Generate information on a XNAT project.")
-    ap.add_argument(dest='project', help='Project ID on XNAT',default=None)
+    ap.add_argument(dest='project', help='Project ID on XNAT',default=None,required=False)
     ap.add_argument("-x","--filetxt",dest='filetxt', help='Path to a txt file to save the report',default=None)
     return ap
     
@@ -212,7 +212,7 @@ if __name__ == '__main__':
         try:
             xnat = XnatUtils.get_interface()
             
-            report_project(xnat,project,args.filetxt)
+            report_project(xnat,args.project,args.filetxt)
             
         finally:                                        
             xnat.disconnect()
