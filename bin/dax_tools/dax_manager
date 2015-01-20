@@ -306,9 +306,9 @@ def generate_settings(rc,settings_info):
     logger.info('\n')
     
     email_text=[]
-    for key,value in update_email_dict:
-        if value:
-            email_text+=key+': '+','.join(value)+'\n'
+    for header,settings_file_list in update_email_dict.items():
+        if settings_file_list:
+            email_text+=header+': '+','.join(settings_file_list)+'\n'
     if text:
         SUBJECT='Dax_manager ADMIN: updates 2/7days running'
         if ADMIN_EMAIL:
