@@ -250,7 +250,7 @@ def generate_settings(rc,settings_info):
     logger.info('Projects found on Redcap: ')
     if not settings_info:
         logger.info('  - No project found')
-    update_email_dict={'dax_update 2 days':[],'dax_update 7 days':[],'dax_update_open_jobs 2 days':[],'dax_update_open_jobs 7 days':[]}
+    update_email_dict={'dax_update still running after 2 days':[],'dax_update still running after 7 days':[],'dax_update_open_jobs still running after 2 days':[],'dax_update_open_jobs still running after 7 days':[]}
     #Organize the data to in complex dictionaries:
     for project_settings in settings_info:
         logger.info('  -'+project_settings[REDCAP_VAR['project']]+' for settings '+project_settings[REDCAP_VAR['settingsfile']])
