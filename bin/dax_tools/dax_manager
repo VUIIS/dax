@@ -243,7 +243,7 @@ def read_redcap_db(rc):
     else:
         return list()
         
-def generate_settings(rc,settings_info):
+def generate_settings(rc,settings_info,status=False):
     #Variable:
     settings_dict=dict()
     modules_list,processes_list=get_list_modproc(rc)
@@ -320,7 +320,13 @@ def generate_settings(rc,settings_info):
          email(email_text,ADMIN_EMAIL,SUBJECT)
     
     return settings_dict
-    
+
+def get_status(settings_info):
+    logger.info('Status on each settings updates:)
+    for ps in settings_info:
+        for key in sorted(assessor_dict) :
+            logger.info('%*s | %*s | %*s | %*s | %s' % (-20,ps[REDCAP_VAR['project']],-10,ps['dax_update_start_date'],-10,ps['dax_update_end_date'],-10,ps['dax_update_open_end_date'],-10,ps['dax_update_open_start_date']))
+
 def check_number_process(project_settings,proc_name):
     proc_name_tags=project_settings[proc_name[8:]+'_proc_name'].split(';')
     spider_tags=project_settings[proc_name[8:]+'_spider_path'].split(';')
@@ -453,10 +459,10 @@ def check_process(project_settings,update_email_dict):
     if 'In Process' in project_settings['dax_update_end_date']:
         startDate=int(project_settings['dax_update_start_date'].replace('-','').replace(':','').replace(' ',''))
         startDate_2days=startDate+2000000 #adding 2 days
-        startDate_2days4hours=startDate+2040000 #adding 2 days - 4 hours
+        startDate_2days2hours=startDate+2020000 #adding 2 days - 2 hours
         startDate_7days=startDate+7000000 #adding 7 days
-        print startDate_2days,todayDate,startDate_2days4hours
-        if startDate_2days <= todayDate <= startDate_2days4hours:
+        print startDate_2days,todayDate,startDate_2days2hours
+        if startDate_2days <= todayDate <= startDate_2days2hours:
             update_email_dict['dax_update still running after 2 days'].append(project_settings[REDCAP_VAR['project']])
         if startDate_7days <= todayDate:
             update_email_dict['dax_update still running after 7 days'].append(project_settings[REDCAP_VAR['project']])
@@ -464,9 +470,9 @@ def check_process(project_settings,update_email_dict):
     if 'In Process' in project_settings['dax_update_open_end_date']:
         startDate=int(project_settings['dax_update_open_start_date'].replace('-','').replace(':','').replace(' ',''))
         startDate_2days=startDate+2000000 #adding 2 days
-        startDate_2days4hours=startDate+2040000 #adding 2 days - 4 hours
+        startDate_2days2hours=startDate+2020000 #adding 2 days - 2 hours
         startDate_7days=startDate+7000000 #adding 7 days
-        if startDate_2days <= todayDate <= startDate_2days4hours:
+        if startDate_2days <= todayDate <= startDate_2days2hours:
             update_email_dict['dax_update_open_jobs still running after 2 days'].append(project_settings[REDCAP_VAR['project']])
         if startDate_7days <= todayDate:
             update_email_dict['dax_update_open_jobs still running after 7 days'].append(project_settings[REDCAP_VAR['project']])
@@ -476,7 +482,7 @@ def check_process(project_settings,update_email_dict):
 ####################################################################################
 #####################           Principal functions            #####################
 ####################################################################################
-def generate_settings_REDCap(api_key):
+def generate_settings_REDCap(api_key,status=False):
     """Extract information from REDCap and generate the settings file"""
     settings_path_list=list()
     daxlogsdir_dict=dict()
@@ -490,18 +496,22 @@ def generate_settings_REDCap(api_key):
     
     #Extract the information about the settings from redcap
     settings_info=read_redcap_db(rc)
-    #Generate information for the settings
-    settings_dict=generate_settings(rc,settings_info)
-    #For each settings in the dict:
-    for filepath,setting in settings_dict.items():
-        #Ordering project:
-        setting.set_order(ordering_project(setting,settings_info))
-        #Write the settings:
-        logger.debug(' -> Writing settings : '+filepath)
-        write_settings(setting)
-        settings_path_list.append(setting.filepath)
-        daxlogsdir_dict[filepath]=setting.dax_logs_path
-        email_dict[filepath]=setting.get_email_list()
+    #Status:
+    if status:
+        get_status(settings_info)
+    else:
+        #Generate information for the settings
+        settings_dict=generate_settings(rc,settings_info)
+        #For each settings in the dict:
+        for filepath,setting in settings_dict.items():
+            #Ordering project:
+            setting.set_order(ordering_project(setting,settings_info))
+            #Write the settings:
+            logger.debug(' -> Writing settings : '+filepath)
+            write_settings(setting)
+            settings_path_list.append(setting.filepath)
+            daxlogsdir_dict[filepath]=setting.dax_logs_path
+            email_dict[filepath]=setting.get_email_list()
         
     return settings_path_list,daxlogsdir_dict,email_dict
         
@@ -542,6 +552,7 @@ def parse_args():
     ap.add_argument('--settings',dest='settings', help='List of Settings Path',default=None)
     ap.add_argument('--daxlogsdir',dest='daxlogsdir', help='Directory for dax logs file.Default: /tmp',default='/tmp')
     ap.add_argument('--writeonly', dest='writeonly', action='store_true',help='Write the settings from REDCap only')
+    ap.add_argument('--status', dest='status', action='store_true',help='Status on the updates')
     ap.add_argument('--email', dest='email', help='Email address to send errors.',default=None)
     ap.add_argument('--logfile',dest='logfile', help='Logs file path if needed.',default=None)
     ap.add_argument('--debug', dest='debug', action='store_true',help='Print DEBUG information.')
@@ -550,7 +561,6 @@ def parse_args():
 if __name__ == '__main__':
     # Arguments:
     args = parse_args()
-    writeOnly = args.writeonly
     if args.email:
         email_add_list = args.email.split(',')
     else:
@@ -583,9 +593,11 @@ if __name__ == '__main__':
     
     #If api_key given, use the redcap db:
     if api_key:
-        settings_path_list,daxlogsdir_dict,email_dict=generate_settings_REDCap(api_key)
+        settings_path_list,daxlogsdir_dict,email_dict=generate_settings_REDCap(api_key,args.status)
 
-    if not writeOnly:
+    if args.writeonly or args.status:
+        pass
+    else:
         if args.debug:
             logger.debug('Settings file found: ')
             for filepath in settings_path_list:
