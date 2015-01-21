@@ -511,7 +511,7 @@ def list_project_assessors(intf, projectid):
     post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
     assessor_list = intf._get_json(post_uri)
     
-    subj_list = list_subjs(intf, projectid)
+    subj_list = list_subjects(intf, projectid)
     subj_id2lab = dict((subj['ID'], subj['label']) for subj in subj_list)
 
     for a in assessor_list:
