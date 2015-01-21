@@ -278,7 +278,7 @@ def Main_display(parser):
                 print '#     %*s -> %*s#' %(-20,'QA Status',-33,get_proper_str(options.qastatus))
         
         if options.resource or options.size:
-            print '#     %*s#' %(-55,'--Resource Options--')
+            print '#     %*s#' %(-57,'--Resource Options--')
             if options.resource:
                 print '#     %*s -> %*s#' %(-20,'Types',-33,get_proper_str(options.resource))
             if options.size:
