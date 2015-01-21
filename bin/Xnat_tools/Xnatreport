@@ -36,7 +36,7 @@ def setup_info_logger(name,logfile):
 ########################################################################################################    
 def report_project(xnat,project):
     logger.info('Report for Projects '+project)
-    logger.info('Subject,Experiment,Scan/assessor_label,Type/Process,Quality/Status,Resources')
+    logger.info('Object_type,Subject,Experiment,Scan/assessor_label,Type/Process,Quality/Status,Resources')
     #Extract list of scan:
     Scan_list=XnatUtils.list_project_scans(xnat, project)
     #Extract list of assessor:
@@ -49,13 +49,13 @@ def report_project(xnat,project):
         slist=[s for s in Scan_list if s['subject_label']==subject]
         for scan in slist:
             SResources='/'.join([r['label'] for r in XnatUtils.list_scan_resources(xnat,project,scan['subject_label'],scan['session_label'],scan['ID'])])
-            logger.info(','.join([scan['subject_label'],scan['session_label'],scan['ID'],scan['type'],scan['quality'],SResources]))
+            logger.info(','.join(['scan',scan['subject_label'],scan['session_label'],scan['ID'],scan['type'],scan['quality'],SResources]))
                                    
         #ASSESSOR
         alist=[a for a in Assessor_list if a['label'].split('-x-')[1]==subject]
         for assessor in alist:
             AResources='/'.join([r['label'] for r in XnatUtils.list_assessor_out_resources(xnat,project,assessor['label'].split('-x-')[1],assessor['session_label'],assessor['label'])])
-            logger.info(','.join([assessor['label'].split('-x-')[1],assessor['session_label'],assessor['label'],assessor['proctype'],assessor['qcstatus'],AResources]))
+            logger.info(','.join(['assessor',assessor['label'].split('-x-')[1],assessor['session_label'],assessor['label'],assessor['proctype'],assessor['qcstatus'],AResources]))
 
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
