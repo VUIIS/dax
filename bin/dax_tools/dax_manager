@@ -14,7 +14,7 @@ from email.mime.text import MIMEText
 from datetime import datetime
 
 import dax
-from dax import XnatUtils,ADMIN_EMAIL,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY_DAX,SMTP_FROM,SMTP_HOST,SMTP_PASS
+from dax import XnatUtils,ADMIN_EMAIL,RESULTS_DIR,DEFAULT_GATEWAY,REDCAP_VAR,API_URL,API_KEY_DAX,SMTP_FROM,SMTP_HOST,SMTP_PASS,DEFAULT_EMAIL_OPTS
 from dax.launcher import UPDATE_LOCK_FILE,OPEN_TASKS_LOCK_FILE
 
 #Information on gateway/user 
@@ -63,7 +63,7 @@ myLauncher = Launcher(proj_proc,proj_mod,priority_project=p_order,job_email=emai
 
 #Class for settings:
 class Settings_File:
-    def __init__(self,filepath,tmpdir='/tmp/',email=None,email_opts='a',dax_logs_path='/tmp/',queue_limit=200):
+    def __init__(self,filepath,tmpdir='/tmp/',email=None,email_opts=DEFAULT_EMAIL_OPTS,dax_logs_path='/tmp/',queue_limit=200):
         self.filepath = filepath
         #email
         if isinstance(email, list):
