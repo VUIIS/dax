@@ -149,7 +149,11 @@ def filter_subj_sess(obj_list,options):
     obj_list_sess=[]
     #Variables:
     subjects=get_option_list(options.subject)
+    if subjects=='all':
+        subjects=None
     sessions=get_option_list(options.experiment)
+    if sessions=='all':
+        sessions=None
     if subjects and sessions:
         obj_list_sess=filter(lambda x: x['subject_label'] in subjects and x['session_label'] in sessions, obj_list)
     elif subjects and not sessions:
