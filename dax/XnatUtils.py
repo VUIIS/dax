@@ -506,6 +506,7 @@ def list_project_assessors(intf, projectid):
             anew['procstatus'] = a['fs:fsdata/procstatus']
             anew['qcstatus'] = a['fs:fsdata/validation/status']
             anew['proctype'] = 'FreeSurfer'
+            anew['version'] = ''
             anew['xsiType'] = a['xsiType']
             new_list.append(anew)
 
@@ -516,7 +517,7 @@ def list_project_assessors(intf, projectid):
     post_uri += '&columns=ID,label,URI,xsiType,project'
     post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
     post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
-    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
+    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status,proc:genprocdata/procversion'
     assessor_list = intf._get_json(post_uri)
     
     subj_list = list_subjects(intf, projectid)
@@ -541,6 +542,7 @@ def list_project_assessors(intf, projectid):
             anew['procstatus'] = a['proc:genprocdata/procstatus']
             anew['proctype'] = a['proc:genprocdata/proctype']
             anew['qcstatus'] = a['proc:genprocdata/validation/status']
+            anew['version'] = a['proc:genprocdata/procversion']
             anew['xsiType'] = a['xsiType']
             new_list.append(anew)
             
