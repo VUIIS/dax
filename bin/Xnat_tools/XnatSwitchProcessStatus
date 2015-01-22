@@ -336,7 +336,7 @@ def Main_display(parser):
     print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
     print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
     print '# Usage:                                                       #'
-    print '#     Change assessor job/quality control status 			  #'
+    print '#     Change assessor job/quality control status               #'
     print '# Parameters :                                                 #'
     if options=={'status': None, 'qastatus': False, 'scanNprocesses': None, 'sessionNprocesses': None, 'processes': None, 'force': False, 'txtfile': None, 'project': None, 'session': None, 'deleteR': False, 'check_status': None, 'select': None, 'subject': None}:
     	print '#     No Arguments given                                       #'
