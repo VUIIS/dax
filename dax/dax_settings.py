@@ -83,7 +83,7 @@ uname -a # outputs node info (name, date&time, type, OS, etc)
 ${job_cmds}
 """)
 #Default EMAIL options:
-DEFAULT_EMAIL_OPTS='ALL'
+DEFAULT_EMAIL_OPTS='FAIL'
 
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
