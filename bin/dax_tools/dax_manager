@@ -151,7 +151,7 @@ class Settings_File:
     
     def get_email_opts(self):
         if self.email_opts=='':
-            return 'a'
+            return DEFAULT_EMAIL_OPTS
         else:
             return self.email_opts
         
