@@ -267,6 +267,7 @@ def list_sessions(intf, projectid=None, subjectid=None):
             if (projectid != None):
                 sess['project'] = projectid
             
+            sess['type'] = sess_type.split('xnat:')[1].split('session')[0].upper()
             sess['project_id'] = sess['project']
             sess['project_label'] = sess['project']
             sess['subject_id'] = sess['subject_ID'] 
@@ -358,7 +359,7 @@ def list_project_scans(intf, projectid, include_shared=True):
         snew['project_label'] = projectid
         snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
         snew['subject_label'] = s['subject_label']
-        snew['session_type'] = s['xsiType']
+        snew['session_type'] = s['xsiType'].split('xnat:')[1].split('Session')[0].upper()
         snew['session_id'] = s['ID']
         snew['session_label'] = s['label']
         snew['session_uri'] = s['URI']
@@ -398,7 +399,7 @@ def list_project_scans(intf, projectid, include_shared=True):
             snew['project_label'] = projectid
             snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
             snew['subject_label'] = s['subject_label']
-            snew['session_type'] = s['xsiType']
+            snew['session_type'] = s['xsiType'].split('xnat:')[1].split('Session')[0].upper()
             snew['session_id'] = s['ID']
             snew['session_label'] = s['label']
             snew['session_uri'] = s['URI']
@@ -471,7 +472,11 @@ def list_assessors(intf, projectid, subjectid, experimentid):
 
 def list_project_assessors(intf, projectid):
     new_list = []
-            
+    
+    #Get the sessions list to get the modality:
+    session_list=list_sessions(intf, projectid)
+    sess_id2mod=dict((sess['session_id'], sess['type']) for sess in session_list)
+    
     # First get FreeSurfer
     post_uri = '/REST/archive/experiments'
     post_uri += '?project='+projectid
@@ -495,6 +500,7 @@ def list_project_assessors(intf, projectid):
             anew['project_label'] = projectid
             anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
             anew['subject_label'] = a['subject_label']
+            anew['session_type'] = sess_id2mod[a['session_ID']]
             anew['session_id'] = a['session_ID']
             anew['session_label'] = a['session_label']
             anew['procstatus'] = a['fs:fsdata/procstatus']
@@ -528,13 +534,14 @@ def list_project_assessors(intf, projectid):
             anew['project_id'] = projectid
             anew['project_label'] = projectid
             anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+            anew['subject_label'] = subj_id2lab[anew['subject_id']]
+            anew['session_type'] = sess_id2mod[a['session_ID']]
             anew['session_id'] = a['session_ID']
             anew['session_label'] = a['session_label']
             anew['procstatus'] = a['proc:genprocdata/procstatus']
             anew['proctype'] = a['proc:genprocdata/proctype']
             anew['qcstatus'] = a['proc:genprocdata/validation/status']
             anew['xsiType'] = a['xsiType']
-            anew['subject_label'] = subj_id2lab[anew['subject_id']]
             new_list.append(anew)
             
     return sorted(new_list, key=lambda k: k['label'])
