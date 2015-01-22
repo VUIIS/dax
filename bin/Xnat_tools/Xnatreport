@@ -17,7 +17,7 @@ from email.MIMEMultipart import MIMEMultipart
 from email import Encoders
 import smtplib
 
-DEFAULT_CSV_LIST=['object_type','project_id','subject_label','session_type','session_label', 'as_label', 'as_type', 'as_description', 'resource','fpath']
+DEFAULT_CSV_LIST=['object_type','project_id','subject_label','session_type','session_label', 'as_label', 'as_type', 'as_description','quality','resource','fpath']
 
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
@@ -51,13 +51,13 @@ def report_project(xnat,project):
         slist=[s for s in Scan_list if s['subject_label']==subject]
         for scan in slist:
             SResources='/'.join([r['label'] for r in XnatUtils.list_scan_resources(xnat,project,scan['subject_label'],scan['session_label'],scan['ID'])])
-            logger.info(','.join(['scan',scan['subject_label'],scan['session_type'],scan['session_label'],scan['ID'],scan['type'],scan['quality'],SResources]))
+            logger.info(','.join(['scan',scan['subject_label'],scan['session_type'],scan['session_label'],scan['ID'],scan['type'],scan['series_description'],scan['quality'],SResources]))
                                    
         #ASSESSOR
         alist=[a for a in Assessor_list if a['subject_label']==subject]
         for assessor in alist:
             AResources='/'.join([r['label'] for r in XnatUtils.list_assessor_out_resources(xnat,project,assessor['subject_label'],assessor['session_label'],assessor['label'])])
-            logger.info(','.join(['assessor',assessor['subject_label'],assessor['session_type'],assessor['session_label'],assessor['label'],assessor['proctype'],assessor['qcstatus'],AResources]))
+            logger.info(','.join(['assessor',assessor['subject_label'],assessor['session_type'],assessor['session_label'],assessor['label'],assessor['proctype'],assessor['version'],assessor['qcstatus'],AResources]))
 
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
