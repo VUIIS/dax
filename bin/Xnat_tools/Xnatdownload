@@ -67,11 +67,11 @@ def write_cmd_file(cmd_file,overwrite):
     f.write(cmdstr+'\n')
     f.close()
 
-def read_txtfile(reportfile,options):
+def read_txtfile(options):
     scan_list=list()
     assessor_list=list()
-    if os.path.exists(reportfile):
-        with open(reportfile,'rb') as csvfileread:
+    if os.path.exists(options.csvfile):
+        with open(options.csvfile,'rb') as csvfileread:
             csvreader = csv.reader(csvfileread,delimiter=',')
             for row in csvreader:
                 if row[0]=='scan':
@@ -85,7 +85,7 @@ def read_txtfile(reportfile,options):
             options.resourcesA=','.join(set([a['resource'] for a in assessor_list]))
             logger.info('WARNING: resources for assessor not set. Using resources found in csvfile.')
     else:
-        logger.info('ERROR: file '+reportfile+' not found. Check if the file exists.')
+        logger.info('ERROR: file '+options.csvfile+' not found. Check if the file exists.')
     return scan_list,assessor_list,options
 
 def read_report(reportfile):
@@ -120,7 +120,7 @@ def extract_information(xnat,directory,options):
     old_rows=list()
     last_download=None
     if options.csvfile:
-        scan_list,assessor_list,options=read_txtfile(options.csvfile,options)
+        scan_list,assessor_list,options=read_txtfile(options)
     else:
         #check project_list:
         projectList = check_projects(get_option_list(options.project))
