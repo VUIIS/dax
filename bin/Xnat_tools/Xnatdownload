@@ -339,7 +339,7 @@ def download_data_xnat(options,directory,xnat,proj_subj_list,scan_list,assessor_
                 shutil.rmtree(scanpath)
             #Create the line for the report
             row=['scan',scan['project_id'],scan['subject_label'],scan['session_type'],scan['session_label'],scan['ID'],scan['type'],scan['series_description'],scan['quality']]
-            download_scan(scanpath,xnat,scan,ScanResources,csvwriter,row,options.oneDir,last_download)
+            download_scan(scanpath,xnat,scan,ScanResources,csvwriter,copy.deepcopy(row),options.oneDir,last_download)
         ##ASSESSOR##
         for assessor in extract_obj_one_subject(project,subject,assessor_list):
             logger.info('  +proc '+assessor['label'])
@@ -348,7 +348,7 @@ def download_data_xnat(options,directory,xnat,proj_subj_list,scan_list,assessor_
                 shutil.rmtree(procpath)
             #Create the line for the report
             row=['assessor',assessor['project_id'],assessor['subject_label'],assessor['session_type'],assessor['session_label'],assessor['label'],assessor['proctype'],assessor['procstatus'],assessor['qcstatus']]
-            download_assessor(procpath,xnat,assessor,ProcResources,csvwriter,row,options.oneDir,last_download)
+            download_assessor(procpath,xnat,assessor,ProcResources,csvwriter,copy.deepcopy(row),options.oneDir,last_download)
 ####### SCANS #######      
 def download_scan(directory,xnat,scan_dict,resources_list,csvwriter,row,oneDir,last_download):
     scan=xnat.select('/project/'+scan_dict['project_id']+'/subjects/'+scan_dict['subject_label']+'/experiments/'+scan_dict['session_label']+'/scans/'+scan_dict['ID'])
