@@ -42,7 +42,7 @@ def setup_info_logger(name,logfile):
 def get_option_list(option):
     if not option:
         return None
-    elif option=='all':
+    elif option.lower()=='all':
         return 'all'
     elif option=='nan':
         return None
@@ -178,6 +178,8 @@ def filter_scans(obj_list,options):
         obj_list=filter(lambda x: x['type'] not in without, obj_list)
     if qualities and qualities!='all':
         obj_list=filter(lambda x: x['quality'] in qualities, obj_list)
+    if without=='all':
+         return list()
     return obj_list
 
 def filter_assessors(obj_list,options):
@@ -196,6 +198,8 @@ def filter_assessors(obj_list,options):
         obj_list=filter(lambda x: x['procstatus'] in status, obj_list)
     if qcstatus and qcstatus!='all':
         obj_list=filter(lambda x: x['qcstatus'] in status, obj_list)
+    if without=='all':
+         return list()
     return obj_list
 
 def extract_obj_one_subject(project,subject,obj_list):
