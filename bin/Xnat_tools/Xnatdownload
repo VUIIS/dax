@@ -386,6 +386,7 @@ def download_assessor(directory,xnat,assessor_dict,resources_list,csvwriter,row,
             download_resource(directory,xnat,assessor.out_resource(ResourceName),ResourceName,csvwriter,row,oneDir,assessor_dict['label']+'-x-'+ResourceName,last_download)
 ####### RESOURCES #######                         
 def download_resource(directory,xnat,Resource,Resource_label,csvwriter,row,oneDir,label=None,last_download=None):
+    row=copy.deepcopy(row) #NOT KEEPING NEXT CHANGES
     if not Resource.exists(): 
         logger.info('   >Resource '+Resource_label+': WARNING -- no resource '+Resource_label)
     else:  
