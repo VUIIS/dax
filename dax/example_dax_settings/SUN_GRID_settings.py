@@ -1,3 +1,5 @@
+#Example for SUN GRID ENGINE pbs:
+
 import os
 from string import Template 
 from stat import S_IXUSR, ST_MODE
@@ -48,10 +50,11 @@ CMD_GET_JOB_STATUS=Template("""qstat -u $USER | grep ${jobid} | awk {'print $5'}
 RUNNING_STATUS='r'
 QUEUE_STATUS='qw'
 #Command to get the walltime and memory used by the jobs at the end of the job
-CMD_GET_JOB_DONE_INFO=Template("""qstat""")
-
-
+#Command to get the walltime and memory used by the jobs at the end of the job: each command need to return the value as a string.
+CMD_GET_JOB_MEMORY=Template("""qstat""") #not define
+CMD_GET_JOB_WALLTIME=Template("""qstat""") #not define
 #Template for your PBS
+JOB_EXTENSION_FILE='.pbs' 
 PBS_TEMPLATE = Template("""#!/bin/bash
 #$ -q clusterjob
 #$ -l mem_free=${pbs_memory}M
@@ -65,6 +68,8 @@ export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${pbs_ppn} #set the variable to use 
 uname -a # outputs node info (name, date&time, type, OS, etc)
 ${pbs_cmds}
 """)
+#Default EMAIL options:
+DEFAULT_EMAIL_OPTS='bae'
 
 #Path for results from job by default.
 #Root directory for jobs
