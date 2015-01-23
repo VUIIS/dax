@@ -140,8 +140,8 @@ def extract_information(xnat,directory,options):
             pass
         else:
             #filter by former download:
-            scan_list=filter(lambda x: need_download_scan(x,dl_scan,get_option_list(options.resourcesS)), scan_list)
-            assessor_list=filter(lambda x: need_download_assessor(x,dl_assessor,get_option_list(options.resourcesA)), assessor_list)
+            scan_list=filter(lambda x: need_download(xnat,x,dl_scan,get_option_list(options.resourcesS)), scan_list)
+            assessor_list=filter(lambda x: need_download(xnat,x,dl_assessor,get_option_list(options.resourcesA)), assessor_list)
             last_download=None #We don't update the one downloaded already
     return scan_list,assessor_list,last_download,old_rows,options
 
@@ -206,25 +206,27 @@ def filter_assessors(obj_list,options):
 def extract_obj_one_subject(project,subject,obj_list):
     return filter(lambda x: x['subject_label']==subject and x['project_id']==project, obj_list)
 
-def need_download_scan(scan,dl_scan,res_list):
-    if dl_scan:
-        label='-x-'.join([scan['project_id'],scan['subject_label'],scan['session_label'],scan['ID']])
-        if label in dl_scan.keys() and set(dl_scan[label])==set(res_list):
+def need_download(xnat,obj,dl_obj,res_list):
+    if dl_obj:
+        if obj['object_type']=='scan':
+            label='-x-'.join([scan['project_id'],scan['subject_label'],scan['session_label'],scan['ID']])
+        elif obj['object_type']=='assessor':
+            label=assessor['label']
+        #get the 
+        if res_list.lower()=='all': res_list=get_label_list(xnat,obj)
+        if label in dl_obj.keys() and set(dl_obj[label])==set(res_list):
             return False
         else:
             return True
     else:
         return True
-
-def need_download_assessor(assessor,dl_assessor,res_list):
-    if dl_assessor:
-        label=assessor['label']
-        if label in dl_assessor.keys() and set(dl_assessor[label])==set(res_list):
-            return False
-        else:
-            return True
-    else:
-        return True
+        
+def get_label_list(xnat,obj):
+    if obj['object_type']=='scan':
+        list_resources=[r['label'] for r in XnatUtils.list_scan_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['ID'])
+    elif obj['object_type']=='assessor':
+        list_resources=[r['label'] for r in XnatUtils.list_assessor_out_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['label'])
+    return list_resources
 
 ########################################## Function related to XNAT ##########################################   
 def get_resource_modified(xnat,resource):    ###### Not working to get the modified time that is missing in the xml file, should be added soon #######
