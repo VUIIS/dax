@@ -10,6 +10,8 @@ USER_HOME = expanduser("~")
     1) Submission System (by default SLURM) and script file:
 You can customize the command for your Submission System.
 
+ADMIN_EMAIL           --> admin for dax_manager 
+
 CMD_SUBMIT            --> command to submit jobs (default: sbatch)
 PREFIX_JOBID          --> string before the job ID in the output of the CMD_SUBMIT
 SUFFIX_JOBID          --> string after the job ID in the output of the CMD_SUBMIT
@@ -46,6 +48,8 @@ REDCAP_VAR   --> dictionary to set up the general variables for the project
 PS: In this file, all variable default are read if the .bashrc or your configuration file doesn't have the environment variable
 set.
 """
+#### Admin email for dax_manager ####
+ADMIN_EMAIL=[]
 
 #### Default value set by users ####
 #Function for PBS cluster jobs:
@@ -61,7 +65,7 @@ RUNNING_STATUS='R'
 QUEUE_STATUS='Q'
 #Command to get the walltime and memory used by the jobs at the end of the job
 CMD_GET_JOB_DONE_INFO=Template("""sacct -j ${jobid} --format JobID,TotalCPU,MaxRss --noheader""")
-CMD_GET_JOB_MEMORY=Template("""sacct -j ${jobid}.batch --format JobID,TotalCPU,MaxRss --noheader | awk '{print $3}'""")
+CMD_GET_JOB_MEMORY=Template("""sacct -j ${jobid}.batch --format JobID,TotalCPU,MaxRss --noheader | awk '{print $3+0}'""")
 CMD_GET_JOB_WALLTIME=Template("""sacct -j ${jobid}.batch --format JobID,TotalCPU,MaxRss --noheader | awk '{print $2}'""")
 #Template for your script file to submit a job
 JOB_EXTENSION_FILE='.slurm' 
@@ -79,7 +83,7 @@ uname -a # outputs node info (name, date&time, type, OS, etc)
 ${job_cmds}
 """)
 #Default EMAIL options:
-DEFAULT_EMAIL_OPTS='ALL'
+DEFAULT_EMAIL_OPTS='FAIL'
 
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
