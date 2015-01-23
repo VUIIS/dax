@@ -223,9 +223,9 @@ def need_download(xnat,obj,dl_obj,res_list):
         
 def get_label_list(xnat,obj):
     if obj['object_type']=='scan':
-        list_resources=[r['label'] for r in XnatUtils.list_scan_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['ID'])
+        list_resources=[r['label'] for r in XnatUtils.list_scan_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['ID'])]
     elif obj['object_type']=='assessor':
-        list_resources=[r['label'] for r in XnatUtils.list_assessor_out_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['label'])
+        list_resources=[r['label'] for r in XnatUtils.list_assessor_out_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['label'])]
     return list_resources
 
 ########################################## Function related to XNAT ##########################################   
