@@ -208,25 +208,20 @@ def extract_obj_one_subject(project,subject,obj_list):
 
 def need_download(xnat,obj,dl_obj,res_list):
     if dl_obj:
-        if obj['object_type']=='scan':
+        if 'series_description' in obj.keys():
             label='-x-'.join([obj['project_id'],obj['subject_label'],obj['session_label'],obj['ID']])
-        elif obj['object_type']=='assessor':
+            if res_list.lower()=='all':
+                res_list=[r['label'] for r in XnatUtils.list_scan_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['ID'])]
+        elif 'proctype' in obj.keys():
             label=obj['label']
-        #get the 
-        if res_list.lower()=='all': res_list=get_label_list(xnat,obj)
+            if res_list.lower()=='all':
+                res_list=[r['label'] for r in XnatUtils.list_assessor_out_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['label'])]
         if label in dl_obj.keys() and set(dl_obj[label])==set(res_list):
             return False
         else:
             return True
     else:
         return True
-        
-def get_label_list(xnat,obj):
-    if obj['object_type']=='scan':
-        list_resources=[r['label'] for r in XnatUtils.list_scan_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['ID'])]
-    elif obj['object_type']=='assessor':
-        list_resources=[r['label'] for r in XnatUtils.list_assessor_out_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['label'])]
-    return list_resources
 
 ########################################## Function related to XNAT ##########################################   
 def get_resource_modified(xnat,resource):    ###### Not working to get the modified time that is missing in the xml file, should be added soon #######
