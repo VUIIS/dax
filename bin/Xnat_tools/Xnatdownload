@@ -209,9 +209,9 @@ def extract_obj_one_subject(project,subject,obj_list):
 def need_download(xnat,obj,dl_obj,res_list):
     if dl_obj:
         if obj['object_type']=='scan':
-            label='-x-'.join([scan['project_id'],scan['subject_label'],scan['session_label'],scan['ID']])
+            label='-x-'.join([obj['project_id'],obj['subject_label'],obj['session_label'],obj['ID']])
         elif obj['object_type']=='assessor':
-            label=assessor['label']
+            label=obj['label']
         #get the 
         if res_list.lower()=='all': res_list=get_label_list(xnat,obj)
         if label in dl_obj.keys() and set(dl_obj[label])==set(res_list):
@@ -407,8 +407,9 @@ def oneDir_download(xnat,directory,Resource,Resource_label,label,csvwriter,row,l
         #Add fpath
         row.append(resPath)
         if not os.path.exists(resPath) or (last_download and last_download<int(get_resource_modified(xnat,Resource))):
-            dl_files(Resource,directory,csvwriter,row)
+            dl_files(Resource,directory)
             os.system('mv '+os.path.join(directory,Resource_label)+' '+resPath)
+            if csvwriter: csvwriter.writerow(row) 
         else:
             logger.info('   >Resource '+Resource_label+': Skipping resource. Up-to-date.')
     else:
@@ -416,12 +417,11 @@ def oneDir_download(xnat,directory,Resource,Resource_label,label,csvwriter,row,l
         respath=os.path.join(directory,label+'__'+Resource.files().get()[0])
         row.append(respath)
         if not os.path.exists(respath) or (last_download and last_download<int(get_resource_modified(xnat,Resource))):
-            dl_file(Resource,respath,csvwriter,row)
+            dl_file(Resource,respath)
+            if csvwriter: csvwriter.writerow(row)
         else:
             logger.info('   >Resource '+Resource_label+': Skipping resource. Up-to-date.')
-    #write the new line
-    if csvwriter:
-        csvwriter.writerow(row)     
+    
 def default_download(xnat,directory,Resource,Resource_label,csvwriter,row,last_download):
     #Add Resource label
     row.append(Resource_label)
@@ -429,14 +429,13 @@ def default_download(xnat,directory,Resource,Resource_label,csvwriter,row,last_d
     Res_path=os.path.join(directory,Resource_label)
     row.append(Res_path)
     if not os.path.exists(Res_path) or (last_download and last_download<int(get_resource_modified(xnat,Resource))) or not os.listdir(Res_path):
-        dl_files(Resource,directory,csvwriter,row)
+        dl_files(Resource,directory)
+        if csvwriter: csvwriter.writerow(row)
     else:
         logger.info('   >Resource '+Resource_label+': Skipping resource. Up-to-date.')
-    #write the new line
-    if csvwriter:
-        csvwriter.writerow(row)     
+        
 ####### FILES ####### 
-def dl_files(Resource,directory,csvwriter,row):
+def dl_files(Resource,directory):
     #if more than one file:
     if len(Resource.files().get())>1:
         #create a dir with the resourcename:
@@ -458,8 +457,9 @@ def dl_files(Resource,directory,csvwriter,row):
         if os.path.join(directory,Input_res_label_fname)[-3:]=='zip':
             os.system('unzip -o -d '+directory+' '+os.path.join(Outputdir,Input_res_label_fname)+" > /dev/null")
             os.remove(os.path.join(Outputdir,Input_res_label_fname))
+            
 #for only one file
-def dl_file(Resource,fpath,csvwriter,row):
+def dl_file(Resource,fpath):
     Resource.file(Resource.files().get()[0]).get(fpath)
 
 ########################################## DOWNLOAD SPECIFIC SCAN/ASSESSOR ##########################################
