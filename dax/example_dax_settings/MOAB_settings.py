@@ -1,4 +1,4 @@
-# Example of OLD settings used at Vanderbilt for PBS system:
+# Example for MOAB PBS:
 
 import os
 from string import Template 
