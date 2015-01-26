@@ -210,11 +210,11 @@ def need_download(xnat,obj,dl_obj,res_list):
     if dl_obj:
         if 'series_description' in obj.keys():
             label='-x-'.join([obj['project_id'],obj['subject_label'],obj['session_label'],obj['ID']])
-            if res_list.lower()=='all':
+            if isinstance(res_list,str) and res_list.lower()=='all':
                 res_list=[r['label'] for r in XnatUtils.list_scan_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['ID'])]
         elif 'proctype' in obj.keys():
             label=obj['label']
-            if res_list.lower()=='all':
+            if isinstance(res_list,str) and res_list.lower()=='all':
                 res_list=[r['label'] for r in XnatUtils.list_assessor_out_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['label'])]
         if label in dl_obj.keys() and set(dl_obj[label])==set(res_list):
             return False
@@ -593,9 +593,9 @@ def Main_display(parser):
                 if options.resourcesA:
                     print '#     %*s -> %*s#' %(-20,'Resources Process',-33,get_proper_str(options.resourcesA))
                 if options.status:
-                    print '#     %*s -> %*s#' %(-20,'Status',-33,get_proper_str(options.status))
+                    print '#     %*s -> %*s#' %(-20,'Job Status',-33,get_proper_str(options.status))
                 if options.qcstatus:
-                    print '#     %*s -> %*s#' %(-20,'Status',-33,get_proper_str(options.qcstatus))
+                    print '#     %*s -> %*s#' %(-20,'QC Status',-33,get_proper_str(options.qcstatus))
         if options.oneDir:
             print '#     %*s -> %*s#' %(-20,'No sub-dir mode',-33,'on')
         if options.overwrite:
@@ -618,11 +618,27 @@ def get_proper_str(str_option,end=False):
             return str_option[:29]+'...'
     else:
         return str_option
+        Download resources from Xnat
+        
+def get_usage():
+    usage="usage: %prog [options] \n"
+    usage+="What is the script doing : \n"
+    usage+="   *Download filtered data from XNAT to your local computer using the different options.\n\n"
+    #Example
+    usage+="Examples:\n"
+    usage+="   *Download all project: Xnatdownload -p PID -d /tmp/downloadPID -s all --rs all -a all --ra all\n"
+    usage+="   *Download NIFTI for T1,fMRI: Xnatdownload -p PID -d /tmp/downloadPID -s T1,fMRI --rs NIFTI\n"
+    usage+="   *Download only the outlogs for fMRIQA assessors that failed: Xnatdownload -p PID -d /tmp/downloadPID -a fMRIQA --status JOB_FAILED --ra OUTLOG\n"
+    usage+='   *Download PDF for assessors that Needs QA: Xnatdownload -p PID -d /tmp/downloadPID -a all --qcstatus="Needs QA" --ra OUTLOG\n'
+    usage+="   *Download NIFTI for T1 for some sessions : Xnatdownload -p PID -d /tmp/downloadPID --sess 109309,189308 -s all --rs NIFTI \n"
+    usage+="   *Download same data than previous line but overwrite the data: Xnatdownload -p PID -d /tmp/downloadPID --sess 109309,189308 -s all --rs NIFTI --overwrite\n"
+    usage+="   *Download data described by a csvfile (follow template) : Xnatdownload -d /tmp/downloadPID -c  upload_sheet.csv"
+    return usage
 
 ########################################## OPTIONS ##########################################
 def parse_args():
     from optparse import OptionParser
-    usage = "usage: %prog [options] \nWhat is the script doing : Download resources from Xnat. "
+    usage = get_usage()
     parser = OptionParser(usage=usage)
     #need this options
     parser.add_option("-p", "--project", dest="project",default=None,
@@ -633,34 +649,34 @@ def parse_args():
                   help="Data will be downloaded in the same directory. No sub-directory.", metavar="DIRECTORY")
     #Download for only one Subject
     parser.add_option("--subj", dest="subject",default=None,
-                  help="Download resources from the list of subjects given (separate by a coma). E.G: --subj VUSTP2,VUSTP3", metavar="LIST_SEPARATED_COMMA")
+                  help="filter scans/assessors by their subject label. Format: a comma separated string (E.G: --subj VUSTP2,VUSTP3).", metavar="LIST_SEPARATED_COMMA")
     #Download for only one Subject
     parser.add_option("--sess", dest="experiment",default=None,
-                  help="Download resources from the list of experiments given (separate by a coma). Use the options --subj with it. E.G: --exp VUSTP2a,VUSTP3b", metavar="LIST_SEPARATED_COMMA")
+                  help="filter scans/assessors by their session label. Format: a comma separated string (E.G: --sess VUSTP2b,VUSTP3a)", metavar="LIST_SEPARATED_COMMA")
     #for a specific scantype or specific Assessor
     parser.add_option("-s", "--scantype", dest="scantype",default=None,
-                  help="Scan type on Xnat from where you want the resources to be download (E.G : MPRAGE or T1 or MPRAGE,REST). By default : for all the scan.If you set it to 'nan', it will not download from scans.", metavar="LIST_SEPARATED_COMMA")
+                  help="filter scans by their types (required to download scans). Format: a comma separated string (E.G : -s T1,MPRAGE,REST). To download all types, set to 'all'.", metavar="LIST_SEPARATED_COMMA")
     parser.add_option("-a", "--assessortype", dest="assessortype",default=None,
-                  help="Process type on Xnat from where you want the resources to be download (E.G : fMRIQA or dtiQA or fMRIQA,dtiQA). By default : from all the assessor. If you set it to 'nan', it will not download from processors.", metavar="LIST_SEPARATED_COMMA")
+                  help="filter assessors by their types (required to download assessors). Format: a comma separated string (E.G : -a fMRIQA,dtiQA_v2,Multi_Atlas). To download all types, set to 'all'.", metavar="LIST_SEPARATED_COMMA")
     parser.add_option("--WOS", dest="withoutS",default=None,
-                  help="All the scan except the scantype you will give after this options. (E.G : MPRAGE,REST)", metavar="LIST_SEPARATED_COMMA")
+                  help="filter scans by their types and removed the one with the specified types. Format: a comma separated string (E.G : --WOS T1,MPRAGE,REST).", metavar="LIST_SEPARATED_COMMA")
     parser.add_option("--WOP", dest="withoutA",default=None,
-                  help="All the process except the process you will give after this options. (E.G : fMRIQA,dtiQA)", metavar="LIST_SEPARATED_COMMA")
+                  help="filter assessors by their types and removed the one with the specified types. Format: a comma separated string (E.G : --WOP fMRIQA,dtiQA).", metavar="LIST_SEPARATED_COMMA")
     #specific attributes
     parser.add_option("--quality", dest="qualities",default=None,
-                  help="Quality of the scan you want to download (usable,questionable,unusable).", metavar="LIST_SEPARATED_COMMA")
+                  help="filter scans by their quality. Format: a comma separated string (E.G: --quality usable,questionable,unusable).", metavar="LIST_SEPARATED_COMMA")
     parser.add_option("--status", dest="status",default=None,
-                  help="Status of the process you want to download.", metavar="LIST_SEPARATED_COMMA")
+                  help="filter assessors by their job status. Format: a comma separated string.", metavar="LIST_SEPARATED_COMMA")
     parser.add_option("--qcstatus", dest="qcstatus",default=None,
-                  help="Quality Control Status of the process you want to download.", metavar="LIST_SEPARATED_COMMA")
+                  help="filter assessors by their quality control status. Format: a comma separated string.", metavar="LIST_SEPARATED_COMMA")
     #Download from the following csvfile
     parser.add_option("-c", "--csvfile", dest="csvfile",default=None,
                   help="CSV file with the following header: object_type,project_id,subject_label,session_label,as_label. object_type must be 'scan' or 'assessor' and as_label the scan ID or assessor label.", metavar="CSVPATH")
     #specific Resources
     parser.add_option("--rs", dest="resourcesS",default=None,
-                  help="Resources you want to download for the scan. E.g : NIFTI,PAR,REC.", metavar="LIST_SEPARATED_COMMA")
+                  help="Resources you want to download for scans. E.g : --rs NIFTI,PAR,REC.", metavar="LIST_SEPARATED_COMMA")
     parser.add_option("--ra", dest="resourcesA",default=None,
-                  help="Resources you want to download for assessor. E.g : NIFTI,PAR,REC.", metavar="LIST_SEPARATED_COMMA")
+                  help="Resources you want to download for assessors. E.g : --ra OUTLOG,PDF,PBS.", metavar="LIST_SEPARATED_COMMA")
     #select only one scan
     parser.add_option("--selectionS", dest="selectionScan",default=None,
                   help="Download from only one selected scan.By default : no selection. E.G : project-x-subject-x-experiment-x-scan ", metavar="SELECTED_SCAN")
