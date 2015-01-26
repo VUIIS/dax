@@ -106,10 +106,6 @@ class Launcher(object):
             elif project_local in self.project_process_dict.keys():
                 #Updating session for a specific project
                 project_list=[project_local]
-                if sessions_local.lower()=='all':
-                    sessions_list='all'
-                else:
-                    sessions_list=sessions_local.split(',')
             else:
                 logger.error('failed to run locally on project '+project_local+'.The project is not part of the settings.')
                 exit(1) 
@@ -120,7 +116,6 @@ class Launcher(object):
                 exit(1)                              
             #Get default project list for XNAT out of the module and process dict
             project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
-            sessions_list=list()
             #Set the date on REDCAP for update starting
             bin.upload_update_date_redcap(project_list,type_update=2,start_end=1)
             
@@ -129,7 +124,7 @@ class Launcher(object):
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
             logger.info('Getting task list...')
-            task_list = self.get_open_tasks(xnat,project_list,sessions_list)
+            task_list = self.get_open_tasks(xnat,project_list,sessions_local)
             
             logger.info(str(len(task_list))+' open jobs found')
 
@@ -172,7 +167,7 @@ class Launcher(object):
             mod.afterrun(xnat,projectID)
         logger.debug('\n')
     
-    def get_open_tasks(self, xnat,project_list=None,sessions_list=None):
+    def get_open_tasks(self, xnat,project_list=None,sessions_local=None):
         task_list = []
         
         if project_list:
@@ -187,7 +182,7 @@ class Launcher(object):
         # iterate projects
         for project_id in project_list:
             logger.info('===== PROJECT:'+project_id+' =====')
-            task_list.extend(self.get_project_open_tasks(xnat, project_id,sessions_list))
+            task_list.extend(self.get_project_open_tasks(xnat, project_id,sessions_local))
                                         
         return task_list
     
@@ -201,9 +196,9 @@ class Launcher(object):
         assr_list  = XnatUtils.list_project_assessors(xnat, project_id)
         
         #filter the assessors to the sessions given as parameters if given
-        if sessions_list and sessions_list.lower()!='all':
+        if sessions_local and sessions_local.lower()!='all':
             #filter the list and keep the match between both list:
-            assr_list=filter(lambda x: assr_list['session_label'] in sessions_list, assr_list)
+            assr_list=filter(lambda x: assr_list['session_label'] in sessions_local.split(','), assr_list)
             if not assr_list:
                 logger.warn('No processes from XNAT matched the sessions given in argument: '+sessions_local+' .')
                 sys.exit(1)
