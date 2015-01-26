@@ -106,10 +106,20 @@ def get_proper_str(str_option,end=False):
             return str_option[:29]+'...'
     else:
         return str_option
+
+def get_usage():
+    usage="usage: %prog [options] \n"
+    usage+="What is the script doing : \n"
+    usage+="   *Create a report about Xnat projects.\n"
+    #Example
+    usage+="Examples:\n"
+    usage+="   *Report of a project: Xnatreport -p PID \n"
+    usage+="   *Save report in a csv: Xnatreport -p PID -c report.csv\n"
+    return usage
     
 def parse_args():
     from optparse import OptionParser
-    usage = "usage: %prog [options] \nWhat is the script doing : Create a report about Xnat projects. "
+    usage = get_usage()
     parser = OptionParser(usage=usage)
     parser.add_option("-p", "--project", dest="projects",default=None,
                   help="List of project ID on Xnat separate by a coma", metavar="PROJECT_ID")
