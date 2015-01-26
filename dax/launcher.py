@@ -186,7 +186,7 @@ class Launcher(object):
                                         
         return task_list
     
-    def get_project_open_tasks(self, xnat, project_id,sessions_list=None):
+    def get_project_open_tasks(self, xnat, project_id,sessions_local=None):
         task_list = []
         
         # Get lists of processors for this project
