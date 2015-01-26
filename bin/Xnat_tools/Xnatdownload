@@ -618,7 +618,6 @@ def get_proper_str(str_option,end=False):
             return str_option[:29]+'...'
     else:
         return str_option
-        Download resources from Xnat
         
 def get_usage():
     usage="usage: %prog [options] \n"
