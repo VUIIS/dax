@@ -21,8 +21,9 @@ SCAN_HEADER=['object_type','project_id','subject_label','session_type','session_
 ASSESSOR_HEADER=['object_type','project_id','subject_label','session_type','session_label', 'label', 'proctype', 'procstatus','qcstatus']
 DEFAULT_NOTE='Xnatupload'
 DEFAULT_LABELS_DICT={'Project':0, 'Subject':1, 'Session':2, 'Scan':3, 'Scan Type':4, 'Scan Series Description':5, 'Resource':6}
-MODALITY_DICT={'MR': 'xnat:mrSessionData','PET': 'xnat:petSessionData', 'EPS': 'xnat:epsSessionData', 'DX': 'xnat:dxSessionData', 'RT': 'xnat:rtSessionData', 'EEG': 'xnat:eegSessionData', 'HD': 'xnat:hdSessionData', 'DX3DCRANIOFACIAL': 'xnat:dx3DCraniofacialSessionData', 'ECG': 'xnat:ecgSessionData', 'OTHERDICOM': 'xnat:otherDicomSessionData', 'RF': 'xnat:rfSessionData', 'XA3D': 'xnat:xa3DSessionData', 'ESV': 'xnat:esvSessionData', 'XC': 'xnat:xcSessionData', 'XA': 'xnat:xaSessionData', 'MEG': 'xnat:megSessionData', 'IO': 'xnat:ioSessionData', 'CR': 'xnat:crSessionData', 'GM': 'xnat:gmSessionData', 'GMV': 'xnat:gmvSessionData', 'ES': 'xnat:esSessionData', 'OPT': 'xnat:optSessionData', 'MG': 'xnat:mgSessionData', 'US': 'xnat:usSessionData', 'XCV': 'xnat:xcvSessionData', 'SM': 'xnat:smSessionData', 'OP': 'xnat:opSessionData'}
-MODALITY_INFO={'MR'               : 'An event in which MR scans are obtained on a subject',
+MODALITY_DICT={'CT':'xnat:ctSessionData','MR': 'xnat:mrSessionData','PET': 'xnat:petSessionData', 'EPS': 'xnat:epsSessionData', 'DX': 'xnat:dxSessionData', 'RT': 'xnat:rtSessionData', 'EEG': 'xnat:eegSessionData', 'HD': 'xnat:hdSessionData', 'DX3DCRANIOFACIAL': 'xnat:dx3DCraniofacialSessionData', 'ECG': 'xnat:ecgSessionData', 'OTHERDICOM': 'xnat:otherDicomSessionData', 'RF': 'xnat:rfSessionData', 'XA3D': 'xnat:xa3DSessionData', 'ESV': 'xnat:esvSessionData', 'XC': 'xnat:xcSessionData', 'XA': 'xnat:xaSessionData', 'MEG': 'xnat:megSessionData', 'IO': 'xnat:ioSessionData', 'CR': 'xnat:crSessionData', 'GM': 'xnat:gmSessionData', 'GMV': 'xnat:gmvSessionData', 'ES': 'xnat:esSessionData', 'OPT': 'xnat:optSessionData', 'MG': 'xnat:mgSessionData', 'US': 'xnat:usSessionData', 'XCV': 'xnat:xcvSessionData', 'SM': 'xnat:smSessionData', 'OP': 'xnat:opSessionData'}
+MODALITY_INFO={'CT'               : 'An event in which CT scans are obtained on a subject',
+               'MR'               : 'An event in which MR scans are obtained on a subject',
                'PET'              : 'An event in which PET scans are obtained on a subject',
                'EPS'              : 'Cardiac Electrophysiology Session', 
                'DX'               : 'An event in which Digital Radiography scans are obtained on a subject', 
@@ -125,7 +126,6 @@ def read_csv_for_upload(csvfile,sessiontype):
         #Combine the resources dictionaries to each lists:
         scan_list=combine_obj_resource(scan_list,rs_dict)
         assessor_list=combine_obj_resource(assessor_list,ra_dict)
-        logger.info('\n')
     else:
         logger.info('ERROR: file '+csvfile+' not found. Check if the file exists.')
         sys.exit()
@@ -323,7 +323,7 @@ def get_xnat_obj(xnat,obj_dict,session_type):
     if obj_dict['object_type']=='scan':
         obj=session_obj.scan(obj_dict['ID'])
         if not obj.exists():
-            obj=create_scan(obj,obj_dict)
+            obj=create_scan(obj,obj_dict,session_type)
             new_obj=True
     elif obj_dict['object_type']=='assessor':
         obj=session_obj.assessor(obj_dict['label'])
