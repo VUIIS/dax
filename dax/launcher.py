@@ -198,7 +198,7 @@ class Launcher(object):
         #filter the assessors to the sessions given as parameters if given
         if sessions_local and sessions_local.lower()!='all':
             #filter the list and keep the match between both list:
-            assr_list=filter(lambda x: assr_list['session_label'] in sessions_local.split(','), assr_list)
+            assr_list=filter(lambda x: x['session_label'] in sessions_local.split(','), assr_list)
             if not assr_list:
                 logger.warn('No processes from XNAT matched the sessions given in argument: '+sessions_local+' .')
                 sys.exit(1)
