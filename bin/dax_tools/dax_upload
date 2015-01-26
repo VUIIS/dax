@@ -368,7 +368,7 @@ def upload_zip(Resource,directory,resourceObj):
     initDir=os.getcwd()
     #Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip -r '+filenameZip+' *')
+    os.system('zip -r '+filenameZip+' * > /dev/null')
     #upload
     logger.debug('      *Uploading zip '+Resource+' ...')
     resourceObj.put_zip(directory+'/'+filenameZip,extract=True)
