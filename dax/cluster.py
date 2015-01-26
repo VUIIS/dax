@@ -55,9 +55,8 @@ def tracejob_info(jobid, jobdate):
     
 def get_job_mem_used(jobid,diff_days):
     mem=''
-    
     # Check for blank jobid
-    if jobid == '':
+    if not jobid:
         return mem
         
     cmd = CMD_GET_JOB_MEMORY.safe_substitute(**{'numberofdays':diff_days,'jobid':jobid})
@@ -73,6 +72,10 @@ def get_job_mem_used(jobid,diff_days):
 
 def get_job_walltime_used(jobid,diff_days):
     walltime=''
+    # Check for blank jobid
+    if not jobid:
+        return walltime
+        
     cmd = CMD_GET_JOB_WALLTIME.safe_substitute(**{'numberofdays':diff_days,'jobid':jobid})
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)        
@@ -82,7 +85,7 @@ def get_job_walltime_used(jobid,diff_days):
     except CalledProcessError:
         pass
     
-    if walltime == '' and diff_days > 3: 
+    if not walltime and diff_days > 3: 
         walltime = 'NotFound'
 
     return walltime
