@@ -1,22 +1,80 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 '''
-Created on May 6, 2013
+Download almost everything you need from Xnat
 
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
-'''
-import os,sys,csv
-from dax import XnatUtils
-from pyxnat.core.errors import DatabaseError
-from email.mime.text import MIMEText
-from datetime import datetime
-import smtplib
 
-DEFAULT_LABELS_DICT={'Project':0, 'Subject':1, 'Session':2, 'Scan':3, 'Scan Type':4, 'Scan Series Description':5, 'Resource':6}
+'''
+
+import os
+import sys
+import csv
+import glob
+import logging
+from dax import XnatUtils
+from datetime import datetime
+
+DEFAULT_CSV_LIST=['object_type','project_id','subject_label','session_type','session_label', 'as_label', 'as_type', 'as_description','quality','resource','fpath']
+SCAN_HEADER=['object_type','project_id','subject_label','session_type','session_label', 'ID', 'type', 'series_description','quality']
+ASSESSOR_HEADER=['object_type','project_id','subject_label','session_type','session_label', 'label', 'proctype', 'procstatus','qcstatus']
 DEFAULT_NOTE='Xnatupload'
-######################################################################################################
+DEFAULT_LABELS_DICT={'Project':0, 'Subject':1, 'Session':2, 'Scan':3, 'Scan Type':4, 'Scan Series Description':5, 'Resource':6}
+MODALITY_DICT={'MR': 'xnat:mrSessionData','PET': 'xnat:petSessionData', 'EPS': 'xnat:epsSessionData', 'DX': 'xnat:dxSessionData', 'RT': 'xnat:rtSessionData', 'EEG': 'xnat:eegSessionData', 'HD': 'xnat:hdSessionData', 'DX3DCRANIOFACIAL': 'xnat:dx3DCraniofacialSessionData', 'ECG': 'xnat:ecgSessionData', 'OTHERDICOM': 'xnat:otherDicomSessionData', 'RF': 'xnat:rfSessionData', 'XA3D': 'xnat:xa3DSessionData', 'ESV': 'xnat:esvSessionData', 'XC': 'xnat:xcSessionData', 'XA': 'xnat:xaSessionData', 'MEG': 'xnat:megSessionData', 'IO': 'xnat:ioSessionData', 'CR': 'xnat:crSessionData', 'GM': 'xnat:gmSessionData', 'GMV': 'xnat:gmvSessionData', 'ES': 'xnat:esSessionData', 'OPT': 'xnat:optSessionData', 'MG': 'xnat:mgSessionData', 'US': 'xnat:usSessionData', 'XCV': 'xnat:xcvSessionData', 'SM': 'xnat:smSessionData', 'OP': 'xnat:opSessionData'}
+MODALITY_INFO={'MR'               : 'An event in which MR scans are obtained on a subject',
+               'PET'              : 'An event in which PET scans are obtained on a subject',
+               'EPS'              : 'Cardiac Electrophysiology Session', 
+               'DX'               : 'An event in which Digital Radiography scans are obtained on a subject', 
+               'RT'               : 'Radiotherapy Session',
+               'EEG'              : 'Electroencephalography Session',
+               'HD'               : 'Hemodynamic Session', 
+               'DX3DCRANIOFACIAL' : 'X-Ray 3D Craniofacial Session', 
+               'ECG'              : 'Electrocardiography Session', 
+               'OTHERDICOM'       : 'DICOM study of undetermined type', 
+               'RF'               : 'Radiofluoroscopy Session', 
+               'XA3D'             : 'X-Ray 3D Angiography Session', 
+               'ESV'              : 'Video Endoscopy Session', 
+               'XC'               : 'Visible Light Photography Session', 
+               'XA'               : 'An event in which X-ray Angiography scans are obtained on a subject', 
+               'MEG'              : 'Magnetoencephalography Session', 
+               'IO'               : 'Intraoral Radiography Session', 
+               'CR'               : 'Computed Radiography Session', 
+               'GM'               : 'Visible Light Microscopy Session',
+               'GMV'              : 'Video Microscopy Session', 
+               'ES'               : 'Visible Light Endoscopy Session',
+               'OPT'              : 'Ophthalmic Tomography Session', 
+               'MG'               : 'Digital Mammography Session', 
+               'US'               : 'Ultrasound Session', 
+               'XCV'              : 'Video Photography Session', 
+               'SM'               : 'Visible Light Slide-Coordinates Microscopy Session', 
+               'OP'               : 'Ophthalmic Photography Session'}
+
 ########################################## USEFUL FUNCTIONS ##########################################
-######################################################################################################
+def setup_info_logger(name,logfile):
+    if logfile:
+        handler=logging.FileHandler(logfile,'w')
+    else:
+        handler=logging.StreamHandler()
+    
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    return logger
+
+def get_option_list(option):
+    if not option:
+        return None
+    elif option=='all':
+        return 'all'
+    elif option=='nan':
+        return None
+    else:
+        return option.split(',')
+    
+def extract_obj_one_subject(project,subject,obj_list):
+    return filter(lambda x: x['subject_label']==subject and x['project_id']==project, obj_list)
+
 def smaller_str(str_option,size=10,end=False):
     if len(str_option)>size:
         if end:
@@ -26,417 +84,423 @@ def smaller_str(str_option,size=10,end=False):
     else:
         return str_option
 
-def get_resourceName(labels,fileExtension):
-    if len(labels)==7:
-        resource=labels[6]
+def read_csv_for_upload(csvfile,sessiontype):
+    scan_list=list()
+    assessor_list=list()
+    rs_dict=dict()
+    ra_dict=dict()
+    subject_session_list=list()
+    if os.path.exists(csvfile):
+        logger.info('INFO: Reading CSV -- if you see any warning, it means that the row will not be uploaded.')
+        with open(csvfile,'rb') as csvfileread:
+            csvreader = csv.reader(csvfileread,delimiter=',')
+            for index,row in enumerate(csvreader):
+                if len(row)<11:
+                    logger.info('WARNING: row '+str(index+1)+' -- not enough column. Check the header needed for Xnatupload.')
+                else:
+                    if row[0]=='scan':
+                        subject_session_list.append(row[2]+'-x-'+row[3])
+                        if row[1] and row[2] and (sessiontype or row[3]) and row[4] and row[5] and row[-2] and row[-1]:
+                            scan_dict=dict(zip(SCAN_HEADER,row[:9]))
+                            scan_dict['label']='-x-'.join([row[1],row[2],row[4],row[5]])
+                            scan_list.append(scan_dict)
+                            rs_dict=add_resource(rs_dict,'-x-'.join([row[1],row[2],row[4],row[5]]),row[-2],row[-1])
+                        else:
+                            logger.info('WARNING: row '+str(index+1)+' -- an element for one or more columns with the index 2/3/4/5/6/10/11 is empty.')
+                    elif row[0]=='assessor':
+                        subject_session_list.append(row[2]+'-x-'+row[3])
+                        if row[1] and row[2] and (sessiontype or row[3]) and row[4] and row[5] and row[6] and row[-2] and row[-1]:
+                            assessor_list.append(dict(zip(ASSESSOR_HEADER,row[:9])))
+                            ra_dict=add_resource(ra_dict,row[5],row[-2],row[-1])
+                        else:
+                            logger.info('WARNING: row '+str(index+1)+' -- an element for one or more columns with the index 2/3/4/5/6/7/10/11 is empty.')
+                    else:
+                        logger.info('WARNING: row '+str(index+1)+' -- does not start with "scan" or "assessor".')
+        logger.info('INFO: Reading CSV DONE\n')
+        #Checking session:
+        check_session_id(subject_session_list)
+        #Generating SNAPSHOTS for assessor PDF:
+        logger.info('INFO:Generating snapshots for assessor...')
+        ra_dict=generate_previews(ra_dict)
+        #Combine the resources dictionaries to each lists:
+        scan_list=combine_obj_resource(scan_list,rs_dict)
+        assessor_list=combine_obj_resource(assessor_list,ra_dict)
+        logger.info('\n')
     else:
-        #add the resource name from the extension if known
-        if fileExtension.lower()=='.dcm':
-            resource='DICOM'
-        elif fileExtension.lower()=='.nii':
-            resource='NIFTI'
-        elif fileExtension.lower()=='.par':
-            resource='PAR'
-        elif fileExtension.lower()=='.rec':
-            resource='REC'
-        elif fileExtension.lower()=='.zip':
-            resource='secondary'
-        elif fileExtension.lower()=='.gif':
-            resource='SNAPSHOTS'
-        elif fileExtension.lower()=='.mat':
-            resource='MAT'
+        logger.info('ERROR: file '+csvfile+' not found. Check if the file exists.')
+        sys.exit()
+    return scan_list,assessor_list
+
+def check_session_id(subject_session_list):
+    session_list=list()
+    for ssdict in set(subject_session_list):
+        if ssdict.split('-x-')[1] in session_list:
+            logger.info('XNAT ERROR: xnatupload stop.')
+            logger.info('  The csv provided possesses some rows with the same session label for two different subjects.')
+            logger.info('  Session label needs to be unique. Two subject can not have a session with the same label.')
+            logger.info('  Please fix the csv and call again Xnatupload.')
+            sys.exit()
         else:
-            resource='UNKNOWN'
-    return resource
+            session_list.append(ssdict.split('-x-')[1])
     
-def get_labels_file(fname):
-    fileName, fileExtension = os.path.splitext(fname)
-    if fileExtension in ['.GZ','.gz']:
-        fileName,fileExtension=os.path.splitext(fileName)
-    if not len(fileName.split('-x-'))>4:
-        print ' *WARNING: File '+fileName+' wrong format.'
-        return None
+def add_resource(rs_dict,label,resource_label,fpath):
+    if label in rs_dict.keys():
+        resources_dict=rs_dict[label]
+        if resource_label in resources_dict.keys():
+            resources_dict[resource_label].append(fpath)
+        else:
+            resources_dict[resource_label]=[fpath]
+        rs_dict[label]=resources_dict
     else:
-        project,subject,session,scan=fileName.split('-x-')[:4]
-        #scantype
-        l=fileName.split('-x-')
-        if not len(l)>4:
-            type='UNKNOWN'
-        else:
-            type=l[4]
-        #series description
-        if not len(l)>5:
-            SD='UNKNOWN'
-        else:
-            SD=l[5]
-        return [project,subject,session,scan,type,SD,get_resourceName(l,fileExtension)]
+        rs_dict[label]={resource_label:[fpath]}
+    return rs_dict
 
-def get_ff_in_folder(directory):
-    folder_list=list()
-    file_list=list()
-    for ff_name in os.listdir(directory):
-        if os.path.isfile(os.path.join(directory,ff_name)):
-            file_list.append(os.path.join(directory,ff_name))
-        else:
-            folder_list.append(os.path.join(directory,ff_name))
-    return file_list,folder_list
+def combine_obj_resource(obj_list,r_dict):
+    #Unique list of dictionaries:
+    obj_list={v['label']:v for v in obj_list}.values()
+    for object_dict in obj_list:
+        object_dict['resource']=r_dict[object_dict['label']]
+    return obj_list
 
-def looping(directory,project,file_list,labels_dict,count):
-    #Go through the folders:
-    files,folder_list=get_ff_in_folder(directory)
-    #add files to the list:
-    file_list.extend(files)
-    #For subject
-    for folderpath in folder_list:
-        if count==4:
-            #getting the label info from the path
-            labels=folderpath.split('/')[-4:]
-            #save labels with file in a dictionary:
-            labels_dict[project+'-x-'+'-x-'.join(labels)]=folderpath
-        else:
-            labels_dict,file_list=looping(folderpath,project,file_list,labels_dict,count+1)
-    return labels_dict,file_list
-
-########################################################################################################
-########################################## SPECIFIC FUNCTIONS ##########################################
-########################################################################################################
-def loop_on_files(directory):
-    print'INFO: Reading the directory: '+directory
-    labels_dict=dict()
-    filepath_list,folder_list=get_ff_in_folder(directory)
-    for filepath in filepath_list:
-        #get the labels:
-        labels=get_labels_file(os.path.basename(filepath))
-        if labels: 
-            #save labels with file in a dictionary:
-            labels_dict['-x-'.join(labels)]=filepath
-            
-    return labels_dict,folder_list
-
-def loop_on_folders(directory,project):
-    print'INFO: Reading the directory: '+directory
-    #variable:
-    labels_dict=dict()
-    file_list=list()
-    #Go through the folders:
-    labels_dict,file_list=looping(directory,project,file_list,labels_dict,1)
-    #check for all of them if the scantype and the series description are present
-    for label,respath in labels_dict.items():
-        if len(label.split('-x-'))!=7:
-            project,subject,session,scan=label.split('-x-')[:4]
-            if len(respath.split('/')[-2].split('-x-'))>2:
-                type=respath.split('/')[-2].split('-x-')[1]
-                SD=respath.split('/')[-2].split('-x-')[2]
-            elif len(respath.split('/')[-2].split('-x-'))==2:
-                type=respath.split('/')[-2].split('-x-')[1]
-                SD='UNKNOWN'
+def generate_previews(ra_dict):
+    for label,resource_dict in ra_dict.items():
+        if 'PDF' in resource_dict.keys():
+            pdfpath=check_pdfpath(resource_dict['PDF'],label)
+            if not pdfpath:
+                logger.info(' WARNING: generate_previews -- '+label+' -- No proper PDF file found. No snapshots will be generated.')
             else:
-                type='UNKNOWN'
-                SD='UNKNOWN'
-            resource=label.split('-x-')[-1]
-            new_label='-x-'.join([project,subject,session,scan,type,SD,resource])
-            labels_dict[new_label] = labels_dict.pop(label)
+                #SNAPSHOTS : create it in the /tmp/ folder under the assessor name
+                tmppath=os.path.join('/tmp',label+'_snapshots')
+                if not os.path.exists(tmppath):
+                    os.makedirs(tmppath)
+                #Make the snapshots for the assessors with ghostscript
+                snapshot_original = os.path.join(tmppath,'snapshot_original.png')
+                os.system('gs -q -o '+snapshot_original+' -sDEVICE=pngalpha -dLastPage=1 '+pdfpath)
+                #Name of the preview snapshot
+                if os.path.exists(snapshot_original):
+                    snapshot_preview = os.path.join(tmppath,'snapshot_preview.png')
+                    #Make the snapshot_thumbnail
+                    os.system('convert '+snapshot_original+' -resize x200 '+snapshot_preview)
+                if not os.path.exists(snapshot_original) or not os.path.exists(snapshot_preview):
+                    logger.info(' WARNING: generate_previews -- '+label+' -- Failed to create preview/original for snapshots of PDF.')
+                else:
+                    if 'SNAPSHOTS' in resource_dict.keys():
+                        resource_dict['SNAPSHOTS'].append(snapshot_original)
+                        resource_dict['SNAPSHOTS'].append(snapshot_preview)
+                    else:
+                        resource_dict['SNAPSHOTS']=[snapshot_original,snapshot_preview]
+    return ra_dict
+
+def check_pdfpath(pdfpath_list,label):
+    if len(pdfpath_list)>1:
+        logger.info(' WARNING: generate_previews -- '+label+' --more than one PDF file paths given, the first one found will be used to create the snapshots.')
+    for Ppath in pdfpath_list:
+        if os.path.isfile(Ppath) and Ppath.endswith('.pdf'):
+            return Ppath
+        if os.path.isdir(Ppath):
+            pdf_list=glob.glob(os.path.join(Ppath,'*.pdf'))
+            if pdf_list:
+                return pdf_list[0]
+    return None
+
+def read_csv(csvfile):
+    scan_assessor_list=list()
+    if os.path.exists(csvfile):
+        with open(csvfile,'rb') as csvfileread:
+            csvreader = csv.reader(csvfileread,delimiter=',')
+            for index,row in enumerate(csvreader):
+                if len(row)<11:
+                    logger.info('WARNING: row '+str(index+1)+' -- not enough column. Check the header needed for Xnatupload.')
+                else:
+                    if row[0] in ['scan','assessor']:
+                        scan_assessor_list.append(dict(zip(DEFAULT_CSV_LIST,row)))
+                    else:
+                        logger.info('WARNING: row '+str(index+1)+' -- does not start with "scan" or "assessor".')
+    else:
+        logger.info('ERROR: file '+csvfile+' not found. Check if the file exists.')
+        sys.exit()
+    return scan_assessor_list
+
+def get_files_in_folder(folder,label=''):
+    f_list=list()
+    for fpath in os.listdir(folder):
+        ffpath=os.path.join(folder,fpath)
+        if os.path.isfile(ffpath):
+            fpath=check_image_format(fpath)
+            if label:
+                filename=os.path.join(label,fpath)
+            else:
+                filename=fpath
+            f_list.append(filename)
+        else:
+            label=os.path.join(label,fpath)
+            f_list.extend(get_files_in_folder(ffpath,label))
+    return f_list
     
-    return labels_dict,file_list
+def check_folder_resources(resource_obj,folder,force):
+    for fpath in get_files_in_folder(folder):#RECURSIVELY
+        if resource_obj.file(fpath).exists():
+            logger.info('     - WARNING: filepath '+fpath+' -- already found on XNAT. Use --force to upload this file.')
+            return True
+    return False
 
-def read_csv_info(fpath,project):
-    print'INFO: Reading the csv file: '+fpath
-    #variable:
-    labels_dict=dict()
-    f=open(fpath, "rU")
-    reader = csv.reader(f,delimiter=',', dialect=csv.excel_tab)
-    for row in reader:
-        if row[0].strip()=='Subject':
-            continue
-        if len(row)>6:
-            new_label='-x-'.join([project,row[0].strip(),row[1].strip(),row[2].strip(),row[3].strip(),row[4].strip(),row[5].strip()])
-            labels_dict[new_label] = row[6].strip()
-    return labels_dict
+def check_image_format(fpath):
+    if fpath.endswith('.nii') or fpath.endswith('.rec'):
+        os.system('gzip '+fpath)
+        fpath=fpath+'.gz'
+    return fpath
 
-def read_csv_only(fpath):
-    print'INFO: Reading the csv file: '+fpath
-    #variable:
-    labels_dict=dict()
-    f=open(fpath, "rU")
-    reader = csv.reader(f,delimiter=',', dialect=csv.excel_tab)
-    for row in reader:
-        if row[0].strip()=='Project':
-            continue
-        if len(row)>6:
-            new_label='-x-'.join([row[0].strip(),row[1].strip(),row[2].strip(),row[3].strip(),row[4].strip()])
-            labels_dict[new_label] = row[5].strip()
-    return labels_dict
-
+def is_file(fpath):
+    if os.path.isfile(fpath):
+        return True,fpath
+    else: #It's a folder, check if only one file in it:
+        if len(glob.glob(os.path.join(fpath,'*')))==1:
+            return True,glob.glob(os.path.join(fpath,'*'))[0]
+        else:
+            if fpath[-1]=='/': 
+                fpath=fpath[:-1]
+            return False,fpath
 
 ######################################### REPORT ###############################################
-def make_report(project,text,labels_dict,junk_list=None):
-    labels_list=[i.split('-x-') for i in labels_dict.keys()]
-    
+def print_report(options):
+    scan_assessor_list=read_csv(options.csvfile)
+    logger.info('\n----------------------------------')
     #Display:
-    str_report='Report information about uploading :\n'
-    str_report+='Common Path Directory: '+str(os.path.commonprefix(labels_dict.values()))+'\n'
-    str_report+='Date: '+str(datetime.now())+'\n'
-    str_report+='===================================================================\n'
-    str_report+='List of the data that need to be upload : \n'
-    str_report+='-----------------------------------------\n'
-    str_report+='%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-10, 'Project',-10, 'Subject', -15, 'Session', -10, 'Scan',-10, 'Scan Type',-10,'Scan S.D',-10, 'Resource',-58, 'file(s)/folder')+'\n'
-    str_report+='----------------------------------------------------------------------------------------------------------------------------------------------------------\n'
-    for label in sorted(labels_list):
-        p=smaller_str(label[DEFAULT_LABELS_DICT['Project']])
-        s=smaller_str(label[DEFAULT_LABELS_DICT['Subject']])
-        se=smaller_str(label[DEFAULT_LABELS_DICT['Session']],size=15)
-        sc=smaller_str(label[DEFAULT_LABELS_DICT['Scan']])
-        t=smaller_str(label[DEFAULT_LABELS_DICT['Scan Type']])
-        sd=smaller_str(label[DEFAULT_LABELS_DICT['Scan Series Description']])
-        r=smaller_str(label[DEFAULT_LABELS_DICT['Resource']])
-        file=get_proper_str(labels_dict['-x-'.join(label)],end=True)
-        str_report+='%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-10,p,-10,s,-15,se,-10,sc,-10,t,-10,sd,-10,r,-58,file)+'\n'
-    str_report+='Scan S.D = Scan Series Description' 
-    str_report+='\n-----------------------------------------\n'
-    if junk_list:
-        str_report+='\nList of the file(s)/folder(s) that have been found but does not match the method: \n'
-        str_report+='-----------------------------------------\n'
-        for junk in junk_list:
-            str_report+='  -> '+junk+'\n'
-        str_report+='-----------------------------------------\n'
-        str_report+='Thoses file(s)/folder(s) will NOT be upload to XNAT.\n'
+    logger.info('Report information about uploading :')
+    logger.info('Date: '+str(datetime.now()))
+    logger.info('===================================================================')
+    logger.info('List of the data found in the csv that need to be upload :')
+    logger.info('-----------------------------------------')
+    logger.info('%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-10, 'ObjectType',-10, 'Project',-10, 'Subject', -10, 'SessType', -15, 'Session', -30, 'Label',-10, 'Type',-10,'Description',-10, 'Quality',-10, 'Resource',-58, 'file(s)/folder'))
+    logger.info('----------------------------------------------------------------------------------------------------------------------------------------------------------')
+    for scan_assessor in sorted(scan_assessor_list):
+        o=smaller_str(scan_assessor['object_type'])
+        p=smaller_str(scan_assessor['project_id'])
+        s=smaller_str(scan_assessor['subject_label'])
+        seT=smaller_str(scan_assessor['session_type'])
+        se=smaller_str(scan_assessor['session_label'],size=15)
+        sa=smaller_str(scan_assessor['as_label'],size=30)
+        t=smaller_str(scan_assessor['as_type'])
+        sd=smaller_str(scan_assessor['as_description'])
+        q=smaller_str(scan_assessor['quality'])
+        r=smaller_str(scan_assessor['resource'])
+        filepath=get_proper_str(scan_assessor['fpath'],end=True)
+        logger.info('%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-10,o,-10,p,-10,s,-10,seT,-15,se,-30,sa,-10,t,-10,sd,-10,q,-10,r,-58,filepath))
+    logger.info('\n-----------------------------------------\n')
+    logger.info('INFOS on header:')
+    logger.info('  #Description = Job status for assessor or series description for scan')
+    logger.info('  #Quality     = Job quality control for assessor or quality for scan (usable/unusable/questionable)')
+    logger.info('WARNINGS: ')
+    logger.info('  #If one of the column is empty for Project/Subject/SessType/Session/Label/resource, the resource will not get upload.')
+    logger.info('  #By default, quality is set to questionable for scan and  Needs QA for assessor.')
+    logger.info('  #By default, Description (job status) for an assessor will be set to COMPLETE.')
+    logger.info('  #IMPORTANT: a session label needs to be unique for a project.')
+    logger.info('P.S : Please check that the REC or NII image type that you upload are compressed (.rec/.nii), please compress them in .gz like "file.nii.gz".')
     
-    str_report+='INFO:Check only the value: project/subject/session/scan and resource.\n'
-    str_report+='INFO:If the resource is UNKNOWN, it will not be upload.\n'
-    str_report+="\nINFO: If the Scan Type or Scan Series Description is UNKNOWN, the script will take the Scan has the type/SD.\n"
-    str_report+="\t for up1: If you want to add the type, add 'scantype-x-SD' between the filename from 'scan' and '-x-resource.ext'.\n"
-    str_report+="\t for up2: If you want to add the type, add the type and SD like this '-x-scantype-x-SD' to the scan folder.\n"
-    str_report+='REMINDER : Remember that with the method --up1, you need to have the following architecture: project-x-subject-x-session-x-scan-x-scantype-x-scanseriesdescription-x-resource.ext .\n'
-    str_report+='           Remember that with the method --up2, you need to have the following architecture: Main_folder/subject/session/scan-x-scantype-x-scanseriesdescription/resource.\n'
-    str_report+='P.S : Please check that the REC or NII image type that you upload are compressed (.rec/.nii), please compress them in .gz like "file.nii.gz".\n'
-    
-    #Print or write in files:
-    if not text:
-        print '\n----------------------------------'
-        print str_report
-    else:
-        str_report+='===================================================================\n'
-        filetxt=os.path.abspath(text)
-        print 'INFO: Writing the report in the file: '+filetxt+'             '
-        f = open(filetxt,'w')
-        f.write(str_report+'\n')
-        f.close()
-        
-######################################### Create XNAT Objs ###############################################
-def create_subject(P,subject,quiet):
-    #check subject
-    S=P.subject(subject)
-    if not S.exists():
-        S.insert()
-        if not quiet:
-            print '   >Subject '+subject+' created'
-    return S
-            
-def create_session(S,session,sessiontype,quiet):
-    #check session
-    Se=S.experiment(session)
-    if not Se.exists():
-        if sessiontype=='CT':
-            Se.create(experiments='xnat:ctSessionData')
-        elif sessiontype=='MR':
-            Se.create(experiments='xnat:mrSessionData')
-        elif sessiontype=='PET':
-            Se.create(experiments='xnat:petSessionData')
-        elif sessiontype=='GEN':
-            Se.create(experiments='xnat:imageSessionData')
+######################################### CREATE XNAT OBJ ###############################################
+def get_xnat_obj(xnat,obj_dict,session_type):
+    new_obj=False
+    obj=None
+    #Project:
+    project_obj=xnat.select('/project/'+obj_dict['project_id'])
+    if not project_obj.exists():
+        logger.info('WARNING: Project '+obj_dict['project_id']+' does not exists on XNAT.')
+        return obj,new_obj
+    #Subject:
+    subject_obj=project_obj.subject(obj_dict['subject_label'])
+    if not subject_obj.exists():
+        subject_obj.insert()
+    #Session:
+    session_obj=subject_obj.experiment(obj_dict['session_label'])
+    if not session_obj.exists():
+        if session_type:
+            session_obj.create(experiments=session_type)
+        else:
+            session_obj.create(experiments=MODALITY_DICT[obj_dict['session_type']])
         d=datetime.now()
-        Se.attrs.set('xnat:experimentdata/date',str(d.year)+'-'+str(d.month)+'-'+str(d.day))
-        if not quiet:
-            print '    >Session '+session+' created'
-    return Se
-            
-def create_scan(Se,sessiontype,scan,scantype,scanSD,quiet):
-    #check session
-    Sc=Se.scan(scan)
-    if not Sc.exists():
-        if sessiontype=='CT':
-            Sc.create(scans='xnat:ctScanData')
-        elif sessiontype=='MR':
-            Sc.create(scans='xnat:mrScanData')
-        elif sessiontype=='PET':
-            Sc.create(scans='xnat:petScanData')
-        elif sessiontype=='GEN':
-            Sc.create(scans='xnat:imageScanData')
-        #set attributes
-        if scantype!='UNKNOWN':
-            Sc.attrs.set('type',scantype)
-        else:
-            Sc.attrs.set('type',' ')
-        if scanSD!='UNKNOWN':
-            Sc.attrs.set('series_description',scanSD)
-        else:
-            Sc.attrs.set('series_description',' ')
-        Sc.attrs.set('quality','questionable')
-        Sc.attrs.set('note',DEFAULT_NOTE)
-        if not quiet:
-            print '     >Scan '+scan+' created'
-    return Sc
-
-######################################### UPLOAD FUNCTIONS ###############################################
-def Upload_to_resource(label,resourceObj,fpath,force,quiet,add=False):
-    if label=='UNKNOWN' and not quiet:
-        print '      -->resource label set to UNKNOWN. No upload.'
+        session_obj.attrs.set('xnat:experimentdata/date',str(d.year)+'-'+str(d.month)+'-'+str(d.day))
+    #Scan
+    if obj_dict['object_type']=='scan':
+        obj=session_obj.scan(obj_dict['ID'])
+        if not obj.exists():
+            obj=create_scan(obj,obj_dict)
+            new_obj=True
+    elif obj_dict['object_type']=='assessor':
+        obj=session_obj.assessor(obj_dict['label'])
+        if not obj.exists():
+            obj=create_assessor(obj,obj_dict)
+            new_obj=True
     else:
-        #remove the former file
-        if force:
-            resourceObj.delete()
-
-        if not resourceObj.exists() or add:
-            if not os.path.exists(fpath):
-                if not quiet:
-                    print '    -->ERROR: file path '+fpath+' does not exist.'
-            else:
-                #Upload Folder
-                if os.path.isdir(fpath):
-                    if fpath[-1]=='/':
-                        fpath=fpath[:-1]
-                    Upload_folder_to_resource(label,resourceObj,fpath,quiet)
-                #Upload File
-                elif os.path.isfile(fpath):
-                    Upload_file_to_resource(label,resourceObj,fpath,quiet)
-        else:
-            if not quiet:
-                print '       -->WARNING: Resource '+label+' already on Xnat. No upload for this file. Use options --force to force the upload'
-
-def Upload_file_to_resource(label,resourceObj,fpath,quiet):
-    if not quiet:
-        print '      >Upload file for resource ' +label+' ...'
-    # upload file to XNAT
-    if not resourceObj.file(os.path.basename(fpath)).exists():
-        resourceObj.file(os.path.basename(fpath)).put(fpath)
-    elif not quiet:
-        print '       -->WARNING: The file you upload already exists. Use --force to delete this resource and create a new one with this file.'
-                
-def Upload_folder_to_resource(label,resourceObj,directory,quiet):
-    if not quiet:
-        print '      >Upload resource ' +label
-    filenameZip=label+'.zip'
-    initDir=os.getcwd()
-    #Zip all the files in the directory
-    os.chdir(directory)
-    os.system('zip -r '+filenameZip+' *')
-    #upload
-    resourceObj.put_zip(os.path.join(directory,filenameZip),extract=True)
-    #remove the tmp zip file:
-    if os.path.exists(os.path.join(directory,filenameZip)):
-        os.remove(os.path.join(directory,filenameZip))
-    #return to the initial directory:
-    os.chdir(initDir)
-
-def Upload_XNAT(labels_dict,xnat,project,sessiontype,force,quiet):
-    #init
-    previous_subj,previous_sess=['','']
-    nb_res=len(labels_dict)
-    count=0
-    #get project
-    P=xnat.select('/project/'+project)
-    for label in sorted(labels_dict):
-        subject,session,scan,scantype,scanSD,Resource=label.split('-x-')[1:]
-        if not quiet:
-            count+=1
-            print ' *Resource to upload: '+str(count)+'/'+str(nb_res)               
-        if subject!=previous_subj:
-            previous_subj=subject
-            if not quiet:
-                print '  +Subject '+subject
-            S=create_subject(P,subject,quiet)
-        if session!=previous_sess:
-            previous_sess=session
-            if not quiet:
-                print '   +Session '+session
-            Se=create_session(S,session,sessiontype,quiet)
-        if not quiet:
-            print '    +Scan '+scan
-        SCAN=create_scan(Se,sessiontype,scan,scantype,scanSD,quiet)
+        logger.info('WARNING: object_type not recognize between scan and assessor.')
         
-        if SCAN.exists():
-            Upload_to_resource(Resource,SCAN.resource(Resource),labels_dict[label],force,quiet,add=False)
+    return obj,new_obj
+
+def create_scan(scan,scan_dict,session_type):
+    if session_type:
+        scan.create(scans='xnat:'+session_type.lower()+'ScanData')
+    else:
+        scan.create(scans='xnat:'+scan_dict['session_type'].lower()+'ScanData')
+    #set attributes
+    scan.attrs.set('type',scan_dict['type'])
+    scan.attrs.set('series_description',scan_dict['series_description'])
+    scan.attrs.set('quality',scan_dict['quality'])
+    scan.attrs.set('note',DEFAULT_NOTE)
+    return scan
+
+def create_assessor(assessor,assessor_dict):
+    now=datetime.now()
+    today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
+    if assessor_dict['proctype'].lower() in ['freesurfer','fs']:
+        assessor.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
+        assessor.attrs.set('fs:fsData/procstatus',assessor_dict['procstatus'])
+        assessor.attrs.set('fs:fsData/validation/status',assessor_dict['qcstatus'])
+        assessor.attrs.set('fs:fsData/proctype', 'FreeSurfer')
+        assessor.attrs.set('fs:fsData/date',today)
+    else:
+        assessor.create(assessors='proc:genProcData')
+        assessor.attrs.set('proc:genProcData/procstatus',assessor_dict['procstatus'])
+        assessor.attrs.set('proc:genProcData/validation/status',assessor_dict['qcstatus'])
+        assessor.attrs.set('proc:genProcData/proctype', assessor_dict['proctype'])
+        assessor.attrs.set('proc:genProcData/date',today)
+    return assessor
+
+######################################### MAIN FUNCTION TO UPLOAD ###############################################
+def upload_data_xnat(xnat,options,scan_list,assessor_list):
+    """Main function to upload data from XNAT
+       looping over the project/subject to be in order"""
+    #Extract list of subject to download in order:
+    proj_subj_list=list()
+    if scan_list:
+        proj_subj_list.extend([s['project_id']+'-x-'+s['subject_label'] for s in scan_list])
+    if assessor_list:
+        proj_subj_list.extend([s['project_id']+'-x-'+s['subject_label'] for s in assessor_list])
+    proj_subj_list=set(proj_subj_list) #unique list of identifiant
+    #Number of subjects 
+    number=len(proj_subj_list)
+    #Download:
+    logger.info('INFO: Uploading data for each pair project/subject..')
+    for index,ps in enumerate(sorted(proj_subj_list)):
+        project=ps.split('-x-')[0]
+        subject=ps.split('-x-')[1]
+        logger.info(' * '+str(index+1)+'/'+str(number)+' Project/Subject : '+project+'/'+subject)
+        ##SCAN##
+        for scan in extract_obj_one_subject(project,subject,scan_list): 
+            scan_obj,_=get_xnat_obj(xnat,scan,options.session_type)
+            if scan_obj:
+                logger.info('  +session '+scan['session_label']+' -- scan '+scan['ID']+' -- type: '+scan['type']+' -- series description: '+scan['series_description']+' -- quality: '+scan['quality'])
+                upload_resources(scan_obj,scan,options)
+        ##ASSESSOR##
+        for assessor in extract_obj_one_subject(project,subject,assessor_list):
+            assessor_obj,_=get_xnat_obj(xnat,assessor,options.session_type)
+            if assessor_obj:
+                logger.info('  +proc '+assessor['label']+' -- job status: '+assessor['procstatus']+' -- QC status: '+assessor['qcstatus'])
+                upload_resources(assessor_obj,assessor,options)
+
+######################################### UPLOAD RESOURCES ###############################################
+def upload_resources(obj,obj_dict,options):
+    if options.deleteAll:
+        deleteAll_resources(obj,obj_dict)
+        
+    #Upload each resources:
+    for resource_label,fpath_list in obj_dict['resource'].items():
+        logger.info('   >Resource '+resource_label)
+        if resource_label=='SNAPSHOTS' and obj_dict['object_type']=='assessor': #Special upload for snapshots for assessor
+            upload_snaptshot(obj.out_resource(resource_label),fpath_list,options)
         else:
-            if not quiet:
-                print '    -->ERROR:Scan does not exist. Error in the creation.'
+            for fpath in fpath_list:
+                if not os.path.exists(fpath):
+                    logger.info('     - File '+fpath+': WARNING -- path not found.')
+                else:
+                    if obj_dict['object_type']=='scan':
+                        upload_fpath(obj.resource(resource_label),fpath,options)
+                    else:
+                        upload_fpath(obj.out_resource(resource_label),fpath,options)
+                        
+def deleteAll_resources(obj,obj_dict):
+    if obj_dict['object_type']=='scan':
+        for resource_label in XnatUtils.list_scan_resources(xnat, obj_dict['project_id'], obj_dict['subject_label'], obj_dict['session_label'], obj_dict['ID']):
+            obj.resource(resource_label).delete()
+    else:
+        for resource_label in XnatUtils.list_assessor_out_resources(xnat, obj_dict['project_id'], obj_dict['subject_label'], obj_dict['session_label'], obj_dict['ID']):
+            obj.out_resource(resource_label).delete()
+            
+def upload_fpath(resource_obj,fpath,options):
+    #check if the resource exist, if yes remove it
+    if options.delete and resource_obj.exists():
+        resource_obj.delete()
+    #Check file path given
+    isfile,fpath=is_file(fpath)
+    if isfile:
+        upload_file(resource_obj,fpath,options.force)
+    else:
+        upload_folder(resource_obj,fpath,options.force)
 
-def OnlyUpload(labels_dict,xnat,add,force,quiet):
-    #number of subjects:
-    labels_list=[i.split('-x-')[0] for i in labels_dict.keys()]
-    nb_subjs=len(list(set(labels_list)))
-    count=0
+def upload_file(resource_obj,fpath,force):
+    # upload file to XNAT
+    if not resource_obj.file(os.path.basename(fpath)).exists() or force:
+        logger.info('     - File '+os.path.basename(fpath)+': uploading file...')
+        fpath=check_image_format(fpath)
+        resource_obj.file(os.path.basename(fpath)).put(fpath)
+    else:
+        logger.info('     - File '+os.path.basename(fpath)+': WARNING -- file found on XNAT. Use --force to upload this file.')
+
+def upload_folder(resource_obj,fpath,force):
+    #check all the files if one exist at least:
+    if not force and check_folder_resources(resource_obj,fpath,force):
+        pass
+    else:
+        if not resource_obj.exists(): resource_obj.create()
+        filenameZip=resource_obj.label()+'.zip'
+        initDir=os.getcwd()
+        #Zip all the files in the directory
+        os.chdir(fpath)
+        os.system('zip -r '+filenameZip+' * > /dev/null')
+        #upload
+        logger.info('     - Folder '+fpath+': uploading folder...')
+        resource_obj.put_zip(os.path.join(fpath,filenameZip),extract=True)
+        #remove the tmp zip file:
+        if os.path.exists(os.path.join(fpath,filenameZip)):
+            os.remove(os.path.join(fpath,filenameZip))
+        #return to the initial directory:
+        os.chdir(initDir)
+                    
+def upload_snaptshot(resource_obj,fpath_list,options):
+    #check if the resource exist, if yes remove it
+    if options.delete and resource_obj.exists():
+        resource_obj.delete()
+    #Previews
+    snapshot_preview=None
+    snapshot_original=None
+    for fpath in fpath_list:
+        #Check file path given
+        isfile,fpath=is_file(fpath)
+        if isfile:
+            if 'snapshot_preview.png' in fpath:
+                snapshot_preview=fpath
+            elif 'snapshot_original.png' in fpath:
+                snapshot_original=fpath
+            else:
+                upload_file(resource_obj,fpath,options.force)
+        else:
+            upload_folder(resource_obj,fpath,options.force)
+    #Upload previews      
+    if snapshot_preview:  resource_obj.file(os.path.basename(snapshot_preview)).put(snapshot_preview,(snapshot_preview.split('.')[1]).upper(),'THUMBNAIL')
+    if snapshot_original: resource_obj.file(os.path.basename(snapshot_original)).put(snapshot_original,(snapshot_original.split('.')[1]).upper(),'ORIGINAL')
     
-    for label in sorted(labels_dict):
-        if not quiet:
-            count+=1
-            print ' *File : '+str(count)+'/'+str(nb_subjs)
-        project,subject,session,scan=label.split('-x-')[:4]
-        SCAN=xnat.select('/project/'+project+'/subject/'+subject+'/experiment/'+session+'/scan/'+scan)
-        if SCAN.exists():
-            Upload_to_resource(label.split('-x-')[-1],SCAN.resource(label.split('-x-')[-1]),labels_dict[label],force,quiet,add)
-        elif not quiet:
-            print '    -->ERROR:The file you want to upload does not fit a SCAN on XNAT. Check the name of the file with XNAT.'
-
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
-    if options.force and options.add:
-        print 'OPTION ERROR: You can not use --add and --force. --force will delete the files for a resource and upload the file(s) in the directory to the resource. --add will only add the file(s) to the resource. Choose one of this two options.'
+    if options.printmodality:
+        return True
+    if options.csvfile:
+        if not os.path.exists(options.csvfile):
+            print 'OPTION ERROR: You used option -c/--csv but the file '+options.csvfile+' does not exist.'
+            return False
+    else:
+        print 'OPTION ERROR: Please provide a csv file with the option -c/--csv.'
         return False
-    if not options.onlyupload and options.add: 
-        print 'OPTION ERROR: You can not use --add without -o/--onlyUpload.'
-        return False
-    if not options.up1 and  not options.up2 and not options.csv and not options.onlyupload:
-        print 'OPTION ERROR: Please provide one of the method between --up1,--up2, -c/--csv, or -o/--onlyUpload. Choose only one.'
-        return False
-    if options.up1 or options.up2 or options.onlyupload:
-        if not options.directory:
-            print 'OPTION ERROR: Please provide a directory with the option -d/--directory.'
-            return False
-        else:
-            #check if the directory exists
-            if not os.path.exists(options.directory):
-                print "ERROR : Please provide an existing directory. The directory "+options.directory+" doesn't exist."
-                return False
-        if options.up1 and options.up2:
-            print 'OPTION ERROR: Too much methods used as options: --up1,--up2, -c/--csv, or -o/--onlyUpload. Choose only one.'
-            return False
-        elif options.up1 and options.onlyupload:
-            print 'OPTION ERROR: Too much methods used as options: --up1,--up2, -c/--csv, or -o/--onlyUpload. Choose only one.'
-            return False
-        elif options.onlyupload and options.up2:
-            print 'OPTION ERROR: Too much methods used as options: --up1,--up2, -c/--csv, or -o/--onlyUpload. Choose only one.'
-            return False
     
-    if options.up1 or options.up2 or options.csv:
-        if not options.session:
-            print 'OPTION ERROR: Please provide the type of session you want to create: MR,CT or PET.'
-            return False
-        else:
-            if not options.session in ['CT','MR','PET']:
-                print 'OPTION ERROR: Session type wrong. Please provide a right value: MR,CT or PET.'
-                return False
-        if not options.project:
-            print 'OPTION ERROR: Please provide a project ID with the option -p.'
-            return False
-        else:
-            try:
-                xnat=XnatUtils.get_interface()
-                if not (xnat.select('/project/'+options.project)).exists():
-                    print "OPTION ERROR: The project ID you gave doesn't exist on XNAT. If it is a new project, create the project first on XNAT."
-            finally:
-                xnat.disconnect()
-            
-    if options.report and options.text:
-        folder=os.path.dirname(os.path.abspath(options.text))
-        if not os.path.exists(folder):
-            print 'OPTION ERROR: You used options -t/--txt to save the report in a file text but the path '+folder+' does not exist. Please provide a right path.'
-            return False
-    
-    if options.csv:
-        if not os.path.exists(options.csv):
-            print 'OPTION ERROR: You used options -c/--csv but the file '+options.csv+' does not exist. Please provide a right path.'
-            return False
-        
+    if options.session_type:
+        print 'OPTION WARNING: session type set by user. Not using session type in the csv.'
     return True
 
 ########################################## MAIN DISPLAY FUNCTION ##########################################   
@@ -448,47 +512,37 @@ def Main_display(parser):
     print '#                                                              #'
     print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
     print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
-    print '#                                                              #'
-    print '# Function:                                                    #'
+    print '# Usage:                                                       #'
     print '#     Upload data to XNAT following the csv file information   #'
-    print '#                                                              #'
     print '# Parameters :                                                 #'
-    if options=={'csv':None, 'force': False, 'onlyupload': False, 'text': None, 'quiet': False, 'project': None, 'report': False, 'session': None, 'directory': None, 'up2': False, 'up1': False,'add':False}:
+    if options=={'printmodality':False,'csvfile':None, 'force': False, 'outputfile': None, 'report': False, 'session_type': None,'delete':False,'deleteAll':False}:
         print '#     No Arguments given                                       #'
         print '#     See the help bellow or use "Xnatupload -h"               #'
         print '################################################################'
         parser.print_help()
         sys.exit()
     else:
-        if options.project:
-            print '#     %*s -> %*s#' %(-20,'Project',-33,options.project)
-        if options.directory:
-            print '#     %*s -> %*s#' %(-20,'Directory',-33,get_proper_str(options.directory))
-        if options.onlyupload:
-            print '#     %*s -> %*s#' %(-20,'Upload Method',-33,'Only upload to scan')
-        elif options.up1:
-            print '#     %*s -> %*s#' %(-20,'Upload Method',-33,'up1 - all files in the directory')
-            if options.session:
-                print '#     %*s -> %*s#' %(-20,'Session type',-33,options.session)
-        elif options.up2:
-            print '#     %*s -> %*s#' %(-20,'Upload Method',-33,'up2 - one folder per object')
-            if options.session:
-                print '#     %*s -> %*s#' %(-20,'Session type',-33,options.session)
-        if options.report:
-            print '#     %*s -> %*s#' %(-20,'Report',-33,'on')
-            if options.text :
-                print '#     %*s -> %*s#' %(-20,'Path for the report',-33,get_proper_str(options.text))
-        if options.csv:
-            print '#     %*s -> %*s#' %(-20,'CSV file',-33,get_proper_str(options.csv))
-        if options.force:
-            print '#     %*s -> %*s#' %(-20,'Force',-33,'on')
-        if options.quiet:
-            print '#     %*s -> %*s#' %(-20,'Quiet',-33,'on')
-        if options.add:
-            print '#     %*s -> %*s#' %(-20,'Add',-33,'on')
+        if options.printmodality:
+            print '#     %*s -> %*s#' %(-20,'Print Modality',-33,'on')
+        else:
+            if options.csvfile:
+                print '#     %*s -> %*s#' %(-20,'CSV file',-33,get_proper_str(options.csvfile))
+            if options.session_type:
+                print '#     %*s -> %*s#' %(-20,'Session Type',-33,get_proper_str(options.session_type))
+            if options.report:
+                print '#     %*s -> %*s#' %(-20,'Report',-33,'on')
+            if options.force:
+                print '#     %*s -> %*s#' %(-20,'Force Upload',-33,'on')
+            if options.delete:
+                print '#     %*s -> %*s#' %(-20,'Delete resources',-33,'on')
+            if options.deleteAll:
+                print '#     %*s -> %*s#' %(-20,'Delete All',-33,'on')
+            if options.outputfile:
+                print '#     %*s -> %*s#' %(-20,'Output file',-33,get_proper_str(options.outputfile))
         print '################################################################'
         print "IMPORTANT WARNING FOR ALL USERS ABOUT XNAT:"
-        print "     session_label needs to be unique for each session. Two subjects can NOT have the same session_label"
+        print "   session_label needs to be unique for each session." 
+        print "   Two subjects can NOT have the same session_label"
         print '================================================================'
 
 def get_proper_str(str_option,end=False):
@@ -500,44 +554,47 @@ def get_proper_str(str_option,end=False):
     else:
         return str_option
     
+def get_usage():
+    usage="usage: %prog [options] \n"
+    usage+="What is the script doing : \n"
+    usage+="   *Upload data to XNAT following the csv file information.\n"
+    usage+="    IMPORTANT: YOU NEED TO CREATE THE PROJECT ON XNAT BEFORE.\n\n"
+    #Example
+    usage+="Examples:\n"
+    usage+="   *See Session type: Xnatupload --printmodality\n"
+    usage+="   *Simple upload: Xnatupload -c upload_sheet.csv\n"
+    usage+="   *Check the upload: Xnatupload -c upload_sheet.csv --report\n"
+    usage+="   *Force upload: Xnatupload -c upload_sheet.csv --force\n"
+    usage+="   *Upload with delete resource before uploading: Xnatupload -c upload_sheet.csv --delete\n"
+    usage+="   *Upload with delete every resources for the object (SCAN/ASSESSOR) before uploading: Xnatupload -c upload_sheet.csv --deleteAll"
+    return usage
+    
 def parse_args():
     from optparse import OptionParser
-    usage = "usage: %prog [options] \nWhat is the script doing : Upload resources for SCAN into a new project on Xnat. YOU NEED TO CREATE THE PROJECT ON XNAT BEFORE."
+    usage = get_usage()
     parser = OptionParser(usage=usage)
-    #need this options
-    parser.add_option("-p", "--project", dest="project",default=None,
-                  help="Project ID on Xnat", metavar="PROJECT ID")
-    parser.add_option("-d", "--directory", dest="directory",default=None,
-                  help="Directory from where the data will be upload", metavar="DIRECTORY")
-    #for a specific scantype or specific Assessor
-    parser.add_option("--up1", dest="up1",action="store_true", default=False,
-                  help="Upload method n 1 : all the files are in the same directory. Name the files : Project-x-subject-x-experiment-x-scan-x-scantype-x-series_description-x-resourcename.extension. E.G : BLSA-x-BLSA_0000-x-BLSA_0000_0-x-scan_2-x-fMRI-x-FuncRun_gonogo-x-NIFTI.nii.gz.", metavar="")
-    parser.add_option("--up2", dest="up2",action="store_true", default=False,
-                  help="Upload method n 2 : The directory has a specific structure. Tree structure : folder/subject/experiment/scan-x-scantype-x-series_description/resourcename/file.extension. E.G : MAINFOLDER/BLSA_0000/BLSA_0000_0/scan_2-x-fMRI-x-FuncRun_gonogo/NIFTI/file.nii.gz", metavar="")
     #text file for report
-    parser.add_option("-c","--csv", dest="csv",default=None,
+    parser.add_option("-c","--csv", dest="csvfile",default=None,
                   help="CSV file with the information for uploading data to XNAT. Columns: Subject,Session,Scan,Scantype,SeriesDescription,Resource,fpath. For -o/--only, Project,Subject,Session,Scan,Resource,fpatha.", metavar="PATH")
     #Verbose
-    parser.add_option("--sess", dest="session",default=None,
-                  help="Session type on Xnat. Choices : MR, CT and PET", metavar="SESSION_TYPE")
+    parser.add_option("--sess", dest="session_type",default=None,
+                  help="Session type on Xnat. Choices : use printmodality to see the options.", metavar="SESSION_TYPE")    
+    #Report
+    parser.add_option("--report", dest="report",action="store_true", default=False,
+                  help="Gives a report of your upload from the csv.", metavar="PATH")
     #Force the uploading (meaning delete the resources if it already exists
     parser.add_option("--force", dest="force",action="store_true", default=False,
                   help="Force the upload. If the resources exist, it will remove them before uploading.", metavar="")
-    #Upload only
-    parser.add_option("-o","--onlyUpload", dest="onlyupload",action="store_true", default=False,
-                  help="Upload files in directory on Xnat where they should be without creating anything. All the files are in the same directory. Name the files : Project-x-subject-x-experiment-x-scan-x-scantype-x-resourcename.extension. E.G : BLSA-x-BLSA_0000-x-BLSA_0000_0-x-scan_2-x-NIFTI.nii.gz.", metavar="")
-    #add file to resource
-    parser.add_option("--add", dest="add",action="store_true", default=False,
-                  help="Add the files to the resource without deleting the file there. WARNING: work only with -o/--onlyUpload.", metavar="PATH")
-    #Report
-    parser.add_option("--report", dest="report",action="store_true", default=False,
-                  help="Gives a report of your upload. Use this before uploading to be sure you have the good architecture or name for your directory/files.", metavar="PATH")
-    #text file for report
-    parser.add_option("-t","--txt", dest="text",default=None,
-                  help="Give the path where the report will be save. If not set, will be print on the terminal", metavar="PATH")
-    #Verbose
-    parser.add_option("--quiet", dest="quiet",action="store_true", default=False,
-                  help="Remove all the display.", metavar="")
+    #Delete resource before upload / delete all to delete all resources
+    parser.add_option("--delete", dest="delete",action="store_true", default=False,
+                  help="Delete resources prior to upload.", metavar="")
+    parser.add_option("--deleteAll", dest="deleteAll",action="store_true", default=False,
+                  help="Delete all resources in the scan or assessor prior to upload.", metavar="")
+    #Possible modality
+    parser.add_option("--printmodality", dest="printmodality",action="store_true", default=False,
+                  help="Display the different modality available with XNAT for a session.", metavar="")
+    parser.add_option("-o","--output", dest="outputfile", default=None,
+                  help="Filepath where the display of the upload will be printed.", metavar="")
     return parser
     
 ###################################################################################################
@@ -552,65 +609,28 @@ if __name__ == '__main__':
     #check options:
     run=check_options(options)
     #############################
+    logger = setup_info_logger('xnatupload',options.outputfile)
     
     #############################
     # RUN                       #
     #############################
     if run:
         #############################
-        #Extract values from Options
-        project = options.project
-        if options.directory:
-            directory = os.path.abspath(options.directory)
-        junk_list=None
-        """ Upload all the files in the directory on Xnat"""
-        # Connection to Xnat
-        try:
-            xnat = XnatUtils.get_interface()
-            if options.onlyupload:
-                print 'INFO: only upload data -- all files in one folder with XNAT path in the name (project-x-subject-x-session-x-scan-x-resource.ext'
-                #get the labels/folder for the directory:
-                if options.csv:
-                    labels_dict=read_csv_only(options.csv)
-                    junk_list=[]
-                else:
-                    labels_dict,junk_list=loop_on_files(directory)
-                if options.report:
-                    make_report(project,options.text,labels_dict,junk_list)
-                else:
-                    OnlyUpload(labels_dict,xnat,options.add,options.force,options.quiet)
-            elif options.csv:
-                print 'INFO: Uploading using csv file '+options.csv
-                #get the labels/folder for the directory:
-                labels_dict=read_csv_info(options.csv,project)
-                if options.report:
-                    make_report(project,options.text,labels_dict)
-                else:
-                    Upload_XNAT(labels_dict,xnat,project,options.session,options.force,options.quiet)
-            elif options.up1:
-                print 'INFO: Uploading using method 1 -- all files in one folder with XNAT path in the name (project-x-subject-x-session-x-scan-x-scantype-x-scanseriesdescription-x-resource.ext'
-                #get the labels/folder for the directory:
-                labels_dict,junk_list=loop_on_files(directory)
-                if options.report:
-                    make_report(project,options.text,labels_dict,junk_list=None)
-                else:
-                    Upload_XNAT(labels_dict,xnat,project,options.session,options.force,options.quiet)
-            elif options.up2:
-                print 'INFO: Uploading using method 2 -- data in a hierarchie refleting the XNAT path: folder/subject/session/scan-x-scantype-x-seriesdescriptions/resource/'
-                #get the labels/folder for the directory:
-                labels_dict,junk_list=loop_on_folders(directory,project)
-                if options.report:
-                    make_report(project,options.text,labels_dict,junk_list=None)
-                else:
-                    Upload_XNAT(labels_dict,xnat,project,options.session,options.force,options.quiet)
-                    
-            #list of junk:
-            if junk_list: 
-                print '\n----------------------------------'
-                print 'List of junk folder(s)/file(s) with probably data that have not been uploaded on XNAT:'
-                for junk in junk_list:
-                    print '  - folder: '+junk              
-        finally:                                        
-            xnat.disconnect()
+        if options.printmodality:
+            logger.info('INFO: Printing the modality available for a Session')
+            for key in sorted(MODALITY_DICT, key=lambda key: MODALITY_DICT[key]):
+                logger.info(' %*s : %*s ' % (-17,key,-30,MODALITY_INFO[key]))
+        elif options.report:
+            print_report(options)
+        else:
+            """ Upload all the files in the directory on Xnat"""
+            # Connection to Xnat
+            try:
+                xnat = XnatUtils.get_interface()
+                #read csv:
+                scan_list,assessor_list=read_csv_for_upload(options.csvfile,options.session_type)
+                upload_data_xnat(xnat,options,scan_list,assessor_list)
+            finally:                                        
+                xnat.disconnect()
             
-        print '===================================================================\n'
+        logger.info('===================================================================')
