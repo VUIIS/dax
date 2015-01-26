@@ -183,9 +183,20 @@ def get_proper_str(str_option,end=False):
     else:
         return str_option
 
+def get_usage():
+    usage="usage: %prog [options] \n"
+    usage+="What is the script doing : \n"
+    usage+="   *Query on Xnat at any level.\n"
+    #Example
+    usage+="Examples:\n"
+    usage+="   *Show all the projects you have access to: Xnatquery --me\n"
+    usage+="   *Show all projects: Xnatquery --all\n"
+    usage+="   *Query a specific level (example scan/assessors for a session): Xnatquery -p PID -s 109873 -e 109873\n"
+    return usage
+    
 def parse_args():
     from optparse import OptionParser
-    usage = "usage: %prog [options] \nWhat is the script doing : Query on Xnat at any level. "
+    usage = get_usage()
     parser = OptionParser(usage=usage)
     parser.add_option("-p", "--project", dest="project",default=None,
                   help="project ID on Xnat or 'all' to see all the project.", metavar="PROJECT_ID")
