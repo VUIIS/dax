@@ -122,11 +122,7 @@ class Task(object):
         # Get usage with tracejob
         jobinfo = cluster.tracejob_info(self.get_jobid(), jobstartdate)
         if jobinfo['mem_used'] != '': 
-            if 'kb' in jobinfo['mem_used']:
-                m=jobinfo['mem_used'].split('kb')[0]
-            else:
-                m=jobinfo['mem_used']
-            memused = str(int(m)/1024)+'mb'
+            memused = str(int(jobinfo['mem_used'].split('kb')[0])/1024)+'mb'
             self.set_memused(memused)
         if jobinfo['walltime_used'] != '':
             self.set_walltime(jobinfo['walltime_used'])
