@@ -279,10 +279,10 @@ class Task(object):
     def get_jobid(self):    
         jobid = ''    
         if self.atype == 'proc:genprocdata':
-            jobid = self.assessor.attrs.get('proc:genprocdata/jobid')
+            jobid = self.assessor.attrs.get('proc:genprocdata/jobid').strip()
         elif self.atype == 'fs:fsdata':
             #jobid = ''.join(self.assessor.xpath("//xnat:addParam[@name='jobid']/child::text()")).replace("\n","")
-            jobid = self.assessor.attrs.get('fs:fsdata/jobid')
+            jobid = self.assessor.attrs.get('fs:fsdata/jobid').strip()
         return jobid
         
     def get_job_status(self):
