@@ -195,7 +195,7 @@ def list_subjects(intf, projectid=None):
     else:
         post_uri = '/REST/subjects'
 
-    post_uri += '?columns=ID,project,label,URI,last_modified,src,handedness,gender'
+    post_uri += '?columns=ID,project,label,URI,last_modified,src,handedness,gender,yob'
 
     subject_list = intf._get_json(post_uri)
 
@@ -207,8 +207,6 @@ def list_subjects(intf, projectid=None):
         s['project_id'] = s['project']
         s['project_label'] = s['project']
         s['last_updated'] = s['src']
-        s['handedness'] = s['handedness']
-        s['gender'] = s['gender']
 
     return subject_list
 
