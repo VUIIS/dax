@@ -135,12 +135,23 @@ def get_proper_str(str_option,end=False):
     else:
         return str_option
 
+def get_usage():
+    usage="usage: %prog [options] \n"
+    usage+="What is the script doing : \n"
+    usage+="   *Reset sessions last update date to be seen by the nex dax_update.\n"
+    #Example
+    usage+="Examples:\n"
+    usage+="   *Reset all sessions: Xnatsessionupdate -p PID --all\n"
+    usage+="   *Reset some sessions : Xnatsessionupdate -p PID -s 109374,109348\n"
+    usage+="   *Reset for the sessions that have assessors NEED_INPUTS: Xnatsessionupdate -p PID\n"
+    return usage
+    
 def parse_args():
     from optparse import OptionParser
-    usage = "usage: %prog [options] \nWhat is the script doing : Change the last update date on a Session on XNAT to nothing to be update again. "
+    usage = get_usage()
     parser = OptionParser(usage=usage)
     parser.add_option("-p", "--project", dest="project",default=None,
-                  help="One project ID on Xnat.", metavar="PROJECT_ID")
+                  help="One project ID on Xnat.", metavar="PID")
     parser.add_option("-s", "--session", dest="session",default=None,
                   help="Session label on Xnat or list of them.", metavar="SESSION_LABELS")
     parser.add_option("-n", "--needinputs", dest="needinputs",action="store_true", default=False,
