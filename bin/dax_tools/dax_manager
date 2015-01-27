@@ -323,6 +323,7 @@ def generate_settings(rc,settings_info,status=False):
 
 def get_status(settings_info):
     logger.info('Status on each settings updates:')
+    logger.info('-------------------------------------------------------------------------------------------------------------------------')
     h='%*s | %*s | %*s | %*s | %*s | %*s' % (-20,'Project',-7,'Status',-20,'Update start',-20,'Update end',-20,'Update Job start',-20,'Update Job end')
     logger.info(h)
     logger.info('-------------------------------------------------------------------------------------------------------------------------')
