@@ -584,6 +584,7 @@ def get_usage():
     usage+="Examples:\n"
     usage+="   *See Session type: Xnatupload --printmodality\n"
     usage+="   *Simple upload: Xnatupload -c upload_sheet.csv\n"
+    usage+="   *Upload everything with a session type: Xnatupload -c upload_sheet.csv --sess PET\n"
     usage+="   *Check the upload: Xnatupload -c upload_sheet.csv --report\n"
     usage+="   *Force upload: Xnatupload -c upload_sheet.csv --force\n"
     usage+="   *Upload with delete resource before uploading: Xnatupload -c upload_sheet.csv --delete\n"
