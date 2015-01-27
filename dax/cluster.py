@@ -63,7 +63,7 @@ def get_job_mem_used(jobid,diff_days):
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)        
         if output:
-            mem=output
+            mem=output.strip()
                 
     except CalledProcessError:
         pass
@@ -80,7 +80,7 @@ def get_job_walltime_used(jobid,diff_days):
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)        
         if output:
-            walltime=output
+            walltime=output.strip()
                 
     except CalledProcessError:
         pass
