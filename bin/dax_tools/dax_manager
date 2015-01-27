@@ -327,7 +327,7 @@ def get_status(settings_info):
     logger.info(h)
     for ps in settings_info:
         if ps:
-            status=str(ps[REDCAP_VAR['general_complete']])
+            status=str(ps['general_complete'])
             if status=='2':
                 status='ON'
             else:
