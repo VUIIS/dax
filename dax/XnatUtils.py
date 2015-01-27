@@ -195,7 +195,7 @@ def list_subjects(intf, projectid=None):
     else:
         post_uri = '/REST/subjects'
 
-    post_uri += '?columns=ID,project,label,URI,last_modified,src'
+    post_uri += '?columns=ID,project,label,URI,last_modified,src,handedness,gender'
 
     subject_list = intf._get_json(post_uri)
 
@@ -207,6 +207,8 @@ def list_subjects(intf, projectid=None):
         s['project_id'] = s['project']
         s['project_label'] = s['project']
         s['last_updated'] = s['src']
+        s['handedness'] = s['handedness']
+        s['gender'] = s['gender']
 
     return subject_list
 
@@ -259,7 +261,7 @@ def list_sessions(intf, projectid=None, subjectid=None):
     
     # Get list of sessions for each type since we have to specific about last_modified field
     for sess_type in type_list:
-        post_uri_type = post_uri + '?xsiType='+sess_type+'&columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,'+sess_type+'/meta/last_modified,'+sess_type+'/original'
+        post_uri_type = post_uri + '?xsiType='+sess_type+'&columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,'+sess_type+'/age,label,'+sess_type+'/meta/last_modified,'+sess_type+'/original'
         sess_list = intf._get_json(post_uri_type)
         
         for sess in sess_list:
@@ -275,6 +277,7 @@ def list_sessions(intf, projectid=None, subjectid=None):
             sess['session_label'] = sess['label']
             sess['last_modified'] = sess[sess_type+'/meta/last_modified']
             sess['last_updated'] = sess[sess_type+'/original']
+            sess['age'] = sess[sess_type+'/age']
         
         # Add sessions of this type to full list    
         full_sess_list.extend(sess_list)
