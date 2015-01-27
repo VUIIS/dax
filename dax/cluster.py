@@ -48,7 +48,7 @@ def tracejob_info(jobid, jobdate):
     d = datetime.strptime(jobdate, "%Y-%m-%d")
     diff_days = (datetime.today() - d).days + 1
     jobinfo = dict()
-    jobinfo['mem_used']=get_job_mem_used(jobid,diff_days)
+    jobinfo['mem_used']=get_job_mem_used(jobid,diff_days)+'kb'
     jobinfo['walltime_used']=get_job_walltime_used(jobid,diff_days)
     
     return jobinfo
