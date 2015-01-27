@@ -16,11 +16,12 @@ import logging
 from dax import XnatUtils
 from datetime import datetime
 
+DEFAULT_NOTE='Xnatupload'
 DEFAULT_CSV_LIST=['object_type','project_id','subject_label','session_type','session_label', 'as_label', 'as_type', 'as_description','quality','resource','fpath']
 SCAN_HEADER=['object_type','project_id','subject_label','session_type','session_label', 'ID', 'type', 'series_description','quality']
 ASSESSOR_HEADER=['object_type','project_id','subject_label','session_type','session_label', 'label', 'proctype', 'procstatus','qcstatus']
-DEFAULT_NOTE='Xnatupload'
 DEFAULT_LABELS_DICT={'Project':0, 'Subject':1, 'Session':2, 'Scan':3, 'Scan Type':4, 'Scan Series Description':5, 'Resource':6}
+MR_SCAN_FOR_MODALITY=['RT'] #No ScanData on XNAT for those modalities, using mr by default
 MODALITY_DICT={'CT':'xnat:ctSessionData','MR': 'xnat:mrSessionData','PET': 'xnat:petSessionData', 'EPS': 'xnat:epsSessionData', 'DX': 'xnat:dxSessionData', 'RT': 'xnat:rtSessionData', 'EEG': 'xnat:eegSessionData', 'HD': 'xnat:hdSessionData', 'DX3DCRANIOFACIAL': 'xnat:dx3DCraniofacialSessionData', 'ECG': 'xnat:ecgSessionData', 'OTHERDICOM': 'xnat:otherDicomSessionData', 'RF': 'xnat:rfSessionData', 'XA3D': 'xnat:xa3DSessionData', 'ESV': 'xnat:esvSessionData', 'XC': 'xnat:xcSessionData', 'XA': 'xnat:xaSessionData', 'MEG': 'xnat:megSessionData', 'IO': 'xnat:ioSessionData', 'CR': 'xnat:crSessionData', 'GM': 'xnat:gmSessionData', 'GMV': 'xnat:gmvSessionData', 'ES': 'xnat:esSessionData', 'OPT': 'xnat:optSessionData', 'MG': 'xnat:mgSessionData', 'US': 'xnat:usSessionData', 'XCV': 'xnat:xcvSessionData', 'SM': 'xnat:smSessionData', 'OP': 'xnat:opSessionData'}
 MODALITY_INFO={'CT'               : 'An event in which CT scans are obtained on a subject',
                'MR'               : 'An event in which MR scans are obtained on a subject',
@@ -102,17 +103,23 @@ def read_csv_for_upload(csvfile,sessiontype):
                     if row[0]=='scan':
                         subject_session_list.append(row[2]+'-x-'+row[3])
                         if row[1] and row[2] and (sessiontype or row[3]) and row[4] and row[5] and row[-2] and row[-1]:
-                            scan_dict=dict(zip(SCAN_HEADER,row[:9]))
-                            scan_dict['label']='-x-'.join([row[1],row[2],row[4],row[5]])
-                            scan_list.append(scan_dict)
-                            rs_dict=add_resource(rs_dict,'-x-'.join([row[1],row[2],row[4],row[5]]),row[-2],row[-1])
+                            if not sessiontype and not row[3] in MODALITY_DICT.keys():
+                                logger.info('WARNING: row '+str(index+1)+' -- wrong session type, not defined on XNAT.')
+                            else:
+                                scan_dict=dict(zip(SCAN_HEADER,row[:9]))
+                                scan_dict['label']='-x-'.join([row[1],row[2],row[4],row[5]])
+                                scan_list.append(scan_dict)
+                                rs_dict=add_resource(rs_dict,'-x-'.join([row[1],row[2],row[4],row[5]]),row[-2],row[-1])
                         else:
                             logger.info('WARNING: row '+str(index+1)+' -- an element for one or more columns with the index 2/3/4/5/6/10/11 is empty.')
                     elif row[0]=='assessor':
                         subject_session_list.append(row[2]+'-x-'+row[3])
                         if row[1] and row[2] and (sessiontype or row[3]) and row[4] and row[5] and row[6] and row[-2] and row[-1]:
-                            assessor_list.append(dict(zip(ASSESSOR_HEADER,row[:9])))
-                            ra_dict=add_resource(ra_dict,row[5],row[-2],row[-1])
+                            if not sessiontype and not row[3] in MODALITY_DICT.keys():
+                                logger.info('WARNING: row '+str(index+1)+' -- wrong session type, not defined on XNAT.')
+                            else:
+                                assessor_list.append(dict(zip(ASSESSOR_HEADER,row[:9])))
+                                ra_dict=add_resource(ra_dict,row[5],row[-2],row[-1])
                         else:
                             logger.info('WARNING: row '+str(index+1)+' -- an element for one or more columns with the index 2/3/4/5/6/7/10/11 is empty.')
                     else:
@@ -271,22 +278,22 @@ def print_report(options):
     logger.info('===================================================================')
     logger.info('List of the data found in the csv that need to be upload :')
     logger.info('-----------------------------------------')
-    logger.info('%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-10, 'ObjectType',-10, 'Project',-10, 'Subject', -10, 'SessType', -15, 'Session', -30, 'Label',-10, 'Type',-10,'Description',-10, 'Quality',-10, 'Resource',-58, 'file(s)/folder'))
-    logger.info('----------------------------------------------------------------------------------------------------------------------------------------------------------')
+    logger.info('%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-10, 'ObjectType',-10, 'Project',-10, 'Subject', -10, 'SessType', -15, 'Session', -30, 'Label',-15, 'Type',-15,'Description',-15, 'Quality',-10, 'Resource',-58, 'file(s)/folder'))
+    logger.info('----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
     for scan_assessor in sorted(scan_assessor_list):
         o=smaller_str(scan_assessor['object_type'])
         p=smaller_str(scan_assessor['project_id'])
         s=smaller_str(scan_assessor['subject_label'])
         seT=smaller_str(scan_assessor['session_type'])
         se=smaller_str(scan_assessor['session_label'],size=15)
-        sa=smaller_str(scan_assessor['as_label'],size=30)
-        t=smaller_str(scan_assessor['as_type'])
-        sd=smaller_str(scan_assessor['as_description'])
-        q=smaller_str(scan_assessor['quality'])
+        sa=smaller_str(scan_assessor['as_label'],size=27)
+        t=smaller_str(scan_assessor['as_type'],size=12)
+        sd=smaller_str(scan_assessor['as_description'],size=12)
+        q=smaller_str(scan_assessor['quality'],size=12)
         r=smaller_str(scan_assessor['resource'])
         filepath=get_proper_str(scan_assessor['fpath'],end=True)
-        logger.info('%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-10,o,-10,p,-10,s,-10,seT,-15,se,-30,sa,-10,t,-10,sd,-10,q,-10,r,-58,filepath))
-    logger.info('\n-----------------------------------------\n')
+        logger.info('%*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-10,o,-10,p,-10,s,-10,seT,-15,se,-30,sa,-15,t,-15,sd,-15,q,-10,r,-58,filepath))
+    logger.info('\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n')
     logger.info('INFOS on header:')
     logger.info('  #Description = Job status for assessor or series description for scan')
     logger.info('  #Quality     = Job quality control for assessor or quality for scan (usable/unusable/questionable)')
@@ -314,7 +321,7 @@ def get_xnat_obj(xnat,obj_dict,session_type):
     session_obj=subject_obj.experiment(obj_dict['session_label'])
     if not session_obj.exists():
         if session_type:
-            session_obj.create(experiments=session_type)
+            session_obj.create(experiments=MODALITY_DICT[session_type])
         else:
             session_obj.create(experiments=MODALITY_DICT[obj_dict['session_type']])
         d=datetime.now()
@@ -337,9 +344,15 @@ def get_xnat_obj(xnat,obj_dict,session_type):
 
 def create_scan(scan,scan_dict,session_type):
     if session_type:
-        scan.create(scans='xnat:'+session_type.lower()+'ScanData')
+        if session_type in MR_SCAN_FOR_MODALITY:
+            scan.create(scans='xnat:mrScanData')
+        else:
+            scan.create(scans='xnat:'+session_type.lower()+'ScanData')
     else:
-        scan.create(scans='xnat:'+scan_dict['session_type'].lower()+'ScanData')
+        if scan_dict['session_type'] in MR_SCAN_FOR_MODALITY:
+            scan.create(scans='xnat:mrScanData')
+        else:
+            scan.create(scans='xnat:'+scan_dict['session_type'].lower()+'ScanData')
     #set attributes
     scan.attrs.set('type',scan_dict['type'])
     scan.attrs.set('series_description',scan_dict['series_description'])
@@ -500,7 +513,15 @@ def check_options(options):
         return False
     
     if options.session_type:
-        print 'OPTION WARNING: session type set by user. Not using session type in the csv.'
+        if options.session_type not in MODALITY_DICT.keys():
+            print 'OPTION ERROR: session type set by user does not exist on XNAT: '+options.session_type+'\n'
+            print 'INFO: Printing the modality available for a Session'
+            for key in sorted(MODALITY_DICT, key=lambda key: MODALITY_DICT[key]):
+                print ' %*s : %*s ' % (-17,key,-30,MODALITY_INFO[key])
+            print '==================================================================='
+            return False
+        else:
+            print 'OPTION WARNING: session type set by user. Not using session type in the csv.'
     return True
 
 ########################################## MAIN DISPLAY FUNCTION ##########################################   
