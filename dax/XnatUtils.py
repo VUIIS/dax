@@ -189,6 +189,16 @@ def get_interface():
     # Don't sys.exit, let callers catch KeyErrors
     return Interface(host, user, pwd)
 
+def list_projects(intf):
+    post_uri = '/REST/projects'
+    projects_list = intf._get_json(post_uri)
+    return projects_list
+    
+def list_project_resources(intf, projectid):
+    post_uri = '/REST/projects/'+projectid+'/resources'
+    resource_list = intf._get_json(post_uri)
+    return resource_list
+
 def list_subjects(intf, projectid=None):
     if projectid:
         post_uri = '/REST/projects/'+projectid+'/subjects'
@@ -209,6 +219,11 @@ def list_subjects(intf, projectid=None):
         s['last_updated'] = s['src']
 
     return subject_list
+    
+def list_subject_resources(intf, projectid,subjectid):
+    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/resources'
+    resource_list = intf._get_json(post_uri)
+    return resource_list
 
 def list_experiments(intf, projectid=None, subjectid=None):
     if projectid and subjectid:
@@ -235,6 +250,11 @@ def list_experiments(intf, projectid=None, subjectid=None):
         e['project_label'] = e['project']
 
     return sorted(experiment_list, key=lambda k: k['session_label'])
+    
+def list_experiment_resources(intf, projectid, subjectid, experimentid):
+    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/resources'
+    resource_list = intf._get_json(post_uri)
+    return resource_list
 
 def list_sessions(intf, projectid=None, subjectid=None):
     type_list = []
@@ -433,11 +453,6 @@ def list_project_scans(intf, projectid, include_shared=True):
 
 def list_scan_resources(intf, projectid, subjectid, experimentid, scanid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/scans/'+scanid+'/resources'
-    resource_list = intf._get_json(post_uri)
-    return resource_list
-    
-def list_experiment_resources(intf, projectid, subjectid, experimentid):
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/resources'
     resource_list = intf._get_json(post_uri)
     return resource_list
 
