@@ -57,7 +57,7 @@ ADMIN_EMAIL=[]
 #Command to submit job to the cluster:
 CMD_SUBMIT='sbatch'
 PREFIX_JOBID='Submitted batch job '
-SUFFIX_JOBID=None
+SUFFIX_JOBID='\n'
 #Command to count the number of jobs running for a user
 CMD_COUNT_NB_JOBS="squeue -u $USER --noheader | wc -l"
 #Command to get the status of a job giving it jobid. Shoudl return R/Q/C for running/queue or others that will mean clear
