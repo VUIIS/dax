@@ -220,7 +220,7 @@ def list_subjects(intf, projectid=None):
         s['subject_label'] = s['label']
         s['last_updated'] = s['src']
 
-    return subject_list
+    return sorted(subject_list, key=lambda k: k['subject_label'])
     
 def list_subject_resources(intf, projectid,subjectid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/resources'
