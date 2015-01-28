@@ -501,13 +501,10 @@ def list_assessors(intf, projectid, subjectid, experimentid):
 def list_project_assessors(intf, projectid):
     new_list = []
     
-    #Get the sessions list to get the modality:
+    #Get the sessions list to get the different variables needed:
     session_list=list_sessions(intf, projectid)
-    sess_id2mod=dict((sess['session_id'], [sess['type'],sess['age']]) for sess in session_list)
-    #Get the subjects list to get the subject ID:
-    subj_list = list_subjects(intf, projectid)
-    subj_id2lab = dict((subj['ID'], [subj['label'],subj['handedness'],subj['gender'],subj['yob']]) for subj in subj_list)
-    
+    sess_id2mod=dict((sess['session_id'], [sess['subject_label'],sess['type'],sess['handedness'],sess['gender'],sess['yob'],sess['age'],sess['last_modified'],sess['last_updated']]) for sess in session_list)
+
     # First get FreeSurfer
     post_uri = '/REST/archive/experiments'
     post_uri += '?project='+projectid
@@ -515,7 +512,7 @@ def list_project_assessors(intf, projectid):
     post_uri += '&columns=ID,label,URI,xsiType,project'
     post_uri += ',xnat:imagesessiondata/subject_id,subject_label,xnat:imagesessiondata/id'
     post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
-    post_uri += ',fs:fsData/validation/status,version,fs:jobstartdate,fs:memused,fs:walltimeused,fs:jobid'
+    post_uri += ',fs:fsData/validation/status,fs:fsData/procversion,fs:fsData/jobstartdate,fs:fsData/memused,fs:fsData/walltimeused,fs:fsData/jobid'
     assessor_list = intf._get_json(post_uri)
 
     for a in assessor_list:
@@ -531,7 +528,7 @@ def list_project_assessors(intf, projectid):
             anew['project_label'] = projectid
             anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
             anew['subject_label'] = a['subject_label']
-            anew['session_type'] = sess_id2mod[a['session_ID']][0]
+            anew['session_type'] = sess_id2mod[a['session_ID']][1]
             anew['session_id'] = a['session_ID']
             anew['session_label'] = a['session_label']
             anew['procstatus'] = a['fs:fsdata/procstatus']
@@ -539,19 +536,21 @@ def list_project_assessors(intf, projectid):
             anew['proctype'] = 'FreeSurfer'
             
             if len(a['label'].rsplit('-x-FS')) > 1:
-            	anew['proctype'] = anew['proctype']+a['label'].rsplit('-x-FS')[1]
-            	
+                anew['proctype'] = anew['proctype']+a['label'].rsplit('-x-FS')[1]
+                
             anew['version'] = a.get('fs:fsdata/procversion')
             anew['xsiType'] = a['xsiType']
-            anew['jobid'] = a.get('fs:jobid')
-            anew['jobstartdate'] = a.get('fs:jobstartdate')
-            anew['memused'] = a.get('fs:memused')
-            anew['walltimeused'] = a.get('fs:walltimeused')
-            #anew['procnode'] = a.get('fs:procnode')
-            anew['handedness'] = subj_id2lab[a['xnat:imagesessiondata/subject_id']][1]
-            anew['gender'] = subj_id2lab[a['xnat:imagesessiondata/subject_id']][2]
-            anew['yob'] = subj_id2lab[a['xnat:imagesessiondata/subject_id']][3]
-            anew['age'] = sess_id2mod[a['session_ID']][1]
+            anew['jobid'] = a.get('fs:fsdata/jobid')
+            anew['jobstartdate'] = a.get('fs:fsdata/jobstartdate')
+            anew['memused'] = a.get('fs:fsdata/memused')
+            anew['walltimeused'] = a.get('fs:fsdata/walltimeused')
+            #anew['jobnode'] = a.get('fs:jobnode')
+            anew['handedness'] = sess_id2mod[a['session_ID']][2]
+            anew['gender'] = sess_id2mod[a['session_ID']][3]
+            anew['yob'] = sess_id2mod[a['session_ID']][4]
+            anew['age'] = sess_id2mod[a['session_ID']][5]
+            anew['last_modified'] = sess_id2mod[a['session_ID']][6]
+            anew['last_updated'] = sess_id2mod[a['session_ID']][7]
             new_list.append(anew)
 
     # Then add genProcData    
@@ -577,8 +576,8 @@ def list_project_assessors(intf, projectid):
             anew['project_id'] = projectid
             anew['project_label'] = projectid
             anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-            anew['subject_label'] = subj_id2lab[anew['subject_id']]
-            anew['session_type'] = sess_id2mod[a['session_ID']]
+            anew['subject_label'] = sess_id2mod[a['session_ID']][0]
+            anew['session_type'] = sess_id2mod[a['session_ID']][1]
             anew['session_id'] = a['session_ID']
             anew['session_label'] = a['session_label']
             anew['procstatus'] = a['proc:genprocdata/procstatus']
@@ -587,14 +586,16 @@ def list_project_assessors(intf, projectid):
             anew['version'] = a['proc:genprocdata/procversion']
             anew['xsiType'] = a['xsiType']
             anew['jobid'] = a.get('proc:genprocdata/jobid')
-            #anew['procnode'] = a.get('proc:genprocdata/procnode')
+            #anew['jobnode'] = a.get('proc:genprocdata/jobnode')
             anew['jobstartdate'] = a.get('proc:genprocdata/jobstartdate')
             anew['memused'] = a.get('proc:genprocdata/memused')
             anew['walltimeused'] = a.get('proc:genprocdata/walltimeused')
-            anew['handedness'] = subj_id2lab[a['xnat:imagesessiondata/subject_id']][1]
-            anew['gender'] = subj_id2lab[a['xnat:imagesessiondata/subject_id']][2]
-            anew['yob'] = subj_id2lab[a['xnat:imagesessiondata/subject_id']][3]
-            anew['age'] = sess_id2mod[a['session_ID']][1]
+            anew['handedness'] = sess_id2mod[a['session_ID']][2]
+            anew['gender'] = sess_id2mod[a['session_ID']][3]
+            anew['yob'] = sess_id2mod[a['session_ID']][4]
+            anew['age'] = sess_id2mod[a['session_ID']][5]
+            anew['last_modified'] = sess_id2mod[a['session_ID']][6]
+            anew['last_updated'] = sess_id2mod[a['session_ID']][7]
             new_list.append(anew)
             
     return sorted(new_list, key=lambda k: k['label'])
