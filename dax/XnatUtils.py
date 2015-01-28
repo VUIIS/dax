@@ -326,6 +326,13 @@ def list_scans(intf, projectid, subjectid, experimentid):
     
 def list_project_scans(intf, projectid, include_shared=True):
     new_list = []
+    
+    #Get the sessions list to get the modality:
+    session_list=list_sessions(intf, projectid)
+    sess_id2mod=dict((sess['session_id'], [sess['age']]) for sess in session_list)
+    #Get the subjects list to get the subject ID:
+    subj_list = list_subjects(intf, projectid)
+    subj_id2lab = dict((subj['ID'], [subj['handedness'],subj['gender'],subj['yob']]) for subj in subj_list)
 
     post_uri = '/REST/archive/experiments'
     post_uri += '?project='+projectid
@@ -364,6 +371,10 @@ def list_project_scans(intf, projectid, include_shared=True):
         snew['session_id'] = s['ID']
         snew['session_label'] = s['label']
         snew['session_uri'] = s['URI']
+        snew['handedness'] = subj_id2lab[s['xnat:imagesessiondata/subject_id']][0]
+        snew['gender'] = subj_id2lab[s['xnat:imagesessiondata/subject_id']][1]
+        snew['yob'] = subj_id2lab[s['xnat:imagesessiondata/subject_id']][2]
+        snew['age'] = sess_id2mod[s['ID']][0]
         new_list.append(snew)
         
     if (include_shared):
@@ -404,6 +415,10 @@ def list_project_scans(intf, projectid, include_shared=True):
             snew['session_id'] = s['ID']
             snew['session_label'] = s['label']
             snew['session_uri'] = s['URI']
+            snew['handedness'] = subj_id2lab[s['xnat:imagesessiondata/subject_id']][0]
+            snew['gender'] = subj_id2lab[s['xnat:imagesessiondata/subject_id']][1]
+            snew['yob'] = subj_id2lab[s['xnat:imagesessiondata/subject_id']][2]
+            snew['age'] = sess_id2mod[s['ID']][0]
             new_list.append(snew)
             
     return sorted(new_list, key=lambda k: k['scan_label'])
@@ -476,7 +491,10 @@ def list_project_assessors(intf, projectid):
     
     #Get the sessions list to get the modality:
     session_list=list_sessions(intf, projectid)
-    sess_id2mod=dict((sess['session_id'], sess['type']) for sess in session_list)
+    sess_id2mod=dict((sess['session_id'], [sess['type'],sess['age']]) for sess in session_list)
+    #Get the subjects list to get the subject ID:
+    subj_list = list_subjects(intf, projectid)
+    subj_id2lab = dict((subj['ID'], [subj['label'],subj['handedness'],subj['gender'],subj['yob']]) for subj in subj_list)
     
     # First get FreeSurfer
     post_uri = '/REST/archive/experiments'
@@ -485,7 +503,7 @@ def list_project_assessors(intf, projectid):
     post_uri += '&columns=ID,label,URI,xsiType,project'
     post_uri += ',xnat:imagesessiondata/subject_id,subject_label,xnat:imagesessiondata/id'
     post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
-    post_uri += ',fs:fsData/validation/status'
+    post_uri += ',fs:fsData/validation/status,version,fs:jobstartdate,fs:memused,fs:walltimeused,fs:jobid'
     assessor_list = intf._get_json(post_uri)
 
     for a in assessor_list:
@@ -501,14 +519,23 @@ def list_project_assessors(intf, projectid):
             anew['project_label'] = projectid
             anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
             anew['subject_label'] = a['subject_label']
-            anew['session_type'] = sess_id2mod[a['session_ID']]
+            anew['session_type'] = sess_id2mod[a['session_ID']][0]
             anew['session_id'] = a['session_ID']
             anew['session_label'] = a['session_label']
             anew['procstatus'] = a['fs:fsdata/procstatus']
             anew['qcstatus'] = a['fs:fsdata/validation/status']
             anew['proctype'] = 'FreeSurfer'
-            anew['version'] = ''
+            anew['version'] = a.get('version')
             anew['xsiType'] = a['xsiType']
+            anew['jobid'] = a.get('fs:jobid')
+            anew['jobstartdate'] = a.get('fs:jobstartdate')
+            anew['memused'] = a.get('fs:memused')
+            anew['walltimeused'] = a.get('fs:walltimeused')
+            #anew['procnode'] = a.get('fs:procnode')
+            anew['handedness'] = subj_id2lab[a['xnat:imagesessiondata/subject_id']][1]
+            anew['gender'] = subj_id2lab[a['xnat:imagesessiondata/subject_id']][2]
+            anew['yob'] = subj_id2lab[a['xnat:imagesessiondata/subject_id']][3]
+            anew['age'] = sess_id2mod[a['session_ID']][1]
             new_list.append(anew)
 
     # Then add genProcData    
@@ -519,10 +546,8 @@ def list_project_assessors(intf, projectid):
     post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
     post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
     post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status,proc:genprocdata/procversion'
+    post_uri += ',proc:genprocdata/jobstartdate,proc:genprocdata/memused,proc:genprocdata/walltimeused,proc:genprocdata/jobid'
     assessor_list = intf._get_json(post_uri)
-    
-    subj_list = list_subjects(intf, projectid)
-    subj_id2lab = dict((subj['ID'], subj['label']) for subj in subj_list)
 
     for a in assessor_list:
         if a['label']:
@@ -545,6 +570,15 @@ def list_project_assessors(intf, projectid):
             anew['qcstatus'] = a['proc:genprocdata/validation/status']
             anew['version'] = a['proc:genprocdata/procversion']
             anew['xsiType'] = a['xsiType']
+            anew['jobid'] = a.get('proc:genprocdata/jobid')
+            #anew['procnode'] = a.get('proc:genprocdata/procnode')
+            anew['jobstartdate'] = a.get('proc:genprocdata/jobstartdate')
+            anew['memused'] = a.get('proc:genprocdata/memused')
+            anew['walltimeused'] = a.get('proc:genprocdata/walltimeused')
+            anew['handedness'] = subj_id2lab[a['xnat:imagesessiondata/subject_id']][1]
+            anew['gender'] = subj_id2lab[a['xnat:imagesessiondata/subject_id']][2]
+            anew['yob'] = subj_id2lab[a['xnat:imagesessiondata/subject_id']][3]
+            anew['age'] = sess_id2mod[a['session_ID']][1]
             new_list.append(anew)
             
     return sorted(new_list, key=lambda k: k['label'])
