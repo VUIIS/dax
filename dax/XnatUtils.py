@@ -329,10 +329,7 @@ def list_project_scans(intf, projectid, include_shared=True):
     
     #Get the sessions list to get the modality:
     session_list=list_sessions(intf, projectid)
-    sess_id2mod=dict((sess['session_id'], [sess['age']]) for sess in session_list)
-    #Get the subjects list to get the subject ID:
-    subj_list = list_subjects(intf, projectid)
-    subj_id2lab = dict((subj['ID'], [subj['handedness'],subj['gender'],subj['yob']]) for subj in subj_list)
+    sess_id2mod=dict((sess['session_id'], [sess['handedness'],sess['gender'],sess['yob'],sess['age'],sess['last_modified'],sess['last_updated']]) for sess in session_list)
 
     post_uri = '/REST/archive/experiments'
     post_uri += '?project='+projectid
@@ -371,10 +368,12 @@ def list_project_scans(intf, projectid, include_shared=True):
         snew['session_id'] = s['ID']
         snew['session_label'] = s['label']
         snew['session_uri'] = s['URI']
-        snew['handedness'] = subj_id2lab[s['xnat:imagesessiondata/subject_id']][0]
-        snew['gender'] = subj_id2lab[s['xnat:imagesessiondata/subject_id']][1]
-        snew['yob'] = subj_id2lab[s['xnat:imagesessiondata/subject_id']][2]
-        snew['age'] = sess_id2mod[s['ID']][0]
+        snew['handedness'] = sess_id2mod[s['ID']][0]
+        snew['gender'] = sess_id2mod[s['ID']][1]
+        snew['yob'] = sess_id2mod[s['ID']][2]
+        snew['age'] = sess_id2mod[s['ID']][3]
+        snew['last_modified'] = sess_id2mod[s['ID']][4]
+        snew['last_updated'] = sess_id2mod[s['ID']][5]
         new_list.append(snew)
         
     if (include_shared):
@@ -415,10 +414,12 @@ def list_project_scans(intf, projectid, include_shared=True):
             snew['session_id'] = s['ID']
             snew['session_label'] = s['label']
             snew['session_uri'] = s['URI']
-            snew['handedness'] = subj_id2lab[s['xnat:imagesessiondata/subject_id']][0]
-            snew['gender'] = subj_id2lab[s['xnat:imagesessiondata/subject_id']][1]
-            snew['yob'] = subj_id2lab[s['xnat:imagesessiondata/subject_id']][2]
-            snew['age'] = sess_id2mod[s['ID']][0]
+            snew['handedness'] = sess_id2mod[s['ID']][0]
+            snew['gender'] = sess_id2mod[s['ID']][1]
+            snew['yob'] = sess_id2mod[s['ID']][2]
+            snew['age'] = sess_id2mod[s['ID']][3]
+            snew['last_modified'] = sess_id2mod[s['ID']][4]
+            snew['last_updated'] = sess_id2mod[s['ID']][5]
             new_list.append(snew)
             
     return sorted(new_list, key=lambda k: k['scan_label'])
