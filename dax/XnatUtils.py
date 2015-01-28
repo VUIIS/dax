@@ -216,6 +216,8 @@ def list_subjects(intf, projectid=None):
 
         s['project_id'] = s['project']
         s['project_label'] = s['project']
+        s['subject_id'] = s['ID']
+        s['subject_label'] = s['label']
         s['last_updated'] = s['src']
 
     return subject_list
