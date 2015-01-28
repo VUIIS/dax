@@ -22,6 +22,7 @@ QUEUE_STATUS          --> string return for IN QUEUE Job (e.g: 'qw')
 JOB_EXTENSION_FILE    --> extension for script file (default: .slurm)
 CMD_GET_JOB_MEMORY    --> command to get job memory used 
 CMD_GET_JOB_WALLTIME  --> command to get job walltime used
+CMD_GET_JOB_NODE      --> command to get job node used
 JOB_EXTENSION_FILE    --> extension for job script (default: .slurm)
 DEFAULT_EMAIL_OPTS    --> EMAIL options (default: ALL)
 
@@ -66,6 +67,7 @@ QUEUE_STATUS='Q'
 #Command to get the walltime and memory used by the jobs at the end of the job
 CMD_GET_JOB_MEMORY=Template("""sacct -j ${jobid}.batch --format MaxRss --noheader | awk '{print $1+0}'""")
 CMD_GET_JOB_WALLTIME=Template("""sacct -j ${jobid}.batch --format CPUTime --noheader""")
+CMD_GET_JOB_NODE=Template("""sacct -j ${jobid}.batch --format NodeList --noheader""")
 #Template for your script file to submit a job
 JOB_EXTENSION_FILE='.slurm' 
 JOB_TEMPLATE = Template("""#!/bin/bash
