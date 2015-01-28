@@ -10,7 +10,7 @@ __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 import subprocess,os
 from subprocess import CalledProcessError
 from datetime import datetime
-from dax_settings import DEFAULT_EMAIL_OPTS,JOB_TEMPLATE,CMD_SUBMIT,CMD_COUNT_NB_JOBS,CMD_GET_JOB_STATUS,CMD_GET_JOB_WALLTIME,CMD_GET_JOB_MEMORY,RUNNING_STATUS,QUEUE_STATUS,PREFIX_JOBID,SUFFIX_JOBID
+from dax_settings import DEFAULT_EMAIL_OPTS,JOB_TEMPLATE,CMD_SUBMIT,CMD_COUNT_NB_JOBS,CMD_GET_JOB_STATUS,CMD_GET_JOB_WALLTIME,CMD_GET_JOB_MEMORY,CMD_GET_JOB_NODE,RUNNING_STATUS,QUEUE_STATUS,PREFIX_JOBID,SUFFIX_JOBID
 
 MAX_TRACE_DAYS=30
 
@@ -89,6 +89,23 @@ def get_job_walltime_used(jobid,diff_days):
         walltime = 'NotFound'
 
     return walltime
+    
+def get_job_node(jobid,diff_days):
+    jobnode=''
+    # Check for blank jobid
+    if not jobid:
+        return jobnode
+        
+    cmd = CMD_GET_JOB_NODE.safe_substitute(**{'numberofdays':diff_days,'jobid':jobid})
+    try:
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)        
+        if output:
+            jobnode=output.strip()
+                
+    except CalledProcessError:
+        pass
+    
+    return jobnode
     
 def get_specific_str(big_str,prefix,suffix):
     specific_str = big_str
