@@ -251,11 +251,15 @@ def list_sessions(intf, projectid=None, subjectid=None):
     
     # First get a list of all experiment types
     post_uri_types = post_uri+'?columns=xsiType'
-    sess_list = intf._get_json(post_uri)
+    sess_list = intf._get_json(post_uri_types)
     for sess in sess_list:
         sess_type = sess['xsiType'].lower()
         if sess_type not in type_list:
             type_list.append(sess_type)
+    
+    #Get the subjects list to get the subject ID:
+    subj_list = list_subjects(intf, projectid)
+    subj_id2lab = dict((subj['ID'], [subj['handedness'],subj['gender'],subj['yob']]) for subj in subj_list)
     
     # Get list of sessions for each type since we have to specific about last_modified field
     for sess_type in type_list:
@@ -270,12 +274,15 @@ def list_sessions(intf, projectid=None, subjectid=None):
             sess['type'] = sess_type.split('xnat:')[1].split('session')[0].upper()
             sess['project_id'] = sess['project']
             sess['project_label'] = sess['project']
-            sess['subject_id'] = sess['subject_ID'] 
+            sess['subject_id'] = sess['subject_ID']
             sess['session_id'] = sess['ID']
             sess['session_label'] = sess['label']
             sess['last_modified'] = sess[sess_type+'/meta/last_modified']
             sess['last_updated'] = sess[sess_type+'/original']
             sess['age'] = sess[sess_type+'/age']
+            sess['handedness'] = subj_id2lab[sess['subject_ID']][0]
+            sess['gender'] = subj_id2lab[sess['subject_ID']][1]
+            sess['yob'] = subj_id2lab[sess['subject_ID']][2]
         
         # Add sessions of this type to full list    
         full_sess_list.extend(sess_list)
