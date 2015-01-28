@@ -512,7 +512,7 @@ def list_project_assessors(intf, projectid):
     post_uri += '&columns=ID,label,URI,xsiType,project'
     post_uri += ',xnat:imagesessiondata/subject_id,subject_label,xnat:imagesessiondata/id'
     post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
-    post_uri += ',fs:fsData/validation/status,fs:fsData/procversion,fs:fsData/jobstartdate,fs:fsData/memused,fs:fsData/walltimeused,fs:fsData/jobid'
+    post_uri += ',fs:fsData/validation/status,fs:fsData/procversion,fs:fsData/jobstartdate,fs:fsData/memused,fs:fsData/walltimeused,fs:fsData/jobid,fs:fsData/jobnode'
     assessor_list = intf._get_json(post_uri)
 
     for a in assessor_list:
@@ -544,7 +544,7 @@ def list_project_assessors(intf, projectid):
             anew['jobstartdate'] = a.get('fs:fsdata/jobstartdate')
             anew['memused'] = a.get('fs:fsdata/memused')
             anew['walltimeused'] = a.get('fs:fsdata/walltimeused')
-            #anew['jobnode'] = a.get('fs:fsdata/jobnode')
+            anew['jobnode'] = a.get('fs:fsdata/jobnode')
             anew['handedness'] = sess_id2mod[a['session_ID']][2]
             anew['gender'] = sess_id2mod[a['session_ID']][3]
             anew['yob'] = sess_id2mod[a['session_ID']][4]
@@ -561,7 +561,7 @@ def list_project_assessors(intf, projectid):
     post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
     post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
     post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status,proc:genprocdata/procversion'
-    post_uri += ',proc:genprocdata/jobstartdate,proc:genprocdata/memused,proc:genprocdata/walltimeused,proc:genprocdata/jobid'
+    post_uri += ',proc:genprocdata/jobstartdate,proc:genprocdata/memused,proc:genprocdata/walltimeused,proc:genprocdata/jobid,proc:genprocdata/jobnode'
     assessor_list = intf._get_json(post_uri)
 
     for a in assessor_list:
@@ -586,7 +586,7 @@ def list_project_assessors(intf, projectid):
             anew['version'] = a['proc:genprocdata/procversion']
             anew['xsiType'] = a['xsiType']
             anew['jobid'] = a.get('proc:genprocdata/jobid')
-            #anew['jobnode'] = a.get('proc:genprocdata/jobnode')
+            anew['jobnode'] = a.get('proc:genprocdata/jobnode')
             anew['jobstartdate'] = a.get('proc:genprocdata/jobstartdate')
             anew['memused'] = a.get('proc:genprocdata/memused')
             anew['walltimeused'] = a.get('proc:genprocdata/walltimeused')
