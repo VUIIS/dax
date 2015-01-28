@@ -50,6 +50,7 @@ def tracejob_info(jobid, jobdate):
     jobinfo = dict()
     jobinfo['mem_used']=get_job_mem_used(jobid,diff_days)+'kb'
     jobinfo['walltime_used']=get_job_walltime_used(jobid,diff_days)
+    jobinfo['jobnode']=get_job_node(jobid,diff_days)
     
     return jobinfo
     
