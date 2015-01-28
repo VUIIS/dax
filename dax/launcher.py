@@ -281,9 +281,6 @@ class Launcher(object):
             logger.info('Connection to XNAT closed')
    
     def update_project(self, xnat, project_id, lockfile_prefix,sessions_local):
-        exp_mod_list, scan_mod_list = [],[]
-        exp_proc_list, scan_proc_list = [],[]
-        
         #Modules prerun
         logger.info('  *Modules Prerun')
         if sessions_local:
@@ -292,9 +289,12 @@ class Launcher(object):
             self.module_prerun(project_id, lockfile_prefix)
         
         # Get lists of modules/processors per scan/exp for this project
-        exp_mod_list, scan_mod_list = modules.modules_by_type(self.project_modules_dict[project_id])        
-        exp_proc_list, scan_proc_list = processors.processors_by_type(self.project_process_dict[project_id])  
+        exp_mod_list, scan_mod_list = modules.modules_by_type(self.project_modules_dict[project_id])
+        exp_proc_list, scan_proc_list = processors.processors_by_type(self.project_process_dict[project_id])
         
+         # Check for new processors
+        has_new = self.has_new_processors(xnat, project_id, exp_proc_list, scan_proc_list)
+
         # Get the list of sessions:
         list_sessions=XnatUtils.list_sessions(xnat, project_id)
         if sessions_local and sessions_local.lower()!='all':
@@ -309,7 +309,7 @@ class Launcher(object):
             last_up = self.get_lastupdated(sess_info)
             
             #If sessions_local is set, skip checking the date
-            if (last_up != None and last_mod < last_up) and not sessions_local:
+            if (not has_new and last_up != None and last_mod < last_up and not sessions_local):
                 logger.info('  +Session:'+sess_info['label']+': skipping, last_mod='+str(last_mod)+',last_up='+str(last_up))
             else: 
                 logger.info('  +Session:'+sess_info['label']+': updating...')
@@ -467,3 +467,17 @@ class Launcher(object):
         finally:  
             xnat.disconnect()
             logger.info('Connection to XNAT closed')
+
+    def has_new_processors(self, xnat, project_id, exp_proc_list, scan_proc_list):
+        # Get unique list of assessors already in XNAT
+        assr_list  = XnatUtils.list_project_assessors(xnat, project_id)
+        assr_type_set = set([x['proctype'] for x in assr_list])
+        
+        # Get unique list of processors prescribed for project
+        proc_name_set = set([x.name for x in (exp_proc_list+scan_proc_list)])
+        
+        # Get list of processors that don't have assessors in XNAT yet
+        diff_list = list(proc_name_set.difference(assr_type_set))
+        
+        # Are there any?
+        return (len(diff_list) > 0)

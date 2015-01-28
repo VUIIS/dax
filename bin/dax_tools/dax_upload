@@ -204,9 +204,9 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
     #upload finish
     if os.path.exists(os.path.join(assessor_path, _READY_FLAG_FILE)):
         assessor.attrs.set('proc:genProcData/procstatus', READY_TO_COMPLETE)
-    elif os.path.exists(os.path.join(assessor_path, _FAILED_FLAG_FILE)):
+    else:
         assessor.attrs.set('proc:genProcData/procstatus', JOB_FAILED)
-    
+        
     os.system('rm -r '+assessor_path)
 
 def Uploading_PBS(pbs_list,xnat):
@@ -282,6 +282,7 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
     
     # set version:
     assessor.attrs.set('fs:fsData/procversion', version)
+    
     # Upload the XML
     xmlpath=os.path.join(assessor_path,'XML')
     if os.path.exists(xmlpath):
@@ -358,8 +359,8 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
     #upload finish
     if os.path.exists(os.path.join(assessor_path,_READY_FLAG_FILE)):
         assessor.attrs.set('fs:fsdata/procstatus',READY_TO_COMPLETE)
-    elif os.path.exists(os.path.join(assessor_path, _FAILED_FLAG_FILE)):
-        assessor.attrs.set('fs:fsdata/procstatus', JOB_FAILED)
+    else:
+        assessor.attrs.set('fs:fsdata/procstatus',JOB_FAILED)
     
     os.system('rm -r '+assessor_path)
     
@@ -488,67 +489,61 @@ if __name__ == '__main__':
                 #check if subject/experiment exists on XNAT
                 EXPERIMENT = xnat.select('/project/'+ProjectName+'/subjects/'+Subject+'/experiments/'+Experiment)
                 
-                if EXPERIMENT.exists():
-                    #ASSESSOR in the experiment
-                    ASSESSOR=EXPERIMENT.assessor(assessor_label)
-                    
-                    #existence :
+                
+                if not EXPERIMENT.exists():
+                    logger.error('Cannot upload assessor, session does not exist.')
+                    continue
+                
+                #ASSESSOR in the experiment
+                ASSESSOR=EXPERIMENT.assessor(assessor_label)
+                
+                ################# FreeSurfer #################
+                if Process_name.startswith('FS') and not Process_name.startswith('FSL'):
                     if not ASSESSOR.exists():
-                        if Process_name=='FS':
-                            #create the assessor and set the status 
-                            ASSESSOR.create(assessors='fs:fsData')
-                            #Set attributes
-                            if os.path.exists(os.path.join(assessor_path, _READY_FLAG_FILE)):
-                                ASSESSOR.attrs.set('fs:fsData/procstatus', UPLOADING) #Set to uploading files
-                            elif os.path.exists(os.path.join(assessor_path, _FAILED_FLAG_FILE)):
-                                ASSESSOR.attrs.set('fs:fsData/procstatus', JOB_FAILED) #Set to uploading files
-                            ASSESSOR.attrs.set('fs:fsData/validation/status', JOB_PENDING)
-                            ASSESSOR.attrs.set('fs:fsData/proctype', 'FreeSurfer_v'+version.split('.')[0])
-                            ASSESSOR.attrs.set('fs:fsData/procversion', version)
-                            now=datetime.now()
-                            today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
-                            ASSESSOR.attrs.set('fs:fsData/date',today)
-                        else:
-                            #create the assessor and set the status 
-                            ASSESSOR.create(assessors='proc:genProcData')
-                            #Set attributes
-                            if os.path.exists(os.path.join(assessor_path,_READY_FLAG_FILE)):
-                                ASSESSOR.attrs.set('proc:genProcData/procstatus', UPLOADING) #Set to uploading files
-                            elif os.path.exists(os.path.join(assessor_path, _FAILED_FLAG_FILE)):
-                                ASSESSOR.attrs.set('proc:genProcData/procstatus', JOB_FAILED) #Set to uploading files
-                            ASSESSOR.attrs.set('proc:genProcData/validation/status',JOB_PENDING)
-                            ASSESSOR.attrs.set('proc:genProcData/proctype', Process_name)
-                            ASSESSOR.attrs.set('proc:genProcData/procversion', version)
-                            now=datetime.now()
-                            today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
-                            ASSESSOR.attrs.set('proc:genProcData/date',today)
-                    
+                        #create the assessor and set the status 
+                        ASSESSOR.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
+                        ASSESSOR.attrs.set('fs:fsData/validation/status', JOB_PENDING)
+                        now=datetime.now()
+                        today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
+                        ASSESSOR.attrs.set('fs:fsData/date',today)
+                        
                     else:
-                        ################# FreeSurfer #################
-                        if Process_name=='FS':      
-                            if ASSESSOR.attrs.get('fs:fsData/procstatus') == READY_TO_COMPLETE or ASSESSOR.attrs.get('fs:fsData/procstatus') == COMPLETE:
-                                if not os.path.exists(assessor_path+'/'+_EMAILED_FLAG_FILE):
-                                    open(assessor_path+'/'+_EMAILED_FLAG_FILE, 'w').close()
-                                logger.info('  -->Data already present on XNAT.\n')
-                                warning_list.append('\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n')
-                            else:
-                                #set the status to Upload :
-                                if os.path.exists(os.path.join(assessor_path, _READY_FLAG_FILE)):
-                                    ASSESSOR.attrs.set('fs:fsData/procstatus', UPLOADING)
-                                Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label,version)
-                        ################# Default Assessor #################
-                        else:
-                            if ASSESSOR.attrs.get('proc:genProcData/procstatus') == READY_TO_COMPLETE or ASSESSOR.attrs.get('proc:genProcData/procstatus') == COMPLETE:
-                                if not os.path.exists(assessor_path+'/'+_EMAILED_FLAG_FILE):
-                                    open(assessor_path+'/'+_EMAILED_FLAG_FILE, 'w').close()
-                                logger.info( 'Data already exist.\n')
-                                warning_list.append('\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n')
-                            else:
-                                #set the status to Upload :
-                                if os.path.exists(os.path.join(assessor_path, _READY_FLAG_FILE)):
-                                    ASSESSOR.attrs.set('proc:genProcData/procstatus', UPLOADING)
-                                Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label,version)
-              
+                        # Check for already uploaded
+                        procstatus = ASSESSOR.attrs.get('fs:fsData/procstatus')
+                        if procstatus == READY_TO_COMPLETE or procstatus == COMPLETE:
+                            open(assessor_path+'/'+_EMAILED_FLAG_FILE, 'w').close()
+                            warning_list.append('\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n')
+                            logger.warn('  -->Data already present on XNAT.\n')
+                            continue
+                    
+                    # set the status and upload
+                    ASSESSOR.attrs.set('fs:fsData/procstatus', UPLOADING)
+                    Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label,version)
+                
+                ################# Default Assessor #################
+                else:
+                    if not ASSESSOR.exists():
+                        # Create the assessor and set attributes 
+                        ASSESSOR.create(assessors='proc:genProcData')
+                        ASSESSOR.attrs.set('proc:genProcData/validation/status',JOB_PENDING)
+                        ASSESSOR.attrs.set('proc:genProcData/proctype', Process_name)
+                        now=datetime.now()
+                        today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
+                        ASSESSOR.attrs.set('proc:genProcData/date',today)
+                    else:
+                        # Check for already uploaded
+                        procstatus = ASSESSOR.attrs.get('proc:genProcData/procstatus') 
+                        if procstatus == READY_TO_COMPLETE or procstatus == COMPLETE:
+                            open(assessor_path+'/'+_EMAILED_FLAG_FILE, 'w').close()
+                            warning_list.append('\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n')
+                            logger.warn('  -->Data already present on XNAT.\n')
+                            continue
+                    
+                    # Upload it
+                    ASSESSOR.attrs.set('proc:genProcData/procstatus', UPLOADING)
+                    Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label,version)
+                    
+            
             ################# 2) Upload the PBS files ###############
             #For each file, upload it to the PBS resource
             logger.info(' - Uploading PBS files ...')
@@ -559,7 +554,7 @@ if __name__ == '__main__':
             #Sent an email
             if (warning_list or flag_files_list)  and emailaddress!='' :
                 if warning_list:
-                    TEXT='\nThe following assessor already exists and the Spider try to upload files on existing files :\n'
+                    TEXT='\nThe following assessors already exist and the Spider try to upload files on existing files :\n'
                     for warning in warning_list:
                         TEXT+=' - '+warning+'\n'
                     TEXT+='\nYou should :\n\t-remove the assessor if you want to upload the data \n\t-set the status of the assessor to "uploading" \n\t-remove the data from the upload folder if you do not want to upload this data.\n'
