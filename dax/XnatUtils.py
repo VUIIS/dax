@@ -544,7 +544,7 @@ def list_project_assessors(intf, projectid):
             anew['jobstartdate'] = a.get('fs:fsdata/jobstartdate')
             anew['memused'] = a.get('fs:fsdata/memused')
             anew['walltimeused'] = a.get('fs:fsdata/walltimeused')
-            #anew['jobnode'] = a.get('fs:jobnode')
+            #anew['jobnode'] = a.get('fs:fsdata/jobnode')
             anew['handedness'] = sess_id2mod[a['session_ID']][2]
             anew['gender'] = sess_id2mod[a['session_ID']][3]
             anew['yob'] = sess_id2mod[a['session_ID']][4]
