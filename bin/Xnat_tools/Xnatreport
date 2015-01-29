@@ -85,7 +85,7 @@ def customize_report_subjects(xnat,project,header):
         
 def customize_report_sessions(xnat,project,header): 
     sessions_list=XnatUtils.list_sessions(xnat,project)
-    for session in sessions_list:
+    for session in sorted(sessions_list, key=lambda k: k['session_label']):
         logger.info(','.join(get_row(xnat,session,header)))    
             
 def customize_report_under_sessions(xnat,project,header):
@@ -96,13 +96,12 @@ def customize_report_under_sessions(xnat,project,header):
     
 def customize_report_scans(xnat,project,header):
     scans_list=XnatUtils.list_project_scans(xnat, project)
-    #get through the header
-    for scan in scans_list:
+    for scan in sorted(scans_list, key=lambda k: k['subject_label']):
         logger.info(','.join(get_row(xnat,scan,header)))
 
 def customize_report_assessors(xnat,project,header):
     assessors_list=XnatUtils.list_project_assessors(xnat,project)            
-    for assessor in assessors_list:
+    for assessor in sorted(assessors_list, key=lambda k: k['subject_label']):
         logger.info(','.join(get_row(xnat,assessor,header)))
 
 def get_row(xnat,obj_dict,header):
@@ -251,7 +250,9 @@ if __name__ == '__main__':
                     logger.info(' * %*s ' % (-30,value))
         else:
             #Arguments :
-            project_list=options.projects.split(',')       
+            if options.projects and options.projects[-1]=',':
+                options.projects=options.projects[:-1]
+            project_list=options.projects.split(',')  
             
             """ Report on Xnat database for the list of project for processes or resources on scan """
             if options.format and options.format=='object_type':
