@@ -14,13 +14,13 @@ from datetime import datetime
 
 DEFAULT_CSV_LIST=['object_type','project_id','subject_label','session_type','session_label', 'as_label', 'as_type', 'as_description','quality','resource']
 ORDER_PRINTING=['commun','project','subject','session','scan','assessor','resource']
-VARLIST=['scan_id', 'type', 'series_description', 'quality', 'note', 'frames', 'resource', 'assessor_id', 'assessor_label', 'assessor_URI', 'proctype', 'procstatus', 'qcstatus', 'version', 'jobid', 'memused', 'walltimeused', 'procnode', 'jobstartdate', 'object_type', 'project_id', 'subject_id', 'subject_label', 'session_id', 'session_type', 'session_label', 'handedness', 'gender', 'yob', 'age', 'last_modified', 'last_updated']
+VARLIST=['scan_id', 'type', 'series_description', 'quality', 'note', 'frames', 'resource', 'assessor_id', 'assessor_label', 'assessor_URI', 'proctype', 'procstatus', 'qcstatus', 'version', 'jobid', 'memused', 'walltimeused', 'jobnode', 'jobstartdate', 'object_type', 'project_id', 'subject_id', 'subject_label', 'session_id', 'session_type', 'session_label', 'handedness', 'gender', 'yob', 'age', 'last_modified', 'last_updated']
 VARIABLES_LIST={'commun'   : ['object_type'],
                 'project'  : ['project_id'],
                 'subject'  : ['subject_id','subject_label','handedness','gender','yob'],
                 'session'  : ['session_id','session_type','session_label','age','last_modified','last_updated'],
                 'scan'     : ['scan_id','type','series_description','quality','note','frames'],
-                'assessor' : ['assessor_id','assessor_label','assessor_URI','proctype','procstatus','qcstatus','version','jobid','memused','walltimeused','procnode','jobstartdate'],
+                'assessor' : ['assessor_id','assessor_label','assessor_URI','proctype','procstatus','qcstatus','version','jobid','memused','walltimeused','jobnode','jobstartdate'],
                 'resource' : ['resource']}
 
 ########################################## USEFUL FUNCTIONS ##########################################
