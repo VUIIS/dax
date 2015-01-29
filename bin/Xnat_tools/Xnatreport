@@ -141,7 +141,8 @@ def get_row(xnat,obj_dict,header):
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
     #check format:
-    if options.projects and options.projects[-1]==',':options.projects=options.projects[:-1]
+    if options.format and options.format[-1]==',':
+        options.format=options.format[:-1]
     if options.format and filter(lambda x: x not in VARLIST, options.format.split(',')):
         print 'OPTION ERROR: some variables chosen in format does not exist on XNAT. See below for the available variables names:'
         for key in ORDER_PRINTING:
@@ -250,9 +251,9 @@ if __name__ == '__main__':
                 for value in VARIABLES_LIST[key]:
                     logger.info(' * %*s ' % (-30,value))
         else:
+            if options.format and options.format[-1]==',':
+                options.format=options.format[:-1]
             #Arguments :
-            if options.projects and options.projects[-1]==',':
-                options.projects=options.projects[:-1]
             project_list=options.projects.split(',')  
             
             """ Report on Xnat database for the list of project for processes or resources on scan """
