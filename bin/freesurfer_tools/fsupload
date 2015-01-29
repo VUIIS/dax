@@ -75,7 +75,7 @@ if __name__ == '__main__':
         print('ERROR:FreeSurfer not found for project='+proj_label+ ', session='+sess_label)
         sys.exit(1)
         
-            if len(fs_list) == 1:
+    if len(fs_list) == 1:
         fs = fs_list[0]
     else:
         if not proc_suffix:
