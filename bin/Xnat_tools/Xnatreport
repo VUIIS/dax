@@ -141,6 +141,7 @@ def get_row(xnat,obj_dict,header):
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
     #check format:
+    if options.projects and options.projects[-1]==',':options.projects=options.projects[:-1]
     if options.format and filter(lambda x: x not in VARLIST, options.format.split(',')):
         print 'OPTION ERROR: some variables chosen in format does not exist on XNAT. See below for the available variables names:'
         for key in ORDER_PRINTING:
