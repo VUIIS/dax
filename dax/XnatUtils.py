@@ -483,8 +483,8 @@ def list_assessors(intf, projectid, subjectid, experimentid):
         anew['qcstatus'] = a['fs:fsdata/validation/status']
         anew['proctype'] = 'FreeSurfer'
 
-        if len(a['label'].rsplit('-x-FS')) > 1:
-            anew['proctype'] = anew['proctype']+a['label'].rsplit('-x-FS')[1]
+        #if len(a['label'].rsplit('-x-FS')) > 1:
+        #    anew['proctype'] = anew['proctype']+a['label'].rsplit('-x-FS')[1]
 
         anew['xsiType'] = a['xsiType']
         new_list.append(anew)
