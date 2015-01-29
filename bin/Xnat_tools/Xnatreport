@@ -250,7 +250,7 @@ if __name__ == '__main__':
                     logger.info(' * %*s ' % (-30,value))
         else:
             #Arguments :
-            if options.projects and options.projects[-1]=',':
+            if options.projects and options.projects[-1]==',':
                 options.projects=options.projects[:-1]
             project_list=options.projects.split(',')  
             
