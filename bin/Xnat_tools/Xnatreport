@@ -284,7 +284,7 @@ if __name__ == '__main__':
                         else:
                             print '  -'+project
                     print '------------------------------------'
-                    print 'WARNING: extracting information from XNAT for a full project my take some time. Please be patient.\n'
+                    print 'WARNING: extracting information from XNAT for a full project might take some time. Please be patient.\n'
                     #Writing report
                     report(xnat,options,project_list)
                 
