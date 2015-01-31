@@ -10,9 +10,185 @@ Created on May 6, 2013
 import os,sys,logging
 from dax import XnatUtils
 
-######################################################################################################
+########################################## VARIABLES ##########################################
+NOTFOUND='NotFound'
+DEFAULT_CSV_LIST=['object_type','project_id','subject_label','session_type','session_label', 'as_label', 'as_type', 'as_description','as_quality']
+ORDER_PRINTING=['commun','project','subject','session','scan','assessor','resource']
+VARLIST=['scan_id', 'type', 'series_description', 'quality', 'note', 'frames', 'resource', 'assessor_id', 'assessor_label', 'proctype', 'procstatus', 'qcstatus', 'version', 'jobid', 'memused', 'walltimeused', 'procnode', 'jobstartdate', 'object_type', 'project_id', 'subject_id', 'subject_label', 'session_id', 'session_type', 'session_label', 'handedness', 'gender', 'yob', 'age', 'last_modified', 'last_updated']
+VARIABLES_LIST={'commun'   : ['object_type'],
+                'project'  : ['project_id'],
+                'subject'  : ['subject_id','subject_label','handedness','gender','yob'],
+                'session'  : ['session_id','session_type','session_label','age','last_modified','last_updated'],
+                'scan'     : ['scan_id','type','series_description','quality','note','frames'],
+                'assessor' : ['assessor_id','assessor_label','proctype','procstatus','qcstatus','version','jobid','memused','walltimeused','jobnode','jobstartdate']}
+VARIABLES_FILTERS_LIST=['subject_id', 'subject_label', 'handedness', 'gender', 'yob', 'session_id', 'session_type', 'session_label', 'age', 'scan_id', 'type', 'series_description', 'quality', 'assessor_id', 'assessor_label', 'proctype', 'procstatus', 'qcstatus', 'version', 'jobid', 'memused', 'walltimeused', 'jobnode', 'jobstartdate', 'resource']
+VARIABLES_FILTERS_DICT=[{'variable_name':'subject_id','value':'Subjects ID','format':'comma separated list','operation':'=','grp':'subject'},{'variable_name':'subject_label','value':'Subjects label','format':'comma separated list','operation':'=','grp':'subject'},{'variable_name':'handedness','value':'"right"/"left"/"ambidextrous"/"unknown"','format':'string','operation':'=','grp':'subject'},{'variable_name':'gender','value':'"male"/"female"/"unknown"','format': 'string','operation':'=','grp':'subject'},{'variable_name':'yob','value':'year of birth','format': 'integer YYYY','operation':'=,<,>,<=,>=','grp':'subject'},
+                        {'variable_name':'session_id','value':'Sessions ID','format':'comma separated list','operation':'=','grp':'session'},{'variable_name':'session_type','value':'Session type','format':'comma separated list','operation':'=','grp':'session'},{'variable_name':'session_label','value':'Sessions label','format':'comma separated list','operation':'=','grp':'session'},{'variable_name':'age','value':'age of the participants','format': 'integer','operation':'=,<,>,<=,>=','grp':'session'},
+                        {'variable_name':'scan_id','value':'Scans ID','format':'comma separated list','operation':'=','grp':'scan'},{'variable_name':'type','value':'Scans type','format':'comma separated list','operation':'=','grp':'scan'},{'variable_name':'series_description','value':'Series Description','format':'comma separated list','operation':'=','grp':'scan'},{'variable_name':'quality','value':'Quality "usable"/"unusable"/"questionable"','format':'comma separated list','operation':'=','grp':'scan'},
+                        {'variable_name':'assessor_id','value':'Assessor ID','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'assessor_label','value':'Assessor label','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'proctype','value':'Assessor type','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'procstatus','value':'Job status for an assessor','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'qcstatus','value':'Quality Control Status','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'version','value':'Version of an assessor','format':'X.Y.Z','operation':'=,<,>,<=,>=','grp':'assessor'},{'variable_name':'jobid','value':'Job ID for assessor','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'memused','value':'Memory used by the assessor','format':'float+mb/kb/gb/tb','operation':'=,<,>,<=,>=','grp':'assessor'},{'variable_name':'walltimeused','value':'Walltime used by the assessor','format':'HH:MM:SS','operation':'=,<,>,<=,>=','grp':'assessor'},{'variable_name':'jobnode','value':'Node where the assessor ran','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'jobstartdate','value':'Job starting date','format':'YYYY-MM-DD','operation':'=,<,>,<=,>=','grp':'assessor'},]
+RESOURCES_LIST=['scan_res','assessor_res','session_res','subject_res']
+
+########################################## FILTER CLASS ##########################################
+class filter_variable:
+    def __init__(self,filterstring):
+        if len(filterstring.split('-+-'))!=3:
+            print ' WARNING: '+filterstring+' -- wrong string to create a filter. Unusable filter.'
+            self.goodfilter=False
+        else:
+            variable_name,value,operation=filterstring.split('-+-')
+            if variable_name in VARIABLES_FILTERS_LIST:
+                self.var=variable_name
+                self.goodfilter=True
+                #init operation
+                self.init_operation(operation)
+                #init value
+                self.init_value(value)
+                #grp
+                self.grp=[d['grp'] for d in VARIABLES_FILTERS_DICT if d['variable_name']==self.var][0]
+            else:
+                print ' WARNING: '+variable_name+' -- Not a variable that can be filter. Unusable filter.'
+                self.goodfilter=False
+       
+    def filter_list(self,list_obj):
+        return filter(lambda x: operate_action(self.operation,self.get_obj_value(x),self.val)(x), list_obj)
+
+    def get_obj_value(self,obj_dict):
+        if isinstance(self.val,int):
+            if self.var=='walltimeused':
+                return getwalltime(obj_dict[self.var])
+            elif self.var=='jobstartdate':
+                return int(obj_dict[self.var].replace('-',''))
+            elif self.var=='version':
+                return int(obj_dict[self.var].replace('.',''))
+            else:
+                return int(obj_dict[self.var])
+        elif self.var=='memused': #need to convert
+            return getmemory(obj_dict[self.var])
+        else:
+            return obj_dict[self.var]
+        
+    def is_usable_filter(self):
+        return self.goodfilter
+    
+    def init_operation(self,operation):
+        if ',' in operation:
+            print ' WARNING: '+self.var+' -- operation '+operation+' contained a comma. Using default: "=".'
+            self.operation='='
+        elif operation in [d['operation'] for d in VARIABLES_FILTERS_DICT if d['variable_name']==self.var][0].split(','):
+            self.operation=operation
+        else:
+            print ' WARNING: '+self.var+' -- operation '+operation+' not found. Using default: "=".'
+            self.operation='='
+    
+    def init_value(self,value):
+        #setting value:
+        if 'comma separated list' in [d['format'] for d in VARIABLES_FILTERS_DICT if d['variable_name']==self.var][0]:
+            self.val=value.split(',')
+        elif self.var=='memused':
+            try:
+                self.var=getmemory(value)
+            except:
+                print ' WARNING: '+self.var+' -- Not a good value. Unusable filter.'
+                self.goodfilter=False
+        elif self.var=='handedness':
+            if value in ['right','left','unknown','ambidextrous']:
+                self.val=value
+            else:
+                print ' WARNING: '+self.var+' -- Not a good value. Unusable filter.'
+                self.goodfilter=False
+        elif self.var=='gender':
+            if value in ['male','female','unknown']:
+                self.val=value
+            else:
+                print ' WARNING: '+self.var+' -- Not a good value. Unusable filter.'
+                self.goodfilter=False
+        elif self.var=='jobstartdate':
+            try:
+                self.val=int(value.replace('-',''))
+            except:
+                print ' WARNING: '+self.var+' -- Not a good value. Unusable filter.'
+                self.goodfilter=False
+        elif self.var=='walltime':
+            try:
+                self.val=int(value.replace(':',''))
+            except:
+                print ' WARNING: '+self.var+' -- Not a good value. Unusable filter.'
+                self.goodfilter=False
+        elif 'integer' in [d['format'] for d in VARIABLES_FILTERS_DICT if d['variable_name']==self.var][0]:
+            try:
+                self.val=int(value)
+            except:
+                print ' WARNING: '+self.var+' -- value can not be converted to an int. Unusable filter.'
+                self.goodfilter=False
+                
+class filter_resource:
+    def __init__(self,filterstring):
+        if len(filterstring.split('-+-'))!=7:
+            print ' WARNING: '+filterstring+' -- wrong string to create a filter for resource. Unusable filter.'
+            self.goodfilter=False
+        else:
+            variable_name,value,size,sizeOp,nbfiles,nbfilesOp,files_list=filterstring.split(';')
+            if variable_name in RESOURCES_LIST:
+                self.var=variable_name
+                self.goodfilter=True
+                self.val=value.split(',')
+                self.size=getmemory(size)
+                self.sizeOp=self.init_operation(sizeOp)
+                try:
+                    self.nbfiles=int(nbfiles)
+                except:
+                    print ' WARNING: '+filterstring+' -- not a integer for number of files. Not checking it.'
+                    self.nbfiles=None
+                self.nbfilesOp=self.init_operation(nbfilesOp)
+                self.files_list=files_list.split(',')
+            else:
+                print ' WARNING: '+variable_name+' -- Not a variable that can be filter. Unusable filter.'
+                self.goodfilter=False
+                
+    def init_operation(self,operation):
+        if ',' in operation:
+            print ' WARNING: '+self.var+' -- operation '+operation+' contained a comma. Using default: "=".'
+            return '='
+        elif operation in ['=','<','>','<=','>=']:
+            return operation
+        else:
+            print ' WARNING: '+self.var+' -- operation '+operation+' not found. Using default: "=".'
+            return '='
+                
+    def is_usable_filter(self):
+        return self.goodfilter
+    
+    def filter(self,xnat,objects_list):
+        filtered_list=list()
+        for object_dict in objects_list:
+            if self.check_resource(xnat,object_dict): 
+                filtered_list.append(object_dict)
+        return filtered_list
+    
+    def check_resources(self,xnat,object_dict): #return True if the resource has been checked to not have proper resource
+        resources_list=get_resource_list(xnat,object_dict,self.var)
+        for reslabel in self.var:
+            if reslabel not in resources_list:
+                return True
+            else:
+                if self.nbfiles:
+                    res_xnat=get_resource(xnat,object_dict,self.var,reslabel)
+                    if operate_action(self.nbfilesOp,len(res_xnat.files.get()),self.nbfiles):
+                        return True
+                if self.files_list:
+                    res_xnat=get_resource(xnat,object_dict,self.var,reslabel)
+                    for fpath in self.files_list:
+                        if res_xnat.file(fpath).exists():
+                            if self.size and operate_action(self.sizeOp,int(res_xnat.file(fpath).size()),self.size):
+                                return True
+                        else:
+                            return True
+                elif operate_action(self.sizeOp,get_bigger_size(res_xnat),self.size):
+                    return True
+                    
+        return False                 
+
 ########################################## USEFUL FUNCTIONS ##########################################
-######################################################################################################
 def setup_info_logger(name,logfile):
     if logfile:
         handler=logging.FileHandler(logfile,'w')
@@ -23,17 +199,86 @@ def setup_info_logger(name,logfile):
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
     return logger
-    
-def get_xnat_resource(xnat_dict,resource):
-    if 'scan_id' in xnat_dict:
-        return xnat.select('/projects/'+xnat_dict['project_id']+'/subjects/'+xnat_dict['subject_id']+'/experiments/'+xnat_dict['session_id']+'/scans/'+xnat_dict['ID']+'/resource/'+resource)
+
+########################################## SPECIFIC FUNCTIONS ##########################################
+def operate_action(operation,value1,value2):
+    if operation=='<':
+        return value1<value2
+    elif operation=='<=':
+        return value1<=value2
+    elif operation=='>':
+        return value1>value2
+    elif operation=='>=':
+        return value1>=value2
+    elif operation=='=' and isinstance(value2,list):
+        return value1 in value2
     else:
-        return xnat.select('/projects/'+xnat_dict['project_id']+'/subjects/'+xnat_dict['subject_id']+'/experiments/'+xnat_dict['session_id']+'/assessors/'+xnat_dict['label']+'/out/resource/'+resource)
+        return value1==value2
 
-def display_count(nb):
-    sys.stdout.write("   -- Number of Processes/scans found missing the resource(s): "+str(nb)+" --\n")
-    sys.stdout.flush()
-
+def get_resource_list(xnat,object_dict,variable_name):
+    if 'scan' in variable_name:
+        return XnatUtils.list_scan_resources(xnat,object_dict['project_id'],object_dict['subject_label'],object_dict['session_label'],object_dict['ID'])
+    elif 'assessor' in variable_name:
+        return XnatUtils.list_assessor_out_resources(xnat,object_dict['project_id'],object_dict['subject_label'],object_dict['session_label'],object_dict['label'])
+    elif 'session' in variable_name:
+        return XnatUtils.list_experiment_resources(xnat,object_dict['project_id'],object_dict['subject_label'],object_dict['session_label'])
+    else:
+        return XnatUtils.list_subject_resources(xnat,object_dict['project_id'],object_dict['subject_label'])
+        
+def get_resource(xnat,object_dict,variable_name,resource_label):
+    if 'scan' in variable_name:
+        return xnat.select('/project/'+object_dict['project_id']+'/subject/'+object_dict['subject_label']+'/experiment/'+object_dict['session_label']+'/scan/'+object_dict['ID']+'/resource/'+resource_label)
+    elif 'assessor' in variable_name:
+        return xnat.select('/project/'+object_dict['project_id']+'/subject/'+object_dict['subject_label']+'/experiment/'+object_dict['session_label']+'/assessor/'+object_dict['label']+'/out/resource/'+resource_label)
+    elif 'session' in variable_name:
+        return xnat.select('/project/'+object_dict['project_id']+'/subject/'+object_dict['subject_label']+'/experiment/'+object_dict['session_label']+'/resource/'+resource_label)
+    else:
+        return xnat.select('/project/'+object_dict['project_id']+'/subject/'+object_dict['subject_label']+'/resource/'+resource_label)
+    
+def getmemory(memory_str):
+    try:
+        if memory_str==NOTFOUND:
+            return 0.0
+        elif memory_str.lower().endswith('t'):
+            return float(memory_str[:-1])*1024*1024*1024*1024
+        elif memory_str.lower().endswith('tb'):
+            return float(memory_str[:-2])*1024*1024*1024*1024
+        elif memory_str.lower().endswith('g'):
+            return float(memory_str[:-1])*1024*1024*1024
+        elif memory_str.lower().endswith('gb'):
+            return float(memory_str[:-2])*1024*1024*1024
+        elif memory_str.lower().endswith('m'):
+            return float(memory_str[:-1])*1024*1024
+        elif memory_str.lower().endswith('mb'):
+            return float(memory_str[:-2])*1024*1024
+        elif memory_str.lower().endswith('k'):
+            return float(memory_str[:-1])*1024
+        elif memory_str.lower().endswith('kb'):
+            return float(memory_str[:-2])*1024
+        else:
+            return 0.0
+    except:
+        return 0.0
+    
+def getwalltime(walltime_str):
+    if walltime_str==NOTFOUND:
+        return 0
+    elif '-' in walltime_str :
+        nb_day=int(walltime_str.split('-')[0])
+        h,m,s=walltime_str.split('-')[1].split(':')
+        h=str(int(h)+nb_day*24)
+        return int(h+m+s)
+    else:
+        return walltime_str.replace(':','')
+        
+def get_bigger_size(resource):
+    Bigger_file_size=0
+    for fname in resource.files().get()[:]:
+        size_file=int(resource.file(fname).size())
+        if Bigger_file_size<size_file:
+            Bigger_file_size=size_file
+    return Bigger_file_size   
+                    
 def get_option_list(option):
     if not option:
         return None
@@ -56,168 +301,151 @@ def get_size(size):
     else:
         size=int(size)
     return size
-    
-def filter_subj_sess(subjects,sessions,obj_list):
-    obj_list_subj=[]
-    obj_list_sess=[]
-    if subjects:
-        obj_list_subj=filter(lambda x: x['subject_label'] in subjects, obj_list)
-    if sessions:
-        obj_list_sess=filter(lambda x: x['session_label'] in sessions, obj_list)
-    return obj_list_subj+obj_list_sess
 
-def filter_attributes(scantypes,qualities,SDs,proctypes,status,qastatus,obj_list):
-    if 'type' in obj_list[0].keys():
-        if scantypes and scantypes!='all':
-            obj_list=filter(lambda x: x['type'] in scantypes, obj_list)
-        if qualities and qualities!='all':
-            obj_list=filter(lambda x: x['quality'] in qualities, obj_list)
-        if SDs and SDs!='all':
-            obj_list=filter(lambda x: x['series_description'] in SDs, obj_list)
-    if 'proctype' in obj_list[0].keys():
-        if proctypes and proctypes!='all':
-            obj_list=filter(lambda x: x['proctype'] in proctypes, obj_list)
-        if status and status!='all':
-            obj_list=filter(lambda x: x['procstatus'] in status, obj_list)
-        if qastatus and qastatus!='all':
-            obj_list=filter(lambda x: x['qcstatus'] in qastatus, obj_list)
-        
-    return obj_list
-
-def read_project_list(inputfile,delimiter):
-    project_list=list()
-    f = open(report_file,'r')
-    for line in f:
-        if line.strip().split(delimiter)[0]!='Project':
-            project_list.append(line.strip().split(delimiter)[0])
-    return project_list
-
-def extract_xnat_info(xnat,options,project):
-    #Options:
-    #scan attrs:
-    scantypes = get_option_list(options.scantype)
-    qualities = get_option_list(options.quality)
-    SDs = get_option_list(options.SD)
-    #Proc attrs
-    proctypes = get_option_list(options.assessortype)
-    status = get_option_list(options.status)
-    qastatus = get_option_list(options.qastatus)
-    #XNAT option
-    if not options.subject:
-        subjects=None
-    elif options.subject=='all':
-        subjects=None
-    else:
-        subjects=options.subject.split(',')
-    if not options.session:
-        sessions=None
-    elif options.session=='all':
-        sessions=None
-    else:
-        sessions=options.session.split(',')
-    
-    #If inputfile, get data from it:
-    if options.inputfile:
-        xnat_dict_list=[]
-        f = open(options.inputfile,'r')
-        for line in f:
-            #Not the header
-            labels=line.strip().split(options.delimiter)
-            if labels[0]==project:
-                obj_dict=dict()
-                obj_dict['project_id']=labels[0]
-                obj_dict['subject_id']=labels[1]
-                obj_dict['subject_label']=labels[1]
-                obj_dict['session_id']=labels[2]
-                obj_dict['session_label']=labels[2]
-                if '-x-' in labels[3]:
-                    obj_dict['label']=labels[3]
-                else:
-                    obj_dict['ID']=labels[3]
-                    obj_dict['scan_id']=labels[3]
-                if len(labels)>4 and not options.resource:
-                    obj_dict['resource_label']=labels[4]
-                xnat_dict_list.append(obj_dict)
-        
-        #if resource set, remove the multiple same line.
-        if options.resource:
-            unique_sets = set(frozenset(d.items()) for d in xnat_dict_list)
-            xnat_dict_list = [dict(s) for s in unique_sets]
-            
-    #If not, read from xnat
-    else:
-        #Extract informations: 
-        if scantypes or qualities or SDs:
-            xnat_dict_list=XnatUtils.list_project_scans(xnat, project)
-        elif proctypes or status or qastatus_list:
-            xnat_dict_list=XnatUtils.list_project_assessors(xnat, project)
+########################################## FILTER ##########################################
+def create_filters(options):
+    filters_list=list()
+    filter_r_list=list()
+    for filterString in options.filters.split('?'):
+        if 'resource'==filterString.split(';')[0]:
+            f=filter_resource(filterString)
+            filter_r_list.append(f)
         else:
-            return []
-        #filter the subject or session if exists:
-        if subjects or sessions:
-            xnat_dict_list=filter_subj_sess(subjects,sessions,xnat_dict_list)
-        #filter attributes
-        xnat_dict_list=filter_attributes(scantypes,qualities,SDs,proctypes,status,qastatus,xnat_dict_list)
+            f=filter_variable(filterString)
+            filters_list.append(f)
+    #printing the filter
+    printfilters(filters_list,filter_r_list)
+    return filters_list,filter_r_list
     
-    #Sort the list
-    xnat_dict_list=sorted(xnat_dict_list, key=lambda k: k['subject_label'])
-        
-    return xnat_dict_list
+def filter_project(xnat,project,filters_list,level):
+    if level=='subject':
+        return filter_list(xnat,project,XnatUtils.list_subjects,filters_list)
+    elif level=='session':
+        return filter_list(xnat,project,XnatUtils.list_sessions,filters_list)
+    elif level=='scan':
+        return filter_list(xnat,project,XnatUtils.list_project_scans,filters_list)
+    elif level=='assessor':
+        return filter_list(xnat,project,XnatUtils.list_subjects,filters_list)
+    else: #Get scan and assessor
+        objects_list=filter_list(xnat,project,XnatUtils.list_project_scans,filters_list)
+        objects_list.extend(filter_list(xnat,project,XnatUtils.list_project_assessors,filters_list))
+        return objects_list   
 
-########################################################################################################
-########################################## SPECIFIC FUNCTIONS ##########################################
-########################################################################################################
-def check_resource(Resource,ID,size,count):
-    #if resource doesn't exist, print label
-    if not Resource.exists():
-        logger.info(ID)
-        count+=1
+def filter_list(xnat,project,getlist,filters_list):
+    #Get full object list
+    objects_list=getlist(xnat, project)
+    #filter
+    for f in filters_list:
+        if f.is_usable_filter():
+            objects_list=f.filter_list(objects_list)
+    return objects_list    
+ 
+########################################## GENERATE XNAT OBJECT LIST ##########################################
+def generate_xnat_object_list(filters_list,filter_r,options):
+    object_list=list()
+    try:
+        #connection to Xnat
+        xnat = XnatUtils.get_interface()
+        print "INFO: extracting information from XNAT:"
+        print 'WARNING: extracting information from XNAT for a full project might take some time. Please be patient.\n'
+        project_list=options.projects.split(',')
+        for project in project_list:
+            project_xnat=xnat.select('/project/'+project)
+            if not project_xnat.exists():
+                print ' - WARNING: Project <'+project+'> does not exist on Xnat.'
+                pass
+            else:
+                print ' - '+project
+                object_list.extend(generate_project_object_list(xnat,project,filters_list,filter_r))
+    finally:                                        
+        xnat.disconnect()
+
+def generate_project_object_list(xnat,project,filters_list,filter_r):
+    objects_list=filter_project(xnat,project,filters_list)
+    if filter_r:
+        #After filtering the full object_list, check the resource if filter resource
+        for object_dict in objects_list:
+            objects_list=filter_r.filter(object_dict)
+    return objects_list
+ 
+########################################## PRINT REPORT ##########################################
+def print_report(obj_list,formatheader):
+    if formatheader:
+        header=formatheader
     else:
-        if len(Resource.files().get())==0:
-            logger.info(ID)
-            count+=1
-        elif size:
-                Bigger_file_size=0
-                for fname in Resource.files().get()[:]:
-                    size_file=int(Resource.file(fname).size())
-                    if Bigger_file_size<size_file:
-                        Bigger_file_size=size_file
-                
-                #if the size of the resource is less that the size
-                if Bigger_file_size<size:
-                    logger.info(ID)
-                    count+=1               
-    return count
-
-########################################## CHECK SCANS ########################################## 
-def check_xnat_list(xnat,xnat_dict_list,resources,size,delimiter):
-    count=0
-    print '  --info: checking xnat objects ...'
-    logger.info(delimiter.join(['Project','Subject','Session','Scan/assessor','Resource missing or under-size']))
-    for xnat_dict in xnat_dict_list:
-        if 'scan_id' in xnat_dict:
-            key='ID'
+        header=DEFAULT_CSV_LIST
+    logger.info(','.join(header))
+    for obj in obj_list:
+        row=get_row(obj,header)
+        if not all(x is None for x in row):
+            logger.info(','.join(row))
+        
+def get_row(obj_dict,header):
+    row=list()
+    for field in header:
+        if field=='object_type':
+            if 'scan_id' in obj_dict.keys():
+                row.append('scan')
+            elif 'assessor_label' in obj_dict.keys():
+                row.append('assessor')
+            elif 'session_label' in obj_dict.keys():
+                row.append('session')
+            else:
+                row.append('subject')
+        elif field=='as_label':
+            if 'scan_id' in obj_dict.keys():
+                row.append(obj_dict.get('scan_id'))
+            elif 'assessor_label' in obj_dict.keys():
+                row.append(obj_dict.get('assessor_label'))
+        elif field=='as_type':
+            if 'scan_id' in obj_dict.keys():
+                row.append(obj_dict.get('type'))
+            elif 'assessor_label' in obj_dict.keys():
+                row.append(obj_dict.get('proctype'))
+        elif field=='as_description':
+            if 'scan_id' in obj_dict.keys():
+                row.append(obj_dict.get('series_description'))
+            elif 'assessor_label' in obj_dict.keys():
+                row.append(obj_dict.get('procstatus'))
+        elif field=='as_quality':
+            if 'scan_id' in obj_dict.keys():
+                row.append(obj_dict.get('quality'))
+            elif 'assessor_label' in obj_dict.keys():
+                row.append(obj_dict.get('procstatus'))
         else:
-            key='label'
-        if resources:
-            for resource in resources:
-                Resource=get_xnat_resource(xnat_dict,resource)
-                ID=delimiter.join([project,xnat_dict['subject_label'],xnat_dict['session_label'],xnat_dict[key],resource])
-                count=check_resource(Resource,ID,size,count)
-        elif 'resource_label' in xnat_dict:
-            Resource=get_xnat_resource(xnat_dict,xnat_dict['resource_label'])
-            ID=delimiter.join([project,xnat_dict['subject_label'],xnat_dict['session_label'],xnat_dict[key],xnat_dict['resource_label']])
-            count=check_resource(Resource,ID,size,count)
-        else:
-            logger.info(delimiter.join([project,xnat_dict['subject_label'],xnat_dict['session_label'],xnat_dict[key]]))
-            count+=1
-    
-    #display the count found:
-    display_count(count)
+            row.append(obj_dict.get(field))
+    return row
 
+def printfilters(filters_list,filters_r_list):
+    print '\nINFO: Report on your filter: '
+    print '*Regular filters:'
+    if not filters_list:
+        print '  None'
+    else:
+        print ' %*s | %*s | %*s ' % (-18,'Variable Name',-50,'Value',-10,'Operation')
+        print '--------------------------------------------------------------------------------------------------------'
+        for f in filters_list:
+            if f.is_usable_filter():
+                print ' %*s | %*s | %*s ' % (-18,f.var,-50,f.val,-10,f.operation)
+        print '--------------------------------------------------------------------------------------------------------'
+    print '*Resources filters:'
+    if not filters_r_list:
+        print '  None'
+    else:
+        print ' %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-12,'Variable',-30,'Value',-5,'Size',-14,'Size Operation',-11,'Nb of Files',-18,'Nb Files Operation',-20,'List of filenames')
+        print '------------------------------------------------------------------------------------------------------------------------------------------'
+        for f in filters_r_list:
+            if f.is_usable_filter():
+                print ' %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-12,f.var,-30,f.val,-5,f.size,-14,f.sizeOp,-11,f.nb_files,-18,f.nb_filesOp,-20,f.files_list)
+        print '------------------------------------------------------------------------------------------------------------------------------------------'
+        
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
-    #Checked argument values if not:
+    if options.printfilters or options.printformat:
+        return True
+    if not options.projects:
+        print "OPTION ERROR: please use the options -p to give the projects you want to check."
+        return False
     if options.outputfile and not os.path.exists(os.path.dirname(os.path.abspath(options.outputfile))):
         print "OPTION ERROR: the main folder for "+options.outputfile+" does not exist."
         return False
@@ -235,54 +463,26 @@ def Main_display(parser):
     print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
     print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
     print '# Usage:                                                       #'
-    print '#     Check data (resource/scan/assessor) on XNAT              #'
+    print '#     Check XNAT data (subject/session/scan/assessor/resource) #'
     print '# Parameters :                                                 #'
-    if options=={'status': None, 'assessortype': None, 'scantype': None, 'resource': None, 'session': None, 'qastatus': None, 'quality': None, 'size': None, 'project': None, 'delimiter': ',', 'outputfile': None, 'SD': None, 'inputfile': None, 'subject': None}:
+    if options=={'printfilters':False,'printformat':False, 'projects': None, 'filters':None,'outputfile': None, 'format': None, 'inputfile': None}:
         print '#     No Arguments given                                       #'
         print '#     Use "Xnatcheck -h" to see the options                    #'
         print '################################################################'
         parser.print_help()
         sys.exit()
     else:
-        if options.inputfile:
-            print '#     %*s -> %*s#' %(-20,'Input File Path',-33,get_proper_str(options.inputfile,True))
-        if options.outputfile:
-            print '#     %*s -> %*s#' %(-20,'Output File Path',-33,get_proper_str(options.outputfile,True))
-        if options.delimiter:
-            print '#     %*s -> %*s#' %(-20,'Delimiter for output',-33,get_proper_str(options.delimiter))
-        if options.project:
-            print '#     %*s -> %*s#' %(-20,'Project(s)',-33,get_proper_str(options.project))
-        #Subjects
-        if options.subject:
-            print '#     %*s -> %*s#' %(-20,'Subject(s)',-33,get_proper_str(options.subject))
-        #Experiment
-        if options.session:
-            print '#     %*s -> %*s#' %(-20,'Session(s)',-33,get_proper_str(options.session))
-        
-        if options.scantype or options.quality or options.SD:
-            print '#     %*s#' %(-57,'--Scan Options--')
-            if options.scantype:
-                print '#     %*s -> %*s#' %(-20,'Types',-33,get_proper_str(options.scantype))
-            if options.quality:
-                print '#     %*s -> %*s#' %(-20,'Quality',-33,get_proper_str(options.quality))
-            if options.SD:
-                print '#     %*s -> %*s#' %(-20,'Series Description',-33,get_proper_str(options.SD))
-        
-        if options.assessortype or options.status:
-            print '#     %*s#' %(-57,'--Process Options--') 
-            if options.assessortype:
-                print '#     %*s -> %*s#' %(-20,'Types',-33,get_proper_str(options.assessortype))
-            if options.status:
-                print '#     %*s -> %*s#' %(-20,'Status',-33,get_proper_str(options.status))
-            if options.qastatus:
-                print '#     %*s -> %*s#' %(-20,'QA Status',-33,get_proper_str(options.qastatus))
-        
-        if options.resource or options.size:
-            print '#     %*s#' %(-57,'--Resource Options--')
-            if options.resource:
-                print '#     %*s -> %*s#' %(-20,'Types',-33,get_proper_str(options.resource))
-            if options.size:
-                print '#     %*s -> %*s#' %(-20,'Minimal size to check (Kb)',-33,options.size)           
+        if options.printfilters:
+            print '#     %*s -> %*s#' %(-20,'Print filters',-33,'on')
+        elif options.printformat:
+            print '#     %*s -> %*s#' %(-20,'Print format',-33,'on')
+        else:
+            if options.inputfile:
+                print '#     %*s -> %*s#' %(-20,'Input File Path',-33,get_proper_str(options.inputfile,True))
+            if options.outputfile:
+                print '#     %*s -> %*s#' %(-20,'Output File Path',-33,get_proper_str(options.outputfile,True))
+            if options.projects:
+                print '#     %*s -> %*s#' %(-20,'Project(s)',-33,get_proper_str(options.projects))      
         print '################################################################'
 
 def get_proper_str(str_option,end=False):
@@ -293,56 +493,47 @@ def get_proper_str(str_option,end=False):
             return str_option[:29]+'...'
     else:
         return str_option
-        
+
+def get_usage():
+    usage="usage: %prog [options] \n"
+    usage+="What is the script doing : \n"
+    usage+="   *Check object on XNAT (subject/session/scan/assessor/resources) specify by the options.\n\n"
+    usage+="How to write a filter string:\n"
+    usage+="   - for resources filter, the string needs to follow this template:\n"
+    usage+="      variable_name-+-value-+-size-+-operation-+-nb_files-+-operation-+-list_filepaths\n"
+    usage+="   - for other filter, the string needs to follow this template:\n"
+    usage+="      variable_name-+-value-+-operation\n\n"
+    usage+="Use --printfilters to see the different variables available\n\n"
+    #Example
+    usage+="Examples:\n"
+    usage+="   *See Session type: Xnatupload --printmodality\n"
+    return usage
+
 ########################################## OPTIONS ##########################################
 def parse_args():
     from optparse import OptionParser
-    usage = "usage: %prog [options] \nWhat is the script doing : Check a project on Xnat for assessor type / scan type / resources "
+    usage = get_usage()
     parser = OptionParser(usage=usage)
     #need this options
-    parser.add_option("-p", "--project", dest="project",default=None,
-                  help="Project ID on Xnat or a list of Project", metavar="PROJECT_ID")
-    
+    parser.add_option("-p", "--project", dest="projects",default=None,
+                  help="Project(s) ID on XNAT", metavar="SEPARATED_COMMA_LIST")
     #select a special subj or sess
-    parser.add_option("--subj", dest="subject",default=None,
-                  help="Change Status for only this subject/list of subjects. E.G: --subj VUSTP2,VUSTP3", metavar="LIST_OF_SUBJECTS")
-    parser.add_option("--sess", dest="session",default=None,
-                  help="Change Status for only this session/list of sessions. Use the options --subj with it. E.G: --exp VUSTP2a,VUSTP3b", metavar="LIST_OF_EXPERIMENTS")
-    
-    #scan attrs
-    parser.add_option("-s", "--scantype", dest="scantype",default=None,
-                  help="Check if the scan type exists for each subject/experiment in the project. E.G : -s fMRI,T1", metavar="SCAN_TYPE")
-    parser.add_option("--quality", dest="quality",default=None,
-                  help="Check if the scan has the quality specified. E.G: unusable or questionable or usable.", metavar="QUALITY")
-    parser.add_option("--seriesD", dest="SD",default=None,
-                  help="Check if the scan has the series description specified. E.G: cap1,cap2,gonogo1,T1W.", metavar="SD")
-    
-    #proc attrs
-    parser.add_option("-t", "--typeprocess", dest="assessortype",default=None,
-                  help="Check if the process exists for each subject/experiment in the project. E.G : -a fMRIQA,dtiQA_v2", metavar="ASSESSOR_TYPE")
-    parser.add_option("--status", dest="status",default=None,
-                  help="Check if the assessor has the status specified. E.G : COMPLETE,JOB_FAILED.", metavar="STATUS")
-    parser.add_option("--qastatus", dest="qastatus",default=None,
-                  help="Check if the assessor has the qastatus specified. E.G : Passes,Failed.", metavar="STATUS")
-    
-    #Resource
-    parser.add_option("-r","--resources", dest="resource",default=None,
-                  help="Check if the resources exists.", metavar="RESOURCES")
-    parser.add_option("--size", dest="size",default=None,
-                  help="Check the size of the resource. If the file with the bigger size in the resource is under the size you are giving or if the resource doesn't exist, it will display the label on the screen. Units by default bytes. E.G: 6M or 7G or 8k or 10K or 10000", metavar="SIZE")
-    
+    parser.add_option("--filters", dest="filters",default=None,
+                  help="Filter command -- string variable_name;value;operation separated by '?' -- see example at the top of the help.", metavar="STRING")
     #File text with the assessor to check
     parser.add_option("-i","--inputfile",dest="inputfile",default=None,
-                  help="File path as inputs that will be read for XNAT information. E.G: Project,subject,session,scan/assessor,resource. Delimiter can be set as an options.", metavar="FILEPATH")
+                  help="File path as inputs that will be read for XNAT information. E.G: Project,subject,session,scan/assessor,resource.", metavar="FILEPATH")
     parser.add_option("-o","--outputfile",dest="outputfile",default=None,
                   help="File path to save the output.", metavar="FILEPATH")
-    parser.add_option("-d","--delimiter",dest="delimiter",default=',',
-                  help="Delimiter for the output file. Default: comma.", metavar="FILEPATH")
+    parser.add_option("--format", dest="format",default=None,
+                  help="Header for the csv. format: list of variables name separated by a comma.", metavar="SEPARATED_COMMA_LIST")
+    parser.add_option("--printfilters",dest="printfilters",action='store_true',default=False,
+                  help="Print available filters.", metavar="")
+    parser.add_option("--printformat",dest="printformat",action='store_true',default=False,
+                  help="Print available format for display.", metavar="")
     return parser
 
-###################################################################################################
 ########################################## MAIN FUNCTION ##########################################
-###################################################################################################
 if __name__ == '__main__':
     parser=parse_args()
     (options,args) = parser.parse_args()
@@ -358,39 +549,50 @@ if __name__ == '__main__':
     # RUN                       #
     #############################
     if run:
-        #############################
-        #Arguments :
-        project_list = get_option_list(options.project)
-        #resources
-        resources = get_option_list(options.resource)
-        size = get_size(options.size)
-        
-        if options.inputfile and not project_list:
-            project_list=read_project_list(options.inputfile,options.delimiter)
-            
-        # Connection to Xnat
-        try:   
-            xnat = XnatUtils.get_interface()
-            for project in project_list:
-                print" *Project: "+project
-                #check access
-                proj=xnat.select('/project/'+project)
-                if not proj.exists():
-                    print'  -->ERROR: Project '+project+' does not exist on XNAT.'
-                    continue
-                else:
-                    post_uri_subject = '/REST/projects/'+project+'/subjects'
-                    subject_list = xnat._get_json(post_uri_subject)
-                    number_subjs=len(subject_list) 
-                    if not number_subjs>0:
-                        print"  -->ERROR: You don't access to the project: "+project+"."
-                        continue
-                
-                #Read data from inputfile if it exists:
-                xnat_dict_list=extract_xnat_info(xnat,options,project)
-                #Check all the xnat objects from the inputs
-                check_xnat_list(xnat,xnat_dict_list,resources,size,options.delimiter)
-                                
-        finally:                                        
-            xnat.disconnect()
+        print '=========================================================================='
+        if options.printfilters:
+            print 'INFO: Printing the filters available: '
+            print ' %*s | %*s | %*s | %*s | %*s ' % (-18,'Variable',-8,'Level',-42,'Description',-20,'format',-9,'operation')
+            print '-----------------------------------------------------------------------------------------------------------------'
+            for fdict in VARIABLES_FILTERS_DICT:
+                print ' %*s | %*s | %*s | %*s | %*s ' % (-18,fdict['variable_name'],-8,fdict['grp'],-42,fdict['value'],-20,fdict['format'],-9,fdict['operation'])
+            print '-----------------------------------------------------------------------------------------------------------------'
+            print 'WARNING: Use Xnatupload --printmodality to know the different choice for a Session Type\n'
+            print 'Resource filters available: '
+            print ' %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-12,'Variable',-30,'Value',-5,'Size',-14,'Size Operation',-11,'Nb of Files',-18,'Nb Files Operation',-20,'List of filenames')
+            print '------------------------------------------------------------------------------------------------------------------------------------------'
+            print ' %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-12,'scan_res',-30,'comma separated list of label',-5,'32mb',-14,'  =,<,>,<=,>=',-11,'  integer',-18,'   =,<,>,<=,>=',-20,'comma separated list of fpath')
+            print ' %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-12,'assessor_res',-30,'comma separated list of label',-5,'1.3gb',-14,'  =,<,>,<=,>=',-11,'  integer',-18,'   =,<,>,<=,>=',-20,'comma separated list of fpath')
+            print ' %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-12,'session_res',-30,'comma separated list of label',-5,'130kb',-14,'  =,<,>,<=,>=',-11,'  integer',-18,'   =,<,>,<=,>=',-20,'comma separated list of fpath')
+            print ' %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-12,'subject_res',-30,'comma separated list of label',-5,'3tb',-14,'  =,<,>,<=,>=',-11,'  integer',-18,'   =,<,>,<=,>=',-20,'comma separated list of fpath')
+            print '------------------------------------------------------------------------------------------------------------------------------------------'
+            if options.filters:
+                #Create filters from the string:
+                filters_list,filter_r_list=create_filters(options)
+        elif options.printformat:
+            print 'INFO: Printing the variables available for formating the output: '
+            for key in ORDER_PRINTING:
+                print key+' variables:'
+                for value in VARIABLES_LIST[key]:
+                    print ' * %*s ' % (-30,value)
+        else:
+            #Create filters from the string:
+            filters_list,filter_r_list=create_filters(options)
+            #Generate the list of object from XNAT
+            objects_list=generate_xnat_object_list(filters_list,filter_r_list,options)
+            if options.format:
+                if 'object_type' not in options.format.split(','):
+                    formatheader=['object_type'].extend(options.format.split(','))
+            else:
+                formatheader=list()
+            #Print number of object find:
+            print 'INFO: Number of XNAT object found after filters:'
+            print '---------------------------------------------------------------'
+            print '| %*s | %*s |' % (-20,'Project ID',-15,'Number of Object')
+            for project in [o['project_id'] for o in objects_list]:
+                print '---------------------------------------------------------------'
+                print '| %*s | %*s ' % (-20,project,-15,len([s for s in objects_list if s['project_id']==project]))
+            print '---------------------------------------------------------------\n'
+            #Print report
+            print_report(objects_list,formatheader)
     print '===================================================================\n'
