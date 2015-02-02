@@ -293,12 +293,13 @@ def list_sessions(intf, projectid=None, subjectid=None):
             if (projectid != None):
                 sess['project'] = projectid
             
-            sess['type'] = sess_type.split('xnat:')[1].split('session')[0].upper()
             sess['project_id'] = sess['project']
             sess['project_label'] = sess['project']
             sess['subject_id'] = sess['subject_ID']
             sess['session_id'] = sess['ID']
             sess['session_label'] = sess['label']
+            sess['session_type'] = sess_type.split('xnat:')[1].split('session')[0].upper()
+            sess['type'] = sess_type.split('xnat:')[1].split('session')[0].upper()
             sess['last_modified'] = sess[sess_type+'/meta/last_modified']
             sess['last_updated'] = sess[sess_type+'/original']
             sess['age'] = sess[sess_type+'/age']
