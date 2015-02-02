@@ -7,7 +7,7 @@ Cluster functionality
 """
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 
-import subprocess,os
+import subprocess,os,logging
 from subprocess import CalledProcessError
 from datetime import datetime
 from dax_settings import DEFAULT_EMAIL_OPTS,JOB_TEMPLATE,CMD_SUBMIT,CMD_COUNT_NB_JOBS,CMD_GET_JOB_STATUS,CMD_GET_JOB_WALLTIME,CMD_GET_JOB_MEMORY,CMD_GET_JOB_NODE,RUNNING_STATUS,QUEUE_STATUS,PREFIX_JOBID,SUFFIX_JOBID
