@@ -151,9 +151,16 @@ class PBS:   #The script file generator class
     def submit(self):
         try:
             cmd = CMD_SUBMIT +' '+ self.filename
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+            p = subprocess.Popen(''.join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output, error = p.communicate()
+            if output:
+                logger.info(output)
+            if error:
+                logger.error(error)
+            #output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
             jobid = get_specific_str(output,PREFIX_JOBID,SUFFIX_JOBID)
-        except CalledProcessError:
+        except CalledProcessError as e:
+            logger.error(e)
             jobid = '0'
         
         return jobid.strip()
