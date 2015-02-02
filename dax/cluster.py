@@ -14,6 +14,9 @@ from dax_settings import DEFAULT_EMAIL_OPTS,JOB_TEMPLATE,CMD_SUBMIT,CMD_COUNT_NB
 
 MAX_TRACE_DAYS=30
 
+#Logger to print logs
+logger = logging.getLogger('dax')
+
 def count_jobs():
     cmd = CMD_COUNT_NB_JOBS
     try:
@@ -151,7 +154,7 @@ class PBS:   #The script file generator class
     def submit(self):
         try:
             cmd = CMD_SUBMIT +' '+ self.filename
-            p = subprocess.Popen(''.join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = p.communicate()
             if output:
                 logger.info(output)
