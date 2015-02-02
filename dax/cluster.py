@@ -157,7 +157,7 @@ class PBS:   #The script file generator class
             p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = p.communicate()
             if output:
-                logger.info(output)
+                logger.info('    '+output)
             if error:
                 logger.error(error)
             #output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
