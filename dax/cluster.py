@@ -20,9 +20,13 @@ logger = logging.getLogger('dax')
 def count_jobs():
     cmd = CMD_COUNT_NB_JOBS
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = p.communicate()
+        if error:
+            logger.error(error)
         return int(output)
-    except (CalledProcessError,ValueError):
+    except (CalledProcessError,ValueError) as e:
+        logger.error(e)
         return -1
     
 def job_status(jobid):
