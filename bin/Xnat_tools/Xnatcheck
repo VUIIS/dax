@@ -28,6 +28,7 @@ VARIABLES_FILTERS_DICT=[{'variable_name':'subject_id','value':'Subjects ID','for
                         {'variable_name':'assessor_id','value':'Assessor ID','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'assessor_label','value':'Assessor label','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'proctype','value':'Assessor type','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'procstatus','value':'Job status for an assessor','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'qcstatus','value':'Quality Control Status','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'version','value':'Version of an assessor','format':'X.Y.Z','operation':'=,<,>,<=,>=','grp':'assessor'},{'variable_name':'jobid','value':'Job ID for assessor','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'memused','value':'Memory used by the assessor','format':'float+mb/kb/gb/tb','operation':'=,<,>,<=,>=','grp':'assessor'},{'variable_name':'walltimeused','value':'Walltime used by the assessor','format':'HH:MM:SS','operation':'=,<,>,<=,>=','grp':'assessor'},{'variable_name':'jobnode','value':'Node where the assessor ran','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'jobstartdate','value':'Job starting date','format':'YYYY-MM-DD','operation':'=,<,>,<=,>=','grp':'assessor'},]
 RESOURCES_LIST=['scan_res','assessor_res','session_res','subject_res']
 RESOURCES_VARS=['size','nbf','fpath']
+RES_OBJ_DICT={'assessor_res':'proctype','scan_res':'series_description','session_res':'session_label','subject_res':'subject_label'}
 
 ########################################## FILTER CLASS ##########################################
 class filter_variable:
@@ -45,9 +46,9 @@ class filter_variable:
             print ' WARNING: '+rvar+' -- Not a variable that can be filter. Unusable filter.'
             self.goodfilter=False
        
-    def filter_list(self,list_obj):
+    def filter(self,list_obj):
         return filter(lambda x: operate_action(self.operation,self.get_obj_value(x),self.val), list_obj)
-
+        
     def get_obj_value(self,obj_dict):
         if isinstance(self.val,int):
             if self.var=='walltimeused':
@@ -106,11 +107,10 @@ class filter_variable:
             self.val=value
                 
 class filter_resource:
-    def __init__(self,filterstring,delimiter,existence):
+    def __init__(self,filterstring,delimiter,no_res):
         self.delimiter=delimiter
         rvar,rval,res_vars=get_res_filter(filterstring,delimiter)
         if rvar in RESOURCES_LIST:
-            print '  * resource filter:',rvar,'=',rval
             self.var=rvar
             self.goodfilter=True
             self.hasfilters=False
@@ -118,10 +118,13 @@ class filter_resource:
             self.nbf=None
             self.fpaths=None
             self.val=rval.split(',')
-            self.existence=existence
+            self.no_res=no_res
             self.init_variables(res_vars)
+            print '  * resource filter: '+rvar+' = '+rval+' -- size: '+str(self.size)+'b -- nbf: '+str(self.nbf)+' -- fpaths: '+str(self.fpaths)
+            if (self.size or self.nbf or self.fpaths) and self.no_res:
+                print '    --> WARNING on usable filter: '+filterstring+' -- the options -n/--no_res will not work because you filter the size/nbf/fpaths of the resource.'
         else:
-            print ' WARNING: '+filterstring+' -- Not a variable that can be filter. Unusable filter.'
+            print ' WARNING: '+filterstring+' -- Not a variable for resource that can be filter. Unusable filter.'
             self.goodfilter=False
     
     def init_variables(self,res_vars): 
@@ -129,19 +132,22 @@ class filter_resource:
             rvar=None
             rval=None
             if '>=' in rv:
-                rvar,rval=rv.split('>=')[:2]               
+                rvar,rval=rv.split('>=')[:2]
+                self.set_variables(rvar,rval,'>=')             
             elif '<=' in rv:
                 rvar,rval=rv.split('<=')[:2]
+                self.set_variables(rvar,rval,'<=')
             elif '>' in rv:
                 rvar,rval=rv.split('>')[:2]
+                self.set_variables(rvar,rval,'>')
             elif '<' in rv:
                 rvar,rval=rv.split('<')[:2]
+                self.set_variables(rvar,rval,'<')
             elif '=' in rv:
                 rvar,rval=rv.split('=')[:2]
+                self.set_variables(rvar,rval,'=')
             else:
                 print ' - warning - '+rv+' - no operation found in the filters for resource.'
-            if rvar and rval:
-                self.set_variables(rvar,rval,'>=')
     
     def set_variables(self,rvar,rval,operation):
         if rvar=='size':
@@ -149,7 +155,7 @@ class filter_resource:
             self.sizeOp=operation
             self.hasfilters=True
         elif rvar=='nbf':
-            self.nbf=rval
+            self.nbf=int(rval)
             self.nbfOp=operation
             self.hasfilters=True
         elif rvar=='fpath':
@@ -172,44 +178,46 @@ class filter_resource:
     def filter(self,xnat,objects_list):
         filtered_list=list()
         for object_dict in objects_list:
-            if self.check_resources(xnat,object_dict): 
+            if not RES_OBJ_DICT[self.var] in object_dict.keys():
                 filtered_list.append(object_dict)
+            else:
+                if self.check_resources(xnat,object_dict): 
+                    filtered_list.append(object_dict)
         return filtered_list
     
     def check_resources(self,xnat,object_dict): #return True if the resource has been checked to not have proper resource
         resources_list=get_resource_list(xnat,object_dict,self.var)
         for reslabel in self.val:
-            #First check: if the resource does not exist and existence was set to no, we will print the obj (return True).
-            #             if the resource does not exist and existence was set to yes, we will not print the obj (return False).
-            if not self.existence and reslabel not in [r['label'] for r in resources_list]:
+            if self.no_res and reslabel not in [r['label'] for r in resources_list]:
                 return True
-            elif self.existence and reslabel not in [r['label'] for r in resources_list]:
+            elif not self.no_res and reslabel not in [r['label'] for r in resources_list]:
                 return False
             #Check if set the variables:
             if self.hasfilters:
                 res_xnat=get_resource(xnat,object_dict,self.var,reslabel)
                 if self.fpaths:
-                    self.check_fpaths(res_xnat)
+                    out=self.check_fpaths(res_xnat)
+                    if not out: return False
                 elif self.size:
-                    self.check_size(get_bigger_size(res_xnat))
+                    out=self.check_size(get_bigger_size(res_xnat))
+                    if not out: return False
                 if self.nbf:
-                    self.check_nbf(res_xnat)
-        if self.existence:
-            return True
-        else:
-            return False
+                    out=self.check_nbf(res_xnat)
+                    if not out: return False
+        
+        return True
                 
     def check_size(self,size):
         return operate_action(self.sizeOp,size,self.size)
         
     def check_nbf(self,res_xnat):
-        return operate_action(self.nbfOp,len(res_xnat.files.get()),self.nbfiles)
+        return operate_action(self.nbfOp,len(res_xnat.files().get()),self.nbf)
     
     def check_fpaths(self,res_xnat):
         for fpath in self.fpaths:
             if res_xnat.file(fpath).exists():
                 if self.size:
-                    self.check_size(float(res_xnat.file(fpath).size()))
+                    return self.check_size(float(res_xnat.file(fpath).size()))
                 else:
                     return True
                 
@@ -237,14 +245,14 @@ def setup_info_logger(name,logfile):
 ########################################## SPECIFIC FUNCTIONS ##########################################
 def get_res_filter(filterString,delimiter):
     labels=filterString.split(delimiter)
-    if len(labels)>2:
+    if len(labels)>1:
         if '=' in labels[0]:
-            return labels[0].split('='),labels[2:]
+            return labels[0].split('=')[0],labels[0].split('=')[1],labels[1:]
         else:
             return None,None,[]
     else:
         if '=' in labels[0]:
-            return labels[0].split('='),[]
+            return labels[0].split('=')[0],labels[0].split('=')[1],[]
         else:
             return None,None,[]
     
@@ -378,20 +386,24 @@ def create_filters(options):
     filters_list=list()
     filter_r_list=list()
     for filterString in options.filters.split('?'):
-        if filterString.split('-+-')[0] in ['scan_res','assessor_res','session_res','subject_res']:
-            f=filter_resource(filterString,options.res_delimiter,options.res_existence)
-            filter_r_list.append(f)
+        if options.res_delimiter in filterString:
+            rvar,rval,operation=extract_var(filterString.split(options.res_delimiter)[0])
         else:
             rvar,rval,operation=extract_var(filterString)
-            if rvar:
+        if rvar:
+            if rvar in ['scan_res','assessor_res','session_res','subject_res']:
+                f=filter_resource(filterString,options.res_delimiter,options.no_res)
+                filter_r_list.append(f)
+            else:
                 f=filter_variable(rvar,rval,operation)
                 filters_list.append(f)
     return filters_list,filter_r_list
     
-def filter_project(xnat,project,filters_list):
-    levels=set([f.grp for f in filters_list if f.is_usable_filter()])
+def filter_project(xnat,project,filters_list,levels):
     if 'scan' in levels and 'assessor' in levels: #Get scan and assessor
-        return filter_list(xnat,project,XnatUtils.list_project_scans,filters_list)+filter_list(xnat,project,XnatUtils.list_project_assessors,filters_list)
+        scan_list_filter=filter_list(xnat,project,XnatUtils.list_project_scans,[f for f in filters_list if f.grp=='scan'])
+        assessor_list_filter=filter_list(xnat,project,XnatUtils.list_project_assessors,[f for f in filters_list if f.grp=='assessor'])
+        return scan_list_filter+assessor_list_filter
     elif 'scan' in levels and not 'assessor' in levels:
         return filter_list(xnat,project,XnatUtils.list_project_scans,filters_list)
     elif not 'scan' in levels and 'assessor' in levels:
@@ -407,8 +419,8 @@ def filter_list(xnat,project,getlist,filters_list):
     #filter
     for f in filters_list:
         if f.is_usable_filter():
-            objects_list=f.filter_list(objects_list)
-    return objects_list  
+            objects_list=f.filter(objects_list)
+    return objects_list
  
 ########################################## GENERATE XNAT OBJECT LIST ##########################################
 def generate_xnat_object_list(filters_list,filter_r,options):
@@ -432,7 +444,13 @@ def generate_xnat_object_list(filters_list,filter_r,options):
     return object_list
 
 def generate_project_object_list(xnat,project,filters_list,filter_r_list):
-    objects_list=filter_project(xnat,project,filters_list)
+    levels=[f.grp for f in filters_list if f.is_usable_filter()]
+    if filter_r_list:
+        for f_r in filter_r_list:
+            if f_r.is_usable_filter():
+                levels.append(f_r.var.split('_res')[0])
+    levels=set(levels)
+    objects_list=filter_project(xnat,project,filters_list,levels)
     if filter_r_list:
         #After filtering the full object_list, check the resource if filter resource
         for f_r in filter_r_list:
@@ -485,7 +503,7 @@ def get_row(obj_dict,header):
             if 'scan_id' in obj_dict.keys():
                 row.append(obj_dict.get('quality',''))
             elif 'assessor_label' in obj_dict.keys():
-                row.append(obj_dict.get('procstatus',''))
+                row.append(obj_dict.get('qcstatus',''))
             else:
                 row.append('')
         else:
@@ -531,8 +549,8 @@ def Main_display(parser):
                 print '#     %*s -> %*s#' %(-20,'CSV File',-33,get_proper_str(options.csvfile,True))
             if options.projects:
                 print '#     %*s -> %*s#' %(-20,'Project(s)',-33,get_proper_str(options.projects))  
-            if options.res_existence:
-                print '#     %*s -> %*s#' %(-20,'Resource Exists',-33,get_proper_str(options.res_existence))
+            if options.no_res:
+                print '#     %*s -> %*s#' %(-32,'Check no resource (if no filters)',-20,'on')
             if options.res_delimiter:
                 print '#     %*s -> %*s#' %(-20,'Resource Delimiter',-33,get_proper_str(options.res_delimiter))
             if options.filters:
@@ -567,8 +585,10 @@ def get_usage():
     usage+="   *See format variables: Xnatcheck --printformat\n"
     usage+="   *See filter variables: Xnatcheck --printfilters\n"
     usage+='   *Get list of project sessions that do not have a resource called testing: Xnatcheck -p PID --filters "session_label--VUSTP1a,VUSTP2b,VUSTP3a?session_res=testing"\n'
-    usage+='   *Get list of fMRIQA assessors that have a resource called PDF:            Xnatcheck -p PID --filters "proctype=fMRIQA?assessor_res=PDF" --res_exists\n'
+    usage+='   *Get list of T1,DTI scans that have a resource called NIFTI: Xnatcheck -p PID --filters "type=T1,DTI?assessor_res=NIFTI" --res_exists\n'
+    usage+='   *Get list of fMRIQA assessors that have a resource called PDF: Xnatcheck -p PID --filters "proctype=fMRIQA?assessor_res=PDF" --res_exists\n'
     usage+='   *Get list of project sessions that do not have a resource called testing: Xnatcheck -p PID --filters "session_label=VUSTP1a,VUSTP2b,VUSTP3a-x-=?session_res=testing"\n'
+    usage+='   *Get list of project fMRIQA and VBMQA that used more than 45mb and less than 1hour: Xnatcheck -p PID1,PID2 --filters "proctype=fMRIQA,VBMQA?procstatus=COMPLETE?memused>45mb?walltimeused<1:00:00" --format assessor_label,procnode,memused,walltimeused'
     return usage
 
 ########################################## OPTIONS ##########################################
@@ -582,8 +602,8 @@ def parse_args():
     #select a special subj or sess
     parser.add_option("--filters", dest="filters",default=None,
                   help="Filter command -- string variable_name;value;operation separated by '?' -- see example at the top of the help.", metavar="STRING")
-    parser.add_option("-e","--res_exists",dest="res_existence",action="store_true",default=False,
-                  help="Print the object if the resources exist instead of if it doesn't.")
+    parser.add_option("-n","--no_res",dest="no_res",action="store_true",default=False,
+                  help="Print the object if the resources don't exist. It will not work if you use filters on the size/nbf/fpaths.")
     parser.add_option("--delimiter",dest="res_delimiter",default='--',
                   help="Resource filters delimiter. By default: --", metavar="")
     parser.add_option("--csv",dest="csvfile",default=None,
