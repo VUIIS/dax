@@ -217,11 +217,12 @@ class filter_resource:
     
     def check_fpaths(self,res_xnat):
         for fpath in self.fpaths:
-            if res_xnat.file(fpath).exists():
-                if self.size:
-                    return self.check_size(float(res_xnat.file(fpath).size()))
-                else:
-                    return True
+            if not res_xnat.file(fpath).exists():
+                return False
+            elif self.size:
+                out=self.check_size(float(res_xnat.file(fpath).size()))
+                if not out: return False
+        return True
                 
     def generate_printable_filter(self):
         f_string=''
