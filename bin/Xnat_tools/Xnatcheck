@@ -115,12 +115,14 @@ class filter_resource:
             self.goodfilter=True
             self.hasfilters=False
             self.size=None
+            self.sizeOp='='
             self.nbf=None
+            self.nbfOp='='
             self.fpaths=None
             self.val=rval.split(',')
             self.no_res=no_res
             self.init_variables(res_vars)
-            print '  * resource filter: '+rvar+' = '+rval+' -- size: '+str(self.size)+'b -- nbf: '+str(self.nbf)+' -- fpaths: '+str(self.fpaths)
+            print '  * resource filter: '+rvar+' = '+rval+' -- size'+self.sizeOp+str(self.size)+' bytes -- nbf'+self.nbfOp+str(self.nbf)+' -- fpaths='+str(self.fpaths)
             if (self.size or self.nbf or self.fpaths) and self.no_res:
                 print '    --> WARNING on usable filter: '+filterstring+' -- the options -n/--no_res will not work because you filter the size/nbf/fpaths of the resource.'
         else:
