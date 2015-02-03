@@ -533,7 +533,7 @@ def Main_display(parser):
     print '# Usage:                                                       #'
     print '#     Check XNAT data (subject/session/scan/assessor/resource) #'
     print '# Parameters :                                                 #'
-    if options=={'res_existence':False,'printfilters':False,'printformat':False,'res_delimiter':'--', 'projects': None, 'filters':None,'csvfile': None, 'format': None}:
+    if options=={'no_res':False,'printfilters':False,'printformat':False,'res_delimiter':'--', 'projects': None, 'filters':None,'csvfile': None, 'format': None}:
         print '#     No Arguments given                                       #'
         print '#     Use "Xnatcheck -h" to see the options                    #'
         print '################################################################'
