@@ -7,7 +7,7 @@ Cluster functionality
 """
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 
-import subprocess,os,logging
+import subprocess,os,logging,time
 from subprocess import CalledProcessError
 from datetime import datetime
 from dax_settings import DEFAULT_EMAIL_OPTS,JOB_TEMPLATE,CMD_SUBMIT,CMD_COUNT_NB_JOBS,CMD_GET_JOB_STATUS,CMD_GET_JOB_WALLTIME,CMD_GET_JOB_MEMORY,CMD_GET_JOB_NODE,RUNNING_STATUS,QUEUE_STATUS,PREFIX_JOBID,SUFFIX_JOBID
@@ -17,9 +17,26 @@ MAX_TRACE_DAYS=30
 #Logger to print logs
 logger = logging.getLogger('dax')
 
+def c_output(output):
+    try:
+        int(output)
+        error=False
+    except (CalledProcessError,ValueError) as e:
+        error=True
+        logger.error(e)
+    return error
+
 def count_jobs():
     cmd = CMD_COUNT_NB_JOBS
-    try:
+    output=subprocess.check_output(cmd, shell=True)
+    error=c_output(output)
+    while error:
+        logger.info('     try again to access number of jobs in 2 seconds.')
+        time.sleep(2)
+        output = subprocess.check_output(cmd,shell=True)
+        error=c_output(output)
+    return int(output)
+    """try:
         p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = p.communicate()
         if error:
@@ -27,7 +44,7 @@ def count_jobs():
         return int(output)
     except (CalledProcessError,ValueError) as e:
         logger.error(e)
-        return -1
+        return -1"""
     
 def job_status(jobid):
     cmd=CMD_GET_JOB_STATUS.safe_substitute(**{'jobid':jobid})
