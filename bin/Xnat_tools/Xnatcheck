@@ -585,9 +585,9 @@ def get_usage():
     usage+="   *See format variables: Xnatcheck --printformat\n"
     usage+="   *See filter variables: Xnatcheck --printfilters\n"
     usage+='   *Get list of project sessions that do not have a resource called testing: Xnatcheck -p PID --filters "session_label--VUSTP1a,VUSTP2b,VUSTP3a?session_res=testing"\n'
-    usage+='   *Get list of T1,DTI scans that have a resource called NIFTI: Xnatcheck -p PID --filters "type=T1,DTI?assessor_res=NIFTI" --res_exists\n'
-    usage+='   *Get list of fMRIQA assessors that have a resource called PDF: Xnatcheck -p PID --filters "proctype=fMRIQA?assessor_res=PDF" --res_exists\n'
-    usage+='   *Get list of project sessions that do not have a resource called testing: Xnatcheck -p PID --filters "session_label=VUSTP1a,VUSTP2b,VUSTP3a-x-=?session_res=testing"\n'
+    usage+='   *Get list of T1,DTI scans that have a resource called NIFTI: Xnatcheck -p PID --filters "type=T1,DTI?assessor_res=NIFTI"\n'
+    usage+='   *Get list of fMRIQA assessors that have a resource called PDF: Xnatcheck -p PID --filters "proctype=fMRIQA?assessor_res=PDF"\n'
+    usage+='   *Get list of project sessions that do not have a resource called testing: Xnatcheck -p PID --filters "session_label=VUSTP1a,VUSTP2b,VUSTP3a-x-=?session_res=testing --no_res"\n'
     usage+='   *Get list of project fMRIQA and VBMQA that used more than 45mb and less than 1hour: Xnatcheck -p PID1,PID2 --filters "proctype=fMRIQA,VBMQA?procstatus=COMPLETE?memused>45mb?walltimeused<1:00:00" --format assessor_label,procnode,memused,walltimeused'
     return usage
 
