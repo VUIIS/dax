@@ -337,6 +337,8 @@ def get_xnat_obj(xnat,obj_dict,session_type):
         if not obj.exists():
             obj=create_assessor(obj,obj_dict)
             new_obj=True
+        else:
+            set_attrs_assessors(obj,obj_dict)
     else:
         logger.info('WARNING: object_type not recognize between scan and assessor.')
         
@@ -376,6 +378,15 @@ def create_assessor(assessor,assessor_dict):
         assessor.attrs.set('proc:genProcData/proctype', assessor_dict['proctype'])
         assessor.attrs.set('proc:genProcData/date',today)
     return assessor
+    
+def set_attrs_assessors(assessor,assessor_dict):
+    if assessor_dict['proctype'].lower() in ['freesurfer','fs']:
+        assessor.attrs.set('fs:fsData/procstatus',assessor_dict['procstatus'])
+        assessor.attrs.set('fs:fsData/validation/status',assessor_dict['qcstatus'])
+    else:
+        assessor.attrs.set('proc:genProcData/procstatus',assessor_dict['procstatus'])
+        assessor.attrs.set('proc:genProcData/validation/status',assessor_dict['qcstatus'])
+        
 
 ######################################### MAIN FUNCTION TO UPLOAD ###############################################
 def upload_data_xnat(xnat,options,scan_list,assessor_list):
@@ -579,6 +590,7 @@ def get_usage():
     usage="usage: %prog [options] \n"
     usage+="What is the script doing : \n"
     usage+="   *Upload data to XNAT following the csv file information.\n"
+    usage+="    csv header: object_type,project_id,subject_label,session_type,session_label,as_label,as_type,as_description,quality,resource,fpath\n'
     usage+="    IMPORTANT: YOU NEED TO CREATE THE PROJECT ON XNAT BEFORE.\n\n"
     #Example
     usage+="Examples:\n"
@@ -597,7 +609,7 @@ def parse_args():
     parser = OptionParser(usage=usage)
     #text file for report
     parser.add_option("-c","--csv", dest="csvfile",default=None,
-                  help="CSV file with the information for uploading data to XNAT. Columns: Subject,Session,Scan,Scantype,SeriesDescription,Resource,fpath. For -o/--only, Project,Subject,Session,Scan,Resource,fpatha.", metavar="PATH")
+                  help="CSV file with the information for uploading data to XNAT. Columns: object_type,project_id,subject_label,session_type,session_label,as_label,as_type,as_description,quality,resource,fpath.", metavar="PATH")
     #Verbose
     parser.add_option("--sess", dest="session_type",default=None,
                   help="Session type on Xnat. Choices : use printmodality to see the options.", metavar="SESSION_TYPE")    
