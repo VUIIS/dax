@@ -323,10 +323,10 @@ def generate_settings(rc,settings_info,status=False):
 
 def get_status(settings_info):
     logger.info('Status on each settings updates:')
-    logger.info(' -------------------------------------------------------------------------------------------------------------------')
-    h='| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-8,'Project',-6,'Status',-5,'PID',-19,'Update start',-19,'Update end',-5,'PID',-19,'Update Job start',-19,'Update Job end')
+    logger.info(' --------------------------------------------------------------------------------------------------------------------------')
+    h='| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-10,'Project',-3,'R',-5,'PID',-19,'Update start',-19,'Update end',-5,'PID',-19,'Update Job start',-19,'Update Job end')
     logger.info(h)
-    logger.info(' -------------------------------------------------------------------------------------------------------------------')
+    logger.info(' --------------------------------------------------------------------------------------------------------------------------')
     for ps in settings_info:
         if ps:
             status=str(ps['general_complete'])
@@ -334,9 +334,9 @@ def get_status(settings_info):
                 status='ON'
             else:
                 status='OFF'
-            v='| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-8,smaller_str(str(ps[REDCAP_VAR['project']]),size=8),-6,status,-5,str(ps[REDCAP_VAR['update_pid']]),-19,str(ps['dax_update_start_date']),-19,str(ps['dax_update_end_date']),-5,str(ps[REDCAP_VAR['update_open_pid']]),-19,str(ps['dax_update_open_start_date']),-19,str(ps['dax_update_open_end_date']))
+            v='| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-10,smaller_str(str(ps[REDCAP_VAR['project']]),size=10),-3,status,-5,str(ps[REDCAP_VAR['update_pid']]),-19,str(ps['dax_update_start_date']),-19,str(ps['dax_update_end_date']),-5,str(ps[REDCAP_VAR['update_open_pid']]),-19,str(ps['dax_update_open_start_date']),-19,str(ps['dax_update_open_end_date']))
             logger.info(v)
-    logger.info(' -------------------------------------------------------------------------------------------------------------------')
+    logger.info(' --------------------------------------------------------------------------------------------------------------------------')
 
 def smaller_str(str_option,size,end=False):
     if len(str_option)>size:
