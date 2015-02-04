@@ -635,7 +635,7 @@ if __name__ == '__main__':
     # RUN                       #
     #############################
     if run:
-        print '=========================================================================='
+        print '==================================================================='
         if options.printfilters:
             print '\nINFO: Printing the filters available: '
             print ' %*s | %*s | %*s | %*s | %*s ' % (-18,'Variable',-8,'Level',-42,'Description',-20,'format',-9,'operation')
