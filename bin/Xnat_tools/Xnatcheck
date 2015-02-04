@@ -637,7 +637,7 @@ if __name__ == '__main__':
     if run:
         print '=========================================================================='
         if options.printfilters:
-            print 'INFO: Printing the filters available: '
+            print '\nINFO: Printing the filters available: '
             print ' %*s | %*s | %*s | %*s | %*s ' % (-18,'Variable',-8,'Level',-42,'Description',-20,'format',-9,'operation')
             print '-----------------------------------------------------------------------------------------------------------------'
             for fdict in VARIABLES_FILTERS_DICT:
@@ -654,7 +654,7 @@ if __name__ == '__main__':
             print '------------------------------------------------------------------------------------------------------------------------------------------'
             print 'E.G for resource filters: scan_res=NIFTI,SNAPSHOTS--size>3mb--nbf=1--fpath=t1.nii.gz'
         if options.printformat:
-            print 'INFO: Printing the variables available for formating the output: '
+            print '\nINFO: Printing the variables available for formating the output: '
             for key in ORDER_PRINTING:
                 print key+' variables:'
                 for value in VARIABLES_LIST[key]:
