@@ -13,7 +13,7 @@ from dax import XnatUtils
 ########################################## VARIABLES ##########################################
 NOTFOUND='NotFound'
 DEFAULT_CSV_LIST=['object_type','project_id','subject_label','session_type','session_label', 'as_label', 'as_type', 'as_description','as_quality']
-ORDER_PRINTING=['commun','project','subject','session','scan','assessor','resource']
+ORDER_PRINTING=['commun','project','subject','session','scan','assessor']
 VARLIST=['scan_id', 'type', 'series_description', 'quality', 'note', 'frames', 'assessor_id', 'assessor_label', 'proctype', 'procstatus', 'qcstatus', 'version', 'jobid', 'memused', 'walltimeused', 'procnode', 'jobstartdate', 'object_type', 'project_id', 'subject_id', 'subject_label', 'session_id', 'session_type', 'session_label', 'handedness', 'gender', 'yob', 'age', 'last_modified', 'last_updated']
 VARIABLES_LIST={'commun'   : ['object_type'],
                 'project'  : ['project_id'],
@@ -653,15 +653,13 @@ if __name__ == '__main__':
             print ' %*s | %*s | %*s ' % (-12,'subject_res',-30,'comma separated list of label',-30,'format: Resource_variableOperationValue separated by delimiter')
             print '------------------------------------------------------------------------------------------------------------------------------------------'
             print 'E.G for resource filters: scan_res=NIFTI,SNAPSHOTS--size>3mb--nbf=1--fpath=t1.nii.gz'
-            if options.filters:
-                filters_list,filter_r_list=create_filters(options)
-        elif options.printformat:
+        if options.printformat:
             print 'INFO: Printing the variables available for formating the output: '
             for key in ORDER_PRINTING:
                 print key+' variables:'
                 for value in VARIABLES_LIST[key]:
                     print ' * %*s ' % (-30,value)
-        else:
+        if options.filters:
             #Create filters from the string:
             filters_list,filter_r_list=create_filters(options)
             print '\n'
@@ -685,4 +683,6 @@ if __name__ == '__main__':
                 print_report(objects_list,header)
             else:
                 print '-->No object on XNAT found matching your filters.'
+        else:
+            print 'WARNING: No filters given to the options.'
     print '===================================================================\n'
