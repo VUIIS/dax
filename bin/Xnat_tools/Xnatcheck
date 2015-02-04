@@ -578,7 +578,7 @@ def get_usage():
     usage+="How to write a filter string:\n"
     usage+="   - for resources filters, the string needs to follow this template:\n"
     usage+="      variable_name=value--sizeOperationValue--nbfOperationValue--fpathsOperationValue?variable_name=value--sizeOperationValue--nbfOperationValue--fpathsOperationValue\n"
-    usage+="      By default, it will return the assessor that doesn't have the resource or if it doesn't "
+    usage+="      By default, it will return the assessor that doesn't have the resource or if it doesn't\n"
     usage+="   - for other filters, the string needs to follow this template:\n"
     usage+="      variable_name=Value?variable_name=Value\n"
     usage+="      operation for other filters can be different than =. Look at the table in --printfilters\n\n"
