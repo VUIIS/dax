@@ -42,7 +42,7 @@ class filter_variable:
             self.init_value(rval)
             #grp
             self.grp=[d['grp'] for d in VARIABLES_FILTERS_DICT if d['variable_name']==rvar][0]
-            print '  * regular filter:',self.var,self.operator,self.val
+            print '  * regular filter:',rvar,self.operator,rval
         else:
             print ' WARNING: '+rvar+' -- Not a variable that can be filter. Unusable filter.'
             self.goodfilter=False
