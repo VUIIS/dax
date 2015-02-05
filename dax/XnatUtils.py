@@ -960,7 +960,7 @@ def download_all_resources(Resource,directory):
             print '   ->Downloading all resources for '+Resource.label()+' as a zip'
             Resource.get(Outputdir,extract=False) #not sure the extract True is working
             print '   ->Unzipping ...' 
-            os.system('unzip -d '+Outputdir+' '+os.path.join(Outputdir,Resource.label()+'.zip'))
+            os.system('unzip -d '+Outputdir+' '+os.path.join(Outputdir,Resource.label()+'.zip')+' > /dev/null')
         #if only one, if using download all resources, download it and unzip it if it's a zip
         else:
             print '   ->Downloading resource for '+Resource.label()
@@ -968,7 +968,7 @@ def download_all_resources(Resource,directory):
             Resource.file(Input_res_label_fname).get(os.path.join(directory,Input_res_label_fname))
             if os.path.join(directory,Input_res_label_fname)[-3:]=='zip':
                 print '   -> Unzipping ...'
-                os.system('unzip -d '+directory+' '+os.path.join(directory,Input_res_label_fname))
+                os.system('unzip -d '+directory+' '+os.path.join(directory,Input_res_label_fname)+' > /dev/null')
     else:
         print'ERROR download_all_resources in XnatUtils: Folder '+directory+' does not exist.'
 
