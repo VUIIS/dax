@@ -34,14 +34,15 @@ RES_OBJ_DICT={'assessor_res':'proctype','scan_res':'series_description','session
 class filter_variable:
     def __init__(self,rvar,rval,operator):
         if rvar in VARIABLES_FILTERS_LIST:
-            print '  * regular filter:',rvar,operator,rval
             self.var=rvar
             self.goodfilter=True
-            self.operator=operator
+            #init operator:
+            self.init_operator(operator)
             #init value
             self.init_value(rval)
             #grp
             self.grp=[d['grp'] for d in VARIABLES_FILTERS_DICT if d['variable_name']==rvar][0]
+            print '  * regular filter:',rvar,operator,rval
         else:
             print ' WARNING: '+rvar+' -- Not a variable that can be filter. Unusable filter.'
             self.goodfilter=False
@@ -67,6 +68,13 @@ class filter_variable:
     def is_usable_filter(self):
         return self.goodfilter
     
+    def init_operator(self,operator):
+        if operator not in [d['operator'] for d in VARIABLES_FILTERS_DICT if d['variable_name']==self.var][0].split(','):
+            print ' WARNING: '+self.var+' -- Not a good value for operator. Using default "=".'
+            self.operator='='
+        else:
+            self.operator=operator
+            
     def init_value(self,value):
         #setting value:
         if 'comma separated list' in [d['format'] for d in VARIABLES_FILTERS_DICT if d['variable_name']==self.var][0]:
