@@ -22,22 +22,22 @@ VARIABLES_LIST={'commun'   : ['object_type'],
                 'scan'     : ['scan_id','type','series_description','quality','note','frames'],
                 'assessor' : ['assessor_id','assessor_label','proctype','procstatus','qcstatus','version','jobid','memused','walltimeused','jobnode','jobstartdate']}
 VARIABLES_FILTERS_LIST=['subject_id', 'subject_label', 'handedness', 'gender', 'yob', 'session_id', 'session_type', 'session_label', 'age', 'scan_id', 'type', 'series_description', 'quality', 'assessor_id', 'assessor_label', 'proctype', 'procstatus', 'qcstatus', 'version', 'jobid', 'memused', 'walltimeused', 'jobnode', 'jobstartdate']
-VARIABLES_FILTERS_DICT=[{'variable_name':'subject_id','value':'Subjects ID','format':'comma separated list','operation':'=','grp':'subject'},{'variable_name':'subject_label','value':'Subjects label','format':'comma separated list','operation':'=','grp':'subject'},{'variable_name':'handedness','value':'"right"/"left"/"ambidextrous"/"unknown"','format':'string','operation':'=','grp':'subject'},{'variable_name':'gender','value':'"male"/"female"/"unknown"','format': 'string','operation':'=','grp':'subject'},{'variable_name':'yob','value':'year of birth','format': 'integer YYYY','operation':'=,<,>,<=,>=','grp':'subject'},
-                        {'variable_name':'session_id','value':'Sessions ID','format':'comma separated list','operation':'=','grp':'session'},{'variable_name':'session_type','value':'Session type','format':'comma separated list','operation':'=','grp':'session'},{'variable_name':'session_label','value':'Sessions label','format':'comma separated list','operation':'=','grp':'session'},{'variable_name':'age','value':'age of the participants','format': 'integer','operation':'=,<,>,<=,>=','grp':'session'},
-                        {'variable_name':'scan_id','value':'Scans ID','format':'comma separated list','operation':'=','grp':'scan'},{'variable_name':'type','value':'Scans type','format':'comma separated list','operation':'=','grp':'scan'},{'variable_name':'series_description','value':'Series Description','format':'comma separated list','operation':'=','grp':'scan'},{'variable_name':'quality','value':'Quality "usable"/"unusable"/"questionable"','format':'comma separated list','operation':'=','grp':'scan'},
-                        {'variable_name':'assessor_id','value':'Assessor ID','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'assessor_label','value':'Assessor label','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'proctype','value':'Assessor type','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'procstatus','value':'Job status for an assessor','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'qcstatus','value':'Quality Control Status','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'version','value':'Version of an assessor','format':'X.Y.Z','operation':'=,<,>,<=,>=','grp':'assessor'},{'variable_name':'jobid','value':'Job ID for assessor','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'memused','value':'Memory used by the assessor','format':'float+mb/kb/gb/tb','operation':'=,<,>,<=,>=','grp':'assessor'},{'variable_name':'walltimeused','value':'Walltime used by the assessor','format':'HH:MM:SS','operation':'=,<,>,<=,>=','grp':'assessor'},{'variable_name':'jobnode','value':'Node where the assessor ran','format':'comma separated list','operation':'=','grp':'assessor'},{'variable_name':'jobstartdate','value':'Job starting date','format':'YYYY-MM-DD','operation':'=,<,>,<=,>=','grp':'assessor'},]
+VARIABLES_FILTERS_DICT=[{'variable_name':'subject_id','value':'Subjects ID','format':'comma separated list','operator':'=','grp':'subject'},{'variable_name':'subject_label','value':'Subjects label','format':'comma separated list','operator':'=','grp':'subject'},{'variable_name':'handedness','value':'"right"/"left"/"ambidextrous"/"unknown"','format':'string','operator':'=','grp':'subject'},{'variable_name':'gender','value':'"male"/"female"/"unknown"','format': 'string','operator':'=','grp':'subject'},{'variable_name':'yob','value':'year of birth','format': 'integer YYYY','operator':'=,<,>,<=,>=','grp':'subject'},
+                        {'variable_name':'session_id','value':'Sessions ID','format':'comma separated list','operator':'=','grp':'session'},{'variable_name':'session_type','value':'Session type','format':'comma separated list','operator':'=','grp':'session'},{'variable_name':'session_label','value':'Sessions label','format':'comma separated list','operator':'=','grp':'session'},{'variable_name':'age','value':'age of the participants','format': 'integer','operator':'=,<,>,<=,>=','grp':'session'},
+                        {'variable_name':'scan_id','value':'Scans ID','format':'comma separated list','operator':'=','grp':'scan'},{'variable_name':'type','value':'Scans type','format':'comma separated list','operator':'=','grp':'scan'},{'variable_name':'series_description','value':'Series Description','format':'comma separated list','operator':'=','grp':'scan'},{'variable_name':'quality','value':'Quality "usable"/"unusable"/"questionable"','format':'comma separated list','operator':'=','grp':'scan'},
+                        {'variable_name':'assessor_id','value':'Assessor ID','format':'comma separated list','operator':'=','grp':'assessor'},{'variable_name':'assessor_label','value':'Assessor label','format':'comma separated list','operator':'=','grp':'assessor'},{'variable_name':'proctype','value':'Assessor type','format':'comma separated list','operator':'=','grp':'assessor'},{'variable_name':'procstatus','value':'Job status for an assessor','format':'comma separated list','operator':'=','grp':'assessor'},{'variable_name':'qcstatus','value':'Quality Control Status','format':'comma separated list','operator':'=','grp':'assessor'},{'variable_name':'version','value':'Version of an assessor','format':'X.Y.Z','operator':'=,<,>,<=,>=','grp':'assessor'},{'variable_name':'jobid','value':'Job ID for assessor','format':'comma separated list','operator':'=','grp':'assessor'},{'variable_name':'memused','value':'Memory used by the assessor','format':'float+mb/kb/gb/tb','operator':'=,<,>,<=,>=','grp':'assessor'},{'variable_name':'walltimeused','value':'Walltime used by the assessor','format':'HH:MM:SS','operator':'=,<,>,<=,>=','grp':'assessor'},{'variable_name':'jobnode','value':'Node where the assessor ran','format':'comma separated list','operator':'=','grp':'assessor'},{'variable_name':'jobstartdate','value':'Job starting date','format':'YYYY-MM-DD','operator':'=,<,>,<=,>=','grp':'assessor'},]
 RESOURCES_LIST=['scan_res','assessor_res','session_res','subject_res']
 RESOURCES_VARS=['size','nbf','fpath']
 RES_OBJ_DICT={'assessor_res':'proctype','scan_res':'series_description','session_res':'session_label','subject_res':'subject_label'}
 
 ########################################## FILTER CLASS ##########################################
 class filter_variable:
-    def __init__(self,rvar,rval,operation):
+    def __init__(self,rvar,rval,operator):
         if rvar in VARIABLES_FILTERS_LIST:
-            print '  * regular filter:',rvar,operation,rval
+            print '  * regular filter:',rvar,operator,rval
             self.var=rvar
             self.goodfilter=True
-            self.operation=operation
+            self.operator=operator
             #init value
             self.init_value(rval)
             #grp
@@ -47,7 +47,7 @@ class filter_variable:
             self.goodfilter=False
        
     def filter(self,list_obj):
-        return filter(lambda x: operate_action(self.operation,self.get_obj_value(x),self.val), list_obj)
+        return filter(lambda x: operate_action(self.operator,self.get_obj_value(x),self.val), list_obj)
         
     def get_obj_value(self,obj_dict):
         if isinstance(self.val,int):
@@ -149,29 +149,29 @@ class filter_resource:
                 rvar,rval=rv.split('=')[:2]
                 self.set_variables(rvar,rval,'=')
             else:
-                print ' - warning - '+rv+' - no operation found in the filters for resource.'
+                print ' - warning - '+rv+' - no operator found in the filters for resource.'
     
-    def set_variables(self,rvar,rval,operation):
+    def set_variables(self,rvar,rval,operator):
         if rvar=='size':
             self.size=getmemory(rval)
-            self.sizeOp=operation
+            self.sizeOp=operator
             self.hasfilters=True
         elif rvar=='nbf':
             self.nbf=int(rval)
-            self.nbfOp=operation
+            self.nbfOp=operator
             self.hasfilters=True
         elif rvar=='fpath':
             self.fpaths=rval.split(',')
             self.hasfilters=True
                  
-    def init_operation(self,operation):
-        if ',' in operation:
-            print ' WARNING: '+self.var+' -- operation '+operation+' contained a comma. Using default: "=".'
+    def init_operator(self,operator):
+        if ',' in operator:
+            print ' WARNING: '+self.var+' -- operator '+operator+' contained a comma. Using default: "=".'
             return '='
-        elif operation in ['=','<','>','<=','>=']:
-            return operation
+        elif operator in ['=','<','>','<=','>=']:
+            return operator
         else:
-            print ' WARNING: '+self.var+' -- operation '+operation+' not found. Using default: "=".'
+            print ' WARNING: '+self.var+' -- operator '+operator+' not found. Using default: "=".'
             return '='
                 
     def is_usable_filter(self):
@@ -259,16 +259,16 @@ def get_res_filter(filterString,delimiter):
         else:
             return None,None,[]
     
-def operate_action(operation,value1,value2):
-    if operation=='<':
+def operate_action(operator,value1,value2):
+    if operator=='<':
         return value1<value2
-    elif operation=='<=':
+    elif operator=='<=':
         return value1<=value2
-    elif operation=='>':
+    elif operator=='>':
         return value1>value2
-    elif operation=='>=':
+    elif operator=='>=':
         return value1>=value2
-    elif operation=='=' and isinstance(value2,list):
+    elif operator=='=' and isinstance(value2,list):
         return value1 in value2
     else:
         return value1==value2
@@ -364,25 +364,25 @@ def get_size(size):
 def extract_var(filterString):
     rvar=None
     rval=None
-    operation=None
+    operator=None
     if '>=' in filterString:
         rvar,rval=filterString.split('>=')[:2]    
-        operation='>='           
+        operator='>='           
     elif '<=' in filterString:
         rvar,rval=filterString.split('<=')[:2]
-        operation='<=' 
+        operator='<=' 
     elif '>' in filterString:
         rvar,rval=filterString.split('>')[:2]
-        operation='>' 
+        operator='>' 
     elif '<' in filterString:
         rvar,rval=filterString.split('<')[:2]
-        operation='<' 
+        operator='<' 
     elif '=' in filterString:
         rvar,rval=filterString.split('=')[:2]
-        operation='=' 
+        operator='=' 
     else:
-        print ' - warning - '+filterString+' - no operation found in the filters for resource.'
-    return rvar,rval,operation
+        print ' - warning - '+filterString+' - no operator found in the filters for resource.'
+    return rvar,rval,operator
                 
 def create_filters(options):
     print 'INFO: Creating your filters from the options.'
@@ -390,15 +390,15 @@ def create_filters(options):
     filter_r_list=list()
     for filterString in options.filters.split('?'):
         if options.res_delimiter in filterString:
-            rvar,rval,operation=extract_var(filterString.split(options.res_delimiter)[0])
+            rvar,rval,operator=extract_var(filterString.split(options.res_delimiter)[0])
         else:
-            rvar,rval,operation=extract_var(filterString)
+            rvar,rval,operator=extract_var(filterString)
         if rvar:
             if rvar in ['scan_res','assessor_res','session_res','subject_res']:
                 f=filter_resource(filterString,options.res_delimiter,options.no_res)
                 filter_r_list.append(f)
             else:
-                f=filter_variable(rvar,rval,operation)
+                f=filter_variable(rvar,rval,operator)
                 filters_list.append(f)
     return filters_list,filter_r_list
     
@@ -577,11 +577,11 @@ def get_usage():
     usage+="   *Check object on XNAT (subject/session/scan/assessor/resources) specify by the options.\n\n"
     usage+="How to write a filter string:\n"
     usage+="   - for resources filters, the string needs to follow this template:\n"
-    usage+="      variable_name=value--sizeOperationValue--nbfOperationValue--fpathsOperationValue?variable_name=value--sizeOperationValue--nbfOperationValue--fpathsOperationValue\n"
+    usage+="      variable_name=value--sizeoperatorValue--nbfoperatorValue--fpathsoperatorValue?variable_name=value--sizeoperatorValue--nbfoperatorValue--fpathsoperatorValue\n"
     usage+="      By default, it will return the assessor that doesn't have the resource or if it doesn't\n"
     usage+="   - for other filters, the string needs to follow this template:\n"
     usage+="      variable_name=Value?variable_name=Value\n"
-    usage+="      operation for other filters can be different than =. Look at the table in --printfilters\n\n"
+    usage+="      operator for other filters can be different than =. Look at the table in --printfilters\n\n"
     usage+="Use --printfilters to see the different variables available\n\n"
     #Example
     usage+="Examples:\n"
@@ -604,7 +604,7 @@ def parse_args():
                   help="Project(s) ID on XNAT", metavar="SEPARATED_COMMA_LIST")
     #select a special subj or sess
     parser.add_option("--filters", dest="filters",default=None,
-                  help="Filter command -- string variable_name;value;operation separated by '?' -- see example at the top of the help.", metavar="STRING")
+                  help="Filter command -- string variable_name;value;operator separated by '?' -- see example at the top of the help.", metavar="STRING")
     parser.add_option("-n","--no_res",dest="no_res",action="store_true",default=False,
                   help="Print the object if the resources don't exist. It will not work if you use filters on the size/nbf/fpaths.")
     parser.add_option("--delimiter",dest="res_delimiter",default='--',
@@ -638,19 +638,19 @@ if __name__ == '__main__':
         print '==================================================================='
         if options.printfilters:
             print '\nINFO: Printing the filters available: '
-            print ' %*s | %*s | %*s | %*s | %*s ' % (-18,'Variable',-8,'Level',-42,'Description',-20,'format',-9,'operation')
+            print ' %*s | %*s | %*s | %*s | %*s ' % (-18,'Variable',-8,'Level',-42,'Description',-20,'format',-9,'operator')
             print '-----------------------------------------------------------------------------------------------------------------'
             for fdict in VARIABLES_FILTERS_DICT:
-                print ' %*s | %*s | %*s | %*s | %*s ' % (-18,fdict['variable_name'],-8,fdict['grp'],-42,fdict['value'],-20,fdict['format'],-9,fdict['operation'])
+                print ' %*s | %*s | %*s | %*s | %*s ' % (-18,fdict['variable_name'],-8,fdict['grp'],-42,fdict['value'],-20,fdict['format'],-9,fdict['operator'])
             print '-----------------------------------------------------------------------------------------------------------------'
             print 'WARNING: Use Xnatupload --printmodality to know the different choice for a Session Type\n'
             print 'Resource filters available: '
             print ' %*s | %*s | %*s ' % (-12,'Variable',-30,'Value',-30,'filters')
             print '------------------------------------------------------------------------------------------------------------------------------------------'
-            print ' %*s | %*s | %*s ' % (-12,'scan_res',-30,'comma separated list of label',-30,'format: Resource_variableOperationValue separated by delimiter')
-            print ' %*s | %*s | %*s ' % (-12,'assessor_res',-30,'comma separated list of label',-30,'format: Resource_variableOperationValue separated by delimiter')
-            print ' %*s | %*s | %*s ' % (-12,'session_res',-30,'comma separated list of label',-30,'format: Resource_variableOperationValue separated by delimiter')
-            print ' %*s | %*s | %*s ' % (-12,'subject_res',-30,'comma separated list of label',-30,'format: Resource_variableOperationValue separated by delimiter')
+            print ' %*s | %*s | %*s ' % (-12,'scan_res',-30,'comma separated list of label',-30,'format: Resource_variableOperatorValue separated by delimiter')
+            print ' %*s | %*s | %*s ' % (-12,'assessor_res',-30,'comma separated list of label',-30,'format: Resource_variableOperatiorValue separated by delimiter')
+            print ' %*s | %*s | %*s ' % (-12,'session_res',-30,'comma separated list of label',-30,'format: Resource_variableOperatiorValue separated by delimiter')
+            print ' %*s | %*s | %*s ' % (-12,'subject_res',-30,'comma separated list of label',-30,'format: Resource_variableOperatiorValue separated by delimiter')
             print '------------------------------------------------------------------------------------------------------------------------------------------'
             print 'E.G for resource filters: scan_res=NIFTI,SNAPSHOTS--size>3mb--nbf=1--fpath=t1.nii.gz'
         if options.printformat:
