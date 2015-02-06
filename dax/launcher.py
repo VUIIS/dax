@@ -11,8 +11,6 @@ import sys
 import logging
 from datetime import datetime, timedelta
 
-from pyxnat import Interface
-
 import processors
 import modules
 import XnatUtils
@@ -121,7 +119,7 @@ class Launcher(object):
             
         try:
             logger.info('Connecting to XNAT at '+self.xnat_host)
-            xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
+            xnat = XnatUtils.get_interface()
             
             logger.info('Getting task list...')
             task_list = self.get_open_tasks(xnat,project_list,sessions_local)
@@ -260,7 +258,7 @@ class Launcher(object):
             
         try:
             logger.info('Connecting to XNAT at '+self.xnat_host)
-            xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
+            xnat = XnatUtils.get_interface()
 
             #Priority if set:
             if self.priority_project and not project_local:
@@ -446,7 +444,7 @@ class Launcher(object):
         
         try:
             logger.info('Connecting to XNAT at '+self.xnat_host)
-            xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
+            xnat = XnatUtils.get_interface()
             project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
   
             # Update projects
