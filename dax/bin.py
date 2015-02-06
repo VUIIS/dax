@@ -11,7 +11,6 @@ import re
 import logging
 from datetime import datetime
 
-from pyxnat import Interface
 from lxml import etree
 
 import redcap
