@@ -323,10 +323,10 @@ def generate_settings(rc,settings_info,status=False):
 
 def get_status(settings_info):
     logger.info('Status on each settings updates:')
-    logger.info(' --------------------------------------------------------------------------------------------------------------------------')
+    logger.info(' -------------------------------------------------------------------------------------------------------------------------')
     h='| %*s | %*s | %*s | %*s | %*s | %*s |' % (-23,'Project',-3,'R',-17,'Last Update',-22,'Update Information',-17,'Last Update Job',-22,'Update Job Information')
     logger.info(h)
-    logger.info(' --------------------------------------------------------------------------------------------------------------------------')
+    logger.info(' -------------------------------------------------------------------------------------------------------------------------')
     for ps in settings_info:
         if ps:
             projectstr=smaller_str(str(ps[REDCAP_VAR['project']]),size=23)
@@ -337,7 +337,7 @@ def get_status(settings_info):
             up_job_info=get_update_info(ps[REDCAP_VAR['open_end_date']],ps[REDCAP_VAR['update_open_pid']])
             v='| %*s | %*s | %*s | %*s | %*s | %*s |' % (-23,projectstr,-3,status,-17,up_start,-22,up_info,-17,up_open_start,-22,up_job_info)
             logger.info(v)
-    logger.info(' --------------------------------------------------------------------------------------------------------------------------')
+    logger.info(' -------------------------------------------------------------------------------------------------------------------------')
 
 def get_status_string(status):
     if str(status)=='2':
