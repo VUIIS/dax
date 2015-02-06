@@ -333,8 +333,8 @@ def get_status(settings_info):
             status=get_status(ps['general_complete'])
             up_start=str(ps['dax_update_start_date'][:-3])
             up_open_start=str(ps['dax_update_open_start_date'])
-            up_info=get_update_info(ps,'dax_update_end_date','update_pid')
-            up_job_info=get_update_info(ps,'dax_update_open_end_date','update_open_pid')
+            up_info=get_update_info(ps['dax_update_end_date'],ps['update_pid'])
+            up_job_info=get_update_info(ps['dax_update_open_end_date'],ps['update_open_pid'])
             v='| %*s | %*s | %*s | %*s | %*s | %*s |' % (-20,projectstr,-3,status,-19,up_start,-19,up_info,-19,up_open_start,-19,up_job_info)
             logger.info(v)
     logger.info(' --------------------------------------------------------------------------------------------------------------------------')
@@ -345,11 +345,11 @@ def get_status(status):
     else:
         return 'OFF'
         
-def get_update_info(ps,update_end_field,update_pid):
-    if ps[update_end_field]=='In Process':
-        return str(ps[update_end_field]+' PID:'+ps[REDCAP_VAR[update_pid]])
+def get_update_info(update_end,update_pid):
+    if update_end=='In Process':
+        return update_end+' PID:'+update_pid
     else:
-        return str(ps[update_end_field][:-3])
+        return update_end[:-3]
                 
 def smaller_str(str_option,size,end=False):
     if len(str_option)>size:
