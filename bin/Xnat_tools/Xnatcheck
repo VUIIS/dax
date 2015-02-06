@@ -55,11 +55,20 @@ class filter_variable:
             if self.var=='walltimeused':
                 return getwalltime(obj_dict[self.var])
             elif self.var=='jobstartdate':
-                return int(obj_dict[self.var].replace('-',''))
+                try:
+                    return int(obj_dict[self.var].replace('-',''))
+                except:
+                    return '{:%Y%m%d}'.format(datetime.datetime.now())
             elif self.var=='version':
-                return int(obj_dict[self.var].replace('.',''))
+                try:
+                    return int(obj_dict[self.var].replace('.',''))
+                except:
+                    return '1.0.0'
             else:
-                return int(obj_dict[self.var])
+                try:
+                    return int(obj_dict[self.var])
+                except:
+                    return 0
         elif self.var=='memused': #need to convert
             return getmemory(obj_dict[self.var])
         else:
