@@ -167,8 +167,10 @@ class SpiderProcessHandler:
             if assessor.exists():
                 if 'FS' or 'FreeSurfer' in self.assessor_label.split('-x-')['-1']:
                     assessor.attrs.set('fs:fsdata/procstatus',status)
+                    print '  -status set for FreeSurfer to '+str(status)
                 else:
                     assessor.attrs.set('proc:genProcData/procstatus',status)
+                    print '  -status set for assessor to '+str(status)
         finally:
             xnat.disconnect()
 
