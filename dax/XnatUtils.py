@@ -4,6 +4,7 @@ import sys
 import shutil
 import re
 from datetime import datetime
+import tempfile
 
 from pyxnat import Interface
 from lxml import etree
@@ -11,6 +12,23 @@ from lxml import etree
 import redcap
 
 from dax_settings import RESULTS_DIR
+
+class InterfaceTemp(Interface):
+    '''Extends the functionality of Interface 
+    to have a temporary cache that is removed 
+    when .disconnect() is called.
+    '''
+    def __init__(self,xnat_host,xnat_user,xnat_pass,temp_dir=None):
+        if not temp_dir:
+            temp_dir = tempfile.mkdtemp()
+        if not os.path.exists(temp_dir):
+            os.mkdir(temp_dir)
+        self.temp_dir = temp_dir
+        super(InterfaceTemp,self).__init__(server=xnat_host,user=xnat_user,
+                           password=xnat_pass,cachedir=temp_dir)
+    def disconnect(self):
+        self._exec('/data/JSESSION', method='DELETE')
+        shutil.rmtree(self.temp_dir)
 
 ####################################################################################
 #            Class JobHandler to copy file after the end of a Job                  #
@@ -187,7 +205,7 @@ def get_interface():
     pwd = os.environ['XNAT_PASS']
     host = os.environ['XNAT_HOST']
     # Don't sys.exit, let callers catch KeyErrors
-    return Interface(host, user, pwd)
+    return InterfaceTemp(host, user, pwd)
 
 def list_projects(intf):
     post_uri = '/REST/projects'
