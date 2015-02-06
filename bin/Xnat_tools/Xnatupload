@@ -590,7 +590,7 @@ def get_usage():
     usage="usage: %prog [options] \n"
     usage+="What is the script doing : \n"
     usage+="   *Upload data to XNAT following the csv file information.\n"
-    usage+="    csv header: object_type,project_id,subject_label,session_type,session_label,as_label,as_type,as_description,quality,resource,fpath\n'
+    usage+="    csv header: object_type,project_id,subject_label,session_type,session_label,as_label,as_type,as_description,quality,resource,fpath\n"
     usage+="    IMPORTANT: YOU NEED TO CREATE THE PROJECT ON XNAT BEFORE.\n\n"
     #Example
     usage+="Examples:\n"
