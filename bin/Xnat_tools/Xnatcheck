@@ -130,9 +130,9 @@ class filter_resource:
             self.val=rval.split(',')
             self.no_res=no_res
             self.init_variables(res_vars)
-            print '  * resource filter: '+rvar+' = '+rval+' -- size'+self.sizeOp+str(self.size)+' bytes -- nbf'+self.nbfOp+str(self.nbf)+' -- fpaths='+str(self.fpaths)
+            print '  * resource filter: '+rvar+' = '+rval+' -- size '+self.sizeOp+' '+str(self.size)+' bytes -- nbf '+self.nbfOp+' '+str(self.nbf)+' -- fpaths = '+str(self.fpaths)
             if (self.size or self.nbf or self.fpaths) and self.no_res:
-                print '    --> WARNING on usable filter: '+filterstring+' -- the options -n/--no_res will not work because you filter the size/nbf/fpaths of the resource.'
+                print '    --> WARNING : '+rvar+' -- you want to filter the resource attributes but you used -n/--no_res.'
         else:
             print ' WARNING: '+filterstring+' -- Not a variable for resource that can be filter. Unusable filter.'
             self.goodfilter=False
@@ -198,22 +198,26 @@ class filter_resource:
     def check_resources(self,xnat,object_dict): #return True if the resource has been checked to not have proper resource
         resources_list=get_resource_list(xnat,object_dict,self.var)
         for reslabel in self.val:
-            if self.no_res and reslabel not in [r['label'] for r in resources_list]:
-                return True
-            elif not self.no_res and reslabel not in [r['label'] for r in resources_list]:
-                return False
-            #Check if set the variables:
-            if self.hasfilters:
-                res_xnat=get_resource(xnat,object_dict,self.var,reslabel)
-                if self.fpaths:
-                    out=self.check_fpaths(res_xnat)
-                    if not out: return False
-                elif self.size:
-                    out=self.check_size(get_bigger_size(res_xnat))
-                    if not out: return False
-                if self.nbf:
-                    out=self.check_nbf(res_xnat)
-                    if not out: return False
+            if self.no_res:
+                if reslabel not in [r['label'] for r in resources_list]:
+                    return True
+                else:
+                    return False
+            else:
+                if reslabel not in [r['label'] for r in resources_list]:
+                    return False
+                #Check if set the variables:
+                if self.hasfilters:
+                    res_xnat=get_resource(xnat,object_dict,self.var,reslabel)
+                    if self.fpaths:
+                        out=self.check_fpaths(res_xnat)
+                        if not out: return False
+                    elif self.size:
+                        out=self.check_size(get_bigger_size(res_xnat))
+                        if not out: return False
+                    if self.nbf:
+                        out=self.check_nbf(res_xnat)
+                        if not out: return False
         
         return True
                 
@@ -561,7 +565,7 @@ def Main_display(parser):
             if options.projects:
                 print '#     %*s -> %*s#' %(-20,'Project(s)',-33,get_proper_str(options.projects))  
             if options.no_res:
-                print '#     %*s -> %*s#' %(-32,'Check no resource (if no filters)',-20,'on')
+                print '#     %*s -> %*s#' %(-32,'Check no resource',-20,'on')
             if options.res_delimiter:
                 print '#     %*s -> %*s#' %(-20,'Resource Delimiter',-33,get_proper_str(options.res_delimiter))
             if options.filters:
@@ -586,7 +590,7 @@ def get_usage():
     usage+="How to write a filter string:\n"
     usage+="   - for resources filters, the string needs to follow this template:\n"
     usage+="      variable_name=value--sizeoperatorValue--nbfoperatorValue--fpathsoperatorValue?variable_name=value--sizeoperatorValue--nbfoperatorValue--fpathsoperatorValue\n"
-    usage+="      By default, it will return the assessor that doesn't have the resource or if it doesn't\n"
+    usage+="      By default, it will return the assessor that does have the resource if no other filter specify\n"
     usage+="   - for other filters, the string needs to follow this template:\n"
     usage+="      variable_name=Value?variable_name=Value\n"
     usage+="      operator for other filters can be different than =. Look at the table in --printfilters\n\n"
@@ -614,7 +618,7 @@ def parse_args():
     parser.add_option("--filters", dest="filters",default=None,
                   help="Filter command -- string variable_name;value;operator separated by '?' -- see example at the top of the help.", metavar="STRING")
     parser.add_option("-n","--no_res",dest="no_res",action="store_true",default=False,
-                  help="Print the object if the resources don't exist. It will not work if you use filters on the size/nbf/fpaths.")
+                  help="Print the object if the resources don't exist.")
     parser.add_option("--delimiter",dest="res_delimiter",default='--',
                   help="Resource filters delimiter. By default: --", metavar="")
     parser.add_option("--csv",dest="csvfile",default=None,
