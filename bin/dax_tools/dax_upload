@@ -16,9 +16,7 @@ from email.MIMEBase import MIMEBase
 import smtplib
 from email import Encoders
 
-from pyxnat import Interface
-
-from dax import RESULTS_DIR,bin
+from dax import RESULTS_DIR,bin,XnatUtils
 from dax.task import READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED, JOB_PENDING
 
 _READY_FLAG_FILE = 'READY_TO_UPLOAD.txt'
@@ -462,7 +460,7 @@ if __name__ == '__main__':
         #Start the process to upload
         try:
             logger.info('Connecting to XNAT to start uploading processes at '+XNAT_HOST)
-            xnat = Interface(XNAT_HOST, XNAT_USER, XNAT_PWD)
+            xnat = XnatUtils.get_interface()
             
             ################# 1) Upload the assessor data ###############
             #For each assessor label that need to be upload :
