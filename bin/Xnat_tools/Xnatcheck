@@ -7,7 +7,7 @@ Created on May 6, 2013
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
-import os,sys,logging
+import os,sys,logging,datetime
 from dax import XnatUtils
 
 ########################################## VARIABLES ##########################################
