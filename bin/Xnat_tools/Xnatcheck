@@ -400,7 +400,7 @@ def create_filters(options):
     print 'INFO: Creating your filters from the options.'
     filters_list=list()
     filter_r_list=list()
-    for filterString in options.filters.split('?'):
+    for filterString in options.filters:
         if options.res_delimiter in filterString:
             rvar,rval,operator=extract_var(filterString.split(options.res_delimiter)[0])
         else:
@@ -539,7 +539,7 @@ def check_options(options):
 
 ########################################## MAIN DISPLAY ##########################################
 def Main_display(parser):
-    (options,args) = parser.parse_args()
+    options=parser.parse_args()
     print '################################################################'
     print '#                           XNATCHECK                          #'
     print '#                                                              #'
@@ -548,7 +548,7 @@ def Main_display(parser):
     print '# Usage:                                                       #'
     print '#     Check XNAT data (subject/session/scan/assessor/resource) #'
     print '# Parameters :                                                 #'
-    if options=={'no_res':False,'printfilters':False,'printformat':False,'res_delimiter':'--', 'projects': None, 'filters':None,'csvfile': None, 'format': None}:
+    if vars(options)=={'no_res':False,'printfilters':False,'printformat':False,'res_delimiter':'--', 'projects': None, 'filters':None,'csvfile': None, 'format': None}:
         print '#     No Arguments given                                       #'
         print '#     Use "Xnatcheck -h" to see the options                    #'
         print '################################################################'
@@ -569,7 +569,7 @@ def Main_display(parser):
             if options.res_delimiter:
                 print '#     %*s -> %*s#' %(-20,'Resource Delimiter',-33,get_proper_str(options.res_delimiter))
             if options.filters:
-                print '#     %*s -> %*s#' %(-20,'filters String',-33,get_proper_str(options.filters))
+                print '#     %*s -> %*s#' %(-20,'filters String',-33,get_proper_str(str(options.filters)))
             if options.format:
                 print '#     %*s -> %*s#' %(-20,'Header csv',-33,get_proper_str(options.format))
         print '################################################################'
@@ -583,58 +583,56 @@ def get_proper_str(str_option,end=False):
     else:
         return str_option
 
-def get_usage():
-    usage="usage: %prog [options] \n"
-    usage+="What is the script doing : \n"
+def get_description():
+    usage="What is the script doing : \n"
     usage+="   *Check object on XNAT (subject/session/scan/assessor/resources) specify by the options.\n\n"
     usage+="How to write a filter string:\n"
     usage+="   - for resources filters, the string needs to follow this template:\n"
-    usage+="      variable_name=value--sizeoperatorValue--nbfoperatorValue--fpathsoperatorValue?variable_name=value--sizeoperatorValue--nbfoperatorValue--fpathsoperatorValue\n"
+    usage+="      variable_name=value--sizeoperatorValue--nbfoperatorValue--fpathsoperatorValue\n"
     usage+="      By default, it will return the assessor that does have the resource if no other filter specify\n"
     usage+="   - for other filters, the string needs to follow this template:\n"
-    usage+="      variable_name=Value?variable_name=Value\n"
-    usage+="      operator for other filters can be different than =. Look at the table in --printfilters\n\n"
+    usage+="      variable_name=Value\n"
+    usage+="      operator can be different than =. Look at the table in --printfilters\n\n"
     usage+="Use --printfilters to see the different variables available\n\n"
     #Example
     usage+="Examples:\n"
     usage+="   *See format variables: Xnatcheck --printformat\n"
     usage+="   *See filter variables: Xnatcheck --printfilters\n"
-    usage+='   *Get list of project sessions that do not have a resource called testing: Xnatcheck -p PID --filters "session_label--VUSTP1a,VUSTP2b,VUSTP3a?session_res=testing"\n'
-    usage+='   *Get list of T1,DTI scans that have a resource called NIFTI: Xnatcheck -p PID --filters "type=T1,DTI?assessor_res=NIFTI"\n'
-    usage+='   *Get list of fMRIQA assessors that have a resource called PDF: Xnatcheck -p PID --filters "proctype=fMRIQA?assessor_res=PDF"\n'
-    usage+='   *Get list of project sessions that do not have a resource called testing: Xnatcheck -p PID --filters "session_label=VUSTP1a,VUSTP2b,VUSTP3a-x-=?session_res=testing --no_res"\n'
-    usage+='   *Get list of project fMRIQA and VBMQA that used more than 45mb and less than 1hour: Xnatcheck -p PID1,PID2 --filters "proctype=fMRIQA,VBMQA?procstatus=COMPLETE?memused>45mb?walltimeused<1:00:00" --format assessor_label,procnode,memused,walltimeused'
+    usage+='   *Get list of T1,DTI scans that have a resource called NIFTI: Xnatcheck -p PID --filters type=T1,DTI assessor_res=NIFTI\n'
+    usage+='   *Get list of fMRIQA assessors that have a resource called PDF: Xnatcheck -p PID --filters proctype=fMRIQA assessor_res=PDF\n'
+    usage+='   *Get list of project sessions that do not have a resource called testing: Xnatcheck -p PID --filters session_label=VUSTP1a,VUSTP2b,VUSTP3a session_res=testing --no_res"\n'
+    usage+='   *Get list of project fMRIQA and VBMQA that used more than 45mb and less than 1hour: Xnatcheck -p PID1,PID2 --filters proctype=fMRIQA,VBMQA procstatus=COMPLETE "memused>45mb" "walltimeused<1:00:00" --format assessor_label,procnode,memused,walltimeused'
     return usage
 
 ########################################## OPTIONS ##########################################
-def parse_args():
-    from optparse import OptionParser
-    usage = get_usage()
-    parser = OptionParser(usage=usage)
+def get_parser():
+    import argparse
+    from argparse import RawTextHelpFormatter
+    parser = argparse.ArgumentParser(description=get_description(), formatter_class=RawTextHelpFormatter)
     #need this options
-    parser.add_option("-p", "--project", dest="projects",default=None,
+    parser.add_argument("-p", "--project", dest="projects",default=None,
                   help="Project(s) ID on XNAT", metavar="SEPARATED_COMMA_LIST")
     #select a special subj or sess
-    parser.add_option("--filters", dest="filters",default=None,
-                  help="Filter command -- string variable_name;value;operator separated by '?' -- see example at the top of the help.", metavar="STRING")
-    parser.add_option("-n","--no_res",dest="no_res",action="store_true",default=False,
+    parser.add_argument("--filters", dest="filters",default=None,nargs='+',type=str,
+                  help="List of filters separated by a space to apply to the search. See examples.", metavar="STRING")
+    parser.add_argument("-n","--no_res",dest="no_res",action="store_true",default=False,
                   help="Print the object if the resources don't exist.")
-    parser.add_option("--delimiter",dest="res_delimiter",default='--',
-                  help="Resource filters delimiter. By default: --", metavar="")
-    parser.add_option("--csv",dest="csvfile",default=None,
+    parser.add_argument("--delimiter",dest="res_delimiter",default='--',
+                  help="Resource filters delimiter. By default: --",metavar="STRING")
+    parser.add_argument("--csv",dest="csvfile",default=None,
                   help="File path to save the CSV output.", metavar="FILEPATH")
-    parser.add_option("--format", dest="format",default=None,
+    parser.add_argument("--format", dest="format",default=None,
                   help="Header for the csv. format: list of variables name separated by a comma.", metavar="SEPARATED_COMMA_LIST")
-    parser.add_option("--printfilters",dest="printfilters",action='store_true',default=False,
-                  help="Print available filters.", metavar="")
-    parser.add_option("--printformat",dest="printformat",action='store_true',default=False,
-                  help="Print available format for display.", metavar="")
+    parser.add_argument("--printfilters",dest="printfilters",action='store_true',default=False,
+                  help="Print available filters.")
+    parser.add_argument("--printformat",dest="printformat",action='store_true',default=False,
+                  help="Print available format for display.")
     return parser
 
 ########################################## MAIN FUNCTION ##########################################
 if __name__ == '__main__':
-    parser=parse_args()
-    (options,args) = parser.parse_args()
+    parser=get_parser()
+    options = parser.parse_args()
     #############################
     #Main display:
     Main_display(parser)
