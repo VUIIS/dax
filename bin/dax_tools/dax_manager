@@ -330,7 +330,7 @@ def get_status(settings_info):
     for ps in settings_info:
         if ps:
             projectstr=smaller_str(str(ps[REDCAP_VAR['project']]),size=20)
-            status=get_status(ps)
+            status=get_status(ps['general_complete'])
             up_start=str(ps['dax_update_start_date'][:-3])
             up_open_start=str(ps['dax_update_open_start_date'])
             up_info=get_update_info(ps,'dax_update_end_date','update_pid')
@@ -339,9 +339,8 @@ def get_status(settings_info):
             logger.info(v)
     logger.info(' --------------------------------------------------------------------------------------------------------------------------')
 
-def get_status(ps):
-    status=str(ps['general_complete'])
-    if status=='2':
+def get_status(status):
+    if status==2:
         return 'ON'
     else:
         return 'OFF'
