@@ -324,20 +324,34 @@ def generate_settings(rc,settings_info,status=False):
 def get_status(settings_info):
     logger.info('Status on each settings updates:')
     logger.info(' --------------------------------------------------------------------------------------------------------------------------')
-    h='| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-10,'Project',-3,'R',-5,'PID',-19,'Update start',-19,'Update end',-5,'PID',-19,'Update Job start',-19,'Update Job end')
+    h='| %*s | %*s | %*s | %*s | %*s | %*s |' % (-20,'Project',-3,'R',-19,'Update last start',-19,'Update Information',-19,'Update Job last start',-19,'Update Job Information')
     logger.info(h)
     logger.info(' --------------------------------------------------------------------------------------------------------------------------')
     for ps in settings_info:
         if ps:
-            status=str(ps['general_complete'])
-            if status=='2':
-                status='ON'
-            else:
-                status='OFF'
-            v='| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-10,smaller_str(str(ps[REDCAP_VAR['project']]),size=10),-3,status,-5,str(ps[REDCAP_VAR['update_pid']]),-19,str(ps['dax_update_start_date']),-19,str(ps['dax_update_end_date']),-5,str(ps[REDCAP_VAR['update_open_pid']]),-19,str(ps['dax_update_open_start_date']),-19,str(ps['dax_update_open_end_date']))
+            projectstr=smaller_str(str(ps[REDCAP_VAR['project']]),size=20)
+            status=get_status(ps)
+            up_start=str(ps['dax_update_start_date'][:-3])
+            up_open_start=str(ps['dax_update_open_start_date'])
+            up_info=get_update_info(ps,'dax_update_end_date','update_pid')
+            up_job_info=get_update_info(ps,'dax_update_open_end_date','update_open_pid')
+            v='| %*s | %*s | %*s | %*s | %*s | %*s |' % (-20,projectstr,-3,status,-19,up_start,-19,up_info,-19,up_open_start,-19,up_job_info)
             logger.info(v)
     logger.info(' --------------------------------------------------------------------------------------------------------------------------')
 
+def get_status(ps):
+    status=str(ps['general_complete'])
+    if status=='2':
+        return 'ON'
+    else:
+        return 'OFF'
+        
+def get_update_info(ps,update_end_field,update_pid):
+    if ps[update_end_field]=='In Process':
+        return str(ps[update_end_field]+' PID:'+ps[REDCAP_VAR[update_pid]])
+    else:
+        return str(ps[update_end_field][:-3])
+                
 def smaller_str(str_option,size,end=False):
     if len(str_option)>size:
         if end:
