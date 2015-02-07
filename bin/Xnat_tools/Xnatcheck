@@ -335,7 +335,7 @@ def getmemory(memory_str):
         elif memory_str.lower().endswith('kb'):
             return float(memory_str[:-2])*1024
         else:
-            return 0.0
+            return float(memory_str)
     except:
         return 0.0
     
