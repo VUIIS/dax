@@ -119,7 +119,7 @@ class Launcher(object):
             
         try:
             logger.info('Connecting to XNAT at '+self.xnat_host)
-            xnat = XnatUtils.get_interface()
+            xnat = XnatUtils.get_interface(self.xnat_host,self.xnat_user,self.xnat_pass)
             
             logger.info('Getting task list...')
             task_list = self.get_open_tasks(xnat,project_list,sessions_local)
@@ -258,7 +258,7 @@ class Launcher(object):
             
         try:
             logger.info('Connecting to XNAT at '+self.xnat_host)
-            xnat = XnatUtils.get_interface()
+            xnat = XnatUtils.get_interface(self.xnat_host,self.xnat_user,self.xnat_pass)
 
             #Priority if set:
             if self.priority_project and not project_local:
@@ -444,7 +444,7 @@ class Launcher(object):
         
         try:
             logger.info('Connecting to XNAT at '+self.xnat_host)
-            xnat = XnatUtils.get_interface()
+            xnat = XnatUtils.get_interface(self.xnat_host,self.xnat_user,self.xnat_pass)
             project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
   
             # Update projects
