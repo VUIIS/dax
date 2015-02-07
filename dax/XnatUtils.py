@@ -201,11 +201,13 @@ class SpiderProcessHandler:
 ####################################################################################
 #                       Access XNAT and list of XNAT Objs                          #
 ####################################################################################    
-def get_interface():
-    # Environs
-    user = os.environ['XNAT_USER']
-    pwd = os.environ['XNAT_PASS']
-    host = os.environ['XNAT_HOST']
+def get_interface(host=None,user=None,pwd=None):
+    if xnat_user == None:
+        user = os.environ['XNAT_USER']
+    if xnat_pass == None:
+        pwd = os.environ['XNAT_PASS']
+    if host == None:
+        host = os.environ['XNAT_HOST']
     # Don't sys.exit, let callers catch KeyErrors
     return InterfaceTemp(host, user, pwd)
 
