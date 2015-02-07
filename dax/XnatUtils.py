@@ -202,9 +202,9 @@ class SpiderProcessHandler:
 #                       Access XNAT and list of XNAT Objs                          #
 ####################################################################################    
 def get_interface(host=None,user=None,pwd=None):
-    if xnat_user == None:
+    if user == None:
         user = os.environ['XNAT_USER']
-    if xnat_pass == None:
+    if pwd == None:
         pwd = os.environ['XNAT_PASS']
     if host == None:
         host = os.environ['XNAT_HOST']
