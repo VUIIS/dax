@@ -165,7 +165,7 @@ class SpiderProcessHandler:
 
             assessor=xnat.select('/project/'+self.project+'/subjects/'+self.subject+'/experiments/'+self.experiment+'/assessors/'+self.assessor_label)
             if assessor.exists():
-                if 'FS' or 'FreeSurfer' in self.assessor_label.split('-x-')['-1']:
+                if 'FS'==self.assessor_label.split('-x-')[-1]:
                     assessor.attrs.set('fs:fsdata/procstatus',status)
                     print '  -status set for FreeSurfer to '+str(status)
                 else:
