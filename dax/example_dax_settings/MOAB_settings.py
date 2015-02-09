@@ -1,3 +1,5 @@
+# Example for MOAB PBS:
+
 import os
 from string import Template 
 from stat import S_IXUSR, ST_MODE
@@ -7,34 +9,30 @@ USER_HOME = expanduser("~")
 
 """ This file can be edited by users to match their cluster commands.
     
-    1) Submission System (by default SLURM) and script file:
-You can customize the command for your Submission System.
-
-ADMIN_EMAIL           --> admin for dax_manager 
-
-CMD_SUBMIT            --> command to submit jobs (default: sbatch)
-PREFIX_JOBID          --> string before the job ID in the output of the CMD_SUBMIT
-SUFFIX_JOBID          --> string after the job ID in the output of the CMD_SUBMIT
+    1) PBS:
+You can customize the command for PBS.
+One command is to count the number of jobs from the cluster running under the USER.
+CMD_SUBMIT_PBS        --> command to submit jobs (default: qsub)
+PREFIX_JOBID          --> string before the job ID in the output of the CMD_SUBMIT_PBS
+SUFFIX_JOBID          --> string after the job ID in the output of the CMD_SUBMIT_PBS
 CMD_COUNT_NB_JOBS     --> command to return the number of jobs 
 CMD_GET_JOB_STATUS    --> command to return the status of a job given it jobid
 RUNNING_STATUS        --> string return for RUNNING Job (e.g: 'r')
 QUEUE_STATUS          --> string return for IN QUEUE Job (e.g: 'qw')
-JOB_EXTENSION_FILE    --> extension for script file (default: .slurm)
 CMD_GET_JOB_MEMORY    --> command to get job memory used 
 CMD_GET_JOB_WALLTIME  --> command to get job walltime used
-CMD_GET_JOB_NODE      --> command to get job node used
-JOB_EXTENSION_FILE    --> extension for job script (default: .slurm)
-DEFAULT_EMAIL_OPTS    --> EMAIL options (default: ALL)
+JOB_EXTENSION_FILE    --> extension for job script (default: .pbs)
+DEFAULT_EMAIL_OPTS    --> EMAIL options (default: bae)
 
     2) PATH / default value for cluster
-
+    
 DEFAULT_GATEWAY --> Name of the computer you are working on (define by HOSTNAME), default value if HOSTNAME not in env
 RESULTS_DIR     --> where results from jobs are stored to be upload to xnat later.
 ROOT_JOB_DIR    --> Directory used for temp job folder for intermediate results
 QUEUE_LIMIT     --> Number max of jobs authorized in the queue.
 
     3) Email information to send email (optional)
-
+    
 SMTP_FROM --> address from where you will send the email.
 SMTP_PASS --> password for the email address.
 SMTP_HOST --> server HOST ID (e.g: google --> stmp.gmail.com)
@@ -45,46 +43,41 @@ API_URL      --> api url for redcap database
 API_KEY_DAX  --> api key for redcap project holding the information for the settings
 API_KEY_XNAT --> api key for redcap project holding the jobID submit to the cluster
 REDCAP_VAR   --> dictionary to set up the general variables for the project
-
 PS: In this file, all variable default are read if the .bashrc or your configuration file doesn't have the environment variable
 set.
 """
-#### Admin email for dax_manager ####
-ADMIN_EMAIL=[]
 
 #### Default value set by users ####
 #Function for PBS cluster jobs:
 #Command to submit job to the cluster:
-CMD_SUBMIT='sbatch'
-PREFIX_JOBID='Submitted batch job '
-SUFFIX_JOBID='\n'
+CMD_SUBMIT_PBS='qsub'
+PREFIX_JOBID=None
+SUFFIX_JOBID='.'
 #Command to count the number of jobs running for a user
-CMD_COUNT_NB_JOBS="squeue -u $USER --noheader | wc -l"
+CMD_COUNT_NB_JOBS="qstat | grep $USER | wc -l"
 #Command to get the status of a job giving it jobid. Shoudl return R/Q/C for running/queue or others that will mean clear
-CMD_GET_JOB_STATUS=Template("""squeue -j ${jobid} --noheader | awk {'print $5'}""")
+CMD_GET_JOB_STATUS=Template("""qstat -f ${jobid} | grep job_state | awk {'print $3'}""")
 RUNNING_STATUS='R'
 QUEUE_STATUS='Q'
-#Command to get the walltime and memory used by the jobs at the end of the job
-CMD_GET_JOB_MEMORY=Template("""sacct -j ${jobid}.batch --format MaxRss --noheader | awk '{print $1+0}'""")
-CMD_GET_JOB_WALLTIME=Template("""sacct -j ${jobid}.batch --format CPUTime --noheader""")
-CMD_GET_JOB_NODE=Template("""sacct -j ${jobid}.batch --format NodeList --noheader""")
-#Template for your script file to submit a job
-JOB_EXTENSION_FILE='.slurm' 
-JOB_TEMPLATE = Template("""#!/bin/bash
-#SBATCH --mail-user=${job_email}
-#SBATCH --mail-type=${job_email_options}
-#SBATCH --nodes=1
-#SBATCH --ntasks=${job_ppn}
-#SBATCH --time=${job_walltime}
-#SBATCH --mem=${job_memory}mb
-#SBATCH -o ${job_output_file}
- 
-export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use only good amount of ppn
+#Command to get the walltime and memory used by the jobs at the end of the job: each command need to return the value as a string.
+CMD_GET_JOB_MEMORY=Template("""rsh vmpsched "tracejob -n ${numberofdays} ${jobid}" 2> /dev/null | awk -v FS="(resources_used.mem=|kb)" '{print $2}' | sort -u | tail -1""")
+CMD_GET_JOB_WALLTIME=Template("""rsh vmpsched "tracejob -n ${numberofdays} ${jobid}" 2> /dev/null | awk -v FS="(resources_used.walltime=|\n)" '{print $2}' | sort -u | tail -1""")
+#Template for your PBS
+JOB_EXTENSION_FILE='.pbs' 
+PBS_TEMPLATE = Template("""#!/bin/bash
+#PBS -M ${pbs_email}
+#PBS -m ${pbs_email_options}
+#PBS -l nodes=1:ppn=${pbs_ppn}
+#PBS -l walltime=${pbs_walltime}
+#PBS -l mem=${pbs_memory}mb
+#PBS -o ${pbs_output_file}
+#PBS -j ${pbs_output_file_options}
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${pbs_ppn} #set the variable to use only good amount of ppn
 uname -a # outputs node info (name, date&time, type, OS, etc)
-${job_cmds}
+${pbs_cmds}
 """)
 #Default EMAIL options:
-DEFAULT_EMAIL_OPTS='FAIL'
+DEFAULT_EMAIL_OPTS='bae'
 
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
@@ -163,3 +156,4 @@ if 'API_KEY_XNAT' not in os.environ:
     API_KEY_XNAT=DEFAULT_API_KEY_XNAT
 else:
     API_KEY_XNAT=os.environ['API_KEY_XNAT'] 
+

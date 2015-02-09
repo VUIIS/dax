@@ -7,7 +7,7 @@ import cluster
 from cluster import PBS
 import XnatUtils,bin
 
-from dax_settings import RESULTS_DIR
+from dax_settings import RESULTS_DIR,DEFAULT_EMAIL_OPTS,JOB_EXTENSION_FILE
 
 #Logger to print logs
 logger = logging.getLogger('dax')
@@ -88,7 +88,6 @@ class Task(object):
         if self.atype == 'proc:genprocdata':
             memusedmb = self.assessor.attrs.get('proc:genprocdata/memusedmb')
         elif self.atype == 'fs:fsdata':
-            #memusedmb = ''.join(self.assessor.xpath("//xnat:addParam[@name='memusedmb']/child::text()")).replace("\n","")
             memusedmb = self.assessor.attrs.get('fs:fsdata/memusedmb')
             
         if memusedmb.strip() != '':
@@ -98,17 +97,19 @@ class Task(object):
 
     def check_job_usage(self):
         #self.copy_memused()
-        
         memused = self.get_memused()
         walltime = self.get_walltime()
+        jobnode = self.get_jobnode()
         
         if walltime != '':
-            if memused == '':
-                self.set_memused('NotFound')
-            else:
-                pass
+            if memused != '' and jobnode !='':
                 logger.debug('memused and walltime already set, skipping')
-            
+                pass
+            else:
+                if memused == '':
+                    self.set_memused('NotFound')
+                if jobnode == '':
+                    self.set_jobnode('NotFound')
             return
         
         jobstartdate = self.get_jobstartdate()
@@ -117,22 +118,29 @@ class Task(object):
         if not cluster.is_traceable_date(jobstartdate):
             self.set_walltime('NotFound')
             self.set_memused('NotFound')
+            self.set_jobnode('NotFound')
             return
         
         # Get usage with tracejob
         jobinfo = cluster.tracejob_info(self.get_jobid(), jobstartdate)
-        if jobinfo['mem_used'] != '': 
-            memused = str(int(jobinfo['mem_used'].split('kb')[0])/1024)+'mb'
-            self.set_memused(memused)
-        if jobinfo['walltime_used'] != '':
+        if jobinfo['mem_used'].strip(): 
+            self.set_memused(jobinfo['mem_used'])
+        else:
+            self.set_memused('NotFound')
+        if jobinfo['walltime_used'].strip():
             self.set_walltime(jobinfo['walltime_used'])
+        else:
+            self.set_walltime('NotFound')
+        if jobinfo['jobnode'].strip():
+            self.set_jobnode(jobinfo['jobnode'])
+        else:
+            self.set_jobnode('NotFound')
             
     def get_memused(self):
         memused = ''
         if self.atype == 'proc:genprocdata':
             memused = self.assessor.attrs.get('proc:genprocdata/memused')
         elif self.atype == 'fs:fsdata':
-            #memused = ''.join(self.assessor.xpath("//xnat:addParam[@name='memused']/child::text()")).replace("\n","")
             memused = self.assessor.attrs.get('fs:fsdata/memused')
 
         return memused.strip()
@@ -141,7 +149,6 @@ class Task(object):
         if self.atype == 'proc:genprocdata':
             self.assessor.attrs.set('proc:genprocdata/memused', memused)
         elif self.atype == 'fs:fsdata':
-            #self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=memused]/addField", memused)
             self.assessor.attrs.set('fs:fsdata/memused', memused)
 
     def get_walltime(self):
@@ -149,7 +156,6 @@ class Task(object):
         if self.atype == 'proc:genprocdata':
             walltime = self.assessor.attrs.get('proc:genprocdata/walltimeused')
         elif self.atype == 'fs:fsdata':
-            #walltime = ''.join(self.assessor.xpath("//xnat:addParam[@name='walltimeused']/child::text()")).replace("\n","")
             walltime = self.assessor.attrs.get('fs:fsdata/walltimeused')
         
         return walltime.strip()
@@ -158,9 +164,23 @@ class Task(object):
         if self.atype == 'proc:genprocdata':
             self.assessor.attrs.set('proc:genprocdata/walltimeused', walltime)
         elif self.atype == 'fs:fsdata':
-            #self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=walltimeused]/addField", walltime)
             self.assessor.attrs.set('fs:fsdata/walltimeused', walltime)
-            
+    
+    def get_jobnode(self):
+        jobnode = ''
+        if self.atype == 'proc:genprocdata':
+            jobnode = self.assessor.attrs.get('proc:genprocdata/jobnode')
+        elif self.atype == 'fs:fsdata':
+            jobnode = self.assessor.attrs.get('fs:fsdata/jobnode')
+        
+        return jobnode.strip()
+        
+    def set_jobnode(self,jobnode):
+        if self.atype == 'proc:genprocdata':
+            self.assessor.attrs.set('proc:genprocdata/jobnode', jobnode)
+        elif self.atype == 'fs:fsdata':
+            self.assessor.attrs.set('fs:fsdata/jobnode', jobnode)
+        
     def undo_processing(self):
         from pyxnat.core.errors import DatabaseError
 
@@ -168,6 +188,7 @@ class Task(object):
         self.set_jobid(' ')
         self.set_memused(' ')
         self.set_walltime(' ')
+        self.set_jobnode(' ')
         
         out_resource_list = self.assessor.out_resources()
         for out_resource in out_resource_list:
@@ -279,10 +300,10 @@ class Task(object):
     def get_jobid(self):    
         jobid = ''    
         if self.atype == 'proc:genprocdata':
-            jobid = self.assessor.attrs.get('proc:genprocdata/jobid')
+            jobid = self.assessor.attrs.get('proc:genprocdata/jobid').strip()
         elif self.atype == 'fs:fsdata':
             #jobid = ''.join(self.assessor.xpath("//xnat:addParam[@name='jobid']/child::text()")).replace("\n","")
-            jobid = self.assessor.attrs.get('fs:fsdata/jobid')
+            jobid = self.assessor.attrs.get('fs:fsdata/jobid').strip()
         return jobid
         
     def get_job_status(self):
@@ -294,7 +315,7 @@ class Task(object):
        
         return jobstatus
             
-    def launch(self,jobdir,job_email=None,job_email_options='bae'):
+    def launch(self,jobdir,job_email=None,job_email_options=DEFAULT_EMAIL_OPTS):
         cmds = self.commands(jobdir)
         pbsfile = self.pbs_path()
         outlog = self.outlog_path()
@@ -419,7 +440,7 @@ class Task(object):
         return self.processor.get_cmds(self.assessor,jobdir+"/"+self.assessor_label)
     
     def pbs_path(self):
-        return DEFAULT_PBS_DIR+'/'+self.assessor_label+'.pbs'
+        return DEFAULT_PBS_DIR+'/'+self.assessor_label+JOB_EXTENSION_FILE
     
     def outlog_path(self):
         return DEFAULT_OUT_DIR+'/'+self.assessor_label+'.output'

@@ -8,97 +8,12 @@ Created on Jan 24, 2013
 
 import os
 import sys
-from pyxnat import Interface
+from dax import XnatUtils
 import fileinput
 
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################
-def get_interface():
-	# Environs
-	user = os.environ['XNAT_USER']
-	pwd = os.environ['XNAT_PASS']
-	host = os.environ['XNAT_HOST']
-	# Don't sys.exit, let callers catch KeyErrors
-	return Interface(host, user, pwd)
-
-def list_out_resources(xnat,project,subject,experiment,assessor_label):
-	post_uri_out_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources'
-	out_resource_list = xnat._get_json(post_uri_out_resource)
-	return out_resource_list
-    
-def list_project_assessors(intf, projectid):
-    new_list = []
-        
-    # First get FreeSurfer
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=fs:fsdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
-    post_uri += ',fs:fsData/validation/status'
-    assessor_list = intf._get_json(post_uri)
-
-    for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['fs:fsdata/procstatus']
-        anew['qcstatus'] = a['fs:fsdata/validation/status']
-        anew['proctype'] = 'FreeSurfer'
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
-
-    # Then add genProcData    
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=proc:genprocdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
-    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
-    assessor_list = intf._get_json(post_uri)
-
-    for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['proc:genprocdata/procstatus']
-        anew['proctype'] = a['proc:genprocdata/proctype']
-        anew['qcstatus'] = a['proc:genprocdata/validation/status']
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
-
-    return new_list
-
-def get_proper_str(str_option,end=False):
-    if len(str_option)>55:
-        if end:
-            return '...'+str_option[-50:]
-        else:
-            return str_option[:50]+'...'
-    else:
-        return str_option
-       
 def get_option_list(option):
     if not option:
         return None
@@ -225,7 +140,7 @@ def Switch_Depending_JOB_NEED_INPUTS(Assessor,processtype_list,scantype=False):
         AssessorDepend=xnat.select('/project/'+labels[0]+'/subjects/'+labels[1]+'/experiments/'+labels[2]+'/assessors/'+assessor_label)
         if AssessorDepend.exists():
             Switch_Default_PROC_JOB_status(AssessorDepend,'NEED_INPUTS')
-            for resource_name in list_out_resources(xnat,labels[0],labels[1],labels[2],assessor_label):
+            for resource_name in list_assessor_out_resources(xnat,labels[0],labels[1],labels[2],assessor_label):
                 delete_Out_Resource(AssessorDepend,resource_name)
 
 ########################################## SWITCH ALL ##########################################
@@ -234,7 +149,7 @@ def Switch_XNAT_PROCESS_status(xnat,ProjectList,subjects,sessions,Processes_List
 	for project in ProjectList:
 		sys.stdout.write("  *Project: "+project+'                                                \n')
         #for all processors in the project:
-        proc_list=list_project_assessors(xnat, project)
+        proc_list=XnatUtils.list_project_assessors(xnat, project)
         if not proc_list:
             sys.stdout.write("   !!ERROR: You don't have access to the project: "+project+".!!\n")
         #if subjects or sessions set:
@@ -259,7 +174,7 @@ def Switch_XNAT_PROCESS_status(xnat,ProjectList,subjects,sessions,Processes_List
                 else:
                     Switch_Default_PROC_JOB_status(ASSESSOR,status,scanNprocesses,sessionNprocesses)
                 if deleteR:
-                    for resource_name in list_out_resources(xnat,project,proc_dict['subject_id'],proc_dict['session_id'],proc_dict['label']):
+                    for resource_name in XnatUtils.list_assessor_out_resources(xnat,project,proc_dict['subject_id'],proc_dict['session_id'],proc_dict['label']):
                         delete_Out_Resource(ASSESSOR,resource_name)
                     
 def filter_proc(subjects,sessions,proc_list):
@@ -313,7 +228,7 @@ def set_Status_assessor(xnat,assessor_label,scanNprocesses,sessionNprocesses,sta
                     Switch_Default_PROC_JOB_status(ASSESSOR,status,scanNprocesses,sessionNprocesses)
                 if deleteR:
                     #resource loop
-                    for resource_name in list_out_resources(xnat,project,subject,experiment,assessor_label):
+                    for resource_name in XnatUtils.list_assessor_out_resources(xnat,project,subject,experiment,assessor_label):
                         delete_Out_Resource(ASSESSOR,resource_name)
 
 def should_switch_assessor(ASSESSOR,proctype,check_status_list,qastatus):
@@ -415,50 +330,61 @@ def check_options(options):
 def Main_display(parser):
     (options,args) = parser.parse_args()	
     #Display:
-    print '####################################################################################################'
-    print '#                                       XNATSWITCHPROCESSSTATUS                                    #'
-    print '#                                                                                                  #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
-    print '# Parameters :                                                                                     #'
+    print '################################################################'
+    print '#                   XNATSWITCHPROCESSSTATUS                    #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '# Usage:                                                       #'
+    print '#     Change assessor job/quality control status               #'
+    print '# Parameters :                                                 #'
     if options=={'status': None, 'qastatus': False, 'scanNprocesses': None, 'sessionNprocesses': None, 'processes': None, 'force': False, 'txtfile': None, 'project': None, 'session': None, 'deleteR': False, 'check_status': None, 'select': None, 'subject': None}:
-    	print '#     No Arguments given                                                                           #'
-    	print '#     Use "XnatSwitchProcessStatus -h" to see the options                                          #'
-    	print '####################################################################################################'
+    	print '#     No Arguments given                                       #'
+    	print '#     Use "XnatSwitchProcessStatus -h" to see the options      #'
+    	print '################################################################'
     	parser.print_help()
     	sys.exit()
     else:		
         if options.txtfile:
-        	print '#     %*s ->  %*s#' %(-30,'File txt',-58,get_proper_str(options.txtfile,True))
+        	print '#     %*s -> %*s#' %(-20,'File txt',-33,get_proper_str(options.txtfile,True))
         elif options.select:
-        	print '#     %*s ->  %*s#' %(-30,'Selected Process',-58,get_proper_str(options.select,True))
+        	print '#     %*s -> %*s#' %(-20,'Selected Process',-33,get_proper_str(options.select,True))
         else:
             if options.project:
-            	print '#     %*s ->  %*s#' %(-30,'Project(s)',-58,get_proper_str(options.project))
+            	print '#     %*s -> %*s#' %(-20,'Project(s)',-33,get_proper_str(options.project))
             #Subjects
             if options.subject:
-            	print '#     %*s ->  %*s#' %(-30,'Subject(s)',-58,get_proper_str(options.subject))
+            	print '#     %*s -> %*s#' %(-20,'Subject(s)',-33,get_proper_str(options.subject))
             #Experiment
             if options.session:
-            	print '#     %*s ->  %*s#' %(-30,'Session(s)',-58,get_proper_str(options.session))
+            	print '#     %*s -> %*s#' %(-20,'Session(s)',-33,get_proper_str(options.session))
             #Processes	
             if options.processes:
-            	print '#     %*s ->  %*s#' %(-30,'Process Types',-58,get_proper_str(options.processes))
+            	print '#     %*s -> %*s#' %(-20,'Process Types',-33,get_proper_str(options.processes))
             if options.scanNprocesses:
-                print '#     %*s ->  %*s#' %(-30,'Scan Process Types NI',-58,get_proper_str(options.scanNprocesses))
+                print '#     %*s -> %*s#' %(-20,'Scan Process Types NI',-33,get_proper_str(options.scanNprocesses))
             if options.sessionNprocesses:
-                print '#     %*s ->  %*s#' %(-30,'Session Process Types NI',-58,get_proper_str(options.sessionNprocesses))
+                print '#     %*s -> %*s#' %(-20,'Session Process Types NI',-33,get_proper_str(options.sessionNprocesses))
             if options.qastatus:
-            	print '#     %*s ->  %*s#' %(-30,'Change QA status',-58,'on')
+            	print '#     %*s -> %*s#' %(-20,'Change QA status',-33,'on')
             if options.check_status:
-            	print '#     %*s ->  %*s#' %(-30,'Previous Status',-58,get_proper_str(options.check_status))
+            	print '#     %*s -> %*s#' %(-20,'Previous Status',-33,get_proper_str(options.check_status))
         if options.status:
-        	print '#     %*s ->  %*s#' %(-30,'New Status',-58,options.status)
+        	print '#     %*s -> %*s#' %(-20,'New Status',-33,options.status)
         if options.deleteR:
-        	print '#     %*s ->  %*s#' %(-30,'Delete resources',-58,'on')
+        	print '#     %*s -> %*s#' %(-20,'Delete resources',-33,'on')
         if options.force:
-        	print '#     %*s ->  %*s#' %(-30,'Force',-58,'on')
-    print '####################################################################################################'
+        	print '#     %*s -> %*s#' %(-20,'Force',-33,'on')
+    print '################################################################'
+    
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
 
 ########################################## OPTIONS ##########################################
 def parse_args():
@@ -552,7 +478,7 @@ if __name__ == '__main__':
 		
 		# Connection to Xnat
         try:
-			xnat = get_interface()
+			xnat = XnatUtils.get_interface()
 			#if select a specific assessor
 			if selectA:
 				print "Changing Status on assessor "+selectA+" to "+status

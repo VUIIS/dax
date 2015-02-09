@@ -15,15 +15,6 @@ DEFAULT_API_URL='https://redcap.vanderbilt.edu/api/'
 ######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
 ######################################################################################################   
-def get_proper_str(str_option,end=False):
-	if len(str_option)>55:
-		if end:
-			return '...'+str_option[-50:]
-		else:
-			return str_option[:50]+'...'
-	else:
-		return str_option
-
 def read_txt(filepath):
 	print 'INFO: Export data from text file '+filepath+' ...'
 	obj_list=list()
@@ -147,47 +138,76 @@ def check_options(options):
 ########################################## MAIN DISPLAY FUNCTION ##########################################   
 def Main_display(parser):
     (options,_)=parser.parse_args()
-    print '####################################################################################################'
-    print '#                                            REDCAPREPORT                                          #'
-    print '#                                                                                                  #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
-    print '# Parameters :                                                                                     #'
+    print '################################################################'
+    print '#                         REDCAPREPORT                         #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '# Usage:                                                       #'
+    print '#     Generate REDCap report from a redcap project             #'
+    print '#     (Need API key)                                           #'
+    print '# Parameters :                                                 #'
     if options=={'procfile': None, 'lib': False, 'proctype': None,'project':None, 'all': False, 'csvfile': None, 'libraries': None, 'txtfile': None, 'session': None, 'names': False, 'key': None, 'assessor': None, 'subject': None}:
-        print '#     No Arguments given                                                                           #'
-        print '#     See the help bellow or Use "Redcapreport" -h                                                 #'
-        print '####################################################################################################'
+        print '#     No Arguments given                                       #'
+        print '#     See the help bellow or Use "Redcapreport" -h             #'
+        print '################################################################'
         parser.print_help()
         sys.exit()
     else:
         if options.names:
-            print '#     %*s ->  %*s#' %(-30,'Print field names/labels',-58,'on')
+            print '#     %*s -> %*s#' %(-20,'Print field names/labels',-33,'on')
         elif options.lib:
-            print '#     %*s ->  %*s#' %(-30,'Print libraries names',-58,'on')
+            print '#     %*s -> %*s#' %(-20,'Print libraries names',-33,'on')
         else:
             if options.all:
-                print '#     %*s ->  %*s#' %(-30,'Records',-58,'all')
+                print '#     %*s -> %*s#' %(-20,'Records',-33,'all')
             if options.csvfile:
-                print '#     %*s ->  %*s#' %(-30,'OUPUT CSV File',-58,get_proper_str(options.csvfile,True))
+                print '#     %*s -> %*s#' %(-20,'OUPUT CSV File',-33,get_proper_str(options.csvfile,True))
             if options.txtfile:
-                print '#     %*s ->  %*s#' %(-30,'Records-field File',-58,get_proper_str(options.txtfile,True))
+                print '#     %*s -> %*s#' %(-20,'Records-field File',-33,get_proper_str(options.txtfile,True))
             if options.procfile:
-                print '#     %*s ->  %*s#' %(-30,'Records File',-58,get_proper_str(options.procfile,True))
+                print '#     %*s -> %*s#' %(-20,'Records File',-33,get_proper_str(options.procfile,True))
             if options.project:
-                print '#     %*s ->  %*s#' %(-30,'Records-Project(s)',-58,get_proper_str(options.project))
+                print '#     %*s -> %*s#' %(-20,'Records-Project(s)',-33,get_proper_str(options.project))
             if options.subject:
-                print '#     %*s ->  %*s#' %(-30,'Records-Subject(s)',-58,get_proper_str(options.subject))
+                print '#     %*s -> %*s#' %(-20,'Records-Subject(s)',-33,get_proper_str(options.subject))
             if options.session:
-                print '#     %*s ->  %*s#' %(-30,'Records-Session(s)',-58,get_proper_str(options.session))
+                print '#     %*s -> %*s#' %(-20,'Records-Session(s)',-33,get_proper_str(options.session))
             if options.assessor:
-                print '#     %*s ->  %*s#' %(-30,'Records',-58,get_proper_str(options.assessor))
+                print '#     %*s -> %*s#' %(-20,'Records',-33,get_proper_str(options.assessor))
             if options.proctype:
-                print '#     %*s ->  %*s#' %(-30,'Records-Proctype(s)',-58,get_proper_str(options.proctype))
-        print '####################################################################################################'
+                print '#     %*s -> %*s#' %(-20,'Records-Proctype(s)',-33,get_proper_str(options.proctype))
+        print '################################################################'
 
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
+        
+def get_usage():
+    usage="usage: %prog [options] \n"
+    usage+="What is the script doing : \n"
+    usage+="   *Extract data from REDCap as a csv file.\n\n"
+    #Example
+    usage+="Examples:\n"
+    usage+="   *Save the data in a csv file: Redcapreport -k KEY -c extract_redcap.csv \n"
+    usage+="   *print the libraries name: Redcapreport -k KEY -L \n"
+    usage+="   *print all fields name and label: Redcapreport -k KEY -F \n"
+    usage+="   *Extract values for all record: Redcapreport -k KEY --all\n"
+    usage+="   *Filter for specific project/subject/session/assessor type: Redcapreport -k KEY -p PID -s 109387 -e 109387_1,109387_2 -t FS,TRACULA_v1,dtiQA_v2\n"
+    usage+="   *Extract for specific assessor: Redcapreport -k KEY -p PID -a PID-x-109387-x-109387_1-x-FS\n"
+    usage+="   *Extract for specific libraries type: Redcapreport -k KEY -p PID -l library_name\n"
+    usage+="   *Extract only the fields described in the txt file: Redcapreport -k KEY -x fields.txt\n"
+    return usage
+
+########################################## OPTIONS ##########################################
 def parse_args():
     from optparse import OptionParser
-    usage = "usage: %prog [options] \nWhat is the script doing : Extract data from REDCap as a csv file. "
+    usage = get_usage()
     parser = OptionParser(usage=usage)
     parser.add_option("-k", "--key", dest="key",default=None,
                       help="API Token for REDCap project.", metavar="API_KEY")
@@ -199,7 +219,7 @@ def parse_args():
                       help="Extract values for processes for the projects chosen. Warning: will be added to the subject or experiment or proctype. E.G: subject1,subject2", metavar="PROJECTS_XNAT")
     parser.add_option("-s", "--subject", dest="subject",default=None,
                       help="Extract values for processes for the subjects chosen. Warning: will be added to the project or experiment or proctype. E.G: subject1,subject2", metavar="SUBJECTS_XNAT")
-    parser.add_option("-e", "--experiment", dest="session",default=None,
+    parser.add_option("-e", "--session", dest="session",default=None,
                       help="Extract values for processes for the sessions chosen. Warning: will be added to the project or subject or proctype. E.G: session1,session2", metavar="SESSIONS_XNAT")
     parser.add_option("-a", "--assessor", dest="assessor",default=None,
                       help="Extract values for processors chosen. E.G: processor1,processor2", metavar="PROCESSOR_XNAT")

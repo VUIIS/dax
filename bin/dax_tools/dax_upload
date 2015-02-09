@@ -16,9 +16,7 @@ from email.MIMEBase import MIMEBase
 import smtplib
 from email import Encoders
 
-from pyxnat import Interface
-
-from dax import RESULTS_DIR,bin
+from dax import RESULTS_DIR,bin,XnatUtils
 from dax.task import READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED, JOB_PENDING
 
 _READY_FLAG_FILE = 'READY_TO_UPLOAD.txt'
@@ -94,24 +92,6 @@ def get_assessor_name_from_folder():
             
     return assessor_label_list
 
-def get_outlog_from_folder():
-    #Get the outlog files which need to be upload
-    
-    #list of assessor label
-    outlog_list=list()
-    
-    logger.debug(' -Get the OUTLOG for the processes...')
-    #check all files/folder in the directory
-    OutlogDirList=os.listdir(os.path.join(RESULTS_DIR, _OUTLOG))
-    for outlog_name in OutlogDirList:
-        outlog_file=os.path.join(RESULTS_DIR, _OUTLOG, outlog_name)
-        #if it's a folder and not OUTLOG and the flag file READY_TO_UPLAOD exists
-        if os.path.isfile(outlog_file):
-            #Add the file to the list to be uploaded:
-            outlog_list.append(outlog_name)
-            
-    return outlog_list
-
 def get_pbs_from_folder():
     #Get the pbs files which need to be upload
     
@@ -130,41 +110,6 @@ def get_pbs_from_folder():
             
     return pbs_list
 
-def check_process(process_file):
-    if process_file=='Process_Upload_running.txt':
-        return 0
-    elif 'OPEN_TASKS_UPDATE' in process_file:
-        project_name=process_file.split('_OPEN_TASKS_UPDATE_RUNNING')[0]
-        cmd = 'ps -aux | grep "dax_update_open_tasks" | grep "'+project_name+'"'
-    else:
-        project_name=process_file.split('_UPDATE_RUNNING')[0]
-        cmd = 'ps -aux | grep "dax_update" | grep "'+project_name+'"'
-    
-    try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-        if len(output.split('\n'))>=3:
-            #three because one is warning, two is the line we just do (ps -aux ...) and three is empty line
-            #there is a process running
-            return 0
-        else:
-            #no process, send an email
-            return 1
-    except (CalledProcessError,ValueError):
-        #error , send an email
-        return 1
-
-def check_crontab_job():
-    flag_files_list=list()
-    for files in os.listdir(os.path.join(RESULTS_DIR, _FLAG_FILES)):
-        logger.debug('   - Check '+files)
-        #check if there is a process for this file, if not send a warning to the User
-        keep=check_process(files)
-        if keep:
-            logger.debug("    --> Process doesn't seem to be running. ERROR. Need to be checked.")
-            flag_files_list.append(files)
-            
-    return flag_files_list
-            
 def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label,version):
     #SNAPSHOTS :
     #Check if the SNAPSHOTS folder exists, if not create one from PDF if pdf exists :
@@ -191,6 +136,13 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
     
     #set version:
     assessor.attrs.set('proc:genProcData/procversion', version)
+    
+    #Copy the outlog files in the Assessor folder:
+    outlog_path=os.path.join(RESULTS_DIR, _OUTLOG,assessor_label+'.output')
+    new_outlog_path=os.path.join(assessor_path, _OUTLOG,assessor_label+'.output')
+    if os.path.exists(outlog_path):
+        os.mkdir(os.path.join(assessor_path,'OUTLOG'))
+        os.rename(outlog_path,new_outlog_path)
     
     #UPLOAD files :                
     Assessor_Resource_List = os.listdir(assessor_path)    
@@ -254,51 +206,6 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
         assessor.attrs.set('proc:genProcData/procstatus', JOB_FAILED)
         
     os.system('rm -r '+assessor_path)
-
-def Uploading_OUTLOG(outlog_list,xnat):
-    number_outlog=len(outlog_list)
-    for index,outlogfile in enumerate(outlog_list):
-        logger.info('   *Uploading OUTLOG '+str(index+1)+'/'+str(number_outlog)+' -- File name: '+outlogfile)
-        #Get the Project Name, the subject label, the experiment label and the assessor label from the file name :
-        labels=outlogfile.split('-x-')
-        ProjectName=labels[0]
-        Subject=labels[1]
-        Experiment=labels[2]
-        assessor_label=outlogfile.split('.')[0]
-        
-        # Connect to experiment
-        experiment = xnat.select('/project/'+ProjectName+'/subjects/'+Subject+'/experiments/'+Experiment)
-        if not experiment.exists():
-            logger.warn('OUTLOG file '+outlogfile+' has invalid name, moving to TRASH.')
-            os.rename(os.path.join(RESULTS_DIR, _OUTLOG, outlogfile),os.path.join(RESULTS_DIR, _TRASH, outlogfile))
-            continue
-        
-        # Connect to assessor
-        assessor=experiment.assessor(assessor_label)
-        if not assessor.exists():
-            logger.warn('The assessor '+assessor_label+' does not exist. Moving OUTLOG to TRASH.')   
-            os.rename(os.path.join(RESULTS_DIR, _OUTLOG, outlogfile),os.path.join(RESULTS_DIR, _TRASH, outlogfile))  
-            continue
-        
-        # Connect to resource
-        r = assessor.out_resource(_OUTLOG)
-        if r.exists():
-            logger.warn( 'the OUTLOG resource already exists for the assessor '+assessor_label)
-            #check if there is a folder with the same name : if yes, put the outlog there. If not upload it.
-            if  os.path.isdir(os.path.join(RESULTS_DIR,assessor_label)):
-                logger.warn('Copying the outlog file in the assessor folder...')
-                assessor_outlog_folder=os.path.join(RESULTS_DIR,assessor_label, _OUTLOG)
-                if not os.path.exists(assessor_outlog_folder):
-                    os.mkdir(assessor_outlog_folder)
-                os.system('mv '+os.path.join(RESULTS_DIR, _OUTLOG, outlogfile)+' '+assessor_outlog_folder)
-            else:
-                logger.warn('Copying the outlog file in the TRASH ...')
-                os.rename(os.path.join(RESULTS_DIR, _OUTLOG, outlogfile),os.path.join(RESULTS_DIR, _TRASH, outlogfile))
-        else:
-            #upload the file
-            r=assessor.out_resource(_OUTLOG)
-            r.file(outlogfile).put(os.path.join(RESULTS_DIR, _OUTLOG, outlogfile))
-            os.remove(os.path.join(RESULTS_DIR, _OUTLOG, outlogfile))                      
 
 def Uploading_PBS(pbs_list,xnat):
     number_pbs=len(pbs_list)
@@ -385,6 +292,12 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
         xml_path = assessor_path+'/XML/'+xml_files_list[0]
         assessor.create(xml=xml_path, allowDataDeletion=False)
     
+    outlog_path=os.path.join(RESULTS_DIR, _OUTLOG,assessor_label+'.output')
+    new_outlog_path=os.path.join(assessor_path, _OUTLOG,assessor_label+'.output')
+    if os.path.exists(outlog_path):
+        os.mkdir(os.path.join(assessor_path,'OUTLOG'))
+        os.rename(outlog_path,new_outlog_path)
+    
     #UPLOAD files :                
     Assessor_Resource_List=os.listdir(assessor_path)    
     #for each folder=resource in the assessor directory 
@@ -454,7 +367,7 @@ def upload_zip(Resource,directory,resourceObj):
     initDir=os.getcwd()
     #Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip -r '+filenameZip+' *')
+    os.system('zip -r '+filenameZip+' * > /dev/null')
     #upload
     logger.debug('      *Uploading zip '+Resource+' ...')
     resourceObj.put_zip(directory+'/'+filenameZip,extract=True)
@@ -541,15 +454,13 @@ if __name__ == '__main__':
         
         #Get the assessor label from the directory :
         assessor_label_in_dir_list=get_assessor_name_from_folder()
-        #Get the list of OUTLOG which need to be upload:
-        outlog_list=get_outlog_from_folder()
-        #Get the list of OUTLOG which need to be upload:
+        #Get the list of PBS which need to be upload:
         pbs_list=get_pbs_from_folder()
 
         #Start the process to upload
         try:
             logger.info('Connecting to XNAT to start uploading processes at '+XNAT_HOST)
-            xnat = Interface(XNAT_HOST, XNAT_USER, XNAT_PWD)
+            xnat = XnatUtils.get_interface()
             
             ################# 1) Upload the assessor data ###############
             #For each assessor label that need to be upload :
@@ -630,19 +541,11 @@ if __name__ == '__main__':
                     ASSESSOR.attrs.set('proc:genProcData/procstatus', UPLOADING)
                     Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label,version)
                     
-            ################# 2) Upload the Outlog files ###############
-            #For each file, upload it to the OUTLOG resource on the assessor
-            logger.info(' - Uploading OUTLOG files ...')
-            Uploading_OUTLOG(outlog_list,xnat)
             
-            ################# 3) Upload the PBS files ###############
+            ################# 2) Upload the PBS files ###############
             #For each file, upload it to the PBS resource
             logger.info(' - Uploading PBS files ...')
             Uploading_PBS(pbs_list,xnat)
-            
-            ################# 4) Check flagfile and process running ps -aux ################
-            logger.info(' - Checking process running ...')
-            flag_files_list=check_crontab_job()
             
         #if fail, close the connection to xnat
         finally:

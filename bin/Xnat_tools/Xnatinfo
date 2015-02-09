@@ -1,0 +1,213 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Query through Xnat
+@author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
+'''
+
+import os
+import sys
+from dax import XnatUtils
+from datetime import datetime
+
+DEFAULT_STATUS_DICT={'NEED_INPUTS':1, 'NEED_TO_RUN':2, 'JOB_RUNNING':3, 'JOB_FAILED':4, 'READY_TO_UPLOAD':5, 'UPLOADING':6, 'READY_TO_COMPLETE':7, 'COMPLETE':8, 'NO_DATA':9,'UNKNOWN':10}
+DEFAULT_STATUS_LIST=['NEED_INPUTS', 'NEED_TO_RUN', 'JOB_RUNNING', 'JOB_FAILED', 'READY_TO_UPLOAD', 'UPLOADING', 'READY_TO_COMPLETE', 'COMPLETE','NO_DATA']
+
+########################################## SPECIFIC FUNCTIONS ##########################################
+def add_process_to_dict(dictionary,proctype,procstatus):
+    #proctype:
+    if proctype in dictionary:
+        dictionary[proctype][0] += 1                                    
+    else:
+        dictionary[proctype] = [1,0,0,0,0,0,0,0,0,0,0]
+        
+    #procstatus:
+    dictionary[proctype][DEFAULT_STATUS_DICT[procstatus]] += 1
+    
+    return dictionary
+    
+def report_project(xnat,project,filetxt):
+    #scan
+    scan_unusable=list()
+    scan_dict=dict()
+    unknow_status=list()
+    #for all process except FS
+    assessor_dict=dict()   #dictionary: keys = proctype, value= list of 10 values: count, NEED_INPUTS, NEED_TO_RUN, JOB_RUNNING, JOB_FAILED, READY_TO_UPLOAD, UPLOADING, READY_TO_COMPLETE, COMPLETE, UNKNOWN
+    
+    print('INFO: XNAT querying...')
+    #scan loop
+    scan_list=XnatUtils.list_project_scans(xnat, project)
+    subj_number=len(set([d['subject_label'] for d in scan_list]))
+    exp_number=len(set([d['session_label'] for d in scan_list]))
+    scan_number=len(scan_list)
+    for scan in scan_list:
+        if scan['quality']=='unusable':
+            scan_unusable.append([scan['subject_label'],scan['session_label'], scan['ID'],scan['type']])
+        #add the count for the scan type:
+        if scan['type'] in scan_dict:
+            scan_dict[scan['type']] += 1                                    
+        else:
+            scan_dict[scan['type']] = 1
+            
+    #assessor loop
+    proc_list=XnatUtils.list_project_assessors(xnat, project)
+    proc_number=len(proc_list)
+    for assessor in proc_list:
+        #add to dictionary of process
+        if assessor['procstatus'] in DEFAULT_STATUS_LIST:
+            assessor_dict=add_process_to_dict(assessor_dict,assessor['proctype'],assessor['procstatus'])
+        else:
+            unknow_status.append(assessor['procstatus'])
+            assessor_dict=add_process_to_dict(assessor_dict,assessor['proctype'],'UNKNOWN')         
+                                
+    # display informations
+    print '\n'
+    report_str='Information for project '+project+' on Xnat :\n'
+    report_str+='Date: '+str(datetime.now())+'\n'
+    report_str+='==========================================================================\n'
+    report_str+='Project Info:\n'
+    report_str+='--------------------------------------------------------------------------\n'
+    #print description
+    post_uri_project = '/REST/projects'
+    project_list = xnat._get_json(post_uri_project)
+    for Project in project_list:
+        if Project['ID']==project:
+            report_str+='%*s : %*s' % (-13, 'Description', -30, Project['description']) + '\n'
+    report_str+='Count:\n'
+    report_str+='---------------------------------------\n'
+    report_str+='  %*s : %*s' % (-13, 'Subjects', -30, subj_number) + '\n'
+    report_str+='  %*s : %*s' % (-13, 'Experiments', -30, exp_number) + '\n'
+    report_str+='  %*s : %*s' % (-13, 'Scans', -30, scan_number) + '\n'
+    report_str+='  %*s : %*s' % (-13, 'Processes', -30, proc_number) + '\n'
+    report_str+='--------------------------------------------------------------------------\n'
+    report_str+='\n'
+    report_str+='Scan info :\n'
+    report_str+='--------------------------------------------------------------------------\n'
+    report_str+='  %*s | %*s' % (-30, 'Scan type', -30, 'Count') + '\n'
+    report_str+='  ---------------------------------------\n'
+    for key in sorted(scan_dict):
+        report_str+='  %*s | %*s' % (-30, key[:30], -30, scan_dict[key]) +'\n'
+    report_str+='  ---------------------------------------\n'
+    report_str+='  %*s | %*s' % (-30, 'Total', -30, scan_number)+'\n'
+    report_str+='\n'
+    if scan_unusable:
+        report_str+='  List of unusable scan :\n'
+        report_str+='  -----------------------\n'
+        report_str+='  %*s | %*s | %*s | %*s' % (-20, 'Subject',-20, 'Experiment',-20, 'Scan', -20, 'Type')+'\n'
+        for S in sorted(scan_unusable):
+            report_str+='  %*s | %*s | %*s | %*s' % (-20, S[0], -20, S[1],-20, S[2],-20, S[3])+'\n'
+        report_str+='--------------------------------------------------------------------------\n'
+        report_str+='\n'
+    report_str+='Process info :\n'
+    report_str+='--------------------------------------------------------------------------\n'
+    report_str+='  %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-25, 'Process type', -5, 'Count',-8,'COMPLETE',-17, 'READY_TO_COMPLETE',-9,'UPLOADING',-15, 'READY_TO_UPLOAD',-10, 'JOB_FAILED',-11,'JOB_RUNNING',-11, 'NEED_TO_RUN',-11, 'NEED_INPUTS',-7,'NO_DATA',-7,'UNKNOWN')+'\n'
+    for key in sorted(assessor_dict) :
+        report_str+='  %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s ' % (-25, key, -5, assessor_dict[key][0], -8, assessor_dict[key][DEFAULT_STATUS_DICT['COMPLETE']], -17, assessor_dict[key][DEFAULT_STATUS_DICT['READY_TO_COMPLETE']],-9, assessor_dict[key][DEFAULT_STATUS_DICT['UPLOADING']],-15, assessor_dict[key][DEFAULT_STATUS_DICT['READY_TO_UPLOAD']],-10, assessor_dict[key][DEFAULT_STATUS_DICT['JOB_FAILED']],-11, assessor_dict[key][DEFAULT_STATUS_DICT['JOB_RUNNING']],-11, assessor_dict[key][DEFAULT_STATUS_DICT['NEED_TO_RUN']],-11, assessor_dict[key][DEFAULT_STATUS_DICT['NEED_INPUTS']],-7, assessor_dict[key][DEFAULT_STATUS_DICT['NO_DATA']],-7, assessor_dict[key][DEFAULT_STATUS_DICT['UNKNOWN']]) +'\n'   
+    if unknow_status:
+        unknow_status=list(set(unknow_status))
+        report_str+='\n'
+        report_str+='  List of UNKNOWN status:\n'
+        report_str+='  --------------------------------------\n'
+        for unknown_status in sorted(unknow_status):
+            report_str+='  '+unknown_status+'\n'
+    
+    report_str+='--------------------------------------------------------------------------\n'
+    report_str+='===========================================================================\n'
+    #Print or write in files:
+    if not filetxt:
+        print report_str
+    else:
+        filetxt=os.path.abspath(filetxt)
+        print 'INFO: Writing the report in the file: '+filetxt+'             '
+        f = open(filetxt,'w')
+        f.write(report_str+'\n')
+        f.close()
+        
+########################################## CHECK OPTIONS ##########################################
+def check_options(options):
+    # The options :
+    if options.filetxt:
+        folder=os.path.dirname(os.path.abspath(options.filetxt))
+        if not os.path.exists(folder):
+            print 'OPTION ERROR: the path '+folder+' does not exist. Please check the path given.'
+            return False
+    if not options.project:
+        print 'OPTION ERROR: You did not give a project ID.'
+        return False
+    else:
+        try:
+            xnat = XnatUtils.get_interface()
+            #PROJECT
+            if options.project:
+                P=xnat.select('/project/'+options.project)
+                if not P.exists():
+                    print 'OPTION ERROR: You used the option -p/--project with an not existing project ID.'
+                    return False
+        finally:                                        
+            xnat.disconnect()
+                
+    return True
+
+########################################## MAIN DISPLAY FUNCTION ##########################################   
+def Main_display(parser):
+    args=parser.parse_args()
+    print '################################################################'
+    print '#                           XNATINFO                           #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '# Usage:                                                       #'
+    print '#     Generate information on a XNAT project                   #'
+    print '# Parameters :                                                 #'
+    if args.project:
+        print '#     %*s -> %*s#' %(-20,'Project',-33,args.project)
+    if args.filetxt:
+        print '#     %*s -> %*s#' %(-20,'file text',-33,get_proper_str(args.filetxt,True))
+    print '################################################################'
+        
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
+
+def parse_args():
+    from argparse import ArgumentParser
+    ap = ArgumentParser(prog='Xnatinfo', description="Generate information on a XNAT project.")
+    ap.add_argument(dest='project', help='Project ID on XNAT',default=None)
+    ap.add_argument("-x","--filetxt",dest='filetxt', help='Path to a txt file to save the report',default=None)
+    return ap
+    
+###################################################################################################
+########################################## MAIN FUNCTION ##########################################
+###################################################################################################
+if __name__ == '__main__':
+    parser = parse_args()
+    args=parser.parse_args()
+    #############################
+    #Main display:
+    Main_display(parser)
+    #check options:
+    run=check_options(args)
+    #############################
+    
+    #############################
+    # RUN                       #
+    #############################
+    if run:
+        #############################
+        """ Generate specific report for a project """
+        # Connection to Xnat
+        try:
+            xnat = XnatUtils.get_interface()
+            
+            report_project(xnat,args.project,args.filetxt)
+            
+        finally:                                        
+            xnat.disconnect()
+    
+    print '===================================================================\n'

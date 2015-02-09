@@ -9,52 +9,7 @@ Query through Xnat
 
 import os
 import sys
-from pyxnat import Interface
-
-######################################################################################################
-########################################## USEFUL FUNCTIONS ##########################################
-######################################################################################################
-def get_interface():
-    # Environs
-    user = os.environ['XNAT_USER']
-    pwd = os.environ['XNAT_PASS']
-    host = os.environ['XNAT_HOST']
-    # Don't sys.exit, let callers catch KeyErrors
-    return Interface(host, user, pwd)
-
-def get_proper_str(str_option,end=False):
-    if len(str_option)>55:
-        if end:
-            return '...'+str_option[-50:]
-        else:
-            return str_option[:50]+'...'
-    else:
-        return str_option
-
-def list_experiments(intf, projectid=None, subjectid=None):
-    if projectid and subjectid:
-        post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
-    elif projectid == None and subjectid == None:
-        post_uri = '/REST/experiments'
-    elif projectid and subjectid == None:
-        post_uri = '/REST/projects/'+projectid+'/experiments'
-    else:
-        return None
-
-    post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:subjectdata/meta/last_modified'
-    experiment_list = intf._get_json(post_uri)
-
-    # Override the project returned to be the one we queried and add others for convenience
-    if (projectid != None):
-        for e in experiment_list:
-            e['project'] = projectid
-            e['project_id'] = projectid
-            e['project_label'] = projectid
-            e['subject_id'] = e['subject_ID'] 
-            e['session_id'] = e['ID']
-            e['session_label'] = e['label']
-
-    return experiment_list
+from dax import XnatUtils
 
 ########################################################################################################
 ########################################## SPECIFIC FUNCTIONS ##########################################
@@ -94,71 +49,8 @@ def change_date(xnat,project,session,list_experiment):
     Session.attrs.set('xnat:mrSessionData/original',' ')
     print '   ->Session changed to need update.'
 
-def list_project_assessors(intf, projectid):
-    new_list = []
-        
-    # First get FreeSurfer
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=fs:fsdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
-    post_uri += ',fs:fsData/validation/status'
-    assessor_list = intf._get_json(post_uri)
-
-    for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['fs:fsdata/procstatus']
-        anew['qcstatus'] = a['fs:fsdata/validation/status']
-        anew['proctype'] = 'FreeSurfer'
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
-
-    # Then add genProcData    
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=proc:genprocdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
-    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
-    assessor_list = intf._get_json(post_uri)
-
-    for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['proc:genprocdata/procstatus']
-        anew['proctype'] = a['proc:genprocdata/proctype']
-        anew['qcstatus'] = a['proc:genprocdata/validation/status']
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
-
-    return new_list
-
 def get_xnat_subject_need_inputs(xnat,project):
-    proc_list=list_project_assessors(xnat, project)
+    proc_list=XnatUtils.list_project_assessors(xnat, project)
     if not proc_list:
         sys.stdout.write("   !!ERROR: You don't have access to the project: "+project+".!!\n")
         sys.exit()
@@ -189,7 +81,7 @@ def check_options(options):
             return False
     else:
         try:
-            xnat = get_interface()
+            xnat = XnatUtils.get_interface()
             #PROJECT
             for project in options.project.split(','):
                 P=xnat.select('/project/'+project)
@@ -205,39 +97,61 @@ def check_options(options):
 ########################################## MAIN DISPLAY FUNCTION ##########################################   
 def Main_display(parser):
     (options,args)=parser.parse_args()
-    print '####################################################################################################'
-    print '#                                            XNATSUBJECTUPDATE                                     #'
-    print '#                                                                                                  #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.                                         #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             #'
-    print '# Parameters :                                                                                     #'
+    print '################################################################'
+    print '#                      XNATSESSIONUPDATE                       #'
+    print '#                                                              #'
+    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
+    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
+    print '# Usage:                                                       #'
+    print '#     Reset sessions to be seen by the nex dax_update          #'
+    print '# Parameters :                                                 #'
     if options=={'project': None, 'needinputs': False, 'txtfile': None, 'session': None,'all':False}:
-        print '#     No Arguments given                                                                           #'
-        print '#     See the help bellow or Use "Xnatsubjectupdate" -h                                            #'
-        print '####################################################################################################'
+        print '#     No Arguments given                                       #'
+        print '#     See the help bellow or Use "Xnatsessionupdate" -h        #'
+        print '################################################################'
         parser.print_help()
         sys.exit()
     else:
         if options.all:
-            print '#     %*s ->  %*s#' %(-30,'All',-58,'on')
+            print '#     %*s -> %*s#' %(-20,'All',-33,'on')
         if options.project:
-            print '#     %*s ->  %*s#' %(-30,'Project(s)',-58,options.project)
+            print '#     %*s -> %*s#' %(-20,'Project(s)',-33,options.project)
         if options.needinputs:
-            print '#     %*s ->  %*s#' %(-30,'Mode',-58,'Sessions with NEED_INPUTS processes')
+            print '#     %*s -> %*s#' %(-20,'Mode',-33,'Sessions with NEED_INPUTS processes')
         if options.session:
-            print '#     %*s ->  %*s#' %(-30,'Mode',-58,'Selected Sessions')
-            print '#     %*s ->  %*s#' %(-30,'Session(s)',-58,get_proper_str(options.session))
+            print '#     %*s -> %*s#' %(-20,'Mode',-33,'Selected Sessions')
+            print '#     %*s -> %*s#' %(-20,'Session(s)',-33,get_proper_str(options.session))
         if options.txtfile:
-            print '#     %*s ->  %*s#' %(-30,'Mode',-58,'TEXT file with list of sessions/processors')
-            print '#     %*s ->  %*s#' %(-30,'Text File',-58,get_proper_str(options.txtfile,True))
-        print '####################################################################################################'
+            print '#     %*s -> %*s#' %(-20,'Mode',-33,'TEXT file with list of sessions/processors')
+            print '#     %*s -> %*s#' %(-20,'Text File',-33,get_proper_str(options.txtfile,True))
+        print '################################################################'
 
+def get_proper_str(str_option,end=False):
+    if len(str_option)>32:
+        if end:
+            return '...'+str_option[-29:]
+        else:
+            return str_option[:29]+'...'
+    else:
+        return str_option
+
+def get_usage():
+    usage="usage: %prog [options] \n"
+    usage+="What is the script doing : \n"
+    usage+="   *Reset sessions last update date to be seen by the nex dax_update.\n"
+    #Example
+    usage+="Examples:\n"
+    usage+="   *Reset all sessions: Xnatsessionupdate -p PID --all\n"
+    usage+="   *Reset some sessions : Xnatsessionupdate -p PID -s 109374,109348\n"
+    usage+="   *Reset for the sessions that have assessors NEED_INPUTS: Xnatsessionupdate -p PID -n\n"
+    return usage
+    
 def parse_args():
     from optparse import OptionParser
-    usage = "usage: %prog [options] \nWhat is the script doing : Change the last update date on a Session on XNAT to nothing to be update again. "
+    usage = get_usage()
     parser = OptionParser(usage=usage)
     parser.add_option("-p", "--project", dest="project",default=None,
-                  help="One project ID on Xnat.", metavar="PROJECT_ID")
+                  help="One project ID on Xnat.", metavar="PID")
     parser.add_option("-s", "--session", dest="session",default=None,
                   help="Session label on Xnat or list of them.", metavar="SESSION_LABELS")
     parser.add_option("-n", "--needinputs", dest="needinputs",action="store_true", default=False,
@@ -268,12 +182,12 @@ if __name__ == '__main__':
     if run:
         # Connection to Xnat
         try:
-            xnat = get_interface()
+            xnat = XnatUtils.get_interface()
             
             for indexP,project in enumerate(options.project.split(',')):
                 print '-> Project : '+project
                 print ' INFO: Getting Sessions from XNAT...'
-                list_sessions_xnat=list_experiments(xnat, project)
+                list_sessions_xnat=XnatUtils.list_experiments(xnat, project)
                 if options.all:
                     print' INFO: Getting all XNAT sessions...'
                     session_list=list(set([x['session_label'] for x in list_sessions_xnat]))

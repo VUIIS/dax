@@ -11,7 +11,6 @@ import re
 import logging
 from datetime import datetime
 
-from pyxnat import Interface
 from lxml import etree
 
 import redcap
@@ -57,7 +56,7 @@ def update_open_tasks(settings_path,logfile,debug):
 
     # Run the update
     logger.info('updating open tasks, Start Time:'+str(datetime.now()))
-    settings.myLauncher.update_open_tasks(lockfile_prefix)
+    settings.myLauncher.update_open_tasks(lockfile_prefix,None,None)
     logger.info('finished open tasks, End Time: '+str(datetime.now()))
 
 ##################################################################################################################
