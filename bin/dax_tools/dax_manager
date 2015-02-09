@@ -139,7 +139,7 @@ class Settings_File:
         if '' in self.email:
             self.email.remove('')
         if not self.email:
-            return ''
+            return []
         else:
             for email in self.email:
                 if email.find('@')==-1:
