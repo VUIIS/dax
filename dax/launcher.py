@@ -314,10 +314,11 @@ class Launcher(object):
                 # NOTE: we set update time here, so if the sess is changed below it will be checked again    
                 self.set_session_lastupdated(xnat, sess_info)
                 self.update_session(xnat, sess_info, exp_proc_list, scan_proc_list, exp_mod_list, scan_mod_list)
-            
-        # Modules after run
-        logger.debug('*Modules Afterrun')
-        self.module_afterrun(xnat,project_id)
+        
+        if not sessions_local:
+            # Modules after run
+            logger.debug('*Modules Afterrun')
+            self.module_afterrun(xnat,project_id)
      
     def update_session(self, xnat, sess_info, sess_proc_list, scan_proc_list, sess_mod_list, scan_mod_list):
         
