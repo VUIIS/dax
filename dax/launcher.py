@@ -315,7 +315,7 @@ class Launcher(object):
                 self.set_session_lastupdated(xnat, sess_info)
                 self.update_session(xnat, sess_info, exp_proc_list, scan_proc_list, exp_mod_list, scan_mod_list)
         
-        if not sessions_local:
+        if not sessions_local or sessions_local.lower()=='all':
             # Modules after run
             logger.debug('*Modules Afterrun')
             self.module_afterrun(xnat,project_id)
