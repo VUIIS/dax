@@ -26,7 +26,7 @@ from dax import XnatUtils
 import csv,redcap,sys,os,glob,dicom
 
 ########################################## DEFAULT VARIABLES ##########################################
-DEFAULT_SCAN_HEADER=['xnat_scantype', 'xnat_series_description', 'ndar_scantype', 'image_num_dimensions', 'slice_acquisition', 'pulse_sequence', 'citation', 'resources', 'experiment_id', 'data_file2', 'data_file2_definition']
+DEFAULT_SCAN_HEADER=['xnat_scantype','xnat_series_description','assessor_type_qc','ndar_scantype','image_num_dimensions','slice_acquisition','pulse_sequence','citation','experiment_id','image_file','image_thumbnail_file','data_file2','data_file2_definition']
 DEFAULT_SUBJECT_HEADER=['xnat_subject_id','GUID','study_subject_id','interview_date','interview_age','gender']
 
 ########################################## image_03 TEMPLATE ##########################################
@@ -69,7 +69,7 @@ NDAR_csv_dict={'subjectkey':'options',
                'image_extent2':('0028','0011'),
                'image_extent3':'ds', 
                'image_extent4':'ds',  
-               'extent4_type':{'T1':'','other':'Number of Volumes'},
+               'extent4_type':'ds',
                'image_extent5':'',
                'extent5_type':'',
                'image_unit1':'frame number',
@@ -82,7 +82,7 @@ NDAR_csv_dict={'subjectkey':'options',
                'image_resolution3':'ds',
                'image_resolution4':'ds', 
                'image_resolution5':'0',
-	           'image_slice_thickness':('0018','0088'),
+	       'image_slice_thickness':('0018','0088'),
                'image_orientation':'ds', 
                'qc_outcome':'XNAT',
                'qc_description':'options',
@@ -152,31 +152,40 @@ def getLabel(ds):
         label='Sagittal'
     return label
 
-def get_row(subject_record,scan_record):
+def get_row(directory,subject_record,scan_record):
     row=list()
-    ds = dicom.read_file(scan_record['DICOM'])
-    #read the keys in order
-    for header in Ordered_keys:
-        #DICOM header tuple
-        if isinstance(NDAR_csv_dict[header],tuple):
-            t2=Tag(NDAR_csv_dict[header][0],NDAR_csv_dict[header][1])
-            try:
-                val=ds[t2].value
-            except:
-                val=' '
-        #Specific value
-        elif isinstance(NDAR_csv_dict[header],str):
-            val=get_value(header,subject_record,scan_record,ds)
+    if not 'DICOM' in scan_record.keys():
+		print '  ---> warning: no dicom found'
+    else:
+        if len(scan_record['DICOM'])>0 and scan_record['DICOM'][0]=='/':
+	    	dcmpath=os.path.join(directory,scan_record['DICOM'][1:])
         else:
-            val=' '
-        #Add the value to the row
-        row.append(str(val))
-        
+	    	dcmpath=os.path.join(directory,scan_record['DICOM'])
+        if not os.path.isfile(dcmpath):
+            print '  ---> warning: dicom missing'
+        else:
+            ds = dicom.read_file(dcmpath)
+            #read the keys in order
+            for header in Ordered_keys:
+                #DICOM header tuple
+                if isinstance(NDAR_csv_dict[header],tuple):
+                    t2=Tag(NDAR_csv_dict[header][0],NDAR_csv_dict[header][1])
+                    try:
+                        val=ds[t2].value
+                    except:
+                        val=' '
+                #Specific value
+                elif isinstance(NDAR_csv_dict[header],str):
+                    val=get_value(header,subject_record,scan_record,ds)
+                else:
+                    val=' '
+                #Add the value to the row
+                row.append(str(val))
+            
     return row
 
 def get_value(header,subject_record,scan_record,ds):
     val=' '
-    nSlices,nVols = getNumSlicesAndVols(ds)
     if header=='acquisition_matrix':
         val=ds[0x5200,0x9230][0][0x2005,0x140f][0][0x0018,0x1310].value
     elif header=='image_resolution1':
@@ -190,8 +199,10 @@ def get_value(header,subject_record,scan_record,ds):
     elif header=='image_orientation':
         val=getLabel(ds)
     elif header=='image_extent3':
+		nSlices,nVols = getNumSlicesAndVols(ds)
         val=nSlices
     elif header=='image_extent4':
+		nSlices,nVols = getNumSlicesAndVols(ds)
         val=nVols
     elif header=='receive_coil':
         val=ds[0x5200,0x9229][0][0x0018,0x9042][0][0x0018,0x1250].value
@@ -207,26 +218,25 @@ def get_value(header,subject_record,scan_record,ds):
         val=subject_record['interview_age']
     elif header=='gender' and 'gender' in subject_record.keys():
         val=subject_record['gender']
-    elif header=='image_file' and 'image_file' in scan_record.keys():
-        val=scan_record['image_file']
-    elif header=='image_thumbnail_file' and 'image_thumbnail_file' in scan_record.keys():
-        val=scan_record['image_thumbnail_file']
-    elif header=='image_description' and 'image_description' in scan_record.keys():
-        val=scan_record['image_description']
     elif header=='scan_type' and 'type' in scan_record.keys():
         val=scan_record['type']
-    elif header=='data_file2' and 'data_file2' in scan_record.keys():
-        val=scan_record['data_file2']
-    elif header=='data_file2_type' and 'data_file2_type' in scan_record.keys():
-        val=scan_record['data_file2_type']
-    elif NDAR_csv_dict[header]=='pulse_sequence' and 'pulse_sequence' in scan_record.keys():
+    elif header=='data_file2_type' and 'data_file2_definition' in scan_record.keys():
+        val=scan_record['data_file2_definition']
+    elif header=='pulse_seq' and 'pulse_sequence' in scan_record.keys():
         val=scan_record['pulse_sequence']
-    elif NDAR_csv_dict[header]=='citation' and 'citation' in scan_record.keys():
+    elif header=='qc_description' and 'citation' in scan_record.keys():
         val=scan_record['citation']
-    elif header=='qc_outcome' and 'qc_outcome' in scan_record.keys():
-        val=scan_record['qc_outcome']
-    elif header=='slice_acquisition' and 'slice_acquisition' in scan_record.keys():
-        val=scan_record['slice_acquisition']
+    elif header=='scan_type' and 'ndar_scantype' in scan_record.keys():
+        val=scan_record['ndar_scantype']
+    elif header=='extent4_type' :
+		if 'ndar_scantype' in scan_record.keys() and scan_record['ndar_scantype']=='MR structural (T1)':
+		    val=''
+        else:
+            val='Number of Volumes'
+    elif header in scan_record.keys():
+		val=scan_record[header]
+    else:
+		val=NDAR_csv_dict[header]
     return val
                     
 ########################################## CSV FUNCTIONS ##########################################
@@ -234,7 +244,7 @@ def read_csv(csvpath,default_header):
     csv_dict=dict()
     with open(csvpath, 'rb') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',')
-        keys=spamreader[0]
+        keys=spamreader.next()
         #Check if the keys are the right header, if not, assume there was no header:
         if set(keys)==set(default_header):
             pass
@@ -242,7 +252,7 @@ def read_csv(csvpath,default_header):
             csv_dict[keys[0]]=dict(zip(default_header,keys))
             keys=default_header
             
-        for row in spamreader[1:]:
+        for row in spamreader:
             if default_header[0]=='xnat_scantype':
                 k=row[0]+'-x-'+row[1]
             else:
@@ -252,105 +262,116 @@ def read_csv(csvpath,default_header):
     return csv_dict
 
 ########################################## XNAT FUNCTIONS ##########################################
-def get_data_xnat(options,subjects):
+def get_data_xnat(options,directory,subjects):
     scan_records=list()
-    scan_info=read_csv(options.scaninfo,DEFAULT_SUBJECT_HEADER)
-        
+    scan_info=read_csv(options.scaninfo,DEFAULT_SCAN_HEADER)
+
     # Connection to Xnat
     try:   
-        xnat = get_interface()
+        xnat = XnatUtils.get_interface()
         #list of scans and assessors for the full project
         scan_list=XnatUtils.list_project_scans(xnat,options.project)
         assessor_list=XnatUtils.list_project_assessors(xnat,options.project)
+	
         #filter to keep only the scan we need and keep the assessor that we need for the qc
-        scan_list=filter_scans(scantypes,subjects,scan_list)
+        scan_list=filter_scans([v['xnat_scantype'] for s,v in scan_info.items()],subjects,scan_list)
         assessor_list=filter_assessors(subjects,assessor_list)
         
+		print 'INFO: Downloading scans resources from XNAT'
         #For each scan, download the data and write the scan_records for the csv
-        for scan in scan_list:
-            for type_SD in scan_info.keys():
-                scantype=type_SD.split('-x-')[0]
-                part_of_SD=type_SD.split('-x-')[1]
-                if scan['type'].lower()==scantype.lower() and part_of_SD.lower() in scan['series_description'].lower():
-                    scan_dict=scan.copy()  #Copy the dict
-                    #create path:
-                    scan_path=os.path.join(options.directory,scan['subject_label']+'-x-'+scan['sessions_label']+'-x-'+scan['ID'])
-                    if not os.path.exists(scan_path):
-                        os.mkdir(scan_path)
-                    #for each header in the scan_info specific to this type of scan :
-                    for header,value in scan_info[type_SD].items():
-                        if header in ['image_file','image_thumbnail_file','data_file2']:
-                            scan_dict[header]=download_XNAT_file(options.directory,scan,value)
-                        elif header=='assessor_type_qc':
-                            qc_status,qc_reason=get_qc(scan,assessor_list,scan_info[type_SD])
-                            scan_dict['qc_outcome']=qc_status
-                            scan_dict['qc_fail_quest_reason']=qc_reason
-                        else:
-                            scan_dict[header]=value            
+        for scan in sorted(scan_list,key=lambda k: k['subject_label']):
+	    if scan['quality']=='usable':
+                for type_SD in scan_info.keys():
+                    scantype=type_SD.split('-x-')[0]
+                    part_of_SD=type_SD.split('-x-')[1]
+                    if scan['type'].lower()==scantype.lower() and part_of_SD.lower() in scan['series_description'].lower():
+		        		print ' subject/session/scan: '+scan['subject_label']+'/'+scan['session_label']+'/'+scan['ID']+' found'
+                        scan_dict=scan.copy()  #Copy the dict
+                        #create path:
+                        scan_path=os.path.join(directory,scan['subject_label']+'-x-'+scan['session_label']+'-x-'+scan['ID'])
+                        if not os.path.exists(scan_path):
+                            os.makedirs(scan_path)
+                        #for each header in the scan_info specific to this type of scan :
+                        for header,value in scan_info[type_SD].items():
+                            if header in ['image_file','image_thumbnail_file','data_file2']:
+                                scan_dict[header]=download_XNAT_file(xnat,directory,scan,value)
+                            elif header=='assessor_type_qc':
+                                qc_status,qc_reason=get_qc(scan,assessor_list,scan_info[type_SD],scan['subject_label']+'-x-'+scan['session_label']+'-x-'+scan['ID'])
+                                scan_dict['qc_outcome']=qc_status
+                                scan_dict['qc_fail_quest_reason']=qc_reason
+                            else:
+                                scan_dict[header]=value
+		        #Download the DICOM
+		        scan_dict['DICOM']=download_XNAT_file(xnat,directory,scan,'DICOM')
+		        scan_records.append(scan_dict)            
     finally:                                        
         xnat.disconnect()
         
     return scan_records
 
-def download_XNAT_file(directory,scan,resource_label):
+def download_XNAT_file(xnat,directory,scan,resource_label):
     """Download if no file in the res_path, zip if more than one resource_label"""
     #Do we need to zip resource (resource_label containing coma)
     zip_resource=False
     fpath=''
     #String length to substract from the fpath (NDAR want the path to start from the directory you submit data from and not full path)
-    string_len=len(directoy)
+    string_len=len(directory)
     #res_path
     if ',' in resource_label:
         rfolder='_'.join(resource_label.split(','))
         zip_resource=True
     else:
         rfolder=resource_label
-    res_path=os.path.join(directory,scan['subject_label']+'-x-'+scan['sessions_label']+'-x-'+scan['ID'],rfolder)
+    res_path=os.path.join(directory,scan['subject_label']+'-x-'+scan['session_label']+'-x-'+scan['ID'],rfolder)
     if glob.glob(os.path.join(res_path,'*')): 
         fpath=glob.glob(os.path.join(res_path,'*'))[0][string_len:]
     else:
         ##No file, download the resource data
         if not os.path.exists(res_path):
-            os.mkdir(res_path)
+            os.makedirs(res_path)
         #Select the scan:
         scan_obj=XnatUtils.get_full_object(xnat,scan)
         for res in resource_label.split(','):
-            if scan_obj.resource(res).exists():
-                XnatUtils.download_biggest_resources(scan_obj.resource(res),res_path,filename='0')
+		    if res in ['bval','bvec']:
+				if scan_obj.resource(res.lower()).exists():
+				    XnatUtils.download_biggest_resources(scan_obj.resource(res.lower()),res_path)
+			    elif scan_obj.resource(res.upper()).exists():
+				    XnatUtils.download_biggest_resources(scan_obj.resource(res.upper()),res_path)
+	        elif scan_obj.resource(res).exists():
+	            XnatUtils.download_biggest_resources(scan_obj.resource(res),res_path)
         if zip_resource:
             initDir=os.getcwd()
             #Zip all the files in the directory
             os.chdir(res_path)
-            os.system('zip '+rfolder+'.zip *')
+            os.system('zip '+rfolder+'.zip * > /dev/null')
+	    #return to the initial directory:
+	    os.chdir(initDir)
             #Remove files from res_path that are not the zip file:
-            for fname in os.lisdir(res_path):
+            for fname in os.listdir(res_path):
                 if fname!=rfolder+'.zip':
-                    os.remove(os.patj.join(res_path,fname))
-            #return to the initial directory:
-            os.chdir(initDir)
+                    os.remove(os.path.join(res_path,fname))
             
         if glob.glob(os.path.join(res_path,'*')): 
             fpath=glob.glob(os.path.join(res_path,'*'))[0][string_len:]
     
     return fpath
 
-def get_qc(scan,assessor_list,scan_record):
-    assessor_label='ZALD_TTS-x-'+labels[0]+'-x-'+labels[1]+'-x-'+labels[2]+'-x-VBMQA'
+def get_qc(scan,assessor_list,scan_record,label):
+    qc_status='questionable'
+    qc_reason='Not yet control by user'
+    assessor_label='ZALD_TTS-x-'+label+'-x-VBMQA'
     assessor=[a for a in assessor_list if a['label']==assessor_label] 
     if assessor:                       
         status=assessor[0]['qcstatus']
         if status=='Needs QA':
             qc_status='questionable'
             qc_reason='Not yet control by user'
-        elif 'pass' in status.low():
+        elif 'pass' in status.lower():
             qc_status='pass'
             qc_reason=''
-        elif 'fail' in status.low():
+        elif 'fail' in status.lower():
             qc_status='fail'
             qc_reason=''
-    else:
-        qc_status='questionable'
-        qc_reason='Not yet control by user'
     
     return qc_status,qc_reason
 
@@ -364,10 +385,7 @@ def filter_scans(scantypes,subjects,obj_list):
         obj_list=filter(lambda x: x['subject_label'] in subjects, obj_list)
     return obj_list
 
-def filter_assessors(subjects,obj_list):
-    if not proctypes:
-        return list()
-    
+def filter_assessors(subjects,obj_list):    
     if subjects:
         obj_list=filter(lambda x: x['subject_label'] in subjects, obj_list)
     return obj_list
@@ -390,17 +408,14 @@ def check_options(options):
     else:
         # Connection to Xnat
         try:   
-            xnat = get_interface()
+            xnat = XnatUtils.get_interface()
             #check access
             proj=xnat.select('/project/'+options.project)
             if not proj.exists():
                 print'OPTION ERROR: XNAT Project given '+options.project+' does not exist on XNAT.'
                 return False
             else:
-                post_uri_subject = '/REST/projects/'+options.project+'/subjects'
-                subject_list = xnat._get_json(post_uri_subject)
-                number_subjs=len(subject_list) 
-                if not number_subjs>0:
+                if not XnatUtils.list_subjects(xnat,options.project):
                     print" OPTION ERROR: You don't access to the project: "+options.project+"."
                     return False
         finally:                                        
@@ -487,8 +502,9 @@ if __name__ == '__main__':
     # RUN                       #
     #############################
     if run:
+		directory=os.path.abspath(options.directory)
         #Output file:
-        OutputCSV=os.path.join(options.directory,'NDAR_submission.csv')
+        OutputCSV=os.path.join(directory,'NDAR_submission.csv')
         previous_row=[]
         previous_GUID=[]
         
@@ -503,24 +519,40 @@ if __name__ == '__main__':
                     previous_row.append(row)
         
         #Read from CSV files
-        subject_records=read_csv(options.subjectinfo,DEFAULT_SCAN_HEADER)
+        subject_records=read_csv(options.subjectinfo,DEFAULT_SUBJECT_HEADER)
         
+        #Print number of object from CSV
+		print 'INFO: Number of Subject found in the csv:'
+        print '-------------------------------------------'
+        print '| %*s : %*s |' % (-10,'Subjets',-10,str(len(subject_records)))
+        print '-------------------------------------------'
+	
         #Get Xnat info and download files:
         print 'INFO: Querying XNAT project '+options.project+' to download data.'
-        scan_records=get_data_xnat(options,subject_records.keys())
+        scan_records=get_data_xnat(options,directory,subject_records.keys())
         
+		#Print number of scans from xnat
+		print 'INFO: Number of Subject/scan found on XNAT for NDAR submission:'
+        print '-------------------------------------------'
+        print '| %*s : %*s |' % (-10,'Subjets',-10,str(len(set([scan['subject_label'] for scan in scan_records])))
+        print '| %*s : %*s |' % (-10,'Scans',-10,str(len(scan_records)))
+        print '-------------------------------------------'
+
         #Open the CSV file NDAR_submission.csv:
         with open(OutputCSV,'wb') as csvfile:
             spamwriter = csv.writer(csvfile,delimiter=',')
             spamwriter.writerow(['image','03'])
             spamwriter.writerow(Ordered_keys)
-        
-            for row in previous_row:
-                spamwriter.writerow(row)
-            
+	    
+            if previous_row:
+                for row in previous_row:
+                    spamwriter.writerow(row)
+	    
+            print 'INFO: Writting rows for the csv from DICOM header ...'            
             for scan_record in scan_records:
-                if subject_records[scan_record['subject_id']]['GUID'] not in previous_GUID:
-                    row=get_row(subject_records[scan_record['subject_id']],scan_record)
+                if subject_records[scan_record['subject_label']]['GUID'] not in previous_GUID:
+		    print ' Subject/session/scan: '+scan_record['subject_label']+'/'+scan_record['session_label']+'/'+scan_record['ID']
+                    row=get_row(directory,subject_records[scan_record['subject_label']],scan_record)
                     if row:
                         spamwriter.writerow(row)
     
