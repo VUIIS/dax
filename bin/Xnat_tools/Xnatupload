@@ -101,7 +101,7 @@ def read_csv_for_upload(csvfile,sessiontype):
                     logger.info('WARNING: row '+str(index+1)+' -- not enough column. Check the header needed for Xnatupload.')
                 else:
                     if row[0]=='scan':
-                        subject_session_list.append(row[2]+'-x-'+row[3])
+                        subject_session_list.append(row[2]+'-x-'+row[4])
                         if row[1] and row[2] and (sessiontype or row[3]) and row[4] and row[5] and row[-2] and row[-1]:
                             if not sessiontype and not row[3] in MODALITY_DICT.keys():
                                 logger.info('WARNING: row '+str(index+1)+' -- wrong session type, not defined on XNAT.')
@@ -113,7 +113,7 @@ def read_csv_for_upload(csvfile,sessiontype):
                         else:
                             logger.info('WARNING: row '+str(index+1)+' -- an element for one or more columns with the index 2/3/4/5/6/10/11 is empty.')
                     elif row[0]=='assessor':
-                        subject_session_list.append(row[2]+'-x-'+row[3])
+                        subject_session_list.append(row[2]+'-x-'+row[4])
                         if row[1] and row[2] and (sessiontype or row[3]) and row[4] and row[5] and row[6] and row[-2] and row[-1]:
                             if not sessiontype and not row[3] in MODALITY_DICT.keys():
                                 logger.info('WARNING: row '+str(index+1)+' -- wrong session type, not defined on XNAT.')
