@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 '''
 Created on May 6, 2013
-Edited on February 17, 2015
+Edited on February 19, 2015
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
@@ -311,7 +311,9 @@ if __name__ == '__main__':
             print 'ERROR: the csv file '+options.csvfile+' does not exist.'
         else:
             demo_list,header=read_csv(options)
-            if options.report:
+            if not demo_list:
+                print 'INFO: no valid demographic found.'
+            elif options.report:
                 print_report(demo_list,header)
             else:      
                 try:
