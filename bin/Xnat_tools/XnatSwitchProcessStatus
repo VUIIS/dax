@@ -282,7 +282,13 @@ def get_description():
     usage="""usage: %prog [options]\nWhat is the script doing : 
     *Switch/Set the status for assessors on XNAT specify by their proctype.
     Use --printstatus to see the different status managed by DAX for assessors\nExamples:
-    *See status managed by DAX: XnatSwitchProcessStatus --printstatus"""
+    *See status managed by DAX: XnatSwitchProcessStatus --printstatus
+    *Set all fMRIQA to a specific status Error for a project: XnatSwitchProcessStatus -p PID -s Error -t fMRIQA
+    *Set all Multi_Atlas that have the status JOB_FAILED to NEED_TO_RUN to have the processes run again: XnatSwitchProcessStatus -p PID -f JOB_FAILED -t Multi_Atlas -s NEED_TO_RUN
+    *Set all VBMQA to NEED_TO_RUN for a project and delete resources: XnatSwitchProcessStatus -p PID -s NEED_TO_RUN -t VBMQA -d
+    *Set all VBMQA to NEED_TO_RUN, delete resources, and set linked assessors fMRI_Preprocess to NEED_INPUTS: XnatSwitchProcessStatus -p PID -s NEED_TO_RUN -t VBMQA -d -n fMRI_Preprocess
+    *Set all dtiQA_v2 qa status to Passed for a project: XnatSwitchProcessStatus -p PID -s Passed -t dtiQA_v2 --qc
+    *Set FreeSurfer for a specific project/subject to NEED_INPUTS: XnatSwitchProcessStatus -p PID --subj 123 -s NEED_INPUTS -t FreeSurfer"""
     return usage
 
 ########################################## OPTIONS ##########################################
