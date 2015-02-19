@@ -214,7 +214,7 @@ def Main_display(parser):
     print '# Parameters :                                                 #'
     if options=={ 'csvfile':None,'delimiter': ',', 'report': False,'printformat':False,'format':None}:
         print '#     No Arguments given                                       #'
-        print '#     Use "Xnatdemographic -h" to see the options              #'
+        print '#     Use "XnatDemographic -h" to see the options              #'
         print '################################################################'
         parser.print_help()
         sys.exit()
@@ -253,7 +253,7 @@ def get_usage():
     usage+="     By default, specific parameters are supposed to be part of the subject level.\n\n"
     #Example
     usage+="Examples:\n"
-    usage+="   *Upload demographic data handedness/gender/age: Xnatdemographic -i demographic_data.csv \n"
+    usage+="   *Upload demographic data handedness/gender/age: XnatDemographic -i demographic_data.csv \n"
     usage+="   *See the report before uploading: Xnatdemographic -i demographic_data.csv \n"
     usage+="   *Upload demographic data with a file delimited by a /: Xnatdemographic -i demographic_data.csv --delimiter=/ \n"
     usage+="   *Upload demographic data with a different header that the default one: Xnatdemographic -i demographic_data.csv --format=project_id,subject_label,session_label,race,handedness,gender,age\n"
