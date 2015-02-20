@@ -192,6 +192,7 @@ def get_usage():
     usage+="   *Show all the projects you have access to: Xnatquery --me\n"
     usage+="   *Show all projects: Xnatquery --all\n"
     usage+="   *Query a specific level (example scan/assessors for a session): Xnatquery -p PID -s 109873 -e 109873\n"
+    usage+="   *Query a specific level with all objects under it : Xnatquery -p PID -s 109873 --all\n"
     return usage
     
 def parse_args():
