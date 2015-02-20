@@ -281,7 +281,7 @@ def get_proper_str(str_option,end=False):
 def get_description():
     usage="""usage: %prog [options]\nWhat is the script doing : 
     *Switch/Set the status for assessors on XNAT specify by their proctype.
-    Use --printstatus to see the different status managed by DAX for assessors\nExamples:
+    \nExamples:
     *See status managed by DAX: XnatSwitchProcessStatus --printstatus
     *Set all fMRIQA to a specific status Error for a project: XnatSwitchProcessStatus -p PID -s Error -t fMRIQA
     *Set all Multi_Atlas that have the status JOB_FAILED to NEED_TO_RUN to have the processes run again: XnatSwitchProcessStatus -p PID -f JOB_FAILED -t Multi_Atlas -s NEED_TO_RUN
