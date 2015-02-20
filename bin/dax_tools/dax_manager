@@ -576,7 +576,7 @@ def run_update(filepath,logdir,debug,email_add):
         unlock_update(filepath)
         if email_add:
             TEXT='Caught exception in worker "dax_update "'+filepath+' : \n'+traceback.format_exc()
-            SUBJECT='Error in dax_update_open_tasks for '+filepath
+            SUBJECT='Error in dax_update for '+filepath
             email(TEXT,email_add,SUBJECT)
 
 def parse_args():
