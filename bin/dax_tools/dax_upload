@@ -292,7 +292,8 @@ def uploadPbs(pbs_list,xnat):
     number_pbs=len(pbs_list)
     for index,pbsfile in enumerate(pbs_list):
         logger.info('   *Uploading PBS '+str(index+1)+'/'+str(number_pbs)+' -- File name: '+pbsfile)
-        isGoodAssessorLabel,assessor_dict=generateObjDict(pbsfile[:-4],'none')
+        assessor_label = os.path.splitext(pbsfile)[0]
+        isGoodAssessorLabel,assessor_dict=generateObjDict(assessor_label,'none')
         if not isGoodAssessorLabel:
             pbsIssues=True
         else:
