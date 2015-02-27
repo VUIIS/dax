@@ -125,14 +125,15 @@ def generateSnapshots(assessor_path):
     snapshot_preview = os.path.join(assessor_path,'SNAPSHOTS','preview.'+snapshot_original.split('.')[-1])
     if not os.path.exists(snapshot_original) and os.path.exists(assessor_path+'/PDF/'):
         logger.debug('    +creating original of SNAPSHOTS')
-        os.system('mkdir '+assessor_path+'/SNAPSHOTS/')
+        if not os.path.exists(assessor_path+'/SNAPSHOTS/'):
+            os.system('mkdir '+assessor_path+'/SNAPSHOTS/')
         #Make the snapshots for the assessors with ghostscript
         os.system('gs -q -o '+snapshot_original+' -sDEVICE=pngalpha -dLastPage=1 '+assessor_path+'/PDF/*.pdf')
     #Create the preview snapshot from the original if Snapshots exist :
     if os.path.exists(snapshot_original):
         logger.debug('    +creating preview of SNAPSHOTS')
         #Make the snapshot_thumbnail
-        os.system('convert '+assessor_path+'/SNAPSHOTS/'+snapshot_original+' -resize x200 '+snapshot_preview)    
+        os.system('convert '+snapshot_original+' -resize x200 '+snapshot_preview)    
 
 def copyOutlog(assessor_dict):
     outlog_path=os.path.join(RESULTS_DIR, _OUTLOG,assessor_dict['label']+'.output')
@@ -142,7 +143,8 @@ def copyOutlog(assessor_dict):
         os.rename(outlog_path,new_outlog_path)
 
 def getXsiType(assessor_dict):
-    if assessor_dict['proctype']=='FS':
+    proctype = assessor_dict['proctype']
+    if proctype.startswith('FS') and not proctype.startswith('FSL'):
         return 'fs:fsData'
     else:
         return 'proc:genProcData'
