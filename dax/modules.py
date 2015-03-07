@@ -10,8 +10,8 @@ from datetime import datetime
 logger=logging.getLogger('dax')
 
 class Module(object):
-    def __init__(self,module_name,directory,email,Text_report):
-        self.module_name=module_name
+    def __init__(self,mod_name,directory,email,Text_report):
+        self.mod_name=mod_name
         self.directory=directory
         if isinstance(email,list):
             self.email=email
@@ -53,7 +53,7 @@ class Module(object):
                 self.clean_directory()
             else:
                 today=datetime.now()
-                self.directory=os.path.join(self.directory,self.module_name+'_tmp_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day)+'_'+str(today.hour)+'_'+str(today.minute)+'_'+str(today.second))
+                self.directory=os.path.join(self.directory,self.mod_name+'_tmp_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day)+'_'+str(today.hour)+'_'+str(today.minute)+'_'+str(today.second))
     
                 if not os.path.exists(self.directory):
                     os.mkdir(self.directory)
@@ -61,7 +61,7 @@ class Module(object):
                     self.clean_directory()
     
     def getname(self):
-        return self.module_name
+        return self.mod_name
  
     def clean_directory(self):
         files=os.listdir(self.directory)
@@ -89,15 +89,15 @@ class Module(object):
             s.quit()
         
 class ScanModule(Module):
-    def __init__(self,module_name,directory,email,Text_report):
-        super(ScanModule, self).__init__(module_name,directory,email,Text_report)
+    def __init__(self,mod_name,directory,email,Text_report):
+        super(ScanModule, self).__init__(mod_name,directory,email,Text_report)
         
     def run(self):
         raise NotImplementedError()
 
 class SessionModule(Module):
-    def __init__(self,module_name,directory,email,Text_report):
-        super(SessionModule, self).__init__(module_name,directory,email,Text_report)
+    def __init__(self,mod_name,directory,email,Text_report):
+        super(SessionModule, self).__init__(mod_name,directory,email,Text_report)
         
     def run(self):
         raise NotImplementedError()
