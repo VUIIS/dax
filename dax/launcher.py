@@ -323,7 +323,7 @@ class Launcher(object):
      
     def update_session(self, xnat, sess_info, sess_proc_list, scan_proc_list, sess_mod_list, scan_mod_list):
         # Modules on session
-        logger.debug('==Update modules for scans in session==')
+        logger.debug('==Update modules for session==')
         for sess_mod in sess_mod_list:
             logger.debug('* Module: '+sess_mod.getname())        
             sess_obj = None
