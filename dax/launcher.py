@@ -312,7 +312,7 @@ class Launcher(object):
             else: 
                 logger.info('  +Session:'+sess_info['label']+': updating...')
                 # NOTE: we keep the starting time of the update and will check if something change during the update    
-                updateStartTime = datetime.now().strftime(UPDATE_FORMAT)
+                updateStartTime = datetime.now()
                 self.update_session(xnat, sess_info, exp_proc_list, scan_proc_list, exp_mod_list, scan_mod_list)
                 self.set_session_lastupdated(xnat, sess_info,updateStartTime)
         
