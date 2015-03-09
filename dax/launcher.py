@@ -311,10 +311,10 @@ class Launcher(object):
                 logger.info('  +Session:'+sess_info['label']+': skipping, last_mod='+str(last_mod)+',last_up='+str(last_up))
             else: 
                 logger.info('  +Session:'+sess_info['label']+': updating...')
-                # NOTE: we set update time here, so if the sess is changed below it will be checked again    
-                lastupdate = datetime.now() + timedelta(minutes=1)
+                # NOTE: we keep the starting time of the update and will check if something change during the update    
+                updateStartTime = datetime.now().strftime(UPDATE_FORMAT)
                 self.update_session(xnat, sess_info, exp_proc_list, scan_proc_list, exp_mod_list, scan_mod_list)
-                self.set_session_lastupdated(xnat, sess_info,lastupdate) #setting the last update time on the session when the update is done
+                self.set_session_lastupdated(xnat, sess_info,updateStartTime)
         
         if not sessions_local or sessions_local.lower()=='all':
             # Modules after run
@@ -432,17 +432,18 @@ class Launcher(object):
         else:
             return datetime.strptime(update_time, UPDATE_FORMAT)
         
-    def set_session_lastupdated(self, xnat, sess_info,lastupdate):
-        if not lastupdate:
-            lastupdate = datetime.now() + timedelta(minutes=1)
-        
-        #format:
-        update_str = (lastupdate).strftime(UPDATE_FORMAT)
-        # We set update to one minute into the future since setting update field will change last modified time
-        logger.debug('setting last_updated for:'+sess_info['label']+' to '+update_str)
-        sess_obj = XnatUtils.get_full_object(xnat, sess_info)
-        xsi_type = sess_info['xsiType']
-        sess_obj.attrs.set(xsi_type+'/original', UPDATE_PREFIX+update_str)      
+    def set_session_lastupdated(self, xnat, sess_info,updateStartTime):
+        last_mod = datetime.strptime(sess_info['last_modified'][0:19], '%Y-%m-%d %H:%M:%S')
+        if last_mod>updateStartTime:
+            pass #The update change the sessions, let's update next time again
+        else:
+            #format:
+            update_str = (datetime.now() + timedelta(minutes=1)).strftime(UPDATE_FORMAT)
+            # We set update to one minute into the future since setting update field will change last modified time
+            logger.debug('setting last_updated for:'+sess_info['label']+' to '+update_str)
+            sess_obj = XnatUtils.get_full_object(xnat, sess_info)
+            xsi_type = sess_info['xsiType']
+            sess_obj.attrs.set(xsi_type+'/original', UPDATE_PREFIX+update_str)      
         
     def has_new_processors(self, xnat, project_id, exp_proc_list, scan_proc_list):
         # Get unique list of assessors already in XNAT
