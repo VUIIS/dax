@@ -434,10 +434,10 @@ class Launcher(object):
         
     def set_session_lastupdated(self, xnat, sess_info,lastupdate):
         if not lastupdate:
-            update_date = datetime.now() + timedelta(minutes=1)
+            lastupdate = datetime.now() + timedelta(minutes=1)
         
         #format:
-        update_str = (update_date).strftime(UPDATE_FORMAT)
+        update_str = (lastupdate).strftime(UPDATE_FORMAT)
         # We set update to one minute into the future since setting update field will change last modified time
         logger.debug('setting last_updated for:'+sess_info['label']+' to '+update_str)
         sess_obj = XnatUtils.get_full_object(xnat, sess_info)
