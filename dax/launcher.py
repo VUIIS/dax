@@ -312,9 +312,9 @@ class Launcher(object):
             else: 
                 logger.info('  +Session:'+sess_info['label']+': updating...')
                 # NOTE: we set update time here, so if the sess is changed below it will be checked again    
-                self.cache_update_date(sess_info) #cache the last update time before running the update
+                lastupdate = datetime.now() + timedelta(minutes=1)
                 self.update_session(xnat, sess_info, exp_proc_list, scan_proc_list, exp_mod_list, scan_mod_list)
-                self.set_session_lastupdated(xnat, sess_info) #setting the last update time on the session when the update is done
+                self.set_session_lastupdated(xnat, sess_info,lastupdate) #setting the last update time on the session when the update is done
         
         if not sessions_local or sessions_local.lower()=='all':
             # Modules after run
@@ -431,47 +431,19 @@ class Launcher(object):
             return None
         else:
             return datetime.strptime(update_time, UPDATE_FORMAT)
-    
-    def cache_update_date(self,sess_info):
-        # We set update to one minute into the future since setting update field will change last modified time
-        self.lastupdate = (datetime.now() + timedelta(minutes=1)).strftime(UPDATE_FORMAT)
-        logger.debug('caching last_updated for '+sess_info['label']+': '+self.lastupdate)
         
-    def set_session_lastupdated(self, xnat, sess_info):
+    def set_session_lastupdated(self, xnat, sess_info,lastupdate):
+        if not lastupdate:
+            update_date = datetime.now() + timedelta(minutes=1)
+        
+        #format:
+        update_str = (update_date).strftime(UPDATE_FORMAT)
         # We set update to one minute into the future since setting update field will change last modified time
-        logger.debug('setting last_updated for:'+sess_info['label']+' to '+self.lastupdate)
+        logger.debug('setting last_updated for:'+sess_info['label']+' to '+update_str)
         sess_obj = XnatUtils.get_full_object(xnat, sess_info)
         xsi_type = sess_info['xsiType']
-        sess_obj.attrs.set(xsi_type+'/original', UPDATE_PREFIX+self.lastupdate)      
-     
-    # TODO: remove this after we are all projects have been updated to use the session field for last_updated               
-    def lastupdated_subj2sess(self): 
-        logger.debug('check for up to date subjects, apply timestamp to session last_updated')
+        sess_obj.attrs.set(xsi_type+'/original', UPDATE_PREFIX+update_str)      
         
-        try:
-            logger.info('Connecting to XNAT at '+self.xnat_host)
-            xnat = XnatUtils.get_interface(self.xnat_host,self.xnat_user,self.xnat_pass)
-            project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
-  
-            # Update projects
-            for project_id in project_list:
-                logger.info('===== PROJECT:'+project_id+' =====')
-                for subj_info in XnatUtils.list_subjects(xnat, project_id):
-                    last_mod = datetime.strptime(subj_info['last_modified'][0:19], '%Y-%m-%d %H:%M:%S')
-                    last_up = self.get_lastupdated(subj_info)
-                    if (last_up != None and last_mod < last_up):
-                        logger.info('  +Subject:'+subj_info['label']+', subject up to date:last_mod='+str(last_mod)+',last_up='+str(last_up))
-                        for sess_info in XnatUtils.list_sessions(xnat, subj_info['project'], subj_info['ID']):
-                            if sess_info['last_updated'] == '':
-                                logger.info('  +Session:'+sess_info['label']+': subject up to date, setting update time to now')
-                                self.set_session_lastupdated(xnat, sess_info)
-                    else:
-                        logger.info('  +Subject:'+subj_info['label']+', skipping:last_mod='+str(last_mod)+',last_up='+str(last_up))     
-                                           
-        finally:  
-            xnat.disconnect()
-            logger.info('Connection to XNAT closed')
-
     def has_new_processors(self, xnat, project_id, exp_proc_list, scan_proc_list):
         # Get unique list of assessors already in XNAT
         assr_list  = XnatUtils.list_project_assessors(xnat, project_id)
