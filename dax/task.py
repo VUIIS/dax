@@ -271,7 +271,7 @@ class Task(object):
             elif has_inputs==-1:
                 new_status = NO_DATA
                 self.set_qcstatus(qcstatus)
-            else:
+            elif self.get_qcstatus()!=qcstatus:
                 self.set_qcstatus(qcstatus)
         elif old_status == JOB_RUNNING:
             new_status = self.check_running()
