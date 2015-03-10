@@ -72,7 +72,7 @@ def save_job_redcap(data,record_id):
             assert 'count' in response
             logger.info(' ->Record '+record_id+ ' uploaded for <'+data['spider_module_name']+'> : ' + str(response['count']))
             return 1
-        except AssertionError as e:
+        except:
             return 0
     logger.info(' ->API_URL or API_KEY_XNAT not set')
     return 0
