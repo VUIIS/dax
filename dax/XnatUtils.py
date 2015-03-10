@@ -124,11 +124,12 @@ class SpiderProcessHandler:
             if not os.path.exists(self.dir+'/'+Resource):
                 os.mkdir(self.dir+'/'+Resource)
             #mv the file
-            print'  -Copying '+Resource+': '+filePath+' to '+self.dir
-            os.system('cp '+filePath+' '+self.dir+'/'+Resource+'/')
+            respath=os.path.join(self.dir,Resource)
+            print'  -Copying '+Resource+': '+filePath+' to '+respath
+            os.system('cp '+filePath+' '+respath)
             #if it's a nii or a rec file, gzip it:
             if filePath.lower().endswith('.nii') or filePath.lower().endswith('.rec'):
-                os.system('gzip '+os.path.join(self.dir,Resource,os.path.basename(filePath)))
+                os.system('gzip '+os.path.join(respath,os.path.basename(filePath)))
 
     def add_folder(self,FolderPath,ResourceName=None):
         #check if the folder exists:
@@ -136,27 +137,22 @@ class SpiderProcessHandler:
             self.error=1
             print 'ERROR: folder '+FolderPath+' does not exists.'
         else:
-            if ResourceName != None:
-                #make the resource folder
-                if not os.path.exists(self.dir+'/'+ResourceName):
-                    os.mkdir(self.dir+'/'+ResourceName)
-                #Get the initial directory:
-                initDir=os.getcwd()
-                #get the directory :
-                Path,lastDir=os.path.split(FolderPath)
-                if lastDir=='':
-                    Path,lastDir=os.path.split(FolderPath[:-1])
-                #mv the folder
-                os.chdir(Path)
-                os.system('zip -r '+ResourceName+'.zip '+lastDir)
-                os.system('mv '+ResourceName+'.zip '+self.dir+'/'+ResourceName+'/')
-                #return to the initial directory:
-                os.chdir(initDir)
-                print'  -Copying '+ResourceName+' after zipping the folder contents: '+FolderPath+' to '+self.dir
+            if not ResourceName:
+                dest=self.dir
             else:
-                #mv the folder
-                print'  -Moving '+FolderPath+' to '+self.dir
-                os.system('mv '+FolderPath+' '+self.dir)
+                dest=os.path.join(self.dir,ResourceName)
+                #make the resource folder
+                if not os.path.exists(dest):
+                    os.mkdir(dest)
+            try:
+                shutil.copytree(FolderPath, dest)
+                print'  -Copying '+ResourceName+' : '+FolderPath+' to '+dest
+            # Directories are the same
+            except shutil.Error as e:
+                print('Directory not copied. Error: %s' % e)
+            # Any error saying that the directory doesn't exist
+            except OSError as e:
+                print('Directory not copied. Error: %s' % e)
 
     def setAssessorStatus(self, status):
         # Connection to Xnat
