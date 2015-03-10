@@ -525,8 +525,11 @@ def check_options(options):
         print 'OPTION ERROR: You used the option --overwrite and --update. Use only one of them at a time.'
         return False
     #Resources
-    if not options.resourcesA and not options.resourcesS:
-        print 'OPTION WARNING: No resources set. Nothing to download.'
+    if (options.selectionScan or options.withoutS or options.scantype) and not options.resourcesS:
+        print 'OPTION ERROR: You did not set the resource type for scan. Use --rs.'
+        return False
+    if (options.selectionAssessor or options.withoutA or options.assessortype) and not options.resourcesA:
+        print 'OPTION ERROR: You did not set the resource type for assessor. Use --ra.'
         return False
     #Types
     if not options.selectionScan and not options.selectionAssessor and [options.withoutS,options.withoutA,options.assessortype,options.scantype]==[None,None,None,None]:
@@ -584,12 +587,16 @@ def Main_display(parser):
                     print '#     %*s -> %*s#' %(-20,'Experiment(s)',-33,get_proper_str(options.experiment))
                 if options.scantype:
                     print '#     %*s -> %*s#' %(-20,'Scan types',-33,get_proper_str(options.scantype))
+                if options.withoutS:
+                    print '#     %*s -> %*s#' %(-20,'Without Scan',-33,get_proper_str(options.withoutS))
                 if options.resourcesS:
                     print '#     %*s -> %*s#' %(-20,'Resources Scan',-33,get_proper_str(options.resourcesS))
                 if options.qualities:
                     print '#     %*s -> %*s#' %(-20,'Scan Qualities',-33,get_proper_str(options.qualities))
                 if options.assessortype:
                     print '#     %*s -> %*s#' %(-20,'Process types',-33,get_proper_str(options.assessortype))
+                if options.withoutA:
+                    print '#     %*s -> %*s#' %(-20,'Without Process',-33,get_proper_str(options.withoutA))
                 if options.resourcesA:
                     print '#     %*s -> %*s#' %(-20,'Resources Process',-33,get_proper_str(options.resourcesA))
                 if options.status:
