@@ -138,12 +138,14 @@ class SpiderProcessHandler:
             print 'ERROR: folder '+FolderPath+' does not exists.'
         else:
             if not ResourceName:
-                dest=self.dir
+                dest=os.path.join(self.dir,os.path.basename(os.path.abspath(FolderPath)))
             else:
                 dest=os.path.join(self.dir,ResourceName)
-                #make the resource folder
-                if not os.path.exists(dest):
-                    os.mkdir(dest)
+                
+            #make the resource folder
+            if not os.path.exists(dest):
+                os.mkdir(dest)
+                
             try:
                 shutil.copytree(FolderPath, dest)
                 print'  -Copying '+ResourceName+' : '+FolderPath+' to '+dest
