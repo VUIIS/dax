@@ -137,24 +137,27 @@ class SpiderProcessHandler:
             self.error=1
             print 'ERROR: folder '+FolderPath+' does not exists.'
         else:
-            if not ResourceName:
-                dest=os.path.join(self.dir,os.path.basename(os.path.abspath(FolderPath)))
+            if ResourceName != None:
+                #make the resource folder
+                if not os.path.exists(self.dir+'/'+ResourceName):
+                    os.mkdir(self.dir+'/'+ResourceName)
+                #Get the initial directory:
+                initDir=os.getcwd()
+                #get the directory :
+                Path,lastDir=os.path.split(FolderPath)
+                if lastDir=='':
+                    Path,lastDir=os.path.split(FolderPath[:-1])
+                #mv the folder
+                os.chdir(Path)
+                os.system('zip -r '+ResourceName+'.zip '+lastDir)
+                os.system('mv '+ResourceName+'.zip '+self.dir+'/'+ResourceName+'/')
+                #return to the initial directory:
+                os.chdir(initDir)
+                print'  -Copying '+ResourceName+' after zipping the folder contents: '+FolderPath+' to '+self.dir
             else:
-                dest=os.path.join(self.dir,ResourceName)
-                
-            #make the resource folder
-            if not os.path.exists(dest):
-                os.mkdir(dest)
-                
-            try:
-                shutil.copytree(FolderPath, dest)
-                print'  -Copying '+ResourceName+' : '+FolderPath+' to '+dest
-            # Directories are the same
-            except shutil.Error as e:
-                print('Directory not copied. Error: %s' % e)
-            # Any error saying that the directory doesn't exist
-            except OSError as e:
-                print('Directory not copied. Error: %s' % e)
+                #mv the folder
+                print'  -Moving '+FolderPath+' to '+self.dir
+                os.system('mv '+FolderPath+' '+self.dir)
 
     def setAssessorStatus(self, status):
         # Connection to Xnat
