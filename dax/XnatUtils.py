@@ -137,27 +137,21 @@ class SpiderProcessHandler:
             self.error=1
             print 'ERROR: folder '+FolderPath+' does not exists.'
         else:
-            if ResourceName != None:
-                #make the resource folder
-                if not os.path.exists(self.dir+'/'+ResourceName):
-                    os.mkdir(self.dir+'/'+ResourceName)
-                #Get the initial directory:
-                initDir=os.getcwd()
-                #get the directory :
-                Path,lastDir=os.path.split(FolderPath)
-                if lastDir=='':
-                    Path,lastDir=os.path.split(FolderPath[:-1])
-                #mv the folder
-                os.chdir(Path)
-                os.system('zip -r '+ResourceName+'.zip '+lastDir)
-                os.system('mv '+ResourceName+'.zip '+self.dir+'/'+ResourceName+'/')
-                #return to the initial directory:
-                os.chdir(initDir)
-                print'  -Copying '+ResourceName+' after zipping the folder contents: '+FolderPath+' to '+self.dir
+            if not ResourceName:
+                res=os.path.basename(os.path.abspath(FolderPath))
             else:
-                #mv the folder
-                print'  -Moving '+FolderPath+' to '+self.dir
-                os.system('mv '+FolderPath+' '+self.dir)
+		        res=ResourceName
+            dest=os.path.join(self.dir,res)
+
+            try:
+                shutil.copytree(FolderPath, dest)
+                print'  -Copying '+res+' : '+FolderPath+' to '+dest
+            # Directories are the same
+            except shutil.Error as e:
+                print('Directory not copied. Error: %s' % e)
+            # Any error saying that the directory doesn't exist
+            except OSError as e:
+                print('Directory not copied. Error: %s' % e)
 
     def setAssessorStatus(self, status):
         # Connection to Xnat
