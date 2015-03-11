@@ -1193,5 +1193,8 @@ def upload_list_records_redcap(rc,data):
             assert 'count' in response
         except AssertionError as e:
             print '      -ERROR: Creation of record failed. The error is the following: '
-            print '      ' + response['error']
+            print '      ',e
             print response
+        except:
+            print '      -ERROR: connection to REDCap interupted.'
+            
