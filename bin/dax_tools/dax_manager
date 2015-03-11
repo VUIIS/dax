@@ -243,7 +243,7 @@ def read_redcap_db(rc):
     else:
         return list()
         
-def generate_settings(rc,settings_info,status=False):
+def generate_settings(gateway,user,rc,settings_info,status=False):
     #Variable:
     settings_dict=dict()
     modules_list,processes_list=get_list_modproc(rc)
@@ -514,7 +514,7 @@ def check_process(project_settings,update_email_dict):
 ####################################################################################
 #####################           Principal functions            #####################
 ####################################################################################
-def generate_settings_REDCap(api_key,status=False):
+def generate_settings_REDCap(gateway,user,api_key,status=False):
     """Extract information from REDCap and generate the settings file"""
     settings_path_list=list()
     daxlogsdir_dict=dict()
@@ -533,7 +533,7 @@ def generate_settings_REDCap(api_key,status=False):
         get_status(settings_info)
     else:
         #Generate information for the settings
-        settings_dict=generate_settings(rc,settings_info)
+        settings_dict=generate_settings(gateway,user,rc,settings_info)
         #For each settings in the dict:
         for filepath,setting in settings_dict.items():
             #Ordering project:
@@ -627,7 +627,7 @@ if __name__ == '__main__':
     
     #If api_key given, use the redcap db:
     if api_key:
-        settings_path_list,daxlogsdir_dict,email_dict=generate_settings_REDCap(api_key,args.status)
+        settings_path_list,daxlogsdir_dict,email_dict=generate_settings_REDCap(gateway,user,api_key,args.status)
 
     if args.writeonly or args.status:
         pass
