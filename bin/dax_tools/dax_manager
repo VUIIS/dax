@@ -525,7 +525,7 @@ def generate_settings_REDCap(gateway,user,api_key,status=False):
         rc = redcap.Project(API_URL,api_key)
     except:
         logger.error('Could not access redcap. Either wrong API_URL/API_KEY or redcap down.',exc_info=True)
-    
+        sys.exit()
     #Extract the information about the settings from redcap
     settings_info=read_redcap_db(rc)
     #Status:
