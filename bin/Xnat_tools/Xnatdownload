@@ -362,6 +362,7 @@ def download_scan(directory,xnat,scan_dict,resources_list,csvwriter,row,oneDir,l
         for ResourceName in reslist:
             if ResourceName=='PARREC':
                 directory=os.path.join(directory,'PARREC')
+                if not os.path.exists(directory): os.makedirs(directory)
                 download_resource(directory,xnat,scan.resource('PAR'),'PAR',csvwriter,row,True,'file',last_download)
                 download_resource(directory,xnat,scan.resource('REC'),'REC',csvwriter,row,True,'file',last_download)
             else:
