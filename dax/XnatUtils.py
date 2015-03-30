@@ -11,141 +11,212 @@ from lxml import etree
 
 import redcap
 
-from dax_settings import RESULTS_DIR
+from dax_settings import RESULTS_DIR, READY_TO_UPLOAD, JOB_FAILED
 
 class InterfaceTemp(Interface):
     '''Extends the functionality of Interface 
     to have a temporary cache that is removed 
     when .disconnect() is called.
     '''
-    def __init__(self,xnat_host,xnat_user,xnat_pass,temp_dir=None):
+    def __init__(self, xnat_host, xnat_user, xnat_pass, temp_dir=None):
         if not temp_dir:
             temp_dir = tempfile.mkdtemp()
         if not os.path.exists(temp_dir):
             os.mkdir(temp_dir)
         self.temp_dir = temp_dir
-        super(InterfaceTemp,self).__init__(server=xnat_host,user=xnat_user,
-                           password=xnat_pass,cachedir=temp_dir)
+        super(InterfaceTemp,self).__init__(server=xnat_host, user=xnat_user, password=xnat_pass, cachedir=temp_dir)
+
     def disconnect(self):
         self._exec('/data/JSESSION', method='DELETE')
         shutil.rmtree(self.temp_dir)
 
 ####################################################################################
+#            Class Assessor Handler to handle assessor label string                #
+####################################################################################
+class AssessorHandler:
+	""" Class to handle assessor label string"""
+    def __init__(self, label):
+        """
+        The purpose of this method is to split an assessor label and parse out its associated pieces
+        :param label: An assessor label of the form ProjectID-x-Subject_label-x-SessionLabel-x-ScanId-x-proctype
+        :return: None
+        """
+        self.assessor_label = label
+        if len(re.findall('-x-', label)) == 3:
+            self.project_id, self.subject_label, self.session_label, self.proctype = label.split('-x-')
+            self.scan_id = None
+        elif len(re.findall('-x-', label)) == 4:
+            self.project_id, self.subject_label, self.session_label, self.scan_id, self.proctype = label.split('-x-')
+        else:
+            self.assessor_label = None
+
+    def is_valid(self):
+    	"""return true if the assessor is a valid label"""
+        return self.assessor_label != None
+
+    def project_id(self):
+        """
+        This method retreives the project label from self
+        :return: The XNAT project label
+        """
+        return self.project_id
+
+    def subject_label(self):
+        """
+        This method retrieves the subject label from self
+        :return: The XNAT subject label
+        """
+        return self.subject_label
+
+    def session_label(self):
+        """
+        This method retrieves the session label from self
+        :return: The XNAT session label
+        """
+        return self.session_label
+
+    def scan_id(self):
+        """
+        This method retrieves the scan id from the assessor label
+        :return: The XNAT scan ID for the assessor
+        """
+        return self.scan_id
+
+    def proctype(self):
+        """
+        This method retrieves the process type from the assessor label
+        :return: The XNAT process type for the assessor
+        """
+        return self.proctype
+
+    def select_assessor(self, intf):
+        """
+        return XNAT object for the assessor
+        :return: None
+        """
+        string_obj = '''/project/{project}/subject/{subject}/experiment/{session}/assessor/{label}'''.format(project=self.project_id, subject=self.subject_label, session=self.session_label, label=self.assessor_label)
+        return intf.select(string_obj)
+
+####################################################################################
 #            Class JobHandler to copy file after the end of a Job                  #
-####################################################################################   
+####################################################################################
+DEFAULT_READY_TO_UPLOAD_FLAGFILE = READY_TO_UPLOAD+'.txt'
+DEFAULT_JOB_FAILED_FLAGFILE = JOB_FAILED+'.txt'
+
 class SpiderProcessHandler:
-    def __init__(self,script_name,project,subject,experiment,scan=''):
-        if len(script_name.split('/'))>1:
-            script_name=os.path.basename(script_name)
+	""" Handle the results of a spider """
+    def __init__(self, script_name, project, subject, experiment, scan=None):
+    	""" initialization """
+    	#Variables: 
+        self.error = 0
+        self.has_pdf = 0
+        # Get the process name and the version
+        if len(script_name.split('/')) > 1:
+            script_name = os.path.basename(script_name)
         if script_name.endswith('.py'):
-            script_name=script_name[:-3]
+            script_name = script_name[:-3]
         if 'Spider' in script_name:
-            script_name=script_name[7:]
-            
+            script_name = script_name[7:]
+
         #ge the processname from spider
-        if len(re.split("/*_v[0-9]/*", script_name))>1:
+        if len(re.split("/*_v[0-9]/*", script_name)) > 1:
             self.version = script_name.split('_v')[-1]
-            self.ProcessName=re.split("/*_v[0-9]/*", script_name)[0]+'_v'+self.version.split('.')[0]
+            ProcessName = re.split("/*_v[0-9]/*", script_name)[0]+'_v'+self.version.split('.')[0]
         else:
             self.version = '1.0.0'
-            self.ProcessName=script_name
-        
-        #make the assessor folder for upload
-        if scan=='':
-            self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+self.ProcessName
-            self.dir=os.path.join(RESULTS_DIR,self.assessor_label)
+            ProcessName = script_name
+
+        #Create the assessor handler
+        if not scan:
+            assessor_label = project+'-x-'+subject+'-x-'+experiment+'-x-'+self.ProcessName
         else:
-            self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+scan+'-x-'+self.ProcessName
-            self.dir=os.path.join(RESULTS_DIR,self.assessor_label)
+            assessor_label = project+'-x-'+subject+'-x-'+experiment+'-x-'+scan+'-x-'+self.ProcessName
+        self.assr_handler = AssessorHandler(assessor_label)
+        
+        #Create the upload directory
+        self.directory = os.path.join(RESULTS_DIR, assessor_label)
         #if the folder already exists : remove it
-        if not os.path.exists(self.dir):
-            os.mkdir(self.dir)
+        if not os.path.exists(self.directory):
+            os.mkdir(self.directory)
         else:
             #Remove files in directories
-            clean_directory(self.dir)
+            clean_directory(self.directory)
 
         print'INFO: Handling results ...'
-        print'  -Creating folder '+self.dir+' for '+self.assessor_label
-        self.project=project
-        self.subject=subject
-        self.experiment=experiment
-        self.scan=scan
-        self.finish=0
-        self.error=0
+        print'''  -Creating folder {folder} for {label}'''.format(folder=self.directory,
+        													   	  label=assessor_label)
 
     def set_error(self):
+    	""" set the error to one """
         self.error=1
 
-    def add_pdf(self,filepath):
-        #check if the file exists:
-        if not os.path.exists(filepath.strip()):
-            self.error=1
-            print 'ERROR: file '+filepath+' does not exists.'
+    def file_exists(self, fpath):
+    	""" check if file exists """
+    	if not os.path.isfile(fpath.strip()):
+            self.error = 1
+            print '''ERROR: file {file} does not exists.'''.format(file=fpath)
+            return False
         else:
+        	return True
+
+    def folder_exists(self, fpath):
+    	""" check if folder exists """
+    	if not os.path.isdir(fpath.strip()):
+            self.error = 1
+            print '''ERROR: folder {folder} does not exists.'''.format(folder=fpath)
+            return False
+        else:
+        	return True
+    
+    def print_copying_statement(self, label, src, dest):
+    	""" print statement for copying data """
+    	print '''  -Copying {label}: {src} to {dest}'''.format(label=label, src=pdf_path, dest=pdf_dir)
+
+    def add_pdf(self, filepath):
+    	""" add a file to resource pdf in the upload dir """
+        if self.file_exists(filepath):
             #Check if it's a ps:
-            if os.path.splitext(filepath)[1].lower()=='.ps':
-                ps=os.path.basename(filepath)
-                pdf_path=os.path.splitext(filepath)[0]+'.pdf'
-                print '  -Converting '+ps+' file into a PDF '+pdf_path+' ...'
-                #convertion in pdf
-                os.system('ps2pdf '+filepath+' '+pdf_path)
+            if filepath.lower().endswith('.ps'):
+                ps = os.path.basename(filepath)
+                pdf_path = os.path.splitext(filepath)[0]+'.pdf'
+                ps2pdf_cmd = '''ps2pdf {ps} {pdf}'''.format(ps=filepath, pdf=pdf_path)
+                print '''  -Convertion {cmd} ...'''.format(cmd=ps2pdf_cmd)
+                os.system(ps2pdf_cmd)
             else:
-                pdf_path=filepath
-    
-            #make the resource folder
-            if not os.path.exists(self.dir+'/PDF'):
-                os.mkdir(self.dir+'/PDF')
-    
-            #mv the pdf
-            print'  -Copying PDF: '+pdf_path+' to '+self.dir
-            os.system('cp '+pdf_path+' '+self.dir+'/PDF/')
-            self.finish=1
+                pdf_path = filepath
+            self.add_file(pdf_path, 'PDF')
+            self.has_pdf = 1
 
-    def add_snapshot(self,snapshot):
-        #check if the file exists:
-        if not os.path.exists(snapshot.strip()):
-            self.error=1
-            print 'ERROR: file '+snapshot+' does not exists.'
-        else:
-            #make the resource folder
-            if not os.path.exists(self.dir+'/SNAPSHOTS'):
-                os.mkdir(self.dir+'/SNAPSHOTS')
-            #mv the snapshot
-            print'  -Copying SNAPSHOTS: '+snapshot+' to '+self.dir
-            os.system('cp '+snapshot+' '+self.dir+'/SNAPSHOTS/')
+    def add_snapshot(self, snapshot):
+    	""" add a file to resource snapshot in the upload dir """
+    	self.add_file(snapshot, 'SNAPSHOTS')
 
-    def add_file(self,filePath,Resource):
-        #check if the file exists:
-        if not os.path.exists(filePath.strip()):
-            self.error=1
-            print 'ERROR: file '+filePath+' does not exists.'
-        else:
+    def add_file(self, filepath, resource):
+    	""" add a file to the upload dir under the resource name """
+        if self.file_exists(filepath):
             #make the resource folder
-            if not os.path.exists(self.dir+'/'+Resource):
-                os.mkdir(self.dir+'/'+Resource)
+            respath = os.path.join(self.directory,resource)
+            if not os.path.exists(respath):
+                os.mkdir(respath)
             #mv the file
-            respath=os.path.join(self.dir,Resource)
-            print'  -Copying '+Resource+': '+filePath+' to '+respath
-            os.system('cp '+filePath+' '+respath)
+            print_copying_statement(resource, filepath, respath)
+            shutil.copyfile(filepath, respath)
             #if it's a nii or a rec file, gzip it:
-            if filePath.lower().endswith('.nii') or filePath.lower().endswith('.rec'):
-                os.system('gzip '+os.path.join(respath,os.path.basename(filePath)))
+            if filepath.lower().endswith('.nii') or filepath.lower().endswith('.rec'):
+                os.system('gzip '+os.path.join(respath,os.path.basename(filepath)))
 
-    def add_folder(self,FolderPath,ResourceName=None):
-        #check if the folder exists:
-        if not os.path.exists(FolderPath.strip()):
-            self.error=1
-            print 'ERROR: folder '+FolderPath+' does not exists.'
-        else:
-            if not ResourceName:
-                res=os.path.basename(os.path.abspath(FolderPath))
+    def add_folder(self, folderpath, resource_name=None):
+    	""" add a folder to the upload dir (with a specific name if specified) """
+        if self.folder_exists(folderpath):
+            if not resource_name:
+                res = os.path.basename(os.path.abspath(folderpath))
             else:
-		        res=ResourceName
-            dest=os.path.join(self.dir,res)
+		        res = resource_name
+            dest=os.path.join(self.directory,res)
 
             try:
-                shutil.copytree(FolderPath, dest)
-                print'  -Copying '+res+' : '+FolderPath+' to '+dest
+                shutil.copytree(folderpath, dest)
+                print_copying_statement(res, folderpath, dest)
             # Directories are the same
             except shutil.Error as e:
                 print('Directory not copied. Error: %s' % e)
@@ -154,49 +225,52 @@ class SpiderProcessHandler:
                 print('Directory not copied. Error: %s' % e)
 
     def setAssessorStatus(self, status):
+    	""" Set the status of an assessor """
         # Connection to Xnat
         try:
             xnat = get_interface()
-
-            assessor=xnat.select('/project/'+self.project+'/subjects/'+self.subject+'/experiments/'+self.experiment+'/assessors/'+self.assessor_label)
+            assessor = self.assr_handler.select_assessor(xnat)
             if assessor.exists():
-                if 'FS'==self.assessor_label.split('-x-')[-1]:
-                    assessor.attrs.set('fs:fsdata/procstatus',status)
+                if self.assr_handler.proctype() == 'FS':
+                    assessor.attrs.set('fs:fsdata/procstatus', status)
                     print '  -status set for FreeSurfer to '+str(status)
                 else:
-                    assessor.attrs.set('proc:genProcData/procstatus',status)
+                    assessor.attrs.set('proc:genProcData/procstatus', status)
                     print '  -status set for assessor to '+str(status)
         finally:
             xnat.disconnect()
 
     def done(self):
+    	""" create the flagfile and set the assessor with the new status """
         #creating the version file to give the spider version:
-        f=open(os.path.join(self.dir,'version.txt'),'w')
-        f.write(self.version)
-        f.close()
+        f_obj = open(os.path.join(self.directory, 'version.txt'),'w')
+        f_obj.write(self.version)
+        f_obj.close()
         #Finish the folder
-        if self.finish and not self.error:
-            print'INFO: Job ready to be upload, error: '+ str(self.error)
+        if not self.error and self.has_pdf:
+            print 'INFO: Job ready to be upload, error: '+ str(self.error)
             #make the flag folder
-            open(os.path.join(self.dir,'READY_TO_UPLOAD.txt'), 'w').close()
+            open(os.path.join(self.directory, DEFAULT_READY_TO_UPLOAD_FLAGFILE), 'w').close()
             #set status to ReadyToUpload
-            self.setAssessorStatus('READY_TO_UPLOAD')
+            self.setAssessorStatus(READY_TO_UPLOAD)
         else:
-            print'INFO: Job failed, check the outlogs, error: '+ str(self.error)
+            print 'INFO: Job failed, check the outlogs, error: '+ str(self.error)
             #make the flag folder
-            open(os.path.join(self.dir,'JOB_FAILED.txt'), 'w').close()
+            open(os.path.join(self.directory, DEFAULT_JOB_FAILED_FLAGFILE), 'w').close()
             #set status to JOB_FAILED
-            self.setAssessorStatus('JOB_FAILED')
+            self.setAssessorStatus(JOB_FAILED)
 
     def clean(self,directory):
-        if self.finish and not self.error:
+    	""" clean directory if no error and pdf created """
+        if self.has_pdf and not self.error:
             #Remove the data
             shutil.rmtree(directory)
-            
+
 ####################################################################################
 #                       Access XNAT and list of XNAT Objs                          #
-####################################################################################    
-def get_interface(host=None,user=None,pwd=None):
+####################################################################################
+def get_interface(host=None, user=None, pwd=None):
+	""" open interface with XNAT using your log-in information """
     if user == None:
         user = os.environ['XNAT_USER']
     if pwd == None:
@@ -207,16 +281,19 @@ def get_interface(host=None,user=None,pwd=None):
     return InterfaceTemp(host, user, pwd)
 
 def list_projects(intf):
+	""" list of dictionaries for project that you have access to """
     post_uri = '/REST/projects'
     projects_list = intf._get_json(post_uri)
     return projects_list
     
 def list_project_resources(intf, projectid):
+	""" list of dictionaries for the project resources """
     post_uri = '/REST/projects/'+projectid+'/resources'
     resource_list = intf._get_json(post_uri)
     return resource_list
 
 def list_subjects(intf, projectid=None):
+	""" list of dictionaries for subjects in a project """
     if projectid:
         post_uri = '/REST/projects/'+projectid+'/subjects'
     else:
@@ -240,11 +317,13 @@ def list_subjects(intf, projectid=None):
     return sorted(subject_list, key=lambda k: k['subject_label'])
     
 def list_subject_resources(intf, projectid,subjectid):
+	""" list of dictionaries for the subjects resources """
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/resources'
     resource_list = intf._get_json(post_uri)
     return resource_list
 
 def list_experiments(intf, projectid=None, subjectid=None):
+	""" list of dictionaries for sessions in a project or subject with less details than list_session"""
     if projectid and subjectid:
         post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
     elif projectid == None and subjectid == None:
@@ -261,7 +340,7 @@ def list_experiments(intf, projectid=None, subjectid=None):
         if (projectid != None):
             # Override the project returned to be the one we queried and add others for convenience
             e['project'] = projectid
-            
+
         e['subject_id'] = e['subject_ID'] 
         e['session_id'] = e['ID']
         e['session_label'] = e['label']
@@ -271,14 +350,16 @@ def list_experiments(intf, projectid=None, subjectid=None):
     return sorted(experiment_list, key=lambda k: k['session_label'])
     
 def list_experiment_resources(intf, projectid, subjectid, experimentid):
+	""" list of dictionaries for the session resources """
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/resources'
     resource_list = intf._get_json(post_uri)
     return resource_list
 
 def list_sessions(intf, projectid=None, subjectid=None):
+	""" list of dictionaries for sessions in one project or one subject """
     type_list = []
     full_sess_list = []
-    
+
     if projectid and subjectid:
         post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
     elif projectid == None and subjectid == None:
@@ -287,7 +368,7 @@ def list_sessions(intf, projectid=None, subjectid=None):
         post_uri = '/REST/projects/'+projectid+'/experiments'
     else:
         return None
-    
+
     # First get a list of all experiment types
     post_uri_types = post_uri+'?columns=xsiType'
     sess_list = intf._get_json(post_uri_types)
@@ -295,21 +376,21 @@ def list_sessions(intf, projectid=None, subjectid=None):
         sess_type = sess['xsiType'].lower()
         if sess_type not in type_list:
             type_list.append(sess_type)
-    
+
     #Get the subjects list to get the subject ID:
     subj_list = list_subjects(intf, projectid)
-    subj_id2lab = dict((subj['ID'], [subj['handedness'],subj['gender'],subj['yob']]) for subj in subj_list)
-    
+    subj_id2lab = dict((subj['ID'], [subj['handedness'], subj['gender'], subj['yob']]) for subj in subj_list)
+
     # Get list of sessions for each type since we have to specific about last_modified field
     for sess_type in type_list:
         post_uri_type = post_uri + '?xsiType='+sess_type+'&columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,'+sess_type+'/age,label,'+sess_type+'/meta/last_modified,'+sess_type+'/original'
         sess_list = intf._get_json(post_uri_type)
-        
+
         for sess in sess_list:
             # Override the project returned to be the one we queried
             if (projectid != None):
                 sess['project'] = projectid
-            
+
             sess['project_id'] = sess['project']
             sess['project_label'] = sess['project']
             sess['subject_id'] = sess['subject_ID']
@@ -323,14 +404,15 @@ def list_sessions(intf, projectid=None, subjectid=None):
             sess['handedness'] = subj_id2lab[sess['subject_ID']][0]
             sess['gender'] = subj_id2lab[sess['subject_ID']][1]
             sess['yob'] = subj_id2lab[sess['subject_ID']][2]
-        
+
         # Add sessions of this type to full list    
         full_sess_list.extend(sess_list)
-    
+
     # Return list sorted by label
     return sorted(full_sess_list, key=lambda k: k['session_label'])
 
 def list_scans(intf, projectid, subjectid, experimentid):
+	""" list of dictionaries for scans in one session """
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
     post_uri += '?columns=ID,URI,label,subject_label,project'
     post_uri += ',xnat:imagesessiondata/scans/scan/id'
@@ -372,11 +454,12 @@ def list_scans(intf, projectid, subjectid, experimentid):
     return sorted(new_list, key=lambda k: k['label'])
     
 def list_project_scans(intf, projectid, include_shared=True):
+	""" list of dictionaries for scans in a project """
     new_list = []
-    
+
     #Get the sessions list to get the modality:
     session_list=list_sessions(intf, projectid)
-    sess_id2mod=dict((sess['session_id'], [sess['handedness'],sess['gender'],sess['yob'],sess['age'],sess['last_modified'],sess['last_updated']]) for sess in session_list)
+    sess_id2mod=dict((sess['session_id'], [sess['handedness'], sess['gender'], sess['yob'], sess['age'], sess['last_modified'], sess['last_updated']]) for sess in session_list)
 
     post_uri = '/REST/archive/experiments'
     post_uri += '?project='+projectid
@@ -422,7 +505,7 @@ def list_project_scans(intf, projectid, include_shared=True):
         snew['last_modified'] = sess_id2mod[s['ID']][4]
         snew['last_updated'] = sess_id2mod[s['ID']][5]
         new_list.append(snew)
-        
+
     if (include_shared):
         post_uri = '/REST/archive/experiments'
         post_uri += '?xnat:imagesessiondata/sharing/share/project='+projectid
@@ -436,7 +519,7 @@ def list_project_scans(intf, projectid, include_shared=True):
         post_uri += ',xnat:imagescandata/frames'
         post_uri += ',xnat:imagescandata/series_description'
         scan_list = intf._get_json(post_uri)
-    
+
         for s in scan_list:
             snew = {}
             snew['scan_id']      = s['xnat:imagescandata/id']
@@ -468,15 +551,17 @@ def list_project_scans(intf, projectid, include_shared=True):
             snew['last_modified'] = sess_id2mod[s['ID']][4]
             snew['last_updated'] = sess_id2mod[s['ID']][5]
             new_list.append(snew)
-            
+
     return sorted(new_list, key=lambda k: k['scan_label'])
 
 def list_scan_resources(intf, projectid, subjectid, experimentid, scanid):
+	""" list of dictionaries for the scan resources """
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/scans/'+scanid+'/resources'
     resource_list = intf._get_json(post_uri)
     return resource_list
 
 def list_assessors(intf, projectid, subjectid, experimentid):
+	""" list of dictionaries for assessors in one session """
     new_list = []
 
     # First get FreeSurfer
@@ -500,10 +585,6 @@ def list_assessors(intf, projectid, subjectid, experimentid):
         anew['procstatus'] = a['fs:fsdata/procstatus']
         anew['qcstatus'] = a['fs:fsdata/validation/status']
         anew['proctype'] = 'FreeSurfer'
-
-        #if len(a['label'].rsplit('-x-FS')) > 1:
-        #    anew['proctype'] = anew['proctype']+a['label'].rsplit('-x-FS')[1]
-
         anew['xsiType'] = a['xsiType']
         new_list.append(anew)
 
@@ -534,11 +615,12 @@ def list_assessors(intf, projectid, subjectid, experimentid):
     return sorted(new_list, key=lambda k: k['label'])
 
 def list_project_assessors(intf, projectid):
+	""" list of dictionaries for assessors in a project """
     new_list = []
-    
+
     #Get the sessions list to get the different variables needed:
     session_list=list_sessions(intf, projectid)
-    sess_id2mod=dict((sess['session_id'], [sess['subject_label'],sess['type'],sess['handedness'],sess['gender'],sess['yob'],sess['age'],sess['last_modified'],sess['last_updated']]) for sess in session_list)
+    sess_id2mod=dict((sess['session_id'], [sess['subject_label'], sess['type'], sess['handedness'], sess['gender'], sess['yob'], sess['age'], sess['last_modified'], sess['last_updated']]) for sess in session_list)
 
     # First get FreeSurfer
     post_uri = '/REST/archive/experiments'
@@ -569,10 +651,10 @@ def list_project_assessors(intf, projectid):
             anew['procstatus'] = a['fs:fsdata/procstatus']
             anew['qcstatus'] = a['fs:fsdata/validation/status']
             anew['proctype'] = 'FreeSurfer'
-            
+
             if len(a['label'].rsplit('-x-FS')) > 1:
                 anew['proctype'] = anew['proctype']+a['label'].rsplit('-x-FS')[1]
-                
+
             anew['version'] = a.get('fs:fsdata/procversion')
             anew['xsiType'] = a['xsiType']
             anew['jobid'] = a.get('fs:fsdata/jobid')
@@ -632,19 +714,45 @@ def list_project_assessors(intf, projectid):
             anew['last_modified'] = sess_id2mod[a['session_ID']][6]
             anew['last_updated'] = sess_id2mod[a['session_ID']][7]
             new_list.append(anew)
-            
+
     return sorted(new_list, key=lambda k: k['label'])
 
 def list_assessor_out_resources(intf, projectid, subjectid, experimentid, assessorid):
+	""" list of dictionaries for the assessor resources """
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors/'+assessorid+'/out/resources'
     resource_list = intf._get_json(post_uri)
     return resource_list
-    
+
+def get_resource_lastdate_modified(xnat, resource):
+	""" get the last modified data for a resource on XNAT (NOT WORKING: bug on XNAT side) """
+    # xpaths for times in resource xml
+    CREATED_XPATH = "/cat:Catalog/cat:entries/cat:entry/@createdTime"
+    MODIFIED_XPATH = "/cat:Catalog/cat:entries/cat:entry/@modifiedTime"
+    # Get the resource object and its uri
+    res_xml_uri = resource._uri+'?format=xml'
+    # Get the XML for resource
+    xmlstr = xnat._exec(res_xml_uri, 'GET')
+    # Parse out the times
+    root = etree.fromstring(xmlstr)
+    create_times = root.xpath(CREATED_XPATH, namespaces=root.nsmap)
+    mod_times = root.xpath(MODIFIED_XPATH, namespaces=root.nsmap)
+    # Find the most recent time
+    all_times = create_times + mod_times
+    if all_times:
+        max_time = max(all_times)
+        date = max_time.split('.')[0]
+        res_date=date.split('T')[0].replace('-', '')+date.split('T')[1].replace(':', '')
+    else:
+        res_date=('{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())).strip().replace('-', '').replace(':', '').replace(' ', '')
+    return res_date
+
 def select_assessor(intf,assessor_label):
+	""" select assessor from his label """
     labels=assessor_label.split('-x-')
     return intf.select('/project/'+labels['0']+'/subject/'+labels['1']+'/experiment/'+labels['2']+'/assessor/'+assessor_label)
 
 def get_full_object(intf,obj_dict):
+	""" select object on XNAT from dictionary """
     if 'scan_id' in obj_dict:
         proj = obj_dict['project_id']
         subj = obj_dict['subject_id']
@@ -669,42 +777,29 @@ def get_full_object(intf,obj_dict):
     else:
         return None
 
-def get_assessor(xnat,projid,subjid,sessid,assrid):
+def get_assessor(xnat, projid, subjid, sessid, assrid):
+	""" select assessor from ids or labels """
     assessor = xnat.select('/projects/'+projid+'/subjects/'+subjid+'/experiments/'+sessid+'/assessors/'+assrid)
     return assessor
     
-def get_resource_lastdate_modified(xnat,resource):
-    # xpaths for times in resource xml
-    CREATED_XPATH = "/cat:Catalog/cat:entries/cat:entry/@createdTime"
-    MODIFIED_XPATH = "/cat:Catalog/cat:entries/cat:entry/@modifiedTime"
-    
-    # Get the resource object and its uri
-    res_xml_uri = resource._uri+'?format=xml'
-    
-    # Get the XML for resource
-    xmlstr = xnat._exec(res_xml_uri, 'GET')
-    
-    # Parse out the times
-    root = etree.fromstring(xmlstr)
-    create_times = root.xpath(CREATED_XPATH, namespaces=root.nsmap)
-    mod_times = root.xpath(MODIFIED_XPATH, namespaces=root.nsmap)
-    
-    # Find the most recent time
-    all_times = create_times + mod_times
-    if all_times:
-        max_time = max(all_times)
-        date = max_time.split('.')[0]
-        res_date=date.split('T')[0].replace('-','')+date.split('T')[1].replace(':','')
-    else:
-        res_date=('{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())).strip().replace('-','').replace(':','').replace(' ','')
-    return res_date
-
+def select_obj(intf, project=None, subject=None, session=None, scan=None):
+	""" Select different level object from XNAT by giving the label or id """
+	if not project:
+		return None
+	select_str = ''
+	tmp_dict = {'project':project, 'subject':subject, 'experiment':session, 'scan':scan}
+    for key in ['project', 'subject', 'experiment', 'scan']:
+		if tmp_dict[key]:
+			select_str += '''/{key}/{label}'''.format(key=key, label=tmp_dict[key])
+		else:
+			return xnat.select(select_str)
+	return xnat.select(select_str)
 
 ####################################################################################
 #                     Download resources XNAT (Scan/Assessor)                      #
 #################################################################################### 
 ## from a scan given, download the resources
-def download_Scan(Outputdirectory,projectName,subject,experiment,scan,resource_list,all_resources=0):
+def download_Scan(Outputdirectory, projectName, subject, experiment, scan, resource_list, all_resources=0):
     """ Download resources from a specific project/subject/experiment/scan from Xnat into a folder.
 
     parameters :
@@ -718,21 +813,23 @@ def download_Scan(Outputdirectory,projectName,subject,experiment,scan,resource_l
         - all_resources : download all the resources. If 0, download the biggest one.
 
     """
-
-    print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + '/'+ scan
+    print 'Download resources from {project}/{subject}/{session}/{scan}'''.format(project=projectName,
+    																			  subject=subject,
+    																			  session=experiment,
+    																			  scan=scan)
 
     #Check input for subjects_exps_list :
     if isinstance(resource_list, list):
         pass
     elif isinstance(resource_list, str):
-        resource_list=[resource_list]
+        resource_list = [resource_list]
     else:
         print "INPUTS ERROR: Check the format of the list of resources in the download_Scan function. Not a list.\n"
         sys.exit()
 
     try:
         xnat = get_interface()
-        SCAN=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan)
+        SCAN = xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan)
         if SCAN.exists():
             if SCAN.attrs.get('quality')!='unusable':
                 dl_good_resources_scan(SCAN,resource_list,Outputdirectory,all_resources)
