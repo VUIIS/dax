@@ -17,7 +17,7 @@ import redcap
 
 import log
 import XnatUtils
-from dax_settings import  API_URL,API_KEY_DAX,API_KEY_XNAT,REDCAP_VAR
+from dax_settings import  API_URL, API_KEY_DAX, API_KEY_XNAT, REDCAP_VAR
 
 def set_logger(logfile, debug):
     #Logger for logs
@@ -26,11 +26,11 @@ def set_logger(logfile, debug):
     else:
         logger = log.setup_info_logger('dax', logfile)
     return logger
-    
+
 def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None):
     #Logger for logs
     logger=set_logger(logfile,debug)
-        
+
     logger.info('Current Process ID: '+str(os.getpid()))
     logger.info('Current Process Name: dax.bin.update('+settings_path+')')
     # Load the settings file
@@ -46,7 +46,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None):
 def build(settings_path, logfile, debug, projects=None, sessions=None):
     #Logger for logs
     logger=set_logger(logfile,debug)
-        
+
     logger.info('Current Process ID: '+str(os.getpid()))
     logger.info('Current Process Name: dax.bin.update('+settings_path+')')
     # Load the settings file
@@ -62,7 +62,7 @@ def build(settings_path, logfile, debug, projects=None, sessions=None):
 def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
     #Logger for logs
     logger=set_logger(logfile,debug)
-        
+
     logger.info('Current Process ID: '+str(os.getpid()))
     logger.info('Current Process Name: dax.bin.update_open_tasks('+settings_path+')')
     # Load the settings file
@@ -79,7 +79,7 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
 #                           Save in REDCap jobs running or last_update time and PID                              #
 ##################################################################################################################
 #function to send the data to the VUIIS XNAT Jobs redcap project about what is running
-def save_job_redcap(data,record_id):
+def save_job_redcap(data, record_id):
     logger=logging.getLogger('dax')
     if API_URL and API_KEY_XNAT:
         try:
@@ -94,34 +94,34 @@ def save_job_redcap(data,record_id):
     return 0
 
 #create the data record for redcap
-def create_record_redcap(project,SM_name):
+def create_record_redcap(project, SM_name):
     """ SM_name means the spider name or modules name: name_v# or name_vDEV#
     """
     #data for redcap
-    data=dict()
+    data = dict()
     #create the record_ID
-    date=str(datetime.now())
-    record_id=project+'-'+date.strip().replace(':','_').replace('.','_').replace(' ','_')
-    labels=SM_name.split('_v')
+    date = str(datetime.now())
+    record_id = project+'-'+date.strip().replace(':', '_').replace('.', '_').replace(' ', '_')
+    labels = SM_name.split('_v')
     #version in the name, if not it's 0
-    if len(labels)>1:
+    if len(labels) > 1:
         # _v ( equals to 2 characters) + number of characters in the last labels that is the version number
-        nb_c=2+len(labels[-1])
-        name=SM_name[:-nb_c]
-        version='v'+labels[-1]
+        nb_c = 2 + len(labels[-1])
+        name = SM_name[:-nb_c]
+        version = 'v' + labels[-1]
     else:
-        name=SM_name
-        version='v0'
+        name = SM_name
+        version = 'v0'
 
     #create the data for redcap
-    data['record_id']=record_id
-    data['spider_module_name']=name
-    data['spider_module_version']=version
-    data['date']=date
-    data['xnat_project']=project
+    data['record_id'] = record_id
+    data['spider_module_name'] = name
+    data['spider_module_version'] = version
+    data['date'] = date
+    data['xnat_project'] = project
     data['hostname'] = socket.gethostname()
     data['pi_lastname'] = pi_from_project(project)
-    return data,record_id
+    return data, record_id
 
 def pi_from_project(project):
     pi = ''
@@ -135,36 +135,40 @@ def pi_from_project(project):
         xnat.disconnect()
         return pi
 
-def upload_update_date_redcap(project_list,type_update,start_end):
+def upload_update_date_redcap(project_list, type_update, start_end):
     """ 
         project_list: projects from XNAT that corresponds to record on REDCap
-        type_update : 1 for dax_update / 2 for dax_update_open_tasks
+        type_update : 1 for dax_build / 2 for dax_update_tasks / 3 for dax_launch
         start_end   : 1 for starting date / 2 for ending date
     """
-    logger=logging.getLogger('dax')
+    logger = logging.getLogger('dax')
     if API_URL and API_KEY_DAX and REDCAP_VAR:
-        rc=None
+        rc = None
         try:
-            rc = redcap.Project(API_URL,API_KEY_DAX)
+            rc = redcap.Project(API_URL, API_KEY_DAX)
         except:
-            logger.warn('Could not access redcap. Either wrong API_URL/API_KEY or redcap down. The last update PID and data will not be saved.')
-        
+            logger.warn('Could not access redcap. Either wrong API_URL/API_KEY or redcap down.')
+
         if rc:
-            data=list()
+            data = list()
             for project in project_list:
-                to_upload=dict()
-                to_upload[REDCAP_VAR['project']]=project
-                if type_update==1 and start_end==1:
-                    to_upload[REDCAP_VAR['update_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now()) 
-                    to_upload[REDCAP_VAR['update_end_date']]='In Process'
-                    to_upload[REDCAP_VAR['update_pid']]=str(os.getpid())
-                elif type_update==1 and start_end==2:
-                    to_upload[REDCAP_VAR['update_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-                elif type_update==2 and start_end==1:
-                    to_upload[REDCAP_VAR['open_start_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-                    to_upload[REDCAP_VAR['open_end_date']]='In Process'
-                    to_upload[REDCAP_VAR['update_open_pid']]=str(os.getpid())
-                elif type_update==2 and start_end==2:
-                    to_upload[REDCAP_VAR['open_end_date']]='{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
+                to_upload = dict()
+                to_upload[REDCAP_VAR['project']] = project
+                if type_update == 1:
+                    to_upload = set_variables_dax_manager(to_upload, 'build', start_end)
+                elif type_update == 2:
+                    to_upload = set_variables_dax_manager(to_upload, 'update', start_end)
+                elif type_update == 3:
+                    to_upload = set_variables_dax_manager(to_upload, 'launch', start_end)
                 data.append(to_upload)
-            XnatUtils.upload_list_records_redcap(rc,data)
+            XnatUtils.upload_list_records_redcap(rc, data)
+            
+def set_variables_dax_manager(record_data, field_prefix, start_end):
+    """ set fields to upload to redcap for PID/dates (dax_manager) """
+    if start_end == 1:
+        to_upload[REDCAP_VAR[field_prefix+'_start_date']] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now()) 
+        to_upload[REDCAP_VAR[field_prefix+'_end_date']] = 'In Process'
+        to_upload[REDCAP_VAR[field_prefix+'_pid']] = str(os.getpid())
+    elif start_end == 2:
+        to_upload[REDCAP_VAR[field_prefix+'_end_date']] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
+    return to_upload
