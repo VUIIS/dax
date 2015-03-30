@@ -28,5 +28,5 @@ if __name__ == '__main__':
 
     # Run the updates
     logger.info('running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.update(lockfile_prefix,args.project,args.sessions)
+    settings.myLauncher.build(lockfile_prefix,args.project,args.sessions)
     logger.info('finished update, End Time: '+str(datetime.now()))
