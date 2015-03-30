@@ -50,26 +50,26 @@ PS: In this file, all variable default are read if the .bashrc or your configura
 set.
 """
 #### Admin email for dax_manager ####
-ADMIN_EMAIL=[]
+ADMIN_EMAIL = []
 
 #### Default value set by users ####
 #Function for PBS cluster jobs:
 #Command to submit job to the cluster:
-CMD_SUBMIT='sbatch'
-PREFIX_JOBID='Submitted batch job '
-SUFFIX_JOBID='\n'
+CMD_SUBMIT = 'sbatch'
+PREFIX_JOBID = 'Submitted batch job '
+SUFFIX_JOBID = '\n'
 #Command to count the number of jobs running for a user
-CMD_COUNT_NB_JOBS="squeue -u $USER --noheader | wc -l"
+CMD_COUNT_NB_JOBS = "squeue -u $USER --noheader | wc -l"
 #Command to get the status of a job giving it jobid. Shoudl return R/Q/C for running/queue or others that will mean clear
-CMD_GET_JOB_STATUS=Template("""squeue -j ${jobid} --noheader | awk {'print $5'}""")
-RUNNING_STATUS='R'
-QUEUE_STATUS='Q'
+CMD_GET_JOB_STATUS = Template("""squeue -j ${jobid} --noheader | awk {'print $5'}""")
+RUNNING_STATUS = 'R'
+QUEUE_STATUS = 'Q'
 #Command to get the walltime and memory used by the jobs at the end of the job
-CMD_GET_JOB_MEMORY=Template("""sacct -j ${jobid}.batch --format MaxRss --noheader | awk '{print $1+0}'""")
-CMD_GET_JOB_WALLTIME=Template("""sacct -j ${jobid}.batch --format CPUTime --noheader""")
-CMD_GET_JOB_NODE=Template("""sacct -j ${jobid}.batch --format NodeList --noheader""")
+CMD_GET_JOB_MEMORY = Template("""sacct -j ${jobid}.batch --format MaxRss --noheader | awk '{print $1+0}'""")
+CMD_GET_JOB_WALLTIME = Template("""sacct -j ${jobid}.batch --format CPUTime --noheader""")
+CMD_GET_JOB_NODE = Template("""sacct -j ${jobid}.batch --format NodeList --noheader""")
 #Template for your script file to submit a job
-JOB_EXTENSION_FILE='.slurm' 
+JOB_EXTENSION_FILE = '.slurm' 
 JOB_TEMPLATE = Template("""#!/bin/bash
 #SBATCH --mail-user=${job_email}
 #SBATCH --mail-type=${job_email_options}
@@ -84,7 +84,7 @@ uname -a # outputs node info (name, date&time, type, OS, etc)
 ${job_cmds}
 """)
 #Default EMAIL options:
-DEFAULT_EMAIL_OPTS='FAIL'
+DEFAULT_EMAIL_OPTS = 'FAIL'
 
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
@@ -94,72 +94,75 @@ DEFAULT_ROOT_JOB_DIR = '/tmp'
 #Number maximun of job in the queue:
 DEFAULT_QUEUE_LIMIT = 600
 #Result dir
-DEFAULT_RESULTS_DIR=os.path.join(USER_HOME,'RESULTS_XNAT_SPIDER')
+DEFAULT_RESULTS_DIR = os.path.join(USER_HOME,'RESULTS_XNAT_SPIDER')
 #Email
-DEFAULT_SMTP_HOST='stmp.gmail.com'  #google
-DEFAULT_SMTP_FROM=None
-DEFAULT_SMTP_PASS=None
+DEFAULT_SMTP_HOST = 'stmp.gmail.com'  #google
+DEFAULT_SMTP_FROM = None
+DEFAULT_SMTP_PASS = None
 #REDCap
-DEFAULT_API_URL='https://redcap.vanderbilt.edu/api/'
-DEFAULT_API_KEY_DAX=None
-DEFAULT_API_KEY_XNAT=None
+DEFAULT_API_URL = 'https://redcap.vanderbilt.edu/api/'
+DEFAULT_API_KEY_DAX = None
+DEFAULT_API_KEY_XNAT = None
 #Dictionary with variable name on REDCap:                   Variable for:
-REDCAP_VAR={'project':'dax_project',                        #record_id (project on XNAT)
-            'settingsfile':'dax_settings_full_path',        #path on your computer to the settings file
-            'masimatlab':'dax_masimatlab',                  #path to masimatlab
-            'tmp':'dax_tmp_directory',                      #tmp folder to hold data for modules
-            'logsdir':'dax_logs_path',                      #folder to hold logs for updates
-            'user':'dax_cluster_user',                      #user that will run the project (USER env variable)
-            'gateway':'dax_gateway',                        #name of your computer set in this settings or from gateway if cluster
-            'email':'dax_email_address',                    #email address for report
-            'queue':'dax_queue_limit',                      #queue limit that you allow for the project
-            'priority':'dax_proj_order',                    #project order number: 1 will be first and then ...
-            'email_opts':'dax_job_email_options',           #job options for job on cluster (bae)
-            'update_start_date':'dax_update_start_date',    #date for dax_update, the last one starting
-            'update_end_date':'dax_update_end_date',        #date for dax_update, the last one ending
-            'open_start_date':'dax_update_open_start_date', #date for dax_update_open_tasks, the last one starting
-            'open_end_date':'dax_update_open_end_date',     #date for dax_update_open_tasks, the last one ending
-            'update_pid':'dax_update_pid',                  #pid for update
-            'update_open_pid':'dax_update_open_pid'}        #pid for update_open
+REDCAP_VAR = {'project':'dax_project',                        #record_id (project on XNAT)
+              'settingsfile':'dax_settings_full_path',        #path on your computer to the settings file
+              'masimatlab':'dax_masimatlab',                  #path to masimatlab
+              'tmp':'dax_tmp_directory',                      #tmp folder to hold data for modules
+              'logsdir':'dax_logs_path',                      #folder to hold logs for updates
+              'user':'dax_cluster_user',                      #user that will run the project (USER env variable)
+              'gateway':'dax_gateway',                        #name of your computer set in this settings or from gateway if cluster
+              'email':'dax_email_address',                    #email address for report
+              'queue':'dax_queue_limit',                      #queue limit that you allow for the project
+              'priority':'dax_proj_order',                    #project order number: 1 will be first and then ...
+              'email_opts':'dax_job_email_options',           #job options for job on cluster (bae)
+              'build_start_date':'dax_build_start_date',      #date for dax_build, the last one starting
+              'build_end_date':'dax_build_end_date',          #date for dax_build, the last one ending
+              'build_pid':'dax_build_pid',                    #pid for dax_build
+              'update_start_date':'dax_update_start_date',    #date for dax_update_taks, the last one starting
+              'update_end_date':'dax_update_end_date',        #date for dax_update_tasks, the last one ending
+              'update_pid':'dax_update_pid',                  #pid for dax_update_tasks
+              'launch_start_date':'dax_launch_start_date',    #date for dax_launch, the last one starting
+              'launch_end_date':'dax_launch_end_date',        #date for dax_launch, the last one ending
+              'launch_pid':'dax_launch_pid',}                 #pid for dax_launch
 
 #### Getting value from the environ variable if set or default value (do not touch) ####
 #Upload directory
 if 'UPLOAD_SPIDER_DIR' not in os.environ:
-    RESULTS_DIR=DEFAULT_RESULTS_DIR
+    RESULTS_DIR = DEFAULT_RESULTS_DIR
     if not os.path.exists(RESULTS_DIR):
         os.mkdir(RESULTS_DIR)
 else:
-    RESULTS_DIR=os.environ['UPLOAD_SPIDER_DIR'] 
+    RESULTS_DIR = os.environ['UPLOAD_SPIDER_DIR'] 
 #Settings to send email (optional):
 #STMP_FROM:
 if 'SMTP_FROM' not in os.environ:
-    SMTP_FROM=DEFAULT_SMTP_FROM
+    SMTP_FROM = DEFAULT_SMTP_FROM
 else:
-    SMTP_FROM=os.environ['SMTP_FROM'] 
+    SMTP_FROM = os.environ['SMTP_FROM'] 
 #API_URL:
 if 'SMTP_PASS' not in os.environ:
-    SMTP_PASS=DEFAULT_SMTP_PASS
+    SMTP_PASS = DEFAULT_SMTP_PASS
 else:
-    SMTP_PASS=os.environ['SMTP_PASS'] 
+    SMTP_PASS = os.environ['SMTP_PASS'] 
 #API_URL:
 if 'SMTP_HOST' not in os.environ:
-    SMTP_HOST=DEFAULT_SMTP_HOST
+    SMTP_HOST = DEFAULT_SMTP_HOST
 else:
-    SMTP_HOST=os.environ['SMTP_HOST'] 
+    SMTP_HOST = os.environ['SMTP_HOST'] 
 #Management using REDCap (optional):
 #Variables for REDCap:
 #API_URL:
 if 'API_URL' not in os.environ:
-    API_URL=DEFAULT_API_URL
+    API_URL = DEFAULT_API_URL
 else:
-    API_URL=os.environ['API_URL'] 
+    API_URL = os.environ['API_URL'] 
 #API_KEY for dax project (save here or in .bashrc and name the env variable API_KEY_DAX):
 if 'API_KEY_DAX' not in os.environ:
-    API_KEY_DAX=DEFAULT_API_KEY_DAX
+    API_KEY_DAX = DEFAULT_API_KEY_DAX
 else:
     API_KEY_DAX=os.environ['API_KEY_DAX']
 #API_KEY for XNAT project where each jobs will correspond to a job submit to cluster (save here or in .bashrc and name the env variable API_KEY_XNAT):
 if 'API_KEY_XNAT' not in os.environ:
-    API_KEY_XNAT=DEFAULT_API_KEY_XNAT
+    API_KEY_XNAT = DEFAULT_API_KEY_XNAT
 else:
-    API_KEY_XNAT=os.environ['API_KEY_XNAT'] 
+    API_KEY_XNAT = os.environ['API_KEY_XNAT'] 
