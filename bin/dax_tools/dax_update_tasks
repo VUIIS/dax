@@ -7,7 +7,7 @@ from dax import bin
 
 def parse_args():
     from argparse import ArgumentParser
-    ap = ArgumentParser(prog='dax_update_open_tasks', description="Updates tasks status ")
+    ap = ArgumentParser(prog='dax_update_open_tasks', description="Updates tasks status for open tasks (NEED_INPUTS/JOB_RUNNIN/JOB_FAILED/READY_TO_COMPLETE) ")
     ap.add_argument(dest='settings_path', help='Settings Path')
     ap.add_argument('--logfile', dest='logfile', help='Logs file path if needed.', default=None)
     ap.add_argument('--project', dest='project', help='Project ID from XNAT to run dax_update_open_taks on locally (only one project).', default=None)
@@ -17,18 +17,5 @@ def parse_args():
 
 if __name__ == '__main__':   
     args = parse_args()
-    settings_path = args.settings_path
-    
-    #Logger for logs
-    logger=bin.set_logger(args.logfile, args.debug)
-        
-    # Load the settings file
-    logger.info('loading settings from:'+settings_path)
-    settings = imp.load_source('settings', settings_path)
-    lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
 
-    # Run the update
-    logger.info('updating open tasks, Start Time:'+str(datetime.now()))
-    settings.myLauncher.update_open_tasks(lockfile_prefix, args.project, args.sessions)
-    logger.info('finished open tasks, End Time: '+str(datetime.now()))
-
+    bin.update_tasks(args.settings_path, args.logfile, args.debug, args.project, args.sessions)
