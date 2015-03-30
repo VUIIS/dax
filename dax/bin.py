@@ -27,7 +27,7 @@ def set_logger(logfile, debug):
         logger = log.setup_info_logger('dax', logfile)
     return logger
     
-def launch_jobs(settings_path, logfile, debug):
+def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None):
     #Logger for logs
     logger=set_logger(logfile,debug)
         
@@ -40,10 +40,10 @@ def launch_jobs(settings_path, logfile, debug):
 
     # Run the updates
     logger.info('running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.launch_jobs(lockfile_prefix, None, None)
+    settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions)
     logger.info('finished update, End Time: '+str(datetime.now()))
 
-def build(settings_path, logfile, debug):
+def build(settings_path, logfile, debug, projects=None, sessions=None):
     #Logger for logs
     logger=set_logger(logfile,debug)
         
@@ -56,10 +56,10 @@ def build(settings_path, logfile, debug):
 
     # Run the updates
     logger.info('running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.build(lockfile_prefix, None, None)
+    settings.myLauncher.build(lockfile_prefix, projects, sessions)
     logger.info('finished update, End Time: '+str(datetime.now()))
 
-def update_tasks(settings_path, logfile, debug):
+def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
     #Logger for logs
     logger=set_logger(logfile,debug)
         
@@ -72,7 +72,7 @@ def update_tasks(settings_path, logfile, debug):
 
     # Run the update
     logger.info('updating open tasks, Start Time:'+str(datetime.now()))
-    settings.myLauncher.update_tasks(lockfile_prefix, None, None)
+    settings.myLauncher.update_tasks(lockfile_prefix, projects, sessions)
     logger.info('finished open tasks, End Time: '+str(datetime.now()))
 
 ##################################################################################################################
