@@ -14,19 +14,8 @@ def parse_args():
     ap.add_argument('--sessions', dest='sessions', help='list of sessions label from XNAT to run dax_update on locally.', default=None)
     ap.add_argument('--debug', dest='debug', action='store_true', help='Print DEBUG information.')
     return ap.parse_args()
-    
+
 if __name__ == '__main__':   
     args = parse_args()
-    settings_path = args.settings_path
-    
-    #Logger for logs
-    logger=bin.set_logger(args.logfile, args.debug)
-    # Load the settings file
-    logger.info('loading settings from:'+settings_path)
-    settings = imp.load_source('settings', settings_path)
-    lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
 
-    # Run the updates
-    logger.info('running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.launch_jobs(lockfile_prefix, args.project, args.sessions)
-    logger.info('finished update, End Time: '+str(datetime.now()))
+    bin.launch_jobs(args.settings_path, args.logfile, args.debug, args.project, args.sessions)
