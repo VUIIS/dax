@@ -796,41 +796,68 @@ def select_obj(intf, project=None, subject=None, session=None, scan=None):
 	return xnat.select(select_str)
 
 ####################################################################################
-#                     Download resources XNAT (Scan/Assessor)                      #
-#################################################################################### 
+#                     Download resources from XNAT                                 #
+####################################################################################
+# Download from a resource:
+# a file / biggest file / all files: default biggest_file downloaded
+def download_resource(directory, resource_obj, xnat_fpath_list=list(), all_files=None):
+	""" Download files from resources (all files / specific files / biggest resource) """
+	fpath_dl = list() #return empty list if some errors
+	if not resource_obj.exists():
+		print '''ERROR: download_resource in XnatUtils: Folder {path} does not exist.'''.format(path=directory)
+	if os.path.exists(directory):
+		print '''ERROR: download_resource in XnatUtils: Folder {path} does not exist.'''.format(path=directory)
+	if all_files:
+		outputdir = os.path.join(directory, resource_obj.label())
+		resource_obj.get(outputdir, extract=True)
+		return glob.glob(os.path.join(outputdir, '*'))
+	elif xnat_fpath_list:
+		if not isinstance(xnat_fpath_list, list):
+			pass
+		elif isinstance(xnat_fpath_list, str):
+	        xnat_fpath_list = [xnat_fpath_list]
+	    else:
+			print "ERROR: download_resource in XnatUtils: arguments xnat_fpath_list is not a list or a string."
+		else:
+			for fname in xnat_fpath_list:
+				if resource_obj.file(fname).exists():
+					Resource.file(fname).get(os.path.join(directory,fname))
+					fpath_dl.append(os.path.join(directory,fname))
+				else:
+					print '''ERROR: download_resource in XnatUtils: file {name} does not exist for resource {label}.'''.format(name=fname, label=resource_obj.label())
+    else: #Download the biggest resource
+        file_index = 0
+        biggest_size = 0
+        for index, fname in enumerate(resource_obj.files().get()[:]):
+            fsize = int(Resource.file(fname).size())
+            if biggest_size < fsize:
+                biggest_size = size
+                file_index = index
+        if biggest_size > 0:
+            resource_fname = Resource.files().get()[number]
+            Resource.file(resource_fname).get(os.path.join(directory, resource_fname))
+            fpath_dl.append(os.path.join(directory, resource_fname))
+
+    return fpath_dl
+	
 ## from a scan given, download the resources
-def download_Scan(Outputdirectory, projectName, subject, experiment, scan, resource_list, all_resources=0):
-    """ Download resources from a specific project/subject/experiment/scan from Xnat into a folder.
-
-    parameters :
-        - Outputdirectory = directory where the files are going to be download
-        - projectName = project name on Xnat
-        - subject = subject label of the files you want to download from Xnat
-        - experiment = experiment label of the files you want to download from Xnat
-        - scan = scan label of the files you want to download from Xnat
-        - resource_list = List of resources name
-            E.G resource_list=['NIFTI','bval,'bvec']
-        - all_resources : download all the resources. If 0, download the biggest one.
-
-    """
+def download_scan(directory, projectid, subjectid, sessionid, scanid, resource_list, all_resources=0):
+    """ Download resources from a specific project/subject/experiment/scan from Xnat into a folder. """
     print 'Download resources from {project}/{subject}/{session}/{scan}'''.format(project=projectName,
     																			  subject=subject,
     																			  session=experiment,
     																			  scan=scan)
-
-    #Check input for subjects_exps_list :
     if isinstance(resource_list, list):
         pass
     elif isinstance(resource_list, str):
         resource_list = [resource_list]
     else:
-        print "INPUTS ERROR: Check the format of the list of resources in the download_Scan function. Not a list.\n"
-        sys.exit()
-
+        print "ERROR in download_scan: format of resource_list neither a list or a string.\n"
+        return False
     try:
         xnat = get_interface()
-        SCAN = xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan)
-        if SCAN.exists():
+        scan_obj = select_obj(xnat, projectid, subjectid, sessionid, scanid)
+        if scan_obj.exists():
             if SCAN.attrs.get('quality')!='unusable':
                 dl_good_resources_scan(SCAN,resource_list,Outputdirectory,all_resources)
             else:
@@ -840,7 +867,7 @@ def download_Scan(Outputdirectory, projectName, subject, experiment, scan, resou
 
     finally:
         xnat.disconnect()
-    print '===================================================================\n'
+    return True
 
 ## from a list of scantype given, Download the resources
 def download_ScanType(Outputdirectory,projectName,subject,experiment,List_scantype,resource_list,all_resources=0):
@@ -1040,7 +1067,7 @@ def dl_good_resources_assessor(Assessor,resource_list,Outputdirectory,all_resour
             if not dl:
                 print 'ERROR: Download failed, the size of file for the resource is zero.'
 
-def download_biggest_resources(Resource,directory,filename='0'):
+def download_biggest_file(Resource, directory, filename='0'):
     if os.path.exists(directory):
         number=0
         Bigger_file_size=0
