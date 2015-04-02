@@ -445,7 +445,7 @@ def deleteAll_resources(obj,obj_dict):
         for resource_label in XnatUtils.list_scan_resources(xnat, obj_dict['project_id'], obj_dict['subject_label'], obj_dict['session_label'], obj_dict['ID']):
             obj.resource(resource_label).delete()
     else:
-        for resource_label in XnatUtils.list_assessor_out_resources(xnat, obj_dict['project_id'], obj_dict['subject_label'], obj_dict['session_label'], obj_dict['ID']):
+        for resource_label in XnatUtils.list_assessor_out_resources(xnat, obj_dict['project_id'], obj_dict['subject_label'], obj_dict['session_label'], obj_dict['label']):
             obj.out_resource(resource_label).delete()
             
 def upload_fpath(resource_obj,fpath,options):
