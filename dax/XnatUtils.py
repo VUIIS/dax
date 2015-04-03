@@ -816,6 +816,7 @@ def select_obj(intf, project_id=None, subject_id=None, session_id=None, scan_id=
 #                     Download/Upload resources from XNAT                          #
 ####################################################################################
 def check_dl_inputs(directory, xnat_obj, fctname):
+    """ Check the inputs for the download function: directory and xnat_obj """
     if not os.path.exists(directory):
         print '''ERROR: {fct} in XnatUtils: Folder {path} does not exist.'''.format(fct=fctname, path=directory)
         return False
@@ -825,6 +826,7 @@ def check_dl_inputs(directory, xnat_obj, fctname):
     return True
 
 def islist(argument, argname):
+    """ check if the input is a list. If a string, convert to list, else error """
     if isinstance(argument, list):
         pass
     elif isinstance(argument, str):
@@ -836,7 +838,14 @@ def islist(argument, argname):
 
 def download_file_from_obj(directory, resource_obj, fname=None):
     """ Download file with the path fname from a resource object from XNAT
-        if no fname, download biggest resource
+        Inputs: 
+            directory: directory where the data will be downloaded
+            resource_obj: resource object from XNAT for any level (project/subject/session/scan/assessor)
+            fname: filepath on XNAT for the resource you want to download
+                   e.g: download_file(...., fname='slicesdir/index.html')
+                   if not set, download biggest file
+        Return:
+            return the file path on your local computer for the file downloaded
     """
     fpath = ''
     if not check_dl_inputs(directory, resource_obj, 'download_file_from_obj'):
@@ -854,7 +863,19 @@ def download_file_from_obj(directory, resource_obj, fname=None):
 
 def download_file(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, fname=None):
     """ Download file with the path fname from a resource information (project/subject/...) from XNAT
-        if no fname, download biggest resource.
+        Inputs: 
+            directory: directory where the data will be downloaded
+            project_id: project ID on XNAT
+            subject_id: subject ID or label on XNAT
+            session_id: session ID or label on XNAT
+            scan_id: scan ID on XNAT
+            assessor_id: assessor ID or label on XNAT
+            resource: resource name on XNAT
+            fname: filepath on XNAT for the resource you want to download
+                   e.g: download_file(...., fname='slicesdir/index.html')
+                   if not set, download biggest file
+        Return:
+            return the file path on your local computer for the file downloaded
     """
     fpath = ''
     if not resource:
@@ -867,7 +888,13 @@ def download_file(directory, project_id=None, subject_id=None, session_id=None, 
     return fpath
 
 def download_files_from_obj(directory, resource_obj):
-    """ Download all files from a resource object from XNAT """
+    """ Download all files from a resource object from XNAT
+        Inputs: 
+            directory: directory where the data will be downloaded
+            resource_obj: resource object from XNAT for any level (project/subject/session/scan/assessor)
+        Return:
+            return list of filepaths on your local computer for the files downloaded
+    """
     fpaths = list()
     if not check_dl_inputs(directory, resource_obj, 'download_files_from_obj'):
         return fpaths
@@ -880,7 +907,18 @@ def download_files_from_obj(directory, resource_obj):
     return fpaths
 
 def download_files(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None):
-    """ Download all files from a resource information (project/subject/...) from XNAT """
+    """ Download all files from a resource information (project/subject/...) from XNAT 
+        Inputs: 
+            directory: directory where the data will be downloaded
+            project_id: project ID on XNAT
+            subject_id: subject ID or label on XNAT
+            session_id: session ID or label on XNAT
+            scan_id: scan ID on XNAT
+            assessor_id: assessor ID or label on XNAT
+            resource: resource name on XNAT 
+        Return:
+            return list of filepaths on your local computer for the files downloaded
+    """
     fpaths = list()
     if not resource:
         print "ERROR: download_files in XnatUtils: no resource provided."
@@ -892,7 +930,13 @@ def download_files(directory, project_id=None, subject_id=None, session_id=None,
     return fpaths
 
 def download_biggest_file_from_obj(directory, resource_obj):
-    """ Download biggest file from a resource object from XNAT """
+    """ Download biggest file from a resource object from XNAT
+        Inputs: 
+            directory: directory where the data will be downloaded
+            resource_obj: resource object from XNAT for any level (project/subject/session/scan/assessor)
+        Return:
+            return filepath on your local computer for the file downloaded
+    """
     fpath = ''
     file_index = 0
     biggest_size = 0
@@ -911,19 +955,38 @@ def download_biggest_file_from_obj(directory, resource_obj):
     return fpath
 
 def download_biggest_file(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None):
-    """ Download biggest file from a resource information (project/subject/...) from XNAT """
-    fpaths = list()
+    """ Download biggest file from a resource information (project/subject/...) from XNAT
+        Inputs: 
+            directory: directory where the data will be downloaded
+            project_id: project ID on XNAT
+            subject_id: subject ID or label on XNAT
+            session_id: session ID or label on XNAT
+            scan_id: scan ID on XNAT
+            assessor_id: assessor ID or label on XNAT
+            resource: resource name on XNAT 
+        Return:
+            return filepath on your local computer for the file downloaded
+    """
+    fpath = list()
     if not resource:
         print "ERROR: download_biggest_file in XnatUtils: no resource provided."
     else:
         xnat = get_interface()
         resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
-        fpaths = download_files_from_obj(directory, resource_obj)
+        fpath = download_biggest_file_from_obj(directory, resource_obj)
         xnat.disconnect()
-    return fpaths
+    return fpath
 
 def download_from_obj(directory, xnat_obj, resources, all_files=False):
-    """ Download resources from an object from XNAT (project/subject/session/scan(or)assessor)"""
+    """ Download resources from an object from XNAT (project/subject/session/scan(or)assessor)
+        Inputs: 
+            directory: directory where the data will be downloaded
+            xnat_obj: selected object from XNAT that can have a resource (project or subject or session or scan or assessor)
+            resources: list of resources name on XNAT
+            all_files: download all the files from the resources. If False, download the biggest file.
+        Return:
+            list of files path downloaded on your local computer
+    """
     fpaths = list()
     if not check_dl_inputs(directory, xnat_obj, 'download_from_obj'):
         return fpaths
@@ -946,7 +1009,19 @@ def download_from_obj(directory, xnat_obj, resources, all_files=False):
     return fpaths
 
 def download(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resources=list(), all_files=False):
-    """ Download resources from information provided for an object from XNAT (project/subject/session/scan(or)assessor)"""
+    """ Download resources from information provided for an object from XNAT (project/subject/session/scan(or)assessor)
+        Inputs: 
+            directory: directory where the data will be downloaded
+            project_id: project ID on XNAT
+            subject_id: subject ID or label on XNAT
+            session_id: session ID or label on XNAT
+            scan_id: scan ID on XNAT
+            assessor_id: assessor ID or label on XNAT
+            resources: list of resources name on XNAT
+            all_files: download all the files from the resources. If False, download the biggest file.
+        Return:
+            list of files downloaded on your local computer
+    """
     fpaths = list()
     if not resources:
         print "ERROR: download in XnatUtils: no resource provided."
@@ -958,7 +1033,18 @@ def download(directory, project_id=None, subject_id=None, session_id=None, scan_
     return fpaths
 
 def download_scantypes(directory, project_id, subject_id, session_id, scantypes, resources, all_files=False):
-    """ Download resources for a session for specific scantypes"""
+    """ Download resources for a session for specific scantypes
+        Inputs: 
+            directory: directory where the data will be downloaded
+            project_id: project ID on XNAT
+            subject_id: subject ID or label on XNAT
+            session_id: session ID or label on XNAT
+            scantypes: list of scantypes on XNAT (e.g: ['T1','fMRI'])
+            resources: list of resources name on XNAT
+            all_files: download all the files from the resources. If False, download the biggest file.
+        Return:
+            list of files downloaded
+    """
     fpaths = list()
     scantypes = islist(scantypes, 'scantypes')
     if not scantypes:
@@ -972,7 +1058,18 @@ def download_scantypes(directory, project_id, subject_id, session_id, scantypes,
     return fpaths
 
 def download_scanseriesdescriptions(directory, project_id, subject_id, session_id, seriesdescriptions, resources, all_files=False):
-    """ Download resources for a session for specific series description"""
+    """ Download resources for a session for specific series description
+        Inputs: 
+            directory: directory where the data will be downloaded
+            project_id: project ID on XNAT
+            subject_id: subject ID or label on XNAT
+            session_id: session ID or label on XNAT
+            seriesdescription: list of series description on XNAT
+            resources: list of resources name on XNAT
+            all_files: download all the files from the resources. If False, download the biggest file.
+        Return:
+            list of files downloaded
+    """
     fpaths = list()
     seriesdescriptions = islist(seriesdescriptions, 'seriesdescription')
     if not seriesdescriptions:
@@ -986,7 +1083,18 @@ def download_scanseriesdescriptions(directory, project_id, subject_id, session_i
     return fpaths
 
 def download_assessorproctypes(directory, project_id, subject_id, session_id, proctypes, resources, all_files=False):
-    """ Download resources for a session for specific assessor type (proctype)"""
+    """ Download resources for a session for specific assessor type (proctype)
+        Inputs: 
+            directory: directory where the data will be downloaded
+            project_id: project ID on XNAT
+            subject_id: subject ID or label on XNAT
+            session_id: session ID or label on XNAT
+            proctypes: list of proctypes on XNAT (e.g: ['fMRIQA_v2','dtiQA_v3'])
+            resources: list of resources name on XNAT
+            all_files: download all the files from the resources. If False, download the biggest file.
+        Return:
+            list of files downloaded
+    """
     fpaths = list()
     proctypes = islist(proctypes, 'proctypes')
     if not proctypes:
@@ -1086,7 +1194,17 @@ def download_resource_assessor(directory, xnat, project, subject, experiment, as
     print'\n'
 
 def upload_file_from_obj(filepath, resource_obj, remove=False, removeall=False, fname=None):
-    """ Upload file to the resource_obj given to the function """
+    """ Upload file to the resource_obj given to the function 
+        Inputs: 
+            filepath: path of the file on your local computer
+            resource_obj: resource object on XNAT (select resource for project or subject or session or scan or assessor)
+            remove: remove files that already exists on the resource.
+            removeall: remove all previous files on the resource.
+            fname: give a different name for the file on XNAT (e.g: target.nii.gz --> results/target.nii.gz)
+                   this will create a folder results and put the file in it for the resource.
+        Return:
+            status of the upload (True or False)
+    """
     if os.path.isfile(filepath): #Check existence of the file
         if removeall and resource_obj.exists: #Remove previous resource to upload the new one
             resource_obj.delete()
@@ -1110,7 +1228,22 @@ def upload_file_from_obj(filepath, resource_obj, remove=False, removeall=False, 
         return False
 
 def upload_file(filepath, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False, fname=None):
-    """ Upload the file to a resource information (project/subject/...) from XNAT """
+    """ Upload the file to a resource information (project/subject/...) from XNAT
+        Inputs: 
+            filepath: path of the file on your local computer
+            project_id: project ID on XNAT
+            subject_id: subject ID or label on XNAT
+            session_id: session ID or label on XNAT
+            scan_id: scan ID on XNAT
+            assessor_id: assessor ID or label on XNAT
+            resource: resource name on XNAT
+            remove: remove files that already exists on the resource.
+            removeall: remove all previous files on the resource.
+            fname: give a different name for the file on XNAT (e.g: target.nii.gz --> results/target.nii.gz)
+                   this will create a folder results and put the file in it for the resource.
+        Return:
+            status of the upload (True or False)
+    """
     status = False
     if not resource:
         print "ERROR: upload_file in XnatUtils: resource argument not provided."
@@ -1123,7 +1256,13 @@ def upload_file(filepath, project_id=None, subject_id=None, session_id=None, sca
 
 def upload_files_from_obj(filepaths, resource_obj, remove=False, removeall=False):
     """ Upload a list of files to the resource_obj given to the function
-        return the status for each file uploaded (True or False)
+        Inputs: 
+            filepaths: list of files on your local computer
+            resource_obj: resource object on XNAT (select resource for project or subject or session or scan or assessor)
+            remove: remove files that already exists on the resource.
+            removeall: remove all previous files on the resource.
+        Return:
+            list of status of the upload (one status per files you want to upload)
     """
     if removeall and resource_obj.exists: #Remove previous resource to upload the new one
         resource_obj.delete()
@@ -1133,8 +1272,21 @@ def upload_files_from_obj(filepaths, resource_obj, remove=False, removeall=False
     return status
 
 def upload_files(filepaths, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False):
-    """ Upload a list of files to a resource information (project/subject/...) from XNAT """
-    status = False
+    """ Upload a list of files to a resource information (project/subject/...) from XNAT 
+        Inputs: 
+            filepaths: list of files on your local computer
+            project_id: project ID on XNAT
+            subject_id: subject ID or label on XNAT
+            session_id: session ID or label on XNAT
+            scan_id: scan ID on XNAT
+            assessor_id: assessor ID or label on XNAT
+            resource: resource name on XNAT
+            remove: remove files that already exists on the resource.
+            removeall: remove all previous files on the resource.
+        Return:
+            list of status of the upload (one status per files you want to upload)
+    """
+    status = [False]*len(filepaths)
     if not resource:
         print "ERROR: upload_files in XnatUtils: resource argument not provided."
     else:
@@ -1145,7 +1297,15 @@ def upload_files(filepaths, project_id=None, subject_id=None, session_id=None, s
     return status
 
 def upload_folder_from_obj(directory, resource_obj, resource_label, remove=False, removeall=False):
-    """ Upload folder (all content) to the resource_obj given to the function """
+    """ Upload folder (all content) to the resource_obj given to the function
+        Inputs: 
+            directory: folder on your local computer (all content will be upload)
+            reosurce_obj: resource object on XNAT (select resource for project or subject or session or scan or assessor)
+            remove: remove files that already exists on the resource.
+            removeall: remove all previous files on the resource.
+        Return:
+            status of the upload (True or False)
+    """
     if not os.path.exists(directory):
         print """ERROR: upload_folder in XnatUtils: directory {directory} does not exist.""".format(directory=directory)
         return False
@@ -1171,7 +1331,20 @@ def upload_folder_from_obj(directory, resource_obj, resource_label, remove=False
     return True
 
 def upload_folder(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False):
-    """ Upload folder (all content) to a resource information (project/subject/...) from XNAT """
+    """ Upload folder (all content) to a resource information (project/subject/...) from XNAT 
+        Inputs: 
+            directory: folder on your local computer (all content will be upload)
+            project_id: project ID on XNAT
+            subject_id: subject ID or label on XNAT
+            session_id: session ID or label on XNAT
+            scan_id: scan ID on XNAT
+            assessor_id: assessor ID or label on XNAT
+            resource: resource name on XNAT
+            remove: remove files that already exists on the resource.
+            removeall: remove all previous files on the resource.
+        Return:
+            status of the upload (True or False)
+    """
     status = False
     if not resource:
         print "ERROR: upload_file in XnatUtils: no resource argument provided."
@@ -1201,7 +1374,7 @@ def copy_resource_from_obj(directory, xnat_obj, old_res, new_res):
     return status
 
 def copy_resource(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, old_res=None, new_res=None):
-    """ Copy resource for one object from an old resource to the new resource"""
+    """ Copy resource for one xnat object (project/subject/session/scan/assessor) from an old resource to the new resource"""
     status = False
     if not old_res or not new_res:
         print "ERROR: copy_resource in XnatUtils: resource argument (old_res or new_res) not provided."
@@ -1272,7 +1445,11 @@ def check_image_format(fpath):
     return fpath
 
 def upload_list_records_redcap(rc, data):
-    """Upload data of a dict to a rc project"""
+    """ Upload data of a dict to a rc project 
+        Inputs:
+            rc: project on REDCap open with request
+            data: list of dictionaries that need to be upload
+    """
     upload_data = True
     if isinstance(data, dict):
         data = [data]
