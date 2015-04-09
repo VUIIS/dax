@@ -847,21 +847,21 @@ def download_file_from_obj(directory, resource_obj, fname=None):
         Return:
             return the file path on your local computer for the file downloaded
     """
-    fpath = ''
     if not check_dl_inputs(directory, resource_obj, 'download_file_from_obj'):
-        return fpath
+        return None
 
     if fname:
         if resource_obj.file(fname).exists():
             fpath = os.path.join(directory, os.path.basename(fname))
             resource_obj.file(fname).get(fpath)
+            return fpath
         else:
             print '''ERROR: download_resource in XnatUtils: file {name} does not exist for resource {label}.'''.format(name=fname, label=resource_obj.label())
+            return None
     else:
-        fpath = download_biggest_file_from_obj(directory, resource_obj)
-    return fpath
+        return download_biggest_file_from_obj(directory, resource_obj)
 
-def download_file(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, fname=None):
+def download_file(directory, resource, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, fname=None):
     """ Download file with the path fname from a resource information (project/subject/...) from XNAT
         Inputs: 
             directory: directory where the data will be downloaded
@@ -877,14 +877,10 @@ def download_file(directory, project_id=None, subject_id=None, session_id=None, 
         Return:
             return the file path on your local computer for the file downloaded
     """
-    fpath = ''
-    if not resource:
-        print "ERROR: download_file in XnatUtils: no resource provided."
-    else:
-        xnat = get_interface()
-        resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
-        fpath = download_file_from_obj(directory, resource_obj, fname)
-        xnat.disconnect()
+    xnat = get_interface()
+    resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
+    fpath = download_file_from_obj(directory, resource_obj, fname)
+    xnat.disconnect()
     return fpath
 
 def download_files_from_obj(directory, resource_obj):
@@ -897,7 +893,7 @@ def download_files_from_obj(directory, resource_obj):
     """
     fpaths = list()
     if not check_dl_inputs(directory, resource_obj, 'download_files_from_obj'):
-        return fpaths
+        return fpaths #return empty list without anything being download
 
     resource_obj.get(directory, extract=True)
     resource_dir = os.path.join(directory, resource_obj.label())
@@ -906,7 +902,7 @@ def download_files_from_obj(directory, resource_obj):
 
     return fpaths
 
-def download_files(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None):
+def download_files(directory, resource, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None):
     """ Download all files from a resource information (project/subject/...) from XNAT 
         Inputs: 
             directory: directory where the data will be downloaded
@@ -919,14 +915,10 @@ def download_files(directory, project_id=None, subject_id=None, session_id=None,
         Return:
             return list of filepaths on your local computer for the files downloaded
     """
-    fpaths = list()
-    if not resource:
-        print "ERROR: download_files in XnatUtils: no resource provided."
-    else:
-        xnat = get_interface()
-        resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
-        fpaths = download_files_from_obj(directory, resource_obj)
-        xnat.disconnect()
+    xnat = get_interface()
+    resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
+    fpaths = download_files_from_obj(directory, resource_obj)
+    xnat.disconnect()
     return fpaths
 
 def download_biggest_file_from_obj(directory, resource_obj):
@@ -937,11 +929,10 @@ def download_biggest_file_from_obj(directory, resource_obj):
         Return:
             return filepath on your local computer for the file downloaded
     """
-    fpath = ''
     file_index = 0
     biggest_size = 0
     if not check_dl_inputs(directory, resource_obj, 'download_biggest_file_from_obj'):
-        return fpath
+        return None
 
     for index, file_obj in enumerate(resource_obj.files()):
         fsize = int(file_obj.size())
@@ -951,10 +942,11 @@ def download_biggest_file_from_obj(directory, resource_obj):
     if biggest_size > 0:
         resource_fname = resource_obj.files().get()[file_index]
         resource_obj.file(resource_fname).get(os.path.join(directory, resource_fname))
-        fpath = os.path.join(directory, resource_fname)
-    return fpath
+        return os.path.join(directory, resource_fname)
+    else:
+        return None
 
-def download_biggest_file(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None):
+def download_biggest_file(directory, resource, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None):
     """ Download biggest file from a resource information (project/subject/...) from XNAT
         Inputs: 
             directory: directory where the data will be downloaded
@@ -967,14 +959,10 @@ def download_biggest_file(directory, project_id=None, subject_id=None, session_i
         Return:
             return filepath on your local computer for the file downloaded
     """
-    fpath = list()
-    if not resource:
-        print "ERROR: download_biggest_file in XnatUtils: no resource provided."
-    else:
-        xnat = get_interface()
-        resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
-        fpath = download_biggest_file_from_obj(directory, resource_obj)
-        xnat.disconnect()
+    xnat = get_interface()
+    resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
+    fpath = download_biggest_file_from_obj(directory, resource_obj)
+    xnat.disconnect()
     return fpath
 
 def download_from_obj(directory, xnat_obj, resources, all_files=False):
@@ -1008,7 +996,7 @@ def download_from_obj(directory, xnat_obj, resources, all_files=False):
             fpaths.append(fpath)
     return fpaths
 
-def download(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resources=list(), all_files=False):
+def download(directory, resources, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, all_files=False):
     """ Download resources from information provided for an object from XNAT (project/subject/session/scan(or)assessor)
         Inputs: 
             directory: directory where the data will be downloaded
@@ -1022,17 +1010,13 @@ def download(directory, project_id=None, subject_id=None, session_id=None, scan_
         Return:
             list of files downloaded on your local computer
     """
-    fpaths = list()
-    if not resources:
-        print "ERROR: download in XnatUtils: no resource provided."
-    else:
-        xnat = get_interface()
-        xnat_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id)
-        fpaths = download_from_obj(directory, xnat_obj, resources, all_files)
-        xnat.disconnect()
+    xnat = get_interface()
+    xnat_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id)
+    fpaths = download_from_obj(directory, xnat_obj, resources, all_files)
+    xnat.disconnect()
     return fpaths
 
-def download_scantypes(directory, project_id, subject_id, session_id, scantypes, resources, all_files=False):
+def download_scan_types(directory, project_id, subject_id, session_id, scantypes, resources, all_files=False):
     """ Download resources for a session for specific scantypes
         Inputs: 
             directory: directory where the data will be downloaded
@@ -1057,7 +1041,7 @@ def download_scantypes(directory, project_id, subject_id, session_id, scantypes,
     xnat.disconnect()
     return fpaths
 
-def download_scanseriesdescriptions(directory, project_id, subject_id, session_id, seriesdescriptions, resources, all_files=False):
+def download_scan_seriesdescriptions(directory, project_id, subject_id, session_id, seriesdescriptions, resources, all_files=False):
     """ Download resources for a session for specific series description
         Inputs: 
             directory: directory where the data will be downloaded
@@ -1082,7 +1066,7 @@ def download_scanseriesdescriptions(directory, project_id, subject_id, session_i
     xnat.disconnect()
     return fpaths
 
-def download_assessorproctypes(directory, project_id, subject_id, session_id, proctypes, resources, all_files=False):
+def download_assessor_proctypes(directory, project_id, subject_id, session_id, proctypes, resources, all_files=False):
     """ Download resources for a session for specific assessor type (proctype)
         Inputs: 
             directory: directory where the data will be downloaded
@@ -1107,91 +1091,6 @@ def download_assessorproctypes(directory, project_id, subject_id, session_id, pr
             fpaths.extend(download_from_obj(directory, assessor_obj, resources, all_files))
     xnat.disconnect()
     return fpaths
-
-def download_resource_assessor(directory, xnat, project, subject, experiment, assessor_label, resources_list, quiet):
-    """ Download the resources from the list for the assessor given in the argument (if resource_list[0]='all' -> download all)"""
-    if not quiet: print '    +Process: '+assessor_label
-
-    assessor = xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label)
-    if not assessor.exists():
-        print '      !!WARNING: No assessor with the ID selected.'
-        return
-
-    if 'fMRIQA' in assessor_label:
-        labels = assessor_label.split('-x-')
-        scan_obj = xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+labels[3])
-        sd = scan_obj.attrs.get('series_description')
-        sd = sd.replace('/', '_')
-        sd = sd.replace(" ", "")
-        if sd != '':
-            directory = directory+'-x-'+sd
-
-    if not os.path.exists(directory):
-        os.mkdir(directory)
-
-    #all resources
-    if resources_list[0] == 'all':
-        post_uri_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources'
-        resources_list = xnat._get_json(post_uri_resource)
-        for resource in resources_list:
-            Resource = xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource['label'])
-            if Resource.exists():
-                if not quiet:
-                    print '      *download resource '+resource['label']
-
-                assessor_real_type = assessor_label.split('-x-')[-1]
-                if 'FS' in assessor_real_type:
-                    #make a directory for each of the resource
-                    Res_path = directory+'/'+resource['label']
-                    if not os.path.exists(Res_path):
-                        os.mkdir(Res_path)
-                    Resource.get(Res_path, extract=False)
-                else:
-                    if len(Resource.files().get()) > 0:
-                        #make a directory for each of the resource
-                        Res_path = directory+'/'+resource['label']
-                        if not os.path.exists(Res_path):
-                            os.mkdir(Res_path)
-
-                        for fname in Resource.files().get()[:]:
-                            Resfile = Resource.file(fname)
-                            local_fname = os.path.join(Res_path, fname)
-                            Resfile.get(local_fname)
-                    else:
-                        print "\t    *ERROR : The size of the resource is 0."
-
-    #resources in the options
-    else:
-        for resource in resources_list:
-            Resource = xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource)
-            if Resource.exists():
-                if not quiet:
-                    print '      *download resource '+resource
-
-                assessor_real_type = assessor_label.split('-x-')[-1]
-                if 'FS' in assessor_real_type:
-                    #make a directory for each of the resource
-                    Res_path = directory+'/'+resource
-                    if not os.path.exists(Res_path):
-                        os.mkdir(Res_path)
-
-                    Resource.get(Res_path, extract=False)
-                else:
-                    if len(Resource.files().get()) > 0:
-                        #make a directory for each of the resource
-                        Res_path = directory+'/'+resource
-                        if not os.path.exists(Res_path):
-                            os.mkdir(Res_path)
-
-                        for fname in Resource.files().get()[:]:
-                            Resfile = Resource.file(fname)
-                            local_fname = os.path.join(Res_path, fname)
-                            Resfile.get(local_fname)
-                    else:
-                        print "      !!ERROR : The size of the resource is 0."
-            else:
-                print '      !!WARNING : no resource '+resource+' for this assessor.'
-    print'\n'
 
 def upload_file_from_obj(filepath, resource_obj, remove=False, removeall=False, fname=None):
     """ Upload file to the resource_obj given to the function 
