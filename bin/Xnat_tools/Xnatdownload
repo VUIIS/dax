@@ -302,7 +302,7 @@ def getscanpath(directory,scan,oneDir):
     else:
         scanlabel=scan['ID']+'-x-'+scan['type'].strip().replace('/','_').replace(" ", "")
         if scan['series_description']!='': 
-            scanlabel=scanlabel+'-x-'+scan['series_description'].strip().replace('/','_').replace(" ", "")
+            scanlabel=scanlabel+'-x-'+scan['series_description'].strip().replace('/', '_').replace(" ", "").replace(":", '_')
         scanpath=os.path.join(directory,scan['project_id'],scan['subject_label'],scan['session_label'],scanlabel)
     return scanpath
 
@@ -456,7 +456,7 @@ def dl_files(Resource,directory):
             
 #for only one file
 def dl_file(Resource,fpath):
-    Resource.file(Resource.files().get()[0]).get(fpath)
+    Resource.file(Resource.files()[0].label()).get(fpath)
 
 ########################################## DOWNLOAD SPECIFIC SCAN/ASSESSOR ##########################################
 def download_specific_scan(options):
