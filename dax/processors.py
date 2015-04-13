@@ -69,17 +69,19 @@ class ScanProcessor(Processor):
                 self.scan_types=scan_types.split(',')
         else:
             self.scan_types=[]
-
-    def get_assessor_name(self,scan_dict):
+            
+    def get_assessor_name(self,cscan):
+        scan_dict = cscan.info()
         subj_label = scan_dict['subject_label']
         sess_label = scan_dict['session_label']
         proj_label = scan_dict['project_label']
         scan_label = scan_dict['scan_label']
         return (proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+scan_label+'-x-'+self.name)
         
-    def get_task(self, intf, scan_dict, upload_dir):
+    def get_task(self, intf, cscan, upload_dir):
+        scan_dict = cscan.info()
+        assessor_name = self.get_assessor_name(cscan)
         scan = XnatUtils.get_full_object(intf,scan_dict)
-        assessor_name = self.get_assessor_name(scan_dict)
         assessor = scan.parent().assessor(assessor_name)
         return task.Task(self,assessor,upload_dir)
         
@@ -93,18 +95,20 @@ class SessionProcessor(Processor):
     def __init__(self,walltime_str,memreq_mb,spider_path,version=None,ppn=1):
         super(SessionProcessor, self).__init__(walltime_str,memreq_mb,spider_path,version,ppn)
         
-    def get_assessor_name(self,session_dict):  
+    def get_assessor_name(self,csess):  
+        session_dict = csess.info()
         proj_label = session_dict['project']
         subj_label = session_dict['subject_label']
         sess_label = session_dict['label']  
         return (proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+self.name)
     
-    def get_task(self, intf, session_dict, upload_dir):
-        session = XnatUtils.get_full_object(intf,session_dict)
-        assessor_name = self.get_assessor_name(session_dict)
+    def get_task(self, intf, csess, upload_dir):
+        sess_info = csess.info()
+        assessor_name = self.get_assessor_name(csess)
+        session = XnatUtils.get_full_object(intf,sess_info)
         assessor = session.assessor(assessor_name)
         return task.Task(self,assessor,upload_dir)
-    
+
 def processors_by_type(proc_list):
     exp_proc_list = []
     scan_proc_list = []
