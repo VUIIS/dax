@@ -29,6 +29,13 @@ import redcap
 
 from dax_settings import RESULTS_DIR
 
+import xml.etree.cElementTree as ET
+
+NS = {'xnat' : 'http://nrg.wustl.edu/xnat',
+      'proc' : 'http://nrg.wustl.edu/proc',
+      'fs'   : 'http://nrg.wustl.edu/fs',
+      'xsi'  : 'http://www.w3.org/2001/XMLSchema-instance'}
+
 ### VARIABLE ###
 # Status:
 JOB_FAILED = 'JOB_FAILED' # the job failed on the cluster.
