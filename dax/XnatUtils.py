@@ -1366,3 +1366,284 @@ def upload_list_records_redcap(rc, data):
             print response
         except:
             print '      -ERROR: connection to REDCap interupted.'
+
+class CachedImageSession():
+    def __init__(self,xnat,proj,subj,sess):
+        #self.sess_element = ET.fromstring(xnat.session_xml(proj,sess))
+        xml_str = xnat.select('/project/'+proj+'/subject/'+subj+'/experiment/'+sess).get()
+        self.sess_element = ET.fromstring(xml_str)
+        self.project = proj
+        self.subject = subj
+        
+    def label(self):
+        return self.sess_element.get('label')
+    
+    def get(self,name):        
+        value = self.sess_element.get(name)
+        if value != None:
+            return value
+        
+        element = self.sess_element.find(name, NS)
+        if element != None:
+            return element.text
+        
+        split_array = name.rsplit('/',1)    
+        if len(split_array) == 2:
+            tag,attr = split_array
+            element = self.sess_element.find(tag, NS)
+            if element != None:
+                value = element.get(attr)
+                if value != None:
+                    return value
+        
+        return ''
+
+    def scans(self):
+        scan_list = []
+        scan_elements = self.sess_element.find('xnat:scans', NS)
+        for scan in scan_elements:
+            scan_list.append(CachedImageScan(scan,self))
+            
+        return scan_list
+
+    def assessors(self):
+        assr_list = []
+        
+        assr_elements = self.sess_element.find('xnat:assessors', NS)
+        for assr in assr_elements:
+            assr_list.append(CachedImageAssessor(assr,self))
+        
+        return assr_list
+   
+    def info(self):
+        sess_info = {}
+    
+        sess_info['ID'] = self.get('ID')
+        sess_info['label'] = self.get('label')
+        sess_info['note'] = self.get('xnat:note')
+        sess_info['session_type'] = self.get('session_type')
+        sess_info['project_id'] = self.get('project')
+        sess_info['original'] = self.get('original')
+        sess_info['modality'] = self.get('modality')
+        sess_info['UID'] = self.get('UID')
+        sess_info['subject_id'] = self.get('xnat:subject_ID')
+        sess_info['subject_label'] = self.subject
+        sess_info['project_label'] = sess_info['project_id'] 
+        sess_info['project'] = sess_info['project_id'] 
+        sess_info['subject_ID'] = self.get('xnat:subject_ID')
+        sess_info['URI'] = '/data/experiments/'+sess_info['ID'] 
+        sess_info['session_label'] = sess_info['label']  
+        sess_info['last_updated'] = sess_info['original']
+        sess_info['type'] = sess_info['modality']
+
+        return sess_info
+        
+class CachedImageScan():
+    def __init__(self,scan_element,parent):
+        self.scan_parent = parent
+        self.scan_element = scan_element
+        
+    def parent(self):
+        return self.scan_parent
+        
+    def label(self):
+        return self.scan_element.get('ID')
+    
+    def get(self,name):
+        value = self.scan_element.get(name)
+        if value != None:
+            return value
+        
+        element = self.scan_element.find(name, NS)
+        if element != None:
+            return element.text
+        
+        tag, attr = name.rsplit(':',1)        
+        element = self.scan_element.find(tag, NS)
+        if element != None:
+            value = element.get(attr)
+            if value != None:
+                return value
+        
+        return ''
+    
+    def info(self):
+        scan_info = {}
+    
+        scan_info['ID'] = self.get('ID')
+        scan_info['label'] = self.get('ID')
+        scan_info['quality'] = self.get('xnat:quality')
+        scan_info['frames']  = self.get('xnat:frames')
+        scan_info['note'] = self.get('xnat:note')
+        scan_info['type'] = self.get('type')
+        scan_info['series_description'] = self.get('xnat:series_description')
+        scan_info['project_id'] = self.parent().get('project')
+        scan_info['subject_id'] = self.parent().get('xnat:subject_ID')
+        scan_info['subject_label'] = self.parent().subject
+
+        scan_info['scan_id'] = scan_info['ID']
+        scan_info['scan_label'] = scan_info['label'] 
+        scan_info['scan_quality'] = scan_info['quality'] 
+        scan_info['scan_note'] = scan_info['note'] 
+        scan_info['scan_type'] = scan_info['type']
+        scan_info['scan_frames'] = scan_info['frames'] 
+        scan_info['scan_description'] = scan_info['series_description']
+        
+        scan_info['session_id'] = self.parent().get('ID')
+        scan_info['session_label'] = self.parent().get('label')
+        scan_info['project_label'] = scan_info['project_id'] 
+                
+        return scan_info
+
+    def resources(self):
+        res_list = []
+        
+        file_elements = self.scan_element.findall('xnat:file', NS)
+        for f in file_elements:
+            xsi_type = f.get('{http://www.w3.org/2001/XMLSchema-instance}type')
+            if xsi_type == 'xnat:resourceCatalog':
+                res_list.append(CachedResource(f,self))
+            
+        return res_list
+
+class CachedImageAssessor():
+    def __init__(self,assr_element,parent):
+        self.assr_parent = parent
+        self.assr_element = assr_element
+        
+    def parent(self):
+        return self.assr_parent
+        
+    def label(self):
+        return self.assr_element.get('label')
+    
+    def get(self,name):
+        value = self.assr_element.get(name)
+        if value != None:
+            return value
+        
+        element = self.assr_element.find(name, NS)
+        if element != None:
+            return element.text
+        
+        #tag, attr = name.rsplit('/',1)        
+        #element = self.assr_element.find(tag, NS)
+        #if element != None:
+        #    value = element.get(attr)
+        #    if value != None:
+        #        return value
+            
+        split_array = name.rsplit('/',1)    
+        if len(split_array) == 2:
+            tag,attr = split_array
+            element = self.assr_element.find(tag, NS)
+            if element != None:
+                value = element.get(attr)
+                if value != None:
+                    return value
+        
+        return ''
+        
+    def info(self):
+        assr_info = {}
+        
+        assr_info['ID'] = self.get('ID')
+        assr_info['label'] = self.get('label')
+        assr_info['assessor_id'] = assr_info['ID']
+        assr_info['assessor_label'] = assr_info['label']
+        assr_info['project_id'] = self.get('project')
+        assr_info['project_label'] = assr_info['project_id'] 
+        assr_info['subject_id'] = self.parent().get('xnat:subject_ID')
+        assr_info['subject_label'] = self.parent().subject
+        assr_info['session_id'] = self.parent().get('ID')
+        assr_info['session_label'] = self.parent().get('label')
+        assr_info['xsiType'] = self.get('{http://www.w3.org/2001/XMLSchema-instance}type').lower()
+        
+        if (assr_info['xsiType'] == 'fs:fsdata'):
+            # FreeSurfer
+            assr_info['procstatus'] = self.get('fs:procstatus')
+            assr_info['qcstatus'] = self.get('xnat:validation/status')
+            assr_info['version'] = self.get('fs:procversion')
+            assr_info['jobid'] = self.get('fs:jobid')
+            assr_info['jobstartdate'] = self.get('fs:jobstartdate')
+            assr_info['memused'] = self.get('fs:memused')
+            assr_info['walltimeused'] = self.get('fs:walltimeused')
+            assr_info['jobnode'] = self.get('fs:jobnode')
+            assr_info['proctype'] = 'FreeSurfer'
+            
+        elif (assr_info['xsiType'] == 'proc:genprocdata'):
+            # genProcData
+            assr_info['procstatus'] = self.get('proc:procstatus')
+            assr_info['proctype'] = self.get('proc:proctype')
+            assr_info['qcstatus'] = self.get('xnat:validation/status')
+            assr_info['version'] = self.get('proc:procversion')
+            assr_info['jobid'] = self.get('proc:jobid')
+            assr_info['jobstartdate'] = self.get('proc:jobstartdate')
+            assr_info['memused'] = self.get('proc:memused')
+            assr_info['walltimeused'] = self.get('proc:walltimeused')
+            assr_info['jobnode'] = self.get('proc:jobnode')
+        else:
+            print('WARN:unknown xsiType for assessor:'+assr_info['xsiType'])
+            
+        return assr_info
+                    
+    def in_resources(self):
+        res_list = []
+        
+        file_elements = self.assr_element.findall('xnat:in/xnat:file', NS)
+        for f in file_elements:
+            res_list.append(CachedResource(f,self))
+            
+        return res_list
+        
+    def out_resources(self):
+        res_list = []
+            
+        file_elements = self.assr_element.findall('xnat:out/xnat:file', NS)
+        for f in file_elements:
+            res_list.append(CachedResource(f,self))
+            
+        return res_list
+        
+class CachedResource():
+    def __init__(self,element,parent):
+        self.res_parent = parent
+        self.res_element = element
+   
+    def parent(self):
+        return self.res_parent
+    
+    def label(self):
+        return self.res_element.get('label')
+    
+    def get(self,name):
+        value = self.res_element.get(name)
+        if value != None:
+            return value
+        
+        element = self.res_element.find(name, NS)
+        if element != None:
+            return element.text
+        
+        split_array = name.rsplit('/',1)    
+        if len(split_array) == 2:
+            tag,attr = split_array
+            element = self.res_element.find(tag, NS)
+            if element != None:
+                value = element.get(attr)
+                if value != None:
+                    return value
+            
+        return ''
+
+    def info(self):
+        res_info = {}
+
+        res_info['URI'] = self.get('URI')
+        res_info['label'] = self.get('label')
+        res_info['file_size'] = self.get('file_size')
+        res_info['file_count'] = self.get('file_count')
+        res_info['format'] = self.get('format')
+        res_info['content'] = self.get('content')
+
+        return res_info
