@@ -20,6 +20,7 @@ import bin
 from task import Task
 from dax_settings import RESULTS_DIR,DEFAULT_ROOT_JOB_DIR,DEFAULT_QUEUE_LIMIT
 
+BUILD_LOCK_FILE  = 'BUILD_RUNNING.txt'
 UPDATE_LOCK_FILE  = 'UPDATE_RUNNING.txt'
 OPEN_TASKS_LOCK_FILE  = 'OPEN_TASKS_UPDATE_RUNNING.txt'
 UPDATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -367,6 +368,203 @@ class Launcher(object):
                 scan_task = scan_proc.get_task(xnat, scan_info, RESULTS_DIR)
                 logger.debug('* Processor: '+scan_proc.name+': updating status: '+scan_task.assessor_label)
                 scan_task.update_status()
+                
+    def build(self, lockfile_prefix,project_local,sessions_local):        
+        logger.info('-------------- Build --------------\n')
+        
+        if project_local:
+            if ',' in project_local:
+                logger.error('too many projects given to the option --project : '+project_local+'. Only for one project.')
+                exit(1)
+            elif project_local in self.project_process_dict.keys():
+                #Updating session for a specific project
+                project_list=[project_local]
+            else:
+                logger.error('failed to run locally on project '+project_local+'.The project is not part of the settings.')
+                exit(1) 
+        else:
+            success = self.lock_build(lockfile_prefix)
+            if not success:
+                logger.warn('failed to get lock on open tasks build. Already running.')
+                exit(1)   
+        
+            #Get default project list for XNAT out of the module and process dict
+            project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
+            #Set the date on REDCAP for update starting
+            bin.upload_update_date_redcap(project_list,type_update=1,start_end=1) 
+            
+        try:
+            logger.info('Connecting to XNAT at '+self.xnat_host)
+            xnat = XnatUtils.get_interface(self.xnat_host,self.xnat_user,self.xnat_pass)
+
+            #Priority if set:
+            if self.priority_project and not project_local:
+                project_list=self.get_project_list(list(set(self.project_process_dict.keys() + self.project_modules_dict.keys())))
+            
+            # Build projects
+            for project_id in project_list:  
+                logger.info('===== PROJECT:'+project_id+' =====')         
+                self.build_project(xnat, project_id, lockfile_prefix,sessions_local)
+                
+        finally:
+            #If normal build (not local), remove flagfile at the end and set the date
+            if not project_local: 
+                self.unlock_build(lockfile_prefix)  
+                #Set the date on REDCAP for update ending
+                bin.upload_update_date_redcap(project_list,type_update=1,start_end=2)
+            xnat.disconnect()
+            logger.info('Connection to XNAT closed')   
+   
+    def build_project(self, xnat, project_id, lockfile_prefix,sessions_local):
+        #Modules prerun
+        logger.info('  *Modules Prerun')
+        if sessions_local:
+            self.module_prerun(project_id, 'manual_update')
+        else:
+            self.module_prerun(project_id, lockfile_prefix)
+        
+        # Get lists of modules/processors per scan/exp for this project
+        exp_mod_list, scan_mod_list = modules.modules_by_type(self.project_modules_dict[project_id])
+        exp_proc_list, scan_proc_list = processors.processors_by_type(self.project_process_dict[project_id])
+        
+        # Check for new processors
+        has_new = self.has_new_processors(xnat, project_id, exp_proc_list, scan_proc_list)
+
+        # Get the list of sessions:
+        list_sessions = XnatUtils.list_sessions(xnat, project_id)
+        if sessions_local and sessions_local.lower() != 'all':
+            #filter the list and keep the match between both list:
+            list_sessions=filter(lambda x: x['label'] in sessions_local.split(','), list_sessions)
+            if not list_sessions:
+                logger.warn('No session from XNAT matched the sessions given in argument: '+sessions_local+' .')
+                
+        # Update each session from the list:
+        for sess_info in list_sessions:
+            last_mod = datetime.strptime(sess_info['last_modified'][0:19], '%Y-%m-%d %H:%M:%S')
+            last_up = self.get_lastupdated(sess_info)
+                        
+            #If sessions_local is set, skip checking the date
+            if (not has_new and last_up != None and last_mod < last_up and not sessions_local):
+                logger.info('  +Session:'+sess_info['label']+': skipping, last_mod='+str(last_mod)+',last_up='+str(last_up))
+            else: 
+                logger.info('  +Session:'+sess_info['label']+': updating...')
+                # NOTE: we keep the starting time of the update and will check if something change during the update    
+                updateStartTime = datetime.now()
+                self.build_session(xnat, sess_info, exp_proc_list, scan_proc_list, exp_mod_list, scan_mod_list)
+                self.set_session_lastupdated(xnat, sess_info, updateStartTime)
+        
+        if not sessions_local or sessions_local.lower()=='all':
+            # Modules after run
+            logger.debug('*Modules Afterrun')
+            self.module_afterrun(xnat,project_id)
+     
+    def build_session(self, xnat, sess_info, sess_proc_list, scan_proc_list, sess_mod_list, scan_mod_list):
+        csess = XnatUtils.CachedImageSession(xnat,sess_info['project_label'],sess_info['subject_label'],sess_info['session_label'])
+        sess_obj = None
+        
+        # Modules on session
+        logger.debug('== Build modules for session ==')
+        for sess_mod in sess_mod_list:
+            logger.debug('* Module: '+sess_mod.getname())
+            if (sess_mod.needs_run(csess,xnat)):
+                if sess_obj == None:
+                    sess_obj = XnatUtils.get_full_object(xnat, csess.info())
+                
+                sess_mod.run(csess,sess_obj)
+                # TODO: reload xml session ??? here???
+                
+        # Scans
+        logger.debug('== Build modules/processors for scans in session ==')
+        if scan_proc_list or scan_mod_list:
+            for cscan in csess.scans():
+                logger.debug('+SCAN: '+cscan.info()['scan_id'])
+                self.build_scan(xnat, cscan, scan_proc_list, scan_mod_list)
+
+        # Processors
+        logger.debug('== Build processors for session ==')
+        for sess_proc in sess_proc_list:
+            if sess_proc.should_run(csess.info(), xnat):
+
+                assr_name = sess_proc.get_assessor_name(csess) 
+                
+                # Look for existing assessor
+                proc_assr = None
+                for assr in csess.assessors():
+                    if assr.info()['label'] == assr_name:
+                        proc_assr = assr
+                
+                if proc_assr == None:
+                    # Create it if it doesn't exist
+                    sess_task = sess_proc.get_task(xnat, csess, RESULTS_DIR)
+                    logger.debug('* Processor:'+sess_proc.name+': updating status: '+sess_task.assessor_label)
+                    has_inputs,qcstatus = sess_proc.has_inputs(csess)
+                    if has_inputs == 1:
+                        sess_task.set_status(task.NEED_TO_RUN)
+                        sess_task.set_qcstatus(task.JOB_PENDING)
+                    elif has_inputs == -1:
+                        sess_task.set_status(task.NO_DATA)
+                        sess_task.set_qcstatus(qcstatus)
+                elif proc_assr.info()['procstatus'] == task.NEED_INPUTS:
+                    has_inputs,qcstatus = sess_proc.has_inputs(csess)
+                    if has_inputs == 1:
+                        sess_task = sess_proc.get_task(xnat, csess, RESULTS_DIR)
+                        logger.debug('* Processor:'+sess_proc.name+': updating status: '+sess_task.assessor_label)
+                        sess_task.set_status(task.NEED_TO_RUN)
+                        sess_task.set_qcstatus(task.JOB_PENDING)
+                    elif has_inputs == -1:
+                        sess_task = sess_proc.get_task(xnat, csess, RESULTS_DIR)
+                        logger.debug('* Processor:'+sess_proc.name+': updating status: '+sess_task.assessor_label)
+                        sess_task.set_status(task.NO_DATA)
+                        sess_task.set_qcstatus(qcstatus)
+                    else:
+                        # Leave as NEED_INPUTS
+                        pass
+                else:
+                    # Other statuses handled by dax_update_open_tasks
+                    pass
+                   
+        logger.debug('\n')
+        
+    def build_scan(self, xnat, cscan, scan_proc_list, scan_mod_list):
+        scan_info = cscan.info()
+        scan_obj = None
+
+        # Modules
+        for scan_mod in scan_mod_list:
+            logger.debug('* Module: '+scan_mod.getname())
+            if (scan_mod.needs_run(cscan, xnat)):
+                if scan_obj == None:
+                    scan_obj = XnatUtils.get_full_object(xnat, scan_info)
+                        
+                scan_mod.run(scan_info, scan_obj)
+
+        # Processors   
+        for scan_proc in scan_proc_list:
+            #if scan_proc.should_run(cscan): 
+            if scan_proc.should_run(scan_info): 
+                assr_name = scan_proc.get_assessor_name(cscan)
+                
+                # Look for existing assessor
+                proc_assr = None
+                for assr in cscan.parent().assessors():
+                     if assr.info()['label'] == assr_name:
+                        proc_assr = assr
+                        
+                # Create it if it doesn't exist
+                if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
+                    scan_task = scan_proc.get_task(xnat, cscan, RESULTS_DIR)                    
+                    logger.debug('* Processor: '+scan_proc.name+': updating status: '+scan_task.assessor_label)
+                    has_inputs,qcstatus = scan_proc.has_inputs(cscan)
+                    if has_inputs == 1:
+                        scan_task.set_status(task.NEED_TO_RUN)
+                        scan_task.set_qcstatus(task.JOB_PENDING)
+                    elif has_inputs == -1:
+                        scan_task.set_status(task.NO_DATA)
+                        scan_task.set_qcstatus(qcstatus)
+                        
+                else:
+                    # Other statuses handled by dax_update_open_tasks
+                    pass
      
     def launch_jobs(self, task_list):
         # Check cluster
@@ -412,6 +610,15 @@ class Launcher(object):
         else:
             open(lock_file, 'w').close()
             return True
+    
+   def lock_build(self,lockfile_prefix):
+        lock_file = os.path.join(RESULTS_DIR,'FlagFiles',lockfile_prefix+'_'+BUILD_LOCK_FILE)
+        
+        if os.path.exists(lock_file):
+            return False
+        else:
+            open(lock_file, 'w').close()
+            return True
                 
     def unlock_open_tasks(self,lockfile_prefix):
         lock_file = os.path.join(RESULTS_DIR,'FlagFiles',lockfile_prefix+'_'+OPEN_TASKS_LOCK_FILE)
@@ -424,7 +631,13 @@ class Launcher(object):
         
         if os.path.exists(lock_file):
             os.remove(lock_file)
+            
+    def unlock_build(self,lockfile_prefix):
+        lock_file = os.path.join(RESULTS_DIR,'FlagFiles',lockfile_prefix+'_'+BUILD_LOCK_FILE)
         
+        if os.path.exists(lock_file):
+            os.remove(lock_file)
+
     def get_lastupdated(self, info):
         update_time = info['last_updated'][len(UPDATE_PREFIX):]
         if update_time == '':
