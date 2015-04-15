@@ -85,6 +85,17 @@ class ScanProcessor(Processor):
         assessor = scan.parent().assessor(assessor_name)
         return task.Task(self,assessor,upload_dir)
         
+    def has_resource(self, cscan, resource):
+        """ return true if resource exists in cscan """
+        if resource in [cres.info()['label'] for cres in cscan.resources()]
+            return True
+        else:
+            return False
+
+    def is_unusable(self, cscan):
+        """ return true if scan unusable """
+        return cscan.info()['quality'] == "unusable"
+        
 class SessionProcessor(Processor):
     def has_inputs(self):
         raise NotImplementedError()
