@@ -1376,6 +1376,14 @@ def upload_list_records_redcap(rc, data):
         except:
             print '      -ERROR: connection to REDCap interupted.'
 
+def get_input_list(input_val, default_val):
+    if isinstance(input_val, list):
+        return input_val
+    elif isinstance(input_val, str):
+        return input_val.split(',')
+    else:
+        return default_val
+
 ####################################################################################
 #                                5) Cached Class                                   #
 ####################################################################################
