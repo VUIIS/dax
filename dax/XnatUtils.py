@@ -1101,7 +1101,7 @@ def download_assessor_proctypes(directory, project_id, subject_id, session_id, p
     xnat.disconnect()
     return fpaths
 
-def upload_file_from_obj(filepath, resource_obj, remove=False, removeall=False, fname=None):
+def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False, fname=None):
     """ Upload file to the resource_obj given to the function 
         Inputs: 
             filepath: path of the file on your local computer
@@ -1162,7 +1162,7 @@ def upload_file(filepath, project_id=None, subject_id=None, session_id=None, sca
         xnat.disconnect()
     return status
 
-def upload_files_from_obj(filepaths, resource_obj, remove=False, removeall=False):
+def upload_files_to_obj(filepaths, resource_obj, remove=False, removeall=False):
     """ Upload a list of files to the resource_obj given to the function
         Inputs: 
             filepaths: list of files on your local computer
@@ -1204,7 +1204,7 @@ def upload_files(filepaths, project_id=None, subject_id=None, session_id=None, s
         xnat.disconnect()
     return status
 
-def upload_folder_from_obj(directory, resource_obj, resource_label, remove=False, removeall=False):
+def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False, removeall=False):
     """ Upload folder (all content) to the resource_obj given to the function
         Inputs: 
             directory: folder on your local computer (all content will be upload)
