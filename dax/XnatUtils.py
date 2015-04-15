@@ -10,6 +10,8 @@ The functions are divided into 4 categories:
     3) Methods to Download / Upload data to XNAT
 
     4) Other Methods
+    
+    5) Cached Class for DAX 
 """
 
 import re
@@ -1374,6 +1376,9 @@ def upload_list_records_redcap(rc, data):
         except:
             print '      -ERROR: connection to REDCap interupted.'
 
+####################################################################################
+#                                5) Cached Class                                   #
+####################################################################################
 class CachedImageSession():
     def __init__(self,xnat,proj,subj,sess):
         #self.sess_element = ET.fromstring(xnat.session_xml(proj,sess))
