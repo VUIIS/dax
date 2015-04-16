@@ -139,6 +139,16 @@ class SessionModule(Module):
         """ code to run on one session"""
         raise NotImplementedError()
 
+    def has_flag_resource(self, csess, flag_resource):
+        """ check if the session has the flag_resource """
+        sess_res_list = csess.get_resources()
+        flagres_list = [res for res in sess_res_list if res['label'] == flag_resource]
+        if len(flagres_list) > 0:
+            logger.debug('Already run')
+            return False
+
+        return True
+
     def log_warning_error(self, message, scan_info, error=False):
         """ print warning or error for a project/subject/session"""
         if error:
