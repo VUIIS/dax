@@ -87,7 +87,7 @@ class ScanProcessor(Processor):
         
     def has_resource(self, cscan, resource):
         """ return true if resource exists in cscan """
-        if resource in [cres.info()['label'] for cres in cscan.resources()]
+        if resource in [cres.info()['label'] for cres in cscan.resources()]:
             return True
         else:
             return False
