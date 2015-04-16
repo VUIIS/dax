@@ -10,15 +10,12 @@ The functions are divided into 4 categories:
     3) Methods to Download / Upload data to XNAT
 
     4) Other Methods
-    
-    5) Cached Class for DAX 
+
+    5) Cached Class for DAX
 """
 
 import re
 import os
-import sys
-import glob
-import socket
 import shutil
 import tempfile
 import collections
@@ -26,8 +23,6 @@ from datetime import datetime
 
 from pyxnat import Interface
 from lxml import etree
-
-import redcap
 
 from dax_settings import RESULTS_DIR
 
@@ -240,7 +235,7 @@ class SpiderProcessHandler:
             except OSError as excep:
                 print 'Directory not copied. Error: %s' % excep
 
-    def setAssessorStatus(self, status):
+    def set_assessor_status(self, status):
         """ Set the status of an assessor """
         # Connection to Xnat
         try:
@@ -268,13 +263,13 @@ class SpiderProcessHandler:
             #make the flag folder
             open(os.path.join(self.directory, READY_TO_UPLOAD+'.txt'), 'w').close()
             #set status to ReadyToUpload
-            self.setAssessorStatus(READY_TO_UPLOAD)
+            self.set_assessor_status(READY_TO_UPLOAD)
         else:
             print 'INFO: Job failed, check the outlogs, error: '+ str(self.error)
             #make the flag folder
             open(os.path.join(self.directory, JOB_FAILED+'.txt'), 'w').close()
             #set status to JOB_FAILED
-            self.setAssessorStatus(JOB_FAILED)
+            self.set_assessor_status(JOB_FAILED)
 
     def clean(self, directory):
         """ clean directory if no error and pdf created """
@@ -319,16 +314,16 @@ def list_subjects(intf, projectid=None):
 
     subject_list = intf._get_json(post_uri)
 
-    for s in subject_list:
+    for subj in subject_list:
         if projectid:
             # Override the project returned to be the one we queried
-            s['project'] = projectid
+            subj['project'] = projectid
 
-        s['project_id'] = s['project']
-        s['project_label'] = s['project']
-        s['subject_id'] = s['ID']
-        s['subject_label'] = s['label']
-        s['last_updated'] = s['src']
+        subj['project_id'] = subj['project']
+        subj['project_label'] = subj['project']
+        subj['subject_id'] = subj['ID']
+        subj['subject_label'] = subj['label']
+        subj['last_updated'] = subj['src']
 
     return sorted(subject_list, key=lambda k: k['subject_label'])
 
@@ -352,16 +347,16 @@ def list_experiments(intf, projectid=None, subjectid=None):
     post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:subjectdata/meta/last_modified'
     experiment_list = intf._get_json(post_uri)
 
-    for e in experiment_list:
+    for exp in experiment_list:
         if projectid:
             # Override the project returned to be the one we queried and add others for convenience
-            e['project'] = projectid
+            exp['project'] = projectid
 
-        e['subject_id'] = e['subject_ID']
-        e['session_id'] = e['ID']
-        e['session_label'] = e['label']
-        e['project_id'] = e['project']
-        e['project_label'] = e['project']
+        exp['subject_id'] = exp['subject_ID']
+        exp['session_id'] = exp['ID']
+        exp['session_label'] = exp['label']
+        exp['project_id'] = exp['project']
+        exp['project_label'] = exp['project']
 
     return sorted(experiment_list, key=lambda k: k['session_label'])
 
@@ -441,30 +436,30 @@ def list_scans(intf, projectid, subjectid, experimentid):
     scan_list = intf._get_json(post_uri)
     new_list = []
 
-    for s in scan_list:
-        if s['ID'] == experimentid or s['label'] == experimentid:
+    for scan in scan_list:
+        if scan['ID'] == experimentid or scan['label'] == experimentid:
             snew = {}
-            snew['scan_id'] = s['xnat:imagesessiondata/scans/scan/id']
-            snew['scan_label'] = s['xnat:imagesessiondata/scans/scan/id']
-            snew['scan_quality'] = s['xnat:imagesessiondata/scans/scan/quality']
-            snew['scan_note'] = s['xnat:imagesessiondata/scans/scan/note']
-            snew['scan_frames'] = s['xnat:imagesessiondata/scans/scan/frames']
-            snew['scan_description'] = s['xnat:imagesessiondata/scans/scan/series_description']
-            snew['scan_type'] = s['xnat:imagesessiondata/scans/scan/type']
-            snew['ID'] = s['xnat:imagesessiondata/scans/scan/id']
-            snew['label'] = s['xnat:imagesessiondata/scans/scan/id']
-            snew['quality'] = s['xnat:imagesessiondata/scans/scan/quality']
-            snew['note'] = s['xnat:imagesessiondata/scans/scan/note']
-            snew['frames'] = s['xnat:imagesessiondata/scans/scan/frames']
-            snew['series_description'] = s['xnat:imagesessiondata/scans/scan/series_description']
-            snew['type'] = s['xnat:imagesessiondata/scans/scan/type']
+            snew['scan_id'] = scan['xnat:imagesessiondata/scans/scan/id']
+            snew['scan_label'] = scan['xnat:imagesessiondata/scans/scan/id']
+            snew['scan_quality'] = scan['xnat:imagesessiondata/scans/scan/quality']
+            snew['scan_note'] = scan['xnat:imagesessiondata/scans/scan/note']
+            snew['scan_frames'] = scan['xnat:imagesessiondata/scans/scan/frames']
+            snew['scan_description'] = scan['xnat:imagesessiondata/scans/scan/series_description']
+            snew['scan_type'] = scan['xnat:imagesessiondata/scans/scan/type']
+            snew['ID'] = scan['xnat:imagesessiondata/scans/scan/id']
+            snew['label'] = scan['xnat:imagesessiondata/scans/scan/id']
+            snew['quality'] = scan['xnat:imagesessiondata/scans/scan/quality']
+            snew['note'] = scan['xnat:imagesessiondata/scans/scan/note']
+            snew['frames'] = scan['xnat:imagesessiondata/scans/scan/frames']
+            snew['series_description'] = scan['xnat:imagesessiondata/scans/scan/series_description']
+            snew['type'] = scan['xnat:imagesessiondata/scans/scan/type']
             snew['project_id'] = projectid
             snew['project_label'] = projectid
-            snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
-            snew['subject_label'] = s['subject_label']
-            snew['session_id'] = s['ID']
-            snew['session_label'] = s['label']
-            snew['session_uri'] = s['URI']
+            snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
+            snew['subject_label'] = scan['subject_label']
+            snew['session_id'] = scan['ID']
+            snew['session_label'] = scan['label']
+            snew['session_uri'] = scan['URI']
             new_list.append(snew)
 
     return sorted(new_list, key=lambda k: k['label'])
@@ -490,36 +485,36 @@ def list_project_scans(intf, projectid, include_shared=True):
     post_uri += ',xnat:imagescandata/series_description'
     scan_list = intf._get_json(post_uri)
 
-    for s in scan_list:
+    for scan in scan_list:
         snew = {}
-        snew['scan_id'] = s['xnat:imagescandata/id']
-        snew['scan_label'] = s['xnat:imagescandata/id']
-        snew['scan_quality'] = s['xnat:imagescandata/quality']
-        snew['scan_note'] = s['xnat:imagescandata/note']
-        snew['scan_frames'] = s['xnat:imagescandata/frames']
-        snew['scan_description'] = s['xnat:imagescandata/series_description']
-        snew['scan_type'] = s['xnat:imagescandata/type']
-        snew['ID'] = s['xnat:imagescandata/id']
-        snew['label'] = s['xnat:imagescandata/id']
-        snew['quality'] = s['xnat:imagescandata/quality']
-        snew['note'] = s['xnat:imagescandata/note']
-        snew['frames'] = s['xnat:imagescandata/frames']
-        snew['series_description'] = s['xnat:imagescandata/series_description']
-        snew['type'] = s['xnat:imagescandata/type']
+        snew['scan_id'] = scan['xnat:imagescandata/id']
+        snew['scan_label'] = scan['xnat:imagescandata/id']
+        snew['scan_quality'] = scan['xnat:imagescandata/quality']
+        snew['scan_note'] = scan['xnat:imagescandata/note']
+        snew['scan_frames'] = scan['xnat:imagescandata/frames']
+        snew['scan_description'] = scan['xnat:imagescandata/series_description']
+        snew['scan_type'] = scan['xnat:imagescandata/type']
+        snew['ID'] = scan['xnat:imagescandata/id']
+        snew['label'] = scan['xnat:imagescandata/id']
+        snew['quality'] = scan['xnat:imagescandata/quality']
+        snew['note'] = scan['xnat:imagescandata/note']
+        snew['frames'] = scan['xnat:imagescandata/frames']
+        snew['series_description'] = scan['xnat:imagescandata/series_description']
+        snew['type'] = scan['xnat:imagescandata/type']
         snew['project_id'] = projectid
         snew['project_label'] = projectid
-        snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
-        snew['subject_label'] = s['subject_label']
-        snew['session_type'] = s['xsiType'].split('xnat:')[1].split('Session')[0].upper()
-        snew['session_id'] = s['ID']
-        snew['session_label'] = s['label']
-        snew['session_uri'] = s['URI']
-        snew['handedness'] = sess_id2mod[s['ID']][0]
-        snew['gender'] = sess_id2mod[s['ID']][1]
-        snew['yob'] = sess_id2mod[s['ID']][2]
-        snew['age'] = sess_id2mod[s['ID']][3]
-        snew['last_modified'] = sess_id2mod[s['ID']][4]
-        snew['last_updated'] = sess_id2mod[s['ID']][5]
+        snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
+        snew['subject_label'] = scan['subject_label']
+        snew['session_type'] = scan['xsiType'].split('xnat:')[1].split('Session')[0].upper()
+        snew['session_id'] = scan['ID']
+        snew['session_label'] = scan['label']
+        snew['session_uri'] = scan['URI']
+        snew['handedness'] = sess_id2mod[scan['ID']][0]
+        snew['gender'] = sess_id2mod[scan['ID']][1]
+        snew['yob'] = sess_id2mod[scan['ID']][2]
+        snew['age'] = sess_id2mod[scan['ID']][3]
+        snew['last_modified'] = sess_id2mod[scan['ID']][4]
+        snew['last_updated'] = sess_id2mod[scan['ID']][5]
         new_list.append(snew)
 
     if include_shared:
@@ -536,36 +531,36 @@ def list_project_scans(intf, projectid, include_shared=True):
         post_uri += ',xnat:imagescandata/series_description'
         scan_list = intf._get_json(post_uri)
 
-        for s in scan_list:
+        for scan in scan_list:
             snew = {}
-            snew['scan_id'] = s['xnat:imagescandata/id']
-            snew['scan_label'] = s['xnat:imagescandata/id']
-            snew['scan_quality'] = s['xnat:imagescandata/quality']
-            snew['scan_note'] = s['xnat:imagescandata/note']
-            snew['scan_frames'] = s['xnat:imagescandata/frames']
-            snew['scan_description'] = s['xnat:imagescandata/series_description']
-            snew['scan_type'] = s['xnat:imagescandata/type']
-            snew['ID'] = s['xnat:imagescandata/id']
-            snew['label'] = s['xnat:imagescandata/id']
-            snew['quality'] = s['xnat:imagescandata/quality']
-            snew['note'] = s['xnat:imagescandata/note']
-            snew['frames'] = s['xnat:imagescandata/frames']
-            snew['series_description'] = s['xnat:imagescandata/series_description']
-            snew['type'] = s['xnat:imagescandata/type']
+            snew['scan_id'] = scan['xnat:imagescandata/id']
+            snew['scan_label'] = scan['xnat:imagescandata/id']
+            snew['scan_quality'] = scan['xnat:imagescandata/quality']
+            snew['scan_note'] = scan['xnat:imagescandata/note']
+            snew['scan_frames'] = scan['xnat:imagescandata/frames']
+            snew['scan_description'] = scan['xnat:imagescandata/series_description']
+            snew['scan_type'] = scan['xnat:imagescandata/type']
+            snew['ID'] = scan['xnat:imagescandata/id']
+            snew['label'] = scan['xnat:imagescandata/id']
+            snew['quality'] = scan['xnat:imagescandata/quality']
+            snew['note'] = scan['xnat:imagescandata/note']
+            snew['frames'] = scan['xnat:imagescandata/frames']
+            snew['series_description'] = scan['xnat:imagescandata/series_description']
+            snew['type'] = scan['xnat:imagescandata/type']
             snew['project_id'] = projectid
             snew['project_label'] = projectid
-            snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
-            snew['subject_label'] = s['subject_label']
-            snew['session_type'] = s['xsiType'].split('xnat:')[1].split('Session')[0].upper()
-            snew['session_id'] = s['ID']
-            snew['session_label'] = s['label']
-            snew['session_uri'] = s['URI']
-            snew['handedness'] = sess_id2mod[s['ID']][0]
-            snew['gender'] = sess_id2mod[s['ID']][1]
-            snew['yob'] = sess_id2mod[s['ID']][2]
-            snew['age'] = sess_id2mod[s['ID']][3]
-            snew['last_modified'] = sess_id2mod[s['ID']][4]
-            snew['last_updated'] = sess_id2mod[s['ID']][5]
+            snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
+            snew['subject_label'] = scan['subject_label']
+            snew['session_type'] = scan['xsiType'].split('xnat:')[1].split('Session')[0].upper()
+            snew['session_id'] = scan['ID']
+            snew['session_label'] = scan['label']
+            snew['session_uri'] = scan['URI']
+            snew['handedness'] = sess_id2mod[scan['ID']][0]
+            snew['gender'] = sess_id2mod[scan['ID']][1]
+            snew['yob'] = sess_id2mod[scan['ID']][2]
+            snew['age'] = sess_id2mod[scan['ID']][3]
+            snew['last_modified'] = sess_id2mod[scan['ID']][4]
+            snew['last_updated'] = sess_id2mod[scan['ID']][5]
             new_list.append(snew)
 
     return sorted(new_list, key=lambda k: k['scan_label'])
@@ -585,23 +580,23 @@ def list_assessors(intf, projectid, subjectid, experimentid):
     post_uri += '?columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,URI,fs:fsData/procstatus,fs:fsData/validation/status&xsiType=fs:fsData'
     assessor_list = intf._get_json(post_uri)
 
-    for a in assessor_list:
+    for asse in assessor_list:
         anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
+        anew['ID'] = asse['ID']
+        anew['label'] = asse['label']
+        anew['uri'] = asse['URI']
+        anew['assessor_id'] = asse['ID']
+        anew['assessor_label'] = asse['label']
+        anew['assessor_uri'] = asse['URI']
         anew['project_id'] = projectid
         anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['fs:fsdata/procstatus']
-        anew['qcstatus'] = a['fs:fsdata/validation/status']
+        anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+        anew['session_id'] = asse['session_ID']
+        anew['session_label'] = asse['session_label']
+        anew['procstatus'] = asse['fs:fsdata/procstatus']
+        anew['qcstatus'] = asse['fs:fsdata/validation/status']
         anew['proctype'] = 'FreeSurfer'
-        anew['xsiType'] = a['xsiType']
+        anew['xsiType'] = asse['xsiType']
         new_list.append(anew)
 
     # Then add genProcData
@@ -609,23 +604,23 @@ def list_assessors(intf, projectid, subjectid, experimentid):
     post_uri += '?columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,proc:genprocdata/procstatus,proc:genprocdata/proctype,proc:genprocdata/validation/status&xsiType=proc:genprocdata'
     assessor_list = intf._get_json(post_uri)
 
-    for a in assessor_list:
+    for asse in assessor_list:
         anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
+        anew['ID'] = asse['ID']
+        anew['label'] = asse['label']
+        anew['uri'] = asse['URI']
+        anew['assessor_id'] = asse['ID']
+        anew['assessor_label'] = asse['label']
+        anew['assessor_uri'] = asse['URI']
         anew['project_id'] = projectid
         anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['proc:genprocdata/procstatus']
-        anew['proctype'] = a['proc:genprocdata/proctype']
-        anew['qcstatus'] = a['proc:genprocdata/validation/status']
-        anew['xsiType'] = a['xsiType']
+        anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+        anew['session_id'] = asse['session_ID']
+        anew['session_label'] = asse['session_label']
+        anew['procstatus'] = asse['proc:genprocdata/procstatus']
+        anew['proctype'] = asse['proc:genprocdata/proctype']
+        anew['qcstatus'] = asse['proc:genprocdata/validation/status']
+        anew['xsiType'] = asse['xsiType']
         new_list.append(anew)
 
     return sorted(new_list, key=lambda k: k['label'])
@@ -648,42 +643,42 @@ def list_project_assessors(intf, projectid):
     post_uri += ',fs:fsData/validation/status,fs:fsData/procversion,fs:fsData/jobstartdate,fs:fsData/memused,fs:fsData/walltimeused,fs:fsData/jobid,fs:fsData/jobnode'
     assessor_list = intf._get_json(post_uri)
 
-    for a in assessor_list:
-        if a['label']:
+    for asse in assessor_list:
+        if asse['label']:
             anew = {}
-            anew['ID'] = a['ID']
-            anew['label'] = a['label']
-            anew['uri'] = a['URI']
-            anew['assessor_id'] = a['ID']
-            anew['assessor_label'] = a['label']
-            anew['assessor_uri'] = a['URI']
+            anew['ID'] = asse['ID']
+            anew['label'] = asse['label']
+            anew['uri'] = asse['URI']
+            anew['assessor_id'] = asse['ID']
+            anew['assessor_label'] = asse['label']
+            anew['assessor_uri'] = asse['URI']
             anew['project_id'] = projectid
             anew['project_label'] = projectid
-            anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-            anew['subject_label'] = a['subject_label']
-            anew['session_type'] = sess_id2mod[a['session_ID']][1]
-            anew['session_id'] = a['session_ID']
-            anew['session_label'] = a['session_label']
-            anew['procstatus'] = a['fs:fsdata/procstatus']
-            anew['qcstatus'] = a['fs:fsdata/validation/status']
+            anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+            anew['subject_label'] = asse['subject_label']
+            anew['session_type'] = sess_id2mod[asse['session_ID']][1]
+            anew['session_id'] = asse['session_ID']
+            anew['session_label'] = asse['session_label']
+            anew['procstatus'] = asse['fs:fsdata/procstatus']
+            anew['qcstatus'] = asse['fs:fsdata/validation/status']
             anew['proctype'] = 'FreeSurfer'
 
-            if len(a['label'].rsplit('-x-FS')) > 1:
-                anew['proctype'] = anew['proctype']+a['label'].rsplit('-x-FS')[1]
+            if len(asse['label'].rsplit('-x-FS')) > 1:
+                anew['proctype'] = anew['proctype']+asse['label'].rsplit('-x-FS')[1]
 
-            anew['version'] = a.get('fs:fsdata/procversion')
-            anew['xsiType'] = a['xsiType']
-            anew['jobid'] = a.get('fs:fsdata/jobid')
-            anew['jobstartdate'] = a.get('fs:fsdata/jobstartdate')
-            anew['memused'] = a.get('fs:fsdata/memused')
-            anew['walltimeused'] = a.get('fs:fsdata/walltimeused')
-            anew['jobnode'] = a.get('fs:fsdata/jobnode')
-            anew['handedness'] = sess_id2mod[a['session_ID']][2]
-            anew['gender'] = sess_id2mod[a['session_ID']][3]
-            anew['yob'] = sess_id2mod[a['session_ID']][4]
-            anew['age'] = sess_id2mod[a['session_ID']][5]
-            anew['last_modified'] = sess_id2mod[a['session_ID']][6]
-            anew['last_updated'] = sess_id2mod[a['session_ID']][7]
+            anew['version'] = asse.get('fs:fsdata/procversion')
+            anew['xsiType'] = asse['xsiType']
+            anew['jobid'] = asse.get('fs:fsdata/jobid')
+            anew['jobstartdate'] = asse.get('fs:fsdata/jobstartdate')
+            anew['memused'] = asse.get('fs:fsdata/memused')
+            anew['walltimeused'] = asse.get('fs:fsdata/walltimeused')
+            anew['jobnode'] = asse.get('fs:fsdata/jobnode')
+            anew['handedness'] = sess_id2mod[asse['session_ID']][2]
+            anew['gender'] = sess_id2mod[asse['session_ID']][3]
+            anew['yob'] = sess_id2mod[asse['session_ID']][4]
+            anew['age'] = sess_id2mod[asse['session_ID']][5]
+            anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
+            anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
             new_list.append(anew)
 
     # Then add genProcData
@@ -697,38 +692,38 @@ def list_project_assessors(intf, projectid):
     post_uri += ',proc:genprocdata/jobstartdate,proc:genprocdata/memused,proc:genprocdata/walltimeused,proc:genprocdata/jobid,proc:genprocdata/jobnode'
     assessor_list = intf._get_json(post_uri)
 
-    for a in assessor_list:
-        if a['label']:
+    for asse in assessor_list:
+        if asse['label']:
             anew = {}
-            anew['ID'] = a['ID']
-            anew['label'] = a['label']
-            anew['uri'] = a['URI']
-            anew['assessor_id'] = a['ID']
-            anew['assessor_label'] = a['label']
-            anew['assessor_uri'] = a['URI']
+            anew['ID'] = asse['ID']
+            anew['label'] = asse['label']
+            anew['uri'] = asse['URI']
+            anew['assessor_id'] = asse['ID']
+            anew['assessor_label'] = asse['label']
+            anew['assessor_uri'] = asse['URI']
             anew['project_id'] = projectid
             anew['project_label'] = projectid
-            anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-            anew['subject_label'] = sess_id2mod[a['session_ID']][0]
-            anew['session_type'] = sess_id2mod[a['session_ID']][1]
-            anew['session_id'] = a['session_ID']
-            anew['session_label'] = a['session_label']
-            anew['procstatus'] = a['proc:genprocdata/procstatus']
-            anew['proctype'] = a['proc:genprocdata/proctype']
-            anew['qcstatus'] = a['proc:genprocdata/validation/status']
-            anew['version'] = a['proc:genprocdata/procversion']
-            anew['xsiType'] = a['xsiType']
-            anew['jobid'] = a.get('proc:genprocdata/jobid')
-            anew['jobnode'] = a.get('proc:genprocdata/jobnode')
-            anew['jobstartdate'] = a.get('proc:genprocdata/jobstartdate')
-            anew['memused'] = a.get('proc:genprocdata/memused')
-            anew['walltimeused'] = a.get('proc:genprocdata/walltimeused')
-            anew['handedness'] = sess_id2mod[a['session_ID']][2]
-            anew['gender'] = sess_id2mod[a['session_ID']][3]
-            anew['yob'] = sess_id2mod[a['session_ID']][4]
-            anew['age'] = sess_id2mod[a['session_ID']][5]
-            anew['last_modified'] = sess_id2mod[a['session_ID']][6]
-            anew['last_updated'] = sess_id2mod[a['session_ID']][7]
+            anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+            anew['subject_label'] = sess_id2mod[asse['session_ID']][0]
+            anew['session_type'] = sess_id2mod[asse['session_ID']][1]
+            anew['session_id'] = asse['session_ID']
+            anew['session_label'] = asse['session_label']
+            anew['procstatus'] = asse['proc:genprocdata/procstatus']
+            anew['proctype'] = asse['proc:genprocdata/proctype']
+            anew['qcstatus'] = asse['proc:genprocdata/validation/status']
+            anew['version'] = asse['proc:genprocdata/procversion']
+            anew['xsiType'] = asse['xsiType']
+            anew['jobid'] = asse.get('proc:genprocdata/jobid')
+            anew['jobnode'] = asse.get('proc:genprocdata/jobnode')
+            anew['jobstartdate'] = asse.get('proc:genprocdata/jobstartdate')
+            anew['memused'] = asse.get('proc:genprocdata/memused')
+            anew['walltimeused'] = asse.get('proc:genprocdata/walltimeused')
+            anew['handedness'] = sess_id2mod[asse['session_ID']][2]
+            anew['gender'] = sess_id2mod[asse['session_ID']][3]
+            anew['yob'] = sess_id2mod[asse['session_ID']][4]
+            anew['age'] = sess_id2mod[asse['session_ID']][5]
+            anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
+            anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
             new_list.append(anew)
 
     return sorted(new_list, key=lambda k: k['label'])
@@ -742,16 +737,16 @@ def list_assessor_out_resources(intf, projectid, subjectid, experimentid, assess
 def get_resource_lastdate_modified(xnat, resource):
     """ get the last modified data for a resource on XNAT (NOT WORKING: bug on XNAT side) """
     # xpaths for times in resource xml
-    CREATED_XPATH = "/cat:Catalog/cat:entries/cat:entry/@createdTime"
-    MODIFIED_XPATH = "/cat:Catalog/cat:entries/cat:entry/@modifiedTime"
+    created_xpath = "/cat:Catalog/cat:entries/cat:entry/@createdTime"
+    modified_xpath = "/cat:Catalog/cat:entries/cat:entry/@modifiedTime"
     # Get the resource object and its uri
     res_xml_uri = resource._uri+'?format=xml'
     # Get the XML for resource
     xmlstr = xnat._exec(res_xml_uri, 'GET')
     # Parse out the times
     root = etree.fromstring(xmlstr)
-    create_times = root.xpath(CREATED_XPATH, namespaces=root.nsmap)
-    mod_times = root.xpath(MODIFIED_XPATH, namespaces=root.nsmap)
+    create_times = root.xpath(created_xpath, namespaces=root.nsmap)
+    mod_times = root.xpath(modified_xpath, namespaces=root.nsmap)
     # Find the most recent time
     all_times = create_times + mod_times
     if all_times:
@@ -847,7 +842,7 @@ def islist(argument, argname):
 
 def download_file_from_obj(directory, resource_obj, fname=None):
     """ Download file with the path fname from a resource object from XNAT
-        Inputs: 
+        Inputs:
             directory: directory where the data will be downloaded
             resource_obj: resource object from XNAT for any level (project/subject/session/scan/assessor)
             fname: filepath on XNAT for the resource you want to download
@@ -872,7 +867,7 @@ def download_file_from_obj(directory, resource_obj, fname=None):
 
 def download_file(directory, resource, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, fname=None):
     """ Download file with the path fname from a resource information (project/subject/...) from XNAT
-        Inputs: 
+        Inputs:
             directory: directory where the data will be downloaded
             project_id: project ID on XNAT
             subject_id: subject ID or label on XNAT
@@ -894,7 +889,7 @@ def download_file(directory, resource, project_id=None, subject_id=None, session
 
 def download_files_from_obj(directory, resource_obj):
     """ Download all files from a resource object from XNAT
-        Inputs: 
+        Inputs:
             directory: directory where the data will be downloaded
             resource_obj: resource object from XNAT for any level (project/subject/session/scan/assessor)
         Return:
@@ -912,15 +907,15 @@ def download_files_from_obj(directory, resource_obj):
     return fpaths
 
 def download_files(directory, resource, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None):
-    """ Download all files from a resource information (project/subject/...) from XNAT 
-        Inputs: 
+    """ Download all files from a resource information (project/subject/...) from XNAT
+        Inputs:
             directory: directory where the data will be downloaded
             project_id: project ID on XNAT
             subject_id: subject ID or label on XNAT
             session_id: session ID or label on XNAT
             scan_id: scan ID on XNAT
             assessor_id: assessor ID or label on XNAT
-            resource: resource name on XNAT 
+            resource: resource name on XNAT
         Return:
             return list of filepaths on your local computer for the files downloaded
     """
@@ -932,7 +927,7 @@ def download_files(directory, resource, project_id=None, subject_id=None, sessio
 
 def download_biggest_file_from_obj(directory, resource_obj):
     """ Download biggest file from a resource object from XNAT
-        Inputs: 
+        Inputs:
             directory: directory where the data will be downloaded
             resource_obj: resource object from XNAT for any level (project/subject/session/scan/assessor)
         Return:
@@ -957,14 +952,14 @@ def download_biggest_file_from_obj(directory, resource_obj):
 
 def download_biggest_file(directory, resource, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None):
     """ Download biggest file from a resource information (project/subject/...) from XNAT
-        Inputs: 
+        Inputs:
             directory: directory where the data will be downloaded
             project_id: project ID on XNAT
             subject_id: subject ID or label on XNAT
             session_id: session ID or label on XNAT
             scan_id: scan ID on XNAT
             assessor_id: assessor ID or label on XNAT
-            resource: resource name on XNAT 
+            resource: resource name on XNAT
         Return:
             return filepath on your local computer for the file downloaded
     """
@@ -976,7 +971,7 @@ def download_biggest_file(directory, resource, project_id=None, subject_id=None,
 
 def download_from_obj(directory, xnat_obj, resources, all_files=False):
     """ Download resources from an object from XNAT (project/subject/session/scan(or)assessor)
-        Inputs: 
+        Inputs:
             directory: directory where the data will be downloaded
             xnat_obj: selected object from XNAT that can have a resource (project or subject or session or scan or assessor)
             resources: list of resources name on XNAT
@@ -1007,7 +1002,7 @@ def download_from_obj(directory, xnat_obj, resources, all_files=False):
 
 def download(directory, resources, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, all_files=False):
     """ Download resources from information provided for an object from XNAT (project/subject/session/scan(or)assessor)
-        Inputs: 
+        Inputs:
             directory: directory where the data will be downloaded
             project_id: project ID on XNAT
             subject_id: subject ID or label on XNAT
@@ -1027,7 +1022,7 @@ def download(directory, resources, project_id=None, subject_id=None, session_id=
 
 def download_scan_types(directory, project_id, subject_id, session_id, scantypes, resources, all_files=False):
     """ Download resources for a session for specific scantypes
-        Inputs: 
+        Inputs:
             directory: directory where the data will be downloaded
             project_id: project ID on XNAT
             subject_id: subject ID or label on XNAT
@@ -1052,7 +1047,7 @@ def download_scan_types(directory, project_id, subject_id, session_id, scantypes
 
 def download_scan_seriesdescriptions(directory, project_id, subject_id, session_id, seriesdescriptions, resources, all_files=False):
     """ Download resources for a session for specific series description
-        Inputs: 
+        Inputs:
             directory: directory where the data will be downloaded
             project_id: project ID on XNAT
             subject_id: subject ID or label on XNAT
@@ -1077,7 +1072,7 @@ def download_scan_seriesdescriptions(directory, project_id, subject_id, session_
 
 def download_assessor_proctypes(directory, project_id, subject_id, session_id, proctypes, resources, all_files=False):
     """ Download resources for a session for specific assessor type (proctype)
-        Inputs: 
+        Inputs:
             directory: directory where the data will be downloaded
             project_id: project ID on XNAT
             subject_id: subject ID or label on XNAT
@@ -1102,8 +1097,8 @@ def download_assessor_proctypes(directory, project_id, subject_id, session_id, p
     return fpaths
 
 def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False, fname=None):
-    """ Upload file to the resource_obj given to the function 
-        Inputs: 
+    """ Upload file to the resource_obj given to the function
+        Inputs:
             filepath: path of the file on your local computer
             resource_obj: resource object on XNAT (select resource for project or subject or session or scan or assessor)
             remove: remove files that already exists on the resource.
@@ -1137,7 +1132,7 @@ def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False, fn
 
 def upload_file(filepath, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False, fname=None):
     """ Upload the file to a resource information (project/subject/...) from XNAT
-        Inputs: 
+        Inputs:
             filepath: path of the file on your local computer
             project_id: project ID on XNAT
             subject_id: subject ID or label on XNAT
@@ -1158,13 +1153,13 @@ def upload_file(filepath, project_id=None, subject_id=None, session_id=None, sca
     else:
         xnat = get_interface()
         resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
-        status = upload_file_from_obj(filepath, resource_obj, remove, removeall)
+        status = upload_file_to_obj(filepath, resource_obj, remove, removeall, fname)
         xnat.disconnect()
     return status
 
 def upload_files_to_obj(filepaths, resource_obj, remove=False, removeall=False):
     """ Upload a list of files to the resource_obj given to the function
-        Inputs: 
+        Inputs:
             filepaths: list of files on your local computer
             resource_obj: resource object on XNAT (select resource for project or subject or session or scan or assessor)
             remove: remove files that already exists on the resource.
@@ -1176,12 +1171,12 @@ def upload_files_to_obj(filepaths, resource_obj, remove=False, removeall=False):
         resource_obj.delete()
     status = list()
     for filepath in filepaths:
-        status.append(upload_file_from_obj(filepath, resource_obj, remove=remove, removeall=False))
+        status.append(upload_file_to_obj(filepath, resource_obj, remove=remove, removeall=False))
     return status
 
 def upload_files(filepaths, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False):
-    """ Upload a list of files to a resource information (project/subject/...) from XNAT 
-        Inputs: 
+    """ Upload a list of files to a resource information (project/subject/...) from XNAT
+        Inputs:
             filepaths: list of files on your local computer
             project_id: project ID on XNAT
             subject_id: subject ID or label on XNAT
@@ -1200,13 +1195,13 @@ def upload_files(filepaths, project_id=None, subject_id=None, session_id=None, s
     else:
         xnat = get_interface()
         resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
-        status = upload_files_from_obj(filepaths, resource_obj, remove, removeall)
+        status = upload_files_to_obj(filepaths, resource_obj, remove, removeall)
         xnat.disconnect()
     return status
 
 def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False, removeall=False):
     """ Upload folder (all content) to the resource_obj given to the function
-        Inputs: 
+        Inputs:
             directory: folder on your local computer (all content will be upload)
             reosurce_obj: resource object on XNAT (select resource for project or subject or session or scan or assessor)
             remove: remove files that already exists on the resource.
@@ -1227,20 +1222,20 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False, 
                     print """ERROR: upload_folder_to_obj in XnatUtils: file {file} already found on XNAT. No upload. Use remove/removeall.""".format(file=fpath)
                     return False
 
-    filenameZip = resource_label+'.zip'
+    fzip = resource_label+'.zip'
     initdir = os.getcwd()
     #Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip -r '+filenameZip+' *')
+    os.system('zip -r '+fzip+' *')
     #upload
-    resource_obj.put_zip(os.path.join(directory, filenameZip), extract=True)
+    resource_obj.put_zip(os.path.join(directory, fzip), extract=True)
     #return to the initial directory:
     os.chdir(initdir)
     return True
 
 def upload_folder(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False):
-    """ Upload folder (all content) to a resource information (project/subject/...) from XNAT 
-        Inputs: 
+    """ Upload folder (all content) to a resource information (project/subject/...) from XNAT
+        Inputs:
             directory: folder on your local computer (all content will be upload)
             project_id: project ID on XNAT
             subject_id: subject ID or label on XNAT
@@ -1259,7 +1254,7 @@ def upload_folder(directory, project_id=None, subject_id=None, session_id=None, 
     else:
         xnat = get_interface()
         resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
-        status = upload_folder_from_obj(directory, resource_obj, resource, remove, removeall)
+        status = upload_folder_to_obj(directory, resource_obj, resource, remove, removeall)
         xnat.disconnect()
     return status
 
@@ -1276,7 +1271,7 @@ def copy_resource_from_obj(directory, xnat_obj, old_res, new_res):
     fpaths = download_files_from_obj(directory, old_resource_obj)
     if not fpaths:
         return False
-    status = upload_folder_from_obj(os.path.join(directory, old_resource_obj.label()), new_resource_obj, new_res)
+    status = upload_folder_to_obj(os.path.join(directory, old_resource_obj.label()), new_resource_obj, new_res)
     #clean director
     clean_directory(directory)
     return status
@@ -1352,10 +1347,10 @@ def check_image_format(fpath):
         fpath = fpath+'.gz'
     return fpath
 
-def upload_list_records_redcap(rc, data):
-    """ Upload data of a dict to a rc project 
+def upload_list_records_redcap(redcap_project, data):
+    """ Upload data of a dict to a redcap_project project
         Inputs:
-            rc: project on REDCap open with request
+            redcap_project: project on REDCap open with request
             data: list of dictionaries that need to be upload
     """
     upload_data = True
@@ -1367,11 +1362,11 @@ def upload_list_records_redcap(rc, data):
         upload_data = False
     if upload_data:
         try:
-            response = rc.import_records(data)
+            response = redcap_project.import_records(data)
             assert 'count' in response
-        except AssertionError as e:
+        except AssertionError as err:
             print '      -ERROR: Creation of record failed. The error is the following: '
-            print '      ', e
+            print '      ', err
             print response
         except:
             print '      -ERROR: connection to REDCap interupted.'
@@ -1412,9 +1407,9 @@ class CachedImageSession():
         if element != None:
             return element.text
 
-        split_array = name.rsplit('/',1)    
+        split_array = name.rsplit('/', 1)
         if len(split_array) == 2:
-            tag,attr = split_array
+            tag, attr = split_array
             element = self.sess_element.find(tag, NS)
             if element != None:
                 value = element.get(attr)
@@ -1428,17 +1423,17 @@ class CachedImageSession():
         scan_list = []
         scan_elements = self.sess_element.find('xnat:scans', NS)
         for scan in scan_elements:
-            scan_list.append(CachedImageScan(scan,self))
+            scan_list.append(CachedImageScan(scan, self))
 
         return scan_list
 
     def assessors(self):
         """ return a list of cacheassessors objects for the session """
         assr_list = []
-        
+
         assr_elements = self.sess_element.find('xnat:assessors', NS)
         for assr in assr_elements:
-            assr_list.append(CachedImageAssessor(assr,self))
+            assr_list.append(CachedImageAssessor(assr, self))
 
         return assr_list
 
@@ -1456,11 +1451,11 @@ class CachedImageSession():
         sess_info['UID'] = self.get('UID')
         sess_info['subject_id'] = self.get('xnat:subject_ID')
         sess_info['subject_label'] = self.subject
-        sess_info['project_label'] = sess_info['project_id'] 
-        sess_info['project'] = sess_info['project_id'] 
+        sess_info['project_label'] = sess_info['project_id']
+        sess_info['project'] = sess_info['project_id']
         sess_info['subject_ID'] = self.get('xnat:subject_ID')
-        sess_info['URI'] = '/data/experiments/'+sess_info['ID'] 
-        sess_info['session_label'] = sess_info['label']  
+        sess_info['URI'] = '/data/experiments/'+sess_info['ID']
+        sess_info['session_label'] = sess_info['label']
         sess_info['last_updated'] = sess_info['original']
         sess_info['type'] = sess_info['modality']
 
@@ -1471,17 +1466,17 @@ class CachedImageSession():
         res_list = []
 
         file_elements = self.sess_element.findall('xnat:file', NS)
-        for f in file_elements:
-            xsi_type = f.get('{http://www.w3.org/2001/XMLSchema-instance}type')
+        for file_element in file_elements:
+            xsi_type = file_element.get('{http://www.w3.org/2001/XMLSchema-instance}type')
             if xsi_type == 'xnat:resourceCatalog':
-                res_list.append(CachedResource(f,self))
+                res_list.append(CachedResource(file_element, self))
 
         return res_list
 
     def get_resources(self):
         """ return list of dictionaries of the resources for the session """
         return [res.info() for res in self.resources()]
-        
+
 class CachedImageScan():
     """ Class to cache the scan XML information from XNAT """
     def __init__(self, scan_element, parent):
@@ -1507,7 +1502,7 @@ class CachedImageScan():
         if element != None:
             return element.text
 
-        tag, attr = name.rsplit(':',1)        
+        tag, attr = name.rsplit(':', 1)
         element = self.scan_element.find(tag, NS)
         if element != None:
             value = element.get(attr)
@@ -1523,7 +1518,7 @@ class CachedImageScan():
         scan_info['ID'] = self.get('ID')
         scan_info['label'] = self.get('ID')
         scan_info['quality'] = self.get('xnat:quality')
-        scan_info['frames']  = self.get('xnat:frames')
+        scan_info['frames'] = self.get('xnat:frames')
         scan_info['note'] = self.get('xnat:note')
         scan_info['type'] = self.get('type')
         scan_info['series_description'] = self.get('xnat:series_description')
@@ -1532,16 +1527,16 @@ class CachedImageScan():
         scan_info['subject_label'] = self.parent().subject
 
         scan_info['scan_id'] = scan_info['ID']
-        scan_info['scan_label'] = scan_info['label'] 
-        scan_info['scan_quality'] = scan_info['quality'] 
-        scan_info['scan_note'] = scan_info['note'] 
+        scan_info['scan_label'] = scan_info['label']
+        scan_info['scan_quality'] = scan_info['quality']
+        scan_info['scan_note'] = scan_info['note']
         scan_info['scan_type'] = scan_info['type']
-        scan_info['scan_frames'] = scan_info['frames'] 
+        scan_info['scan_frames'] = scan_info['frames']
         scan_info['scan_description'] = scan_info['series_description']
 
         scan_info['session_id'] = self.parent().get('ID')
         scan_info['session_label'] = self.parent().get('label')
-        scan_info['project_label'] = scan_info['project_id'] 
+        scan_info['project_label'] = scan_info['project_id']
 
         return scan_info
 
@@ -1550,10 +1545,10 @@ class CachedImageScan():
         res_list = []
 
         file_elements = self.scan_element.findall('xnat:file', NS)
-        for f in file_elements:
-            xsi_type = f.get('{http://www.w3.org/2001/XMLSchema-instance}type')
+        for file_element in file_elements:
+            xsi_type = file_element.get('{http://www.w3.org/2001/XMLSchema-instance}type')
             if xsi_type == 'xnat:resourceCatalog':
-                res_list.append(CachedResource(f,self))
+                res_list.append(CachedResource(file_element, self))
 
         return res_list
 
@@ -1586,16 +1581,16 @@ class CachedImageAssessor():
         if element != None:
             return element.text
 
-        #tag, attr = name.rsplit('/',1)        
+        #tag, attr = name.rsplit('/', 1)
         #element = self.assr_element.find(tag, NS)
         #if element != None:
         #    value = element.get(attr)
         #    if value != None:
         #        return value
 
-        split_array = name.rsplit('/',1)    
+        split_array = name.rsplit('/', 1)
         if len(split_array) == 2:
-            tag,attr = split_array
+            tag, attr = split_array
             element = self.assr_element.find(tag, NS)
             if element != None:
                 value = element.get(attr)
@@ -1613,14 +1608,14 @@ class CachedImageAssessor():
         assr_info['assessor_id'] = assr_info['ID']
         assr_info['assessor_label'] = assr_info['label']
         assr_info['project_id'] = self.get('project')
-        assr_info['project_label'] = assr_info['project_id'] 
+        assr_info['project_label'] = assr_info['project_id']
         assr_info['subject_id'] = self.parent().get('xnat:subject_ID')
         assr_info['subject_label'] = self.parent().subject
         assr_info['session_id'] = self.parent().get('ID')
         assr_info['session_label'] = self.parent().get('label')
         assr_info['xsiType'] = self.get('{http://www.w3.org/2001/XMLSchema-instance}type').lower()
 
-        if (assr_info['xsiType'] == 'fs:fsdata'):
+        if assr_info['xsiType'] == 'fs:fsdata':
             # FreeSurfer
             assr_info['procstatus'] = self.get('fs:procstatus')
             assr_info['qcstatus'] = self.get('xnat:validation/status')
@@ -1632,7 +1627,7 @@ class CachedImageAssessor():
             assr_info['jobnode'] = self.get('fs:jobnode')
             assr_info['proctype'] = 'FreeSurfer'
 
-        elif (assr_info['xsiType'] == 'proc:genprocdata'):
+        elif assr_info['xsiType'] == 'proc:genprocdata':
             # genProcData
             assr_info['procstatus'] = self.get('proc:procstatus')
             assr_info['proctype'] = self.get('proc:proctype')
@@ -1644,7 +1639,7 @@ class CachedImageAssessor():
             assr_info['walltimeused'] = self.get('proc:walltimeused')
             assr_info['jobnode'] = self.get('proc:jobnode')
         else:
-            print('WARN:unknown xsiType for assessor:'+assr_info['xsiType'])
+            print 'WARN:unknown xsiType for assessor:'+assr_info['xsiType']
 
         return assr_info
 
@@ -1653,8 +1648,8 @@ class CachedImageAssessor():
         res_list = []
 
         file_elements = self.assr_element.findall('xnat:in/xnat:file', NS)
-        for f in file_elements:
-            res_list.append(CachedResource(f,self))
+        for file_element in file_elements:
+            res_list.append(CachedResource(file_element, self))
 
         return res_list
 
@@ -1663,8 +1658,8 @@ class CachedImageAssessor():
         res_list = []
 
         file_elements = self.assr_element.findall('xnat:out/xnat:file', NS)
-        for f in file_elements:
-            res_list.append(CachedResource(f,self))
+        for file_element in file_elements:
+            res_list.append(CachedResource(file_element, self))
 
         return res_list
 
@@ -1678,7 +1673,7 @@ class CachedImageAssessor():
 
 class CachedResource():
     """ Class to cache the resource XML information from XNAT """
-    def __init__(self,element,parent):
+    def __init__(self, element, parent):
         """ Init function """
         self.res_parent = parent
         self.res_element = element
@@ -1701,9 +1696,9 @@ class CachedResource():
         if element != None:
             return element.text
 
-        split_array = name.rsplit('/',1)    
+        split_array = name.rsplit('/', 1)
         if len(split_array) == 2:
-            tag,attr = split_array
+            tag, attr = split_array
             element = self.res_element.find(tag, NS)
             if element != None:
                 value = element.get(attr)
