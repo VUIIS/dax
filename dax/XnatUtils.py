@@ -1377,6 +1377,7 @@ def upload_list_records_redcap(rc, data):
             print '      -ERROR: connection to REDCap interupted.'
 
 def get_input_list(input_val, default_val):
+    """ function to convert inputs into a list """
     if isinstance(input_val, list):
         return input_val
     elif isinstance(input_val, str):
@@ -1388,25 +1389,29 @@ def get_input_list(input_val, default_val):
 #                                5) Cached Class                                   #
 ####################################################################################
 class CachedImageSession():
-    def __init__(self,xnat,proj,subj,sess):
+    """ Class to cache the session XML information from XNAT """
+    def __init__(self, xnat, proj, subj, sess):
+        """ Init function """
         #self.sess_element = ET.fromstring(xnat.session_xml(proj,sess))
         xml_str = xnat.select('/project/'+proj+'/subject/'+subj+'/experiment/'+sess).get()
         self.sess_element = ET.fromstring(xml_str)
         self.project = proj
         self.subject = subj
-        
+
     def label(self):
+        """ return label of the session """
         return self.sess_element.get('label')
-    
-    def get(self,name):        
+
+    def get(self, name):
+        """ return value of a variable name for the session """
         value = self.sess_element.get(name)
         if value != None:
             return value
-        
+
         element = self.sess_element.find(name, NS)
         if element != None:
             return element.text
-        
+
         split_array = name.rsplit('/',1)    
         if len(split_array) == 2:
             tag,attr = split_array
@@ -1415,29 +1420,32 @@ class CachedImageSession():
                 value = element.get(attr)
                 if value != None:
                     return value
-        
+
         return ''
 
     def scans(self):
+        """ return a list of cachescans objects for the session """
         scan_list = []
         scan_elements = self.sess_element.find('xnat:scans', NS)
         for scan in scan_elements:
             scan_list.append(CachedImageScan(scan,self))
-            
+
         return scan_list
 
     def assessors(self):
+        """ return a list of cacheassessors objects for the session """
         assr_list = []
         
         assr_elements = self.sess_element.find('xnat:assessors', NS)
         for assr in assr_elements:
             assr_list.append(CachedImageAssessor(assr,self))
-        
+
         return assr_list
-   
+
     def info(self):
+        """ return a dict with the XNAT information for the session """
         sess_info = {}
-    
+
         sess_info['ID'] = self.get('ID')
         sess_info['label'] = self.get('label')
         sess_info['note'] = self.get('xnat:note')
@@ -1457,39 +1465,49 @@ class CachedImageSession():
         sess_info['type'] = sess_info['modality']
 
         return sess_info
+
+    def get_resources(self):
+        """ return list of dictionaries of the resources for the session """
+        return [res.info() for res in self.resources()]
         
 class CachedImageScan():
-    def __init__(self,scan_element,parent):
+    """ Class to cache the scan XML information from XNAT """
+    def __init__(self, scan_element, parent):
+        """ Init function """
         self.scan_parent = parent
         self.scan_element = scan_element
-        
+
     def parent(self):
+        """ return parent the session """
         return self.scan_parent
-        
+
     def label(self):
+        """ return the ID/label of the scan """
         return self.scan_element.get('ID')
-    
-    def get(self,name):
+
+    def get(self, name):
+        """ return the value of a variable name """
         value = self.scan_element.get(name)
         if value != None:
             return value
-        
+
         element = self.scan_element.find(name, NS)
         if element != None:
             return element.text
-        
+
         tag, attr = name.rsplit(':',1)        
         element = self.scan_element.find(tag, NS)
         if element != None:
             value = element.get(attr)
             if value != None:
                 return value
-        
+
         return ''
-    
+
     def info(self):
+        """ return a dictionary of the scan information """
         scan_info = {}
-    
+
         scan_info['ID'] = self.get('ID')
         scan_info['label'] = self.get('ID')
         scan_info['quality'] = self.get('xnat:quality')
@@ -1508,16 +1526,17 @@ class CachedImageScan():
         scan_info['scan_type'] = scan_info['type']
         scan_info['scan_frames'] = scan_info['frames'] 
         scan_info['scan_description'] = scan_info['series_description']
-        
+
         scan_info['session_id'] = self.parent().get('ID')
         scan_info['session_label'] = self.parent().get('label')
         scan_info['project_label'] = scan_info['project_id'] 
-                
+
         return scan_info
 
     def resources(self):
+        """ return the list of cached Resources object """
         res_list = []
-        
+
         file_elements = self.scan_element.findall('xnat:file', NS)
         for f in file_elements:
             xsi_type = f.get('{http://www.w3.org/2001/XMLSchema-instance}type')
@@ -1526,33 +1545,42 @@ class CachedImageScan():
             
         return res_list
 
+    def get_resources(self):
+        """ return list of dictionaries of the resources for the scan """
+        return [res.info() for res in self.resources()]
+
 class CachedImageAssessor():
-    def __init__(self,assr_element,parent):
+    """ Class to cache the assessor XML information from XNAT """
+    def __init__(self, assr_element, parent):
+        """ Init function """
         self.assr_parent = parent
         self.assr_element = assr_element
-        
+
     def parent(self):
+        """ return the session """
         return self.assr_parent
-        
+
     def label(self):
+        """ return label of assessor """
         return self.assr_element.get('label')
-    
-    def get(self,name):
+
+    def get(self, name):
+        """ return value of a variable for the assessor """
         value = self.assr_element.get(name)
         if value != None:
             return value
-        
+
         element = self.assr_element.find(name, NS)
         if element != None:
             return element.text
-        
+
         #tag, attr = name.rsplit('/',1)        
         #element = self.assr_element.find(tag, NS)
         #if element != None:
         #    value = element.get(attr)
         #    if value != None:
         #        return value
-            
+
         split_array = name.rsplit('/',1)    
         if len(split_array) == 2:
             tag,attr = split_array
@@ -1561,12 +1589,13 @@ class CachedImageAssessor():
                 value = element.get(attr)
                 if value != None:
                     return value
-        
+
         return ''
-        
+
     def info(self):
+        """ return dictionary with the assessor information """
         assr_info = {}
-        
+
         assr_info['ID'] = self.get('ID')
         assr_info['label'] = self.get('label')
         assr_info['assessor_id'] = assr_info['ID']
@@ -1578,7 +1607,7 @@ class CachedImageAssessor():
         assr_info['session_id'] = self.parent().get('ID')
         assr_info['session_label'] = self.parent().get('label')
         assr_info['xsiType'] = self.get('{http://www.w3.org/2001/XMLSchema-instance}type').lower()
-        
+
         if (assr_info['xsiType'] == 'fs:fsdata'):
             # FreeSurfer
             assr_info['procstatus'] = self.get('fs:procstatus')
@@ -1590,7 +1619,7 @@ class CachedImageAssessor():
             assr_info['walltimeused'] = self.get('fs:walltimeused')
             assr_info['jobnode'] = self.get('fs:jobnode')
             assr_info['proctype'] = 'FreeSurfer'
-            
+
         elif (assr_info['xsiType'] == 'proc:genprocdata'):
             # genProcData
             assr_info['procstatus'] = self.get('proc:procstatus')
@@ -1604,47 +1633,62 @@ class CachedImageAssessor():
             assr_info['jobnode'] = self.get('proc:jobnode')
         else:
             print('WARN:unknown xsiType for assessor:'+assr_info['xsiType'])
-            
+
         return assr_info
-                    
+
     def in_resources(self):
+        """ return list of cached resource object for in resources"""
         res_list = []
-        
+
         file_elements = self.assr_element.findall('xnat:in/xnat:file', NS)
         for f in file_elements:
             res_list.append(CachedResource(f,self))
-            
+
         return res_list
-        
+
     def out_resources(self):
+        """ return list of cached resource object for out resources"""
         res_list = []
-            
+
         file_elements = self.assr_element.findall('xnat:out/xnat:file', NS)
         for f in file_elements:
             res_list.append(CachedResource(f,self))
-            
+
         return res_list
-        
+
+    def get_in_resources(self):
+        """ return list of dictionaries of the in resources for the assessor """
+        return [res.info() for res in self.in_resources()]
+
+    def get_out_resources(self):
+        """ return list of dictionaries of the out resources for the assessor """
+        return [res.info() for res in self.out_resources()]
+
 class CachedResource():
+    """ Class to cache the resource XML information from XNAT """
     def __init__(self,element,parent):
+        """ Init function """
         self.res_parent = parent
         self.res_element = element
-   
+
     def parent(self):
+        """ get parent from the resource """
         return self.res_parent
-    
+
     def label(self):
+        """ return label of the resource """
         return self.res_element.get('label')
-    
-    def get(self,name):
+
+    def get(self, name):
+        """ return value of variable for resource """
         value = self.res_element.get(name)
         if value != None:
             return value
-        
+
         element = self.res_element.find(name, NS)
         if element != None:
             return element.text
-        
+
         split_array = name.rsplit('/',1)    
         if len(split_array) == 2:
             tag,attr = split_array
@@ -1653,10 +1697,11 @@ class CachedResource():
                 value = element.get(attr)
                 if value != None:
                     return value
-            
+
         return ''
 
     def info(self):
+        """ return dictionary for the resource information """
         res_info = {}
 
         res_info['URI'] = self.get('URI')
