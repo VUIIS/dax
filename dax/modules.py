@@ -114,6 +114,13 @@ class ScanModule(Module):
         """ code to run on one scan"""
         raise NotImplementedError()
 
+    def has_resource(self, cscan, resource_label):
+        """ check if the resource exists for the scan """
+        res_list = [res for res in cscan.get_resources() if res['label'] == resource_label]
+        if len(res_list) > 0:
+            return True
+        return False
+
     def log_warning_error(self, message, scan_info, error=False):
         """ print warning or error for a project/subject/session/scan"""
         if error:
