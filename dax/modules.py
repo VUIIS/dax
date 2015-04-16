@@ -2,7 +2,7 @@ import os
 import shutil
 import smtplib
 import logging
-import XnatUtils
+import dax.XnatUtils
 from datetime import datetime
 from email.mime.text import MIMEText
 from .dax_settings import SMTP_HOST, SMTP_FROM, SMTP_PASS
