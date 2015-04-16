@@ -103,7 +103,7 @@ class Module(object):
             smtp.login(SMTP_FROM, SMTP_PASS)
             smtp.sendmail(SMTP_FROM, self.email, msg.as_string())
             smtp.quit()
-        
+
 class ScanModule(Module):
     """ Module running on a scan """
     def __init__(self, mod_name, directory, email, text_report):
