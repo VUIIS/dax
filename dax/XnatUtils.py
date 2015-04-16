@@ -1466,6 +1466,18 @@ class CachedImageSession():
 
         return sess_info
 
+    def resources(self):
+        """ return the list of cached Resources object """
+        res_list = []
+
+        file_elements = self.sess_element.findall('xnat:file', NS)
+        for f in file_elements:
+            xsi_type = f.get('{http://www.w3.org/2001/XMLSchema-instance}type')
+            if xsi_type == 'xnat:resourceCatalog':
+                res_list.append(CachedResource(f,self))
+
+        return res_list
+
     def get_resources(self):
         """ return list of dictionaries of the resources for the session """
         return [res.info() for res in self.resources()]
@@ -1542,7 +1554,7 @@ class CachedImageScan():
             xsi_type = f.get('{http://www.w3.org/2001/XMLSchema-instance}type')
             if xsi_type == 'xnat:resourceCatalog':
                 res_list.append(CachedResource(f,self))
-            
+
         return res_list
 
     def get_resources(self):
