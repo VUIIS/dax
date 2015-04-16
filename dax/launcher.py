@@ -611,7 +611,7 @@ class Launcher(object):
             open(lock_file, 'w').close()
             return True
     
-   def lock_build(self,lockfile_prefix):
+    def lock_build(self,lockfile_prefix):
         lock_file = os.path.join(RESULTS_DIR,'FlagFiles',lockfile_prefix+'_'+BUILD_LOCK_FILE)
         
         if os.path.exists(lock_file):
