@@ -1127,12 +1127,12 @@ def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False, fn
             if remove:
                 resource_obj.file(str(filename)).delete()
             else:
-                print """WARNING: upload_folder in XnatUtils: resource {filename} already exists.""".format(filename=filename)
+                print """WARNING: upload_file_to_obj in XnatUtils: resource {filename} already exists.""".format(filename=filename)
                 return False
         resource_obj.file(str(filename)).put(str(filepath))
         return True
     else:
-        print """ERROR: upload_folder in XnatUtils: file {file} doesn't exist.""".format(file=filepath)
+        print """ERROR: upload_file_to_obj in XnatUtils: file {file} doesn't exist.""".format(file=filepath)
         return False
 
 def upload_file(filepath, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False, fname=None):
@@ -1224,7 +1224,7 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False, 
         if not remove: #check if any files already exists on XNAT, if yes return FALSE
             for fpath in get_files_in_folder(directory):
                 if resource_obj.file(fpath).exists():
-                    print """ERROR: upload_folder in XnatUtils: file {file} already found on XNAT. No upload. Use remove/removeall.""".format(file=fpath)
+                    print """ERROR: upload_folder_to_obj in XnatUtils: file {file} already found on XNAT. No upload. Use remove/removeall.""".format(file=fpath)
                     return False
 
     filenameZip = resource_label+'.zip'
@@ -1255,7 +1255,7 @@ def upload_folder(directory, project_id=None, subject_id=None, session_id=None, 
     """
     status = False
     if not resource:
-        print "ERROR: upload_file in XnatUtils: no resource argument provided."
+        print "ERROR: upload_folder in XnatUtils: no resource argument provided."
     else:
         xnat = get_interface()
         resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
