@@ -2,6 +2,7 @@ import os
 import shutil
 import smtplib
 import logging
+import XnatUtils
 from datetime import datetime
 from email.mime.text import MIMEText
 from .dax_settings import SMTP_HOST, SMTP_FROM, SMTP_PASS
@@ -64,7 +65,7 @@ class Module(object):
                                                                                                  hour=str(today.hour),
                                                                                                  minute=str(today.minute),
                                                                                                  second=str(today.second))
-                self.directory = os.path.join(self.directory,fname)
+                self.directory = os.path.join(self.directory, fname)
 
                 if not os.path.exists(self.directory):
                     os.mkdir(self.directory)
@@ -77,9 +78,8 @@ class Module(object):
 
     def clean_directory(self):
         """ Clean the tmp directory """
-        files=os.listdir(self.directory)
-        for f in files:
-            fpath = os.path.join(self.directory, f)
+        for fname in os.listdir(self.directory):
+            fpath = os.path.join(self.directory, fname)
             if os.path.isfile(fpath):
                 os.remove(fpath)
             else:
@@ -98,11 +98,11 @@ class Module(object):
             msg['From'] = SMTP_FROM
             msg['To'] = ",".join(self.email)
             # Send the email via our own SMTP server.
-            s = smtplib.SMTP(SMTP_HOST)
-            s.starttls()
-            s.login(SMTP_FROM,SMTP_PASS)
-            s.sendmail(SMTP_FROM, self.email, msg.as_string())
-            s.quit()
+            smtp = smtplib.SMTP(SMTP_HOST)
+            smtp.starttls()
+            smtp.login(SMTP_FROM, SMTP_PASS)
+            smtp.sendmail(SMTP_FROM, self.email, msg.as_string())
+            smtp.quit()
         
 class ScanModule(Module):
     """ Module running on a scan """
