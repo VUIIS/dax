@@ -79,31 +79,31 @@ class AssessorHandler:
         """return true if the assessor is a valid label"""
         return self.assessor_label != None
 
-    def project_id(self):
+    def get_project_id(self):
         """ This method retreives the project label from self
         :return: The XNAT project label
         """
         return self.project_id
 
-    def subject_label(self):
+    def get_subject_label(self):
         """ This method retrieves the subject label from self
         :return: The XNAT subject label
         """
         return self.subject_label
 
-    def session_label(self):
+    def get_session_label(self):
         """ This method retrieves the session label from self
         :return: The XNAT session label
         """
         return self.session_label
 
-    def scan_id(self):
+    def get_scan_id(self):
         """ This method retrieves the scan id from the assessor label
         :return: The XNAT scan ID for the assessor
         """
         return self.scan_id
 
-    def proctype(self):
+    def get_proctype(self):
         """ This method retrieves the process type from the assessor label
         :return: The XNAT process type for the assessor
         """
