@@ -53,10 +53,6 @@ class Processor(object):
     def should_run(self): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
         """ return True if the assessor should exist/ False if not """
         raise NotImplementedError()
-        
-    def write_pbs(self, filename):
-        """ function that write the pbs for the assessor """
-        raise NotImplementedError()
 
 class ScanProcessor(Processor):
     """ Scan Processor class for processor on a scan on XNAT """
