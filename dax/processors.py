@@ -55,8 +55,9 @@ class ScanProcessor(Processor):
     def has_inputs(self):
         raise NotImplementedError()
      
-    def should_run(self): 
-        raise NotImplementedError()
+    def should_run(self, scan_dict):
+        """ should_run function overwrited from base-class to check if it's a right scan"""
+        return scan_dict['scan_type'] in self.scan_types
     
     def __init__(self,scan_types,walltime_str,memreq_mb,spider_path,version=None, ppn=1):
         super(ScanProcessor, self).__init__(walltime_str, memreq_mb,spider_path,version,ppn)
@@ -100,8 +101,8 @@ class SessionProcessor(Processor):
     def has_inputs(self):
         raise NotImplementedError()
      
-    def should_run(self): 
-        raise NotImplementedError()
+    def should_run(self, session_dict): 
+        return True
     
     def __init__(self,walltime_str,memreq_mb,spider_path,version=None,ppn=1):
         super(SessionProcessor, self).__init__(walltime_str,memreq_mb,spider_path,version,ppn)
