@@ -107,7 +107,7 @@ class Module(object):
 class ScanModule(Module):
     """ Module running on a scan """
     def __init__(self, mod_name, directory, email, text_report):
-        """ Overloading Module init function """
+        """ Overridden Module init function """
         super(ScanModule, self).__init__(mod_name, directory, email, text_report)
 
     def run(self):
@@ -139,7 +139,7 @@ class ScanModule(Module):
 class SessionModule(Module):
     """ Module running on a session """
     def __init__(self, mod_name, directory, email, text_report):
-        """ Overloading Module init function """
+        """ Overridden Module init function """
         super(SessionModule, self).__init__(mod_name, directory, email, text_report)
 
     def run(self):
