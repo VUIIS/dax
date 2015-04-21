@@ -62,27 +62,28 @@ def xnat_list_assessors(xnat,options):
             print '| %*s | %*s |' % (-20,project,-20,len([s for s in projects_assessors_list if s['project_id']==project]))
         print ' ---------------------------------------------\n'
     return projects_assessors_list
-                    
-def filter_assessors(options,obj_list):
-    subjects=get_option_list(options.subjects)
-    sessions=get_option_list(options.sessions)
-    proctypes=get_option_list(options.proctypes)
+
+def filter_assessors(options, obj_list):
+    subjects = get_option_list(options.subjects)
+    sessions = get_option_list(options.sessions)
+    proctypes = get_option_list(options.proctypes)
     #FS for FREESURFER
-    if proctypes and proctypes!='all' and 'FS' in proctypes:
+    if proctypes and proctypes != 'all' and 'FS' in proctypes:
         proctypes.remove('FS')
         proctypes.append('FreeSurfer')
-    status=options.formerstatus
-    qastatus=options.qastatus
-    if subjects and subjects!='all':
-        obj_list=filter(lambda x: x['subject_label'] in subjects, obj_list)
-    if sessions and sessions!='all':
-        obj_list=filter(lambda x: x['session_label'] in sessions, obj_list)
-    if proctypes and proctypes!='all':
-        obj_list=filter(lambda x: x['proctype'] in proctypes, obj_list)
-    if qastatus:
-        obj_list=filter(lambda x: x['qcstatus'] in status, obj_list)
-    elif status and status!='all':
-        obj_list=filter(lambda x: x['procstatus'] in status, obj_list)  
+    status = options.formerstatus
+    qastatus = options.qastatus
+    if subjects and subjects != 'all':
+        obj_list = filter(lambda x: x['subject_label'] in subjects, obj_list)
+    if sessions and sessions != 'all':
+        obj_list = filter(lambda x: x['session_label'] in sessions, obj_list)
+    if proctypes and proctypes != 'all':
+        obj_list = filter(lambda x: x['proctype'] in proctypes, obj_list)
+    if status and status != 'all':
+        if qastatus:
+            obj_list = filter(lambda x: x['qcstatus'] in status, obj_list)
+        else:
+            obj_list = filter(lambda x: x['procstatus'] in status, obj_list)  
     return obj_list
 
 def delete_Out_Resource(assessor_obj,resource_label):
