@@ -69,7 +69,7 @@ class ScanProcessor(Processor):
         raise NotImplementedError()
 
     def __init__(self, scan_types, walltime_str, memreq_mb, spider_path, version=None, ppn=1):
-        """ init function overriden from base class """
+        """ init function overridden from base class """
         super(ScanProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn)
         if isinstance(scan_types, list):
             self.scan_types = scan_types
@@ -124,7 +124,7 @@ class SessionProcessor(Processor):
         raise NotImplementedError()
 
     def __init__(self, walltime_str, memreq_mb, spider_path, version=None, ppn=1):
-        """ init function overriden from base class """
+        """ init function overridden from base class """
         super(SessionProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn)
 
     def should_run(self, session_dict):
