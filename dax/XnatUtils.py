@@ -1198,3 +1198,130 @@ def upload_list_records_redcap(rc,data):
         except:
             print '      -ERROR: connection to REDCap interupted.'
             
+
+class AssessorHandler:
+
+
+    def __init__(self):
+        """
+        The default init. everything is set to empty strings if no label is passed
+        :return: None
+        """
+        self.project_label = ''
+        self.session_label = ''
+        self.subject_label = ''
+        self.proc_type = ''
+        self.scan_id = ''
+        self.assessor_label = ''
+
+
+    def __init__(self, label):
+        """
+        The purpose of this method is to split an assessor label and parse out its associated pieces
+        :param label: An assessor label of the form ProjectID-x-Subject_label-x-SessionLabel-x-ScanId-x-proctype
+        :return: None
+        """
+        split_string = label.split('-x-')
+        self.project_label = split_string[0]
+        self.subject_label = split_string[1]
+        self.session_label = split_string[2]
+        self.scan_id = split_string[3]
+        self.proc_type = split_string[4]
+        self.assessor_label = label
+
+
+    def __get_project_label__(self):
+        """
+        This method retreives the project label from self
+        :return: The XNAT project label
+        """
+        return self.project_label
+
+
+    def __get_subject_label__(self):
+        """
+        This method retrieves the subject label from self
+        :return: The XNAT subject label
+        """
+        return self.subject_label
+
+
+    def __get_session_label__(self):
+        """
+        This method retrieves the session label from self
+        :return: The XNAT session label
+        """
+        return self.session_label
+
+
+    def __get_scan_id__(self):
+        """
+        This method retrieves the scan id from the assessor label
+        :return: The XNAT scan ID for the assessor
+        """
+        return self.scan_id
+
+
+    def __get_proc_type__(self):
+        """
+        This method retrieves the process type from the assessor label
+        :return: The XNAT process type for the assessor
+        """
+        return self.scan_id
+
+
+    def __set_project_label__(self, projectlabel):
+        """
+        Private method to set the current project label
+        :param projectlabel: The new XNAT Project label
+        :return: None
+        """
+        self.project_label = projectlabel
+
+
+    def __set_subject_label__(self, subjectlabel):
+        """
+        Private method to set the current subject label
+        :param subjectlabel: The new XNAT Subject label
+        :return: None
+        """
+        self.subject_label = subjectlabel
+
+
+    def __set_session_label__(self, sessionlabel):
+        """
+        Private method to set the current session label
+        :param sessionlabel: The new XNAT session label
+        :return: None
+        """
+        self.session_label = sessionlabel
+
+
+    def __set_scan_id__(self, scanid):
+        """
+        Private method to set the current scan id
+        :param scanid: The new XNAT scan id
+        :return: None
+        """
+        self.scan_id = scanid
+
+
+    def __set_proc_type__(self, proctype):
+        """
+        Private method to set the new process type
+        :param proctype: The new XNAT process type
+        :return: None
+        """
+        self.proctype = proctype
+
+
+    def __update__(self):
+        """
+        Private method to update the assessor label
+        :return: None
+        """
+        self.assessor_label = '-x-'.join([self.project_label,
+                                          self.subject_label,
+                                          self.session_label,
+                                          self.scan_id,
+                                          self.proc_type])
