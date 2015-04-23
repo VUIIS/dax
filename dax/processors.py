@@ -6,17 +6,6 @@ import XnatUtils
 
 #Logger for logs
 LOGGER = logging.getLogger('dax')
-# QA status:
-BAD_QA_STATUS = ['bad', 'fail']
-
-def is_bad_qastatus(qastatus):
-    """ function to return False if status is bad qa status """
-    if qastatus in [task.JOB_PENDING, task.NEEDS_QA]:
-        return 0
-    for qa in BAD_QA_STATUS:
-        if qa in qastatus.lower():
-            return -1
-    return 1
 
 class Processor(object):
     """ Base class for processor """
@@ -42,7 +31,7 @@ class Processor(object):
             self.spider_path = os.path.join(os.path.dirname(spider_path), 'Spider_'+proc_name+'_v'+version+'.py')
         else:
             self.default_settings_spider(spider_path)
-    
+
     def default_settings_spider(self, spider_path):
         """ default function to get the spider version/name """
         #set spider path
@@ -59,7 +48,7 @@ class Processor(object):
     def has_inputs(self): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
         """ has_inputs function to check if inputs present on XNAT to run the job """
         raise NotImplementedError()
-     
+
     # should_run - is the object of the proper object type? e.g. is it a scan? and is it the required scan type? e.g. is it a T1?
     def should_run(self): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
         """ return True if the assessor should exist/ False if not """
@@ -105,32 +94,9 @@ class ScanProcessor(Processor):
         assessor = scan.parent().assessor(assessor_name)
         return task.Task(self, assessor, upload_dir)
 
-    def has_resource(self, cscan, resource):
-        """ return true if resource exists in cscan """
-        if resource in [cres.info()['label'] for cres in cscan.resources()]:
-            return True
-        else:
-            return False
-
     def should_run(self, scan_dict):
         """ should_run function overwrited from base-class to check if it's a right scan"""
         return scan_dict['scan_type'] in self.scan_types
-
-    @staticmethod
-    def is_assessor_unusable(cscan, proctype):
-        """ return true if assessor unusable """
-        scan_info = cscan.info()
-        assr_label = '-x-'.join([scan_info['project_id'], scan_info['subject_label'], scan_info['session_label'], scan_info['ID'], proctype])
-        assr_list = [cassr.info() for cassr in cscan.parent().assessors() if cassr['label'] == assr_label]
-        if not assr_list:
-            return 0
-        else:
-            return is_bad_qastatus(assr_list[0]['qastatus'])
-
-    @staticmethod
-    def is_scan_unusable(cscan):
-        """ return true if scan unusable """
-        return cscan.info()['quality'] == "unusable"
 
 class SessionProcessor(Processor):
     """ Session Processor class for processor on a session on XNAT """
