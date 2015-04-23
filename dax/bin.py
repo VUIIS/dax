@@ -157,11 +157,11 @@ def upload_update_date_redcap(project_list, type_update, start_end):
                 to_upload = dict()
                 to_upload[REDCAP_VAR['project']] = project
                 if type_update == 1:
-                    to_upload = set_variables_dax_manager(to_upload, 'build', start_end)
+                    to_upload = set_variables_dax_manager(to_upload, 'dax_build', start_end)
                 elif type_update == 2:
-                    to_upload = set_variables_dax_manager(to_upload, 'update', start_end)
+                    to_upload = set_variables_dax_manager(to_upload, 'dax_update', start_end)
                 elif type_update == 3:
-                    to_upload = set_variables_dax_manager(to_upload, 'launch', start_end)
+                    to_upload = set_variables_dax_manager(to_upload, 'dax_launch', start_end)
                 data.append(to_upload)
             XnatUtils.upload_list_records_redcap(redcap_project, data)
 
