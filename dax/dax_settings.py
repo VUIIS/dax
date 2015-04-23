@@ -81,9 +81,14 @@ JOB_TEMPLATE = Template("""#!/bin/bash
 #SBATCH --time=${job_walltime}
 #SBATCH --mem=${job_memory}mb
 #SBATCH -o ${job_output_file}
- 
-export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use only good amount of ppn
+
 uname -a # outputs node info (name, date&time, type, OS, etc)
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use only good amount of ppn
+SCREEN=$$
+xvfb-run --wait=5 \
+-a -e /tmp/xvfb_$SCREEN.err -f /tmp/xvfb_$SCREEN.auth \
+--server-num=$SCREEN \
+--server-args="-screen 0 1920x1200x24 -ac +extension GLX" \
 ${job_cmds}
 """)
 #Default EMAIL options:
