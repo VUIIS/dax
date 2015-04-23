@@ -1,3 +1,4 @@
+""" Task object to generate / manage assessors and cluster """
 import os
 import time
 import logging
@@ -5,7 +6,7 @@ from datetime import date
 
 import cluster
 from cluster import PBS
-import XnatUtils,bin
+import XnatUtils, bin
 
 from dax_settings import RESULTS_DIR, DEFAULT_EMAIL_OPTS, JOB_EXTENSION_FILE, RUNNING_STATUS, QUEUE_STATUS
 
@@ -20,7 +21,7 @@ JOB_RUNNING = 'JOB_RUNNING' # the job has been submitted on the cluster and is r
 JOB_FAILED = XnatUtils.JOB_FAILED # the job failed on the cluster.
 READY_TO_UPLOAD = XnatUtils.READY_TO_UPLOAD # Job done, waiting for the Spider to upload the results
 UPLOADING = 'UPLOADING' # in the process of uploading the resources on XNAT.
-COMPLETE = 'COMPLETE' # the assessors contains all the files. The upload and the job are done.  
+COMPLETE = 'COMPLETE' # the assessors contains all the files. The upload and the job are done.
 READY_TO_COMPLETE = 'READY_TO_COMPLETE' # the job finished and upload is complete
 DOES_NOT_EXIST = 'DOES_NOT_EXIST'
 OPEN_STATUS_LIST = [NEED_TO_RUN, UPLOADING, JOB_RUNNING, READY_TO_COMPLETE, JOB_FAILED]
@@ -38,8 +39,8 @@ REPROC = 'Reproc' # will cause spider to zip the current results and put in OLD,
 OPEN_QC_LIST = [RERUN, REPROC]
 
 # Other Constants
-DEFAULT_PBS_DIR = os.path.join(RESULTS_DIR,'PBS')
-DEFAULT_OUT_DIR = os.path.join(RESULTS_DIR,'OUTLOG')
+DEFAULT_PBS_DIR = os.path.join(RESULTS_DIR, 'PBS')
+DEFAULT_OUT_DIR = os.path.join(RESULTS_DIR, 'OUTLOG')
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
 OLD_RESOURCE = 'OLD'
 EDITS_RESOURCE = 'EDITS'
@@ -51,7 +52,7 @@ class Task(object):
         """ init function """
         self.processor = processor
         self.assessor = assessor
-        self.upload_dir = upload_dir    
+        self.upload_dir = upload_dir
         self.atype = processor.xsitype.lower()
 
         # Create assessor if needed
@@ -89,7 +90,7 @@ class Task(object):
         jobnode = self.get_jobnode()
 
         if walltime != '':
-            if memused != '' and jobnode !='':
+            if memused != '' and jobnode != '':
                 LOGGER.debug('memused and walltime already set, skipping')
                 pass
             else:
@@ -110,7 +111,7 @@ class Task(object):
 
         # Get usage with tracejob
         jobinfo = cluster.tracejob_info(self.get_jobid(), jobstartdate)
-        if jobinfo['mem_used'].strip(): 
+        if jobinfo['mem_used'].strip():
             self.set_memused(jobinfo['mem_used'])
         else:
             self.set_memused('NotFound')
@@ -140,7 +141,7 @@ class Task(object):
     def set_walltime(self, walltime):
         """ set walltime on the assessor """
         self.assessor.attrs.set(self.atype+'/walltimeused', walltime)
-        
+
     def get_jobnode(self):
         """ return jobnode of the assessor"""
         jobnode = self.assessor.attrs.get(self.atype+'/jobnode')
@@ -198,10 +199,10 @@ class Task(object):
         # Zip it all up
         cmd = 'cd '+self.upload_dir + ' && zip -qr '+local_zip+' '+local_dir+'/'
         LOGGER.debug('running cmd:'+cmd)
-        os.system(cmd)    
+        os.system(cmd)
 
         # Upload it to Archive
-        self.assessor.out_resource(OLD_RESOURCE).file(local_zip).put(os.path.join(self.upload_dir,local_zip))
+        self.assessor.out_resource(OLD_RESOURCE).file(local_zip).put(os.path.join(self.upload_dir, local_zip))
 
         # Run undo
         self.undo_processing()
@@ -222,7 +223,7 @@ class Task(object):
                 new_status = NEED_TO_RUN
             elif qcstatus == RERUN:
                 LOGGER.info('   *qcstatus=RERUN, running undo_processing...')
-                self.undo_processing()  
+                self.undo_processing()
                 new_status = NEED_TO_RUN
             else:
                 #self.check_date()
@@ -251,11 +252,11 @@ class Task(object):
         else:
             LOGGER.warn('   *unknown status for '+self.assessor_label+': '+old_status)
 
-        if (new_status != old_status):
+        if new_status != old_status:
             LOGGER.info('   *changing status from '+old_status+' to '+new_status)
-            self.set_status(new_status) 
+            self.set_status(new_status)
 
-            # Update QC Status        
+            # Update QC Status
             if new_status == COMPLETE:
                 self.set_qcstatus(NEEDS_QA)
 
@@ -335,7 +336,7 @@ class Task(object):
         """ set create date for assessor and return it """
         self.assessor.attrs.set(self.atype+'/date', date_str)
         return date_str
-    
+
     def set_createdate_today(self):
         """ set create date to today """
         today_str = str(date.today())
@@ -382,7 +383,7 @@ class Task(object):
 
     def commands(self, jobdir):
         """ get the commands from the processor """
-        return self.processor.get_cmds(self.assessor, os.path.join(jobdir,self.assessor_label))
+        return self.processor.get_cmds(self.assessor, os.path.join(jobdir, self.assessor_label))
 
     def pbs_path(self):
         """ return the pbs path for the task """
