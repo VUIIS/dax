@@ -8,7 +8,7 @@ import cluster
 from cluster import PBS
 import XnatUtils, bin
 
-from dax_settings import RESULTS_DIR, DEFAULT_EMAIL_OPTS, JOB_EXTENSION_FILE, RUNNING_STATUS, QUEUE_STATUS
+from dax_settings import RESULTS_DIR, DEFAULT_EMAIL_OPTS, JOB_EXTENSION_FILE
 
 #Logger to print logs
 LOGGER = logging.getLogger('dax')
@@ -403,7 +403,7 @@ class Task(object):
         # Check status on cluster
         jobstatus = self.get_job_status()
 
-        if jobstatus == RUNNING_STATUS or jobstatus == QUEUE_STATUS:
+        if jobstatus == 'R' or jobstatus == 'Q':
             # Still running
             return JOB_RUNNING
         elif not self.ready_flag_exists():
