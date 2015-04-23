@@ -117,7 +117,7 @@ class ScanModule(Module):
     def has_resource(self, cscan, resource_label):
         """ check if the resource exists for the scan """
         res_list = [res for res in cscan.get_resources() if res['label'] == resource_label]
-        if len(res_list) > 0:
+        if len(res_list) > 0 and res_list[0]['file_count'] > 0:
             return True
         return False
 
