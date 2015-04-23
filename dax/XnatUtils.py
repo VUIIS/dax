@@ -817,6 +817,22 @@ def select_obj(intf, project_id=None, subject_id=None, session_id=None, scan_id=
             select_str += '''/{key}/{label}'''.format(key=key, label=value)
     return intf.select(select_str)
 
+def is_cscan_unusable(cscan):
+    """ return true if scan unusable """
+    return cscan.info()['quality'] == "unusable"
+
+def is_cscan_good_type(cscan, types_list):
+    """ return true if scan has the right type """
+    return cscan.info()['type'] in scantypes
+
+def is_scan_unusable(scan_obj):
+    """ return true if scan unusable """
+    return scan_obj.attrs.get('xnat:imageScanData/quality') == "unusable"
+
+def is_scan_good_type(scan_obj, types_list):
+    """ return true if scan has the right type """
+    return scan_obj.attrs.get('xnat:imageScanData/type') in types_list
+
 ####################################################################################
 #                     Download/Upload resources from XNAT                          #
 ####################################################################################
