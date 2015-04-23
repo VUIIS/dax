@@ -1381,6 +1381,15 @@ def get_input_list(input_val, default_val):
     else:
         return default_val
 
+def get_input_str(input_val, default_val):
+    """ function to convert inputs into a str (if a list, first element) """
+    if isinstance(input_val, list):
+        return input_val[0]
+    elif isinstance(input_val, str):
+        return input_val
+    else:
+        return default_val
+
 ####################################################################################
 #                                5) Cached Class                                   #
 ####################################################################################
