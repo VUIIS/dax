@@ -8,7 +8,7 @@ from email.mime.text import MIMEText
 from .dax_settings import SMTP_HOST, SMTP_FROM, SMTP_PASS
 
 #Logger for logs
-logger = logging.getLogger('dax')
+LOGGER = logging.getLogger('dax')
 
 class Module(object):
     """ Object Module to create a module for DAX
@@ -151,7 +151,7 @@ class SessionModule(Module):
         sess_res_list = csess.get_resources()
         flagres_list = [res for res in sess_res_list if res['label'] == flag_resource]
         if len(flagres_list) > 0:
-            logger.debug('Already run')
+            LOGGER.debug('Already run')
             return False
 
         return True
@@ -180,6 +180,6 @@ def modules_by_type(mod_list):
         elif issubclass(mod.__class__, SessionModule):
             exp_mod_list.append(mod)
         else:
-            logger.warn('unknown module type:'+mod)
+            LOGGER.warn('unknown module type:'+mod)
 
     return exp_mod_list, scan_mod_list
