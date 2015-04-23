@@ -7,11 +7,13 @@ The functions are divided into 4 categories:
 
     2) Methods to query XNAT database and get XNAT object :
 
-    3) Methods to Download / Upload data to XNAT
+    3) Methods to access/check objects on XNAT
 
-    4) Other Methods
+    4) Methods to Download / Upload data to XNAT
 
-    5) Cached Class for DAX
+    5) Other Methods
+
+    6) Cached Class for DAX
 """
 
 import re
@@ -37,6 +39,7 @@ NS = {'xnat' : 'http://nrg.wustl.edu/xnat',
 # Status:
 JOB_FAILED = 'JOB_FAILED' # the job failed on the cluster.
 READY_TO_UPLOAD = 'READY_TO_UPLOAD' # Job done, waiting for the Spider to upload the results
+BAD_QA_STATUS = ['bad', 'fail']
 
 ####################################################################################
 #                                    1) CLASS                                      #
@@ -817,6 +820,9 @@ def select_obj(intf, project_id=None, subject_id=None, session_id=None, scan_id=
             select_str += '''/{key}/{label}'''.format(key=key, label=value)
     return intf.select(select_str)
 
+####################################################################################
+#                     Functions to access/check object                             #
+####################################################################################
 def is_cscan_unusable(cscan):
     """ return true if scan unusable """
     return cscan.info()['quality'] == "unusable"
@@ -832,6 +838,54 @@ def is_scan_unusable(scan_obj):
 def is_scan_good_type(scan_obj, types_list):
     """ return true if scan has the right type """
     return scan_obj.attrs.get('xnat:imageScanData/type') in types_list
+
+def has_resource( cobj, resource_label):
+    """ return True if the resource exists and has files from the CachedObject"""
+    res_list = [res for res in cobj.get_resources() if res['label'] == resource_label]
+    if len(res_list) > 0 and res_list[0]['file_count'] > 0:
+        return True
+    return False
+
+def is_assessor_unusable(cscan, proctype):
+    """ Check status of an assessor for an other proctype from the same scan:
+        return 0 if assessor not ready or doesn't exist
+        return -1 if assessor failed
+        return 1 if ok
+        Example: dtiQA for Bedpost, same cscan, different proctype
+    """
+    scan_info = cscan.info()
+    assr_label = '-x-'.join([scan_info['project_id'], scan_info['subject_label'], scan_info['session_label'], scan_info['ID'], proctype])
+    assr_list = [cassr.info() for cassr in cscan.parent().assessors() if cassr['label'] == assr_label]
+    if not assr_list:
+        return 0
+    else:
+        return is_bad_qa(assr_list[0]['qastatus'])
+
+def is_bad_qa(qastatus):
+    """ function to return False if status is bad qa status """
+    if qastatus in [task.JOB_PENDING, task.NEEDS_QA]:
+        return 0
+    for qa in BAD_QA_STATUS:
+        if qa in qastatus.lower():
+            return -1
+    return 1
+
+def get_good_cscans(self, csess, scantypes):
+    """ return cscans list from a csess if there is a good scan """
+    cscans_list = list()
+    for cscan in csess.scans():
+        if is_cscan_good_type(cscan, scantypes) and not is_cscan_unusable(cscan):
+            cscans_list.append(cscan)
+    return cscans_list
+
+def get_good_scans(self, session_obj, scantypes):
+    """ return scan object list if there is a good scan """
+    scans = list()
+    for scan_obj in session.scans().fetchall('obj'):
+        if is_scan_good_type(scan_obj, scantypes) and not is_scan_unusable(cscan):
+            scans.append(scan)
+    return scans
+
 
 ####################################################################################
 #                     Download/Upload resources from XNAT                          #
