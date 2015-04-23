@@ -1,3 +1,4 @@
+""" Module classes for Scan and Sessions """
 import os
 import shutil
 import smtplib
@@ -12,7 +13,8 @@ LOGGER = logging.getLogger('dax')
 
 class Module(object):
     """ Object Module to create a module for DAX
-        Module runs directly during a build on a session or scan to generate inputs data for scans/sessions
+        Module runs directly during a build on a session or scan
+        to generate inputs data for scans/sessions
     """
     def __init__(self, mod_name, directory, email, text_report):
         """ Init function """
@@ -58,13 +60,14 @@ class Module(object):
                 self.clean_directory()
             else:
                 today = datetime.now()
-                fname = """{modname}_tmp_{year}_{month}_{day}_{hour}_{minute}_{second}""".format(modname=self.mod_name,
-                                                                                                 year=str(today.year),
-                                                                                                 month=str(today.month),
-                                                                                                 day=str(today.day),
-                                                                                                 hour=str(today.hour),
-                                                                                                 minute=str(today.minute),
-                                                                                                 second=str(today.second))
+                dir_format = """{modname}_tmp_{year}_{month}_{day}_{hour}_{minute}_{second}"""
+                fname = dir_format.format(modname=self.mod_name,
+                                          year=str(today.year),
+                                          month=str(today.month),
+                                          day=str(today.day),
+                                          hour=str(today.hour),
+                                          minute=str(today.minute),
+                                          second=str(today.second))
                 self.directory = os.path.join(self.directory, fname)
 
                 if not os.path.exists(self.directory):
@@ -114,27 +117,22 @@ class ScanModule(Module):
         """ code to run on one scan"""
         raise NotImplementedError()
 
-    def has_resource(self, cscan, resource_label):
-        """ check if the resource exists for the scan """
-        res_list = [res for res in cscan.get_resources() if res['label'] == resource_label]
-        if len(res_list) > 0 and res_list[0]['file_count'] > 0:
-            return True
-        return False
-
     def log_warning_error(self, message, scan_info, error=False):
         """ print warning or error for a project/subject/session/scan"""
+        error_format = '''ERROR: {message} for {project}/{subject}/{session}/{scan}'''
+        warn_format = '''WARNING: {message} for {project}/{subject}/{session}/{scan}'''
         if error:
-            self.report('''ERROR: {message} for {project}/{subject}/{session}/{scan}'''.format(message=message,
-                                                                                               project=scan_info['project_id'],
-                                                                                               subject=scan_info['subject_label'],
-                                                                                               session=scan_info['session_label'],
-                                                                                               scan=scan_info['scan_id']))
+            self.report(error_format.format(message=message,
+                                            project=scan_info['project_id'],
+                                            subject=scan_info['subject_label'],
+                                            session=scan_info['session_label'],
+                                            scan=scan_info['scan_id']))
         else:
-            self.report('''WARNING: {message} for {project}/{subject}/{session}/{scan}'''.format(message=message,
-                                                                                                 project=scan_info['project_id'],
-                                                                                                 subject=scan_info['subject_label'],
-                                                                                                 session=scan_info['session_label'],
-                                                                                                 scan=scan_info['scan_id']))
+            self.report(warn_format.format(message=message,
+                                           project=scan_info['project_id'],
+                                           subject=scan_info['subject_label'],
+                                           session=scan_info['session_label'],
+                                           scan=scan_info['scan_id']))
 
 class SessionModule(Module):
     """ Module running on a session """
@@ -146,7 +144,8 @@ class SessionModule(Module):
         """ code to run on one session"""
         raise NotImplementedError()
 
-    def has_flag_resource(self, csess, flag_resource):
+    @staticmethod
+    def has_flag_resource(csess, flag_resource):
         """ check if the session has the flag_resource """
         sess_res_list = csess.get_resources()
         flagres_list = [res for res in sess_res_list if res['label'] == flag_resource]
@@ -158,16 +157,18 @@ class SessionModule(Module):
 
     def log_warning_error(self, message, scan_info, error=False):
         """ print warning or error for a project/subject/session"""
+        error_format = '''ERROR: {message} for {project}/{subject}/{session}/{scan}'''
+        warn_format = '''WARNING: {message} for {project}/{subject}/{session}/{scan}'''
         if error:
-            self.report('''ERROR: {message} for {project}/{subject}/{session}'''.format(message=message,
-                                                                                        project=scan_info['project_id'],
-                                                                                        subject=scan_info['subject_label'],
-                                                                                        session=scan_info['session_label']))
+            self.report(error_format.format(message=message,
+                                            project=scan_info['project_id'],
+                                            subject=scan_info['subject_label'],
+                                            session=scan_info['session_label']))
         else:
-            self.report('''WARNING: {message} for {project}/{subject}/{session}'''.format(message=message,
-                                                                                          project=scan_info['project_id'],
-                                                                                          subject=scan_info['subject_label'],
-                                                                                          session=scan_info['session_label']))
+            self.report(warn_format.format(message=message,
+                                           project=scan_info['project_id'],
+                                           subject=scan_info['subject_label'],
+                                           session=scan_info['session_label']))
 
 def modules_by_type(mod_list):
     exp_mod_list = list()
