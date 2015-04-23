@@ -870,7 +870,7 @@ def is_bad_qa(qastatus):
             return -1
     return 1
 
-def get_good_cscans(self, csess, scantypes):
+def get_good_cscans(csess, scantypes):
     """ return cscans list from a csess if there is a good scan """
     cscans_list = list()
     for cscan in csess.scans():
@@ -878,7 +878,7 @@ def get_good_cscans(self, csess, scantypes):
             cscans_list.append(cscan)
     return cscans_list
 
-def get_good_scans(self, session_obj, scantypes):
+def get_good_scans(session_obj, scantypes):
     """ return scan object list if there is a good scan """
     scans = list()
     for scan_obj in session.scans().fetchall('obj'):
