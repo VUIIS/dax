@@ -155,7 +155,8 @@ REDCAP_VAR = {'project':'dax_project',
               'update_pid':'dax_update_pid',
               'launch_start_date':'dax_launch_start_date',
               'launch_end_date':'dax_launch_end_date',
-              'launch_pid':'dax_launch_pid',}
+              'launch_pid':'dax_launch_pid',
+              'max_age':'dax_max_age'}
 
 #### Getting value from the environ variable if set or default value (do not touch) ####
 #Upload directory
@@ -201,4 +202,4 @@ else:
     API_KEY_XNAT = os.environ['API_KEY_XNAT']
 
 # MAX AGE for a session:
-MAX_AGE = 7 # number of days
+DEFAULT_MAX_AGE = 7 # number of days
