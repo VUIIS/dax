@@ -5,7 +5,18 @@ import logging
 import XnatUtils
 
 #Logger for logs
-logger = logging.getLogger('dax')
+LOGGER = logging.getLogger('dax')
+# QA status:
+BAD_QA_STATUS = ['bad', 'fail']
+
+def is_bad_qastatus(qastatus):
+    """ function to return False if status is bad qa status """
+    if qastatus in [task.JOB_PENDING, task.NEEDS_QA]:
+        return 0
+    for qa in BAD_QA_STATUS:
+        if qa in qastatus.lower():
+            return -1
+    return 1
 
 class Processor(object):
     """ Base class for processor """
@@ -105,7 +116,19 @@ class ScanProcessor(Processor):
         """ should_run function overwrited from base-class to check if it's a right scan"""
         return scan_dict['scan_type'] in self.scan_types
 
-    def is_unusable(self, cscan):
+    @staticmethod
+    def is_assessor_unusable(cscan, proctype):
+        """ return true if assessor unusable """
+        scan_info = cscan.info()
+        assr_label = '-x-'.join([scan_info['project_id'], scan_info['subject_label'], scan_info['session_label'], scan_info['ID'], proctype])
+        assr_list = [cassr.info() for cassr in cscan.parent().assessors() if cassr['label'] == assr_label]
+        if not assr_list:
+            return 0
+        else:
+            return is_bad_qastatus(assr_list[0]['qastatus'])
+
+    @staticmethod
+    def is_scan_unusable(cscan):
         """ return true if scan unusable """
         return cscan.info()['quality'] == "unusable"
 
@@ -157,6 +180,6 @@ def processors_by_type(proc_list):
         elif issubclass(proc.__class__, SessionProcessor):
             exp_proc_list.append(proc)
         else:
-            logger.warn('unknown processor type:'+proc)
+            LOGGER.warn('unknown processor type:'+proc)
 
     return exp_proc_list, scan_proc_list
