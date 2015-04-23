@@ -4,7 +4,6 @@
 You can customize the command for your Submission System.
 
 ADMIN_EMAIL           --> admin for dax_manager
-
 CMD_SUBMIT            --> command to submit jobs (default: sbatch)
 PREFIX_JOBID          --> string before the job ID in the output of the CMD_SUBMIT
 SUFFIX_JOBID          --> string after the job ID in the output of the CMD_SUBMIT
@@ -39,6 +38,10 @@ API_URL      --> api url for redcap database
 API_KEY_DAX  --> api key for redcap project holding the information for the settings
 API_KEY_XNAT --> api key for redcap project holding the jobID submit to the cluster
 REDCAP_VAR   --> dictionary to set up the general variables for the project
+
+    5) others
+
+MAX_AGE --> maximun age for a session to get reset
 
 PS: In this file, all variable default are read if the .bashrc or
     your configuration file doesn't have the environment variable set.
@@ -196,3 +199,6 @@ if 'API_KEY_XNAT' not in os.environ:
     API_KEY_XNAT = DEFAULT_API_KEY_XNAT
 else:
     API_KEY_XNAT = os.environ['API_KEY_XNAT']
+
+# MAX AGE for a session:
+MAX_AGE = 7 # number of days
