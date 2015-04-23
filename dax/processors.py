@@ -10,7 +10,8 @@ LOGGER = logging.getLogger('dax')
 
 class Processor(object):
     """ Base class for processor """
-    def __init__(self, walltime_str, memreq_mb, spider_path, version=None, ppn=1, xsitype='proc:genProcData'):
+    def __init__(self, walltime_str, memreq_mb, spider_path,
+                 version=None, ppn=1, xsitype='proc:genProcData'):
         """ init function """
         self.walltime_str = walltime_str # 00:00:00 format
         self.memreq_mb = memreq_mb  # memory required in megabytes
@@ -32,7 +33,8 @@ class Processor(object):
             #setting the version and name of the spider
             self.version = version
             self.name = proc_name+'_v'+self.version.split('.')[0]
-            self.spider_path = os.path.join(os.path.dirname(spider_path), 'Spider_'+proc_name+'_v'+version+'.py')
+            self.spider_path = os.path.join(os.path.dirname(spider_path),
+                                            'Spider_'+proc_name+'_v'+version+'.py')
         else:
             self.default_settings_spider(spider_path)
 
@@ -43,17 +45,24 @@ class Processor(object):
         #set the name and the version of the spider
         if len(re.split("/*_v[0-9]/*", spider_path)) > 1:
             self.version = os.path.basename(spider_path)[7:-3].split('_v')[-1]
-            self.name = re.split("/*_v[0-9]/*", os.path.basename(spider_path)[7:-3])[0]+'_v'+self.version.split('.')[0]
+            spidername = os.path.basename(spider_path)[7:-3]
+            self.name = re.split("/*_v[0-9]/*", spidername)[0]+'_v'+self.version.split('.')[0]
         else:
             self.name = os.path.basename(spider_path)[7:-3]
 
-    # has_inputs - does this object have the required inputs? e.g. NIFTI format of the required scan type and quality and are there no conflicting inputs, i.e. only 1 required by 2 found?
-    def has_inputs(self): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
+    # has_inputs - does this object have the required inputs?
+    # e.g. NIFTI format of the required scan type and quality and are there no conflicting inputs.
+    # i.e. only 1 required by 2 found?
+    # other arguments here, could be Proj/Subj/Sess/Scan/Assessor depending on processor type?
+    def has_inputs(self):
         """ has_inputs function to check if inputs present on XNAT to run the job """
         raise NotImplementedError()
 
-    # should_run - is the object of the proper object type? e.g. is it a scan? and is it the required scan type? e.g. is it a T1?
-    def should_run(self): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
+    # should_run - is the object of the proper object type?
+    # e.g. is it a scan? and is it the required scan type?
+    # e.g. is it a T1?
+    # other arguments here, could be Proj/Subj/Sess/Scan/Assessor depending on processor type?
+    def should_run(self):
         """ return True if the assessor should exist/ False if not """
         raise NotImplementedError()
 
@@ -62,7 +71,8 @@ class ScanProcessor(Processor):
     def has_inputs(self):
         """ return status, qcstatus
             status = 0 if still NEED_INPUTS, -1 if NO_DATA, 1 if NEED_TO_RUN
-            qcstatus = only when -1 or 0. You can set it to a short string that explain why it's no ready to run
+            qcstatus = only when -1 or 0.
+            You can set it to a short string that explain why it's no ready to run.
                 e.g: No NIFTI
         """
         raise NotImplementedError()
@@ -106,7 +116,8 @@ class SessionProcessor(Processor):
     def has_inputs(self):
         """ return status, qcstatus
             status = 0 if still NEED_INPUTS, -1 if NO_DATA, 1 if NEED_TO_RUN
-            qcstatus = only when -1 or 0. You can set it to a short string that explain why it's no ready to run
+            qcstatus = only when -1 or 0.
+            You can set it to a short string that explain why it's no ready to run.
                 e.g: No NIFTI
         """
         raise NotImplementedError()
