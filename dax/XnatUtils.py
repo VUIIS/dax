@@ -839,14 +839,14 @@ def is_scan_good_type(scan_obj, types_list):
     """ return true if scan has the right type """
     return scan_obj.attrs.get('xnat:imageScanData/type') in types_list
 
-def has_resource( cobj, resource_label):
+def has_resource(cobj, resource_label):
     """ return True if the resource exists and has files from the CachedObject"""
     res_list = [res for res in cobj.get_resources() if res['label'] == resource_label]
     if len(res_list) > 0 and res_list[0]['file_count'] > 0:
         return True
     return False
 
-def is_assessor_unusable(cscan, proctype):
+def is_assessor_same_scan_unusable(cscan, proctype):
     """ Check status of an assessor for an other proctype from the same scan:
         return 0 if assessor not ready or doesn't exist
         return -1 if assessor failed
@@ -860,6 +860,34 @@ def is_assessor_unusable(cscan, proctype):
         return 0
     else:
         return is_bad_qa(assr_list[0]['qastatus'])
+
+def is_cassessor_good_type(cassr, types_list):
+    """ return true if cassr has the right type """
+    assr_info = cassr.info()
+    return assr_info['proctype'] in types_list
+
+def is_cassessor_usable(cassr):
+    """ return 0 if assessor not ready or doesn't exist
+        return -1 if assessor failed
+        return 1 if ok
+    """
+    assr_info = cassr.info()
+    return is_bad_qa(assr_info['qastatus'])
+
+def is_assessor_good_type(assessor_obj, types_list):
+    """ return true if assessor obj has the right type """
+    atype = assessor_obj.attrs.get('xsiType')
+    proctype = assessor_obj.attrs.get(atype+'/proctype')
+    return proctype in types_list
+
+def is_assessor_usable(assessor_obj):
+    """ return 0 if assessor not ready or doesn't exist
+        return -1 if assessor failed
+        return 1 if ok
+    """
+    atype = assessor_obj.attrs.get('xsiType')
+    qastatus = assessor_obj.attrs.get(atype+'/validation/status')
+    return is_bad_qa(qastatus)
 
 def is_bad_qa(qastatus):
     """ function to return False if status is bad qa status """
@@ -886,6 +914,21 @@ def get_good_scans(session_obj, scantypes):
             scans.append(scan)
     return scans
 
+def get_good_cassr(csess, proctypes):
+    """ return cassr list from a csess if there is a good assessor """
+    cassr_list = list()
+    for cassr in csess.assessors():
+        if is_cassr_good_type(cassr, proctypes) and is_cassessor_usable(cscan):
+            cassr_list.append(cassr)
+    return cassr_list
+
+def get_good_assr(session_obj, proctypes):
+    """ return assessor object list if there is a good assessor """
+    assessors = list()
+    for assessor in session.assessors().fetchall('obj'):
+        if is_assessor_good_type(assessor, proctypes) and is_assessor_usable(assessor):
+            assessors.append(assessor)
+    return assessors
 
 ####################################################################################
 #                     Download/Upload resources from XNAT                          #
@@ -1750,6 +1793,12 @@ class CachedImageAssessor():
     def get_out_resources(self):
         """ return list of dictionaries of the out resources for the assessor """
         return [res.info() for res in self.out_resources()]
+
+    def get_resources(self):
+        """ return list of dictionaries of the out resources for the assessor """
+        return [res.info() for res in self.out_resources()]
+        #same as get_out_resources()
+        #to be used in has_resource with a cassessor
 
 class CachedResource():
     """ Class to cache the resource XML information from XNAT """
