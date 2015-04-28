@@ -575,7 +575,10 @@ The project is not part of the settings."""
             return False if the session change and don't set the last update date
             return True otherwise
         """
-        last_mod = datetime.strptime(sess_info['last_modified'][0:19], '%Y-%m-%d %H:%M:%S')
+        xsi_type = sess_info['xsiType']
+        sess_obj = XnatUtils.get_full_object(xnat, sess_info)
+        last_modified_xnat = sess_obj.attrs.get(xsi_type+'/meta/last_modified')
+        last_mod = datetime.strptime(last_modified_xnat[0:19], '%Y-%m-%d %H:%M:%S')
         if last_mod > update_start_time:
             return False
         else:
@@ -584,8 +587,6 @@ The project is not part of the settings."""
             # We set update to one minute into the future
             # since setting update field will change last modified time
             LOGGER.debug('setting last_updated for:'+sess_info['label']+' to '+update_str)
-            sess_obj = XnatUtils.get_full_object(xnat, sess_info)
-            xsi_type = sess_info['xsiType']
             sess_obj.attrs.set(xsi_type+'/original', UPDATE_PREFIX+update_str)
             return True
 
