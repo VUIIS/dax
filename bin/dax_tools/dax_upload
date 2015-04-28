@@ -1,3 +1,4 @@
+""" Executable to upload processed data back to XNAT from the dax upload folder """
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
@@ -6,10 +7,11 @@ import sys
 import smtplib
 from datetime import datetime
 from email.mime.text import MIMEText
-from dax import bin,XnatUtils
-from dax import RESULTS_DIR,SMTP_HOST,SMTP_FROM,SMTP_PASS
+from dax import bin, XnatUtils
+from dax import RESULTS_DIR, SMTP_HOST, SMTP_FROM, SMTP_PASS
 from dax.task import READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED, JOB_PENDING
 
+# Variables
 _READY_FLAG_FILE = 'READY_TO_UPLOAD.txt'
 _FAILED_FLAG_FILE = 'JOB_FAILED.txt'
 _EMAILED_FLAG_FILE = 'ALREADY_SEND_EMAIL.txt'
@@ -18,228 +20,278 @@ _TRASH = 'TRASH'
 _PBS = 'PBS'
 _FLAG_FILES = 'FlagFiles'
 _UPLOAD_SKIP_LIST = [_OUTLOG, _TRASH, _PBS, _FLAG_FILES]
+DAX_UPLOAD_FLAGFILE = os.path.join(RESULTS_DIR, _FLAG_FILES, 'Process_Upload_running.txt')
+SNAPSHOTS_ORIGINAL = 'snapshot_original.png'
+SNAPSHOTS_PREVIEW = 'snapshot_preview.png'
 
-def sendMail(FROM,PWS,TO,SUBJECT,TEXT,SERVER):
+#Cmd:
+GS_CMD = """gs -q -o {original} -sDEVICE=pngalpha -dLastPage=1 {assessor_path}/PDF/*.pdf"""
+CONVERT_CMD = """convert {original} -resize x200 '{preview}"""
+
+# WARNING content for emails
+WARNING_START_CONTENT = """
+The following assessors already exist and the Spider try to upload files on existing files :
+"""
+WARNING_END_CONTENT = """
+You should:
+    -remove the assessor if you want to upload the data
+    -set the status of the assessor to "uploading"
+    -remove the data from the upload folder if you do not want to upload this data.
+"""
+WARNING_SUBJECT = 'ERROR/WARNING: dax_upload'
+
+def send_email(from_add, password, dests, subject, content, server):
+    """ send email using the server/from/pws """
     # Create the container (outer) email message.
-    msg = MIMEText(TEXT)
-    msg['Subject'] = SUBJECT
-    msg['From'] = FROM
-    msg['To'] = TO
-    
+    msg = MIMEText(content)
+    msg['Subject'] = subject
+    msg['From'] = from_add
+    msg['To'] = ','.join(dests)
+
     # Send the email via our own SMTP server.
-    s = smtplib.SMTP(SERVER)
-    s.starttls()
-    s.login(FROM,PWS)
-    s.sendmail(FROM, TO, msg.as_string())
-    s.quit()
-    
-def sendWarningEmails(warning_list,emailaddress):    
-    if warning_list  and emailaddress!='' :
-        if warning_list:
-            TEXT='\nThe following assessors already exist and the Spider try to upload files on existing files :\n'
-            for warning in warning_list:
-                TEXT+=' - '+warning+'\n'
-            TEXT+='\nYou should :\n\t-remove the assessor if you want to upload the data \n\t-set the status of the assessor to "uploading" \n\t-remove the data from the upload folder if you do not want to upload this data.\n'
-        SUBJECT='ERROR/WARNING: XNAT Process Upload'
+    s_obj = smtplib.SMTP(server)
+    s_obj.starttls()
+    s_obj.login(from_add, password)
+    s_obj.sendmail(from_add, dests, msg.as_string())
+    s_obj.quit()
+
+def send_warning_emails(warnings, dests):
+    """ send warning emails about the dax_upload queue """
+    if warnings and dests:
+        if warnings:
+            content = WARNING_START_CONTENT
+            for warning in warnings:
+                content += ' - '+warning+'\n'
+            content += WARNING_END_CONTENT
         if SMTP_FROM and SMTP_PASS and SMTP_HOST:
-            sendMail(SMTP_FROM,SMTP_PASS,emailaddress, SUBJECT,TEXT,SMTP_HOST)
-            
-def checkFolders():
+            send_email(SMTP_FROM, SMTP_PASS, dests,
+                       WARNING_SUBJECT, content, SMTP_HOST)
+
+def check_folders():
+    """ Check that the default folders exist """
     #make the directories if they don't exist:
     if not os.path.exists(RESULTS_DIR):
         os.mkdir(RESULTS_DIR)
     if not os.path.exists(os.path.join(RESULTS_DIR, _OUTLOG)):
         os.mkdir(os.path.join(RESULTS_DIR, _OUTLOG))
     if not os.path.exists(os.path.join(RESULTS_DIR, _TRASH)):
-        os.mkdir(os.path.join(RESULTS_DIR,_TRASH))
+        os.mkdir(os.path.join(RESULTS_DIR, _TRASH))
     if not os.path.exists(os.path.join(RESULTS_DIR, _PBS)):
         os.mkdir(os.path.join(RESULTS_DIR, _PBS))
-    if not os.path.exists(os.path.join(RESULTS_DIR,_FLAG_FILES)):
-        os.mkdir(os.path.join(RESULTS_DIR, _FLAG_FILES))   
-        
-def checkFlagFile():
-    if os.path.exists(os.path.join(RESULTS_DIR, _FLAG_FILES, 'Process_Upload_running.txt')):
-        logger.warn('Upload already running.')
-        sys.exit()
-    else:
-        f = open(os.path.join(RESULTS_DIR, _FLAG_FILES, 'Process_Upload_running.txt'), 'w')
-        today = datetime.now()
-        datestr = "Date: "+str(today.year)+str(today.month)+str(today.day)+'_'+str(today.hour)+':'+str(today.minute)+':'+str(today.second)
-        f.write(datestr+'\n')
-        f.close()
-        logger.debug('Flagfile created: '+os.path.join(RESULTS_DIR, _FLAG_FILES, 'Process_Upload_running.txt')+' with date: '+datestr)
-    
-def generateObjDict(assessor_label,assessor_path):
-    objDict=dict()
-    isGoodObjLabel=False
-    labels=assessor_label.split('-x-')
-    if len(labels)>3:
-        isGoodObjLabel=True
-        objDict=dict(zip(['project_id','subject_label','session_label','label','proctype','path'],[labels[0],labels[1],labels[2],assessor_label,labels[-1],assessor_path]))
-    return isGoodObjLabel,objDict
+    if not os.path.exists(os.path.join(RESULTS_DIR, _FLAG_FILES)):
+        os.mkdir(os.path.join(RESULTS_DIR, _FLAG_FILES))
 
-def getAssessorFromFolder():
+def select_assessor(xnat, assessor_dict):
+    """ return assessor object """
+    return XnatUtils.select_obj(xnat,
+                                assessor_dict['project_id'],
+                                assessor_dict['subject_label'],
+                                assessor_dict['session_label'],
+                                assessor_id=assessor_dict['label'])
+
+def is_dax_upload_running():
+    """ return True if the process is already running """
+    if os.path.exists(DAX_UPLOAD_FLAGFILE):
+        LOGGER.warn('Upload already running.')
+        return True
+    else:
+        f_obj = open(DAX_UPLOAD_FLAGFILE, 'w')
+        today = datetime.now()
+        datestr = "Date: "+str(today.year)\
+                          +str(today.month)\
+                          +str(today.day)\
+                          +'_'+str(today.hour)\
+                          +':'+str(today.minute)\
+                          +':'+str(today.second)
+        f_obj.write(datestr+'\n')
+        f_obj.close()
+        LOGGER.debug('Flagfile created: '+DAX_UPLOAD_FLAGFILE+' with date: '+datestr)
+        return False
+
+def get_assessor_dict(assessor_label, assessor_path):
+    """ generate the dict for an assessor """
+    assessor_dict = dict()
+    keys = ['project_id', 'subject_label', 'session_label', 'label', 'proctype', 'path']
+    labels = assessor_label.split('-x-')
+    if len(labels) > 3:
+        values = [labels[0], labels[1], labels[2], assessor_label, labels[-1], assessor_path]
+        assessor_dict = dict(zip(keys, values))
+    return assessor_dict
+
+def get_assessor_list():
+    """ return list of assessor to upload from upload folder """
     assessor_label_list = list()
-    
-    logger.debug(' -Get Processes names from the upload folder...')
+
+    LOGGER.debug(' - Get Processes names from the upload folder...')
     #check all files/folder in the directory
-    UploadDirList = os.listdir(RESULTS_DIR)
-    for assessor_label in UploadDirList:
+    for assessor_label in os.listdir(RESULTS_DIR):
         if assessor_label in _UPLOAD_SKIP_LIST:
             continue
-        
-        assessor_path = os.path.join(RESULTS_DIR,assessor_label)
+
+        assessor_path = os.path.join(RESULTS_DIR, assessor_label)
         if not os.path.isdir(assessor_path):
             continue
-        if os.path.exists(assessor_path+'/'+_EMAILED_FLAG_FILE):
-            continue   
-        if os.path.exists(os.path.join(assessor_path, _READY_FLAG_FILE)) or os.path.exists(os.path.join(assessor_path, _FAILED_FLAG_FILE)):
+        if os.path.exists(os.path.join(assessor_path, _EMAILED_FLAG_FILE)):
+            continue
+        if os.path.exists(os.path.join(assessor_path, _READY_FLAG_FILE)) or\
+           os.path.exists(os.path.join(assessor_path, _FAILED_FLAG_FILE)):
             # Passed all checks, so add it to upload list
             assessor_label_list.append(assessor_label)
-            
+
     return assessor_label_list
 
-def getPbsFromFolder():
-    pbs_list=list()
-    
-    logger.debug(' -Get the PBS for the processes...')
+def get_pbs_list():
+    """ return the list of pbs file from the PBS folder """
+    pbs_list = list()
+
+    LOGGER.debug(' - Get the PBS for the processes...')
     #check all files/folder in the directory
-    PBSDirList=os.listdir(os.path.join(RESULTS_DIR, _PBS))
-    for pbs_name in PBSDirList:
-        pbs_file=os.path.join(RESULTS_DIR, _PBS,pbs_name)
+    for pbs_name in os.listdir(os.path.join(RESULTS_DIR, _PBS)):
+        pbs_file = os.path.join(RESULTS_DIR, _PBS, pbs_name)
         if os.path.isfile(pbs_file):
             pbs_list.append(pbs_name)
-            
+
     return pbs_list
 
-def getVersionAssessor(assessor_path):
-    version=''
-    if os.path.exists(os.path.join(assessor_path,'version.txt')):
-        f=open(os.path.join(assessor_path,'version.txt'),'r')
-        version=f.read().strip()
-        f.close()
+def get_version_assessor(assessor_path):
+    """ Return version of the assessor from the version.txt file """
+    version = '1.0.0'
+    if os.path.exists(os.path.join(assessor_path, 'version.txt')):
+        f_obj = open(os.path.join(assessor_path, 'version.txt'), 'r')
+        version = f_obj.read().strip()
+        f_obj.close()
     return version
 
-def generateSnapshots(assessor_path):
-    snapshot_original = assessor_path+'/SNAPSHOTS/snapshot_original.png'
-    snapshot_preview = os.path.join(assessor_path,'SNAPSHOTS','preview.'+snapshot_original.split('.')[-1])
-    if not os.path.exists(snapshot_original) and os.path.exists(assessor_path+'/PDF/'):
-        logger.debug('    +creating original of SNAPSHOTS')
-        if not os.path.exists(assessor_path+'/SNAPSHOTS/'):
-            os.system('mkdir '+assessor_path+'/SNAPSHOTS/')
+def generate_snapshots(assessor_path):
+    """ Generate Snapshots from the PDF """
+    snapshot_dir = os.path.exists(assessor_path, 'SNAPSHOTS')
+    snapshot_original = os.path.join(snapshot_dir, SNAPSHOTS_ORIGINAL)
+    snapshot_preview = os.path.join(snapshot_dir, SNAPSHOTS_PREVIEW)
+    if not os.path.exists(snapshot_original) and\
+       os.path.exists(os.path.exists(assessor_path, 'PDF')):
+        LOGGER.debug('    +creating original of SNAPSHOTS')
+        if not os.path.exists(snapshot_dir):
+            os.mkdir(snapshot_dir)
         #Make the snapshots for the assessors with ghostscript
-        os.system('gs -q -o '+snapshot_original+' -sDEVICE=pngalpha -dLastPage=1 '+assessor_path+'/PDF/*.pdf')
+        cmd = GS_CMD.format(original=snapshot_original,
+                            assessor_path=assessor_path)
+        os.system(cmd)
     #Create the preview snapshot from the original if Snapshots exist :
     if os.path.exists(snapshot_original):
-        logger.debug('    +creating preview of SNAPSHOTS')
+        LOGGER.debug('    +creating preview of SNAPSHOTS')
         #Make the snapshot_thumbnail
-        os.system('convert '+snapshot_original+' -resize x200 '+snapshot_preview)    
+        cmd = CONVERT_CMD.format(original=snapshot_original,
+                                 preview=snapshot_preview)
+        os.system(cmd)
 
-def copyOutlog(assessor_dict):
-    outlog_path=os.path.join(RESULTS_DIR, _OUTLOG,assessor_dict['label']+'.output')
-    new_outlog_path=os.path.join(assessor_dict['path'], _OUTLOG,assessor_dict['label']+'.output')
+def copy_outlog(assessor_dict):
+    """ copy outlog to assessor directory """
+    outlog_path = os.path.join(RESULTS_DIR, _OUTLOG,
+                               assessor_dict['label']+'.output')
+    new_outlog_path = os.path.join(assessor_dict['path'], _OUTLOG,
+                                   assessor_dict['label']+'.output')
     if os.path.exists(outlog_path):
-        os.mkdir(os.path.join(assessor_dict['path'],'OUTLOG'))
-        os.rename(outlog_path,new_outlog_path)
+        os.mkdir(os.path.join(assessor_dict['path'], _OUTLOG))
+        os.rename(outlog_path, new_outlog_path)
 
-def getXsiType(assessor_dict):
+def get_xsitype(assessor_dict):
+    """ return xsitype for the assessor_dict """
     proctype = assessor_dict['proctype']
     if proctype.startswith('FS') and not proctype.startswith('FSL'):
         return 'fs:fsData'
     else:
         return 'proc:genProcData'
-                
-def upload_zip(resourceObj,Resource,directory):
-    filenameZip=Resource+'.zip'
-    initDir=os.getcwd()
-    #Zip all the files in the directory
-    os.chdir(directory)
-    os.system('zip -r '+filenameZip+' * > /dev/null')
-    #upload
-    logger.debug('      *Uploading zip '+Resource+' ...')
-    resourceObj.put_zip(directory+'/'+filenameZip,extract=True)
-    #return to the initial directory:
-    os.chdir(initDir)
 
-def isComplete(assessor_dict,procstatus):
+def is_complete(assessor_dict, procstatus):
+    """ return true if assessor is complete """
     if procstatus == READY_TO_COMPLETE or procstatus == COMPLETE:
-        open(assessor_dict['path']+'/'+_EMAILED_FLAG_FILE, 'w').close()
-        warning_list.append('\t- Project : '+assessor_dict['project_id']+' / Subject : '+assessor_dict['subject_label']+' / session : '+assessor_dict['session_label']+' / Assessor label : '+ assessor_dict['label']+'\n')
-        logger.warn('  -->Data already present on XNAT.\n')
+        open(os.path.join(assessor_dict['path'], _EMAILED_FLAG_FILE), 'w').close()
+        mess = """    - Assessor label : {label}\n"""
+        message = mess.format(label=assessor_dict['label'])
+        warning_list.append(message)
+        LOGGER.warn('  -->Data already present on XNAT.\n')
         return True
     else:
         return False
-    
-def createFreesurferAssessor(assessor_obj):
-    #create the assessor and set the status 
+
+def create_freesurfer_assessor(assessor_obj):
+    """ Create freesurfer assessor """
+    #create the assessor and set the status
     assessor_obj.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
     assessor_obj.attrs.set('fs:fsData/validation/status', JOB_PENDING)
-    now=datetime.now()
-    today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
-    assessor_obj.attrs.set('fs:fsData/date',today)
-    
-def createDefaultAssessor(assessor_obj,proctype):
-    # Create the assessor and set attributes 
+    now = datetime.now()
+    today = str(now.year)+'-'+str(now.month)+'-'+str(now.day)
+    assessor_obj.attrs.set('fs:fsData/date', today)
+
+def create_default_assessor(assessor_obj, proctype):
+    """ Create default assessor with proctype given """
+    # Create the assessor and set attributes
     assessor_obj.create(assessors='proc:genProcData')
-    assessor_obj.attrs.set('proc:genProcData/validation/status',JOB_PENDING)
-    assessor_obj.attrs.set('proc:genProcData/proctype',proctype)
-    now=datetime.now()
-    today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
-    assessor_obj.attrs.set('proc:genProcData/date',today)
-    
-def needUploadAssessor(assessor_obj,assessor_dict,xsitype,version):
+    assessor_obj.attrs.set('proc:genProcData/validation/status', JOB_PENDING)
+    assessor_obj.attrs.set('proc:genProcData/proctype', proctype)
+    now = datetime.now()
+    today = str(now.year)+'-'+str(now.month)+'-'+str(now.day)
+    assessor_obj.attrs.set('proc:genProcData/date', today)
+
+def should_upload_assessor(assessor_obj, assessor_dict, xsitype, version):
+    """ check if the assessor should be upload """
     if not assessor_obj.exists():
-        if xsitype=='fs:fsData':
-            createFreesurferAssessor()
+        if xsitype == 'fs:fsData':
+            create_freesurfer_assessor(assessor_obj)
         else:
-            createDefaultAssessor(assessor_obj,assessor_dict['proctype'])
+            create_default_assessor(assessor_obj, assessor_dict['proctype'])
     else:
         # Check if not already complete assessor
         procstatus = assessor_obj.attrs.get(xsitype+'/procstatus')
-        if isComplete(assessor_dict,procstatus):
+        if is_complete(assessor_dict, procstatus):
             return False
     # set the status to UPLOADING
     assessor_obj.attrs.set(xsitype+'/procstatus', UPLOADING)
     assessor_obj.attrs.set('proc:genProcData/procversion', version)
     return True
 
-def uploadAssessor(xnat,assessor_dict):
+def upload_assessor(xnat, assessor_dict):
+    """ upload results to an assessor """
     #get spiderpath from version.txt file:
-    version = getVersionAssessor(assessor_dict['path'])
-    session_obj = xnat.select('/project/'+assessor_dict['project_id']+'/subjects/'+assessor_dict['subject_label']+'/experiments/'+assessor_dict['session_label'])    
+    version = get_version_assessor(assessor_dict['path'])
+    session_obj = XnatUtils.select_obj(xnat,
+                                       assessor_dict['project_id'],
+                                       assessor_dict['subject_label'],
+                                       assessor_dict['session_label'])
     if not session_obj.exists():
-        logger.error('Cannot upload assessor, session does not exist.')
+        LOGGER.error('Cannot upload assessor, session does not exist.')
         return
-    
+
     #Select assessor
-    assessor_obj=session_obj.assessor(assessor_dict['label'])
-    xsitype=getXsiType(assessor_dict)
-        
-    if needUploadAssessor(assessor_obj,assessor_dict,xsitype,version):
-        ## Before Upload ##             
-        generateSnapshots(assessor_dict['path'])
-        copyOutlog(assessor_dict)
-        
+    assessor_obj = session_obj.assessor(assessor_dict['label'])
+    xsitype = get_xsitype(assessor_dict)
+
+    if should_upload_assessor(assessor_obj, assessor_dict, xsitype, version):
+        ## Before Upload ##
+        generate_snapshots(assessor_dict['path'])
+        copy_outlog(assessor_dict)
+
         #Upload the XML if FreeSurfer
-        if xsitype=='fs:fsData':
-            xmlpath=os.path.join(assessor_dict['path'],'XML')
+        if xsitype == 'fs:fsData':
+            xmlpath = os.path.join(assessor_dict['path'], 'XML')
             if os.path.exists(xmlpath):
-                logger.debug('    +setting XML for FreeSurfer')
+                LOGGER.debug('    +setting XML for FreeSurfer')
                 xml_files_list = os.listdir(xmlpath)
                 if len(xml_files_list) != 1:
-                    logger.error('cannot upload FreeSufer, unable to find XML file:'+assessor_dict['path'])
-                    return 
-                xml_path = assessor_dict['path']+'/XML/'+xml_files_list[0]
+                    fpath = assessor_dict['path']
+                    LOGGER.error('cannot upload FreeSufer, unable to find XML file:'+fpath)
+                    return
+                xml_path = os.path.join(assessor_dict['path'], 'XML', xml_files_list[0])
                 assessor_obj.create(xml=xml_path, allowDataDeletion=False)
-        
-        ## Upload ## for each folder=resource in the assessor directory 
-        for Resource in os.listdir(assessor_dict['path']):
-            Resource_path = assessor_dict['path']+'/'+Resource
+
+        ## Upload ## for each folder=resource in the assessor directory
+        for resource in os.listdir(assessor_dict['path']):
+            resource_path = os.path.join(assessor_dict['path'], resource)
             #Need to be in a folder to create the resource :
-            if os.path.isdir(Resource_path):
-                logger.debug('    +uploading '+Resource)
-                uploadResourceFolder(assessor_obj,Resource,Resource_path)
-        
+            if os.path.isdir(resource_path):
+                LOGGER.debug('    +uploading '+resource)
+                upload_resource(assessor_obj, resource, resource_path)
+
         ## after Upload ##
         if os.path.exists(os.path.join(assessor_dict['path'], _READY_FLAG_FILE)):
             assessor_obj.attrs.set(xsitype+'/procstatus', READY_TO_COMPLETE)
@@ -247,180 +299,204 @@ def uploadAssessor(xnat,assessor_dict):
             assessor_obj.attrs.set(xsitype+'/procstatus', JOB_FAILED)
         #Remove the folder
         os.system('rm -r '+assessor_dict['path'])
-                    
-def uploadResourceFolder(assessor,Resource,Resource_path):
-    #check if the resource exist, if yes remove it
-    if assessor.out_resource(Resource).exists():
-        assessor.out_resource(Resource).delete()        
-    #if it's the SNAPSHOTS folder, need to set the thumbnail and original:
-    if Resource == 'SNAPSHOTS':
-        Resource_files_list = os.listdir(Resource_path)
-        preview_list = [s for s in Resource_files_list if "preview" in s]
-        if preview_list:
-            preview = preview_list[0]
-            assessor.out_resource(Resource).file(preview).put(Resource_path+'/'+preview,(preview.split('.')[1]).upper(),'THUMBNAIL')
-            os.remove(Resource_path+'/'+preview)
-            
-        original_list = [s for s in Resource_files_list if "original" in s]
-        if original_list:
-            original = original_list[0]
-            assessor.out_resource(Resource).file(original).put(Resource_path+'/'+original,(original.split('.')[1]).upper(),'ORIGINAL')
-            os.remove(Resource_path+'/'+original)
-        
-        if len(os.listdir(Resource_path)) > 0:
-            upload_zip(assessor.out_resource(Resource),Resource,Resource_path)
-    #for all the other resources :
+
+def upload_resource(assessor_obj, resource, resource_path):
+    """ upload a resource folder in the queue to the assessor """
+    if resource == 'SNAPSHOTS':
+        upload_snapshots(assessor_obj, resource_path)
     else:
-        Resource_files_list=os.listdir(Resource_path)
-        #for each folder=resource in the assessor directory, more than 2 files, use the zip from XNAT
-        if len(Resource_files_list)>2:
-            upload_zip(assessor.out_resource(Resource),Resource,Resource_path)
+        rfiles_list = os.listdir(resource_path)
+        if not rfiles_list:
+            LOGGER.warn('No files in '+resource_path)
+        elif len(rfiles_list) > 1 or os.path.isdir(rfiles_list[0]):
+            XnatUtils.upload_folder_to_obj(resource_path, assessor_obj.out_resource(resource),
+                                           resource, removeall=True)
         #One or two file, let just upload them:
         else:
-            for filename in Resource_files_list:
-                #if it's a folder, zip it and upload it
-                if os.path.isdir(filename):
-                    upload_zip(assessor.out_resource(Resource),filename,Resource_path+'/'+filename)
-                elif filename.lower().endswith('.zip'):
-                    assessor.out_resource(Resource).put_zip(Resource_path+'/'+filename, extract=True)
-                else:
-                    #upload the file
-                    assessor.out_resource(Resource).file(filename).put(Resource_path+'/'+filename)
+            fpath = os.path.join(resource_path, rfiles_list[0])
+            if rfiles_list[0].lower().endswith('.zip'):
+                if assessor_obj.out_resource(resource).exists():
+                    assessor_obj.out_resource(resource).delete()
+                assessor_obj.out_resource(resource).put_zip(fpath, extract=True)
+            else:
+                XnatUtils.upload_file_to_obj(fpath,
+                                             assessor_obj.out_resource(resource),
+                                             removeall=True)
 
-def uploadPbs(pbs_list,xnat):
-    pbsIssues=False
-    number_pbs=len(pbs_list)
-    for index,pbsfile in enumerate(pbs_list):
-        logger.info('   *Uploading PBS '+str(index+1)+'/'+str(number_pbs)+' -- File name: '+pbsfile)
+def upload_snapshots(assessor_obj, resource_path):
+    """ function to upload the snapshots to the assessor """
+    original = os.path.join(resource_path, SNAPSHOTS_ORIGINAL)
+    thumbnail = os.path.join(resource_path, SNAPSHOTS_PREVIEW)
+    status = XnatUtils.upload_assessor_snapshots(assessor_obj,
+                                                 original,
+                                                 thumbnail,
+                                                 remove=False,
+                                                 removeall=False)
+    if status:
+        os.remove(original)
+        os.remove(thumbnail)
+    else:
+        assessor_label = os.path.basename(resource_path)
+        LOGGER.warn('No snapshots original or preview were uploaded for '+assessor_label)
+
+    #Upload the rest of the files in snapshots
+    if len(os.listdir(resource_path)) > 0:
+        XnatUtils.upload_folder_to_obj(resource_path,
+                                       assessor_obj.out_resource('SNAPSHOTS'),
+                                       'SNAPSHOTS',
+                                       removeall=True)
+
+########################### Main Functions to Upload results/PBS/OUTLOG ###########################
+def upload_assessors(xnat):
+    """ Upload results for assessor from the folder """
+    #Get the assessor label from the directory :
+    assessors_list = get_assessor_list()
+    number_of_processes = len(assessors_list)
+    for index, assessor_label in enumerate(assessors_list):
+        assessor_path = os.path.join(RESULTS_DIR, assessor_label)
+        mess = """    *Process: {index}/{max} -- label: {label} / time: {time}"""
+        LOGGER.info(mess.format(index=str(index+1),
+                                max=str(number_of_processes),
+                                label=assessor_label,
+                                time=str(datetime.now())))
+
+        assessor_dict = get_assessor_dict(assessor_label, assessor_path)
+        if get_assessor_dict:
+            upload_assessor(xnat, assessor_dict)
+        else:
+            LOGGER.warn('     --> wrong label')
+
+def upload_pbs(xnat):
+    """ Upload the pbs files """
+    pbs_list = get_pbs_list()
+    number_pbs = len(pbs_list)
+    for index, pbsfile in enumerate(pbs_list):
+        pbs_fpath = os.path.join(RESULTS_DIR, _PBS, pbsfile)
+        mess = """   *Uploading PBS {index}/{max} -- File name: {file}"""
+        LOGGER.info(mess.format(index=str(index+1),
+                                max=str(number_pbs),
+                                file=pbsfile))
         assessor_label = os.path.splitext(pbsfile)[0]
-        isGoodAssessorLabel,assessor_dict=generateObjDict(assessor_label,'none')
-        if not isGoodAssessorLabel:
-            pbsIssues=True
+        assessor_dict = get_assessor_dict(assessor_label, 'none')
+        if not assessor_dict:
+            LOGGER.warn('wrong assessor label for '+pbsfile)
+            os.rename(pbs_fpath, os.path.join(RESULTS_DIR, _TRASH, pbsfile))
         else:
-            assessor_obj = xnat.select('/project/'+assessor_dict['project_id']+'/subjects/'+assessor_dict['subject_label']+'/experiments/'+assessor_dict['session_label']+'/assessor/'+assessor_dict['label'])
+            assessor_obj = select_assessor(xnat, assessor_dict)
             if not assessor_obj.exists():
-                pbsIssues=True
+                LOGGER.warn('assessor does not exist for '+pbsfile)
+                os.rename(pbs_fpath, os.path.join(RESULTS_DIR, _TRASH, pbsfile))
             else:
-                r=assessor_obj.out_resource(_PBS)
-                if r.exists():
-                    logger.warn('the PBS resource already exists for the assessor '+assessor_dict['label'])
-                    if  os.path.isdir(os.path.join(RESULTS_DIR,assessor_dict['label'])):
-                        logger.warn('Copying the pbs file in the assessor folder...')
-                        assessor_pbs_folder=os.path.join(RESULTS_DIR,assessor_dict['label'], _PBS)
-                        if not os.path.exists(assessor_pbs_folder):
-                            os.mkdir(assessor_pbs_folder)
-                        os.system('mv '+os.path.join(RESULTS_DIR, _PBS, pbsfile)+' '+assessor_pbs_folder)
+                resource_obj = assessor_obj.out_resource(_PBS)
+                if resource_obj.exists():
+                    label = assessor_dict['label']
+                    LOGGER.warn('the PBS resource already exists for the assessor '+label)
+                    if  os.path.isdir(os.path.join(RESULTS_DIR, assessor_dict['label'])):
+                        LOGGER.warn('Copying the pbs file in the assessor folder...')
+                        assr_pbs_folder = os.path.join(RESULTS_DIR, assessor_dict['label'], _PBS)
+                        if not os.path.exists(assr_pbs_folder):
+                            os.mkdir(assr_pbs_folder)
+                        os.rename(pbs_fpath, os.path.join(assr_pbs_folder, pbsfile))
                     else:
-                        logger.warn('Copying the pbs file in the TRASH ...')
-                        os.rename(os.path.join(RESULTS_DIR, _PBS, pbsfile),os.path.join(RESULTS_DIR, _TRASH, pbsfile))
+                        LOGGER.warn('Copying the pbs file in the TRASH ...')
+                        os.rename(pbs_fpath, os.path.join(RESULTS_DIR, _TRASH, pbsfile))
                 else:
                     #upload the file
-                    r=assessor_obj.out_resource(_PBS).file(pbsfile).put(os.path.join(RESULTS_DIR,_PBS,pbsfile))
-                    os.remove(os.path.join(RESULTS_DIR,_PBS,pbsfile))
-    if pbsIssues:
-        logger.warn('error with the process of uploading PBS file (wrong label or no assessor)')
-        os.rename(os.path.join(RESULTS_DIR,_PBS,pbsfile),os.path.join(RESULTS_DIR,_TRASH,pbsfile))
+                    status = XnatUtils.upload_file_to_obj(pbs_fpath, resource_obj)
+                    if status:
+                        os.remove(pbs_fpath)
 
-def uploadOutlog(xnat):
-    outlogs_list=os.listdir(os.path.join(RESULTS_DIR,_OUTLOG))
-    number_outlog=len(outlogs_list)
-    for index,outlogfile in enumerate(outlogs_list):
-        logger.info('   *Checking OUTLOG '+str(index+1)+'/'+str(number_outlog)+' -- File name: '+outlogfile)
-        isGoodAssessorLabel,assessor_dict=generateObjDict(outlogfile[:-7],'none')
-        if not isGoodAssessorLabel:
-            logger.warn('     wrong outlog file. You should remove it')
+def upload_outlog(xnat):
+    """ Upload the outlog files """
+    outlogs_list = os.listdir(os.path.join(RESULTS_DIR, _OUTLOG))
+    number_outlog = len(outlogs_list)
+    for index, outlogfile in enumerate(outlogs_list):
+        outlog_fpath = os.path.join(RESULTS_DIR, _OUTLOG, outlogfile)
+        mess = """   *Checking OUTLOG {index}/{max} -- File name: {file}"""
+        LOGGER.info(mess.format(index=str(index+1),
+                                max=str(number_outlog),
+                                file=outlogfile))
+        assessor_dict = get_assessor_dict(outlogfile[:-7], 'none')
+        if not assessor_dict:
+            LOGGER.warn('     wrong outlog file. You should remove it')
         else:
-            assessor_obj = xnat.select('/project/'+assessor_dict['project_id']+'/subject/'+assessor_dict['subject_label']+'/experiment/'+assessor_dict['session_label']+'/assessor/'+assessor_dict['label'])
-            xsitype=getXsiType(assessor_dict)
-            if not assessor_obj.exists(): 
-                logger.warn('     no assessor on XNAT -- moving file to trash.')
-                os.rename(os.path.join(RESULTS_DIR,_OUTLOG,outlogfile),os.path.join(RESULTS_DIR,_TRASH,outlogfile))
+            assessor_obj = select_assessor(xnat, assessor_dict)
+            xsitype = get_xsitype(assessor_dict)
+            if not assessor_obj.exists():
+                LOGGER.warn('     no assessor on XNAT -- moving file to trash.')
+                os.rename(outlog_fpath, os.path.join(RESULTS_DIR, _TRASH, outlogfile))
             else:
-                if assessor_obj.attrs.get(xsitype+'/procstatus')=='JOB_FAILED':
-                    r=assessor_obj.out_resource(_OUTLOG)
-                    if r.exists():
+                if assessor_obj.attrs.get(xsitype+'/procstatus') == JOB_FAILED:
+                    resource_obj = assessor_obj.out_resource(_OUTLOG)
+                    if resource_obj.exists():
                         pass
                     else:
-                        logger.info('     uploading file.')
-                        r=assessor_obj.out_resource(_OUTLOG).file(outlogfile).put(os.path.join(RESULTS_DIR,_OUTLOG,outlogfile))
-                        os.remove(os.path.join(RESULTS_DIR,_OUTLOG,outlogfile))
+                        LOGGER.info('     uploading file.')
+                        status = XnatUtils.upload_file_to_obj(outlog_fpath, resource_obj)
+                        if status:
+                            os.remove(outlog_fpath)
 
-def uploadResultsFolder():
+def upload_results(email_address):
+    """ Upload the results / PBS / OUTOG and email the user """
     #Start Uploading
-    logger.info('-------- Upload Directory: '+RESULTS_DIR+' --------')
+    LOGGER.info('-------- Upload Directory: '+RESULTS_DIR+' --------')
     ###VARIABLES###
-    UploadDirList = os.listdir(RESULTS_DIR)
-    if len(UploadDirList) == 0:
-        logger.warn('No data need to be uploaded.\n')
+    if len(os.listdir(RESULTS_DIR)) == 0:
+        LOGGER.warn('No data need to be uploaded.\n')
         sys.exit()
-    
-    #Get the assessor label from the directory :
-    assessors_list=getAssessorFromFolder()
-    #Get the list of PBS which need to be upload:
-    pbs_list=getPbsFromFolder()
-    
+
     try:
-        logger.info('Connecting to XNAT to start uploading processes')
+        LOGGER.info('Connecting to XNAT to start uploading processes')
         xnat = XnatUtils.get_interface()
-        
+
         ################# 1) Upload the assessor data ###############
         #For each assessor label that need to be upload :
-        number_of_processes=len(assessors_list)
-        for index,assessor_label in enumerate(assessors_list):
-            assessor_path=RESULTS_DIR+'/'+assessor_label
-            if not os.path.isdir(assessor_path):
-                logger.warn('The folder '+assessor_label+' has a wrong ProjectName or Subject label or session label.')
-                continue
+        LOGGER.info(' - Uploading results for assessors')
+        upload_assessors(xnat)
 
-            logger.info("    *Process: "+str(index+1)+"/"+str(number_of_processes)+' -- label: '+assessor_label+' / time: '+str(datetime.now()))
-            
-            isGoodAssessorLabel,assessor_dict=generateObjDict(assessor_label,assessor_path)
-            if isGoodAssessorLabel:
-                uploadAssessor(xnat,assessor_dict) 
-            else:
-                logger.warn('     --> wrong label')
-        
         ################# 2) Upload the PBS files ###############
         #For each file, upload it to the PBS resource
-        logger.info(' - Uploading PBS files ...')
-        uploadPbs(pbs_list,xnat)
-        
+        LOGGER.info(' - Uploading PBS files ...')
+        upload_pbs(xnat)
+
         ################# 3) Upload the OUTLOG files not uploaded with processes ###############
-        logger.info(' - Checking OUTLOG files to upload them for JOB_FAILED jobs ...')
-        uploadOutlog(xnat)
-        
+        LOGGER.info(' - Checking OUTLOG files to upload them for JOB_FAILED jobs ...')
+        upload_outlog(xnat)
+
     finally:
-        #Sent an email
-        sendWarningEmails(warning_list,options.emailaddress) 
-        #disconnect                                     
         xnat.disconnect()
-        logger.info('Connection to Xnat closed')
- 
+        LOGGER.info('Connection to Xnat closed')
+        send_warning_emails(warning_list, email_address)
+
 def parse_args():
-    from optparse import OptionParser
-    usage = "usage: %prog [options] \nWhat is the script doing : Upload Data on Xnat from a Directory as an Assessor. "
-    parser = OptionParser(usage=usage)
-    parser.add_option("-e", "--emailaddress", dest="emailaddress",default='',
-                  help="Email address to prevent if an assessor already exists.", metavar="EMAIL ADDRESS")
-    parser.add_option('-l','--logfile',dest='logfile', help='Logs file path if needed.',default=None)
-    parser.add_option('--debug', dest='debug', action='store_true',help='Print DEBUG information.')
-    return parser.parse_args()
-    
+    """ return the arguments given to the executables """
+    from argparse import ArgumentParser
+    description = "Upload results from the dax_upload folder to Xnat."
+    ap = ArgumentParser(prog='dax_update', description=description)
+    ap.add_argument('-e', '--email', dest='emailaddress',
+                    help='Email address to inform you about the warnings and errors.', default=None)
+    ap.add_argument('-l', '--logfile', dest='logfile',
+                    help='Logs file path if needed.', default=None)
+    ap.add_argument('--debug', dest='debug', action='store_true', help='Print DEBUG information.')
+    return ap.parse_args()
+
 if __name__ == '__main__':
-    (options,args) = parse_args()
+    args = parse_args()
     #Local Variables
     flag_files_list = list()
     warning_list = list()
     #Logger for logs
-    logger=bin.set_logger(options.logfile,options.debug)
-    logger.info('Time at the beginning of the Process_Upload: '+ str(datetime.now())+'\n')
-    #Check if folders exist 
-    checkFolders()
-    #create the flag file showing that the spider is running 
-    checkFlagFile()
-    try:
-        uploadResultsFolder()
-    finally:
-        #remove flagfile
-        os.remove(os.path.join(RESULTS_DIR,_FLAG_FILES,'Process_Upload_running.txt'))
-        logger.info('===================================================================\n')
+    LOGGER = bin.set_logger(args.logfile, args.debug)
+    LOGGER.info('Time at the beginning of the Process_Upload: '+ str(datetime.now())+'\n')
+    #Check if folders exist
+    check_folders()
+    #create the flag file showing that the spider is running
+    if is_dax_upload_running():
+        sys.exit()
+    else:
+        try:
+            upload_results(args.emailaddress)
+        finally:
+            #remove flagfile
+            os.remove(DAX_UPLOAD_FLAGFILE)
+            LOGGER.info('===================================================================\n')
