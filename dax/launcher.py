@@ -280,7 +280,7 @@ class Launcher(object):
         # Processors
         LOGGER.debug('== Build processors for session ==')
         for sess_proc in sess_proc_list:
-            if sess_proc.should_run(csess.info(), xnat):
+            if sess_proc.should_run(csess.info()):
 
                 assr_name = sess_proc.get_assessor_name(csess)
 
