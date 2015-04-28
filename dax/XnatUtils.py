@@ -831,7 +831,7 @@ def is_cscan_unusable(cscan):
 
 def is_cscan_good_type(cscan, types_list):
     """ return true if scan has the right type """
-    return cscan.info()['type'] in scantypes
+    return cscan.info()['type'] in types_list
 
 def is_scan_unusable(scan_obj):
     """ return true if scan unusable """
