@@ -37,6 +37,8 @@ NS = {'xnat' : 'http://nrg.wustl.edu/xnat',
 
 ### VARIABLE ###
 # Status:
+JOB_PENDING = 'Job Pending' # job is still running, not ready for QA yet
+NEEDS_QA = 'Needs QA' # For FS, the complete status
 JOB_FAILED = 'JOB_FAILED' # the job failed on the cluster.
 READY_TO_UPLOAD = 'READY_TO_UPLOAD' # Job done, waiting for the Spider to upload the results
 BAD_QA_STATUS = ['bad', 'fail']
