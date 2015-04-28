@@ -212,9 +212,8 @@ class Launcher(object):
             self.module_prerun(project_id, lockfile_prefix)
 
         # Get lists of modules/processors per scan/exp for this project
-        pp_dict = self.project_process_dict[project_id]
-        exp_mods, scan_mods = modules.modules_by_type(pp_dict)
-        exp_procs, scan_procs = processors.processors_by_type(pp_dict)
+        exp_mods, scan_mods = modules.modules_by_type(self.project_modules_dict[project_id])
+        exp_procs, scan_procs = processors.processors_by_type(self.project_process_dict[project_id])
 
         # Check for new processors
         has_new = self.has_new_processors(xnat, project_id, exp_procs, scan_procs)
