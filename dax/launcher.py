@@ -235,10 +235,11 @@ class Launcher(object):
                 mess_str = mess.format(sess=sess_info['label'], mod=str(last_mod), up=str(last_up))
                 LOGGER.info(mess_str)
             else:
-                LOGGER.info('  +Session:'+sess_info['label']+': updating...')
                 update_run_count = 0
                 got_updated = False
                 while update_run_count < 3 and not got_updated:
+                    mess = """  +Session:{sess}: updating (count:{count})..."""
+                    LOGGER.info(mess.format(sess=sess_info['label'], count=update_run_count))
                     # NOTE: we keep the starting time of the update
                     # and will check if something change during the update
                     update_start_time = datetime.now()
