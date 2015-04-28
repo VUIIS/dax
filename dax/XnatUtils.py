@@ -859,7 +859,7 @@ def is_assessor_same_scan_unusable(cscan, proctype):
     if not assr_list:
         return 0
     else:
-        return is_bad_qa(assr_list[0]['qastatus'])
+        return is_bad_qa(assr_list[0]['qcstatus'])
 
 def is_cassessor_good_type(cassr, types_list):
     """ return true if cassr has the right type """
@@ -872,7 +872,7 @@ def is_cassessor_usable(cassr):
         return 1 if ok
     """
     assr_info = cassr.info()
-    return is_bad_qa(assr_info['qastatus'])
+    return is_bad_qa(assr_info['qcstatus'])
 
 def is_assessor_good_type(assessor_obj, types_list):
     """ return true if assessor obj has the right type """
@@ -886,15 +886,15 @@ def is_assessor_usable(assessor_obj):
         return 1 if ok
     """
     atype = assessor_obj.attrs.get('xsiType')
-    qastatus = assessor_obj.attrs.get(atype+'/validation/status')
-    return is_bad_qa(qastatus)
+    qcstatus = assessor_obj.attrs.get(atype+'/validation/status')
+    return is_bad_qa(qcstatus)
 
-def is_bad_qa(qastatus):
+def is_bad_qa(qcstatus):
     """ function to return False if status is bad qa status """
-    if qastatus in [task.JOB_PENDING, task.NEEDS_QA]:
+    if qcstatus in [task.JOB_PENDING, task.NEEDS_QA]:
         return 0
-    for qa in BAD_QA_STATUS:
-        if qa in qastatus.lower():
+    for qc in BAD_QA_STATUS:
+        if qc in qcstatus.lower():
             return -1
     return 1
 
