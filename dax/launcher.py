@@ -238,7 +238,7 @@ class Launcher(object):
                 LOGGER.info('  +Session:'+sess_info['label']+': updating...')
                 update_run_count = 0
                 got_updated = False
-                while update_run_count < 3 or got_updated:
+                while update_run_count < 3 and not got_updated:
                     # NOTE: we keep the starting time of the update
                     # and will check if something change during the update
                     update_start_time = datetime.now()
