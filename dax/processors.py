@@ -15,12 +15,14 @@ class Processor(object):
         """ init function """
         self.walltime_str = walltime_str # 00:00:00 format
         self.memreq_mb = memreq_mb  # memory required in megabytes
-        self.set_spider_settings(spider_path, version)
-        self.ppn = ppn
-        self.xsitype = xsitype
+        #default values
         self.version = '1.0.0'
         self.name = None
         self.spider_path = spider_path
+        #getting name and version from spider_path
+        self.set_spider_settings(spider_path, version)
+        self.ppn = ppn
+        self.xsitype = xsitype
 
     #get the spider_path right with the version:
     def set_spider_settings(self, spider_path, version):
@@ -109,7 +111,10 @@ class ScanProcessor(Processor):
 
     def should_run(self, scan_dict):
         """ should_run function overwrited from base-class to check if it's a right scan"""
-        return scan_dict['scan_type'] in self.scan_types
+        if self.scan_types == 'all':
+            return True
+        else:
+            return scan_dict['scan_type'] in self.scan_types
 
 class SessionProcessor(Processor):
     """ Session Processor class for processor on a session on XNAT """
