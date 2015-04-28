@@ -920,7 +920,7 @@ def get_good_cassr(csess, proctypes):
     """ return cassr list from a csess if there is a good assessor """
     cassr_list = list()
     for cassr in csess.assessors():
-        if is_cassr_good_type(cassr, proctypes) and is_cassessor_usable(cscan):
+        if is_cassessor_good_type(cassr, proctypes) and is_cassessor_usable(cscan):
             cassr_list.append(cassr)
     return cassr_list
 
