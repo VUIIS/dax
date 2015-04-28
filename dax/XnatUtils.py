@@ -893,7 +893,7 @@ def is_assessor_usable(assessor_obj):
 
 def is_bad_qa(qcstatus):
     """ function to return False if status is bad qa status """
-    if qcstatus in [task.JOB_PENDING, task.NEEDS_QA]:
+    if qcstatus in [JOB_PENDING, NEEDS_QA]:
         return 0
     for qc in BAD_QA_STATUS:
         if qc in qcstatus.lower():
