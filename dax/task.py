@@ -28,8 +28,8 @@ OPEN_STATUS_LIST = [NEED_TO_RUN, UPLOADING, JOB_RUNNING, READY_TO_COMPLETE, JOB_
 
 # QA Statuses
 BAD_QA_STATUS = XnatUtils.BAD_QA_STATUS
-JOB_PENDING = 'Job Pending' # job is still running, not ready for QA yet
-NEEDS_QA = 'Needs QA' # For FS, the complete status
+JOB_PENDING = XnatUtils.JOB_PENDING
+NEEDS_QA = XnatUtils.NEEDS_QA
 PASSED_QA = 'Passed' # QA status set by the Image Analyst after looking at the results.
 FAILED = 'Failed' # QA status set by the Image Analyst after looking at the results.
 FAILED_NEEDS_REPROC = 'Failed-needs reprocessing'
