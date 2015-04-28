@@ -1545,8 +1545,9 @@ class CachedImageSession():
         """ return a list of cachescans objects for the session """
         scan_list = []
         scan_elements = self.sess_element.find('xnat:scans', NS)
-        for scan in scan_elements:
-            scan_list.append(CachedImageScan(scan, self))
+        if scan_elements:
+            for scan in scan_elements:
+                scan_list.append(CachedImageScan(scan, self))
 
         return scan_list
 
@@ -1555,8 +1556,9 @@ class CachedImageSession():
         assr_list = []
 
         assr_elements = self.sess_element.find('xnat:assessors', NS)
-        for assr in assr_elements:
-            assr_list.append(CachedImageAssessor(assr, self))
+        if assr_elements:
+            for assr in assr_elements:
+                assr_list.append(CachedImageAssessor(assr, self))
 
         return assr_list
 
@@ -1589,10 +1591,11 @@ class CachedImageSession():
         res_list = []
 
         file_elements = self.sess_element.findall('xnat:file', NS)
-        for file_element in file_elements:
-            xsi_type = file_element.get('{http://www.w3.org/2001/XMLSchema-instance}type')
-            if xsi_type == 'xnat:resourceCatalog':
-                res_list.append(CachedResource(file_element, self))
+        if file_elements:
+            for file_element in file_elements:
+                xsi_type = file_element.get('{http://www.w3.org/2001/XMLSchema-instance}type')
+                if xsi_type == 'xnat:resourceCatalog':
+                    res_list.append(CachedResource(file_element, self))
 
         return res_list
 
@@ -1668,10 +1671,11 @@ class CachedImageScan():
         res_list = []
 
         file_elements = self.scan_element.findall('xnat:file', NS)
-        for file_element in file_elements:
-            xsi_type = file_element.get('{http://www.w3.org/2001/XMLSchema-instance}type')
-            if xsi_type == 'xnat:resourceCatalog':
-                res_list.append(CachedResource(file_element, self))
+        if file_elements:
+            for file_element in file_elements:
+                xsi_type = file_element.get('{http://www.w3.org/2001/XMLSchema-instance}type')
+                if xsi_type == 'xnat:resourceCatalog':
+                    res_list.append(CachedResource(file_element, self))
 
         return res_list
 
@@ -1771,8 +1775,9 @@ class CachedImageAssessor():
         res_list = []
 
         file_elements = self.assr_element.findall('xnat:in/xnat:file', NS)
-        for file_element in file_elements:
-            res_list.append(CachedResource(file_element, self))
+        if file_elements:
+            for file_element in file_elements:
+                res_list.append(CachedResource(file_element, self))
 
         return res_list
 
@@ -1781,8 +1786,9 @@ class CachedImageAssessor():
         res_list = []
 
         file_elements = self.assr_element.findall('xnat:out/xnat:file', NS)
-        for file_element in file_elements:
-            res_list.append(CachedResource(file_element, self))
+        if file_elements:
+            for file_element in file_elements:
+                res_list.append(CachedResource(file_element, self))
 
         return res_list
 
@@ -1848,3 +1854,430 @@ class CachedResource():
         res_info['content'] = self.get('content')
 
         return res_info
+
+####################### OLD Functions used in different Spiders ##########################
+# It will need to be removed when the spiders are updated
+def download_Scan(Outputdirectory,projectName,subject,experiment,scan,resource_list,all_resources=0):
+    """ Download resources from a specific project/subject/experiment/scan from Xnat into a folder.
+    parameters :
+        - Outputdirectory = directory where the files are going to be download
+        - projectName = project name on Xnat
+        - subject = subject label of the files you want to download from Xnat
+        - experiment = experiment label of the files you want to download from Xnat
+        - scan = scan label of the files you want to download from Xnat
+        - resource_list = List of resources name
+            E.G resource_list=['NIFTI','bval,'bvec']
+        - all_resources : download all the resources. If 0, download the biggest one.
+    """
+
+    print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + '/'+ scan
+
+    #Check input for subjects_exps_list :
+    if isinstance(resource_list, list):
+        pass
+    elif isinstance(resource_list, str):
+        resource_list=[resource_list]
+    else:
+        print "INPUTS ERROR: Check the format of the list of resources in the download_Scan function. Not a list.\n"
+        sys.exit()
+
+    try:
+        xnat = get_interface()
+        SCAN=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan)
+        if SCAN.exists():
+            if SCAN.attrs.get('quality')!='unusable':
+                dl_good_resources_scan(SCAN,resource_list,Outputdirectory,all_resources)
+            else:
+                print 'DOWNLOAD WARNING: Scan unusable!'
+        else:
+            print 'DOWNLOAD ERROR: '+ projectName + '/' + subject+ '/'+ experiment + '/'+scan+' does not correspond to a Project/Subject/experiment/scan on Xnat.'
+
+    finally:
+        xnat.disconnect()
+    print '===================================================================\n'
+
+## from a list of scantype given, Download the resources
+def download_ScanType(Outputdirectory,projectName,subject,experiment,List_scantype,resource_list,all_resources=0):
+    """ Same than download_Scan but you give a list of scan type instead of the scan ID
+    """
+
+    print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + ' and the scan types like ',
+    print List_scantype
+
+    #Check input for subjects_exps_list :
+    if isinstance(resource_list, list):
+        pass
+    elif isinstance(resource_list, str):
+        resource_list=[resource_list]
+    else:
+        print "INPUTS ERROR: Check the format of the list of resources in the download_ScanType function. Not a list.\n"
+        sys.exit()
+
+    #check list of SD:
+    if isinstance(List_scantype, list):
+        pass
+    elif isinstance(List_scantype, str):
+        List_scantype=[List_scantype]
+    else:
+        print "INPUTS ERROR: Check the format of the list of series_description in the download_ScanType function. Not a list.\n"
+        sys.exit()
+
+    try:
+        xnat = get_interface()
+
+        for scan in list_scans(xnat, projectName, subject, experiment):
+            if scan['type'] in List_scantype:
+                if scan['quality']!='unusable':
+                    SCAN=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan['ID'])
+                    dl_good_resources_scan(SCAN,resource_list,Outputdirectory,all_resources)
+                else:
+                    print 'DOWNLOAD WARNING: Scan unusable!'
+
+    finally:
+        xnat.disconnect()
+    print '===================================================================\n'
+
+## from a list of scan series_description given, download the resources
+def download_ScanSeriesDescription(Outputdirectory,projectName,subject,experiment,List_scanSD,resource_list,all_resources=0):
+    """ Same than download_Scan but you give a list of series description instead of the scan ID
+    """
+
+    print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + ' and the list of series description ',
+    print List_scanSD
+
+    #Check input for subjects_exps_list :
+    if isinstance(resource_list, list):
+        pass
+    elif isinstance(resource_list, str):
+        resource_list=[resource_list]
+    else:
+        print "INPUTS ERROR: Check the format of the list of resources in the download_ScanSeriesDescription function. Not a list.\n"
+        sys.exit()
+
+    #check list of SD:
+    if isinstance(List_scanSD, list):
+        pass
+    elif isinstance(List_scanSD, str):
+        List_scanSD=[List_scanSD]
+    else:
+        print "INPUTS ERROR: Check the format of the list of series_description in the download_ScanSeriesDescription function. Not a list.\n"
+        sys.exit()
+
+    try:
+        xnat = get_interface()
+
+        for scan in list_scans(xnat, projectName, subject, experiment):
+            SCAN=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan['ID'])
+
+            if SCAN.attrs.get('series_description') in List_scanSD:
+                if scan['quality']!='unusable':
+                    dl_good_resources_scan(SCAN,resource_list,Outputdirectory,all_resources)
+                else:
+                    print 'DOWNLOAD WARNING: Scan unusable!'
+
+    finally:
+        xnat.disconnect()
+    print '===================================================================\n'
+
+## from an assessor given, download the resources :
+def download_Assessor(Outputdirectory,assessor_label,resource_list,all_resources=0):
+    """ Download resources from a specific process from Xnat into a folder.
+    parameters :
+        - Outputdirectory = directory where the files are going to be download
+        - assessor_label = assessor label on XNAT -> Project-x-subject-x-session(-x-scan)-x-process
+        - resource_list = List of resources name
+            E.G resource_list=['NIFTI','bval,'bvec']
+        - all_resources : download all the resources. If 0, download the biggest one.
+    """
+
+    print'Download resources from process '+ assessor_label
+
+    #Check input for subjects_exps_list :
+    if isinstance(resource_list, list):
+        pass
+    elif isinstance(resource_list, str):
+        resource_list=[resource_list]
+    else:
+        print "INPUTS ERROR: Check the format of the list of resources in the download_Assessor function. Not a list.\n"
+        sys.exit()
+
+    try:
+        xnat = get_interface()
+        labels=assessor_label.split('-x-')
+        ASSESSOR=xnat.select('/project/'+labels[0]+'/subjects/'+labels[1]+'/experiments/'+labels[2]+'/assessors/'+assessor_label)
+        dl_good_resources_assessor(ASSESSOR,resource_list,Outputdirectory,all_resources)
+
+    finally:
+        xnat.disconnect()
+    print '===================================================================\n'
+
+## from an assessor type, download the resources :
+def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_process_type,resource_list,all_resources=0):
+    """ Same than download_Scan but you give a list of series description instead of the scan ID
+    """
+
+    print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + ' and the process ',
+    print List_process_type
+
+    #Check input for subjects_exps_list :
+    if isinstance(resource_list, list):
+        pass
+    elif isinstance(resource_list, str):
+        resource_list=[resource_list]
+    else:
+        print "INPUTS ERROR: Check the format of the list of resources in the download_AssessorType function. Not a list.\n"
+        sys.exit()
+
+    #Check input for subjects_exps_list :
+    if isinstance(List_process_type, list):
+        pass
+    elif isinstance(List_process_type, str):
+        List_process_type=[List_process_type]
+    else:
+        print "INPUTS ERROR: Check the format of the list of process type in the download_AssessorType function. Not a list.\n"
+        sys.exit()
+
+    #if FreeSurfer in the list, change it to FS
+    List_process_type = [process_type.replace('FreeSurfer', 'FS') for process_type in List_process_type]
+
+    try:
+        xnat = get_interface()
+
+        for assessor in list_assessors(xnat, projectName, subject, experiment):
+            for proc_type in List_process_type:
+                if proc_type==assessor['label'].split('-x-')[-1]:
+                    ASSESSOR=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor['label'])
+                    dl_good_resources_assessor(ASSESSOR,resource_list,Outputdirectory,all_resources)
+
+    finally:
+        xnat.disconnect()
+    print '===================================================================\n'
+
+
+def dl_good_resources_scan(Scan,resource_list,Outputdirectory,all_resources):
+    for Resource in resource_list:
+        resourceOK=0
+        if Scan.resource(Resource).exists():
+            resourceOK=1
+        elif Scan.resource(Resource.upper()).exists():
+            Resource=Resource.upper()
+            resourceOK=1
+        elif Scan.resource(Resource.lower()).exists():
+            Resource=Resource.lower()
+            resourceOK=1
+
+        if resourceOK and all_resources:
+            download_all_resources(Scan.resource(Resource),Outputdirectory)
+        elif resourceOK and not all_resources:
+            dl,DLFileName=download_biggest_resources(Scan.resource(Resource),Outputdirectory)
+            if not dl:
+                print 'ERROR: Download failed, the size of file for the resource is zero.'
+
+def dl_good_resources_assessor(Assessor,resource_list,Outputdirectory,all_resources):
+    for Resource in resource_list:
+        resourceOK=0
+        if Assessor.out_resource(Resource).exists():
+            resourceOK=1
+        elif Assessor.out_resource(Resource.upper()).exists():
+            Resource=Resource.upper()
+            resourceOK=1
+        elif Assessor.out_resource(Resource.lower()).exists():
+            Resource=Resource.lower()
+            resourceOK=1
+
+        if resourceOK and all_resources:
+            download_all_resources(Assessor.out_resource(Resource),Outputdirectory)
+        elif resourceOK and not all_resources:
+            dl,DLFileName=download_biggest_resources(Assessor.out_resource(Resource),Outputdirectory)
+            if not dl:
+                print 'ERROR: Download failed, the size of file for the resource is zero.'
+
+def download_biggest_resources(Resource,directory,filename='0'):
+    if os.path.exists(directory):
+        number=0
+        Bigger_file_size=0
+        for index,fname in enumerate(Resource.files().get()[:]):
+            size=int(Resource.file(fname).size())
+            if Bigger_file_size<size:
+                Bigger_file_size=size
+                number=index
+
+        if Bigger_file_size==0:
+            return 0,'nan'
+        else:
+            Input_res_label_fname = Resource.files().get()[number]
+            if filename=='0':
+                DLFileName = os.path.join(directory,Input_res_label_fname)
+            else:
+                DLFileName = os.path.join(directory,filename)
+            Resource.file(Input_res_label_fname).get(DLFileName)
+            return 1,str(DLFileName)
+    else:
+        print'ERROR download_biggest_resources in XnatUtils: Folder '+directory+' does not exist.'
+
+def download_all_resources(Resource,directory):
+    if os.path.exists(directory):
+        #if more than one file:
+        if len(Resource.files().get())>1:
+            #create a dir with the resourcename:
+            Outputdir=os.path.join(directory,Resource.label())
+            if not os.path.exists(Outputdir):
+                os.mkdir(Outputdir)
+            print '   ->Downloading all resources for '+Resource.label()+' as a zip'
+            Resource.get(Outputdir,extract=False) #not sure the extract True is working
+            print '   ->Unzipping ...'
+            os.system('unzip -d '+Outputdir+' '+os.path.join(Outputdir,Resource.label()+'.zip')+' > /dev/null')
+        #if only one, if using download all resources, download it and unzip it if it's a zip
+        else:
+            print '   ->Downloading resource for '+Resource.label()
+            Input_res_label_fname = Resource.files().get()[0]
+            Resource.file(Input_res_label_fname).get(os.path.join(directory,Input_res_label_fname))
+            if os.path.join(directory,Input_res_label_fname)[-3:]=='zip':
+                print '   -> Unzipping ...'
+                os.system('unzip -d '+directory+' '+os.path.join(directory,Input_res_label_fname)+' > /dev/null')
+    else:
+        print'ERROR download_all_resources in XnatUtils: Folder '+directory+' does not exist.'
+
+def upload_all_resources(Resource,directory):
+    if os.path.exists(directory):
+        if not Resource.exists():
+            Resource.create()
+        #for each files in this folderl, Upload files in the resource :
+        Resource_files_list=os.listdir(directory)
+        #for each folder=resource in the assessor directory, more than 2 files, use the zip from XNAT
+        if len(Resource_files_list)>2:
+            upload_zip(directory,Resource)
+        #One or two file, let just upload them:
+        else:
+            for filename in Resource_files_list:
+                #if it's a folder, zip it and upload it
+                if os.path.isdir(filename):
+                    upload_zip(filename,directory+'/'+filename)
+                elif filename.lower().endswith('.zip'):
+                    Resource.put_zip(directory+'/'+filename, extract=True)
+                else:
+                    #upload the file
+                    Resource.file(filename).put(directory+'/'+filename)
+    else:
+        print'ERROR upload_all_resources in XnatUtils: Folder '+directory+' does not exist.'
+
+def upload_zip(Resource,directory):
+    filenameZip=Resource.label()+'.zip'
+    initDir=os.getcwd()
+    #Zip all the files in the directory
+    os.chdir(directory)
+    os.system('zip -r '+filenameZip+' *')
+    #upload
+    Resource.put_zip(directory+'/'+filenameZip,extract=True)
+    #return to the initial directory:
+    os.chdir(initDir)
+
+def download_resource_assessor(directory,xnat,project,subject,experiment,assessor_label,resources_list,quiet):
+    """ Download the resources from the list for the assessor given in the argument (if resource_list[0]='all' -> download all)"""
+
+    if not quiet:
+        print '    +Process: '+assessor_label
+
+    assessor=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label)
+    if not assessor.exists():
+        print '      !!WARNING: No assessor with the ID selected.'
+        return
+
+    if 'fMRIQA' in assessor_label:
+        labels=assessor_label.split('-x-')
+        SCAN=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+labels[3])
+        SD=SCAN.attrs.get('series_description')
+        SD=SD.replace('/','_')
+        SD=SD.replace(" ", "")
+
+        if SD!='':
+            directory=directory+'-x-'+SD
+
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+
+    #all resources
+    if resources_list[0]=='all':
+        post_uri_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources'
+        resources_list = xnat._get_json(post_uri_resource)
+        for resource in resources_list:
+            Resource=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource['label'])
+            if Resource.exists():
+                if not quiet:
+                    print '      *download resource '+resource['label']
+
+                assessor_real_type=assessor_label.split('-x-')[-1]
+                if 'FS' in assessor_real_type:
+                    #make a directory for each of the resource
+                    Res_path=directory+'/'+resource['label']
+                    if not os.path.exists(Res_path):
+                        os.mkdir(Res_path)
+                    Resource.get(Res_path, extract=False)
+                else:
+                    if len(Resource.files().get()) > 0:
+                        #make a directory for each of the resource
+                        Res_path=directory+'/'+resource['label']
+                        if not os.path.exists(Res_path):
+                            os.mkdir(Res_path)
+
+                        for fname in Resource.files().get()[:]:
+                            Resfile = Resource.file(fname)
+                            local_fname = os.path.join(Res_path, fname)
+                            Resfile.get(local_fname)
+                    else:
+                        print "\t    *ERROR : The size of the resource is 0."
+
+    #resources in the options
+    else:
+        for resource in resources_list:
+            Resource=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource)
+            if Resource.exists():
+                if not quiet:
+                    print '      *download resource '+resource
+
+                assessor_real_type=assessor_label.split('-x-')[-1]
+                if 'FS' in assessor_real_type:
+                    #make a directory for each of the resource
+                    Res_path=directory+'/'+resource
+                    if not os.path.exists(Res_path):
+                        os.mkdir(Res_path)
+
+                    Resource.get(Res_path, extract=False)
+                else:
+                    if len(Resource.files().get()) > 0:
+                        #make a directory for each of the resource
+                        Res_path=directory+'/'+resource
+                        if not os.path.exists(Res_path):
+                            os.mkdir(Res_path)
+
+                        for fname in Resource.files().get()[:]:
+                            Resfile = Resource.file(fname)
+                            local_fname = os.path.join(Res_path, fname)
+                            Resfile.get(local_fname)
+                    else:
+                        print "      !!ERROR : The size of the resource is 0."
+            else:
+                print '      !!WARNING : no resource '+resource+' for this assessor.'
+
+
+    print'\n'
+
+# Upload a folder to a resource all files are zip and then unzip in Xnat
+def Upload_folder_to_resource(resourceObj,directory):
+    filenameZip=resourceObj.label()+'.zip'
+    initDir=os.getcwd()
+    #Zip all the files in the directory
+    os.chdir(directory)
+    os.system('zip -r '+filenameZip+' *')
+    #upload
+    resourceObj.put_zip(directory+'/'+filenameZip,extract=True)
+    #return to the initial directory:
+    os.chdir(initDir)
+
+# Download all resources in a folder. the folder will have the name Resource.label(),
+# removes the previous folder if there is one.
+def Download_resource_to_folder(Resource,directory):
+    Res_path=os.path.join(directory,Resource.label())
+    if os.path.exists(Res_path):
+        os.remove(Res_path)
+    Resource.get(directory,extract=True)
