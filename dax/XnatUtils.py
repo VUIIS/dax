@@ -855,7 +855,7 @@ def is_assessor_same_scan_unusable(cscan, proctype):
     """
     scan_info = cscan.info()
     assr_label = '-x-'.join([scan_info['project_id'], scan_info['subject_label'], scan_info['session_label'], scan_info['ID'], proctype])
-    assr_list = [cassr.info() for cassr in cscan.parent().assessors() if cassr['label'] == assr_label]
+    assr_list = [cassr.info() for cassr in cscan.parent().assessors() if cassr.info()['label'] == assr_label]
     if not assr_list:
         return 0
     else:
