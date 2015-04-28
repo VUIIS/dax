@@ -1410,17 +1410,17 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail, remove=False, r
         print "ERROR: upload_assessor_snapshots in XnatUtils: original or thumbnail snapshots don't exist."
         return False
 
-    if resource_obj.exists:
+    if assessor_obj.out_resource('SNAPSHOTS').exists:
         if removeall:
-            resource_obj.delete()
+            assessor_obj.out_resource('SNAPSHOTS').delete()
         if not remove: #check if any files already exists on XNAT, if yes return FALSE
             for fpath in get_files_in_folder(directory):
-                if resource_obj.file(fpath).exists():
+                if assessor_obj.out_resource('SNAPSHOTS').file(fpath).exists():
                     print """ERROR: upload_assessor_snapshots in XnatUtils: file {file} already found on XNAT. No upload. Use remove/removeall.""".format(file=fpath)
                     return False
 
-    assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(thumbnail).put(thumbnail,(thumbnail.split('.')[1]).upper(),'THUMBNAIL')
-    assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(original)).put(original,(original.split('.')[1]).upper(),'ORIGINAL')
+    assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(thumbnail)).put(thumbnail,thumbnail.split('.')[1].upper(),'THUMBNAIL')
+    assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(original)).put(original,original.split('.')[1].upper(),'ORIGINAL')
 
 ####################################################################################
 #                                4) Other Methods                                  #
