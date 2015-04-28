@@ -246,6 +246,7 @@ class Launcher(object):
                     self.build_session(xnat, sess_info, exp_procs, scan_procs, exp_mods, scan_mods)
                     got_updated = self.set_session_lastupdated(xnat, sess_info, update_start_time)
                     update_run_count = update_run_count+1
+                    LOGGER.debug('\n')
 
         if not sessions_local or sessions_local.lower() == 'all':
             # Modules after run
@@ -320,8 +321,6 @@ class Launcher(object):
                 else:
                     # Other statuses handled by dax_update_tasks
                     pass
-
-        LOGGER.debug('\n')
 
     @staticmethod
     def log_updating_status(procname, assessor_label):
