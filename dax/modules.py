@@ -181,6 +181,6 @@ def modules_by_type(mod_list):
         elif issubclass(mod.__class__, SessionModule):
             exp_mod_list.append(mod)
         else:
-            LOGGER.warn('unknown module type:'+mod.mod_name)
+            LOGGER.warn('unknown module type:'+mod)
 
     return exp_mod_list, scan_mod_list
