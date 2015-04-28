@@ -572,12 +572,12 @@ The project is not part of the settings."""
     @staticmethod
     def set_session_lastupdated(xnat, sess_info, update_start_time):
         """ set the last session update on XNAT
-            return True if the session change and don't set the last update date
-            return False if not
+            return False if the session change and don't set the last update date
+            return True otherwise
         """
         last_mod = datetime.strptime(sess_info['last_modified'][0:19], '%Y-%m-%d %H:%M:%S')
         if last_mod > update_start_time:
-            return True
+            return False
         else:
             #format:
             update_str = (datetime.now()+timedelta(minutes=1)).strftime(UPDATE_FORMAT)
@@ -587,7 +587,7 @@ The project is not part of the settings."""
             sess_obj = XnatUtils.get_full_object(xnat, sess_info)
             xsi_type = sess_info['xsiType']
             sess_obj.attrs.set(xsi_type+'/original', UPDATE_PREFIX+update_str)
-            return False
+            return True
 
     @staticmethod
     def has_new_processors(xnat, project_id, exp_proc_list, scan_proc_list):
