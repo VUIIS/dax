@@ -1342,7 +1342,7 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False, 
     initdir = os.getcwd()
     #Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip -r '+fzip+' *')
+    os.system('zip -r '+fzip+' * > /dev/null')
     #upload
     resource_obj.put_zip(os.path.join(directory, fzip), extract=True)
     #return to the initial directory:
