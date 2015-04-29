@@ -217,7 +217,7 @@ class SpiderProcessHandler:
                 os.mkdir(respath)
             #mv the file
             self.print_copying_statement(resource, filepath, respath)
-            shutil.copyfile(filepath, respath)
+            shutil.copy(filepath, respath)
             #if it's a nii or a rec file, gzip it:
             if filepath.lower().endswith('.nii') or filepath.lower().endswith('.rec'):
                 os.system('gzip '+os.path.join(respath, os.path.basename(filepath)))
