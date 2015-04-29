@@ -911,7 +911,7 @@ def get_good_cscans(csess, scantypes):
 def get_good_scans(session_obj, scantypes):
     """ return scan object list if there is a good scan """
     scans = list()
-    for scan_obj in session.scans().fetchall('obj'):
+    for scan_obj in session_obj.scans().fetchall('obj'):
         if is_scan_good_type(scan_obj, scantypes) and not is_scan_unusable(cscan):
             scans.append(scan)
     return scans
@@ -927,7 +927,7 @@ def get_good_cassr(csess, proctypes):
 def get_good_assr(session_obj, proctypes):
     """ return assessor object list if there is a good assessor """
     assessors = list()
-    for assessor in session.assessors().fetchall('obj'):
+    for assessor in session_obj.assessors().fetchall('obj'):
         if is_assessor_good_type(assessor, proctypes) and is_assessor_usable(assessor):
             assessors.append(assessor)
     return assessors
