@@ -1412,6 +1412,7 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail, remove=False, r
 
     assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(thumbnail)).put(thumbnail,thumbnail.split('.')[1].upper(),'THUMBNAIL')
     assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(original)).put(original,original.split('.')[1].upper(),'ORIGINAL')
+    return True
 
 ####################################################################################
 #                                4) Other Methods                                  #
