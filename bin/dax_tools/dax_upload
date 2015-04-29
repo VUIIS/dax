@@ -26,7 +26,7 @@ SNAPSHOTS_PREVIEW = 'snapshot_preview.png'
 
 #Cmd:
 GS_CMD = """gs -q -o {original} -sDEVICE=pngalpha -dLastPage=1 {assessor_path}/PDF/*.pdf"""
-CONVERT_CMD = """convert {original} -resize x200 '{preview}"""
+CONVERT_CMD = """convert {original} -resize x200 {preview}"""
 
 # WARNING content for emails
 WARNING_START_CONTENT = """
