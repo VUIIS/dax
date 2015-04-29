@@ -248,7 +248,7 @@ class SpiderProcessHandler:
             xnat = get_interface()
             assessor = self.assr_handler.select_assessor(xnat)
             if assessor.exists():
-                if self.assr_handler.proctype() == 'FS':
+                if self.assr_handler.get_proctype() == 'FS':
                     assessor.attrs.set('fs:fsdata/procstatus', status)
                     print '  -status set for FreeSurfer to '+str(status)
                 else:
