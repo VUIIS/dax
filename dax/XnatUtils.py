@@ -1499,11 +1499,11 @@ def upload_list_records_redcap(redcap_project, data):
             response = redcap_project.import_records(data)
             assert 'count' in response
         except AssertionError as err:
-            print '      -ERROR: Creation of record failed. The error is the following: '
+            print 'ERROR: upload_list_records_redcap in XnatUtils: Creation of record failed. The error is the following: '
             print '      ', err
             print response
         except:
-            print '      -ERROR: connection to REDCap interupted.'
+            print 'ERROR: upload_list_records_redcap in XnatUtils: connection to REDCap interupted.'
 
 def get_input_list(input_val, default_val):
     """ function to convert inputs into a list """
