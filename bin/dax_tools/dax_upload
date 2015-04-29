@@ -168,7 +168,7 @@ def generate_snapshots(assessor_path):
     snapshot_original = os.path.join(snapshot_dir, SNAPSHOTS_ORIGINAL)
     snapshot_preview = os.path.join(snapshot_dir, SNAPSHOTS_PREVIEW)
     if not os.path.exists(snapshot_original) and\
-       os.path.exists(os.path.exists(assessor_path, 'PDF')):
+       os.path.exists(os.path.join(assessor_path, 'PDF')):
         LOGGER.debug('    +creating original of SNAPSHOTS')
         if not os.path.exists(snapshot_dir):
             os.mkdir(snapshot_dir)
