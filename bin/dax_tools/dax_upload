@@ -336,8 +336,7 @@ def upload_snapshots(assessor_obj, resource_path):
         os.remove(original)
         os.remove(thumbnail)
     else:
-        assessor_label = os.path.basename(resource_path)
-        LOGGER.warn('No snapshots original or preview were uploaded for '+assessor_label)
+        LOGGER.warn('No snapshots original or preview were uploaded')
 
     #Upload the rest of the files in snapshots
     if len(os.listdir(resource_path)) > 0:
