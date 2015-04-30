@@ -476,7 +476,7 @@ def parse_args():
                     help='Email address to inform you about the warnings and errors.', default=None)
     ap.add_argument('-l', '--logfile', dest='logfile',
                     help='Logs file path if needed.', default=None)
-    ap.add_argument('--debug', dest='debug', action='store_true', help='Print DEBUG information.')
+    ap.add_argument('--nodebug', dest='debug', action='store_false', help='Avoid printing DEBUG information.')
     return ap.parse_args()
 
 if __name__ == '__main__':
