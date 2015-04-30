@@ -87,7 +87,7 @@ JOB_TEMPLATE = Template("""#!/bin/bash
 
 uname -a # outputs node info (name, date&time, type, OS, etc)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use only good amount of ppn
-SCREEN=$$
+SCREEN=$$$$
 xvfb-run --wait=5 \
 -a -e /tmp/xvfb_$SCREEN.err -f /tmp/xvfb_$SCREEN.auth \
 --server-num=$SCREEN \
