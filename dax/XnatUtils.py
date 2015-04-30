@@ -1426,24 +1426,19 @@ def clean_directory(directory):
         else:
             os.remove(fpath)
 
-def run_matlab(matlab_script, verbose=False, cluster=False):
+def run_matlab(matlab_script, verbose=False):
     """ run matlab script
         inputs:
             matlab_script: filepath to the script
             verbose: if you want to see the matlab print statement
-            cluster: running on the cluster
     """
     print """Matlab script: {script} running ...""".format(script=matlab_script)
     # with xvfb-run: xvfb-run  -e {err} -f {auth} -a --server-args="-screen 0 1600x1280x24 -ac -extension GLX"
     cmd = """matlab -singleCompThread -nodesktop -nosplash < {script}""".format(script=matlab_script)
-    matlabdir = os.path.dirname(matlab_script)
-    prefix = os.path.basename(matlab_script).split('.')[0]
     if not verbose:
+        matlabdir = os.path.dirname(matlab_script)
+        prefix = os.path.basename(matlab_script).split('.')[0]
         cmd = cmd+' > '+os.path.join(matlabdir, prefix+'_outlog.log')
-    if not cluster:
-        errfile = os.path.join(matlabdir, prefix+'_xvfb-run.err')
-        authfile = os.path.join(matlabdir, prefix+'_xvfb-run.auth')
-        cmd = """xvfb-run  -e {err} -f {auth} -a --server-args="-screen 0 1600x1280x24 -ac -extension GLX""".format(err=errfile, auth=authfile) + cmd
     os.system(cmd)
     print """Matlab script: {script} done""".format(script=matlab_script)
 
