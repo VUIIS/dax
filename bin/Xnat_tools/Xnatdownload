@@ -489,7 +489,7 @@ def download_specific_assessor(options):
         assessor['label']=options.selectionAssessor
         Assessor=xnat.select('/project/'+assessor['project_id']+'/subjects/'+assessor['subject_label']+'/experiments/'+assessor['session_label']+'/assessor/'+assessor['label'])
         if Assessor.exists():
-            if 'FS'==options.selectionAssessor[-1]:
+            if 'FS'==options.selectionAssessor.split('-x-')[-1]:
                 jobstatus=Assessor.attrs.get('fs:fsData/procstatus')
             else:
                 jobstatus=Assessor.attrs.get('proc:genProcData/procstatus')
