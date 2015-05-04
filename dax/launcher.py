@@ -22,7 +22,7 @@ UPDATE_PREFIX = 'updated--'
 UPDATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 BUILD_SUFFIX = 'BUILD_RUNNING.txt'
 UPDATE_SUFFIX = 'UPDATE_RUNNING.txt'
-LAUNCHER_SUFFIX = 'LAUNCHER_RUNNING.txt'
+LAUNCH_SUFFIX = 'LAUNCHER_RUNNING.txt'
 
 #Logger to print logs
 LOGGER = logging.getLogger('dax')
@@ -87,7 +87,7 @@ class Launcher(object):
         """ Main Method to launch the tasks """
         LOGGER.info('-------------- Launch Tasks --------------\n')
 
-        flagfile = os.path.join(RESULTS_DIR, 'FlagFiles', lockfile_prefix+'_'+LAUNCHER_SUFFIX)
+        flagfile = os.path.join(RESULTS_DIR, 'FlagFiles', lockfile_prefix+'_'+LAUNCH_SUFFIX)
         project_list = self.init_script(flagfile, project_local, type_update=3, start_end=1)
 
         try:
@@ -182,7 +182,7 @@ class Launcher(object):
         """ Main method to Update the tasks """
         LOGGER.info('-------------- Build --------------\n')
 
-        flagfile = os.path.join(RESULTS_DIR, 'FlagFiles', lockfile_prefix+'_'+UPDATE_SUFFIX)
+        flagfile = os.path.join(RESULTS_DIR, 'FlagFiles', lockfile_prefix+'_'+BUILD_SUFFIX)
         project_list = self.init_script(flagfile, project_local, type_update=1, start_end=1)
 
         try:
