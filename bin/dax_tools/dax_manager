@@ -839,7 +839,10 @@ if __name__ == '__main__':
         # dax_update_tasks -> every odd hours (1-3-5...)
         # dax_launch -> every hour
         #Submit executables
-        LOGGER.info('Submitting dax updates and dax updates open tasks for each settings file...')
+        LOGGER.info('dax_build will run at 6am and 8pm...')
+        LOGGER.info('dax_update_tasks will run on odd hours...')
+        LOGGER.info('dax_launcher will run every hour...')
+        LOGGER.info('Submitting dax executables for each settings file...')
         for filepath in SETTINGS_PATHS:
             if filepath in DAX_LOGS_DIRS_DICT.keys():
                 DAX_LOGS_DIR = DAX_LOGS_DIRS_DICT[filepath]
