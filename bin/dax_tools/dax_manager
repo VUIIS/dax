@@ -416,7 +416,7 @@ def generate_settings(gateway, user, redcap_project, settings_info):
 def get_status(settings_info):
     """ get the status of the dax executables that are running """
     LOGGER.info('Status on each settings updates:')
-    separator = '-'*155
+    separator = '-'*160
     LOGGER.info(' '+separator)
     header = '| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-23, 'Project',
                                                                     -3, 'R',
