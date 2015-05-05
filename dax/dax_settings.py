@@ -144,7 +144,7 @@ REDCAP_VAR = {'project':'dax_project',
               'logsdir':'dax_logs_path',
               'user':'dax_cluster_user',
               'gateway':'dax_gateway',
-              'email':'dax_email_address',
+              'email':'dax_cluster_email',
               'queue':'dax_queue_limit',
               'priority':'dax_proj_order',
               'email_opts':'dax_job_email_options',
@@ -157,7 +157,8 @@ REDCAP_VAR = {'project':'dax_project',
               'dax_launch_start_date':'dax_launch_start_date',
               'dax_launch_end_date':'dax_launch_end_date',
               'dax_launch_pid':'dax_launch_pid',
-              'max_age':'dax_max_age'}
+              'max_age':'dax_max_age',
+              'admin_email':'dax_email_address'}
 
 #### Getting value from the environ variable if set or default value (do not touch) ####
 #Upload directory
