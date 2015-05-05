@@ -1,5 +1,7 @@
 """ Executables to manage project with REDCap
     by generating the settings file automatically
+
+    dax_manager SHOULD run as a crontab job every hour
 """
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
@@ -586,7 +588,7 @@ def write_settings(settings):
         with open(settings.filepath, 'w') as f:
             f.write(SETTINGS_TEMPLATE.safe_substitute(**settings_data))
 
-def email(content, to, subject):
+def email(content, to_addr, subject):
     """ send an email """
     if SMTP_FROM and SMTP_HOST and SMTP_PASS:
         # Create the container (outer) email message.
@@ -595,19 +597,19 @@ def email(content, to, subject):
         # me == the sender's email address
         # family = the list of all recipients' email addresses
         msg['From'] = SMTP_FROM
-        msg['To'] = ','.join(to)
+        msg['To'] = ','.join(to_addr)
         # Send the email via our own SMTP server.
-        s = smtplib.SMTP(SMTP_HOST)
-        s.starttls()
-        s.login(SMTP_FROM, SMTP_PASS)
-        s.sendmail(SMTP_FROM, to, msg.as_string())
-        s.quit()
+        smtp = smtplib.SMTP(SMTP_HOST)
+        smtp.starttls()
+        smtp.login(SMTP_FROM, SMTP_PASS)
+        smtp.sendmail(SMTP_FROM, to_addr, msg.as_string())
+        smtp.quit()
 
-def unlock_executables(flagfile, SUFFIX):
+def unlock_executables(flagfile, suffix):
     """ unlock the executables by removing the flagfile """
     lockfile_prefix = os.path.splitext(os.path.basename(filepath))[0]
     flagfile = os.path.join(RESULTS_DIR, 'FlagFiles',
-                            lockfile_prefix+'_'+SUFFIX)
+                            lockfile_prefix+'_'+suffix)
     if os.path.exists(flagfile):
         os.remove(flagfile)
 
@@ -752,6 +754,13 @@ def run_dax_update_tasks(filepath, logdir, debug, email_add):
         if email_add:
             email_error('dax_update_tasks', email_add, filepath)
 
+def submit_exec(target, arguments, filepath, exec_name):
+    """ submit executables on the gateway: return the process """
+    LOGGER.debug("""new process {execn} on {file}""".format(execn=exec_name, file=filepath))
+    proc = multiprocessing.Process(target=target, args=arguments)
+    proc.start()
+    return proc
+
 def parse_args():
     """ options parser for the script """
     from argparse import ArgumentParser
@@ -785,6 +794,8 @@ if __name__ == '__main__':
         SETTINGS_PATHS = PARGS.settings.split(',')
     else:
         SETTINGS_PATHS = list()
+    #hour right now:
+    NOW_HOUR = datetime.now().hour
 
     #Logger for logs
     if PARGS.debug:
@@ -822,29 +833,31 @@ if __name__ == '__main__':
 
         # Workers:
         WORKERS = []
-        #Submit Update and Update Open Tasks:
+        #When to run dax_build / dax_update_tasks / dax_launch
+        # dax_build -> 6am / 8pm
+        # dax_update_tasks -> every odd hours (1-3-5...)
+        # dax_launch -> every hour
+        #Submit executables
         LOGGER.info('Submitting dax updates and dax updates open tasks for each settings file...')
         for filepath in SETTINGS_PATHS:
             if filepath in DAX_LOGS_DIRS_DICT.keys():
                 DAX_LOGS_DIR = DAX_LOGS_DIRS_DICT[filepath]
             if filepath in EMAIL_DICT.keys():
                 EMAIL_LIST = EMAIL_DICT[filepath]
+
             # start processes
-            LOGGER.debug('new process dax_build on '+filepath)
-            p = multiprocessing.Process(target=run_dax_build,
-                                        args=(filepath, DAX_LOGS_DIR, PARGS.debug, EMAIL_LIST))
-            p.start()
-            WORKERS.append(p)
-            LOGGER.debug('new process dax_launch_tasks on '+filepath)
-            p = multiprocessing.Process(target=run_dax_launch,
-                                        args=(filepath, DAX_LOGS_DIR, PARGS.debug, EMAIL_LIST))
-            p.start()
-            WORKERS.append(p)
-            LOGGER.debug('new process dax_update_tasks on '+filepath)
-            p = multiprocessing.Process(target=run_dax_update_tasks,
-                                        args=(filepath, DAX_LOGS_DIR, PARGS.debug, EMAIL_LIST))
-            p.start()
-            WORKERS.append(p)
+            arguments = (filepath, DAX_LOGS_DIR, PARGS.debug, EMAIL_LIST)
+            if NOW_HOUR == 6 or NOW_HOUR == 20: #6am-8pm
+                proc = submit_exec(run_dax_build, arguments, filepath, 'dax_build')
+                WORKERS.append(proc)
+
+            if NOW_HOUR%2 == 1: # odd hours
+                proc = submit_exec(run_dax_update_tasks, arguments, filepath, 'dax_update_tasks')
+                WORKERS.append(proc)
+
+            # Run every time that dax_manager run
+            proc = submit_exec(run_dax_launch, arguments, filepath, 'dax_launch')
+            WORKERS.append(proc)
 
         #If ctrl-c, kill all children
         try:
