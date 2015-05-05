@@ -416,16 +416,16 @@ def generate_settings(gateway, user, redcap_project, settings_info):
 def get_status(settings_info):
     """ get the status of the dax executables that are running """
     LOGGER.info('Status on each settings updates:')
-    separator = '-'*170
+    separator = '-'*155
     LOGGER.info(' '+separator)
     header = '| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-23, 'Project',
                                                                     -3, 'R',
                                                                     -17, 'Last Build',
-                                                                    -17, 'Build Info',
+                                                                    -20, 'Build Info',
                                                                     -17, 'Last Launch',
-                                                                    -17, 'Launch Info',
+                                                                    -20, 'Launch Info',
                                                                     -17, 'Last Update Tasks',
-                                                                    -17, 'Update Tasks Info')
+                                                                    -20, 'Update Tasks Info')
     LOGGER.info(header)
     LOGGER.info(' '+separator)
     for pset in settings_info:
@@ -444,17 +444,17 @@ def get_status(settings_info):
             val = '| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-23, projectstr,
                                                                          -3, status,
                                                                          -17, build_start,
-                                                                         -17, build_info,
+                                                                         -20, build_info,
                                                                          -17, launch_start,
-                                                                         -17, launch_info,
+                                                                         -20, launch_info,
                                                                          -17, up_tasks_start,
-                                                                         -17, up_tasks_info)
+                                                                         -20, up_tasks_info)
             LOGGER.info(val)
     LOGGER.info(' '+separator)
 
 def get_status_string(status):
     """ return ON if project is ON on REDCap, OFF else """
-    if status == 2:
+    if str(status) == '2':
         return 'ON'
     else:
         return 'OFF'
