@@ -415,8 +415,9 @@ def generate_settings(gateway, user, redcap_project, settings_info):
 
 def get_status(settings_info):
     """ get the status of the dax executables that are running """
-    LOGGER.info('Status on each settings updates:')
-    LOGGER.info(' '+'-'*100)
+    print 'Status on each settings updates:'
+    separator = '-'*100
+    print ' '+separator
     header = '| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-23, 'Project',
                                                                     -3, 'R',
                                                                     -17, 'Last Build',
@@ -425,8 +426,8 @@ def get_status(settings_info):
                                                                     -22, 'Launch Information',
                                                                     -17, 'Last Update Tasks',
                                                                     -22, 'Update Tasks Information')
-    LOGGER.info(header)
-    LOGGER.info(' '+'-'*100)
+    print header
+    print ' '+separator
     for pset in settings_info:
         if pset:
             projectstr = smaller_str(str(pset[REDCAP_VAR['project']]), size=23)
@@ -448,8 +449,8 @@ def get_status(settings_info):
                                                                          -22, launch_info,
                                                                          -17, up_tasks_start,
                                                                          -22, up_tasks_info)
-            LOGGER.info(val)
-    LOGGER.info(' '+'-'*100)
+            print val
+    print ' '+separator
 
 def get_status_string(status):
     """ return ON if project is ON on REDCap, OFF else """
