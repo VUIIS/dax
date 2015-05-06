@@ -1426,6 +1426,16 @@ def clean_directory(directory):
         else:
             os.remove(fpath)
 
+def gzip_nii(directory):
+    """ Gzip all niftis in the directory """
+    for fpath in glob.glob(os.path.join(directory, '*.nii')):
+        os.system('gzip '+fpath)
+
+def ungzip_nii(directory):
+    """ Ungzip all nifti.gz in the directory """
+    for fpath in glob.glob(os.path.join(directory, '*.nii.gz')):
+        os.system('gzip -d '+fpath)
+
 def run_matlab(matlab_script, verbose=False):
     """ run matlab script
         inputs:
