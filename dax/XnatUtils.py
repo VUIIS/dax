@@ -1618,7 +1618,7 @@ class CachedImageSession():
         """ return the list of cached Resources object """
         res_list = []
 
-        file_elements = self.sess_element.findall('xnat:file', NS)
+        file_elements = self.sess_element.findall('xnat:resources/xnat:resource', NS)
         if file_elements:
             for file_element in file_elements:
                 xsi_type = file_element.get('{http://www.w3.org/2001/XMLSchema-instance}type')
