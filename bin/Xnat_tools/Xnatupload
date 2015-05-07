@@ -247,8 +247,11 @@ def get_files_in_folder(folder,label=''):
 def check_folder_resources(resource_obj,folder,force):
     for fpath in get_files_in_folder(folder):#RECURSIVELY
         if resource_obj.file(fpath).exists():
-            logger.info('     - WARNING: filepath '+fpath+' -- already found on XNAT. Use --force to upload this file.')
-            return True
+            if force:
+                resource_obj.file(fpath).delete()
+            else:
+                logger.info('     - WARNING: filepath '+fpath+' -- already found on XNAT. Use --force to upload this file.')
+                return True
     return False
 
 def check_image_format(fpath):
@@ -462,16 +465,18 @@ def upload_fpath(resource_obj,fpath,options):
 def upload_file(resource_obj,fpath,force):
     # upload file to XNAT
     if not resource_obj.file(os.path.basename(fpath)).exists() or force:
+        if resource_obj.file(os.path.basename(fpath)).exists():
+            resource_obj.file(os.path.basename(fpath)).delete()
         logger.info('     - File '+os.path.basename(fpath)+': uploading file...')
         fpath=check_image_format(fpath)
         resource_obj.file(os.path.basename(fpath)).put(fpath)
     else:
         logger.info('     - File '+os.path.basename(fpath)+': WARNING -- file found on XNAT. Use --force to upload this file.')
 
-def upload_folder(resource_obj,fpath,force):
+def upload_folder(resource_obj, fpath, force):
     #check all the files if one exist at least:
-    if not force and check_folder_resources(resource_obj,fpath,force):
-        pass
+    if check_folder_resources(resource_obj, fpath, force):
+        logger.info('     - WARNING: files in resource already found on XNAT. Use --force to upload this file.')
     else:
         if not resource_obj.exists(): resource_obj.create()
         filenameZip=resource_obj.label()+'.zip'
@@ -481,13 +486,13 @@ def upload_folder(resource_obj,fpath,force):
         os.system('zip -r '+filenameZip+' * > /dev/null')
         #upload
         logger.info('     - Folder '+fpath+': uploading folder...')
-        resource_obj.put_zip(os.path.join(fpath,filenameZip),extract=True)
+        resource_obj.put_zip(os.path.join(fpath, filenameZip), extract=True)
         #remove the tmp zip file:
-        if os.path.exists(os.path.join(fpath,filenameZip)):
-            os.remove(os.path.join(fpath,filenameZip))
+        if os.path.exists(os.path.join(fpath, filenameZip)):
+            os.remove(os.path.join(fpath, filenameZip))
         #return to the initial directory:
         os.chdir(initDir)
-                    
+
 def upload_snaptshot(resource_obj,fpath_list,options):
     #check if the resource exist, if yes remove it
     if options.delete and resource_obj.exists():
