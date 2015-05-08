@@ -403,7 +403,7 @@ class Task(object):
         # Check status on cluster
         jobstatus = self.get_job_status()
 
-        if jobstatus == 'R' or jobstatus == 'Q':
+        if not jobstatus or jobstatus == 'R' or jobstatus == 'Q':
             # Still running
             return JOB_RUNNING
         elif not self.ready_flag_exists():
