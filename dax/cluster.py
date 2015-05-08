@@ -14,7 +14,7 @@ import logging
 import subprocess
 from datetime import datetime
 from subprocess import CalledProcessError
-from dax_settings import DEFAULT_EMAIL_OPTS, JOB_TEMPLATE, CMD_SUBMIT, CMD_COUNT_NB_JOBS, CMD_GET_JOB_STATUS, CMD_GET_JOB_WALLTIME, CMD_GET_JOB_MEMORY, CMD_GET_JOB_NODE, RUNNING_STATUS, QUEUE_STATUS, PREFIX_JOBID, SUFFIX_JOBID
+from dax_settings import DEFAULT_EMAIL_OPTS, JOB_TEMPLATE, CMD_SUBMIT, CMD_COUNT_NB_JOBS, CMD_GET_JOB_STATUS, CMD_GET_JOB_WALLTIME, CMD_GET_JOB_MEMORY, CMD_GET_JOB_NODE, RUNNING_STATUS, QUEUE_STATUS, COMPLETE_STATUS, PREFIX_JOBID, SUFFIX_JOBID
 
 MAX_TRACE_DAYS = 30
 
@@ -53,10 +53,12 @@ def job_status(jobid):
             return 'R'
         elif output == QUEUE_STATUS:
             return 'Q'
-        else:
+        elif output == COMPLETE_STATUS:
             return 'C'
+        else:
+            return None
     except CalledProcessError:
-        return ''
+        return None
 
 def is_traceable_date(jobdate):
     """ check if the job is traceable """
