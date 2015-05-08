@@ -11,6 +11,7 @@ CMD_COUNT_NB_JOBS     --> command to return the number of jobs
 CMD_GET_JOB_STATUS    --> command to return the status of a job given it jobid
 RUNNING_STATUS        --> string return for RUNNING Job (e.g: 'r')
 QUEUE_STATUS          --> string return for IN QUEUE Job (e.g: 'qw')
+COMPLETE_STATUS       --> string return for complete job 
 JOB_EXTENSION_FILE    --> extension for script file (default: .slurm)
 CMD_GET_JOB_MEMORY    --> command to get job memory used
 CMD_GET_JOB_WALLTIME  --> command to get job walltime used
@@ -69,6 +70,7 @@ CMD_COUNT_NB_JOBS = "squeue -u $USER --noheader | wc -l"
 CMD_GET_JOB_STATUS = Template("""squeue -j ${jobid} --noheader | awk {'print $5'}""")
 RUNNING_STATUS = 'R'
 QUEUE_STATUS = 'Q'
+COMPLETE_STATUS = 'slurm_load_jobs error: Invalid job id specified'
 #Command to get the walltime and memory used by the jobs at the end of the job
 TEMPLATE = """sacct -j ${jobid}.batch --format MaxRss --noheader | awk '{print $1+0}'"""
 CMD_GET_JOB_MEMORY = Template(TEMPLATE)
