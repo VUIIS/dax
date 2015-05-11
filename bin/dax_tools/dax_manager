@@ -108,7 +108,10 @@ class Settings_File:
         else:
             self.queue_limit = 400
         #Admin email to receve error from dax
-        self.admin_email = admin_email
+        if isinstance(email, list):
+            self.admin_email = admin_email
+        else:
+            self.admin_email = admin_email.split(',')
         #max age for sessions:
         if not max_age:
             self.max_age = DEFAULT_MAX_AGE
