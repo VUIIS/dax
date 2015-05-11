@@ -155,20 +155,20 @@ class SessionModule(Module):
 
         return True
 
-    def log_warning_error(self, message, scan_info, error=False):
+    def log_warning_error(self, message, sess_info, error=False):
         """ print warning or error for a project/subject/session"""
-        error_format = '''ERROR: {message} for {project}/{subject}/{session}/{scan}'''
-        warn_format = '''WARNING: {message} for {project}/{subject}/{session}/{scan}'''
+        error_format = '''ERROR: {message} for {project}/{subject}/{session}'''
+        warn_format = '''WARNING: {message} for {project}/{subject}/{session}'''
         if error:
             self.report(error_format.format(message=message,
-                                            project=scan_info['project_id'],
-                                            subject=scan_info['subject_label'],
-                                            session=scan_info['session_label']))
+                                            project=sess_info['project_id'],
+                                            subject=sess_info['subject_label'],
+                                            session=sess_info['session_label']))
         else:
             self.report(warn_format.format(message=message,
-                                           project=scan_info['project_id'],
-                                           subject=scan_info['subject_label'],
-                                           session=scan_info['session_label']))
+                                           project=sess_info['project_id'],
+                                           subject=sess_info['subject_label'],
+                                           session=sess_info['session_label']))
 
 def modules_by_type(mod_list):
     exp_mod_list = list()
