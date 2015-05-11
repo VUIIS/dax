@@ -1666,12 +1666,13 @@ class CachedImageScan():
         if element != None:
             return element.text
 
-        tag, attr = name.rsplit(':', 1)
-        element = self.scan_element.find(tag, NS)
-        if element != None:
-            value = element.get(attr)
-            if value != None:
-                return value
+        if ':' in name:
+            tag, attr = name.rsplit(':', 1)
+            element = self.scan_element.find(tag, NS)
+            if element != None:
+                value = element.get(attr)
+                if value != None:
+                    return value
 
         return ''
 
