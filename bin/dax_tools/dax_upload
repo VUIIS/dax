@@ -1,6 +1,7 @@
-""" Executable to upload processed data back to XNAT from the dax upload folder """
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+""" Executable to upload processed data back to XNAT from the dax upload folder """
 
 import os
 import sys
