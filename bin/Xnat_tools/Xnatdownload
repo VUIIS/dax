@@ -715,6 +715,12 @@ if __name__ == '__main__':
     #############################
     logger = setup_info_logger('xnatdownload',options.outputfile)
 
+    if options.assessortype and not options.resourcesA:
+         logger.warn('No resource set for assessor type selected. NO donwload for assessors.')
+         options.assessortype = None
+    if options.scantype and not options.resourcesS:
+         logger.warn('No resource set for scan type selected. NO download for scans.')
+         options.scantype = None
     #############################
     # RUN                       #
     #############################

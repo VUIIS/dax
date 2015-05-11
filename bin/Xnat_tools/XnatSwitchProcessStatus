@@ -62,7 +62,7 @@ def xnat_list_assessors(xnat,options):
             print '| %*s | %*s |' % (-20,project,-20,len([s for s in projects_assessors_list if s['project_id']==project]))
         print ' ---------------------------------------------\n'
     return projects_assessors_list
-                    
+
 def filter_assessors(options, obj_list):
     subjects = get_option_list(options.subjects)
     sessions = get_option_list(options.sessions)

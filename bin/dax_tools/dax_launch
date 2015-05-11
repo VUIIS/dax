@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import os, imp
+from datetime import datetime
+from dax import bin
+
+def parse_args():
+    from argparse import ArgumentParser
+    ap = ArgumentParser(prog='dax_update', description="Launch all tasks that need to run (NEED_TO_RUN).")
+    ap.add_argument(dest='settings_path', help='Settings Path')
+    ap.add_argument('--logfile', dest='logfile', help='Logs file path if needed.', default=None)
+    ap.add_argument('--project', dest='project', help='Project ID from XNAT to run dax_update on locally (only one project).', default=None)
+    ap.add_argument('--sessions', dest='sessions', help='list of sessions label from XNAT to run dax_update on locally.', default=None)
+    ap.add_argument('--nodebug', dest='debug', action='store_false', help='Avoid printing DEBUG information.')
+    return ap.parse_args()
+
+if __name__ == '__main__':   
+    args = parse_args()
+
+    bin.launch_jobs(args.settings_path, args.logfile, args.debug, args.project, args.sessions)
