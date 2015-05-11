@@ -1608,7 +1608,7 @@ class CachedImageSession():
         sess_info['label'] = self.get('label')
         sess_info['note'] = self.get('xnat:note')
         sess_info['session_type'] = self.get('session_type')
-        sess_info['project_id'] = self.get('project')
+        sess_info['project_id'] = self.project
         sess_info['original'] = self.get('original')
         sess_info['modality'] = self.get('modality')
         sess_info['UID'] = self.get('UID')
@@ -1686,7 +1686,7 @@ class CachedImageScan():
         scan_info['note'] = self.get('xnat:note')
         scan_info['type'] = self.get('type')
         scan_info['series_description'] = self.get('xnat:series_description')
-        scan_info['project_id'] = self.parent().get('project')
+        scan_info['project_id'] = self.parent().project
         scan_info['subject_id'] = self.parent().get('xnat:subject_ID')
         scan_info['subject_label'] = self.parent().subject
 
