@@ -260,7 +260,7 @@ class Launcher(object):
                                              sess_info['project_label'],
                                              sess_info['subject_label'],
                                              sess_info['session_label'])
-        session_info = cess.info()
+        session_info = csess.info()
         sess_obj = None
 
         # Modules on session
