@@ -260,6 +260,7 @@ class Launcher(object):
                                              sess_info['project_label'],
                                              sess_info['subject_label'],
                                              sess_info['session_label'])
+        session_info = cess.info()
         sess_obj = None
 
         # Modules on session
@@ -268,9 +269,9 @@ class Launcher(object):
             LOGGER.debug('* Module: '+sess_mod.getname())
             if sess_mod.needs_run(csess, xnat):
                 if sess_obj == None:
-                    sess_obj = XnatUtils.get_full_object(xnat, csess.info())
+                    sess_obj = XnatUtils.get_full_object(xnat, session_info)
 
-                sess_mod.run(csess, sess_obj)
+                sess_mod.run(session_info, sess_obj)
 
         # Scans
         LOGGER.debug('== Build modules/processors for scans in session ==')
@@ -282,7 +283,7 @@ class Launcher(object):
         # Processors
         LOGGER.debug('== Build processors for session ==')
         for sess_proc in sess_proc_list:
-            if sess_proc.should_run(csess.info()):
+            if sess_proc.should_run(session_info):
 
                 assr_name = sess_proc.get_assessor_name(csess)
 
