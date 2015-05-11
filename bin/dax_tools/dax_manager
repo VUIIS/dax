@@ -1,11 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """ Executables to manage project with REDCap
     by generating the settings file automatically
 
     dax_manager SHOULD run as a crontab job every hour
 """
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 
 import os
 import sys
