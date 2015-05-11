@@ -110,7 +110,10 @@ class Settings_File:
         #Admin email to receve error from dax
         self.admin_email = admin_email
         #max age for sessions:
-        self.max_age = max_age
+        if not max_age:
+            self.max_age = DEFAULT_MAX_AGE
+        else:
+            self.max_age = max_age
 
     def add_mod_str(self, project, mod_str):
         """ add a module string for a new module """
