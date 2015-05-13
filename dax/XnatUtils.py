@@ -1052,6 +1052,7 @@ def download_biggest_file_from_obj(directory, resource_obj):
     """
     file_index = 0
     biggest_size = 0
+    fpath = None
     if not check_dl_inputs(directory, resource_obj, 'download_biggest_file_from_obj'):
         return None
 
@@ -1060,9 +1061,10 @@ def download_biggest_file_from_obj(directory, resource_obj):
         if biggest_size < fsize:
             biggest_size = fsize
             file_index = index
-    if biggest_size > 0:
+            fpath = file_obj._urn
+    if biggest_size > 0 and fpath:
         resource_fname = resource_obj.files().get()[file_index]
-        resource_obj.file(resource_fname).get(os.path.join(directory, resource_fname))
+        resource_obj.file(fpath).get(os.path.join(directory, resource_fname))
         return os.path.join(directory, resource_fname)
     else:
         return None
