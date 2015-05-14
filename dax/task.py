@@ -63,8 +63,7 @@ class Task(object):
                 assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name())
                 assessor.attrs.set('proc:genprocdata/procversion', self.get_processor_version())
 
-            self.set_status(NEED_INPUTS)
-            self.set_qcstatus(JOB_PENDING)
+            self.set_statuses(NEED_INPUTS, JOB_PENDING)
 
         # Cache for convenience
         self.assessor_id = assessor.id()
@@ -256,11 +255,12 @@ class Task(object):
 
         if new_status != old_status:
             LOGGER.info('   *changing status from '+old_status+' to '+new_status)
-            self.set_status(new_status)
 
             # Update QC Status
             if new_status == COMPLETE:
-                self.set_qcstatus(NEEDS_QA)
+                self.set_statuses(new_status, NEEDS_QA)
+            else:
+                self.set_status(new_status)
 
         return new_status
 
@@ -396,6 +396,11 @@ class Task(object):
     def set_qcstatus(self, qcstatus):
         """ set the qcstatus """
         self.assessor.attrs.set(self.atype+'/validation/status', qcstatus)
+        
+    def set_statuses(self, procstatus, qcstatus):
+        atype = self.atype
+        """ set the procstatus """
+        self.assessor.attrs.mset({atype+'/procstatus':procstatus, atype+'/validation/status':qcstatus})
 
     def set_jobid(self, jobid):
         """ set the jobid """
