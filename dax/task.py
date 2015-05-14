@@ -215,7 +215,7 @@ class Task(object):
 
     def update_status(self):
         """ update the status of a task """
-        old_status, qcstatus = self.get_statuses()
+        old_status, qcstatus, jobid = self.get_statuses()
         new_status = old_status
 
         if old_status == COMPLETE or old_status == JOB_FAILED:
@@ -241,7 +241,7 @@ class Task(object):
             # This is now handled by dax_build
             pass
         elif old_status == JOB_RUNNING:
-            new_status = self.check_running()
+            new_status = self.check_running(jobid)
         elif old_status == READY_TO_UPLOAD:
             # TODO: let upload spider handle it???
             #self.check_date()
@@ -269,10 +269,11 @@ class Task(object):
         jobid = self.assessor.attrs.get(self.atype+'/jobid').strip()
         return jobid
 
-    def get_job_status(self):
+    def get_job_status(self,jobid=None):
         """ return job status for the task """
         jobstatus = 'UNKNOWN'
-        jobid = self.get_jobid()
+        if jobid == None:
+            jobid = self.get_jobid()
 
         if jobid != '' and jobid != '0':
             jobstatus = cluster.job_status(jobid)
@@ -363,13 +364,15 @@ class Task(object):
         if not self.assessor.exists():
             xnat_status = DOES_NOT_EXIST
             qcstatus = DOES_NOT_EXIST
+            jobid = ''
         elif atype == 'proc:genprocdata' or atype == 'fs:fsdata':
-            xnat_status, qcstatus = self.assessor.attrs.mget([atype+'/procstatus', atype+'/validation/status'])
+            xnat_status, qcstatus = self.assessor.attrs.mget([atype+'/procstatus', atype+'/validation/status', atype+'/jobid'])
         else:
             xnat_status = 'UNKNOWN_xsiType:'+atype
             qcstatus = 'UNKNOWN_xsiType:'+atype
+            jobid = ''
 
-        return xnat_status, qcstatus
+        return xnat_status, qcstatus, jobid
 
     def set_status(self, status):
         """ set the procstatus """
@@ -414,10 +417,10 @@ class Task(object):
         flagfile = os.path.join(self.upload_dir, self.assessor_label, READY_TO_UPLOAD_FLAG_FILENAME)
         return os.path.isfile(flagfile)
 
-    def check_running(self):
+    def check_running(self,jobid=None):
         """ check if the job is still running """
         # Check status on cluster
-        jobstatus = self.get_job_status()
+        jobstatus = self.get_job_status(jobid)
 
         if not jobstatus or jobstatus == 'R' or jobstatus == 'Q':
             # Still running
