@@ -63,7 +63,7 @@ class Task(object):
                 assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name())
                 assessor.attrs.set('proc:genprocdata/procversion', self.get_processor_version())
 
-            self.set_status(NEED_INPUTS)
+            self.set_status(NEED_INPUTS)c
             self.set_qcstatus(JOB_PENDING)
 
         # Cache for convenience
@@ -82,12 +82,17 @@ class Task(object):
         """ return true if the task status is open """
         astatus = self.get_status()
         return astatus in OPEN_STATUS_LIST
+        
+    def get_job_usage(self):
+        """ return assessor job usage values from XNAT """
+        atype = self.atype
+        [memused, walltime, jobid, jobnode, jobstartdate] = self.assessor.attrs.mget(
+            [atype+'/memused', atype+'/walltimeused', atype+'/jobid', atype+'/jobnode', atype+'/jobstartdate'])
+        return [memused, walltime, jobid, jobnode, jobstartdate]
 
     def check_job_usage(self):
         """ check the job information on the cluster for the task """
-        memused = self.get_memused()
-        walltime = self.get_walltime()
-        jobnode = self.get_jobnode()
+        [memused, walltime, jobid, jobnode, jobstartdate] = self.get_job_usage()
 
         if walltime != '':
             if memused != '' and jobnode != '':
@@ -100,8 +105,6 @@ class Task(object):
                     self.set_jobnode('NotFound')
             return
 
-        jobstartdate = self.get_jobstartdate()
-
         # We can't get info from cluster if job too old
         if not cluster.is_traceable_date(jobstartdate):
             self.set_walltime('NotFound')
@@ -110,7 +113,7 @@ class Task(object):
             return
 
         # Get usage with tracejob
-        jobinfo = cluster.tracejob_info(self.get_jobid(), jobstartdate)
+        jobinfo = cluster.tracejob_info(jobid, jobstartdate)
         if jobinfo['mem_used'].strip():
             self.set_memused(jobinfo['mem_used'])
         else:
@@ -212,11 +215,10 @@ class Task(object):
 
     def update_status(self):
         """ update the status of a task """
-        old_status = self.get_status()
+        old_status, qcstatus = self.get_statuses()
         new_status = old_status
 
         if old_status == COMPLETE or old_status == JOB_FAILED:
-            qcstatus = self.get_qcstatus()
             if qcstatus == REPROC:
                 LOGGER.info('   *qcstatus=REPROC, running reproc_processing...')
                 self.reproc_processing()
@@ -354,6 +356,20 @@ class Task(object):
         else:
             xnat_status = 'UNKNOWN_xsiType:'+self.atype
         return xnat_status
+    
+    def get_statuses(self):
+        """ return procstatus and qcstatus for assessor """
+        atype = self.atype
+        if not self.assessor.exists():
+            xnat_status = DOES_NOT_EXIST
+            qcstatus = DOES_NOT_EXIST
+        elif atype == 'proc:genprocdata' or atype == 'fs:fsdata':
+            xnat_status, qcstatus = self.assessor.attrs.get([atype+'/procstatus', atype+'/validation/status'])
+        else:
+            xnat_status = 'UNKNOWN_xsiType:'+atype
+            qcstatus = 'UNKNOWN_xsiType:'+atype
+
+        return xnat_status, qcstatus
 
     def set_status(self, status):
         """ set the procstatus """
