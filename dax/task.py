@@ -364,7 +364,7 @@ class Task(object):
             xnat_status = DOES_NOT_EXIST
             qcstatus = DOES_NOT_EXIST
         elif atype == 'proc:genprocdata' or atype == 'fs:fsdata':
-            xnat_status, qcstatus = self.assessor.attrs.get([atype+'/procstatus', atype+'/validation/status'])
+            xnat_status, qcstatus = self.assessor.attrs.mget([atype+'/procstatus', atype+'/validation/status'])
         else:
             xnat_status = 'UNKNOWN_xsiType:'+atype
             qcstatus = 'UNKNOWN_xsiType:'+atype
