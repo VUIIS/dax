@@ -295,10 +295,8 @@ class Task(object):
             LOGGER.error('failed to launch job on cluster')
             return False
         else:
-            self.set_status(JOB_RUNNING)
-            self.set_jobid(jobid)
-            self.set_jobstartdate_today()
-
+            set_launch(jobid)
+            
             #save record on redcap for the job that has been launch
             project = self.assessor_label.split('-x-')[0]
             SM_name = self.get_processor_name()
@@ -405,6 +403,14 @@ class Task(object):
     def set_jobid(self, jobid):
         """ set the jobid """
         self.assessor.attrs.set(self.atype+'/jobid', jobid)
+
+    def set_launch(self, jobid):
+        """ set the launch params  of the assessor """
+        atype = self.atype.lower()
+        self.assessor.attrs.mset({
+            atype+'/jobstartdate':today_str,
+            atype+'/jobid':jobid,
+            atype+'/procstatus':JOB_RUNNING})
 
     def commands(self, jobdir):
         """ get the commands from the processor """
