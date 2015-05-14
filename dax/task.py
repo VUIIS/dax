@@ -63,7 +63,7 @@ class Task(object):
                 assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name())
                 assessor.attrs.set('proc:genprocdata/procversion', self.get_processor_version())
 
-            self.set_status(NEED_INPUTS)c
+            self.set_status(NEED_INPUTS)
             self.set_qcstatus(JOB_PENDING)
 
         # Cache for convenience
