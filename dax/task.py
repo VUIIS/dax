@@ -295,7 +295,7 @@ class Task(object):
             LOGGER.error('failed to launch job on cluster')
             return False
         else:
-            set_launch(jobid)
+            self.set_launch(jobid)
             
             #save record on redcap for the job that has been launch
             project = self.assessor_label.split('-x-')[0]
