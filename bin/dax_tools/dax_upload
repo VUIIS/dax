@@ -326,6 +326,9 @@ def upload_resource(assessor_obj, resource, resource_path):
 
 def upload_snapshots(assessor_obj, resource_path):
     """ function to upload the snapshots to the assessor """
+    #Remove the previous Snapshots:
+    if assessor_obj.out_resource('SNAPSHOTS').exists:
+        assessor_obj.out_resource('SNAPSHOTS').delete()
     original = os.path.join(resource_path, SNAPSHOTS_ORIGINAL)
     thumbnail = os.path.join(resource_path, SNAPSHOTS_PREVIEW)
     status = XnatUtils.upload_assessor_snapshots(assessor_obj,
@@ -343,8 +346,7 @@ def upload_snapshots(assessor_obj, resource_path):
     if len(os.listdir(resource_path)) > 0:
         XnatUtils.upload_folder_to_obj(resource_path,
                                        assessor_obj.out_resource('SNAPSHOTS'),
-                                       'SNAPSHOTS',
-                                       removeall=True)
+                                       'SNAPSHOTS')
 
 ########################### Main Functions to Upload results/PBS/OUTLOG ###########################
 def upload_assessors(xnat):

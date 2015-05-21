@@ -1407,7 +1407,7 @@ def copy_resource(directory, project_id=None, subject_id=None, session_id=None, 
         xnat.disconnect()
     return status
 
-def upload_assessor_snapshots(assessor_obj, original, thumbnail, remove=False, removeall=False):
+def upload_assessor_snapshots(assessor_obj, original, thumbnail):
     """ upload to assessor the original snapshots and thumbnail files """
     if not os.path.isfile(original) or not os.path.isfile(thumbnail):
         print "ERROR: upload_assessor_snapshots in XnatUtils: original or thumbnail snapshots don't exist."
