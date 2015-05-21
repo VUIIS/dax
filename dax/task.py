@@ -406,6 +406,7 @@ class Task(object):
 
     def set_launch(self, jobid):
         """ set the launch params  of the assessor """
+        today_str = str(date.today())
         atype = self.atype.lower()
         self.assessor.attrs.mset({
             atype+'/jobstartdate':today_str,
