@@ -333,9 +333,7 @@ def upload_snapshots(assessor_obj, resource_path):
     thumbnail = os.path.join(resource_path, SNAPSHOTS_PREVIEW)
     status = XnatUtils.upload_assessor_snapshots(assessor_obj,
                                                  original,
-                                                 thumbnail,
-                                                 remove=False,
-                                                 removeall=False)
+                                                 thumbnail)
     if status:
         os.remove(original)
         os.remove(thumbnail)
