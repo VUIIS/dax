@@ -172,7 +172,10 @@ NDAR_ASSESSOR_CSV_DICT = {'subjectkey':'options', 'src_subject_id':'options',
 def get_qc(assessor_list, assessor_label):
     """ Extract qc information for the scan from assessor """
     assessor = [a for a in assessor_list if a['label'] == assessor_label]
-    return get_qc_assessor(assessor[0])
+    if assessor:
+        return get_qc_assessor(assessor[0])
+    else:
+        return 'questionable', 'Not yet control by user'
 
 def get_qc_assessor(assessor):
     """ Extract qc information from assessor """
@@ -484,17 +487,18 @@ def get_scan_xnat(options, xnat, directory, subjects):
                     if header in ['image_file', 'image_thumbnail_file', 'data_file2']:
                         scan_dict[header] = download_scan_file(xnat, directory, scan,
                                                                value.split(','), header)
+                    elif header == 'assessor_type_qc':
+                        #Add the qc outcome
+                        assessor_label = '-x-'.join([scan['project_id'],
+                                                     scan['subject_label'],
+                                                     scan['session_label'],
+                                                     scan['ID'],
+                                                     value])
+                        qc_status, qc_reason = get_qc(assessor_list, assessor_label)
+                        scan_dict['qc_outcome'] = qc_status
+                        scan_dict['qc_fail_quest_reason'] = qc_reason
                     else:
                         scan_dict[header] = value
-                #Add the qc outcome
-                assessor_label = '-x-'.join([scan['project_id'],
-                                             scan['subject_label'],
-                                             scan['session_label'],
-                                             scan['ID'],
-                                             value])
-                qc_status, qc_reason = get_qc(assessor_list, assessor_label)
-                scan_dict['qc_outcome'] = qc_status
-                scan_dict['qc_fail_quest_reason'] = qc_reason
                 #Download the DICOM
                 scan_dict['DICOM'] = download_scan_file(xnat, directory, scan, ['DICOM'], 'DICOM')
                 scan_records.append(scan_dict)
