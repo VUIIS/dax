@@ -495,9 +495,9 @@ def get_scan_xnat(options, xnat, directory, subjects):
                 qc_status, qc_reason = get_qc(assessor_list, assessor_label)
                 scan_dict['qc_outcome'] = qc_status
                 scan_dict['qc_fail_quest_reason'] = qc_reason
-            #Download the DICOM
-            scan_dict['DICOM'] = download_scan_file(xnat, directory, scan, ['DICOM'], 'DICOM')
-            scan_records.append(scan_dict)
+                #Download the DICOM
+                scan_dict['DICOM'] = download_scan_file(xnat, directory, scan, ['DICOM'], 'DICOM')
+                scan_records.append(scan_dict)
 
     return scan_records
 
