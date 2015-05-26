@@ -59,9 +59,10 @@ class Task(object):
         if not assessor.exists():
             assessor.create(assessors=self.atype)
             self.set_createdate_today()
-            if self.atype == 'proc:genprocdata':
-                assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name())
-                assessor.attrs.set('proc:genprocdata/procversion', self.get_processor_version())
+            atype = self.atype.lower()
+            if atype == 'proc:genprocdata':
+                assessor.attrs.mset({atype +'/proctype':self.get_processor_name(),
+                atype+'/procversion':self.get_processor_version()})
 
             self.set_statuses(NEED_INPUTS, JOB_PENDING)
 
