@@ -235,7 +235,6 @@ class Task(object):
             pass
         elif old_status == READY_TO_COMPLETE:
             self.check_job_usage()
-            self.set_qcstatus(NEEDS_QA)
             new_status = COMPLETE
         elif old_status == NEED_INPUTS:
             # This is now handled by dax_build
