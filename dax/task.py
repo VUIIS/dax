@@ -88,7 +88,7 @@ class Task(object):
         atype = self.atype
         [memused, walltime, jobid, jobnode, jobstartdate] = self.assessor.attrs.mget(
             [atype+'/memused', atype+'/walltimeused', atype+'/jobid', atype+'/jobnode', atype+'/jobstartdate'])
-        return [memused, walltime, jobid, jobnode, jobstartdate]
+        return [memused.strip(), walltime.strip(), jobid.strip(), jobnode.strip(), jobstartdate.strip()]
 
     def check_job_usage(self):
         """ check the job information on the cluster for the task """
