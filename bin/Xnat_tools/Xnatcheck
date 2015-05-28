@@ -503,6 +503,9 @@ def generate_project_object_list(xnat,project,filters_list,filter_r_list):
 ########################################## PRINT REPORT ##########################################
 def print_report(obj_list,formatheader):
     logger.info(','.join(formatheader))
+    #sort the list of object by the subject label if present:
+    if 'subject_label' in obj_list[0]:
+        obj_list = sorted(obj_list, key=lambda k: k['subject_label'])
     for obj in obj_list:
         row=get_row(obj,formatheader)
         if not all(x is None for x in row):
