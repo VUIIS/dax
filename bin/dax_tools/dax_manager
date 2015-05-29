@@ -461,14 +461,15 @@ def get_status(settings_info):
 def get_status_string(status):
     """ return ON if project is ON on REDCap, OFF else """
     if str(status) == '2':
-        return 'ON'
+        return 'Y'
     else:
-        return 'OFF'
+        return 'N'
 
-def get_update_info(update_end, update_pid):
+def get_update_info(update_start, update_end, update_pid):
     """ return string update information """
     if update_end == 'In Process':
         return update_end+' PID:'+update_pid
+    #elif: # update_start matches pattern and update_end matches pattern, get the delta
     else:
         return update_end[:-3]
 

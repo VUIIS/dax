@@ -59,12 +59,12 @@ class Task(object):
         if not assessor.exists():
             assessor.create(assessors=self.atype)
             self.set_createdate_today()
-            if self.atype == 'proc:genprocdata':
-                assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name())
-                assessor.attrs.set('proc:genprocdata/procversion', self.get_processor_version())
+            atype = self.atype.lower()
+            if atype == 'proc:genprocdata':
+                assessor.attrs.mset({atype +'/proctype':self.get_processor_name(),
+                atype+'/procversion':self.get_processor_version()})
 
-            self.set_status(NEED_INPUTS)
-            self.set_qcstatus(JOB_PENDING)
+            self.set_statuses(NEED_INPUTS, JOB_PENDING)
 
         # Cache for convenience
         self.assessor_id = assessor.id()
@@ -82,12 +82,17 @@ class Task(object):
         """ return true if the task status is open """
         astatus = self.get_status()
         return astatus in OPEN_STATUS_LIST
+        
+    def get_job_usage(self):
+        """ return assessor job usage values from XNAT """
+        atype = self.atype
+        [memused, walltime, jobid, jobnode, jobstartdate] = self.assessor.attrs.mget(
+            [atype+'/memused', atype+'/walltimeused', atype+'/jobid', atype+'/jobnode', atype+'/jobstartdate'])
+        return [memused.strip(), walltime.strip(), jobid.strip(), jobnode.strip(), jobstartdate.strip()]
 
     def check_job_usage(self):
         """ check the job information on the cluster for the task """
-        memused = self.get_memused()
-        walltime = self.get_walltime()
-        jobnode = self.get_jobnode()
+        [memused, walltime, jobid, jobnode, jobstartdate] = self.get_job_usage()
 
         if walltime != '':
             if memused != '' and jobnode != '':
@@ -100,8 +105,6 @@ class Task(object):
                     self.set_jobnode('NotFound')
             return
 
-        jobstartdate = self.get_jobstartdate()
-
         # We can't get info from cluster if job too old
         if not cluster.is_traceable_date(jobstartdate):
             self.set_walltime('NotFound')
@@ -110,7 +113,7 @@ class Task(object):
             return
 
         # Get usage with tracejob
-        jobinfo = cluster.tracejob_info(self.get_jobid(), jobstartdate)
+        jobinfo = cluster.tracejob_info(jobid, jobstartdate)
         if jobinfo['mem_used'].strip():
             self.set_memused(jobinfo['mem_used'])
         else:
@@ -212,11 +215,10 @@ class Task(object):
 
     def update_status(self):
         """ update the status of a task """
-        old_status = self.get_status()
+        old_status, qcstatus, jobid = self.get_statuses()
         new_status = old_status
 
         if old_status == COMPLETE or old_status == JOB_FAILED:
-            qcstatus = self.get_qcstatus()
             if qcstatus == REPROC:
                 LOGGER.info('   *qcstatus=REPROC, running reproc_processing...')
                 self.reproc_processing()
@@ -233,13 +235,12 @@ class Task(object):
             pass
         elif old_status == READY_TO_COMPLETE:
             self.check_job_usage()
-            self.set_qcstatus(NEEDS_QA)
             new_status = COMPLETE
         elif old_status == NEED_INPUTS:
             # This is now handled by dax_build
             pass
         elif old_status == JOB_RUNNING:
-            new_status = self.check_running()
+            new_status = self.check_running(jobid)
         elif old_status == READY_TO_UPLOAD:
             # TODO: let upload spider handle it???
             #self.check_date()
@@ -254,11 +255,12 @@ class Task(object):
 
         if new_status != old_status:
             LOGGER.info('   *changing status from '+old_status+' to '+new_status)
-            self.set_status(new_status)
 
             # Update QC Status
             if new_status == COMPLETE:
-                self.set_qcstatus(NEEDS_QA)
+                self.set_statuses(new_status, NEEDS_QA)
+            else:
+                self.set_status(new_status)
 
         return new_status
 
@@ -267,10 +269,11 @@ class Task(object):
         jobid = self.assessor.attrs.get(self.atype+'/jobid').strip()
         return jobid
 
-    def get_job_status(self):
+    def get_job_status(self,jobid=None):
         """ return job status for the task """
         jobstatus = 'UNKNOWN'
-        jobid = self.get_jobid()
+        if jobid == None:
+            jobid = self.get_jobid()
 
         if jobid != '' and jobid != '0':
             jobstatus = cluster.job_status(jobid)
@@ -292,10 +295,8 @@ class Task(object):
             LOGGER.error('failed to launch job on cluster')
             return False
         else:
-            self.set_status(JOB_RUNNING)
-            self.set_jobid(jobid)
-            self.set_jobstartdate_today()
-
+            self.set_launch(jobid)
+            
             #save record on redcap for the job that has been launch
             project = self.assessor_label.split('-x-')[0]
             SM_name = self.get_processor_name()
@@ -354,6 +355,23 @@ class Task(object):
         else:
             xnat_status = 'UNKNOWN_xsiType:'+self.atype
         return xnat_status
+    
+    def get_statuses(self):
+        """ return procstatus and qcstatus for assessor """
+        atype = self.atype
+        if not self.assessor.exists():
+            xnat_status = DOES_NOT_EXIST
+            qcstatus = DOES_NOT_EXIST
+            jobid = ''
+        elif atype == 'proc:genprocdata' or atype == 'fs:fsdata':
+            xnat_status, qcstatus, jobid = self.assessor.attrs.mget(
+                [atype+'/procstatus', atype+'/validation/status', atype+'/jobid'])
+        else:
+            xnat_status = 'UNKNOWN_xsiType:'+atype
+            qcstatus = 'UNKNOWN_xsiType:'+atype
+            jobid = ''
+
+        return xnat_status, qcstatus, jobid
 
     def set_status(self, status):
         """ set the procstatus """
@@ -376,10 +394,24 @@ class Task(object):
     def set_qcstatus(self, qcstatus):
         """ set the qcstatus """
         self.assessor.attrs.set(self.atype+'/validation/status', qcstatus)
+        
+    def set_statuses(self, procstatus, qcstatus):
+        atype = self.atype
+        """ set the procstatus """
+        self.assessor.attrs.mset({atype+'/procstatus':procstatus, atype+'/validation/status':qcstatus})
 
     def set_jobid(self, jobid):
         """ set the jobid """
         self.assessor.attrs.set(self.atype+'/jobid', jobid)
+
+    def set_launch(self, jobid):
+        """ set the launch params  of the assessor """
+        today_str = str(date.today())
+        atype = self.atype.lower()
+        self.assessor.attrs.mset({
+            atype+'/jobstartdate':today_str,
+            atype+'/jobid':jobid,
+            atype+'/procstatus':JOB_RUNNING})
 
     def commands(self, jobdir):
         """ get the commands from the processor """
@@ -398,10 +430,10 @@ class Task(object):
         flagfile = os.path.join(self.upload_dir, self.assessor_label, READY_TO_UPLOAD_FLAG_FILENAME)
         return os.path.isfile(flagfile)
 
-    def check_running(self):
+    def check_running(self,jobid=None):
         """ check if the job is still running """
         # Check status on cluster
-        jobstatus = self.get_job_status()
+        jobstatus = self.get_job_status(jobid)
 
         if not jobstatus or jobstatus == 'R' or jobstatus == 'Q':
             # Still running
