@@ -469,12 +469,13 @@ def get_update_info(update_start, update_end, update_pid):
     """ return string update information """
     if update_end == 'In Process':
         return update_end+' PID:'+update_pid
-    elif : # both are datetimes
+    else : # both are datetimes
         date_format = '%Y-%m-%d %H:%M:%S'
-        elapsed_time = datetime.strptime(update_start, date_format) - datetime.strptime(update_end, date_format)
+        try:
+            elapsed_time = datetime.strptime(update_start, date_format) - datetime.strptime(update_end, date_format)
+        except ValueError:
+            elapsed time = update_end[:-3]
         return elapsed_time
-    else:
-        return update_end[:-3]
 
 def smaller_str(str_option, size, end=False):
     """ return a smaller string """
