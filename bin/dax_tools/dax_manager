@@ -475,7 +475,11 @@ def get_update_info(update_start, update_end, update_pid):
     else : # both are datetimes
         date_format = '%Y-%m-%d %H:%M:%S'
         try:
-            elapsed_time = datetime.strptime(update_end, date_format) - datetime.strptime(update_start, date_format)
+            time_delta = datetime.strptime(update_end, date_format) - datetime.strptime(update_start, date_format)
+            secs = time_delta.total_seconds()
+            hours = secs // 3600
+            mins = (secs % 3600) // 60
+            elapsed_time = '{} hrs {} mins'.format(hrs, mins)
         except ValueError:
             print('DEBUG:invalid date format:'+update_start+':'+update_end)
             elapsed_time = update_end[:-3]
