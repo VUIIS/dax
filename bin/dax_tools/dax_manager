@@ -441,11 +441,14 @@ def get_status(settings_info):
             build_start = str(pset[REDCAP_VAR['dax_build_start_date']][:-3])
             launch_start = str(pset[REDCAP_VAR['dax_launch_start_date']][:-3])
             up_tasks_start = str(pset[REDCAP_VAR['dax_update_tasks_start_date']][:-3])
-            build_info = get_update_info(pset[REDCAP_VAR['dax_build_start_date'], pset[REDCAP_VAR['dax_build_end_date']],
+            build_info = get_update_info(pset[REDCAP_VAR['dax_build_start_date']], 
+                                         pset[REDCAP_VAR['dax_build_end_date']],
                                          pset[REDCAP_VAR['dax_build_pid']])
-            launch_info = get_update_info(pset[REDCAP_VAR['dax_launch_start_date']], pset[REDCAP_VAR['dax_launch_end_date']],
+            launch_info = get_update_info(pset[REDCAP_VAR['dax_launch_start_date']], 
+                                          pset[REDCAP_VAR['dax_launch_end_date']],
                                           pset[REDCAP_VAR['dax_launch_pid']])
-            up_tasks_info = get_update_info(pset[REDCAP_VAR['dax_start_tasks_end_date']], pset[REDCAP_VAR['dax_update_tasks_end_date']],
+            up_tasks_info = get_update_info(pset[REDCAP_VAR['dax_start_tasks_end_date']], 
+                                            pset[REDCAP_VAR['dax_update_tasks_end_date']],
                                             pset[REDCAP_VAR['dax_update_tasks_pid']])
             val = '| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-23, projectstr,
                                                                          -3, status,
