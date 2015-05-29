@@ -447,7 +447,7 @@ def get_status(settings_info):
             launch_info = get_update_info(pset[REDCAP_VAR['dax_launch_start_date']], 
                                           pset[REDCAP_VAR['dax_launch_end_date']],
                                           pset[REDCAP_VAR['dax_launch_pid']])
-            up_tasks_info = get_update_info(pset[REDCAP_VAR['dax_start_tasks_end_date']], 
+            up_tasks_info = get_update_info(pset[REDCAP_VAR['dax_update_tasks_start_date']], 
                                             pset[REDCAP_VAR['dax_update_tasks_end_date']],
                                             pset[REDCAP_VAR['dax_update_tasks_pid']])
             val = '| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-23, projectstr,
