@@ -474,6 +474,7 @@ def get_update_info(update_start, update_end, update_pid):
         try:
             elapsed_time = datetime.strptime(update_start, date_format) - datetime.strptime(update_end, date_format)
         except ValueError:
+            print('DEBUG:invalid date format:'+update_start+':'+update_end)
             elapsed_time = update_end[:-3]
 
         return elapsed_time
