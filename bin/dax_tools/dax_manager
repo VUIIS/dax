@@ -479,9 +479,12 @@ def get_update_info(update_start, update_end, update_pid):
             secs = time_delta.total_seconds()
             hours = secs // 3600
             mins = (secs % 3600) // 60
-            elapsed_time = '{} hrs {} mins'.format(hours, mins)
+            if hours > 0:
+                elapsed_time = '{} hrs {} mins'.format(hours, mins)
+            else:
+                elapsed_time = '{} mins'.format(mins)
+
         except ValueError:
-            print('DEBUG:invalid date format:'+update_start+':'+update_end)
             elapsed_time = update_end[:-3]
 
         return elapsed_time
