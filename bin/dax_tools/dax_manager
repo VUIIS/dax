@@ -477,8 +477,8 @@ def get_update_info(update_start, update_end, update_pid):
         try:
             time_delta = datetime.strptime(update_end, date_format) - datetime.strptime(update_start, date_format)
             secs = time_delta.total_seconds()
-            hours = secs // 3600
-            mins = (secs % 3600) // 60
+            hours = int(secs // 3600)
+            mins = int((secs % 3600) // 60)
             if hours > 0:
                 elapsed_time = '{} hrs {} mins'.format(hours, mins)
             else:
