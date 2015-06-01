@@ -11,12 +11,17 @@ LOGGER = logging.getLogger('dax')
 class Processor(object):
     """ Base class for processor """
     def __init__(self, walltime_str, memreq_mb, spider_path,
-                 version=None, ppn=1, xsitype='proc:genProcData'):
+                 version=None, ppn=1, xsitype='proc:genProcData',
+                 suffix_proc=''):
         """ init function """
         self.walltime_str = walltime_str # 00:00:00 format
         self.memreq_mb = memreq_mb  # memory required in megabytes
         #default values
-        self.version = '1.0.0'
+        self.version = '1_0_0'
+        if suffix_proc and suffix_proc[0] != '_':
+            self.suffix_proc = suffix_proc
+        else:
+            self.suffix_proc = suffix_proc
         self.name = None
         self.spider_path = spider_path
         #getting name and version from spider_path
@@ -34,9 +39,12 @@ class Processor(object):
             proc_name = re.split("/*_v[0-9]/*", proc_name)[0]
             #setting the version and name of the spider
             self.version = version
-            self.name = proc_name+'_v'+self.version.split('.')[0]
-            self.spider_path = os.path.join(os.path.dirname(spider_path),
-                                            'Spider_'+proc_name+'_v'+version+'.py')
+            self.name = '''{procname}_v{version}{suffix}'''.format(procname=proc_name,
+                                                                   version=self.version.split('.')[0],
+                                                                   suffix=self.suffix_proc)
+            spider_name = '''Spider_{procname}_v{version}.p'''.format(procname=proc_name,
+                                                                      version=version.replace('.', '_'))
+            self.spider_path = os.path.join(os.path.dirname(spider_path), spider_name)
         else:
             self.default_settings_spider(spider_path)
 
@@ -48,9 +56,11 @@ class Processor(object):
         if len(re.split("/*_v[0-9]/*", spider_path)) > 1:
             self.version = os.path.basename(spider_path)[7:-3].split('_v')[-1]
             spidername = os.path.basename(spider_path)[7:-3]
-            self.name = re.split("/*_v[0-9]/*", spidername)[0]+'_v'+self.version.split('.')[0]
+            self.name = '''{procname}_v{version}{suffix}'''.format(procname=re.split("/*_v[0-9]/*", spidername)[0],
+                                                                   version=self.version.split('.')[0],
+                                                                   suffix=self.suffix_proc)
         else:
-            self.name = os.path.basename(spider_path)[7:-3]
+            self.name = os.path.basename(spider_path)[7:-3]+self.suffix_proc
 
     # has_inputs - does this object have the required inputs?
     # e.g. NIFTI format of the required scan type and quality and are there no conflicting inputs.
