@@ -89,9 +89,9 @@ class ScanProcessor(Processor):
         """
         raise NotImplementedError()
 
-    def __init__(self, scan_types, walltime_str, memreq_mb, spider_path, version=None, ppn=1):
+    def __init__(self, scan_types, walltime_str, memreq_mb, spider_path, version=None, ppn=1, suffix_proc=''):
         """ init function overridden from base class """
-        super(ScanProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn)
+        super(ScanProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn, suffix_proc)
         if isinstance(scan_types, list):
             self.scan_types = scan_types
         elif isinstance(scan_types, str):
@@ -137,9 +137,9 @@ class SessionProcessor(Processor):
         """
         raise NotImplementedError()
 
-    def __init__(self, walltime_str, memreq_mb, spider_path, version=None, ppn=1):
+    def __init__(self, walltime_str, memreq_mb, spider_path, version=None, ppn=1, suffix_proc=''):
         """ init function overridden from base class """
-        super(SessionProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn)
+        super(SessionProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn, suffix_proc)
 
     def should_run(self, session_dict):
         """ return if the assessor should exist. Always true on a session """
