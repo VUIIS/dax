@@ -14,6 +14,8 @@ The functions are divided into 4 categories:
     5) Other Methods
 
     6) Cached Class for DAX
+
+    7) Old download functions still used in some spiders
 """
 
 import re
@@ -124,7 +126,7 @@ class AssessorHandler:
 
 class SpiderProcessHandler:
     """ Handle the results of a spider """
-    def __init__(self, script_name, project, subject, experiment, scan=None):
+    def __init__(self, script_name, suffix, project, subject, experiment, scan=None):
         """ initialization """
         #Variables:
         self.error = 0
@@ -144,6 +146,12 @@ class SpiderProcessHandler:
         else:
             self.version = '1.0.0'
             proctype = script_name
+
+        #if suffix:
+        if suffix:
+            if suffix[0] !='_': #check that it starts with an underscore
+                suffix = '_'+suffix
+            proctype = proctype + suffix
 
         #Create the assessor handler
         if not scan:
