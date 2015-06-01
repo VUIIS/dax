@@ -434,7 +434,7 @@ def get_status(settings_info):
                                                                     -20, 'Update Tasks Info')
     LOGGER.info(header)
     LOGGER.info(' '+separator)
-    for pset in sorted(settings_info, key=(pset['general_complete'])):
+    for pset in sorted(settings_info, key=lambda k: k['general_complete']):
         if pset:
             projectstr = smaller_str(str(pset[REDCAP_VAR['project']]), size=23)
             status = get_status_string(pset['general_complete'])
