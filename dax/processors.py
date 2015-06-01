@@ -16,18 +16,18 @@ class Processor(object):
         """ init function """
         self.walltime_str = walltime_str # 00:00:00 format
         self.memreq_mb = memreq_mb  # memory required in megabytes
-        #default values
-        self.version = '1_0_0'
+        #default values:
+        self.version = version
         if suffix_proc and suffix_proc[0] != '_':
             self.suffix_proc = suffix_proc
         else:
             self.suffix_proc = suffix_proc
         self.name = None
         self.spider_path = spider_path
-        #getting name and version from spider_path
-        self.set_spider_settings(spider_path, version)
         self.ppn = ppn
         self.xsitype = xsitype
+        #getting name and version from spider_path
+        self.set_spider_settings(spider_path, version)
 
     #get the spider_path right with the version:
     def set_spider_settings(self, spider_path, version):
