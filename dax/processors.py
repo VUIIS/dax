@@ -11,15 +11,15 @@ LOGGER = logging.getLogger('dax')
 class Processor(object):
     """ Base class for processor """
     def __init__(self, walltime_str, memreq_mb, spider_path,
-                 version=None, ppn=1, xsitype='proc:genProcData',
-                 suffix_proc=''):
+                 version=None, ppn=1, suffix_proc='',
+                 xsitype='proc:genProcData'):
         """ init function """
         self.walltime_str = walltime_str # 00:00:00 format
         self.memreq_mb = memreq_mb  # memory required in megabytes
         #default values:
         self.version = "1.0.0" 
         if suffix_proc and suffix_proc[0] != '_':
-            self.suffix_proc = suffix_proc
+            self.suffix_proc = '_'+suffix_proc
         else:
             self.suffix_proc = suffix_proc
         self.name = None
