@@ -318,8 +318,6 @@ def get_assessor_row(directory, subject_record, proc_record):
         elif header == 'metric_files' and 'metric_files_xnat' in proc_record.keys():
             val = proc_record['metric_files_xnat']
         elif header in proc_record.keys():
-            if header == 'qc_fail_quest_reason':
-                print proc_record[header]
             val = proc_record[header]
         else:
             val = NDAR_ASSESSOR_CSV_DICT[header]
