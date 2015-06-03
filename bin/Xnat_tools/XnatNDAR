@@ -732,6 +732,9 @@ def check_options(options):
     if options.directory and not os.path.exists(os.path.dirname(os.path.abspath(options.directory))):
         print 'OPTION ERROR: the directory options: '+options.directory+' can not be created because '+os.path.dirname(os.path.abspath(options.directory))+' does not exist.'
         return False
+    elif not options.directory:
+        print "OPTION ERROR: the directory option wasn't specified."
+        return False
     if not options.project:
         print 'OPTION ERROR: the XNAT project options has not been set.'
         return False
