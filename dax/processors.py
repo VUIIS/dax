@@ -54,7 +54,7 @@ class Processor(object):
         self.spider_path = spider_path
         #set the name and the version of the spider
         if len(re.split("/*_v[0-9]/*", spider_path)) > 1:
-            self.version = os.path.basename(spider_path)[7:-3].split('_v')[-1]
+            self.version = os.path.basename(spider_path)[7:-3].split('_v')[-1].replace('_','.')
             spidername = os.path.basename(spider_path)[7:-3]
             self.name = '''{procname}_v{version}{suffix}'''.format(procname=re.split("/*_v[0-9]/*", spidername)[0],
                                                                    version=self.version.split('.')[0],
