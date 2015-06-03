@@ -160,7 +160,7 @@ NDAR_ASSESSOR_CSV_DICT = {'subjectkey':'options', 'src_subject_id':'options',
                           'origin_dataset_id':'', 'interview_date':'options',
                           'interview_age':'options', 'gender':'options',
                           'experiment_id':'options', 'inputs':'options', 'img03_id':'',
-                          'file_source':'', 'job_name':'options', 'proc_types':'options',
+                          'file_source':'NDAR', 'job_name':'options', 'proc_types':'options',
                           'metric_files':'XNAT', 'pipeline':'options', 'pipeline_script':'options',
                           'pipeline_tools':'options', 'pipeline_type':'python version 2.7.X',
                           'pipeline_version':'options', 'qc_fail_quest_reason':'XNAT',
@@ -182,10 +182,10 @@ def get_qc_assessor(assessor):
         pass
     elif 'fail' in assessor['qcstatus'].lower() or 'bad' in assessor['qcstatus'].lower():
         qc_status = 'fail'
-        qc_reason = ''
+        qc_reason = '-'
     else:
         qc_status = 'pass'
-        qc_reason = ''
+        qc_reason = 'n/a'
     return qc_status, qc_reason
 
 def get_qc_proc_scan(scan):
@@ -194,10 +194,10 @@ def get_qc_proc_scan(scan):
     qc_reason = 'Not yet control by user'
     if scan['quality'] == 'usable':
         qc_status = 'pass'
-        qc_reason = ''
+        qc_reason = 'n/a'
     elif scan['quality'] == 'unusable':
         qc_status = 'fail'
-        qc_reason = ''
+        qc_reason = 'scan not usable'
     else:
         pass
 
@@ -299,14 +299,10 @@ def get_assessor_row(directory, subject_record, proc_record):
     """ Convert records into a row ordered to print to csv for assessor"""
     row = list()
     for header in ASSESSOR_ORDERED_KEYS:
-        if header in proc_record.keys():
-            val = proc_record[header]
-        elif header in subject_record.keys():
+        if header in subject_record.keys():
             val = subject_record[header]
         elif header == 'job_name':
             val = proc_record['label']
-        elif header == 'file_source':
-            val = ''
         elif header == 'subjectkey' and 'GUID' in subject_record.keys():
             val = subject_record['GUID']
         elif header == 'src_subject_id' and 'study_subject_id' in subject_record.keys():
@@ -321,6 +317,10 @@ def get_assessor_row(directory, subject_record, proc_record):
             val = proc_record['derived_files_xnat']
         elif header == 'metric_files' and 'metric_files_xnat' in proc_record.keys():
             val = proc_record['metric_files_xnat']
+        elif header in proc_record.keys():
+            if header == 'qc_fail_quest_reason':
+                print proc_record[header]
+            val = proc_record[header]
         else:
             val = NDAR_ASSESSOR_CSV_DICT[header]
         row.append(str(val))
