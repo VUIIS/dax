@@ -188,7 +188,7 @@ class Task(object):
         out_resource_list = self.assessor.out_resources()
         for out_resource in out_resource_list:
             olabel = out_resource.label()
-            if olabel not in REPROC_RES_SKIP_LIST:
+            if olabel not in REPROC_RES_SKIP_LIST and len(out_resource.files().get()) > 0:
                 LOGGER.info('   Downloading:'+olabel)
                 out_res = self.assessor.out_resource(olabel)
                 out_res.get(os.path.join(self.upload_dir, local_dir), extract=True)
