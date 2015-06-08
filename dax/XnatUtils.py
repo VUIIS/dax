@@ -42,6 +42,7 @@ JOB_PENDING = 'Job Pending' # job is still running, not ready for QA yet
 NEEDS_QA = 'Needs QA' # For FS, the complete status
 JOB_FAILED = 'JOB_FAILED' # the job failed on the cluster.
 READY_TO_UPLOAD = 'READY_TO_UPLOAD' # Job done, waiting for the Spider to upload the results
+REPROC = 'Reproc' # will cause spider to zip the current results and put in OLD, and then processing
 BAD_QA_STATUS = ['bad', 'fail']
 
 ####################################################################################
@@ -894,7 +895,7 @@ def is_assessor_usable(assessor_obj):
 
 def is_bad_qa(qcstatus):
     """ function to return False if status is bad qa status """
-    if qcstatus in [JOB_PENDING, NEEDS_QA]:
+    if qcstatus in [JOB_PENDING, NEEDS_QA, REPROC]:
         return 0
     for qc in BAD_QA_STATUS:
         if qc in qcstatus.lower():
