@@ -35,7 +35,7 @@ FAILED = 'Failed' # QA status set by the Image Analyst after looking at the resu
 FAILED_NEEDS_REPROC = 'Failed-needs reprocessing'
 PASSED_EDITED_QA = 'Passed with edits'
 RERUN = 'Rerun' # will cause spider to delete results and rerun the processing
-REPROC = 'Reproc' # will cause spider to zip the current results and put in OLD, and then processing
+REPROC = XnatUtils.REPROC
 OPEN_QC_LIST = [RERUN, REPROC]
 
 # Other Constants
