@@ -42,7 +42,7 @@ class Processor(object):
             self.name = '''{procname}_v{version}{suffix}'''.format(procname=proc_name,
                                                                    version=self.version.split('.')[0],
                                                                    suffix=self.suffix_proc)
-            spider_name = '''Spider_{procname}_v{version}.p'''.format(procname=proc_name,
+            spider_name = '''Spider_{procname}_v{version}.py'''.format(procname=proc_name,
                                                                       version=version.replace('.', '_'))
             self.spider_path = os.path.join(os.path.dirname(spider_path), spider_name)
         else:
