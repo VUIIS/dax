@@ -17,11 +17,16 @@ class Processor(object):
         self.walltime_str = walltime_str # 00:00:00 format
         self.memreq_mb = memreq_mb  # memory required in megabytes
         #default values:
-        self.version = "1.0.0" 
+        self.version = "1.0.0"
         if suffix_proc and suffix_proc[0] != '_':
             self.suffix_proc = '_'+suffix_proc
         else:
             self.suffix_proc = suffix_proc
+        self.suffix_proc = self.suffix_proc.strip().replace(" ","")\
+                               .replace('/','_').replace('*','_')\
+                               .replace('.','_').replace(',','_')\
+                               .replace('?','_').replace('!','_')\
+                               .replace(';','_').replace(':','_')
         self.name = None
         self.spider_path = spider_path
         self.ppn = ppn
