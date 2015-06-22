@@ -113,6 +113,7 @@ def read_report(reportfile):
                     else:
                         dl_assessor[row[5]]=[row[-2]]
                     old_rows.append(row)
+    logger.info('done reading download_report.csv for previous download.')
     return dl_scan,dl_assessor,last_download,old_rows
                     
 def extract_information(xnat,directory,options):
@@ -140,6 +141,7 @@ def extract_information(xnat,directory,options):
             pass
         else:
             #filter by former download:
+            logger.info('filtering scans and assessors from previous download.')
             scan_list=filter(lambda x: need_download(xnat,x,dl_scan,get_option_list(options.resourcesS)), scan_list)
             assessor_list=filter(lambda x: need_download(xnat,x,dl_assessor,get_option_list(options.resourcesA)), assessor_list)
             last_download=None #We don't update the one downloaded already
@@ -272,6 +274,7 @@ def get_xnat_information(xnat,directory,options):
     logger.info('INFO: Accessing scans/assessors information from XNAT.')
     #Extract information from options and the report:
     scan_list,assessor_list,last_download,old_rows,options=extract_information(xnat,directory,options)
+    logger.info('done extracting information from Xnat and previous download.')
     #filter by attributes:
     scan_list=filter_scans(scan_list,options)
     assessor_list=filter_assessors(assessor_list,options)
