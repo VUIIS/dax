@@ -439,7 +439,7 @@ def dl_files(Resource,directory):
             os.makedirs(Outputdir)
         logger.info('   >Resource '+Resource.label()+': Downloading all resources as a zip and unzipping it...')
         Resource.get(Outputdir,extract=False) #not sure the extract True is working
-        os.system('unzip -o -d '+Outputdir+' '+os.path.join(Outputdir,Resource.label()+'.zip')+" > /dev/null")
+        os.system('unzip -o -d "'+Outputdir+'" "'+os.path.join(Outputdir,Resource.label()+'.zip"')+" > /dev/null")
         os.remove(os.path.join(Outputdir,Resource.label()+'.zip'))
     #if only one, if using download all resources, download it and unzip it if it's a zip
     else:
