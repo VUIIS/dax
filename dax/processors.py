@@ -18,10 +18,14 @@ class Processor(object):
         self.memreq_mb = memreq_mb  # memory required in megabytes
         #default values:
         self.version = "1.0.0"
-        if suffix_proc and suffix_proc[0] != '_':
-            self.suffix_proc = '_'+suffix_proc
+        if not suffix_proc:
+             self.suffix_proc=''
         else:
-            self.suffix_proc = suffix_proc
+            if suffix_proc and suffix_proc[0] != '_':
+                self.suffix_proc = '_'+suffix_proc
+            else:
+                self.suffix_proc = suffix_proc
+
         self.suffix_proc = self.suffix_proc.strip().replace(" ","")\
                                .replace('/','_').replace('*','_')\
                                .replace('.','_').replace(',','_')\
@@ -33,6 +37,9 @@ class Processor(object):
         self.xsitype = xsitype
         #getting name and version from spider_path
         self.set_spider_settings(spider_path, version)
+        #if suffix_proc is empty, set it to "" for the spider call:
+        if not suffix_proc:
+            self.suffix_proc = '""'
 
     #get the spider_path right with the version:
     def set_spider_settings(self, spider_path, version):
