@@ -248,7 +248,7 @@ def should_upload_assessor(assessor_obj, assessor_dict, xsitype, version):
             return False
     # set the status to UPLOADING
     assessor_obj.attrs.set(xsitype+'/procstatus', UPLOADING)
-    assessor_obj.attrs.set('proc:genProcData/procversion', version)
+    assessor_obj.attrs.set(xsitype+'/procversion', version)
     return True
 
 def upload_assessor(xnat, assessor_dict):
