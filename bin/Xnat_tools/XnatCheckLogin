@@ -86,6 +86,7 @@ def set_xnat_variables():
     except:
         print ' --> error: Wrong login.'
         print ' *Try typing them again:'
+        XNAT_HOST = raw_input("  --> XNAT_HOST: ")
         XNAT_USER = raw_input("  --> XNAT_USER: ")
         XNAT_PASS = getpass.getpass(prompt='  --> XNAT_PASS:')
         xnat=Interface(XNAT_HOST,XNAT_USER,XNAT_PASS)
