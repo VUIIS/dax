@@ -80,9 +80,9 @@ def set_xnat_variables():
     xnat=Interface(XNAT_HOST,XNAT_USER,XNAT_PASS)
     try:
         #check connection
-        if XnatUtils.list_subjects(xnat,'VUSTP'):
-            xnat.disconnect()
-            print ' -->Good login.'
+        list_projects = XnatUtils.list_projects(xnat)
+        xnat.disconnect()
+        print ' -->Good login.'
     except:
         print ' --> error: Wrong login.'
         print ' *Try typing them again:'
@@ -91,9 +91,9 @@ def set_xnat_variables():
         xnat=Interface(XNAT_HOST,XNAT_USER,XNAT_PASS)
         try:
             #check connection
-            if xnat.select('/project/VUSTP/').exists():
-                xnat.disconnect()
-                print '  -->Good login.'
+            list_projects = XnatUtils.list_projects(xnat)
+            xnat.disconnect()
+            print '  -->Good login.'
         except:
             print '  --> error: Wrong login.'
             solution="""To check if you have the good login, follow these steps: 
