@@ -581,7 +581,7 @@ def list_project_scans(intf, projectid, include_shared=True):
                 snew['age'] = sess_id2mod[scan['ID']][3]
                 snew['last_modified'] = sess_id2mod[scan['ID']][4]
                 snew['last_updated'] = sess_id2mod[scan['ID']][5]
-                snew['resources'] = scan['xnat:imagescandata/file/label']
+                snew['resources'] = [scan['xnat:imagescandata/file/label']]
                 # make a dictionary of dictionaries
                 scans_dict[key] = (snew)
 
