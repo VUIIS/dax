@@ -477,7 +477,7 @@ def list_project_scans(intf, projectid, include_shared=True):
     scans_dict = dict()
 
     #Get the sessions list to get the modality:
-    session_list = XnatUtils.list_sessions(intf, projectid)
+    session_list = list_sessions(intf, projectid)
     sess_id2mod = dict((sess['session_id'], [sess['handedness'], sess['gender'], sess['yob'], sess['age'], sess['last_modified'], sess['last_updated']]) for sess in session_list)
 
     post_uri = '/REST/archive/experiments'
@@ -652,7 +652,7 @@ def list_project_assessors(intf, projectid):
     assessors_dict = dict()
 
     #Get the sessions list to get the different variables needed:
-    session_list = XnatUtils.list_sessions(intf, projectid)
+    session_list = list_sessions(intf, projectid)
     sess_id2mod = dict((sess['session_id'], [sess['subject_label'], sess['type'], sess['handedness'], sess['gender'], sess['yob'], sess['age'], sess['last_modified'], sess['last_updated']]) for sess in session_list)
 
     # First get FreeSurfer
