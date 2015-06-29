@@ -44,6 +44,7 @@ JOB_PENDING = 'Job Pending' # job is still running, not ready for QA yet
 NEEDS_QA = 'Needs QA' # For FS, the complete status
 JOB_FAILED = 'JOB_FAILED' # the job failed on the cluster.
 READY_TO_UPLOAD = 'READY_TO_UPLOAD' # Job done, waiting for the Spider to upload the results
+REPROC = 'Reproc' # will cause spider to zip the current results and put in OLD, and then processing
 BAD_QA_STATUS = ['bad', 'fail']
 
 ####################################################################################
@@ -486,7 +487,7 @@ def list_scans(intf, projectid, subjectid, experimentid):
 
 def list_project_scans(intf, projectid, include_shared=True):
     """ list of dictionaries for scans in a project """
-    new_list = []
+    scans_dict = dict()
 
     #Get the sessions list to get the modality:
     session_list = list_sessions(intf, projectid)
@@ -503,55 +504,14 @@ def list_project_scans(intf, projectid, include_shared=True):
     post_uri += ',xnat:imagescandata/note'
     post_uri += ',xnat:imagescandata/frames'
     post_uri += ',xnat:imagescandata/series_description'
+    post_uri += ',xnat:imagescandata/file/label'
     scan_list = intf._get_json(post_uri)
-
+    
     for scan in scan_list:
-        snew = {}
-        snew['scan_id'] = scan['xnat:imagescandata/id']
-        snew['scan_label'] = scan['xnat:imagescandata/id']
-        snew['scan_quality'] = scan['xnat:imagescandata/quality']
-        snew['scan_note'] = scan['xnat:imagescandata/note']
-        snew['scan_frames'] = scan['xnat:imagescandata/frames']
-        snew['scan_description'] = scan['xnat:imagescandata/series_description']
-        snew['scan_type'] = scan['xnat:imagescandata/type']
-        snew['ID'] = scan['xnat:imagescandata/id']
-        snew['label'] = scan['xnat:imagescandata/id']
-        snew['quality'] = scan['xnat:imagescandata/quality']
-        snew['note'] = scan['xnat:imagescandata/note']
-        snew['frames'] = scan['xnat:imagescandata/frames']
-        snew['series_description'] = scan['xnat:imagescandata/series_description']
-        snew['type'] = scan['xnat:imagescandata/type']
-        snew['project_id'] = projectid
-        snew['project_label'] = projectid
-        snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
-        snew['subject_label'] = scan['subject_label']
-        snew['session_type'] = scan['xsiType'].split('xnat:')[1].split('Session')[0].upper()
-        snew['session_id'] = scan['ID']
-        snew['session_label'] = scan['label']
-        snew['session_uri'] = scan['URI']
-        snew['handedness'] = sess_id2mod[scan['ID']][0]
-        snew['gender'] = sess_id2mod[scan['ID']][1]
-        snew['yob'] = sess_id2mod[scan['ID']][2]
-        snew['age'] = sess_id2mod[scan['ID']][3]
-        snew['last_modified'] = sess_id2mod[scan['ID']][4]
-        snew['last_updated'] = sess_id2mod[scan['ID']][5]
-        new_list.append(snew)
-
-    if include_shared:
-        post_uri = '/REST/archive/experiments'
-        post_uri += '?xnat:imagesessiondata/sharing/share/project='+projectid
-        post_uri += '&xsiType=xnat:imageSessionData'
-        post_uri += '&columns=ID,URI,label,subject_label,project'
-        post_uri += ',xnat:imagesessiondata/subject_id'
-        post_uri += ',xnat:imagescandata/id'
-        post_uri += ',xnat:imagescandata/type'
-        post_uri += ',xnat:imagescandata/quality'
-        post_uri += ',xnat:imagescandata/note'
-        post_uri += ',xnat:imagescandata/frames'
-        post_uri += ',xnat:imagescandata/series_description'
-        scan_list = intf._get_json(post_uri)
-
-        for scan in scan_list:
+        key = scan['ID']+'-x-'+scan['xnat:imagescandata/id']
+        if scans_dict.get(key):
+            scans_dict[key]['resources'].append(scan['xnat:imagescandata/file/label'])
+        else:
             snew = {}
             snew['scan_id'] = scan['xnat:imagescandata/id']
             snew['scan_label'] = scan['xnat:imagescandata/id']
@@ -581,9 +541,64 @@ def list_project_scans(intf, projectid, include_shared=True):
             snew['age'] = sess_id2mod[scan['ID']][3]
             snew['last_modified'] = sess_id2mod[scan['ID']][4]
             snew['last_updated'] = sess_id2mod[scan['ID']][5]
-            new_list.append(snew)
+            snew['resources'] = [scan['xnat:imagescandata/file/label']]
+            # make a dictionary of dictionaries
+            scans_dict[key] = (snew)
 
-    return sorted(new_list, key=lambda k: k['scan_label'])
+    if include_shared:
+        post_uri = '/REST/archive/experiments'
+        post_uri += '?xnat:imagesessiondata/sharing/share/project='+projectid
+        post_uri += '&xsiType=xnat:imageSessionData'
+        post_uri += '&columns=ID,URI,label,subject_label,project'
+        post_uri += ',xnat:imagesessiondata/subject_id'
+        post_uri += ',xnat:imagescandata/id'
+        post_uri += ',xnat:imagescandata/type'
+        post_uri += ',xnat:imagescandata/quality'
+        post_uri += ',xnat:imagescandata/note'
+        post_uri += ',xnat:imagescandata/frames'
+        post_uri += ',xnat:imagescandata/series_description'
+        post_uri += ',xnat:imagescandata/file/label'
+        scan_list = intf._get_json(post_uri)
+
+        for scan in scan_list:
+            key = scan['ID']+'-x-'+scan['xnat:imagescandata/id']
+            if scans_dict.get(key):
+                scans_dict[key]['resources'].append(scan['xnat:imagescandata/file/label'])
+            else:
+                snew = {}
+                snew['scan_id'] = scan['xnat:imagescandata/id']
+                snew['scan_label'] = scan['xnat:imagescandata/id']
+                snew['scan_quality'] = scan['xnat:imagescandata/quality']
+                snew['scan_note'] = scan['xnat:imagescandata/note']
+                snew['scan_frames'] = scan['xnat:imagescandata/frames']
+                snew['scan_description'] = scan['xnat:imagescandata/series_description']
+                snew['scan_type'] = scan['xnat:imagescandata/type']
+                snew['ID'] = scan['xnat:imagescandata/id']
+                snew['label'] = scan['xnat:imagescandata/id']
+                snew['quality'] = scan['xnat:imagescandata/quality']
+                snew['note'] = scan['xnat:imagescandata/note']
+                snew['frames'] = scan['xnat:imagescandata/frames']
+                snew['series_description'] = scan['xnat:imagescandata/series_description']
+                snew['type'] = scan['xnat:imagescandata/type']
+                snew['project_id'] = projectid
+                snew['project_label'] = projectid
+                snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
+                snew['subject_label'] = scan['subject_label']
+                snew['session_type'] = scan['xsiType'].split('xnat:')[1].split('Session')[0].upper()
+                snew['session_id'] = scan['ID']
+                snew['session_label'] = scan['label']
+                snew['session_uri'] = scan['URI']
+                snew['handedness'] = sess_id2mod[scan['ID']][0]
+                snew['gender'] = sess_id2mod[scan['ID']][1]
+                snew['yob'] = sess_id2mod[scan['ID']][2]
+                snew['age'] = sess_id2mod[scan['ID']][3]
+                snew['last_modified'] = sess_id2mod[scan['ID']][4]
+                snew['last_updated'] = sess_id2mod[scan['ID']][5]
+                snew['resources'] = [scan['xnat:imagescandata/file/label']]
+                # make a dictionary of dictionaries
+                scans_dict[key] = (snew)
+
+    return sorted(scans_dict.values(), key=lambda k: k['scan_label'])
 
 def list_scan_resources(intf, projectid, subjectid, experimentid, scanid):
     """ list of dictionaries for the scan resources """
@@ -647,7 +662,7 @@ def list_assessors(intf, projectid, subjectid, experimentid):
 
 def list_project_assessors(intf, projectid):
     """ list of dictionaries for assessors in a project """
-    new_list = []
+    assessors_dict = dict()
 
     #Get the sessions list to get the different variables needed:
     session_list = list_sessions(intf, projectid)
@@ -661,45 +676,51 @@ def list_project_assessors(intf, projectid):
     post_uri += ',xnat:imagesessiondata/subject_id,subject_label,xnat:imagesessiondata/id'
     post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
     post_uri += ',fs:fsData/validation/status,fs:fsData/procversion,fs:fsData/jobstartdate,fs:fsData/memused,fs:fsData/walltimeused,fs:fsData/jobid,fs:fsData/jobnode'
+    post_uri += ',fs:fsData/out/file/label'
     assessor_list = intf._get_json(post_uri)
-
+    
     for asse in assessor_list:
         if asse['label']:
-            anew = {}
-            anew['ID'] = asse['ID']
-            anew['label'] = asse['label']
-            anew['uri'] = asse['URI']
-            anew['assessor_id'] = asse['ID']
-            anew['assessor_label'] = asse['label']
-            anew['assessor_uri'] = asse['URI']
-            anew['project_id'] = projectid
-            anew['project_label'] = projectid
-            anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
-            anew['subject_label'] = asse['subject_label']
-            anew['session_type'] = sess_id2mod[asse['session_ID']][1]
-            anew['session_id'] = asse['session_ID']
-            anew['session_label'] = asse['session_label']
-            anew['procstatus'] = asse['fs:fsdata/procstatus']
-            anew['qcstatus'] = asse['fs:fsdata/validation/status']
-            anew['proctype'] = 'FreeSurfer'
-
-            if len(asse['label'].rsplit('-x-FS')) > 1:
-                anew['proctype'] = anew['proctype']+asse['label'].rsplit('-x-FS')[1]
-
-            anew['version'] = asse.get('fs:fsdata/procversion')
-            anew['xsiType'] = asse['xsiType']
-            anew['jobid'] = asse.get('fs:fsdata/jobid')
-            anew['jobstartdate'] = asse.get('fs:fsdata/jobstartdate')
-            anew['memused'] = asse.get('fs:fsdata/memused')
-            anew['walltimeused'] = asse.get('fs:fsdata/walltimeused')
-            anew['jobnode'] = asse.get('fs:fsdata/jobnode')
-            anew['handedness'] = sess_id2mod[asse['session_ID']][2]
-            anew['gender'] = sess_id2mod[asse['session_ID']][3]
-            anew['yob'] = sess_id2mod[asse['session_ID']][4]
-            anew['age'] = sess_id2mod[asse['session_ID']][5]
-            anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
-            anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
-            new_list.append(anew)
+            key = asse['label']
+            if assessors_dict.get(key):
+                assessors_dict[key]['resources'].append(asse['fs:fsdata/out/file/label'])
+            else:
+                anew = {}
+                anew['ID'] = asse['ID']
+                anew['label'] = asse['label']
+                anew['uri'] = asse['URI']
+                anew['assessor_id'] = asse['ID']
+                anew['assessor_label'] = asse['label']
+                anew['assessor_uri'] = asse['URI']
+                anew['project_id'] = projectid
+                anew['project_label'] = projectid
+                anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+                anew['subject_label'] = asse['subject_label']
+                anew['session_type'] = sess_id2mod[asse['session_ID']][1]
+                anew['session_id'] = asse['session_ID']
+                anew['session_label'] = asse['session_label']
+                anew['procstatus'] = asse['fs:fsdata/procstatus']
+                anew['qcstatus'] = asse['fs:fsdata/validation/status']
+                anew['proctype'] = 'FreeSurfer'
+    
+                if len(asse['label'].rsplit('-x-FS')) > 1:
+                    anew['proctype'] = anew['proctype']+asse['label'].rsplit('-x-FS')[1]
+    
+                anew['version'] = asse.get('fs:fsdata/procversion')
+                anew['xsiType'] = asse['xsiType']
+                anew['jobid'] = asse.get('fs:fsdata/jobid')
+                anew['jobstartdate'] = asse.get('fs:fsdata/jobstartdate')
+                anew['memused'] = asse.get('fs:fsdata/memused')
+                anew['walltimeused'] = asse.get('fs:fsdata/walltimeused')
+                anew['jobnode'] = asse.get('fs:fsdata/jobnode')
+                anew['handedness'] = sess_id2mod[asse['session_ID']][2]
+                anew['gender'] = sess_id2mod[asse['session_ID']][3]
+                anew['yob'] = sess_id2mod[asse['session_ID']][4]
+                anew['age'] = sess_id2mod[asse['session_ID']][5]
+                anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
+                anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
+                anew['resources'] = [asse['fs:fsdata/out/file/label']]
+                assessors_dict[key] = anew
 
     # Then add genProcData
     post_uri = '/REST/archive/experiments'
@@ -710,43 +731,49 @@ def list_project_assessors(intf, projectid):
     post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
     post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status,proc:genprocdata/procversion'
     post_uri += ',proc:genprocdata/jobstartdate,proc:genprocdata/memused,proc:genprocdata/walltimeused,proc:genprocdata/jobid,proc:genprocdata/jobnode'
+    post_uri += ',proc:genprocdata/out/file/label'
     assessor_list = intf._get_json(post_uri)
 
     for asse in assessor_list:
         if asse['label']:
-            anew = {}
-            anew['ID'] = asse['ID']
-            anew['label'] = asse['label']
-            anew['uri'] = asse['URI']
-            anew['assessor_id'] = asse['ID']
-            anew['assessor_label'] = asse['label']
-            anew['assessor_uri'] = asse['URI']
-            anew['project_id'] = projectid
-            anew['project_label'] = projectid
-            anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
-            anew['subject_label'] = sess_id2mod[asse['session_ID']][0]
-            anew['session_type'] = sess_id2mod[asse['session_ID']][1]
-            anew['session_id'] = asse['session_ID']
-            anew['session_label'] = asse['session_label']
-            anew['procstatus'] = asse['proc:genprocdata/procstatus']
-            anew['proctype'] = asse['proc:genprocdata/proctype']
-            anew['qcstatus'] = asse['proc:genprocdata/validation/status']
-            anew['version'] = asse['proc:genprocdata/procversion']
-            anew['xsiType'] = asse['xsiType']
-            anew['jobid'] = asse.get('proc:genprocdata/jobid')
-            anew['jobnode'] = asse.get('proc:genprocdata/jobnode')
-            anew['jobstartdate'] = asse.get('proc:genprocdata/jobstartdate')
-            anew['memused'] = asse.get('proc:genprocdata/memused')
-            anew['walltimeused'] = asse.get('proc:genprocdata/walltimeused')
-            anew['handedness'] = sess_id2mod[asse['session_ID']][2]
-            anew['gender'] = sess_id2mod[asse['session_ID']][3]
-            anew['yob'] = sess_id2mod[asse['session_ID']][4]
-            anew['age'] = sess_id2mod[asse['session_ID']][5]
-            anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
-            anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
-            new_list.append(anew)
+            key = asse['label']
+            if assessors_dict.get(key):
+                assessors_dict[key]['resources'].append(asse['proc:genprocdata/out/file/label'])
+            else:
+                anew = {}
+                anew['ID'] = asse['ID']
+                anew['label'] = asse['label']
+                anew['uri'] = asse['URI']
+                anew['assessor_id'] = asse['ID']
+                anew['assessor_label'] = asse['label']
+                anew['assessor_uri'] = asse['URI']
+                anew['project_id'] = projectid
+                anew['project_label'] = projectid
+                anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+                anew['subject_label'] = sess_id2mod[asse['session_ID']][0]
+                anew['session_type'] = sess_id2mod[asse['session_ID']][1]
+                anew['session_id'] = asse['session_ID']
+                anew['session_label'] = asse['session_label']
+                anew['procstatus'] = asse['proc:genprocdata/procstatus']
+                anew['proctype'] = asse['proc:genprocdata/proctype']
+                anew['qcstatus'] = asse['proc:genprocdata/validation/status']
+                anew['version'] = asse['proc:genprocdata/procversion']
+                anew['xsiType'] = asse['xsiType']
+                anew['jobid'] = asse.get('proc:genprocdata/jobid')
+                anew['jobnode'] = asse.get('proc:genprocdata/jobnode')
+                anew['jobstartdate'] = asse.get('proc:genprocdata/jobstartdate')
+                anew['memused'] = asse.get('proc:genprocdata/memused')
+                anew['walltimeused'] = asse.get('proc:genprocdata/walltimeused')
+                anew['handedness'] = sess_id2mod[asse['session_ID']][2]
+                anew['gender'] = sess_id2mod[asse['session_ID']][3]
+                anew['yob'] = sess_id2mod[asse['session_ID']][4]
+                anew['age'] = sess_id2mod[asse['session_ID']][5]
+                anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
+                anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
+                anew['resources'] = [asse['proc:genprocdata/out/file/label']]
+                assessors_dict[key] = anew
 
-    return sorted(new_list, key=lambda k: k['label'])
+    return sorted(assessors_dict.values(), key=lambda k: k['label'])
 
 def list_assessor_out_resources(intf, projectid, subjectid, experimentid, assessorid):
     """ list of dictionaries for the assessor resources """
@@ -907,7 +934,7 @@ def is_assessor_usable(assessor_obj):
 
 def is_bad_qa(qcstatus):
     """ function to return False if status is bad qa status """
-    if qcstatus in [JOB_PENDING, NEEDS_QA]:
+    if qcstatus in [JOB_PENDING, NEEDS_QA, REPROC]:
         return 0
     for qc in BAD_QA_STATUS:
         if qc in qcstatus.lower():

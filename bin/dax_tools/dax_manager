@@ -669,14 +669,15 @@ def check_executables(project_settings, update_email_dict):
 
 def check_date(update_email_dict, project, start_date, now, exec_name):
     """ check the date for the executable """
-    start_date = int(start_date.replace('-', '').replace(':', '').replace(' ', ''))
-    start_date_2days = start_date+2000000 #adding 2 days
-    start_date_2days2hours = start_date+2020000 #adding 2 days - 2 hours
-    start_date_7days = start_date+7000000 #adding 7 days
-    if start_date_2days <= now <= start_date_2days2hours:
-        update_email_dict[exec_name+' still running after 2 days'].append(project)
-    if start_date_7days <= now:
-        update_email_dict[exec_name+' still running after 7 days'].append(project)
+    if start_date:
+        start_date = int(start_date.replace('-', '').replace(':', '').replace(' ', ''))
+        start_date_2days = start_date+2000000 #adding 2 days
+        start_date_2days2hours = start_date+2020000 #adding 2 days - 2 hours
+        start_date_7days = start_date+7000000 #adding 7 days
+        if start_date_2days <= now <= start_date_2days2hours:
+            update_email_dict[exec_name+' still running after 2 days'].append(project)
+        if start_date_7days <= now:
+            update_email_dict[exec_name+' still running after 7 days'].append(project)
     return update_email_dict
 
 def get_logfile_name(logdir, prefix, filepath):

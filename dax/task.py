@@ -35,7 +35,7 @@ FAILED = 'Failed' # QA status set by the Image Analyst after looking at the resu
 FAILED_NEEDS_REPROC = 'Failed-needs reprocessing'
 PASSED_EDITED_QA = 'Passed with edits'
 RERUN = 'Rerun' # will cause spider to delete results and rerun the processing
-REPROC = 'Reproc' # will cause spider to zip the current results and put in OLD, and then processing
+REPROC = XnatUtils.REPROC
 OPEN_QC_LIST = [RERUN, REPROC]
 
 # Other Constants
@@ -188,7 +188,7 @@ class Task(object):
         out_resource_list = self.assessor.out_resources()
         for out_resource in out_resource_list:
             olabel = out_resource.label()
-            if olabel not in REPROC_RES_SKIP_LIST:
+            if olabel not in REPROC_RES_SKIP_LIST and len(out_resource.files().get()) > 0:
                 LOGGER.info('   Downloading:'+olabel)
                 out_res = self.assessor.out_resource(olabel)
                 out_res.get(os.path.join(self.upload_dir, local_dir), extract=True)

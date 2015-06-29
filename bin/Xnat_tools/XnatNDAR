@@ -37,11 +37,11 @@ dti,,dtiQA_v2,MR diffusion,4,4,DTI Stejskal-Tanner (SE),DOI: 10.1371/journal.pon
 
 Example of values below for assessor (FS,fMRIQA,Multi_Atlas and skull strip T1):
 
-object_type,proc_types,inputs,metric_files_xnat,derived_files_xnat,pipeline,pipeline_script,pipeline_tools,pipeline_version,experiment_id
-assessor,FreeSurfer,MR Structural (T1/MPRAGE) NIFTI,DATA, ,FreeSurfer,Spiders_FreeSurferRecon_v4.0.2.py,FreeSurfer_v5.1,4.0.2,
-assessor,fMRIQA,fMRI NIFTI,STATS, ,fMRIQA,Spiders_fMRIQA.py,Matlab_2013,1.0.0,,
-assessor,Multi_Atlas,MR Structural (T1/MPRAGE) NIFTI,VOL_TXT, ,Multi Atlas, Spiders_Multi_Atlas.py,"Matlab_2013,JIST,MIPAV",1.0.0,
-scan,T1,MR Structural (T1/MPRAGE) NIFTI and Multi Atlas Segmentation,,NIFTI_noskull,Module_T1_skull_strip, Module_T1_skull_strip.py,Matlab_2013,1.0.0,
+object_type,proc_types,inputs,metric_files_xnat,derived_files_xnat,pipeline,pipeline_script,pipeline_tools,pipeline_version,experiment_id,scan_type
+assessor,FreeSurfer,MR Structural (T1/MPRAGE) NIFTI,DATA, ,FreeSurfer,Spiders_FreeSurferRecon_v4.0.2.py,FreeSurfer_v5.1,4.0.2,,MR structural (T1)
+assessor,fMRIQA,fMRI NIFTI,STATS, ,fMRIQA,Spiders_fMRIQA.py,Matlab_r2013a,1.0.0,,201,fMRI
+assessor,Multi_Atlas,MR Structural (T1/MPRAGE) NIFTI,VOL_TXT, ,Multi Atlas, Spiders_Multi_Atlas.py,"Matlab_r2013a,JIST,MIPAV",1.0.0,,MR structural (T1)
+scan,T1,MR Structural (T1/MPRAGE) NIFTI and Multi Atlas Segmentation,,NIFTI_noskull,Module_T1_skull_strip, Module_T1_skull_strip.py,Matlab_2013,1.0.0,,MR structural (T1)
 
 '''
 #!/usr/bin/env python
@@ -61,8 +61,8 @@ DEFAULT_SCAN_HEADER = ['xnat_scantype', 'xnat_series_description', 'assessor_typ
                        'ndar_scantype', 'image_num_dimensions', 'slice_acquisition',
                        'pulse_sequence', 'citation', 'experiment_id', 'image_file',
                        'image_thumbnail_file', 'data_file2', 'data_file2_definition']
-DEFAULT_ASSESSOR_HEADER = ['object_type', 'proc_types', 'inputs', 'metric_files_xnat', 'derived_files_xnat',
-                           'pipeline', 'pipeline_script', 'pipeline_tools', 'pipeline_version', 'experiment_id']
+DEFAULT_ASSESSOR_HEADER = ['object_type', 'proc_types', 'inputs', 'metric_files_xnat', 'derived_files_xnat', 'pipeline',
+                           'pipeline_script', 'pipeline_tools', 'pipeline_version', 'experiment_id', 'scan_type']
 DEFAULT_SUBJECT_HEADER = ['xnat_subject_id', 'GUID', 'study_subject_id', 'interview_date',
                           'interview_age', 'gender']
 
@@ -153,18 +153,18 @@ ASSESSOR_ORDERED_KEYS = ['subjectkey', 'src_subject_id', 'origin_dataset_id', 'i
                          'interview_age', 'gender', 'experiment_id', 'inputs', 'img03_id',
                          'file_source', 'job_name', 'proc_types', 'metric_files', 'pipeline',
                          'pipeline_script', 'pipeline_tools', 'pipeline_type', 'pipeline_version',
-                         'qc_fail_quest_reason', 'qc_outcome', 'derived_files']
+                         'qc_fail_quest_reason', 'qc_outcome', 'derived_files', 'scan_type']
 
 ASSESSOR_HEADER = ['fmriresults', '01']
 NDAR_ASSESSOR_CSV_DICT = {'subjectkey':'options', 'src_subject_id':'options',
                           'origin_dataset_id':'', 'interview_date':'options',
                           'interview_age':'options', 'gender':'options',
                           'experiment_id':'options', 'inputs':'options', 'img03_id':'',
-                          'file_source':'', 'job_name':'options', 'proc_types':'options',
+                          'file_source':'NDAR', 'job_name':'options', 'proc_types':'options',
                           'metric_files':'XNAT', 'pipeline':'options', 'pipeline_script':'options',
                           'pipeline_tools':'options', 'pipeline_type':'python version 2.7.X',
                           'pipeline_version':'options', 'qc_fail_quest_reason':'XNAT',
-                          'qc_outcome':'XNAT', 'derived_files':'XNAT'}
+                          'qc_outcome':'XNAT', 'derived_files':'XNAT', 'scan_type':'options'}
 
 #################################################################
 ##################### USEFULL FUNCTIONS #########################
@@ -182,10 +182,10 @@ def get_qc_assessor(assessor):
         pass
     elif 'fail' in assessor['qcstatus'].lower() or 'bad' in assessor['qcstatus'].lower():
         qc_status = 'fail'
-        qc_reason = ''
+        qc_reason = '-'
     else:
         qc_status = 'pass'
-        qc_reason = ''
+        qc_reason = 'n/a'
     return qc_status, qc_reason
 
 def get_qc_proc_scan(scan):
@@ -194,10 +194,10 @@ def get_qc_proc_scan(scan):
     qc_reason = 'Not yet control by user'
     if scan['quality'] == 'usable':
         qc_status = 'pass'
-        qc_reason = ''
+        qc_reason = 'n/a'
     elif scan['quality'] == 'unusable':
         qc_status = 'fail'
-        qc_reason = ''
+        qc_reason = 'scan not usable'
     else:
         pass
 
@@ -299,14 +299,10 @@ def get_assessor_row(directory, subject_record, proc_record):
     """ Convert records into a row ordered to print to csv for assessor"""
     row = list()
     for header in ASSESSOR_ORDERED_KEYS:
-        if header in proc_record.keys():
-            val = proc_record[header]
-        elif header in subject_record.keys():
+        if header in subject_record.keys():
             val = subject_record[header]
         elif header == 'job_name':
             val = proc_record['label']
-        elif header == 'file_source':
-            val = ''
         elif header == 'subjectkey' and 'GUID' in subject_record.keys():
             val = subject_record['GUID']
         elif header == 'src_subject_id' and 'study_subject_id' in subject_record.keys():
@@ -321,6 +317,8 @@ def get_assessor_row(directory, subject_record, proc_record):
             val = proc_record['derived_files_xnat']
         elif header == 'metric_files' and 'metric_files_xnat' in proc_record.keys():
             val = proc_record['metric_files_xnat']
+        elif header in proc_record.keys():
+            val = proc_record[header]
         else:
             val = NDAR_ASSESSOR_CSV_DICT[header]
         row.append(str(val))
@@ -733,6 +731,9 @@ def check_options(options):
         return False
     if options.directory and not os.path.exists(os.path.dirname(os.path.abspath(options.directory))):
         print 'OPTION ERROR: the directory options: '+options.directory+' can not be created because '+os.path.dirname(os.path.abspath(options.directory))+' does not exist.'
+        return False
+    elif not options.directory:
+        print "OPTION ERROR: the directory option wasn't specified."
         return False
     if not options.project:
         print 'OPTION ERROR: the XNAT project options has not been set.'

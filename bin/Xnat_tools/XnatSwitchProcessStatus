@@ -161,7 +161,7 @@ def set_NEED_INPUTS_proctype(xnat,assessor_dict,needinputs_proctypes):
 def set_status_assessor(xnat,assessor_dict,needinputs,status,deleteR,qastatus):
     assessor_obj=xnat.select('/project/'+assessor_dict['project_id']+'/subjects/'+assessor_dict['subject_label']+'/experiments/'+assessor_dict['session_label']+'/assessors/'+assessor_dict['label'])
     if not assessor_obj.exists():
-        print 'ERROR: Assessors '+assessor_label+' does not exist on XNAT.'
+        print 'ERROR: Assessors '+assessor_dict['label']+' does not exist on XNAT.'
     else:
         if qastatus:
             if isFreeSurfer(assessor_dict['proctype']):
@@ -368,7 +368,7 @@ if __name__ == '__main__':
                 input_file = open(options.txtfile, 'r')
                 for index,line in enumerate(input_file):
                     assessor_label=line.strip().split('\n')[0]
-                    set_status_assessor(xnat,get_assessor_dict(options.select),needinputs,status,options.deleteR,options.qastatus)
+                    set_status_assessor(xnat,get_assessor_dict(assessor_label),needinputs,status,options.deleteR,options.qastatus)
             elif options.project:  #ALL ASSESSORS FOR PROJECT
                 Switch_project_status(xnat,options)
         finally:                

@@ -113,6 +113,7 @@ def read_report(reportfile):
                     else:
                         dl_assessor[row[5]]=[row[-2]]
                     old_rows.append(row)
+    logger.info('done reading download_report.csv for previous download.')
     return dl_scan,dl_assessor,last_download,old_rows
                     
 def extract_information(xnat,directory,options):
@@ -130,8 +131,8 @@ def extract_information(xnat,directory,options):
             sys.exit()
         #list of scans and assessors for the all the project cat together.
         for project in projectList:
-            scan_list.extend(XnatUtils.list_project_scans(xnat,project))
-            assessor_list.extend(XnatUtils.list_project_assessors(xnat,project))
+            scan_list.extend(list_project_scans(xnat,project))
+            assessor_list.extend(list_project_assessors(xnat,project))
         #Read previous report
         dl_scan,dl_assessor,last_download,old_rows=read_report(os.path.join(directory,DEFAULT_REPORT_NAME))
         if options.overwrite:
@@ -140,6 +141,7 @@ def extract_information(xnat,directory,options):
             pass
         else:
             #filter by former download:
+            logger.info('filtering scans and assessors from previous download.')
             scan_list=filter(lambda x: need_download(xnat,x,dl_scan,get_option_list(options.resourcesS)), scan_list)
             assessor_list=filter(lambda x: need_download(xnat,x,dl_assessor,get_option_list(options.resourcesA)), assessor_list)
             last_download=None #We don't update the one downloaded already
@@ -180,7 +182,7 @@ def filter_scans(obj_list,options):
     if qualities and qualities!='all':
         obj_list=filter(lambda x: x['quality'] in qualities, obj_list)
     if without=='all':
-         return list()
+        return list()
     return obj_list
 
 def filter_assessors(obj_list,options):
@@ -200,7 +202,7 @@ def filter_assessors(obj_list,options):
     if qcstatus and qcstatus!='all':
         obj_list=filter(lambda x: x['qcstatus'] in status, obj_list)
     if without=='all':
-         return list()
+        return list()
     return obj_list
 
 def extract_obj_one_subject(project,subject,obj_list):
@@ -210,13 +212,9 @@ def need_download(xnat,obj,dl_obj,res_list):
     if dl_obj:
         if 'series_description' in obj.keys():
             label='-x-'.join([obj['project_id'],obj['subject_label'],obj['session_label'],obj['ID']])
-            if isinstance(res_list,str) and res_list.lower()=='all':
-                res_list=[r['label'] for r in XnatUtils.list_scan_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['ID'])]
         elif 'proctype' in obj.keys():
             label=obj['label']
-            if isinstance(res_list,str) and res_list.lower()=='all':
-                res_list=[r['label'] for r in XnatUtils.list_assessor_out_resources(xnat,obj['project_id'],obj['subject_label'],obj['session_label'],obj['label'])]
-        if label in dl_obj.keys() and set(dl_obj[label])==set(res_list):
+        if label in dl_obj.keys() and set(dl_obj[label])==set(obj['resources']):
             return False
         else:
             return True
@@ -272,6 +270,7 @@ def get_xnat_information(xnat,directory,options):
     logger.info('INFO: Accessing scans/assessors information from XNAT.')
     #Extract information from options and the report:
     scan_list,assessor_list,last_download,old_rows,options=extract_information(xnat,directory,options)
+    logger.info('done extracting information from Xnat and previous download.')
     #filter by attributes:
     scan_list=filter_scans(scan_list,options)
     assessor_list=filter_assessors(assessor_list,options)
@@ -355,7 +354,7 @@ def download_scan(directory,xnat,scan_dict,resources_list,csvwriter,row,oneDir,l
     else:
         #Get list of resources' label
         if resources_list=='all':
-            reslist=[r['label'] for r in XnatUtils.list_scan_resources(xnat,scan_dict['project_id'],scan_dict['subject_label'],scan_dict['session_label'],scan_dict['ID'])]
+            reslist=scan_dict['resources']
         else:
             reslist= resources_list
         #download resources from list
@@ -376,7 +375,7 @@ def download_assessor(directory,xnat,assessor_dict,resources_list,csvwriter,row,
     else:
         #Get the list of label for the resources
         if resources_list=='all':
-            out_reslist=[r['label'] for r in XnatUtils.list_assessor_out_resources(xnat,assessor_dict['project_id'],assessor_dict['subject_label'],assessor_dict['session_label'],assessor_dict['label'])]
+            out_reslist=assessor_dict['resources']
         else:
             out_reslist=resources_list
         #download resources from list
@@ -440,7 +439,7 @@ def dl_files(Resource,directory):
             os.makedirs(Outputdir)
         logger.info('   >Resource '+Resource.label()+': Downloading all resources as a zip and unzipping it...')
         Resource.get(Outputdir,extract=False) #not sure the extract True is working
-        os.system('unzip -o -d '+Outputdir+' '+os.path.join(Outputdir,Resource.label()+'.zip')+" > /dev/null")
+        os.system('unzip -o -d "'+Outputdir+'" "'+os.path.join(Outputdir,Resource.label()+'.zip"')+" > /dev/null")
         os.remove(os.path.join(Outputdir,Resource.label()+'.zip'))
     #if only one, if using download all resources, download it and unzip it if it's a zip
     else:
@@ -546,7 +545,7 @@ def check_options(options):
     if (options.scantype and not options.resourcesS) or (not options.scantype and options.resourcesS):
         print 'OPTION ERROR: --rs but no -s or -s but no --rs. Please check the command line and the options you gave to Xnatdownload.'
         return False
-    if (options.assessortype and not options.resourcesA) or (not options.assessortype and options.resourcesA):
+    if not options.selectionScan and not options.selectionAssessor and ((options.assessortype and not options.resourcesA) or (not options.assessortype and options.resourcesA)):
         print 'OPTION ERROR: --ra but no -a or -a but no --ra. Please check the command line and the options you gave to Xnatdownload.'
         return False
     return True
