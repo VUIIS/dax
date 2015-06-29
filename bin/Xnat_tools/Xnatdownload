@@ -131,8 +131,8 @@ def extract_information(xnat,directory,options):
             sys.exit()
         #list of scans and assessors for the all the project cat together.
         for project in projectList:
-            scan_list.extend(list_project_scans(xnat,project))
-            assessor_list.extend(list_project_assessors(xnat,project))
+            scan_list.extend(XnatUtils.list_project_scans(xnat,project))
+            assessor_list.extend(XnatUtils.list_project_assessors(xnat,project))
         #Read previous report
         dl_scan,dl_assessor,last_download,old_rows=read_report(os.path.join(directory,DEFAULT_REPORT_NAME))
         if options.overwrite:
