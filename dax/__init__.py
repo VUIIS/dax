@@ -8,3 +8,4 @@ from .XnatUtils import SpiderProcessHandler
 import XnatUtils
 import bin
 import log
+from .version import VERSION as __version__
