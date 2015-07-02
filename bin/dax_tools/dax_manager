@@ -503,8 +503,9 @@ def check_number_process(project_settings, proc_name):
     """ return the number of processes if more than just one set """
     proc_name_tags = project_settings[proc_name[8:]+'_proc_name'].split(';')
     spider_tags = project_settings[proc_name[8:]+'_spider_path'].split(';')
+    suffix_tags = project_settings[proc_name[8:]+'_suffix_proc'].split(';')
     version_tags = project_settings[proc_name[8:]+'_version'].split(';')
-    return max(len(l) for l in [proc_name_tags, spider_tags, version_tags])
+    return max(len(l) for l in [proc_name_tags, spider_tags, suffix_tags, version_tags])
 
 def read_procname(project_settings, index, field_name, field_note):
     """ return procname from REDCap"""

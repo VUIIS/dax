@@ -11,18 +11,35 @@ LOGGER = logging.getLogger('dax')
 class Processor(object):
     """ Base class for processor """
     def __init__(self, walltime_str, memreq_mb, spider_path,
-                 version=None, ppn=1, xsitype='proc:genProcData'):
+                 version=None, ppn=1, suffix_proc='',
+                 xsitype='proc:genProcData'):
         """ init function """
         self.walltime_str = walltime_str # 00:00:00 format
         self.memreq_mb = memreq_mb  # memory required in megabytes
-        #default values
-        self.version = '1.0.0'
+        #default values:
+        self.version = "1.0.0"
+        if not suffix_proc:
+             self.suffix_proc=''
+        else:
+            if suffix_proc and suffix_proc[0] != '_':
+                self.suffix_proc = '_'+suffix_proc
+            else:
+                self.suffix_proc = suffix_proc
+
+        self.suffix_proc = self.suffix_proc.strip().replace(" ","")\
+                               .replace('/','_').replace('*','_')\
+                               .replace('.','_').replace(',','_')\
+                               .replace('?','_').replace('!','_')\
+                               .replace(';','_').replace(':','_')
         self.name = None
         self.spider_path = spider_path
-        #getting name and version from spider_path
-        self.set_spider_settings(spider_path, version)
         self.ppn = ppn
         self.xsitype = xsitype
+        #getting name and version from spider_path
+        self.set_spider_settings(spider_path, version)
+        #if suffix_proc is empty, set it to "" for the spider call:
+        if not suffix_proc:
+            self.suffix_proc = '""'
 
     #get the spider_path right with the version:
     def set_spider_settings(self, spider_path, version):
@@ -34,9 +51,12 @@ class Processor(object):
             proc_name = re.split("/*_v[0-9]/*", proc_name)[0]
             #setting the version and name of the spider
             self.version = version
-            self.name = proc_name+'_v'+self.version.split('.')[0]
-            self.spider_path = os.path.join(os.path.dirname(spider_path),
-                                            'Spider_'+proc_name+'_v'+version+'.py')
+            self.name = '''{procname}_v{version}{suffix}'''.format(procname=proc_name,
+                                                                   version=self.version.split('.')[0],
+                                                                   suffix=self.suffix_proc)
+            spider_name = '''Spider_{procname}_v{version}.py'''.format(procname=proc_name,
+                                                                      version=version.replace('.', '_'))
+            self.spider_path = os.path.join(os.path.dirname(spider_path), spider_name)
         else:
             self.default_settings_spider(spider_path)
 
@@ -46,11 +66,13 @@ class Processor(object):
         self.spider_path = spider_path
         #set the name and the version of the spider
         if len(re.split("/*_v[0-9]/*", spider_path)) > 1:
-            self.version = os.path.basename(spider_path)[7:-3].split('_v')[-1]
+            self.version = os.path.basename(spider_path)[7:-3].split('_v')[-1].replace('_','.')
             spidername = os.path.basename(spider_path)[7:-3]
-            self.name = re.split("/*_v[0-9]/*", spidername)[0]+'_v'+self.version.split('.')[0]
+            self.name = '''{procname}_v{version}{suffix}'''.format(procname=re.split("/*_v[0-9]/*", spidername)[0],
+                                                                   version=self.version.split('.')[0],
+                                                                   suffix=self.suffix_proc)
         else:
-            self.name = os.path.basename(spider_path)[7:-3]
+            self.name = os.path.basename(spider_path)[7:-3]+self.suffix_proc
 
     # has_inputs - does this object have the required inputs?
     # e.g. NIFTI format of the required scan type and quality and are there no conflicting inputs.
@@ -79,9 +101,9 @@ class ScanProcessor(Processor):
         """
         raise NotImplementedError()
 
-    def __init__(self, scan_types, walltime_str, memreq_mb, spider_path, version=None, ppn=1):
+    def __init__(self, scan_types, walltime_str, memreq_mb, spider_path, version=None, ppn=1, suffix_proc=''):
         """ init function overridden from base class """
-        super(ScanProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn)
+        super(ScanProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn, suffix_proc)
         if isinstance(scan_types, list):
             self.scan_types = scan_types
         elif isinstance(scan_types, str):
@@ -127,9 +149,9 @@ class SessionProcessor(Processor):
         """
         raise NotImplementedError()
 
-    def __init__(self, walltime_str, memreq_mb, spider_path, version=None, ppn=1):
+    def __init__(self, walltime_str, memreq_mb, spider_path, version=None, ppn=1, suffix_proc=''):
         """ init function overridden from base class """
-        super(SessionProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn)
+        super(SessionProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn, suffix_proc)
 
     def should_run(self, session_dict):
         """ return if the assessor should exist. Always true on a session """
