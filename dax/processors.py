@@ -39,7 +39,7 @@ class Processor(object):
         self.set_spider_settings(spider_path, version)
         #if suffix_proc is empty, set it to "" for the spider call:
         if not suffix_proc:
-            self.suffix_proc = '""'
+            self.suffix_proc = ''
 
     #get the spider_path right with the version:
     def set_spider_settings(self, spider_path, version):
