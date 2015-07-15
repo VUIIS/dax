@@ -35,15 +35,18 @@ if __name__ == '__main__':
         sys.exit(1)
         
     cmd = 'freeview'
-    cmd += ' -v '+local_subj_path+'/mri/T1.mgz'
-    cmd += ' '+local_subj_path+'/mri/wm.mgz'
-    cmd += ' '+local_subj_path+'/mri/brainmask.mgz'
-    cmd += ' '+local_subj_path+'/mri/aparc+aseg.mgz:colormap=lut:opacity=1:visible=0'
+    cmd += ' -v '+local_subj_path+'/mri/T1.mgz:visible=1'
+    cmd += ' '+local_subj_path+'/mri/aparc+aseg.mgz:colormap=lut:opacity=0.7:visible=0'
+    cmd += ' '+local_subj_path+'/mri/wm.mgz:colormap=heat:opacity=0.7:visible=1'
+    cmd += ' '+local_subj_path+'/mri/brainmask.mgz:visible=1'
     cmd += ' -f '+ local_subj_path+'/surf/lh.white:edgecolor=blue:edgethickness=1'
     cmd += ' '+local_subj_path+'/surf/lh.pial:edgecolor=red:edgethickness=1'
     cmd += ' '+local_subj_path+'/surf/rh.white:edgecolor=blue:edgethickness=1'
     cmd += ' '+local_subj_path+'/surf/rh.pial:edgecolor=red:edgethickness=1'
+    
+    cp_file_path = os.path.join(local_subj_path,'tmp','control.dat')
+    if os.path.isfile(cp_file_path):
+        cmd += ' -c '+cp_file_path+':radius=1'
 
     print 'Launching freeview with command:'+cmd        
     os.system(cmd)
-
