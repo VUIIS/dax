@@ -5,7 +5,6 @@
 Query through Xnat
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
-import glob
 import os
 import sys
 from dax import XnatUtils
