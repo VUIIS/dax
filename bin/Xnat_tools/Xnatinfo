@@ -26,7 +26,7 @@ def add_process_to_dict(dictionary,proctype,procstatus):
     
     return dictionary
     
-def report_project(xnat,project,filetxt):
+def report_project(xnat,project,filetxt,failed,running):
     #scan
     scan_unusable=list()
     scan_dict=dict()
@@ -110,7 +110,19 @@ def report_project(xnat,project,filetxt):
         report_str+='  --------------------------------------\n'
         for unknown_status in sorted(unknow_status):
             report_str+='  '+unknown_status+'\n'
-    
+    if running:
+        print 'RUNNING JOBS:\n'
+        for assessor in proc_list:
+            if assessor['procstatus'] =='JOB_RUNNING':
+                print assessor['label']
+        print '\n'
+    if failed:
+        print 'FAILED JOBS:\n'
+        for assessor in proc_list:
+            if assessor['procstatus'] == 'JOB_FAILED':
+                print assessor['label']
+
+        print '\n'
     report_str+='--------------------------------------------------------------------------\n'
     report_str+='===========================================================================\n'
     #Print or write in files:
@@ -179,6 +191,8 @@ def parse_args():
     ap = ArgumentParser(prog='Xnatinfo', description="Generate information on a XNAT project.")
     ap.add_argument(dest='project', help='Project ID on XNAT',default=None)
     ap.add_argument("-x","--filetxt",dest='filetxt', help='Path to a txt file to save the report',default=None)
+    ap.add_argument('-f','--failed',dest='failed',help='Add this flag to print out failed jobs',action='store_true',default=False)
+    ap.add_argument('-r','--running',dest='running',help='Add this flag to print out running jobs',action='store_true',default=False)
     return ap
     
 ###################################################################################################
@@ -192,20 +206,12 @@ if __name__ == '__main__':
     Main_display(parser)
     #check options:
     run=check_options(args)
-    #############################
-    
-    #############################
-    # RUN                       #
-    #############################
     if run:
         #############################
-        """ Generate specific report for a project """
         # Connection to Xnat
         try:
             xnat = XnatUtils.get_interface()
-            
-            report_project(xnat,args.project,args.filetxt)
-            
+            report_project(xnat,args.project,args.filetxt,args.failed,args.running)
         finally:                                        
             xnat.disconnect()
     
