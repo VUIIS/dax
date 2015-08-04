@@ -25,7 +25,7 @@ import shutil
 import tempfile
 import collections
 from datetime import datetime
-
+import gzip
 from pyxnat import Interface
 from lxml import etree
 
@@ -1936,6 +1936,24 @@ class CachedResource():
         res_info['content'] = self.get('content')
 
         return res_info
+####################### File Utils ######################################################
+def gzip_file(file_not_zipped):
+    """Method to gzip a file without using os.system"""
+    content = open(file_not_zipped, 'rb')
+    content = content.read()
+    fout = gzip.open(file_not_zipped + '.gz', 'wb')
+    fout.write(content)
+    fout.close()
+    files_out.append(file_not_zipped + '.gz')
+    os.remove(file_not_zipped)
+
+def gunzip_file(file_zipped):
+    """Method to gunzip a file without using os.system. Same file name w/o gz"""
+    gzfile = gzip.GzipFile(file_zipped)
+    gzdata = gzfile.read()
+    gzfile.close()
+    open(file_zipped[:-3],'w').write(gzdata)
+
 
 ####################### OLD Functions used in different Spiders ##########################
 # It will need to be removed when the spiders are updated
