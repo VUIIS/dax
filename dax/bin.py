@@ -1,4 +1,4 @@
-""" Files containing function called by dax executables """
+""" File containing functions called by dax executables """
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
