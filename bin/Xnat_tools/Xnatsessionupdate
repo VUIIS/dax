@@ -49,6 +49,12 @@ def change_date(xnat,project,session,list_experiment):
     Session.attrs.set('xnat:mrSessionData/original',' ')
     print '   ->Session changed to need update.'
 
+def change_date_all(xnat,list_of_sessions):
+    for session in list_of_sessions:
+        session_object = XnatUtils.get_full_object(xnat, session)
+        session_object.attrs.set('xnat:mrSessionData/original',' ')
+        print '   ->Session changed to need update.'
+
 def get_xnat_subject_need_inputs(xnat,project):
     proc_list=XnatUtils.list_project_assessors(xnat, project)
     if not proc_list:
@@ -190,7 +196,9 @@ if __name__ == '__main__':
                 list_sessions_xnat=XnatUtils.list_experiments(xnat, project)
                 if options.all:
                     print' INFO: Getting all XNAT sessions...'
-                    session_list=list(set([x['session_label'] for x in list_sessions_xnat]))
+                    change_date_all(xnat,list_sessions_xnat)
+                    # print' INFO: Getting all XNAT sessions...'
+                    # session_list=list(set([x['session_label'] for x in list_sessions_xnat]))
                 elif options.needinputs:
                     print' INFO: Checking XNAT processes...'
                     session_list=get_xnat_subject_need_inputs(xnat,project)
@@ -200,10 +208,11 @@ if __name__ == '__main__':
                 else:
                     session_list=(options.session).split(',')
                 
-                print' INFO: Changing XNAT sessions last update date for '+str(len(session_list))+' sessions ...'
-                for indexS,session in enumerate(session_list):
-                    print '  *Sessions '+str(indexS+1)+'/'+str(len(session_list))+' : '+session
-                    change_date(xnat,project,session,list_sessions_xnat)
+                if not options.all:
+                    print' INFO: Changing XNAT sessions last update date for '+str(len(session_list))+' sessions ...'
+                    for indexS,session in enumerate(session_list):
+                        print '  *Sessions '+str(indexS+1)+'/'+str(len(session_list))+' : '+session
+                        change_date(xnat,project,session,list_sessions_xnat)
             
         finally:                                        
             xnat.disconnect()
