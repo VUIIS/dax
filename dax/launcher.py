@@ -374,14 +374,6 @@ class Launcher(object):
     def module_prerun(self, project_id, settings_filename=''):
         """ run the module prerun method """
         for mod in self.project_modules_dict[project_id]:
-            #save the modules to redcap project vuiis xnat job before the prerun:
-            data, record_id = bin.create_record_redcap(project_id, mod.getname())
-            run = bin.save_job_redcap(data, record_id)
-            if not run:
-                mess = """ ->ERROR: did not send the job to redcap for <{mod}> : {rid}"""
-                mess_str = mess.format(mod=mod.getname(), rid=record_id)
-                LOGGER.error(mess_str)
-
             mod.prerun(settings_filename)
         LOGGER.debug('\n')
 
