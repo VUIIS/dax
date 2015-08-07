@@ -296,15 +296,6 @@ class Task(object):
             return False
         else:
             self.set_launch(jobid)
-            
-            #save record on redcap for the job that has been launch
-            project = self.assessor_label.split('-x-')[0]
-            SM_name = self.get_processor_name()
-            data, record_id = bin.create_record_redcap(project, SM_name)
-            run = bin.save_job_redcap(data, record_id)
-            if not run:
-                LOGGER.warn(' ->ERROR: did not send the job to redcap for jobID <'+str(jobid)+'>: '+record_id)
-
             return True
 
     def check_date(self):
