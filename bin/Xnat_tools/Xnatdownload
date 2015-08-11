@@ -53,7 +53,7 @@ def get_option_list(option):
 ########################################## SPECIFIC FUNCTIONS ##########################################
 def write_cmd_file(cmd_file,overwrite):
     cmdargs = sys.argv
-    cmdstr='python '+os.path.abspath(cmdargs[0])+" "+" ".join(cmdargs[1:])
+    cmdstr=os.path.abspath(cmdargs[0])+" "+" ".join(cmdargs[1:])
     #Check the previous cmd_file if one and warning if cmd different:
     if os.path.exists(cmd_file) and not overwrite:
         f = open(cmd_file,'r')
