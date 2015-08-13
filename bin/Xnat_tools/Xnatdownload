@@ -200,7 +200,7 @@ def filter_assessors(obj_list,options):
     if status and status!='all':
         obj_list=filter(lambda x: x['procstatus'] in status, obj_list)
     if qcstatus and qcstatus!='all':
-        obj_list=filter(lambda x: x['qcstatus'] in status, obj_list)
+        obj_list=filter(lambda x: x['qcstatus'] in qcstatus, obj_list)
     if without=='all':
         return list()
     return obj_list
