@@ -11,7 +11,7 @@ from datetime import datetime
 
 import log
 import XnatUtils
-from dax_settings import  API_URL, API_KEY_DAX, API_KEY_XNAT, REDCAP_VAR
+from dax_settings import  API_URL, API_KEY_DAX, REDCAP_VAR
 
 def set_logger(logfile, debug):
     """ function to set the logger """
