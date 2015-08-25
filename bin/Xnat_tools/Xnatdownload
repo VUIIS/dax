@@ -131,8 +131,8 @@ def extract_information(xnat,directory,options):
             sys.exit()
         #list of scans and assessors for the all the project cat together.
         for project in projectList:
-            scan_list.extend(XnatUtils.list_project_scans(xnat,project))
-            assessor_list.extend(XnatUtils.list_project_assessors(xnat,project))
+            if options.scantype: scan_list.extend(XnatUtils.list_project_scans(xnat,project))
+            if options.assessortype: assessor_list.extend(XnatUtils.list_project_assessors(xnat,project))
         #Read previous report
         dl_scan,dl_assessor,last_download,old_rows=read_report(os.path.join(directory,DEFAULT_REPORT_NAME))
         if options.overwrite:
@@ -545,7 +545,7 @@ def check_options(options):
     if ((options.selectionScan or options.scantype) and not options.resourcesS) or ((not options.selectionScan and not options.scantype) and options.resourcesS):
         print 'OPTION ERROR: --rs but no -s or -s but no --rs. Please check the command line and the options you gave to Xnatdownload.'
         return False
-    if ((options.selectionAssessor or options.assessortype) and not options.resourcesA) or ((not options.selectionAssessor or not options.assessortype) and options.resourcesA):
+    if ((options.selectionAssessor or options.assessortype) and not options.resourcesA) or ((not options.selectionAssessor and not options.assessortype) and options.resourcesA):
         print 'OPTION ERROR: --ra but no -a or -a but no --ra. Please check the command line and the options you gave to Xnatdownload.'
         return False
     return True
