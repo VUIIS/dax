@@ -542,10 +542,10 @@ def check_options(options):
     if options.withoutA:
         print 'OPTION WARNING: You use option --WOA: the script will download from process with a type different that the ones given.'
     #Check inputs:
-    if (options.scantype and not options.resourcesS) or (not options.scantype and options.resourcesS):
+    if ((options.selectionScan or options.scantype) and not options.resourcesS) or ((not options.selectionScan and not options.scantype) and options.resourcesS):
         print 'OPTION ERROR: --rs but no -s or -s but no --rs. Please check the command line and the options you gave to Xnatdownload.'
         return False
-    if not options.selectionScan and not options.selectionAssessor and ((options.assessortype and not options.resourcesA) or (not options.assessortype and options.resourcesA)):
+    if ((options.selectionAssessor or options.assessortype) and not options.resourcesA) or ((not options.selectionAssessor or not options.assessortype) and options.resourcesA):
         print 'OPTION ERROR: --ra but no -a or -a but no --ra. Please check the command line and the options you gave to Xnatdownload.'
         return False
     return True
