@@ -152,11 +152,8 @@ class SpiderProcessHandler:
         if suffix:
             if suffix[0] !='_': #check that it starts with an underscore
                 suffix = '_'+suffix
-            suffix = suffix.strip().replace(" ","")\
-                                   .replace('/','_').replace('*','_')\
-                                   .replace('.','_').replace(',','_')\
-                                   .replace('?','_').replace('!','_')\
-                                   .replace(';','_').replace(':','_')
+            # suffix: remove any special characters and replace by '_'
+            suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
             proctype = proctype + suffix
 
         #Create the assessor handler
