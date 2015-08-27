@@ -11,7 +11,7 @@ from datetime import datetime
 
 import log
 import XnatUtils
-from dax_settings import  API_URL, API_KEY_DAX, API_KEY_XNAT, REDCAP_VAR
+from dax_settings import  API_URL, API_KEY_DAX, REDCAP_VAR
 
 def set_logger(logfile, debug):
     """ function to set the logger """
@@ -72,57 +72,6 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
     logger.info('updating open tasks, Start Time:'+str(datetime.now()))
     settings.myLauncher.update_tasks(lockfile_prefix, projects, sessions)
     logger.info('finished open tasks, End Time: '+str(datetime.now()))
-
-#function to send the data to the VUIIS XNAT Jobs redcap project about what is running
-def save_job_redcap(data, record_id):
-    """ save the jobid on redcap for stats """
-    logger = logging.getLogger('dax')
-    mess_format = """ ->Record {record_id} uploaded for <{name}> : {response}"""
-    if API_URL and API_KEY_XNAT:
-        try:
-            job_redcap_project = redcap.Project(API_URL, API_KEY_XNAT)
-            response = job_redcap_project.import_records([data])
-            assert 'count' in response
-
-            logger.info(mess_format.format(record_id=record_id,
-                                           name=data['spider_module_name'],
-                                           response=str(response['count'])))
-            return 1
-        except:
-            return 0
-    logger.info(' ->API_URL or API_KEY_XNAT not set')
-    return 0
-
-#create the data record for redcap
-def create_record_redcap(project, sm_name):
-    """ SM_name means the spider name or modules name
-          name_v# or name_vDEV#
-    """
-    #data for redcap
-    data = dict()
-    #create the record_ID
-    date = str(datetime.now())
-    record_id = project+'-'+date.strip().replace(':', '_').replace('.', '_').replace(' ', '_')
-    labels = sm_name.split('_v')
-    #version in the name, if not it's 0
-    if len(labels) > 1:
-        # 2 for '_v'  + number of characters in the last labels that is the version number
-        nb_c = 2 + len(labels[-1])
-        name = sm_name[:-nb_c]
-        version = 'v' + labels[-1]
-    else:
-        name = sm_name
-        version = 'v0'
-
-    #create the data for redcap
-    data['record_id'] = record_id
-    data['spider_module_name'] = name
-    data['spider_module_version'] = version
-    data['date'] = date
-    data['xnat_project'] = project
-    data['hostname'] = socket.gethostname()
-    data['pi_lastname'] = pi_from_project(project)
-    return data, record_id
 
 def pi_from_project(project):
     """ get the pi name for the project """

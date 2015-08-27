@@ -11,6 +11,7 @@ from email.mime.text import MIMEText
 from dax import bin, XnatUtils
 from dax import RESULTS_DIR, SMTP_HOST, SMTP_FROM, SMTP_PASS
 from dax.task import READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED, JOB_PENDING
+import shutil
 
 # Variables
 _READY_FLAG_FILE = 'READY_TO_UPLOAD.txt'
@@ -219,20 +220,24 @@ def create_freesurfer_assessor(assessor_obj):
     """ Create freesurfer assessor """
     #create the assessor and set the status
     assessor_obj.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
-    assessor_obj.attrs.set('fs:fsData/validation/status', JOB_PENDING)
     now = datetime.now()
     today = str(now.year)+'-'+str(now.month)+'-'+str(now.day)
-    assessor_obj.attrs.set('fs:fsData/date', today)
+
+    assessor_obj.attrs.mset({'fs:fsData/validation/status': JOB_PENDING,
+                            'fs:fsData/date': today})
 
 def create_default_assessor(assessor_obj, proctype):
     """ Create default assessor with proctype given """
     # Create the assessor and set attributes
-    assessor_obj.create(assessors='proc:genProcData')
-    assessor_obj.attrs.set('proc:genProcData/validation/status', JOB_PENDING)
-    assessor_obj.attrs.set('proc:genProcData/proctype', proctype)
     now = datetime.now()
     today = str(now.year)+'-'+str(now.month)+'-'+str(now.day)
-    assessor_obj.attrs.set('proc:genProcData/date', today)
+
+    assessor_obj.create(assessors='proc:genProcData')
+    # Call mset to only make a single HTTP request
+    assessor_obj.attrs.mset({'proc:genProcData/validation/status': JOB_PENDING,
+                             'proc:genProcData/proctype': proctype,
+                             'proc:genProcData/date': today})
+
 
 def should_upload_assessor(assessor_obj, assessor_dict, xsitype, version):
     """ check if the assessor should be upload """
@@ -247,8 +252,8 @@ def should_upload_assessor(assessor_obj, assessor_dict, xsitype, version):
         if is_complete(assessor_dict, procstatus):
             return False
     # set the status to UPLOADING
-    assessor_obj.attrs.set(xsitype+'/procstatus', UPLOADING)
-    assessor_obj.attrs.set(xsitype+'/procversion', version)
+    assessor_obj.attrs.mset({xsitype+'/procstatus': UPLOADING,
+                             xsitype+'/procversion': version})
     return True
 
 def upload_assessor(xnat, assessor_dict):
@@ -299,7 +304,7 @@ def upload_assessor(xnat, assessor_dict):
         else:
             assessor_obj.attrs.set(xsitype+'/procstatus', JOB_FAILED)
         #Remove the folder
-        os.system('rm -r '+assessor_dict['path'])
+        shutil.rmtree(assessor_dict['path'])
 
 def upload_resource(assessor_obj, resource, resource_path):
     """ upload a resource folder in the queue to the assessor """

@@ -198,12 +198,7 @@ if 'API_KEY_DAX' not in os.environ:
     API_KEY_DAX = DEFAULT_API_KEY_DAX
 else:
     API_KEY_DAX = os.environ['API_KEY_DAX']
-#API_KEY for XNAT project where each jobs will correspond to a job submit to cluster
-#(save here or in .bashrc and name the env variable API_KEY_XNAT):
-if 'API_KEY_XNAT' not in os.environ:
-    API_KEY_XNAT = DEFAULT_API_KEY_XNAT
-else:
-    API_KEY_XNAT = os.environ['API_KEY_XNAT']
+
 
 # MAX AGE for a session:
 DEFAULT_MAX_AGE = 7 # number of days
