@@ -127,22 +127,22 @@ def set_qastatus_default(assessor_obj,status):
 def set_status_FS(assessor_obj,status):
     assessor_obj.attrs.set('fs:fsData/procstatus',status)
     if status=='NEED_TO_RUN' or status=='NEED_INPUTS':
-        assessor_obj.attrs.set('fs:fsData/validation/status','Job Pending')
-        assessor_obj.attrs.set('fs:fsData/jobid',' ')
-        assessor_obj.attrs.set('fs:fsData/memused',' ')
-        assessor_obj.attrs.set('fs:fsData/walltimeused',' ')
-        assessor_obj.attrs.set('fs:fsData/jobnode',' ')
+        assessor_obj.attrs.mset({'fs:fsData/validation/status':'Job Pending',
+                                 'fs:fsData/jobid':' ',
+                                 'fs:fsData/memused':' ',
+                                 'fs:fsData/walltimeused':' ',
+                                 'fs:fsData/jobnode':' '})
     #display
     sys.stdout.write('   -JOB Status on Assessor '+assessor_obj.label()+' changed to '+status+'\n')
 
 def set_status_default(assessor_obj,status):
     assessor_obj.attrs.set('proc:genProcData/procstatus',status)
     if status=='NEED_TO_RUN' or status=='NEED_INPUTS':
-        assessor_obj.attrs.set('proc:genProcData/validation/status','Job Pending')
-        assessor_obj.attrs.set('proc:genProcData/jobid',' ')
-        assessor_obj.attrs.set('proc:genProcData/memused',' ')
-        assessor_obj.attrs.set('proc:genProcData/walltimeused',' ')
-        assessor_obj.attrs.set('proc:genProcData/jobnode',' ')
+        assessor_obj.attrs.mset({'proc:genProcData/validation/status':'Job Pending',
+                                 'proc:genProcData/jobid':' ',
+                                 'proc:genProcData/memused':' ',
+                                 'proc:genProcData/walltimeused':' ',
+                                 'proc:genProcData/jobnode':' '})
     #display
     sys.stdout.write('   -JOB Status on Assessor '+assessor_obj.label()+' changed to '+status+'\n')
 
