@@ -335,7 +335,10 @@ def download_data_xnat(options,directory,xnat,proj_subj_list,scan_list,assessor_
             if options.overwrite and os.path.exists(scanpath):
                 shutil.rmtree(scanpath)
             #Create the line for the report
-            row=copy.deepcopy(['scan',scan['project_id'],scan['subject_label'],scan['session_type'],scan['session_label'],scan['ID'],scan['type'],scan['series_description'],scan['quality']]) #deepcopy to start each line from this row
+            if csvwriter is not None:
+                row=copy.deepcopy(['scan',scan['project_id'],scan['subject_label'],scan['session_type'],scan['session_label'],scan['ID'],scan['type'],scan['series_description'],scan['quality']]) #deepcopy to start each line from this row
+            else:
+                row = None
             download_scan(scanpath,xnat,scan,ScanResources,csvwriter,row,options.oneDir,last_download)
         ##ASSESSOR##
         for assessor in extract_obj_one_subject(project,subject,assessor_list):
@@ -344,7 +347,10 @@ def download_data_xnat(options,directory,xnat,proj_subj_list,scan_list,assessor_
             if options.overwrite and os.path.exists(procpath):
                 shutil.rmtree(procpath)
             #Create the line for the report
-            row=copy.deepcopy(['assessor',assessor['project_id'],assessor['subject_label'],assessor['session_type'],assessor['session_label'],assessor['label'],assessor['proctype'],assessor['procstatus'],assessor['qcstatus']]) #deepcopy to start each line from this row
+            if csvwriter is not None:
+                row=copy.deepcopy(['assessor',assessor['project_id'],assessor['subject_label'],assessor['session_type'],assessor['session_label'],assessor['label'],assessor['proctype'],assessor['procstatus'],assessor['qcstatus']]) #deepcopy to start each line from this row
+            else:
+                row=None
             download_assessor(procpath,xnat,assessor,ProcResources,csvwriter,row,options.oneDir,last_download)
 ####### SCANS #######      
 def download_scan(directory,xnat,scan_dict,resources_list,csvwriter,row,oneDir,last_download):
@@ -396,36 +402,42 @@ def download_resource(directory,xnat,Resource,Resource_label,csvwriter,row,oneDi
                 default_download(xnat,directory,Resource,Resource_label,csvwriter,row,last_download)
 def oneDir_download(xnat,directory,Resource,Resource_label,label,csvwriter,row,last_download):
     #Add Resource label
-    row.append(Resource_label)
+    if row is not None:
+        row.append(Resource_label)
     if len(Resource.files().get())>1:
         resPath=os.path.join(directory,label)
         #Add fpath
-        row.append(resPath)
+        if row is not None:
+            row.append(resPath)
         if not os.path.exists(resPath) or (last_download and last_download<int(get_resource_modified(xnat,Resource))):
             dl_files(Resource,directory)
             os.system('mv '+os.path.join(directory,Resource_label)+' '+resPath)
-            if csvwriter: csvwriter.writerow(row) 
+            if csvwriter:
+                csvwriter.writerow(row)
         else:
             logger.info('   >Resource '+Resource_label+': Skipping resource. Up-to-date.')
     else:
         #Add fpath
         respath=os.path.join(directory,label+'__'+Resource.files().get()[0])
-        row.append(respath)
+        if row is not None:
+            row.append(respath)
         if not os.path.exists(respath) or (last_download and last_download<int(get_resource_modified(xnat,Resource))):
             dl_file(Resource,respath)
-            if csvwriter: csvwriter.writerow(row)
+            if csvwriter:
+                csvwriter.writerow(row)
         else:
             logger.info('   >Resource '+Resource_label+': Skipping resource. Up-to-date.')
     
 def default_download(xnat,directory,Resource,Resource_label,csvwriter,row,last_download):
-    #Add Resource label
-    row.append(Resource_label)
-    #Add Path
     Res_path=os.path.join(directory,Resource_label)
-    row.append(Res_path)
+    #Add Resource label
+    if row is not None:
+        row.append(Resource_label)
+        row.append(Res_path)
     if not os.path.exists(Res_path) or (last_download and last_download<int(get_resource_modified(xnat,Resource))) or not os.listdir(Res_path):
         dl_files(Resource,directory)
-        if csvwriter: csvwriter.writerow(row)
+        if csvwriter:
+            csvwriter.writerow(row)
     else:
         logger.info('   >Resource '+Resource_label+': Skipping resource. Up-to-date.')
         
@@ -705,6 +717,9 @@ def parse_args():
     #Output
     parser.add_option("-o","--output", dest="outputfile", default=None,
                   help="Write the display in a file giving to this options.", metavar="")
+    # Ignore csv
+    parser.add_option("-i","--ignore", dest="ignorecsv", default=False, action='store_true',
+                  help="Ignore reading of the csv report file", metavar="")
     return parser
 
 ###################################################################################################
@@ -747,21 +762,26 @@ if __name__ == '__main__':
             else:
                 proj_subj_list,scan_list,assessor_list,last_download,old_rows,options=get_xnat_information(xnat,directory,options)
                 #open the report file:
-                with open(os.path.join(directory,DEFAULT_REPORT_NAME),'wb') as csvfilewrite:
-                    csvwriter = csv.writer(csvfilewrite,delimiter=',')
-                    #Today date
-                    csvwriter.writerow(['Last download date = '+'{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())])
-                    csvwriter.writerow(DEFAULT_CSV_LIST)
-                    if options.overwrite or options.update:
-                        pass
-                    else:
-                        for row in old_rows:
-                            csvwriter.writerow(row)
-                    if options.csvfile:
-                        download_data_xnat(options,directory,xnat,proj_subj_list,scan_list,assessor_list,csvwriter,last_download)
-                    ############## DOWNLOAD FOR ALL ###############
-                    else:
-                        download_data_xnat(options,directory,xnat,proj_subj_list,scan_list,assessor_list,csvwriter,last_download)
+                if not options.ignorecsv:
+                    with open(os.path.join(directory,DEFAULT_REPORT_NAME),'wb') as csvfilewrite:
+                        csvwriter = csv.writer(csvfilewrite,delimiter=',')
+                        #Today date
+                        csvwriter.writerow(['Last download date = '+'{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())])
+                        csvwriter.writerow(DEFAULT_CSV_LIST)
+                        if options.overwrite or options.update:
+                            pass
+                        else:
+                            for row in old_rows:
+                                csvwriter.writerow(row)
+                        if options.csvfile:
+                            download_data_xnat(options,directory,xnat,proj_subj_list,scan_list,assessor_list,csvwriter,last_download)
+                        ############## DOWNLOAD FOR ALL ###############
+                        else:
+                            download_data_xnat(options,directory,xnat,proj_subj_list,scan_list,assessor_list,csvwriter,last_download)
+                else:
+                    csvwriter = None
+                    download_data_xnat(options,directory,xnat,proj_subj_list,scan_list,assessor_list,csvwriter,last_download)
+
         finally:
             #disconnect
             xnat.disconnect()
