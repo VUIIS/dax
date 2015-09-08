@@ -1104,6 +1104,8 @@ def download_biggest_file_from_obj(directory, resource_obj):
             fpath = file_obj._urn
     if biggest_size > 0 and fpath:
         resource_fname = resource_obj.files().get()[file_index]
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
         resource_obj.file(fpath).get(os.path.join(directory, resource_fname))
         return os.path.join(directory, resource_fname)
     else:
