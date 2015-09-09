@@ -468,8 +468,8 @@ def upload_file(resource_obj,fpath,force):
         if resource_obj.file(os.path.basename(fpath)).exists():
             resource_obj.file(os.path.basename(fpath)).delete()
         logger.info('     - File '+os.path.basename(fpath)+': uploading file...')
-        fpath=check_image_format(fpath)
-        resource_obj.file(os.path.basename(fpath)).put(fpath)
+        fpath = check_image_format(fpath)
+        resource_obj.file(os.path.basename(fpath)).put(fpath, overwrite=True)
     else:
         logger.info('     - File '+os.path.basename(fpath)+': WARNING -- file found on XNAT. Use --force to upload this file.')
 
@@ -486,7 +486,7 @@ def upload_folder(resource_obj, fpath, force):
         os.system('zip -r '+filenameZip+' * > /dev/null')
         #upload
         logger.info('     - Folder '+fpath+': uploading folder...')
-        resource_obj.put_zip(os.path.join(fpath, filenameZip), extract=True)
+        resource_obj.put_zip(os.path.join(fpath, filenameZip), overwrite=True, extract=True)
         #remove the tmp zip file:
         if os.path.exists(os.path.join(fpath, filenameZip)):
             os.remove(os.path.join(fpath, filenameZip))
@@ -513,8 +513,8 @@ def upload_snaptshot(resource_obj,fpath_list,options):
         else:
             upload_folder(resource_obj,fpath,options.force)
     #Upload previews      
-    if snapshot_preview:  resource_obj.file(os.path.basename(snapshot_preview)).put(snapshot_preview,(snapshot_preview.split('.')[1]).upper(),'THUMBNAIL')
-    if snapshot_original: resource_obj.file(os.path.basename(snapshot_original)).put(snapshot_original,(snapshot_original.split('.')[1]).upper(),'ORIGINAL')
+    if snapshot_preview:  resource_obj.file(os.path.basename(snapshot_preview)).put(snapshot_preview,(snapshot_preview.split('.')[1]).upper(),'THUMBNAIL', overwrite=True)
+    if snapshot_original: resource_obj.file(os.path.basename(snapshot_original)).put(snapshot_original,(snapshot_original.split('.')[1]).upper(),'ORIGINAL', overwrite=True)
     
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
