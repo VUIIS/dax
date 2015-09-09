@@ -261,9 +261,9 @@ class SpiderProcessHandler:
             xnat = get_interface()
             assessor = self.assr_handler.select_assessor(xnat)
             if self.assr_handler.get_proctype() == 'FS':
-    	        former_status = assessor.attrs.get('fs:fsdata/procstatus’)
-    	    else:
-    		    former_status = assessor.attrs.get('proc:genProcData/procstatus’)
+                former_status = assessor.attrs.get('fs:fsdata/procstatus’)
+            else:
+                former_status = assessor.attrs.get('proc:genProcData/procstatus’)
             if assessor.exists() and former_status == JOB_RUNNING :
                 if self.assr_handler.get_proctype() == 'FS':
                     assessor.attrs.set('fs:fsdata/procstatus', status)
