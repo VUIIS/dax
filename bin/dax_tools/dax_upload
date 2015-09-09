@@ -323,7 +323,7 @@ def upload_resource(assessor_obj, resource, resource_path):
             if rfiles_list[0].lower().endswith('.zip'):
                 if assessor_obj.out_resource(resource).exists():
                     assessor_obj.out_resource(resource).delete()
-                assessor_obj.out_resource(resource).put_zip(fpath, extract=True)
+                assessor_obj.out_resource(resource).put_zip(fpath, overwrite=True, extract=True)
             else:
                 XnatUtils.upload_file_to_obj(fpath,
                                              assessor_obj.out_resource(resource),
