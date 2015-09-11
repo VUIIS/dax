@@ -42,6 +42,7 @@ NS = {'xnat' : 'http://nrg.wustl.edu/xnat',
 # Status:
 JOB_PENDING = 'Job Pending' # job is still running, not ready for QA yet
 NEEDS_QA = 'Needs QA' # For FS, the complete status
+JOB_RUNNING = 'JOB_RUNNING' # the job has been submitted on the cluster and is running right now.
 JOB_FAILED = 'JOB_FAILED' # the job failed on the cluster.
 READY_TO_UPLOAD = 'READY_TO_UPLOAD' # Job done, waiting for the Spider to upload the results
 REPROC = 'Reproc' # will cause spider to zip the current results and put in OLD, and then processing
@@ -152,11 +153,8 @@ class SpiderProcessHandler:
         if suffix:
             if suffix[0] !='_': #check that it starts with an underscore
                 suffix = '_'+suffix
-            suffix = suffix.strip().replace(" ","")\
-                                   .replace('/','_').replace('*','_')\
-                                   .replace('.','_').replace(',','_')\
-                                   .replace('?','_').replace('!','_')\
-                                   .replace(';','_').replace(':','_')
+            # suffix: remove any special characters and replace by '_'
+            suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
             proctype = proctype + suffix
 
         #Create the assessor handler
@@ -262,15 +260,22 @@ class SpiderProcessHandler:
         try:
             xnat = get_interface()
             assessor = self.assr_handler.select_assessor(xnat)
-            if assessor.exists():
+            if self.assr_handler.get_proctype() == 'FS':
+                former_status = assessor.attrs.get('fs:fsdata/procstatus')
+            else:
+                former_status = assessor.attrs.get('proc:genProcData/procstatus')
+            if assessor.exists() and former_status == JOB_RUNNING :
                 if self.assr_handler.get_proctype() == 'FS':
                     assessor.attrs.set('fs:fsdata/procstatus', status)
                     print '  -status set for FreeSurfer to '+str(status)
                 else:
                     assessor.attrs.set('proc:genProcData/procstatus', status)
                     print '  -status set for assessor to '+str(status)
+        except:
+            # fail to access XNAT -- let dax_upload set the status
+            pass
         finally:
-            xnat.disconnect()
+            if 'xnat' in locals() or xnat != None: xnat.disconnect()
 
     def done(self):
         """ create the flagfile and set the assessor with the new status """
@@ -807,7 +812,7 @@ def get_resource_lastdate_modified(xnat, resource):
 def select_assessor(intf, assessor_label):
     """ select assessor from his label """
     labels = assessor_label.split('-x-')
-    return intf.select('/project/'+labels['0']+'/subject/'+labels['1']+'/experiment/'+labels['2']+'/assessor/'+assessor_label)
+    return intf.select('/project/'+labels[0]+'/subject/'+labels[1]+'/experiment/'+labels[2]+'/assessor/'+assessor_label)
 
 def get_full_object(intf, obj_dict):
     """ select object on XNAT from dictionary """
@@ -1285,7 +1290,7 @@ def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False, fn
             else:
                 print """WARNING: upload_file_to_obj in XnatUtils: resource {filename} already exists.""".format(filename=filename)
                 return False
-        resource_obj.file(str(filename)).put(str(filepath))
+        resource_obj.file(str(filename)).put(str(filepath), overwrite=True)
         return True
     else:
         print """ERROR: upload_file_to_obj in XnatUtils: file {file} doesn't exist.""".format(file=filepath)
@@ -1389,7 +1394,7 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False, 
     os.chdir(directory)
     os.system('zip -r '+fzip+' * > /dev/null')
     #upload
-    resource_obj.put_zip(os.path.join(directory, fzip), extract=True)
+    resource_obj.put_zip(os.path.join(directory, fzip), overwrite=True, extract=True)
     #return to the initial directory:
     os.chdir(initdir)
     return True
@@ -1455,8 +1460,8 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail):
         print "ERROR: upload_assessor_snapshots in XnatUtils: original or thumbnail snapshots don't exist."
         return False
 
-    assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(thumbnail)).put(thumbnail,thumbnail.split('.')[1].upper(),'THUMBNAIL')
-    assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(original)).put(original,original.split('.')[1].upper(),'ORIGINAL')
+    assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(thumbnail)).put(thumbnail, thumbnail.split('.')[1].upper(), 'THUMBNAIL', overwrite=True)
+    assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(original)).put(original, original.split('.')[1].upper(), 'ORIGINAL', overwrite=True)
     return True
 
 ####################################################################################
@@ -2256,10 +2261,10 @@ def upload_all_resources(Resource,directory):
                 if os.path.isdir(filename):
                     upload_zip(filename,directory+'/'+filename)
                 elif filename.lower().endswith('.zip'):
-                    Resource.put_zip(directory+'/'+filename, extract=True)
+                    Resource.put_zip(directory+'/'+filename, overwrite=True, extract=True)
                 else:
                     #upload the file
-                    Resource.file(filename).put(directory+'/'+filename)
+                    Resource.file(filename).put(directory+'/'+filename, overwrite=True)
     else:
         print'ERROR upload_all_resources in XnatUtils: Folder '+directory+' does not exist.'
 
@@ -2270,7 +2275,7 @@ def upload_zip(Resource,directory):
     os.chdir(directory)
     os.system('zip -r '+filenameZip+' *')
     #upload
-    Resource.put_zip(directory+'/'+filenameZip,extract=True)
+    Resource.put_zip(directory+'/'+filenameZip, overwrite=True, extract=True)
     #return to the initial directory:
     os.chdir(initDir)
 
@@ -2372,7 +2377,7 @@ def Upload_folder_to_resource(resourceObj,directory):
     os.chdir(directory)
     os.system('zip -r '+filenameZip+' *')
     #upload
-    resourceObj.put_zip(directory+'/'+filenameZip,extract=True)
+    resourceObj.put_zip(directory+'/'+filenameZip, overwrite=True, extract=True)
     #return to the initial directory:
     os.chdir(initDir)
 
