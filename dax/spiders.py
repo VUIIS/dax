@@ -15,9 +15,10 @@ __modifications__ = '26 August 2015 - Original write'
 
 import os
 import re
+import sys
+import time
 import getpass
 import collections
-import SpiderUtils
 from dax import XnatUtils
 from datetime import datetime
 
@@ -61,7 +62,7 @@ class Spider(object):
         self.suffix = re.sub('[^a-zA-Z0-9]', '_', self.suffix)
         self.manual = manual
         # print time writer:
-        self.time_writer = SpiderUtils.TimedWriter()
+        self.time_writer = TimedWriter()
 
     def get_default_value(self, variable, env_name, value):
         """
@@ -388,3 +389,107 @@ class SessionSpider(Spider):
         Method to copy the results in the Spider Results folder dax.RESULTS_DIR
         """
         raise NotImplementedError()
+
+#### CLASSES ####
+# class to display time
+class TimedWriter(object):
+    '''Class to automatically write timed output message
+    Args:
+        name - Names to write with output (default=None)
+
+    Examples:
+        >>>a = Time_Writer()
+        >>>a("this is a test")
+        [00d 00h 00m 00s] this is a test
+        >>>sleep(60)
+        >>>a("this is a test")
+        [00d 00h 01m 00s] this is a test
+
+    Written by Andrew Plassard (Vanderbilt)
+    '''
+    def __init__(self, name=None):
+        self.start_time = time.localtime()
+        self.name = name
+
+    def print_stderr_message(self, text):
+        '''Prints a timed message to stderr'''
+        self.print_timed_message(text, pipe=sys.stderr)
+
+    def print_timed_message(self, text, pipe=sys.stdout):
+        '''Prints a timed message
+        Args:
+            text - text to display
+            pipe - pipe to write to (default: sys.stdout)
+        '''
+        msg = ""
+        if self.name:
+            msg = "[%s]" % self.name
+        time_now = time.localtime()
+        time_diff = time.mktime(time_now)-time.mktime(self.start_time)
+        (days, res) = divmod(time_diff, 86400)
+        (hours, res) = divmod(res, 3600)
+        (mins, secs) = divmod(res, 60)
+        msg = "%s[%dd %02dh %02dm %02ds] %s" % (msg, days, hours, mins, secs, text)
+        print >> pipe, msg
+
+    def __call__(self, text, pipe=sys.stdout):
+        '''Prints a timed message
+        Inputs:
+            text - text to display
+            pipe - pipe to write to (default: sys.stdout)'''
+        self.print_timed_message(text, pipe=pipe)
+
+#### Functions ####
+def get_default_argparser(name, description):
+    """
+    Return default argparser arguments for all Spider
+
+    :return: argparser obj
+    """
+    from argparse import ArgumentParser
+    ap = ArgumentParser(prog=name, description=description)
+    ap.add_argument('-p', dest='proj_label', help='Project Label', required=True)
+    ap.add_argument('-s', dest='subj_label', help='Subject Label', required=True)
+    ap.add_argument('-e', dest='sess_label', help='Session Label', required=True)
+    ap.add_argument('-d', dest='temp_dir', help='Temporary Directory', required=True)
+    ap.add_argument('--suffix', dest='suffix', help='assessor suffix. default: None', default=None)
+    ap.add_argument('-m', dest='manual', help='Manual: Ask user for XNAT loggings if not set', action='store_true')
+    return ap
+
+def get_session_argparser(name, description):
+    """
+    Return session argparser arguments for session Spider
+
+    :return: argparser obj
+    """
+    ap = get_default_argparser(name, description)
+    return ap
+
+def get_scan_argparser(name, description):
+    """
+    Return scan argparser arguments for scan Spider
+
+    :return: argparser obj
+    """
+    ap = get_default_argparser(name, description)
+    ap.add_argument('-c', dest='scan_label', help='Scan label', required=True)
+    return ap
+
+def is_good_version(version):
+    """
+    Check the format of the version and return true if it's a proper format.
+    Format: X.Y.Z
+            see http://semver.org
+
+    :param version: version given by the user
+    """
+    vers = version.split('.')
+    if len(vers) != 3:
+        return False
+    else:
+        if not vers[0].isdigit() or \
+           not vers[1].isdigit() or \
+           not vers[2].isdigit():
+            return False
+    return True
+
