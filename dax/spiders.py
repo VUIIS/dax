@@ -459,7 +459,7 @@ def get_default_argparser(name, description):
     ap.add_argument('-e', dest='sess_label', help='Session Label', required=True)
     ap.add_argument('-d', dest='temp_dir', help='Temporary Directory', required=True)
     ap.add_argument('--suffix', dest='suffix', help='assessor suffix. default: None', default=None)
-    ap.add_argument('-m', dest='manual', help='Manual: Ask user for XNAT loggings if not set', action='store_true')
+    ap.add_argument('--manual', dest='manual', help='Manual: Ask user for XNAT loggings if not set', action='store_true')
     return ap
 
 def get_session_argparser(name, description):
