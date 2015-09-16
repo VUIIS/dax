@@ -142,7 +142,7 @@ class SpiderProcessHandler:
         if 'Spider' in script_name:
             script_name = script_name[7:]
 
-        #ge the processname from spider
+        # get the processname from spider
         if len(re.split("/*_v[0-9]/*", script_name)) > 1:
             self.version = script_name.split('_v')[-1].replace('_','.')
             proctype = re.split("/*_v[0-9]/*", script_name)[0]+'_v'+self.version.split('.')[0]
@@ -156,6 +156,8 @@ class SpiderProcessHandler:
                 suffix = '_'+suffix
             # suffix: remove any special characters and replace by '_'
             suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
+            if suffix[-1] == '_':
+                suffix = suffix[:-1]
             proctype = proctype + suffix
 
         #Create the assessor handler
