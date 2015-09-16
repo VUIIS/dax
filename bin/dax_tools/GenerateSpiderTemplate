@@ -61,7 +61,9 @@ def parse_args():
     ap = spiders.get_scan_argparser("{name}", "{purpose}")
 
     #
-    # ADD YOUR OTHER OPTIONS FOR THIS SPECIFIC SPIDER
+    # ADD YOUR OTHER OPTIONS FOR THIS SPECIFIC SPIDER 
+    # example to add one options:
+    # ap.add_argument("--option", dest="option_id", default=None, help="Option description.", required=True)
     #
 
     return ap.parse_args()
@@ -92,9 +94,9 @@ class Spider_{name}(ScanSpider):
 
     def pre_run(self, argument_parse):
         '''
-        Method to download data from XNAT
+            Method to download data from XNAT
 
-        :param argument_parse: argument parser object return by parse_args()
+            :param argument_parse: argument parser object return by parse_args()
         '''
         resource = 'XXXX' #resource to download from the scan on XNAT
         folder = os.path.join(self.jobdir, 'inputs')
@@ -108,7 +110,7 @@ class Spider_{name}(ScanSpider):
 
     def run(self):
         '''
-        Method running the process for the spider on the inputs data
+            Method running the process for the spider on the inputs data
         '''
         #
         # CODE THAT YOU WANT TO RUN ON THE DATA
@@ -116,7 +118,7 @@ class Spider_{name}(ScanSpider):
 
     def finish(self):
         '''
-        Method to copy the results in the Spider Results folder dax.RESULTS_DIR
+            Method to copy the results in the Spider Results folder dax.RESULTS_DIR
         '''
         self.time_writer('Results saved in folder: %s' % (RESULTS_DIR))
         results_dict = {{'PDF': pdfpath,
@@ -156,16 +158,16 @@ if __name__ == '__main__':
 SESSION_LEVEL_TEMPLATE = DEFAULT_TEMPLATE+"""
 def parse_args():
     '''
-    Argument parser for the spider input variables
-    by default:
-        -p       : proj_label
-        -s       : subj_label
-        -e       : sess_label
-        -d       : temp_dir
-        --suffix : suffix
-        --manual : manual
-
-    :return: argument parser object created by parse_args()
+        Argument parser for the spider input variables
+        by default:
+            -p       : proj_label
+            -s       : subj_label
+            -e       : sess_label
+            -d       : temp_dir
+            --suffix : suffix
+            --manual : manual
+    
+        :return: argument parser object created by parse_args()
     '''
     from argparse import ArgumentParser
     ap = spiders.get_session_argparser("{name}", "{purpose}")
@@ -200,9 +202,9 @@ class Spider_{name}(SessionSpider):
 
     def pre_run(self, argument_parse):
         '''
-        Method to download data from XNAT
-
-        :param argument_parse: argument parser object return by parse_args()
+            Method to download data from XNAT
+    
+            :param argument_parse: argument parser object return by parse_args()
         '''
         resource = 'XXXX' #resource to download from the scan on XNAT
         folder = os.path.join(self.jobdir, 'inputs')
@@ -216,7 +218,7 @@ class Spider_{name}(SessionSpider):
 
     def run(self):
         '''
-        Method running the process for the spider on the inputs data
+            Method running the process for the spider on the inputs data
         '''
         #
         # CODE THAT YOU WANT TO RUN ON THE DATA
@@ -224,7 +226,7 @@ class Spider_{name}(SessionSpider):
 
     def finish(self):
         '''
-        Method to copy the results in the Spider Results folder dax.RESULTS_DIR
+            Method to copy the results in the Spider Results folder dax.RESULTS_DIR
         '''
         self.time_writer('Results saved in folder: %s' % (RESULTS_DIR))
         results_dict = {{'PDF': pdfpath,
@@ -262,11 +264,11 @@ if __name__ == '__main__':
 
 def write_spider(spider_fpath, templates, args):
     """
-    Create the Spider path with the proper template
-
-    :param spider_fpath: path where the spider script will be saved
-    :param templates: template to use (scan or session)
-    :param args: arguments parser
+        Create the Spider path with the proper template
+    
+        :param spider_fpath: path where the spider script will be saved
+        :param templates: template to use (scan or session)
+        :param args: arguments parser
     """
     spider_code = templates.format(author=args.author,
                                    email_addr=args.email,
@@ -280,7 +282,7 @@ def write_spider(spider_fpath, templates, args):
 
 def parse_args():
     """
-    Parser for arguments
+        Parser for arguments
     """
     from argparse import ArgumentParser
     usage = "Generates snapshots/preview for the scans for all subjects in a project."
