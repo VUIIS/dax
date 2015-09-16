@@ -133,7 +133,7 @@ class Spider_{name}(ScanSpider):
 if __name__ == '__main__':
     args = parse_args()
     # generate spider object:
-    spider_obj = Spider_{name}(script_name=os.path.basename(sys.argv[0])[:-3],
+    spider_obj = Spider_{name}(spider_path=os.path.basename(sys.argv[0])[:-3],
                                xnat_project=args.proj_label,
                                xnat_subject=args.subj_label,
                                xnat_session=args.sess_label,
@@ -141,8 +141,8 @@ if __name__ == '__main__':
                                xnat_host=None,
                                xnat_user=None,
                                xnat_pass=None,
-                               manual=args.manual,
-                               suffix=args.suffix)
+                               suffix=args.suffix,
+                               manual=args.manual)
     # print some information before starting
     spider_obj.print_init(args, "{author}", "{email_addr}")
 
@@ -245,15 +245,15 @@ class Spider_{name}(SessionSpider):
 if __name__ == '__main__':
     args = parse_args()
     # generate spider object:
-    spider_obj = Spider_{name}(script_name=os.path.basename(sys.argv[0])[:-3],
+    spider_obj = Spider_{name}(spider_path=os.path.basename(sys.argv[0])[:-3],
                                xnat_project=args.proj_label,
                                xnat_subject=args.subj_label,
                                xnat_session=args.sess_label,
                                xnat_host=None,
                                xnat_user=None,
                                xnat_pass=None,
-                               manual=args.manual,
-                               suffix=args.suffix)
+                               suffix=args.suffix,
+                               manual=args.manual)
     # print some information before starting
     spider_obj.print_init(args, "{author}", "{email_addr}")
 
