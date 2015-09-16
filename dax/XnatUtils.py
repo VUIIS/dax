@@ -224,7 +224,7 @@ class SpiderProcessHandler:
             if filepath.lower().endswith('.ps'):
                 pdf_path = os.path.splitext(filepath)[0]+'.pdf'
                 ps2pdf_cmd = '''ps2pdf {ps} {pdf}'''.format(ps=filepath, pdf=pdf_path)
-                print '''  -Convertion {cmd} ...'''.format(cmd=ps2pdf_cmd)
+                self.print_msg('''  -Convertion {cmd} ...'''.format(cmd=ps2pdf_cmd))
                 os.system(ps2pdf_cmd)
             else:
                 pdf_path = filepath
