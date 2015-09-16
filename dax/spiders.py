@@ -5,11 +5,12 @@
     Purpose:
         Spider base class and class for Scan and Session spider
         Spider name must be: Spider_[name]_v[version].py
+        Utils for spiders
 """
 
 __author__ = 'Benjamin Yvernault'
 __email__ = 'b.yvernault@ucl.ac.uk'
-__purpose__ = "Spider base class and class for Scan and Session spider."
+__purpose__ = "Spider base class, Scan and Session spider class, and Utils for spiders."
 __version__ = '1.0.0'
 __modifications__ = '26 August 2015 - Original write'
 
@@ -43,8 +44,8 @@ class Spider(object):
         # Spider path:
         self.spider_path = spider_path
         # directory for temporary files + create it
-        self.jobdir = jobdir
-        XnatUtils.makedir(os.path.abspath(self.jobdir))
+        self.jobdir = os.path.abspath(jobdir)
+        XnatUtils.makedir(self.jobdir)
         # to copy results at the end
         self.spider_handler = None
         # Xnat info:
@@ -66,14 +67,14 @@ class Spider(object):
 
     def get_default_value(self, variable, env_name, value):
         """
-        Return the default value for the variable:
-            if arg not NULL
-            else env variables define by arguments
-
-        :param variable: variable name
-        :param env_name: name of the environment variable
-        :param value:    value given by the user
-        :return: default value
+            Return the default value for the variable:
+                if arg not NULL
+                else env variables define by arguments
+    
+            :param variable: variable name
+            :param env_name: name of the environment variable
+            :param value:    value given by the user
+            :return: default value
         """
         if value:
             return value
@@ -96,11 +97,11 @@ class Spider(object):
 
     def select_obj(self, intf, obj_label, resource):
         """
-        Select scan or assessor resource
-
-        :param obj_label: xnat object label (scan ID or assessor label)
-        :param resource: folder name under the xnat object
-        return pyxnat object
+            Select scan or assessor resource
+    
+            :param obj_label: xnat object label (scan ID or assessor label)
+            :param resource: folder name under the xnat object
+            return pyxnat object
         """
         tmp_dict = collections.OrderedDict([('project', self.xnat_project),
                                             ('subject', self.xnat_subject),
@@ -129,16 +130,16 @@ class Spider(object):
 
     def download(self, obj_label, resource, folder):
         """
-        Return a python list of the files downloaded for the resource on the scan
-            example:
-              download(scan_id, "DICOM", "/Users/test")
-             or
-              download(assessor_label, "DATA", "/Users/test")
-
-        :param obj_label: xnat object label (scan ID or assessor label)
-        :param resource: folder name under the xnat object
-        :param folder: download directory
-        :return: python list of files downloaded
+            Return a python list of the files downloaded for the resource on the scan
+                example:
+                  download(scan_id, "DICOM", "/Users/test")
+                 or
+                  download(assessor_label, "DATA", "/Users/test")
+    
+            :param obj_label: xnat object label (scan ID or assessor label)
+            :param resource: folder name under the xnat object
+            :param folder: download directory
+            :return: python list of files downloaded
         """
         # Open connection to XNAT
         xnat = XnatUtils.get_interface(host=self.host, user=self.user, pwd=self.pwd)
@@ -152,26 +153,26 @@ class Spider(object):
 
     def define_spider_process_handler(self):
         """
-        Define the SpiderProcessHandler for the end of any spider
+            Define the SpiderProcessHandler for the end of any spider
         """
         raise NotImplementedError()
 
     def has_spider_handler(self):
         """
-        Init Spider Handler if it was not already created.
+            Init Spider Handler if it was not already created.
         """
         if not self.spider_handler:
             self.define_spider_process_handler()
 
     def upload(self, fpath, resource):
         """
-        upload files to the queue on the cluster to be upload to XNAT by DAX pkg
-        E.g:
-            spider.upload("/Users/DATA/", "DATA")
-            spider.upload("/Users/stats_dir/statistical_measures.txt", "STATS")
-
-        :param fpath: path to the folder/file to be uploaded
-        :param resource: folder name to upload to on the assessor
+            upload files to the queue on the cluster to be upload to XNAT by DAX pkg
+            E.g:
+                spider.upload("/Users/DATA/", "DATA")
+                spider.upload("/Users/stats_dir/statistical_measures.txt", "STATS")
+    
+            :param fpath: path to the folder/file to be uploaded
+            :param resource: folder name to upload to on the assessor
         """
         self.has_spider_handler()
         if os.path.isfile(fpath):
@@ -187,13 +188,13 @@ class Spider(object):
 
     def upload_dict(self, files_dict):
         """
-        upload files to the queue on the cluster to be upload to XNAT by DAX pkg
-        following the files python dictionary: {resource_name : fpath}
-        E.g:
-            fdict = {"DATA" : "/Users/DATA/", "PDF": "/Users/PDF/report.pdf"}
-            spider.upload_dict("/Users/DATA/", "DATA")
-
-        :param files_dict: python dictionary containing the pair resource/fpath
+            upload files to the queue on the cluster to be upload to XNAT by DAX pkg
+            following the files python dictionary: {resource_name : fpath}
+            E.g:
+                fdict = {"DATA" : "/Users/DATA/", "PDF": "/Users/PDF/report.pdf"}
+                spider.upload_dict("/Users/DATA/", "DATA")
+    
+            :param files_dict: python dictionary containing the pair resource/fpath
         """
         self.has_spider_handler()
         for resource, fpath in files_dict.items():
@@ -208,9 +209,9 @@ class Spider(object):
 
     def end(self):
         """
-        Finish the script by sending the end of script flag and cleaning the folder
+            Finish the script by sending the end of script flag and cleaning the folder
 
-        :param jobdir: directory for the spider
+            :param jobdir: directory for the spider
         """
         self.has_spider_handler()
         self.spider_handler.done()
@@ -219,24 +220,24 @@ class Spider(object):
 
     def run(self):
         """
-        Method to execute the process
+            Method to execute the process
         """
         raise NotImplementedError()
 
     def finish(self):
         """
-        Method to copy the results in the Spider Results folder dax.RESULTS_DIR
+            Method to copy the results in the Spider Results folder dax.RESULTS_DIR
         """
         raise NotImplementedError()
 
     def print_init(self, argument_parse, author, email):
         """
-        Print a message to display information on the init parameters, author,
-        email, and arguments using time writer
+            Print a message to display information on the init parameters, author,
+            email, and arguments using time writer
 
-        :param argument_parse: argument parser
-        :param author: author of the spider
-        :param email: email of the author
+            :param argument_parse: argument parser
+            :param author: author of the spider
+            :param email: email of the author
         """
         self.print_info(author, email)
         self.time_writer('-------- Spider starts --------')
@@ -246,26 +247,26 @@ class Spider(object):
 
     def print_msg(self, message):
         """
-        Print message using time writer
+            Print message using time writer
 
-        :param message: string displayed for the user
+            :param message: string displayed for the user
         """
         self.time_writer(message)
 
     def print_err(self, err_message):
         """
-        Print error message using time writer
+            Print error message using time writer
 
-        :param err_message: error message displayed for the user
+            :param err_message: error message displayed for the user
         """
         self.time_writer.print_stderr_message(err_message)
 
     def print_info(self, author, email):
         """
-        Print information on the spider using time writer
+            Print information on the spider using time writer
 
-        :param author: author of the spider
-        :param email: email of the author
+            :param author: author of the spider
+            :param email: email of the author
         """
         self.print_msg("Running spider : %s" %(self.spider_path))
         self.print_msg("Spider Author: %s" % (author))
@@ -273,9 +274,9 @@ class Spider(object):
 
     def print_args(self, argument_parse):
         """
-        print arguments given to the Spider
+            print arguments given to the Spider
 
-        :param argument_parse: argument parser
+            :param argument_parse: argument parser
         """
         self.time_writer("-- Arguments given to the spider --")
         for info, value in vars(argument_parse).items():
@@ -284,27 +285,29 @@ class Spider(object):
 
     def print_end(self):
         """
-        Last print statement to give the time and date at the end of the spider
+            Last print statement to give the time and date at the end of the spider
         """
         self.time_writer('\nTime at the end of the Spider: ', str(datetime.now()))
 
     @staticmethod
     def run_system_cmd(cmd):
         """
-        Run system command line via os.system()
-        :param cmd: command to run
+            Run system command line via os.system()
+
+            :param cmd: command to run
         """
         os.system(cmd)
 
     @staticmethod
     def select_str(xnat_dict):
         """
-        Return string for pyxnat to select object from python dict
-        :param tmp_dict: python dictionary with xnat information
-            keys = ["project", "subject", "experiement", "scan", "resource"]
-              or
-            keys = ["project", "subject", "experiement", "assessor", "out/resource"]
-        return string to select pyxnat object
+            Return string for pyxnat to select object from python dict
+
+            :param tmp_dict: python dictionary with xnat information
+                keys = ["project", "subject", "experiement", "scan", "resource"]
+                  or
+                keys = ["project", "subject", "experiement", "assessor", "out/resource"]
+            :return string: string path to select pyxnat object
         """
         select_str = ''
         for key, value in xnat_dict.items():
@@ -328,7 +331,7 @@ class ScanSpider(Spider):
 
     def define_spider_process_handler(self):
         """
-        Define the SpiderProcessHandler for the end of session spider
+            Define the SpiderProcessHandler for the end of session spider
         """
         # Create the SpiderProcessHandler if first time upload
         self.spider_handler = XnatUtils.SpiderProcessHandler(self.spider_path,
@@ -340,19 +343,19 @@ class ScanSpider(Spider):
 
     def pre_run(self):
         """
-        Method to download the inputs
+            Method to download the inputs
         """
         raise NotImplementedError()
 
     def run(self):
         """
-        Method to execute the process
+            Method to execute the process
         """
         raise NotImplementedError()
 
     def finish(self):
         """
-        Method to copy the results in the Spider Results folder dax.RESULTS_DIR
+            Method to copy the results in the Spider Results folder dax.RESULTS_DIR
         """
         raise NotImplementedError()
 
@@ -369,7 +372,7 @@ class SessionSpider(Spider):
 
     def define_spider_process_handler(self):
         """
-        Define the SpiderProcessHandler for the end of session spider
+            Define the SpiderProcessHandler for the end of session spider
         """
         # Create the SpiderProcessHandler if first time upload
         self.spider_handler = XnatUtils.SpiderProcessHandler(self.spider_path,
@@ -380,32 +383,34 @@ class SessionSpider(Spider):
 
     def run(self):
         """
-        Method to execute the process
+            Method to execute the process
         """
         raise NotImplementedError()
 
     def finish(self):
         """
-        Method to copy the results in the Spider Results folder dax.RESULTS_DIR
+            Method to copy the results in the Spider Results folder dax.RESULTS_DIR
         """
         raise NotImplementedError()
 
 #### CLASSES ####
 # class to display time
 class TimedWriter(object):
-    '''Class to automatically write timed output message
-    Args:
-        name - Names to write with output (default=None)
+    '''
+        Class to automatically write timed output message
 
-    Examples:
-        >>>a = Time_Writer()
-        >>>a("this is a test")
-        [00d 00h 00m 00s] this is a test
-        >>>sleep(60)
-        >>>a("this is a test")
-        [00d 00h 01m 00s] this is a test
-
-    Written by Andrew Plassard (Vanderbilt)
+        Args:
+            name - Names to write with output (default=None)
+    
+        Examples:
+            >>>a = Time_Writer()
+            >>>a("this is a test")
+            [00d 00h 00m 00s] this is a test
+            >>>sleep(60)
+            >>>a("this is a test")
+            [00d 00h 01m 00s] this is a test
+    
+        Written by Andrew Plassard (Vanderbilt)
     '''
     def __init__(self, name=None):
         self.start_time = time.localtime()
@@ -436,7 +441,8 @@ class TimedWriter(object):
         '''Prints a timed message
         Inputs:
             text - text to display
-            pipe - pipe to write to (default: sys.stdout)'''
+            pipe - pipe to write to (default: sys.stdout)
+        '''
         self.print_timed_message(text, pipe=pipe)
 
 #### Functions ####
@@ -492,4 +498,3 @@ def is_good_version(version):
            not vers[2].isdigit():
             return False
     return True
-
