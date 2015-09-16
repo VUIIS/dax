@@ -214,8 +214,7 @@ class SpiderProcessHandler:
         else:
             return True
 
-    @staticmethod
-    def print_copying_statement(label, src, dest):
+    def print_copying_statement(self, label, src, dest):
         """ print statement for copying data """
         self.print_msg('''  -Copying {label}: {src} to {dest}'''.format(label=label, src=src, dest=dest))
 
