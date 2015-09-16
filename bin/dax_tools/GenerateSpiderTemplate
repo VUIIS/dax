@@ -89,8 +89,8 @@ class Spider_{name}(ScanSpider):
     '''
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
                  xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
-        super(ScanSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
-                                         xnat_host, xnat_user, xnat_pass, suffix, manual)
+        super(Spider_{name}, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
+                                            xnat_host, xnat_user, xnat_pass, suffix, manual)
         self.inputs = list()
 
     def pre_run(self, argument_parse):
@@ -201,8 +201,8 @@ class Spider_{name}(SessionSpider):
     '''
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
                  xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
-        super(ScanSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                                         xnat_host, xnat_user, xnat_pass, suffix, manual)
+        super(Spider_{name}, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
+                                            xnat_host, xnat_user, xnat_pass, suffix, manual)
         self.inputs = list()
 
     def pre_run(self, argument_parse):
