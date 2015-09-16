@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
 import logging
 
 def setup_debug_logger(name, logfile):
@@ -10,7 +11,7 @@ def setup_debug_logger(name, logfile):
     if logfile:
         handler = logging.FileHandler(logfile, 'w')
     else:
-        handler = logging.StreamHandler()
+        handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(name)
@@ -24,7 +25,7 @@ def setup_info_logger(name, logfile):
     if logfile:
         handler = logging.FileHandler(logfile, 'w')
     else:
-        handler = logging.StreamHandler()
+        handler = logging.StreamHandler(sys.stdout)
     
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
@@ -37,7 +38,7 @@ def setup_critical_logger(name, logfile):
     if logfile:
         handler = logging.FileHandler(logfile, 'w')
     else:
-        handler = logging.StreamHandler()
+        handler = logging.StreamHandler(sys.stdout)
 
     logger = logging.getLogger(name)
     logger.setLevel(logging.CRITICAL)
@@ -49,7 +50,7 @@ def setup_warning_logger(name, logfile):
     if logfile:
         handler = logging.FileHandler(logfile, 'w')
     else:
-        handler = logging.StreamHandler()
+        handler = logging.StreamHandler(sys.stdout)
 
     logger = logging.getLogger(name)
     logger.setLevel(logging.WARNING)
@@ -61,11 +62,9 @@ def setup_error_logger(name, logfile):
     if logfile:
         handler = logging.FileHandler(logfile, 'w')
     else:
-        handler = logging.StreamHandler()
+        handler = logging.StreamHandler(sys.stdout)
 
     logger = logging.getLogger(name)
     logger.setLevel(logging.ERROR)
     logger.addHandler(handler)
     return logger
-
-
