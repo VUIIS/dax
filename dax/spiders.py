@@ -286,7 +286,7 @@ class Spider(object):
         """
             Last print statement to give the time and date at the end of the spider
         """
-        self.time_writer('\nTime at the end of the Spider: '+ str(datetime.now()))
+        self.time_writer('Time at the end of the Spider: '+ str(datetime.now()))
 
     @staticmethod
     def run_system_cmd(cmd):
@@ -338,7 +338,8 @@ class ScanSpider(Spider):
                                                              self.xnat_project,
                                                              self.xnat_subject,
                                                              self.xnat_session,
-                                                             self.xnat_scan)
+                                                             self.xnat_scan,
+                                                             time_writer=self.time_writer)
 
     def pre_run(self):
         """
@@ -378,7 +379,8 @@ class SessionSpider(Spider):
                                                              self.suffix,
                                                              self.xnat_project,
                                                              self.xnat_subject,
-                                                             self.xnat_session)
+                                                             self.xnat_session,
+                                                             time_writer=self.time_writer)
 
     def run(self):
         """
