@@ -44,8 +44,7 @@ class Spider(object):
         # Spider path:
         self.spider_path = spider_path
         # directory for temporary files + create it
-        self.jobdir = os.path.abspath(jobdir)
-        XnatUtils.makedir(self.jobdir)
+        self.jobdir = XnatUtils.makedir(os.path.abspath(jobdir))
         # to copy results at the end
         self.spider_handler = None
         # Xnat info:
