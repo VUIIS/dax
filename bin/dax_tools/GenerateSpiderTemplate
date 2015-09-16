@@ -46,14 +46,16 @@ SCAN_LEVEL_TEMPLATE = DEFAULT_TEMPLATE+"""
 def parse_args():
     '''
     Argument parser for the spider input variables
-    by default:
+    by default (set in get_session_argparser):
         -p       : proj_label
         -s       : subj_label
         -e       : sess_label
-        -d       : temp_dir
-        --suffix : suffix
-        --manual : manual
         -c       : scan_label
+        -d       : temp_dir
+        --suffix : suffix (suffix for assessor proctype on XNAT)
+        --manual : manual (Manual: Ask user for XNAT loggings if not set)
+    your arguments:
+        ...
 
     :return: argument parser object created by parse_args()
     '''
@@ -87,9 +89,8 @@ class Spider_{name}(ScanSpider):
     '''
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
                  xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
-        super(ScanSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
+        super(ScanSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
                                          xnat_host, xnat_user, xnat_pass, suffix, manual)
-        self.xnat_scan = xnat_scan
         self.inputs = list()
 
     def pre_run(self, argument_parse):
@@ -159,14 +160,16 @@ SESSION_LEVEL_TEMPLATE = DEFAULT_TEMPLATE+"""
 def parse_args():
     '''
         Argument parser for the spider input variables
-        by default:
+        by default (set in get_session_argparser):
             -p       : proj_label
             -s       : subj_label
             -e       : sess_label
             -d       : temp_dir
-            --suffix : suffix
-            --manual : manual
-    
+            --suffix : suffix (suffix for assessor proctype on XNAT)
+            --manual : manual (Manual: Ask user for XNAT loggings if not set)
+        your arguments:
+            ...
+
         :return: argument parser object created by parse_args()
     '''
     from argparse import ArgumentParser
