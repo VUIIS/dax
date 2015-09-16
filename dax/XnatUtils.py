@@ -175,7 +175,7 @@ class SpiderProcessHandler:
             clean_directory(self.directory)
 
         self.print_msg("INFO: Handling results ...")
-        self.print_msg('''-Creating folder {folder} for {label}'''.format(folder=self.directory, label=assessor_label)
+        self.print_msg('''-Creating folder {folder} for {label}'''.format(folder=self.directory, label=assessor_label))
 
     def print_msg(self, msg):
         """ Print message using time_writer if set, print otherwise """
