@@ -241,7 +241,7 @@ class Spider(object):
         """
         self.print_info(author, email)
         self.time_writer('-------- Spider starts --------')
-        self.time_writer('Date and Time at the beginning of the Spider: ', str(datetime.now()))
+        self.time_writer('Date and Time at the beginning of the Spider: '+ str(datetime.now()))
         self.time_writer('INFO: Arguments')
         self.print_args(argument_parse)
 
@@ -287,7 +287,7 @@ class Spider(object):
         """
             Last print statement to give the time and date at the end of the spider
         """
-        self.time_writer('\nTime at the end of the Spider: ', str(datetime.now()))
+        self.time_writer('\nTime at the end of the Spider: '+ str(datetime.now()))
 
     @staticmethod
     def run_system_cmd(cmd):
