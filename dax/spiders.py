@@ -78,21 +78,21 @@ class Spider(object):
         if value:
             return value
         else:
-            if env_name in os.environ:
-                return os.environ[env_name]
+            if self.manual:
+                msg = """Enter <{var}>:""".format(var=variable)
+                if env_name == 'XNAT_PASS':
+                    return getpass.getpass(prompt=msg)
+                else:
+                    return raw_input(msg)
             else:
-                if not self.manual:
+                if env_name in os.environ:
+                    return os.environ[env_name]
+                else:
                     err = "%s not set by user." % (env_name)
                     err += "\nTo set it choose one of this solution:"
                     err += "\n\tSet arguments '%s' in the spider class" % (variable)
                     err += "\n\tSet the environment variable %s" % (env_name)
                     raise ValueError(err)
-                else:
-                    msg = """Enter <{var}>:""".format(var=variable)
-                    if env_name == 'XNAT_PASS':
-                        return getpass.getpass(prompt=msg)
-                    else:
-                        return raw_input(msg)
 
     def select_obj(self, intf, obj_label, resource):
         """
