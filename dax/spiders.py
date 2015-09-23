@@ -53,8 +53,8 @@ class Spider(object):
         self.xnat_session = xnat_session
         # Xnat connection settings:
         self.host = self.get_default_value("xnat_host", "XNAT_HOST", xnat_host)
-        self.user = self.get_default_value("xnat_host", "XNAT_USER", xnat_user)
-        self.pwd = self.get_default_value("xnat_host", "XNAT_PASS", xnat_pass)
+        self.user = self.get_default_value("xnat_user", "XNAT_USER", xnat_user)
+        self.pwd = self.get_default_value("xnat_pass", "XNAT_PASS", xnat_pass)
         # Suffix
         if suffix[0] != '_': self.suffix = '_'+suffix
         else: self.suffix = suffix
