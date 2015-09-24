@@ -36,11 +36,9 @@ class Spider(object):
         :param xnat_user: user for XNAT if not set in environment variables
         :param xnat_pass: password for XNAT if not set in environment variables
         :param suffix: suffix to the assessor creation
-        :param manual: if using the spider manually (not on the cluster) (boolean)
-                       ask user if the HOST/USER/PASS are not set for XNAT
     """
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", manual=False):
+                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
         # Spider path:
         self.spider_path = spider_path
         # directory for temporary files + create it
@@ -54,13 +52,12 @@ class Spider(object):
         # Xnat connection settings:
         self.host = self.get_default_value("xnat_host", "XNAT_HOST", xnat_host)
         self.user = self.get_default_value("xnat_user", "XNAT_USER", xnat_user)
-        self.pwd = self.get_default_value("xnat_pass", "XNAT_PASS", xnat_pass)
+        self.pwd = self.get_pwd(xnat_pwd, xnat_user)
         # Suffix
         if suffix[0] != '_': self.suffix = '_'+suffix
         else: self.suffix = suffix
         # Set the suffix_proc remove any special characters and replace by '_'
         self.suffix = re.sub('[^a-zA-Z0-9]', '_', self.suffix)
-        self.manual = manual
         # print time writer:
         self.time_writer = TimedWriter()
 
@@ -78,20 +75,37 @@ class Spider(object):
         if value:
             return value
         else:
-            if self.manual:
-                msg = """Enter <{var}>:""".format(var=variable)
-                if env_name == 'XNAT_PASS':
+            if env_name in os.environ:
+                return os.environ[env_name]
+            else:
+                err = "%s not set by user." % (env_name)
+                err += "\nTo set it choose one of this solution:"
+                err += "\n\tSet arguments '%s' in the spider class" % (variable)
+                err += "\n\tSet the environment variable %s" % (env_name)
+                raise ValueError(err)
+
+    def get_pwd(self, pwd, user):
+        """
+            Return the password from env or ask user if the user was set
+    
+            :param pwd: password
+            :param user: user 
+            :return: default value
+        """
+        if pwd:
+            return pwd
+        else:
+            if env_name in os.environ:
+                return os.environ[env_name]
+            else:
+                if user:
+                    msg = "Enter password for XNAT:"
                     return getpass.getpass(prompt=msg)
                 else:
-                    return raw_input(msg)
-            else:
-                if env_name in os.environ:
-                    return os.environ[env_name]
-                else:
-                    err = "%s not set by user." % (env_name)
+                    err = "XNAT_HOST not set by user."
                     err += "\nTo set it choose one of this solution:"
-                    err += "\n\tSet arguments '%s' in the spider class" % (variable)
-                    err += "\n\tSet the environment variable %s" % (env_name)
+                    err += "\n\tSet arguments 'xnat_pass' in the spider class"
+                    err += "\n\tSet the environment variable XNAT_HOST"
                     raise ValueError(err)
 
     def select_obj(self, intf, obj_label, resource):
@@ -323,9 +337,9 @@ class ScanSpider(Spider):
         :param xnat_scan: scan ID on XNAT (if running on a specific scan)
     """
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
-                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", manual=False):
+                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", xnat_host=None, xnat_user=None):
         super(ScanSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                                         xnat_host, xnat_user, xnat_pass, suffix, manual)
+                                         xnat_host, xnat_user, xnat_pass, suffix)
         self.xnat_scan = xnat_scan
 
     def define_spider_process_handler(self):
@@ -366,9 +380,9 @@ class SessionSpider(Spider):
         :param super --> see base class
     """
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", manual=False):
+                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", xnat_host=None, xnat_user=None):
         super(SessionSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                                            xnat_host, xnat_user, xnat_pass, suffix, manual)
+                                            xnat_host, xnat_user, xnat_pass, suffix)
 
     def define_spider_process_handler(self):
         """
@@ -460,7 +474,8 @@ def get_default_argparser(name, description):
     ap.add_argument('-e', dest='sess_label', help='Session Label', required=True)
     ap.add_argument('-d', dest='temp_dir', help='Temporary Directory', required=True)
     ap.add_argument('--suffix', dest='suffix', help='assessor suffix. default: None', default=None)
-    ap.add_argument('--manual', dest='manual', help='Manual: Ask user for XNAT loggings if not set', action='store_true')
+    ap.add_argument('--host', dest='host', help='Set XNAT Host. Default: using env variable XNAT_HOST', default=None)
+    ap.add_argument('--user', dest='user', help='Set XNAT User. Default: using env variable XNAT_USER', default=None)
     return ap
 
 def get_session_argparser(name, description):
