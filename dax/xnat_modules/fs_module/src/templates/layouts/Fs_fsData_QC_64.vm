@@ -1,0 +1,94 @@
+##LAYOUT (also see other file in screens)
+##Copyright 2005 Harvard University / Howard Hughes Medical Institute (HHMI) All Rights Reserved
+
+#set ($projlabel = $om.getProject())
+#set ($subjlabel = $mr.getSubjectData().getLabel())
+#set ($mrlabel = $om.getImageSessionData().getLabel())
+#set ($xsi_type = $!item.getXSIType())
+#set ($fslabel = $!item.getStringProperty("$xsi_type/label"))
+#set ($snapshots_path = "/xnat/data/archive/projects/$projlabel/subjects/$subjlabel/experiments/$mrlabel/assessors/$fslabel/out/resources/SNAPSHOTS/files")
+
+<html lang="en" xml:lang="en" xmlns= "http://www.w3.org/1999/xhtml">
+    <HEAD>
+        <meta charset="UTF-8" />
+        <meta name="google" content="notranslate">
+        <meta http-equiv="Content-Language" content="en" />
+        <TITLE>$!systemName</TITLE>
+        #includeJSFile()
+        <link type="text/css" rel="stylesheet" href="$content.getURI("style/xdat.css")"></link>
+        <script type="text/javascript" src="$content.getURI('scripts/slideshow.js')"></script>
+        <SCRIPT type="text/javascript">
+            DEFAULT_DELAY = 100;
+            SKIP_SLICES = 4;
+
+            SST_AXL_SLIDES = new slideshow("SST_AXL_SLIDES");
+            SST_COR_SLIDES = new slideshow("SST_COR_SLIDES");
+            SST_SAG_SLIDES = new slideshow("SST_SAG_SLIDES");
+
+            AXIAL_FIRSTSLICE = 49;
+            AXIAL_LASTSLICE = 205;
+
+            CORONAL_FIRSTSLICE = 29;
+            CORONAL_LASTSLICE = 213;
+
+            SAGITTAL_FIRSTSLICE = 49;
+            SAGITTAL_LASTSLICE = 205;
+
+            #set($label = "SNAPSHOTS")
+
+            IMGTYPES = new Array ('SST');
+            ORIENTATIONS = new Array ('AXL','COR','SAG');
+
+            for (i = 0; i < IMGTYPES.length; i++) {
+                for (j = 0; j < ORIENTATIONS.length; j++) {
+                    var slideObj = window[IMGTYPES[i]+'_'+ORIENTATIONS[j]+'_SLIDES'];
+                    slideObj.prefetch=-1;
+                    slideObj.timeout=DEFAULT_DELAY;
+                }
+             }
+
+            for (i = AXIAL_FIRSTSLICE; i <= AXIAL_LASTSLICE; i=i+SKIP_SLICES) {
+                s = new slideImg();
+                var txt = i;
+                if (i<100) {
+                    txt = "0" + txt;
+                }
+                s.src = "${snapshots_path}/${fslabel}_axl_"+txt+"_surf_and_sub_and_t1.png"
+                s.text = "${fslabel}_axl_"+txt+"_surf_and_sub_and_t1.png";
+                SST_AXL_SLIDES.add_slide(s);
+            }
+
+            for (i = CORONAL_FIRSTSLICE; i <= CORONAL_LASTSLICE; i=i+SKIP_SLICES) {
+            	s = new slideImg();
+            	var txt = i;
+            	if (i<100) {
+                    txt = "0" + txt;
+            	}
+            	s.src = "${snapshots_path}/${fslabel}_cor_"+txt+"_surf_and_sub_and_t1.png"
+            	s.text = "${fslabel}_cor_"+txt+"_surf_and_sub_and_t1.png";
+            	SST_COR_SLIDES.add_slide(s);
+            }
+
+            for (i = SAGITTAL_FIRSTSLICE; i <= SAGITTAL_LASTSLICE; i=i+SKIP_SLICES) {
+            	s = new slideImg();
+            	var txt = i;
+            	if (i<100) {
+                    txt = "0" + txt;
+            	}
+            	s.src = "${snapshots_path}/${fslabel}_sag_"+txt+"_surf_and_sub_and_t1.png"
+            	s.text = "${fslabel}_sag_"+txt+"_surf_and_sub_and_t1.png";
+            	SST_SAG_SLIDES.add_slide(s);
+            }
+        </SCRIPT>
+    </HEAD>
+
+    <BODY>
+        <table width="100%" height="100%" valign="top" border=0>
+            <tr>
+                <td align="left" valign="top">
+                    $screen_placeholder
+                </td>
+            </tr>
+        </table>
+    </BODY>
+</HTML>
