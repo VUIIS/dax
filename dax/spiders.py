@@ -102,10 +102,10 @@ class Spider(object):
                     msg = "Enter password for XNAT:"
                     return getpass.getpass(prompt=msg)
                 else:
-                    err = "XNAT_HOST not set by user."
+                    err = "XNAT_PASS not set by user."
                     err += "\nTo set it choose one of this solution:"
                     err += "\n\tSet arguments 'xnat_pass' in the spider class"
-                    err += "\n\tSet the environment variable XNAT_HOST"
+                    err += "\n\tSet the environment variable XNAT_PASS"
                     raise ValueError(err)
 
     def select_obj(self, intf, obj_label, resource):
@@ -337,7 +337,7 @@ class ScanSpider(Spider):
         :param xnat_scan: scan ID on XNAT (if running on a specific scan)
     """
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
-                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", xnat_host=None, xnat_user=None):
+                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
         super(ScanSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
                                          xnat_host, xnat_user, xnat_pass, suffix)
         self.xnat_scan = xnat_scan
@@ -380,7 +380,7 @@ class SessionSpider(Spider):
         :param super --> see base class
     """
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", xnat_host=None, xnat_user=None):
+                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
         super(SessionSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
                                             xnat_host, xnat_user, xnat_pass, suffix)
 
