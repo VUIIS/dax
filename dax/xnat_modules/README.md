@@ -1,4 +1,5 @@
 Tutorial to install the data-types fs:fsData and proc:genProcData to your XNAT installation:
+===
 
 Prerequisites: install a XNAT instance.
   Follow https://wiki.xnat.org/display/XNAT16/XNAT+1.6+Installation+Guide to install XNAT
