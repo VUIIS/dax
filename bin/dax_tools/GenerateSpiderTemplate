@@ -53,7 +53,8 @@ def parse_args():
         -c       : scan_label
         -d       : temp_dir
         --suffix : suffix (suffix for assessor proctype on XNAT)
-        --manual : manual (Manual: Ask user for XNAT loggings if not set)
+        --host : host for XNAT (default: XNAT_HOST env variable)
+        --user : user on XNAT (default: XNAT_USER env variable)
     your arguments:
         ...
 
@@ -84,13 +85,11 @@ class Spider_{name}(ScanSpider):
         :param xnat_user: user for XNAT if not set in environment variables
         :param xnat_pass: password for XNAT if not set in environment variables
         :param suffix: suffix to the assessor creation
-        :param manual: if using the spider manually (not on the cluster) (boolean)
-                       ask user if the HOST/USER/PASS are not set for XNAT
     '''
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
                  xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
         super(Spider_{name}, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
-                                            xnat_host, xnat_user, xnat_pass, suffix, manual)
+                                            xnat_host, xnat_user, xnat_pass, suffix)
         self.inputs = list()
 
     def pre_run(self, argument_parse):
@@ -138,11 +137,10 @@ if __name__ == '__main__':
                                xnat_subject=args.subj_label,
                                xnat_session=args.sess_label,
                                xnat_scan=args.scan_label,
-                               xnat_host=None,
-                               xnat_user=None,
+                               xnat_host=args.host,
+                               xnat_user=args.user,
                                xnat_pass=None,
-                               suffix=args.suffix,
-                               manual=args.manual)
+                               suffix=args.suffix)
     # print some information before starting
     spider_obj.print_init(args, "{author}", "{email_addr}")
 
@@ -166,7 +164,8 @@ def parse_args():
             -e       : sess_label
             -d       : temp_dir
             --suffix : suffix (suffix for assessor proctype on XNAT)
-            --manual : manual (Manual: Ask user for XNAT loggings if not set)
+            --host : host for XNAT (default: XNAT_HOST env variable)
+            --user : user on XNAT (default: XNAT_USER env variable)
         your arguments:
             ...
 
@@ -196,13 +195,11 @@ class Spider_{name}(SessionSpider):
         :param xnat_user: user for XNAT if not set in environment variables
         :param xnat_pass: password for XNAT if not set in environment variables
         :param suffix: suffix to the assessor creation
-        :param manual: if using the spider manually (not on the cluster) (boolean)
-                       ask user if the HOST/USER/PASS are not set for XNAT
     '''
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
                  xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
         super(Spider_{name}, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                                            xnat_host, xnat_user, xnat_pass, suffix, manual)
+                                            xnat_host, xnat_user, xnat_pass, suffix)
         self.inputs = list()
 
     def pre_run(self, argument_parse):
@@ -249,11 +246,10 @@ if __name__ == '__main__':
                                xnat_project=args.proj_label,
                                xnat_subject=args.subj_label,
                                xnat_session=args.sess_label,
-                               xnat_host=None,
-                               xnat_user=None,
+                               xnat_host=args.host,
+                               xnat_user=args.user,
                                xnat_pass=None,
-                               suffix=args.suffix,
-                               manual=args.manual)
+                               suffix=args.suffix)
     # print some information before starting
     spider_obj.print_init(args, "{author}", "{email_addr}")
 
