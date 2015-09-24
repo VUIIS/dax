@@ -60,13 +60,17 @@ class Spider(object):
         self.suffix = re.sub('[^a-zA-Z0-9]', '_', self.suffix)
         # print time writer:
         self.time_writer = TimedWriter()
+        # Export the variable:
+        os.environ['XNAT_HOST'] = self.host
+        os.environ['XNAT_USER'] = self.user
+        os.environ['XNAT_PASS'] = self.pwd
 
     def get_default_value(self, variable, env_name, value):
         """
             Return the default value for the variable:
                 if arg not NULL
                 else env variables define by arguments
-    
+
             :param variable: variable name
             :param env_name: name of the environment variable
             :param value:    value given by the user
@@ -75,7 +79,7 @@ class Spider(object):
         if value:
             return value
         else:
-            if env_name in os.environ:
+            if env_name in os.environ and os.environ[env_name]!="":
                 return os.environ[env_name]
             else:
                 err = "%s not set by user." % (env_name)
@@ -87,20 +91,20 @@ class Spider(object):
     def get_pwd(self, pwd, user):
         """
             Return the password from env or ask user if the user was set
-    
+
             :param pwd: password
-            :param user: user 
+            :param user: user
             :return: default value
         """
         if pwd:
             return pwd
         else:
-            if "XNAT_PASS" in os.environ:
-                return os.environ["XNAT_PASS"]
+            if user:
+                msg = "Enter the password for user '%s' on your XNAT -- %s :" % (user, self.host)
+                return getpass.getpass(prompt=msg)
             else:
-                if user:
-                    msg = "Enter password for XNAT:"
-                    return getpass.getpass(prompt=msg)
+                if "XNAT_PASS" in os.environ and os.environ["XNAT_PASS"]!="":
+                    return os.environ["XNAT_PASS"]
                 else:
                     err = "XNAT_PASS not set by user."
                     err += "\nTo set it choose one of this solution:"
@@ -111,7 +115,7 @@ class Spider(object):
     def select_obj(self, intf, obj_label, resource):
         """
             Select scan or assessor resource
-    
+
             :param obj_label: xnat object label (scan ID or assessor label)
             :param resource: folder name under the xnat object
             return pyxnat object
@@ -148,7 +152,7 @@ class Spider(object):
                   download(scan_id, "DICOM", "/Users/test")
                  or
                   download(assessor_label, "DATA", "/Users/test")
-    
+
             :param obj_label: xnat object label (scan ID or assessor label)
             :param resource: folder name under the xnat object
             :param folder: download directory
@@ -183,7 +187,7 @@ class Spider(object):
             E.g:
                 spider.upload("/Users/DATA/", "DATA")
                 spider.upload("/Users/stats_dir/statistical_measures.txt", "STATS")
-    
+
             :param fpath: path to the folder/file to be uploaded
             :param resource: folder name to upload to on the assessor
         """
@@ -206,7 +210,7 @@ class Spider(object):
             E.g:
                 fdict = {"DATA" : "/Users/DATA/", "PDF": "/Users/PDF/report.pdf"}
                 spider.upload_dict("/Users/DATA/", "DATA")
-    
+
             :param files_dict: python dictionary containing the pair resource/fpath
         """
         self.has_spider_handler()
@@ -416,7 +420,7 @@ class TimedWriter(object):
 
         Args:
             name - Names to write with output (default=None)
-    
+
         Examples:
             >>>a = Time_Writer()
             >>>a("this is a test")
@@ -424,7 +428,7 @@ class TimedWriter(object):
             >>>sleep(60)
             >>>a("this is a test")
             [00d 00h 01m 00s] this is a test
-    
+
         Written by Andrew Plassard (Vanderbilt)
     '''
     def __init__(self, name=None):
