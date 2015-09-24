@@ -107,9 +107,7 @@ class Spider(object):
                     return os.environ["XNAT_PASS"]
                 else:
                     err = "XNAT_PASS not set by user."
-                    err += "\nTo set it choose one of this solution:"
-                    err += "\n\tSet arguments 'xnat_pass' in the spider command line"
-                    err += "\n\tSet the environment variable XNAT_PASS"
+                    err += "\n\t   Set the environment variable XNAT_PASS"
                     raise ValueError(err)
 
     def select_obj(self, intf, obj_label, resource):
