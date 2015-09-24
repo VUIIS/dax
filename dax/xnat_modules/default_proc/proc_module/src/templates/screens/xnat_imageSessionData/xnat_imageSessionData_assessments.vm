@@ -1,0 +1,157 @@
+<script type="text/javascript" src="$content.getURI("scripts/FileViewerProcessing.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/FileViewerProcessingPdf.js")"></script>
+
+<script type="text/javascript">
+	var obja=new Object();
+    obja.uri=serverRoot + "/REST/experiments/$!om.getId()";
+    obja.categories=new Object();
+    obja.categories.ids=new Array();
+
+    #if($om.getMinimalLoadAssessors().size()>0)
+      obja.categories.ids.push("assessors");
+      obja.categories["assessors"]=new Array();
+      #foreach($assessor in $om.getMinimalLoadAssessors())
+        obja.categories["assessors"].push({id:"$assessor.getId()",label:"$!assessor.getLabel() "});
+      #end
+    #end
+
+	window.pviewer=new FileViewerProcessing(obja);
+</script>
+
+<script type="text/javascript">
+	var objp=new Object();
+    objp.uri=serverRoot + "/REST/experiments/$!om.getId()";
+    objp.categories=new Object();
+    objp.categories.ids=new Array();
+
+    #if($om.getMinimalLoadAssessors().size()>0)
+      objp.categories.ids.push("assessors");
+      objp.categories["assessors"]=new Array();
+      #foreach($assessor in $om.getMinimalLoadAssessors())
+        objp.categories["assessors"].push({id:"$assessor.getId()",label:"$!assessor.getLabel() "});
+      #end
+    #end
+
+	window.pdfviewer=new FileViewerProcessingPdf(objp);
+	window.addEventListener ?
+	window.addEventListener("load",window.pdfviewer.init(),false) :
+	window.attachEvent && window.attachEvent("onload",window.pdfviewer.init());
+</script>
+
+#if($om.getMinimalLoadAssessors().size()>0)
+
+	<div class="edit_header1" style="margin-bottom:16px">Processing</div>
+	<table style="padding-left:5px;padding-right:5px;padding-bottom:1px;padding-top:1px;" cellspacing="0" border="0" width="90%">
+		<tr>
+			<TH class="underscore"></TH>
+			<TH class="underscore" NOWRAP>Type</TH>
+			<TH class="underscore" align="center" NOWRAP>PDF</TH>
+			<TH class="underscore" NOWRAP>Proc Date</TH>
+			<TH class="underscore" NOWRAP>Proc ID</TH>
+			<TH class="underscore" NOWRAP>Job Status</TH>
+			<TH class="underscore" NOWRAP>QC Status</TH>
+			<TH class="underscore" align="left">Files</TH>
+		</tr>
+
+		#set ($assessorCounter = 3000)
+
+		#foreach ($proc in $om.getChildItems("assessors/assessor"))
+			#set ($procDate = "")
+			#set ($xsiType   = $!proc.getXSIType())
+			#set ($procType  = $!proc.getXSIType())
+			#set ($procDate  = $!proc.getProperty("date"))
+		    #set ($procID    = $!proc.getProperty("ID"))
+		    #set ($procLabel = $!proc.getProperty("label"))
+			#set ($procField = "${procType}.ID")
+			#set ($procurl   = "$link.setAction('DisplayItemAction').addPathInfo('search_element',$!proc.getXSIType()).addPathInfo('search_field',$procField).addPathInfo('search_value',$procID).addPathInfo('popup',$popup).addPathInfo('project',$!project)" )
+			#set ($editprocurl = "$link.setPage('XDATScreen_edit_proc_genProcData.vm').addPathInfo('search_value',$procID).addPathInfo('search_element','proc:genProcData').addPathInfo('search_field','proc:genProcData.ID')")
+			#set ($editfsprocurl = "$link.setPage('XDATScreen_edit_fs_fsData.vm').addPathInfo('search_value',$procID).addPathInfo('search_element','fs:fsData').addPathInfo('search_field','fs:fsData.ID')")
+			#set ($pdfImage = $content.getURI("images/pdf.gif"))
+
+			#set ($procStatus  = "")
+		    #if ($procType == 'proc:genProcData' || $procType == 'fs:fsData')
+				#set ($procStatus = $!proc.getProperty("procstatus"))
+			#end
+
+			#set ($qcStatus  = $!proc.getProperty("xnat:experimentData.validation/status"))
+
+
+			<tr>
+	    		<td border=0 align=left NOWRAP>
+        			<a name="LINK${assessorCounter}" href="#LINK${assessorCounter}" onClick=" return blocking($assessorCounter);">
+          				<img ID="IMG$assessorCounter" src="$content.getURI('images/plus.jpg')" border=0/>
+        			</a>
+        		</td>
+				<TD NOWRAP>
+					#if($proc.canRead($user))
+						#set ( $url = "$link.setAction('DisplayItemAction').addPathInfo('search_element',$!proc.getXSIType()).addPathInfo('search_field',$procField).addPathInfo('search_value',$procID).addPathInfo('popup',$popup).addPathInfo('project',$!project)" )
+						#if($proc.getHeader())
+							<a href="$url" title="$proc.getIdentifier($project)">$!proc.getHeader()</A>
+						#elseif ($procType == 'xnat:qcAssessmentData')
+							#set ($qcType = $!proc.getProperty("type"))
+							<a href="$procurl" title="$proc.getIdentifier($project)">$qcType</A>
+						#elseif ($procType == 'proc:genProcData')
+							#set ($procType = $!proc.getProperty("proctype"))
+							<a href="$url" title="$proc.getIdentifier($project)">$procType</A>
+						#else
+							<a href="$url" title="$proc.getIdentifier($project)">$user.getDisplayManager().getDisplayNameForElement($proc.getXSIType())</A>
+						#end
+					#else
+						#if($proc.getHeader())
+							<a title="$proc.getIdentifier($project)">$!proc.getHeader()</A>
+						#elseif ($procType == 'xnat:qcAssessmentData')
+							#set ($qcType = $!proc.getProperty("type"))
+							<a title="$proc.getIdentifier($project)">$qcType</A>
+						#elseif ($procType == 'proc:genProcData')
+							#set ($procType = $!proc.getProperty("proctype"))
+							<a title="$proc.getIdentifier($project)">$procType</A>
+						#else
+							<a title="$proc.getIdentifier($project)">$user.getDisplayManager().getDisplayNameForElement($proc.getXSIType())</A>
+						#end
+					#end
+				</TD>
+				<td align="center" NOWRAP>
+					<div id="assessors_${procID}_pdf">...</div>
+				</td>
+				<td NOWRAP>$!procDate</td>
+				<td NOWRAP><a href="$procurl" title="$proc.getIdentifier($project)">$!procLabel</A></td>
+				<td NOWRAP>$!procStatus</td>
+				#if($xsiType == 'proc:genProcData')
+					#if($qcStatus == 'Needs QA')
+						<td NOWRAP><a href="$editprocurl" title="$proc.getIdentifier($project)">$!qcStatus</a></td>
+					#else
+						<td NOWRAP>$!qcStatus</a></td>
+					#end
+				#elseif ($xsiType == 'fs:fsData')
+					#if($qcStatus == 'Needs QA')
+						<td NOWRAP><a href="$editfsprocurl" title="$proc.getIdentifier($project)">$!qcStatus</a></td>
+					#else
+						<td NOWRAP>$!qcStatus</a></td>
+					#end
+				#end
+				<td border=0 align=left NOWRAP>
+	        		<div id="assessors_${procID}_stats">
+	          			<a onclick="window.pviewer.init();">Show Counts</a>
+	        		</div>
+	      		</td>
+			</tr>
+			<tr>
+				<td colspan="7" NOWRAP>
+					<span ID="span$!assessorCounter" style="position:relative; display:none;">
+	          			<table>
+	          				<tr>
+			  	  	  	  		<td> </td>
+					  	  	  	<td>Image </td>
+							  	<td align="left">
+							  		<A target="_blank" HREF="$content.getURI("/REST/experiments/$om.getId()/assessors/${procID}/out/resources/SNAPSHOTS/files?file_content=ORIGINAL&index=0")" > <IMG SRC="$content.getURI("/REST/experiments/$om.getId()/assessors/${procID}/out/resources/SNAPSHOTS/files?file_content=THUMBNAIL&index=0")"> </A>
+							  	</td>
+			          		</tr>
+						</table>
+        			</span>
+      			</td>
+    		</tr>
+    		#set ($assessorCounter= $assessorCounter + 1)
+		#end
+	</table>
+
+#end
