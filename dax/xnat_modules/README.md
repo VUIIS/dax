@@ -49,12 +49,12 @@ Prerequisites: install a XNAT instance.
 
   4) for fs:fsData -- choose fs:fsData
 
-    a) Add to the fields:
+   a) Add to the fields:
 
-      enter *FreeSurfer* in both Singular Name and Plural Name field
-      enter *FS* in Code field
+      enter **FreeSurfer** in both Singular Name and Plural Name field
+      enter **FS** in Code field
 
-    b) Add to "Available Report Actions" delete if you want to be able to delete assessor with the following values:
+   b) Add to "Available Report Actions" delete if you want to be able to delete assessor with the following values:
 
       Remove Name: delete
       Display Name: Delete
@@ -66,16 +66,16 @@ Prerequisites: install a XNAT instance.
       Additional Parameters:
       Sequence: 4
 
-    c) click submit and then accept defaults for subsequent screens
+   c) click submit and then accept defaults for subsequent screens
 
   5) for proc:genProcData
 
-    a) Add to the fields:
+   a) Add to the fields:
 
-      enter *Processing* in both Singular Name and Plural Name field
-      enter *Proc* in Code field
+      enter **Processing** in both Singular Name and Plural Name field
+      enter **Proc** in Code field
 
-    b) Add to "Available Report Actions" delete if you want to be able to delete assessor with the following values:
+   b) Add to "Available Report Actions" delete if you want to be able to delete assessor with the following values:
 
       Remove Name: delete
       Display Name: Delete
@@ -87,6 +87,6 @@ Prerequisites: install a XNAT instance.
       Additional Parameters:
       Sequence: 4
 
-    c) click submit and then accept defaults for subsequent screens
+   c) click submit and then accept defaults for subsequent screens
 
 You are now ready to use the two assessors fs:fsData and proc:genProcData
