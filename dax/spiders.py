@@ -52,7 +52,7 @@ class Spider(object):
         # Xnat connection settings:
         self.host = self.get_default_value("xnat_host", "XNAT_HOST", xnat_host)
         self.user = self.get_default_value("xnat_user", "XNAT_USER", xnat_user)
-        self.pwd = self.get_pwd(xnat_pwd, xnat_user)
+        self.pwd = self.get_pwd(xnat_pass, xnat_user)
         # Suffix
         if suffix[0] != '_': self.suffix = '_'+suffix
         else: self.suffix = suffix
@@ -95,8 +95,8 @@ class Spider(object):
         if pwd:
             return pwd
         else:
-            if env_name in os.environ:
-                return os.environ[env_name]
+            if "XNAT_PASS" in os.environ:
+                return os.environ["XNAT_PASS"]
             else:
                 if user:
                     msg = "Enter password for XNAT:"
