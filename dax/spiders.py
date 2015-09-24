@@ -50,8 +50,8 @@ class Spider(object):
         self.xnat_subject = xnat_subject
         self.xnat_session = xnat_session
         # Xnat connection settings:
-        self.host = self.get_default_value("xnat_host", "XNAT_HOST", xnat_host)
-        self.user = self.get_default_value("xnat_user", "XNAT_USER", xnat_user)
+        self.host = self.get_default_value("host", "XNAT_HOST", xnat_host)
+        self.user = self.get_default_value("user", "XNAT_USER", xnat_user)
         self.pwd = self.get_pwd(xnat_pass, xnat_user)
         # Suffix
         if suffix[0] != '_': self.suffix = '_'+suffix
@@ -80,7 +80,7 @@ class Spider(object):
             else:
                 err = "%s not set by user." % (env_name)
                 err += "\nTo set it choose one of this solution:"
-                err += "\n\tSet arguments '%s' in the spider class" % (variable)
+                err += "\n\tSet the option --%s in the spider class" % (variable)
                 err += "\n\tSet the environment variable %s" % (env_name)
                 raise ValueError(err)
 
@@ -104,7 +104,7 @@ class Spider(object):
                 else:
                     err = "XNAT_PASS not set by user."
                     err += "\nTo set it choose one of this solution:"
-                    err += "\n\tSet arguments 'xnat_pass' in the spider class"
+                    err += "\n\tSet arguments 'xnat_pass' in the spider command line"
                     err += "\n\tSet the environment variable XNAT_PASS"
                     raise ValueError(err)
 
