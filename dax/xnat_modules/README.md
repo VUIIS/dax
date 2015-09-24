@@ -1,12 +1,12 @@
 Tutorial to install our two data-types to your XNAT installation
 ===
 
-Installation of fs:fsData and proc:genProcData 
+#Installation of fs:fsData and proc:genProcData 
 
 Prerequisites: install a XNAT instance.
   Follow https://wiki.xnat.org/display/XNAT16/XNAT+1.6+Installation+Guide to install XNAT
 
-On XNAT VM:
+**On XNAT VM:**
 
   1) Make a BACKUP of your $XNAT_HOME, postgres db, and tomcat deployment
 
@@ -46,7 +46,7 @@ On XNAT VM:
 
   7) Start tomcat
 
-ON XNAT webpage:
+**ON XNAT webpage:**
 
   1) Log onto XNAT as admin
 
