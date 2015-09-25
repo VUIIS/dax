@@ -39,7 +39,7 @@ Prerequisites: install a XNAT instance.
 
   7) Start tomcat
 
-**ON XNAT webpage:**
+**ON XNAT webapp:**
 
   1) Log onto XNAT as admin
 
