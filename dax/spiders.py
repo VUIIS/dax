@@ -207,7 +207,7 @@ class Spider(object):
             following the files python dictionary: {resource_name : fpath}
             E.g:
                 fdict = {"DATA" : "/Users/DATA/", "PDF": "/Users/PDF/report.pdf"}
-                spider.upload_dict("/Users/DATA/", "DATA")
+                spider.upload_dict(fdict)
 
             :param files_dict: python dictionary containing the pair resource/fpath
         """
