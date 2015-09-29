@@ -45,6 +45,7 @@ if __name__ == '__main__':
                    'bin/dax_tools/GenerateModuleTemplate',
                    'bin/dax_tools/GenerateProcessorTemplate',
                    'bin/dax_tools/GenerateSpiderTemplate',
+				   'bin/dax_tools/GenerateSettingsTemplate',
                    'bin/freesurfer_tools/fsupload',
                    'bin/freesurfer_tools/fsdownload',
                    'bin/freesurfer_tools/fsview',

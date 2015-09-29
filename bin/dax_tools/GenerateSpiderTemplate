@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
     Title: generate_spider_template.py
     Author: Benjamin Yvernault
@@ -6,9 +9,6 @@
         Generate your Spider.py following the template for spider describe in this file.
 """
 
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 __author__ = 'Benjamin Yvernault'
 __email__ = 'b.yvernault@ucl.ac.uk'
 __purpose__ = "Generate your Spider.py following the template for spider describe in this file."
@@ -16,6 +16,7 @@ __version__ = '1.0.0'
 __modifications__ = '21 August 2015 - Original write'
 
 import os
+import re
 from dax import spiders
 from datetime import datetime
 
@@ -64,7 +65,7 @@ def parse_args():
     ap = spiders.get_scan_argparser("{name}", "{purpose}")
 
     #
-    # ADD YOUR OTHER OPTIONS FOR THIS SPECIFIC SPIDER 
+    # ADD YOUR OTHER OPTIONS FOR THIS SPECIFIC SPIDER
     # example to add one options:
     # ap.add_argument("--option", dest="option_id", default=None, help="Option description.", required=True)
     #
@@ -205,7 +206,7 @@ class Spider_{name}(SessionSpider):
     def pre_run(self, argument_parse):
         '''
             Method to download data from XNAT
-    
+
             :param argument_parse: argument parser object return by parse_args()
         '''
         resource = 'XXXX' #resource to download from the scan on XNAT
@@ -266,7 +267,7 @@ if __name__ == '__main__':
 def write_spider(spider_fpath, templates, args):
     """
         Create the Spider path with the proper template
-    
+
         :param spider_fpath: path where the spider script will be saved
         :param templates: template to use (scan or session)
         :param args: arguments parser
@@ -303,9 +304,20 @@ def parse_args():
 if __name__ == '__main__':
     ARGS = parse_args()
 
-    # Removing Spider if present in name
-    if ARGS.name[:6] == "Spider":
-        ARGS.name = ARGS.name[6:]
+    ## Get a proper name from the input
+    # remove .py if present at the end of the file
+    if ARGS.name.endswith('.py'):
+        ARGS.name = ARGS.name[:-3]
+    # remove settings if present in name
+    if "spider" in ARGS.name.lower():
+        spider_search = re.compile(re.escape('spider'), re.IGNORECASE)
+        ARGS.name = spider_search.sub('', ARGS.name)
+    # remove any particular character and change it by an underscore
+    ARGS.name = re.sub('[^a-zA-Z0-9]', '_', ARGS.name)
+    if ARGS.name[-1] == '_':
+        ARGS.name = ARGS.name[:-1]
+
+    ## Check version
     if not spiders.is_good_version(ARGS.version):
         err = "wrong format version given to script." + \
               "It must follow the X.Y.Z template with X, Y, and Z integers." + \

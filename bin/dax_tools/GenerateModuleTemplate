@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
     Title: GenerateModuleTemplate
     Author: Benjamin Yvernault
@@ -6,9 +9,6 @@
         Generate your module.py following the template for module describe in this file.
 """
 
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 __author__ = 'Benjamin Yvernault'
 __email__ = 'b.yvernault@ucl.ac.uk'
 __purpose__ = "Generate your module.py following the template for module describe in this file."
@@ -16,6 +16,7 @@ __version__ = '1.0.0'
 __modifications__ = '24 August 2015 - Original write'
 
 import os
+import re
 from datetime import datetime
 
 DEFAULT_TEMPLATE = """'''
@@ -275,10 +276,18 @@ def parse_args():
 if __name__ == '__main__':
     ARGS = parse_args()
 
-    # Removing Spider if present in name
+    ## Get a proper name from the input
+    # remove .py if present at the end of the file
+    if ARGS.name.endswith('.py'):
+        ARGS.name = ARGS.name[:-3]
+    # remove settings if present in name
     if "module" in ARGS.name.lower():
-        ERR = "wrong name for the module. Remove 'module' from the name."
-        raise ValueError(ERR)
+        module_search = re.compile(re.escape('module'), re.IGNORECASE)
+        ARGS.name = module_search.sub('', ARGS.name)
+    # remove any particular character and change it by an underscore
+    ARGS.name = re.sub('[^a-zA-Z0-9]', '_', ARGS.name)
+    if ARGS.name[-1] == '_':
+        ARGS.name = ARGS.name[:-1]
 
     MODULE_NAME = """Module_{name}.py""".format(name=ARGS.name)
     if ARGS.directory and os.path.exists(ARGS.directory):
