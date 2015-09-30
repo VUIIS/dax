@@ -287,8 +287,8 @@ def parse_args():
         Parser for arguments
     """
     from argparse import ArgumentParser
-    usage = "Generates snapshots/preview for the scans for all subjects in a project."
-    argp = ArgumentParser(prog='make_preview_xnat', description=usage)
+    usage = "Generate your Spider.py following the dax template for spider."
+    argp = ArgumentParser(prog='GenerateSpiderTemplate', description=usage)
     argp.add_argument('-n', dest='name', help='Name for Spider. E.G: fMRIQA.', required=True)
     argp.add_argument('-v', dest='version',
                       help='Spider version (format: X.Y.Z). E.G: 1.0.0', required=True)
