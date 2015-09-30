@@ -115,8 +115,8 @@ def parse_args():
     Parser for arguments
     """
     from argparse import ArgumentParser
-    usage = "Generate a processor.py file from the template for dax in a new file."
-    argp = ArgumentParser(prog='GenerateProcessorTemplate', description=usage)
+    usage = "Generate a ProjectSettingsFile.py file from the dax template for settings file."
+    argp = ArgumentParser(prog='GenerateSettingsTemplate', description=usage)
     argp.add_argument('-n', dest='name', help='Name for ProjectSettingsFile.', required=True)
     argp.add_argument('-a', dest='author', help='Author name.', required=True)
     argp.add_argument('-e', dest='email', help='Author email address.', required=True)
