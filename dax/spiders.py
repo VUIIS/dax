@@ -60,11 +60,11 @@ class Spider(object):
             # Set the suffix_proc remove any special characters and replace by '_'
             self.suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
             # Replace multiple underscores by one
-            self.suffix = re.sub('_+', '_', self.suffix =)
+            self.suffix = re.sub('_+', '_', self.suffix)
             # Remove underscore if at the end of suffix
             if self.suffix[-1] == '_': self.suffix = self.suffix[:-1]
             # Add an underscore at the beginning if not present
-            if suffix[0] != '_': self.suffix = '_'+self.suffix
+            if self.suffix[0] != '_': self.suffix = '_'+self.suffix
         # print time writer:
         self.time_writer = TimedWriter()
         # Export the variable:
