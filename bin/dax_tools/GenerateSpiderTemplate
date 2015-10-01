@@ -134,6 +134,7 @@ if __name__ == '__main__':
     args = parse_args()
     # generate spider object:
     spider_obj = Spider_{name}(spider_path=sys.argv[0],
+                               jobdir=args.temp_dir,
                                xnat_project=args.proj_label,
                                xnat_subject=args.subj_label,
                                xnat_session=args.sess_label,
@@ -244,6 +245,7 @@ if __name__ == '__main__':
     args = parse_args()
     # generate spider object:
     spider_obj = Spider_{name}(spider_path=sys.argv[0],
+                               jobdir=args.temp_dir,
                                xnat_project=args.proj_label,
                                xnat_subject=args.subj_label,
                                xnat_session=args.sess_label,
