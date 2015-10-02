@@ -73,7 +73,7 @@ class Processor_{name}(ScanProcessor):
     '''
     def __init__(self, spider_path=DEFAULT_SPIDER_PATH, version=None,
                  walltime=DEFAULT_WALLTIME, mem_mb=DEFAULT_MEM,
-                 scan_types=DEFAULT_SCAN_TYPES, spm_path=PathSettings.SPM_PATH, suffix_proc=''):
+                 scan_types=DEFAULT_SCAN_TYPES, suffix_proc=''):
         super(Processor_{name}, self).__init__(scan_types, walltime, mem_mb, spider_path,
                                                version, suffix_proc=suffix_proc)
         #
@@ -160,7 +160,7 @@ class {name}_Processor(SessionProcessor):
     '''
     def __init__(self, spider_path=DEFAULT_SPIDER_PATH, version=None,
                  walltime=DEFAULT_WALLTIME, mem_mb=DEFAULT_MEM,
-                 spm_path=PathSettings.SPM_PATH, suffix_proc=''):
+                 suffix_proc=''):
         super({name}_Processor, self).__init__(walltime, mem_mb, spider_path, version,
                                                suffix_proc=suffix_proc)
         #
@@ -208,7 +208,6 @@ class {name}_Processor(SessionProcessor):
                                    proj=proj_label,
                                    subj=subj_label,
                                    sess=sess_label,
-                                   spm=self.spm_path,
                                    dir=jobdir)
 
         return [cmd]
