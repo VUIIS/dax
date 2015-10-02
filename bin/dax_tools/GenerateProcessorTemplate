@@ -52,7 +52,7 @@ SCAN_LEVEL_TEMPLATE = DEFAULT_TEMPLATE+"""
 DEFAULT_SCAN_TYPES = [] # ADD SCAN TYPES
 
 # Format for the spider command line
-SPIDER_FORMAT = '''python {{spider}} -p {{proj}} -s {{subj}} -e {{sess}} -c {{scan}}\
+SPIDER_FORMAT = '''python {{spider}} -p {{proj}} -s {{subj}} -e {{sess}} -c {{scan}} \
 -d {{dir}} --suffix "{{suffix_proc}}"'''
 
 class Processor_{name}(ScanProcessor):
@@ -142,7 +142,7 @@ class Processor_{name}(ScanProcessor):
 
 SESSION_LEVEL_TEMPLATE = DEFAULT_TEMPLATE+"""
 # Format for the spider command line
-SPIDER_FORMAT = '''python {{spider}} -p {{proj}} -s {{subj}} -e {{sess}}\
+SPIDER_FORMAT = '''python {{spider}} -p {{proj}} -s {{subj}} -e {{sess}} \
 -d {{dir}} --suffix "{{suffix_proc}}"'''
 
 class {name}_Processor(SessionProcessor):
