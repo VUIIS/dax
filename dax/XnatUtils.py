@@ -1594,6 +1594,110 @@ def get_input_str(input_val, default_val):
 ####################################################################################
 #                                5) Cached Class                                   #
 ####################################################################################
+class CachedImageSubject():
+    """ Class to cache the subject XML information from XNAT.
+        Note that scans is a list, assessors is a list, and
+        sessions is also a list. The list here is not sorted.
+        It is the default return of the REST call. The requirement
+        to check for proper order should be handled in the processor
+
+        TODO: Do we want to include assessors here? I don't think it makes
+        any sense but we can if it seems prudent"""
+
+    def __init__(self, xnat, proj, subj):
+        """ Init function """
+        #self.sess_element = ET.fromstring(xnat.session_xml(proj,sess))
+        xml_str = xnat.select('/project/'+proj+'/subject/'+subj).get()
+        # print xml_str
+        self.subj_element = ET.fromstring(xml_str)
+        self.project = proj
+        self.subject = subj
+        self.xnat = xnat
+
+    def label(self):
+        """ return label of the subject """
+        return self.subj_element.get('label')
+
+    def get(self, name):
+        """ return value of a variable name for the subject.
+            Note that this will likely not be too helpful but it is included
+            to remain consistent with other Cached* methods."""
+        value = self.subj_element.get(name)
+        if value != None:
+            return value
+
+        element = self.subj_element.find(name, NS)
+        if element != None:
+            return element.text
+
+        split_array = name.rsplit('/', 1)
+        if len(split_array) == 2:
+            tag, attr = split_array
+            element = self.subj_element.find(tag, NS)
+            if element != None:
+                value = element.get(attr)
+                if value != None:
+                    return value
+
+        return ''
+
+    def sessions(self):
+        """
+        Method to find all the sessions belonging to a subject in XNAT
+        :return: a list of CachedImageSessions for the subject
+        """
+        session_list = []
+        session_elements = self.subj_element[0]
+        if len(session_elements) !=0:
+            for session in session_elements:
+                session_list.append(CachedImageSession(self.xnat, self.project, self.subject, session.get('label')))
+
+        return session_list
+
+    # See comment in the classdoc
+    # def assessors(self):
+    #     """ return a list of cacheassessors objects for the FIRST session only"""
+    #     assr_list = []
+    #
+    #     assr_elements = self.subj_element[0][0].find('xnat:assessors', NS)
+    #     if assr_elements:
+    #         for assr in assr_elements:
+    #             assr_list.append(CachedImageAssessor(assr, self))
+    #
+    #     return assr_list
+
+    def info(self):
+        """ return a dict with the XNAT information for the session """
+        subj_info = {}
+
+        subj_info['ID'] = self.get('ID')
+        subj_info['label'] = self.get('label')
+        subj_info['project_id'] = self.project
+        subj_info['subject_id'] = subj_info['ID']
+        subj_info['subject_label'] = self.subject
+        subj_info['project_label'] = subj_info['project_id']
+        subj_info['project'] = subj_info['project_id']
+        subj_info['subject_ID'] = subj_info['ID']
+
+        return subj_info
+
+    def resources(self):
+        """ return the list of cached Resources object """
+        res_list = []
+
+        file_elements = self.subj_element.findall('xnat:resources/xnat:resource', NS)
+        if file_elements:
+            for file_element in file_elements:
+                xsi_type = file_element.get('{http://www.w3.org/2001/XMLSchema-instance}type')
+                if xsi_type == 'xnat:resourceCatalog':
+                    res_list.append(CachedResource(file_element, self))
+
+        return res_list
+
+    def get_resources(self):
+        """ return list of dictionaries of the resources for the session """
+        return [res.info() for res in self.resources()]
+
 class CachedImageSession():
     """ Class to cache the session XML information from XNAT """
     def __init__(self, xnat, proj, subj, sess):
