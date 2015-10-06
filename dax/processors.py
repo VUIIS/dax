@@ -173,12 +173,54 @@ class SessionProcessor(Processor):
         assessor = session.assessor(assessor_name)
         return task.Task(self, assessor, upload_dir)
 
+class SubjectProcessor(Processor):
+    """ Subject Processor class for processor on a session on XNAT.
+    This is to be used strictly for longitudinal processes. An example would
+    be multi-timepoint processing in FreeSurfer"""
+    def has_inputs(self):
+        """ return status, qcstatus
+            status = 0 if still NEED_INPUTS, -1 if NO_DATA, 1 if NEED_TO_RUN
+            qcstatus = only when -1 or 0.
+            You can set it to a short string that explain why it's no ready to run.
+                e.g: No NIFTI
+        """
+        raise NotImplementedError()
+
+    def __init__(self, walltime_str, memreq_mb, spider_path, version=None, ppn=1, suffix_proc=''):
+        """ init function overridden from base class """
+        super(SubjectProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn, suffix_proc)
+
+    def should_run(self, subject_dict):
+        """ return if the assessor should exist. This one is still in alpha,
+            so let's assume we need to do some deep checks and always return
+            false by default"""
+
+        return False
+
+    def get_assessor_name(self, csubject):
+        """ return the assessor label. Note that this assessor is store ONLY in the FIRST session. """
+        session_dict = csubject.info().sessions()[0]
+
+        proj_label = session_dict['project']
+        subj_label = session_dict['subject_label']
+        sess_label = session_dict['label']
+        return proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+self.name
+
+    def get_task(self, intf, csubject, upload_dir):
+        """ return the task for this process """
+        sess_info = csubject.info().sessions()[0]
+        assessor_name = self.get_assessor_name(csubject)
+        session = XnatUtils.get_full_object(intf, sess_info)
+        assessor = session.assessor(assessor_name)
+        return task.Task(self, assessor, upload_dir)
+
 def processors_by_type(proc_list):
     """ function to organize the assessor by type
         return two lists: one for scan, one for session
     """
     exp_proc_list = list()
     scan_proc_list = list()
+    subj_proc_list = list()
 
     # Build list of processors by type
     for proc in proc_list:
@@ -186,7 +228,9 @@ def processors_by_type(proc_list):
             scan_proc_list.append(proc)
         elif issubclass(proc.__class__, SessionProcessor):
             exp_proc_list.append(proc)
+        elif issubclass(proc.__class__, SubjectProcessor):
+            subj_proc_list.append(proc)
         else:
             LOGGER.warn('unknown processor type:'+proc)
 
-    return exp_proc_list, scan_proc_list
+    return exp_proc_list, scan_proc_list, subj_proc_list
