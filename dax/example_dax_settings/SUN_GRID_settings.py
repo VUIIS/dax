@@ -55,7 +55,7 @@ CMD_GET_JOB_MEMORY=Template("""qstat""") #not define
 CMD_GET_JOB_WALLTIME=Template("""qstat""") #not define
 #Template for your PBS
 JOB_EXTENSION_FILE='.pbs' 
-PBS_TEMPLATE = Template("""#!/bin/bash
+JOB_TEMPLATE = Template("""#!/bin/bash
 #$ -q clusterjob
 #$ -l mem_free=${job_memory}M
 #$ -l mem_token=${job_memory}M
