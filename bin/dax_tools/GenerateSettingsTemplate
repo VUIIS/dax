@@ -1,0 +1,154 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+    Title: GenerateSettingsTemplate
+    Author: Benjamin Yvernault
+    contact: b.yvernault@ucl.ac.uk
+    Purpose:
+        Generate your ProjectSettingsFile.py following the template describe in this file.
+"""
+
+__author__ = 'Benjamin Yvernault'
+__email__ = 'b.yvernault@ucl.ac.uk'
+__purpose__ = 'Generate your ProjectSettingsFile.py following the template describe in this file.'
+__version__ = '1.0.0'
+__modifications__ = '29 Septembre 2015 - Original write'
+
+import os
+import re
+from datetime import datetime
+from dax import dax_settings
+
+DEFAULT_TEMPLATE = """'''
+    Author:                     {author}
+    contact:                    {email_addr}
+    Project Settings File name: {name}
+    Creation date:              {now}
+    Purpose:                    Settings file to describe the modules/processors for the project(s)
+'''
+
+## header:
+__author__ = "{author}"
+__email__ = "{email_addr}"
+__purpose__ = "Settings file to describe the modules/processors for the project(s)"
+__processor_name__ = "{name}"
+__modifications__ = "{now} - Original write"
+
+## Python packages import:
+import os
+from dax import Launcher
+from Xnat_process_importer import *
+from Xnat_module_importer import *
+
+## Arguments for Launcher:
+EMAIL = "{email_addr}"
+QUEUE_LIMIT = {q_limit}
+PRIORITY_ORDER = {p_order}  # CHANGE THE ORDER OF PRIORITY FOR YOUR PROJECT(S)
+EMAIL_OPTS = {e_opts}
+
+## Modules
+
+#
+# DEFINE THE MODULES YOU WANT TO RUN FOR YOUR PROJECT(S).
+# E.G: VUSTP_Module_dcm2nii = Module_dcm2nii(directory="/tmp/dcm2nii_phillips")
+#
+
+## Processors
+
+#
+# DEFINE THE PROCESSORS YOU WANT TO RUN FOR YOUR PROJECT(S).
+# E.G: VUSTP_1_Processor_fMRIQA = Processor_fMRIQA(mem_mb="4096",version="2.0.0")
+#
+
+## Associate Project with modules/processors
+# modules
+# ADD THE MODULES FOR EACH PROJECT OR LEAVE IT EMPTY
+proj_mod = {p_mod}
+
+#processors
+# ADD THE PROCESSORS FOR EACH PROJECT OR LEAVE IT EMPTY
+proj_proc = {p_proc}
+
+## Launcher
+myLauncher = Launcher(proj_proc, proj_mod, priority_project=PRIORITY_ORDER,
+                      job_email=EMAIL, job_email_options=EMAIL_OPTS,
+                      queue_limit=QUEUE_LIMIT)
+
+"""
+
+def write_settings(settings_fpath, args):
+    """
+    Write the ProjectSettingsFile.py from the template
+
+    :param settings_fpath: path where the settings script will be saved
+    :param args: arguments parser
+    """
+    priority = args.p_order.split(",")
+    p_mod = '{'
+    p_proc = '{'
+    for ind,  project in enumerate(priority):
+        if ind != 0:
+            p_mod += ' '*12+'"'+project+'": [],\n' # 12 = length of proj_mod = {
+            p_proc += ' '*13+'"'+project+'": [],\n' # 13 = length of proj_proc = {
+        else:
+            p_mod += '"'+project+'": [],\n' # 12 = length of proj_mod = {
+            p_proc += '"'+project+'": [],\n' # 13 = length of proj_proc = {
+    p_mod = p_mod[:-2]+'}'
+    p_proc = p_proc[:-2]+'}'
+
+    settings_code = DEFAULT_TEMPLATE.format(author=args.author,
+                                            email_addr=args.email,
+                                            name=args.name,
+                                            now=str(datetime.now()),
+                                            q_limit=args.q_limit,
+                                            p_order=priority,
+                                            e_opts=args.e_opts,
+                                            p_mod=p_mod,
+                                            p_proc=p_proc)
+    f_obj = open(settings_fpath, "w")
+    f_obj.writelines(settings_code)
+    f_obj.close()
+
+def parse_args():
+    """
+    Parser for arguments
+    """
+    from argparse import ArgumentParser
+    usage = "Generate a ProjectSettingsFile.py file from the dax template for settings file."
+    argp = ArgumentParser(prog='GenerateSettingsTemplate', description=usage)
+    argp.add_argument('-n', dest='name', help='Name for ProjectSettingsFile.', required=True)
+    argp.add_argument('-a', dest='author', help='Author name.', required=True)
+    argp.add_argument('-e', dest='email', help='Author email address.', required=True)
+    argp.add_argument('-p', dest='p_order', help='Projects to process in order separate by a coma. E.G: ADNI,Test,Project3', required=True)
+    argp.add_argument('--Qlimit', dest='q_limit', help='Queue limit on cluster to submit jobs. Default: '+str(dax_settings.DEFAULT_QUEUE_LIMIT),
+                      default=dax_settings.DEFAULT_QUEUE_LIMIT)
+    argp.add_argument('--Eopts', dest='e_opts', help='Options for email in the job. Default= '+dax_settings.DEFAULT_EMAIL_OPTS,
+                      default=dax_settings.DEFAULT_EMAIL_OPTS)
+    argp.add_argument('-d', dest='directory', help='Directory where the processor file will be generated. Default: current directory.', default=None)
+    return argp.parse_args()
+
+if __name__ == '__main__':
+    ARGS = parse_args()
+
+    ## Get a proper name from the input
+    # remove .py if present at the end of the file
+    if ARGS.name.endswith('.py'):
+        ARGS.name = ARGS.name[:-3]
+    # remove settings if present in name
+    if "settings" in ARGS.name.lower():
+        settings_search = re.compile(re.escape('settings'), re.IGNORECASE)
+        ARGS.name = settings_search.sub('', ARGS.name)
+    # remove any particular character and change it by an underscore
+    ARGS.name = re.sub('[^a-zA-Z0-9]', '_', ARGS.name)
+    if ARGS.name[-1] == '_':
+        ARGS.name = ARGS.name[:-1]
+
+    SETTINGS_NAME = """Settings_{name}.py""".format(name=ARGS.name)
+    if ARGS.directory and os.path.exists(ARGS.directory):
+        SETTINGS_FPATH = os.path.join(ARGS.directory, SETTINGS_NAME)
+    else:
+        SETTINGS_FPATH = os.path.join(os.getcwd(), SETTINGS_NAME)
+
+    print "Generating file %s for scan processor %s ..." % (SETTINGS_FPATH, ARGS.name)
+    write_settings(SETTINGS_FPATH, ARGS)

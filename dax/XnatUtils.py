@@ -128,11 +128,12 @@ class AssessorHandler:
 
 class SpiderProcessHandler:
     """ Handle the results of a spider """
-    def __init__(self, script_name, suffix, project, subject, experiment, scan=None):
+    def __init__(self, script_name, suffix, project, subject, experiment, scan=None, time_writer=None):
         """ initialization """
         #Variables:
         self.error = 0
         self.has_pdf = 0
+        self.time_writer = time_writer
         # Get the process name and the version
         if len(script_name.split('/')) > 1:
             script_name = os.path.basename(script_name)
@@ -141,7 +142,7 @@ class SpiderProcessHandler:
         if 'Spider' in script_name:
             script_name = script_name[7:]
 
-        #ge the processname from spider
+        # get the processname from spider
         if len(re.split("/*_v[0-9]/*", script_name)) > 1:
             self.version = script_name.split('_v')[-1].replace('_','.')
             proctype = re.split("/*_v[0-9]/*", script_name)[0]+'_v'+self.version.split('.')[0]
@@ -155,6 +156,8 @@ class SpiderProcessHandler:
                 suffix = '_'+suffix
             # suffix: remove any special characters and replace by '_'
             suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
+            if suffix[-1] == '_':
+                suffix = suffix[:-1]
             proctype = proctype + suffix
 
         #Create the assessor handler
@@ -173,8 +176,22 @@ class SpiderProcessHandler:
             #Remove files in directories
             clean_directory(self.directory)
 
-        print'INFO: Handling results ...'
-        print'''  -Creating folder {folder} for {label}'''.format(folder=self.directory, label=assessor_label)
+        self.print_msg("INFO: Handling results ...")
+        self.print_msg('''-Creating folder {folder} for {label}'''.format(folder=self.directory, label=assessor_label))
+
+    def print_msg(self, msg):
+        """ Print message using time_writer if set, print otherwise """
+        if self.time_writer:
+            self.time_writer(msg)
+        else:
+            print msg
+
+    def print_err(self, msg):
+        """ Print error message using time writer if set, print otherwise"""
+        if self.time_writer:
+            self.time_writer.print_stderr_message(err_message)
+        else:
+            print "Error: "+msg
 
     def set_error(self):
         """ set the error to one """
@@ -184,7 +201,7 @@ class SpiderProcessHandler:
         """ check if file exists """
         if not os.path.isfile(fpath.strip()):
             self.error = 1
-            print '''ERROR: file {file} does not exists.'''.format(file=fpath)
+            self.print_err('''file {file} does not exists.'''.format(file=fpath))
             return False
         else:
             return True
@@ -193,15 +210,14 @@ class SpiderProcessHandler:
         """ check if folder exists """
         if not os.path.isdir(fpath.strip()):
             self.error = 1
-            print '''ERROR: folder {folder} does not exists.'''.format(folder=fpath)
+            self.print_err('''folder {folder} does not exists.'''.format(folder=fpath))
             return False
         else:
             return True
 
-    @staticmethod
-    def print_copying_statement(label, src, dest):
+    def print_copying_statement(self, label, src, dest):
         """ print statement for copying data """
-        print '''  -Copying {label}: {src} to {dest}'''.format(label=label, src=src, dest=dest)
+        self.print_msg('''  -Copying {label}: {src} to {dest}'''.format(label=label, src=src, dest=dest))
 
     def add_pdf(self, filepath):
         """ add a file to resource pdf in the upload dir """
@@ -210,7 +226,7 @@ class SpiderProcessHandler:
             if filepath.lower().endswith('.ps'):
                 pdf_path = os.path.splitext(filepath)[0]+'.pdf'
                 ps2pdf_cmd = '''ps2pdf {ps} {pdf}'''.format(ps=filepath, pdf=pdf_path)
-                print '''  -Convertion {cmd} ...'''.format(cmd=ps2pdf_cmd)
+                self.print_msg('''  -Convertion {cmd} ...'''.format(cmd=ps2pdf_cmd))
                 os.system(ps2pdf_cmd)
             else:
                 pdf_path = filepath
@@ -249,10 +265,10 @@ class SpiderProcessHandler:
                 self.print_copying_statement(res, folderpath, dest)
             # Directories are the same
             except shutil.Error as excep:
-                print 'Directory not copied. Error: %s' % excep
+                self.print_err('Directory not copied. Error: %s' % excep)
             # Any error saying that the directory doesn't exist
             except OSError as excep:
-                print 'Directory not copied. Error: %s' % excep
+                self.print_err('Directory not copied. Error: %s' % excep)
 
     def set_assessor_status(self, status):
         """ Set the status of an assessor """
@@ -267,10 +283,10 @@ class SpiderProcessHandler:
             if assessor.exists() and former_status == JOB_RUNNING :
                 if self.assr_handler.get_proctype() == 'FS':
                     assessor.attrs.set('fs:fsdata/procstatus', status)
-                    print '  -status set for FreeSurfer to '+str(status)
+                    self.print_msg('  -status set for FreeSurfer to '+str(status))
                 else:
                     assessor.attrs.set('proc:genProcData/procstatus', status)
-                    print '  -status set for assessor to '+str(status)
+                    self.print_msg('  -status set for assessor to '+str(status))
         except:
             # fail to access XNAT -- let dax_upload set the status
             pass
@@ -285,13 +301,13 @@ class SpiderProcessHandler:
         f_obj.close()
         #Finish the folder
         if not self.error and self.has_pdf:
-            print 'INFO: Job ready to be upload, error: '+ str(self.error)
+            self.print_msg('INFO: Job ready to be upload, error: '+ str(self.error))
             #make the flag folder
             open(os.path.join(self.directory, READY_TO_UPLOAD+'.txt'), 'w').close()
             #set status to ReadyToUpload
             self.set_assessor_status(READY_TO_UPLOAD)
         else:
-            print 'INFO: Job failed, check the outlogs, error: '+ str(self.error)
+            self.print_msg('INFO: Job failed, check the outlogs, error: '+ str(self.error))
             #make the flag folder
             open(os.path.join(self.directory, JOB_FAILED+'.txt'), 'w').close()
             #set status to JOB_FAILED

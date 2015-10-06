@@ -1,0 +1,185 @@
+##SCREEN (also see other file in screens)
+<SCRIPT type="text/javascript">
+    function updateAllSlides() {
+        populateSlideSelector();
+        for (i = 0; i < IMGTYPES.length; i++) {
+            for (j = 0; j < ORIENTATIONS.length; j++) {
+                var slideObj = window[IMGTYPES[i]+'_'+ORIENTATIONS[j]+'_SLIDES'];
+                slideObj.update();
+            }
+        }
+        setDelayText(DEFAULT_DELAY/100);
+    }
+
+    function populateSlideSelector() {
+        for (i = 0; i < IMGTYPES.length; i++) {
+            var selectionElement = document.getElementById(IMGTYPES[i]+'_AXL_sliceSelector');
+            for (j=AXIAL_FIRSTSLICE, k=0 ; j <= AXIAL_LASTSLICE; j=j+SKIP_SLICES, k++) {
+                selectionElement.options[k]=new Option(j,k);
+            }
+            selectionElement = document.getElementById(IMGTYPES[i]+'_COR_sliceSelector');
+            for (j=CORONAL_FIRSTSLICE, k=0 ; j <= CORONAL_LASTSLICE; j=j+SKIP_SLICES, k++) {
+                selectionElement.options[k]=new Option(j,k);
+            }
+            selectionElement = document.getElementById(IMGTYPES[i]+'_SAG_sliceSelector');
+            for (j=SAGITTAL_FIRSTSLICE, k=0 ; j <= SAGITTAL_LASTSLICE; j=j+SKIP_SLICES, k++) {
+                selectionElement.options[k]=new Option(j,k);
+            }
+        }
+    }
+
+    function setDelayText(delay) {
+        var delayTxt = document.getElementById('delayTxt');
+        delayTxt.innerHTML = "Delay: " + delay + "s";
+    }
+
+    function goto_slide(orientation,sliceno){
+        for (i = 0; i < IMGTYPES.length; i++) {
+            var slideObj = window[IMGTYPES[i]+'_'+orientation+'_SLIDES'];
+            var sliceSelectorObj = document.getElementById(IMGTYPES[i]+'_'+orientation+'_sliceSelector');
+            slideObj.pause();
+            slideObj.goto_slide(sliceno);
+            sliceSelectorObj.options[sliceno].selected=true;
+        }
+    }
+
+    function zoomUp() {
+        for (i = 0; i < IMGTYPES.length; i++) {
+            for (j = 0; j < ORIENTATIONS.length; j++) {
+                var slideObj = window[IMGTYPES[i]+'_'+ORIENTATIONS[j]+'_SLIDES'];
+                slideObj.zoomUp();
+            }
+        }
+    }
+
+    function zoomDown() {
+        for (i = 0; i < IMGTYPES.length; i++) {
+            for (j = 0; j < ORIENTATIONS.length; j++) {
+                var slideObj = window[IMGTYPES[i]+'_'+ORIENTATIONS[j]+'_SLIDES'];
+                slideObj.zoomDown();
+            }
+        }
+    }
+
+    function delayUp() {
+        for (i = 0; i < IMGTYPES.length; i++) {
+            for (j = 0; j < ORIENTATIONS.length; j++) {
+                var slideObj = window[IMGTYPES[i]+'_'+ORIENTATIONS[j]+'_SLIDES'];
+                slideObj.pause();
+                slideObj.timeout += 100;
+            }
+        }
+        setDelayText(window[IMGTYPES[0]+'_'+ORIENTATIONS[0]+'_SLIDES'].timeout/100);
+    }
+
+    function delayDown() {
+        for (i = 0; i < IMGTYPES.length; i++) {
+            for (j = 0; j < ORIENTATIONS.length; j++) {
+                var slideObj = window[IMGTYPES[i]+'_'+ORIENTATIONS[j]+'_SLIDES'];
+                slideObj.pause();
+                var currentTimeout = slideObj.timeout - 100;
+                if (currentTimeout < 0 ) slideObj.timeout = 100;
+                else slideObj.timeout = currentTimeout;
+            }
+        }
+        setDelayText(window[IMGTYPES[0]+'_'+ORIENTATIONS[0]+'_SLIDES'].timeout/100);
+    }
+
+</SCRIPT>
+
+<body onLoad="updateAllSlides()">
+<form ID="freesurferQCFORM"  method="POST" action="$link.setAction("DownloadFreesurferAction")" >
+<table>
+    <tr>
+        <td>Session: <b>$om.getImageSessionData().getLabel()</b></td>
+        <td><input name="zoomMinusBtn" id="zoomMinusBtn" type="button" value="-" onClick="zoomDown()" /></td>
+        <td>Zoom</td>
+        <td><input name="zoomPlusBtn" id="zoomPlusBtn" type="button" value="+" onClick="zoomUp()" /></td>
+        <td><input name="delayMinusBtn" id="delayMinusBtn" type="button" value="-" onClick="delayDown()" /></td>
+        <td><span id="delayTxt"> Delay:</span></td>
+        <td><input name="delayPlusBtn" id="delayPlusBtn" type="button" value="+" onClick="delayUp()" /></td>
+        <BR/>
+        <BR/>
+        <a href="LINK0" HREF="#LINK0" onClick=" return blocking(0);" ><img ID="IMG0" src="$content.getURI("images/plus.jpg")" border=0 ><b>2D Slices</b></a>
+        <div id="span0" style="position:relative;display:none">
+            <table>
+                <tr>
+                    <th>AXIAL SLICES</th>
+	            </tr>
+	            <tr>
+                    <td align="center">
+                    	<div id="SST_AXL_BTN_TABLE" >
+                    		<input name="playPauseBtn" id="playPauseBtn_SST_AXL" type="button" value="Play " onclick="SST_AXL_SLIDES.playPause(this.id)" />
+                    		<!--<input name="playBtn" id="playBtn_SST_COR" type="button" value="Play" onclick="SST_AXL_SLIDES.next();SST_AXL_SLIDES.play()" />
+                    		<input name="stopBtn" id="stopBtn_SST_COR" type="button" value="Stop" onClick="SST_AXL_SLIDES.pause()" />-->
+                    		<input name="prevBtn" id="prevBtn_SST_COR" type="button" value="Prev" onClick="SST_AXL_SLIDES.previous()" />
+                    		<input name="nextBtn" id="nextBtn_SST_COR" type="button" value="Next" onClick="SST_AXL_SLIDES.next()" />
+                    		<select id="SST_AXL_sliceSelector" name="SST_AXL_sliceSelector" onchange="goto_slide('AXL',this.value);"></select>
+                    	</div>
+                    </td>
+	            </tr>
+                <tr>
+                	<td><div id="SST_AXL"><IMG name="SST_AXL_SLIDES_IMG" id="SST_AXL_SLIDES_IMG" src="images/minus.jpg" alt="SST Axial Slices"></div></td>
+                </tr>
+            </table>
+            <table>
+            	<tr>
+            		<th>CORONAL SLICES</th>
+            	</tr>
+            	<tr>
+            		<td align="center"><div id="SST_COR_BTN_TABLE" >
+            			<input name="playPauseBtn" id="playPauseBtn_SST_COR" type="button" value="Play " onclick="SST_COR_SLIDES.playPause(this.id)" />
+            			<!--<input name="playBtn" id="playBtn_SST_COR" type="button" value="Play" onclick="SST_COR_SLIDES.next();SST_COR_SLIDES.play()" />
+            			<input name="stopBtn" id="stopBtn_SST_COR" type="button" value="Stop" onClick="SST_COR_SLIDES.pause()" />-->
+            			<input name="prevBtn" id="prevBtn_SST_COR" type="button" value="Prev" onClick="SST_COR_SLIDES.previous()" />
+            			<input name="nextBtn" id="nextBtn_SST_COR" type="button" value="Next" onClick="SST_COR_SLIDES.next()" />
+            			<select id="SST_COR_sliceSelector" name="SST_COR_sliceSelector" onchange="goto_slide('COR',this.value);"></select>
+            		</div></td>
+            	</tr>
+            	<tr>
+            		<td><div id="SST_COR"><IMG name="SST_COR_SLIDES_IMG" id="SST_COR_SLIDES_IMG" src="images/minus.jpg" alt="SST Coronal Slices"></div></td>
+            	</tr>
+            </table>
+            <table>
+            	<tr>
+            		<th>SAGITTAL SLICES</th>
+            	</tr>
+            	<tr>
+            		<td align="center"><div id="SST_SAG_BTN_TABLE">
+            		<input name="playPauseBtn" id="playPauseBtn_SST_SAG" type="button" value="Play " onclick="SST_SAG_SLIDES.playPause(this.id)" />
+            		<!--<input name="playBtn" id="playBtn_SST_COR" type="button" value="Play" onclick="SST_SAG_SLIDES.next();SST_SAG_SLIDES.play()" />
+            		<input name="stopBtn" id="stopBtn_SST_COR" type="button" value="Stop" onClick="SST_SAG_SLIDES.pause()" />-->
+            		<input name="prevBtn" id="prevBtn_SST_COR" type="button" value="Prev" onClick="SST_SAG_SLIDES.previous()" />
+            		<input name="nextBtn" id="nextBtn_SST_COR" type="button" value="Next" onClick="SST_SAG_SLIDES.next()" />
+            		<select id="SST_SAG_sliceSelector" name="SST_SAG_sliceSelector" onchange="goto_slide('SAG',this.value);"></select>
+            		</div></td>
+            	</tr>
+            	<tr>
+            		<td><div id="SST_SAG"><IMG name="SST_SAG_SLIDES_IMG" id="SST_SAG_SLIDES_IMG" src="images/minus.jpg" alt="SST Sagittal Slices"></div></td>
+            	</tr>
+            </table>
+        </div>
+
+        #set ($search_element = "xnat:mrSessiondata")
+        #set ($search_field = "xnat:mrSessiondata.ID")
+        #set ($search_value = $om.getImagesessionId())
+        #set ($project = $om.getProject())
+
+        #xdatPassItemFormFields($search_element $search_field $search_value $project)
+        #set ($label = "DATA")
+        <input type="hidden" name="freesurfer_path" value="$om.getResourceCatalogRootPathByLabel($label)">
+</table>
+</form>
+
+<SCRIPT type="text/javascript">
+    if (document.images) {
+      SST_AXL_SLIDES.image = document.images.SST_AXL_SLIDES_IMG;
+      SST_AXL_SLIDES.update();
+
+      SST_COR_SLIDES.image = document.images.SST_COR_SLIDES_IMG;
+      SST_COR_SLIDES.update();
+
+      SST_SAG_SLIDES.image = document.images.SST_SAG_SLIDES_IMG;
+      SST_SAG_SLIDES.update();
+    }
+</SCRIPT>

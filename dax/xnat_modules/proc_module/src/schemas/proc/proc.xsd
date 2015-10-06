@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema targetNamespace="http://nrg.wustl.edu/proc"
+	xmlns:proc="http://nrg.wustl.edu/proc"
+	xmlns:xdat="http://nrg.wustl.edu/xdat"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	xmlns:xnat="http://nrg.wustl.edu/xnat"
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://nrg.wustl.edu/xnat" schemaLocation="../xnat/xnat.xsd"/>
+	<xs:element name="Processing" type="proc:genProcData" />
+	<xs:complexType name="genProcData">
+		<xs:complexContent>
+			<xs:extension base="xnat:imageAssessorData">
+				<xs:sequence>
+					<xs:element name="scans">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="scan" maxOccurs="unbounded">
+									<xs:annotation>
+										<xs:appinfo>
+											<xdat:field>
+												<xdat:relation uniqueComposite="ASSESSOR_ID" />
+											</xdat:field>
+										</xs:appinfo>
+									</xs:annotation>
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+				</xs:sequence>
+				<xs:element name="procstatus" type="xs:string" use="optional" />
+				<xs:element name="proctype" type="xs:string" use="optional" />
+                <xs:element name="procversion" type="xs:string" use="optional" />
+                <xs:element name="jobid" type="xs:string" use="optional" />
+				<xs:element name="walltimeused" type="xs:string" use="optional" />
+				<xs:element name="memusedmb" type="xs:integer" use="optional" />
+				<xs:element name="jobstartdate" type="xs:date" use="optional"/>
+				<xs:element name="memused" type="xs:string" use="optional" />
+				<xs:element name="jobnode" type="xs:string" use="optional" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+</xs:schema>

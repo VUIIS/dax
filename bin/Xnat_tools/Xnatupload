@@ -409,7 +409,7 @@ def upload_data_xnat(xnat,options,scan_list,assessor_list):
     for index,ps in enumerate(sorted(proj_subj_list)):
         project=ps.split('-x-')[0]
         subject=ps.split('-x-')[1]
-        logger.info(' * '+str(index+1)+'/'+str(number)+' Project/Subject : '+project+'/'+subject)
+        logger.info(' * '+str(index+1)+'/'+str(number)+' subjects -- Pair Project/Subject : '+project+'/'+subject)
         ##SCAN##
         for scan in extract_obj_one_subject(project,subject,scan_list): 
             scan_obj,_=get_xnat_obj(xnat,scan,options.session_type)

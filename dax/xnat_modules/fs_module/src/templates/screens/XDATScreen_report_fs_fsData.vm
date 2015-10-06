@@ -1,0 +1,234 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2//EN">
+$page.setTitle("Freesurfer Analysis Details")
+$page.setLinkColor($ui.alink)
+$page.setVlinkColor($ui.vlink)
+#if ($data.getParameters().getString("popup"))
+	#set ($popup = $data.getParameters().getString("popup") )
+	#set ($popup = "false")
+#end
+
+<TABLE width="100%">
+	<TR>
+		<TD>
+			<table width="100%">
+				<TR>
+					<TD align="left" valign="middle">
+						<font face="$ui.sansSerifFonts" size="3"><b>Freesurfer Analysis Details</b></font>
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+			<TABLE width="100%">
+				<TR>
+					<TD valign="top">
+						<TABLE>
+							#set ($id=".ID")
+							#set ($field="$om.getImageSessionData().getXSIType()$id")
+
+							#set ($url = "$link.setAction('DisplayItemAction').addPathInfo('search_element',$om.getImageSessionData().getXSIType()).addPathInfo('search_field',$field).addPathInfo('search_value',$om.getImageSessionData().getId()).addPathInfo('project',$om.getProject())")
+							<TR><TD>Project</TD><TD>$!item.getStringProperty("fs:fsData/project")</TD></TR>
+							<TR><TD>MRSession</TD><TD><a href="$url">$om.getImageSessionData().getLabel()</a></TD></TR>
+							<TR><TD>FS ID</TD><TD>$!item.getStringProperty("fs:fsData/label")</TD></TR>
+							<TR><TD>FS Date</TD><TD>$!item.getProperty("fs:fsData/date")</TD></TR>
+							<TR><TD>Note</TD><TD>$!item.getStringProperty("fs:fsData/note")</TD></TR>
+							<TR><TD>FS Version</TD><TD>$!item.getStringProperty("fs:fsData/fsversion")</TD></TR>
+							<TR><TD>Proc Version</TD><TD>$!item.getStringProperty("fs:fsData/procversion")</TD></TR>
+						</TABLE>
+						<br />
+                        <TABLE>
+                        	<TR><TH>Job Information</TH></TR>
+                            <TR><TD>Job Status</TD><TD><strong>$!item.getStringProperty("fs:fsData/procstatus")</strong></TD></TR>
+							<TR><TD>Job ID</TD><TD>$!item.getStringProperty("fs:fsData/jobid")</TD></TR>
+							<TR><TD>Job Start Date</TD><TD>$!item.getStringProperty("fs:fsData/jobstartdate")</TD></TR>
+							<TR><TD>Job Node</TD><TD>$!item.getStringProperty("fs:fsData/jobnode")</TD></TR>
+							<TR><TD>Walltime Used</TD><TD>$!item.getStringProperty("fs:fsData/walltimeused")</TD></TR>
+							<TR><TD>Mem Used</TD><TD>$!item.getStringProperty("fs:fsData/memused")</TD></TR>
+                        </TABLE>
+                        <br />
+                        <TABLE>
+                        	<TR><TH>QC Information</TH></TR>
+                            <TR><TD>Status</TD><TD><strong>$!item.getStringProperty("fs:fsData/validation/status")</strong></TD></TR>
+							<TR><TD>Set by</TD><TD>$!item.getStringProperty("fs:fsData/validation/validated_by")</TD></TR>
+							<TR><TD>Date</TD><TD>$!item.getStringProperty("fs:fsData/validation/date")</TD></TR>
+							<TR><TD>Method</TD><TD>$!item.getStringProperty("fs:fsData/validation/method")</TD></TR>
+							<TR><TD>Notes</TD><TD>$!item.getStringProperty("fs:fsData/validation/notes")</TD></TR>
+                        </TABLE>
+					</TD>
+					<TD valign="top" align="right">
+						#elementActionsBox($element $search_field $search_value $data.getSession().getAttribute("user") $item)
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+</TABLE>
+
+<BR/>
+<BR/>
+
+#set ($url = "$link.setPage('Fs_fsData_QC_64.vm').addPathInfo('search_value',$item.getProperty('ID')).addPathInfo('search_element','fs:fsData').addPathInfo('search_field','fs:fsData.ID')")
+<a href="" onclick="return popupWithProperties('$url','','width=1050,height=800,status=yes,resizable=yes,scrollbars=yes')" >View Snapshots</a>
+
+<BR/>
+<BR/>
+
+#set ($scanCounter = 0)
+<a name="LINK${scanCounter}" href="#LINK${scanCounter}" onClick=" return blocking($scanCounter);">
+	<img ID="IMG$scanCounter" src="$content.getURI("images/plus.jpg")" border=0>
+	Subcortical Segmentation
+</a>
+<SPAN ID="span$!scanCounter" style="position:relative; display:none;">
+	<TABLE>
+		<TR>
+			<TD>
+				<TABLE width="100%">
+					<TR>
+						<TD valign="top">
+							<TABLE>
+								<TR><TD>ICV</TD><TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/icv"),0)</TD></TR>
+								<TR><TD>Left hemi. cortical gray matter vol.</TD><TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/lhcortexvol"),0)</TD></TR>
+								<TR><TD>Right hemi. cortical gray matter vol.</TD><TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/rhcortexvol"),0)</TD></TR>
+								<TR><TD>Total cortical gray matter vol. (based on surface-stream) </TD><TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/cortexvol"),0)</TD></TR>
+								<TR><TD>Subcortical gray matter vol.</TD><TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/subcortgrayvol"),0)</TD></TR>
+								<TR><TD>Total gray matter vol.</TD><TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/totalgrayvol"),0)</TD></TR>
+								<TR><TD>Supratentorial vol.</TD><TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/supratentorialvol"),0)</TD></TR>
+								<TR><TD>Left hemi. cortical white matter vol.</TD><TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/lhcorticalwhitemattervol"),0)</TD></TR>
+								<TR><TD>Right hemi. cortical white matter vol.</TD><TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/rhcorticalwhitemattervol"),0)</TD></TR>
+								<TR><TD>Total cortical white matter vol.</TD><TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/corticalwhitemattervol"),0)</TD></TR>
+							</TABLE>
+						</TD>
+						<TD valign="top" align="right">&nbsp;
+						</TD>
+					</TR>
+				</TABLE>
+			</TD>
+		</TR>
+		<TR>
+			<TD>
+				<!-- BEGIN fs_fsData VOLUMETRIC MEASURES -->
+				#set($fs_fsData_region_11_NUM_ROWS=$item.getChildItems("fs:fsData/measures/volumetric/regions/region").size() - 1)
+				#if($fs_fsData_region_11_NUM_ROWS>=0)
+					<table>
+						<tr><TH>Region Name</TH><TH>Seg Id</TH><TH>Hemisphere</TH><TH>NVoxels</TH><TH>Volume</TH><TH>Mean</TH><TH>Range</TH></tr>
+
+						#foreach($fs_fsData_region_11_COUNTER in [0..$fs_fsData_region_11_NUM_ROWS])
+							<!-- BEGIN fs_fsData/measures/volumetric/regions/region[$fs_fsData_region_11_COUNTER] -->
+							<tr>
+								<TD>$!item.getStringProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_region_11_COUNTER]/name")</TD>
+								<TD>$!item.getStringProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_region_11_COUNTER]/SegId")</TD>
+								<TD>$!item.getStringProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_region_11_COUNTER]/hemisphere")</TD>
+								<TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_region_11_COUNTER]/NVoxels"),0)</TD>
+								<TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_region_11_COUNTER]/Volume"),0)</TD>
+								<TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_region_11_COUNTER]/normMean"),4) +-$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_region_11_COUNTER]/normStdDev"),4)</TD>
+								<TD>$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_region_11_COUNTER]/normRange"),0)&nbsp;($!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_region_11_COUNTER]/normMin"),0)-$!turbineUtils.formatNumber($!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_region_11_COUNTER]/normMax"),0))</TD>
+							</tr>
+							<!-- END fs_fsData/measures/volumetric/regions/region[$fs_fsData_region_11_COUNTER] -->
+						#end
+					</table>
+				#end
+				<!-- END fs_fsData VOLUMETRIC MEASURES-->
+			</TD>
+		</TR>
+	</TABLE>
+</SPAN>
+<BR/>
+
+<!-- BEGIN fs_fsData SURFACE MEASURES-->
+<BR/>
+#set ($scanCounter = 1)
+<a name="LINK${scanCounter}" href="#LINK${scanCounter}" onClick=" return blocking($scanCounter);">
+	<img ID="IMG$scanCounter" src="$content.getURI("images/plus.jpg")" border=0>
+	Surface Measures
+</a>
+
+<SPAN ID="span$!scanCounter" style="position:relative; display:none;">
+	<TABLE>
+		<TR>
+			<TD>
+				#set($fs_fsData_hemisphere_12_NUM_ROWS=$item.getChildItems("fs:fsData/measures/surface/hemisphere").size() - 1)
+				#if($fs_fsData_hemisphere_12_NUM_ROWS>=0)
+					#set ($hemis = $om.getMeasures_surface_hemisphere())
+					#set ($hemis_NUM_ROWS = $hemis.size() - 1)
+					#foreach($fs_fsData_hemisphere_COUNTER in [0..$hemis_NUM_ROWS])
+						#set ($hemi = $hemis.get($fs_fsData_hemisphere_COUNTER))
+						#set ($hemi_regions = $hemi.getRegions_region())
+						#set ($hemi_regions_NUM_ROWS = $hemi_regions.size() - 1)
+						<table>
+							<TR><TH align="left" colspan="9">Hemisphere: $hemi.getName() NumVert: $!turbineUtils.formatNumber($hemi.getNumvert(),0) SurfArea: $!turbineUtils.formatNumber($hemi.getSurfarea(),0)</TH></TR>
+							<TR><TH>Region Name</TH><TH>NumVert</TH><TH>SurfArea</TH><TH>GrayVol</TH><TH>Thickness</TH><TH>MeanCurv</TH><TH>GausCurv</TH><TH>FoldInd</TH><TH>CurvInd</TH></TR>
+
+							#foreach($fs_fsData_hemisphere_regions_COUNTER in [0..$hemi_regions_NUM_ROWS])
+							#set ($region = $!hemi_regions.get($fs_fsData_hemisphere_regions_COUNTER))
+								<tr>
+								<TD> $!region.getName()</TD>
+								<TD>$!turbineUtils.formatNumber($!region.getNumvert(),0)</TD>
+								<TD>$!turbineUtils.formatNumber($!region.getSurfarea(),0)</TD>
+								<TD>$!turbineUtils.formatNumber($!region.getGrayvol(),0)</TD>
+								<TD>$!turbineUtils.formatNumber($!region.Thickavg,3) +-$!turbineUtils.formatNumber($!region.Thickstd,3)</TD>
+								<TD>$!turbineUtils.formatNumber($!region.getMeancurv(),3)</TD>
+								<TD>$!turbineUtils.formatNumber($!region.getGauscurv(),3)</TD>
+								<TD>$!turbineUtils.formatNumber($!region.getFoldind(),3)</TD>
+								<TD>$!turbineUtils.formatNumber($!region.getCurvind(),3)</TD>
+
+								</tr>
+							#end
+						</table>
+					#end
+				#end
+			</TD>
+		</TR>
+	</TABLE>
+</SPAN>
+<!-- END fs_fsData SURFACE MEASURES-->
+
+<!-- BEGIN fs_fsData Input Parameters-->
+<BR/>
+
+<BR/>
+#set ($scanCounter = 2)
+<a name="LINK${scanCounter}" href="#LINK${scanCounter}" onClick=" return blocking($scanCounter);">
+	<img ID="IMG$scanCounter" src="$content.getURI("images/plus.jpg")" border=0>
+	Processing parameters
+</a>
+
+<SPAN ID="span$!scanCounter" style="position:relative; display:none;">
+	<TABLE>
+		<TR>
+			<TD>
+				#set ($params = $om.getParameters_addparam())
+				#if ($params.size() > 0)
+					<table>
+					   <tr> <TH>Name </TH> <TH>Value</TH></TR>
+					   #foreach ($param in $params)
+					     <TR> <td> $param.getName() </td> <td> $param.getAddfield() </td> </tr>
+					   #end
+					</table>
+				#end
+			</TD>
+		</TR>
+	</TABLE>
+</SPAN>
+<!-- END fs_fsData Input Parameters-->
+<!-- BEGIN fs_fsData Recon all-->
+<BR/>
+
+<BR/>
+#set ($scanCounter = 3)
+<a name="LINK${scanCounter}" href="#LINK${scanCounter}" onClick=" return blocking($scanCounter);">
+	<img ID="IMG$scanCounter" src="$content.getURI("images/plus.jpg")" border=0>
+	Log files
+</a>
+
+<span ID="span$!scanCounter" style="position:relative; display:none;">
+	<TABLE>
+		<TR>
+			<TD>
+				<a name="LINK${scanCounter}" href="$content.getURI("/REST/experiments/$om.getImageSessionData().getId()/assessors/$om.getId()/resources/DATA/files/$om.getImageSessionData().getLabel()/scripts/recon-all.log")" > Recon All </a>
+			</TD>
+		</TR>
+	</TABLE>
+</SPAN>
+<!-- END fs_fsData Recon all-->
