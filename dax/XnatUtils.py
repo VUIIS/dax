@@ -189,7 +189,7 @@ class SpiderProcessHandler:
     def print_err(self, msg):
         """ Print error message using time writer if set, print otherwise"""
         if self.time_writer:
-            self.time_writer.print_stderr_message(err_message)
+            self.time_writer.print_stderr_message(msg)
         else:
             print "Error: "+msg
 
