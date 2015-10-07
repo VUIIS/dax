@@ -48,7 +48,7 @@ def query_session(xnat,project,subject,session,all=False):
 def query_scan(xnat,project,subject,session,scan,scantype,all=False):
     print '       -'+scan+' -- '+scantype
     if all:
-        for resource in XnatUtils.list_resources(xnat,project,subject,session,scan):
+        for resource in XnatUtils.list_scan_resources(xnat,project,subject,session,scan):
             print '         ->'+resource['label']
 
 def query_assessor(xnat,assessor_label,all=False):
