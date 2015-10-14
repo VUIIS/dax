@@ -55,7 +55,7 @@ def query_assessor(xnat,assessor_label,all=False):
     labels=assessor_label.split('-x-')
     print '       -'+assessor_label
     if all:
-        for out_resource in XnatUtils.list_out_resources(xnat,labels[0],labels[1],labels[2],assessor_label):
+        for out_resource in XnatUtils.list_assessor_out_resources(xnat,labels[0],labels[1],labels[2],assessor_label):
             print '         ->'+out_resource['label']
 
 ########################################## CHECK OPTIONS ##########################################
