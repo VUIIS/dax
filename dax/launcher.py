@@ -227,31 +227,12 @@ class Launcher(object):
         subjects = self.get_subjects_list(xnat, project_id, subjects_local)
 
         # Update each subject from the list:
-        for subject_info in subjects:
-            last_mod = datetime.strptime(subject_info['last_modified'][0:19], UPDATE_FORMAT)
-            now_date = datetime.today()
-            last_up = self.get_lastupdated(subject_info)
+        # By default, we're going to update these each time if they exist.
+        # If we set a date for the update, then the first experiment will always skip
+        # its update
 
-            #If subjects_local is set, skip checking the date
-            if not has_new and last_up != None and \
-               last_mod < last_up and not subjects_local and \
-               now_date < last_mod+timedelta(days=int(self.max_age)):
-                mess = """  +Session:{subject}: skipping, last_mod={mod},last_up={up}"""
-                mess_str = mess.format(subject=subject_info['label'], mod=str(last_mod), up=str(last_up))
-                LOGGER.info(mess_str)
-            else:
-                update_run_count = 0
-                got_updated = False
-                while update_run_count < 3 and not got_updated:
-                    mess = """  +Session:{subject}: updating (count:{count})..."""
-                    LOGGER.info(mess.format(subject=subject_info['label'], count=update_run_count))
-                    # NOTE: we keep the starting time of the update
-                    # and will check if something change during the update
-                    update_start_time = datetime.now()
-                    self.build_subject(xnat, subject_info, exp_procs, scan_procs, exp_mods, scan_mods)
-                    got_updated = self.set_subject_lastupdated(xnat, subject_info, update_start_time)
-                    update_run_count = update_run_count+1
-                    LOGGER.debug('\n')
+        for subject_info in subjects:
+            self.build_subject(xnat, subject_info, subj_procs)
 
         # Update each session from the list:
         for sess_info in sessions:
@@ -650,6 +631,7 @@ The project is not part of the settings."""
             move the new subjects to the front
         """
         subject_list = XnatUtils.list_subjects(xnat, project_id)
+        subject_list_filtered = list()
         if slocal and slocal.lower() != 'all':
             # filter the list and keep the match between both list:
             subject_list_filtered = filter(lambda x: x['label'] in slocal.split(','), subject_list)
