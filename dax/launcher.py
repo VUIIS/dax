@@ -274,7 +274,7 @@ class Launcher(object):
                                                 subject_info['project_label'],
                                                 subject_info['subject_label'])
         # We make sure that the assessor goes to the first timepoint
-        csess = self.select_csess(csubject.sessions()[0])
+        csess = csubject.sessions()[0]
         session_info = csess.info()
 
         # Processors
@@ -691,15 +691,6 @@ The project is not part of the settings."""
         # Are there any?
         return len(diff_list) > 0
 
-    @staticmethod
-    def select_csess(csess_list):
-        """Method to find the first chronological session by date.
-        If no date, return None. We will make no assumptions that
-        experiment labels were sequentially numbered intelligently"""
-        selected_csess = None
-        datetime_arr = []
-        for csess in csess_list:
-            date_str = csess.get('xnat:date').strip()
 
 
 
