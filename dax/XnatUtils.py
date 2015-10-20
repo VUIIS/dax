@@ -958,7 +958,7 @@ def is_bad_qa(qcstatus):
     if qcstatus in [JOB_PENDING, NEEDS_QA, REPROC]:
         return 0
     for qc in BAD_QA_STATUS:
-        if qc in qcstatus.lower():
+        if qc in qcstatus.split(' ')[0].lower():
             return -1
     return 1
 
