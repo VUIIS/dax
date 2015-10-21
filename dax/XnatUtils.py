@@ -23,6 +23,7 @@ import os
 import glob
 import shutil
 import tempfile
+import random
 import collections
 from datetime import datetime
 import gzip
@@ -2404,3 +2405,14 @@ def Download_resource_to_folder(Resource,directory):
     if os.path.exists(Res_path):
         os.remove(Res_path)
     Resource.get(directory,extract=True)
+
+def get_random_sessions(xnat, project_id, num_sessions):
+    '''Returns a list of N random sessions from a project.
+    This is usful if running a new spider for the first time
+    If n > 0 and n < 1, it is assumed to be a percent of the
+    total number of sessions.'''
+    sessions = list_experiments(xnat, project_id)
+    session_labels = [x['label'] for x in sessions]
+    if num_sessions >0 and num_sessions <1:
+        num_sessions = int(num_sessions*len(session_labels))
+    return ','.join(random.sample(session_labels, num_sessions))
