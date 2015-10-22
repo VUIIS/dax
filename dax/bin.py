@@ -22,7 +22,7 @@ def set_logger(logfile, debug):
         logger = log.setup_info_logger('dax', logfile)
     return logger
 
-def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None):
+def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None, subjects=None):
     """ function to launch tasks on the cluster """
     #Logger for logs
     logger = set_logger(logfile, debug)
@@ -36,10 +36,10 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None):
 
     # Run the updates
     logger.info('running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions)
+    settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions, subjects)
     logger.info('finished update, End Time: '+str(datetime.now()))
 
-def build(settings_path, logfile, debug, projects=None, sessions=None):
+def build(settings_path, logfile, debug, projects=None, sessions=None, subjects=None):
     """ function to build the database: scans inputs and  the assessors """
     #Logger for logs
     logger = set_logger(logfile, debug)
@@ -53,10 +53,10 @@ def build(settings_path, logfile, debug, projects=None, sessions=None):
 
     # Run the updates
     logger.info('running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.build(lockfile_prefix, projects, sessions)
+    settings.myLauncher.build(lockfile_prefix, projects, sessions, subjects)
     logger.info('finished update, End Time: '+str(datetime.now()))
 
-def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
+def update_tasks(settings_path, logfile, debug, projects=None, sessions=None, subjects=None):
     """ function to run update for tasks """
     #Logger for logs
     logger = set_logger(logfile, debug)
@@ -70,7 +70,7 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
 
     # Run the update
     logger.info('updating open tasks, Start Time:'+str(datetime.now()))
-    settings.myLauncher.update_tasks(lockfile_prefix, projects, sessions)
+    settings.myLauncher.update_tasks(lockfile_prefix, projects, sessions, subjects)
     logger.info('finished open tasks, End Time: '+str(datetime.now()))
 
 def pi_from_project(project):

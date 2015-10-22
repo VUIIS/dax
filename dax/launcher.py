@@ -232,6 +232,7 @@ class Launcher(object):
         # its update
 
         for subject_info in subjects:
+            LOGGER.info('  +Subject:{subject}: updating'.format(subject=subject_info['label']))
             self.build_subject(xnat, subject_info, subj_procs)
 
         # Update each session from the list:
@@ -251,7 +252,7 @@ class Launcher(object):
                 update_run_count = 0
                 got_updated = False
                 while update_run_count < 3 and not got_updated:
-                    mess = """  +Session:{sess}: updating (count:{count})..."""
+                    mess = """  +Subject:{sess}: updating (count:{count})..."""
                     LOGGER.info(mess.format(sess=sess_info['label'], count=update_run_count))
                     # NOTE: we keep the starting time of the update
                     # and will check if something change during the update
@@ -273,28 +274,25 @@ class Launcher(object):
         csubject = XnatUtils.CachedImageSubject(xnat,
                                                 subject_info['project_label'],
                                                 subject_info['subject_label'])
-        # We make sure that the assessor goes to the first timepoint
-        csess = csubject.sessions()[0]
-        session_info = csess.info()
 
         # Processors
         LOGGER.debug('== Build processors for subject ==')
         for subject_proc in subject_proc_list:
-            if subject_proc.should_run(session_info):
+            if subject_proc.should_run(csubject):
 
-                assr_name = subject_proc.get_assessor_name(csess)
-
+                assr_name = subject_proc.get_assessor_name(csubject)
                 # Look for existing assessor
                 proc_assr = None
-                for assr in csess.assessors():
+                first_csess = csubject.sessions()[0]
+                for assr in first_csess.assessors():
                     if assr.info()['label'] == assr_name:
                         proc_assr = assr
 
                 if proc_assr is None:
                     # Create it if it doesn't exist
-                    subj_task = subject_proc.get_task(xnat, csess, RESULTS_DIR)
+                    subj_task = subject_proc.get_task(xnat, csubject, RESULTS_DIR)
                     self.log_updating_status(subject_proc.name, subj_task.assessor_label)
-                    has_inputs, qcstatus = subject_proc.has_inputs(csess)
+                    has_inputs, qcstatus = subject_proc.has_inputs(csubject)
                     if has_inputs == 1:
                         subj_task.set_status(task.NEED_TO_RUN)
                         subj_task.set_qcstatus(task.JOB_PENDING)
@@ -632,12 +630,15 @@ The project is not part of the settings."""
         """
         subject_list = XnatUtils.list_subjects(xnat, project_id)
         subject_list_filtered = list()
-        if slocal and slocal.lower() != 'all':
-            # filter the list and keep the match between both list:
-            subject_list_filtered = filter(lambda x: x['label'] in slocal.split(','), subject_list)
-            if not subject_list_filtered:
-                LOGGER.warn('No session from XNAT matched the sessions given: '+slocal+' .')
-
+        if slocal is not None:
+            if slocal.lower() != 'all':
+                # filter the list and keep the match between both list:
+                subject_list_filtered = filter(lambda x: x['label'] in slocal.split(','), subject_list)
+                if not subject_list_filtered:
+                    LOGGER.warn('No session from XNAT matched the sessions given: '+slocal+' .')
+            print subject_list_filtered
+        else:
+            return subject_list
         return subject_list_filtered
 
     def get_project_list(self, all_projects):

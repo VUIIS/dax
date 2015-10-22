@@ -199,16 +199,16 @@ class SubjectProcessor(Processor):
 
     def get_assessor_name(self, csubject):
         """ return the assessor label. Note that this assessor is store ONLY in the FIRST session. """
-        session_dict = csubject.info().sessions()[0]
+        session_dict = csubject.sessions()[0]
 
-        proj_label = session_dict['project']
-        subj_label = session_dict['subject_label']
-        sess_label = session_dict['label']
+        proj_label = session_dict.info()['project']
+        subj_label = session_dict.info()['subject_label']
+        sess_label = session_dict.info()['label']
         return proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+self.name
 
     def get_task(self, intf, csubject, upload_dir):
         """ return the task for this process """
-        sess_info = csubject.info().sessions()[0]
+        sess_info = csubject.sessions()[0].info()
         assessor_name = self.get_assessor_name(csubject)
         session = XnatUtils.get_full_object(intf, sess_info)
         assessor = session.assessor(assessor_name)
