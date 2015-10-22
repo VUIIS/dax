@@ -385,7 +385,7 @@ def set_attrs_assessors(assessor,assessor_dict):
         assessor.attrs.mset({'fs:fsData/procstatus':assessor_dict['procstatus'],
                              'fs:fsData/validation/status':assessor_dict['qcstatus']})
     else:
-        assessor.attrs.set({'proc:genProcData/procstatus':assessor_dict['procstatus'],
+        assessor.attrs.mset({'proc:genProcData/procstatus':assessor_dict['procstatus'],
                             'proc:genProcData/validation/status':assessor_dict['qcstatus']})
         
 
