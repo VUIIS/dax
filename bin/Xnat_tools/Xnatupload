@@ -16,7 +16,6 @@ import logging
 from dax import XnatUtils
 from datetime import datetime
 
-DEFAULT_NOTE='Xnatupload'
 DEFAULT_CSV_LIST=['object_type','project_id','subject_label','session_type','session_label', 'as_label', 'as_type', 'as_description','quality','resource','fpath']
 SCAN_HEADER=['object_type','project_id','subject_label','session_type','session_label', 'ID', 'type', 'series_description','quality']
 ASSESSOR_HEADER=['object_type','project_id','subject_label','session_type','session_label', 'label', 'proctype', 'procstatus','qcstatus']
@@ -359,10 +358,9 @@ def create_scan(scan,scan_dict,session_type):
         else:
             scan.create(scans='xnat:'+scan_dict['session_type'].lower()+'ScanData')
     #set attributes
-    scan.attrs.set('type',scan_dict['type'])
-    scan.attrs.set('series_description',scan_dict['series_description'])
-    scan.attrs.set('quality',scan_dict['quality'])
-    scan.attrs.set('note',DEFAULT_NOTE)
+    scan.attrs.mset({'type':scan_dict['type'],
+                     'series_description':scan_dict['series_description'],
+                     'quality':scan_dict['quality']})
     return scan
 
 def create_assessor(assessor,assessor_dict):
@@ -370,25 +368,25 @@ def create_assessor(assessor,assessor_dict):
     today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
     if assessor_dict['proctype'].lower() in ['freesurfer','fs']:
         assessor.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
-        assessor.attrs.set('fs:fsData/procstatus',assessor_dict['procstatus'])
-        assessor.attrs.set('fs:fsData/validation/status',assessor_dict['qcstatus'])
-        assessor.attrs.set('fs:fsData/proctype', 'FreeSurfer')
-        assessor.attrs.set('fs:fsData/date',today)
+        assessor.attrs.mset({'fs:fsData/procstatus':assessor_dict['procstatus'],
+                             'fs:fsData/validation/status':assessor_dict['qcstatus'],
+                             'fs:fsData/proctype':'FreeSurfer',
+                             'fs:fsData/date':today})
     else:
         assessor.create(assessors='proc:genProcData')
-        assessor.attrs.set('proc:genProcData/procstatus',assessor_dict['procstatus'])
-        assessor.attrs.set('proc:genProcData/validation/status',assessor_dict['qcstatus'])
-        assessor.attrs.set('proc:genProcData/proctype', assessor_dict['proctype'])
-        assessor.attrs.set('proc:genProcData/date',today)
+        assessor.attrs.mset({'proc:genProcData/procstatus':assessor_dict['procstatus'],
+                             'proc:genProcData/validation/status':assessor_dict['qcstatus'],
+                             'proc:genProcData/proctype':assessor_dict['proctype'],
+                             'proc:genProcData/date':today})
     return assessor
     
 def set_attrs_assessors(assessor,assessor_dict):
     if assessor_dict['proctype'].lower() in ['freesurfer','fs']:
-        assessor.attrs.set('fs:fsData/procstatus',assessor_dict['procstatus'])
-        assessor.attrs.set('fs:fsData/validation/status',assessor_dict['qcstatus'])
+        assessor.attrs.mset({'fs:fsData/procstatus':assessor_dict['procstatus'],
+                             'fs:fsData/validation/status':assessor_dict['qcstatus']})
     else:
-        assessor.attrs.set('proc:genProcData/procstatus',assessor_dict['procstatus'])
-        assessor.attrs.set('proc:genProcData/validation/status',assessor_dict['qcstatus'])
+        assessor.attrs.set({'proc:genProcData/procstatus':assessor_dict['procstatus'],
+                            'proc:genProcData/validation/status':assessor_dict['qcstatus']})
         
 
 ######################################### MAIN FUNCTION TO UPLOAD ###############################################
