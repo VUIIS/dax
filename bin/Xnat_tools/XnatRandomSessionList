@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+'''Gets a list of random sessions from XNAT'''
+import argparse
+from dax import XnatUtils
+
+
+def parse_args():
+	parser = argparse.ArgumentParser(description='Program to get a random list of sessions')
+	parser.add_argument("-p", "--project", help="Project to get sessions from", required=True)
+	parser.add_argument("-n", "--num-sessions", help="Number of sessions to return (default=10)",
+                            default=10, required=False)
+	parser.add_argument("-d", "--delimeter", help="Delimeter to separate session IDs (default=,)",
+                            default=",", required=False)
+	return parser.parse_args()
+
+def main():
+	args = parse_args()
+	xnat = XnatUtils.get_interface()
+	project_id = args.project
+	num_sessions = args.num_sessions
+	delim = args.delimeter
+	sesses = XnatUtils.get_random_sessions(xnat, project_id, num_sessions)
+	xnat.disconnect()
+	sesses = sesses.replace(",", delim)
+	print sesses
+	
+
+if __name__=='__main__':
+	main()
