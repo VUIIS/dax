@@ -61,6 +61,7 @@ if __name__ == '__main__':
                    'bin/Xnat_tools/Xnatsessionupdate',
                    'bin/Xnat_tools/XnatCheckLogin',
                    'bin/Xnat_tools/XnatSwitchProcessStatus',
+                   'bin/Xnat_tools/XnatRandomSessionList',
                    'bin/Xnat_tools/Xnatupload',
                    ],
           classifiers=[
