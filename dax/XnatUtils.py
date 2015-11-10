@@ -29,7 +29,7 @@ from datetime import datetime
 import gzip
 from pyxnat import Interface
 from lxml import etree
-
+import subprocess
 from dax_settings import RESULTS_DIR
 
 import xml.etree.cElementTree as ET
@@ -1518,6 +1518,12 @@ def run_matlab(matlab_script, verbose=False):
         cmd = cmd+' > '+os.path.join(matlabdir, prefix+'_outlog.log')
     os.system(cmd)
     print """Matlab script: {script} done""".format(script=matlab_script)
+
+def run_subprocess(args):
+    """run a subprocess call and return std out and std err"""
+    process = subprocess.Popen(args,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+    return stdout, stderr
 
 def makedir(directory, prefix='TempDir'):
     """ make tmp directory if already exist"""
