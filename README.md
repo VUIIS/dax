@@ -27,4 +27,4 @@ pip install git+https://github.com/VUIIS/dax.git@branch_name --upgrade
 
 # WIKI
 
-The wiki is accessible on the left side or by clicking [here](https://github.com/VUIIS/dax/wiki).
+The wiki is accessible on the right side or by clicking [here](https://github.com/VUIIS/dax/wiki).
