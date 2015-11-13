@@ -983,7 +983,8 @@ def get_good_cassr(csess, proctypes):
     """ return cassr list from a csess if there is a good assessor """
     cassr_list = list()
     for cassr in csess.assessors():
-        if is_cassessor_good_type(cassr, proctypes) and is_cassessor_usable(cassr):
+        usable_status = is_cassessor_usable(cassr)
+        if is_cassessor_good_type(cassr, proctypes) and usable_status == 1:
             cassr_list.append(cassr)
     return cassr_list
 
@@ -991,7 +992,8 @@ def get_good_assr(session_obj, proctypes):
     """ return assessor object list if there is a good assessor """
     assessors = list()
     for assessor_obj in session_obj.assessors().fetchall('obj'):
-        if is_assessor_good_type(assessor_obj, proctypes) and is_assessor_usable(assessor_obj):
+        usable_status = is_assessor_usable(assessor_obj)
+        if is_assessor_good_type(assessor_obj, proctypes) and usable_status == 1 :
             assessors.append(assessor_obj)
     return assessors
 
