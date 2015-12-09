@@ -8,7 +8,7 @@ control points from dlabel/dmri
 @author: Brian D. Boyd, Psychiatry, Vanderbilt University
 '''
 
-import os, sys, time
+import os, sys, time, glob
 from subprocess import CalledProcessError
 
 from pyxnat import Interface
@@ -67,7 +67,8 @@ if __name__ == '__main__':
         print "ERROR:you must set the environment variable %s" % str(e)
         sys.exit(1)  
         
-    local_subj_path = subjects_dir+'/'+sess_label
+    local_subj_path = glob.glob(subjects_dir+'/*'+proj_label+'*'+sess_label+'*TRACULA_v*')[0]
+    
     if not os.path.exists(local_subj_path):
         print 'ERROR:cannot upload, subject not found in local subjects directory.'
         sys.exit(1)
