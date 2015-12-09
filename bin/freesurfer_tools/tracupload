@@ -124,7 +124,7 @@ if __name__ == '__main__':
         cpts_file = cpts+'.manual' 
         cpts_path = os.path.join(local_dlabel_path, cpts_file)
     
-        if os.path.isfile(fmajor_path):
+        if os.path.isfile(cpts_path):
             print('Uploading:'+cpts)
             resource.file(cpts+'.'+curtime).put(cpts_path)   
         else:
