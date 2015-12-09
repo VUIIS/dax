@@ -42,7 +42,7 @@ def parse_args():
     ap.add_argument('project', help='Project Label')
     ap.add_argument('session', help='Session Label')
     ap.add_argument('proc_suffix', help='Proc name suffix', nargs='?', default='')
-    ap.add_argument('subjects_dir', help='Subjects Direcotory', default='/tmp')
+    ap.add_argument('-sd','--subjects_dir', help='Subjects Directory', default='/tmp', required=False)
 
     return ap.parse_args()
     
