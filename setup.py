@@ -51,6 +51,7 @@ if __name__ == '__main__':
                    'bin/freesurfer_tools/fsview',
                    'bin/freesurfer_tools/tracdownload',
                    'bin/freesurfer_tools/tracupload',
+                   'bin/freesurfer_tools/tracview',
                    'bin/Xnat_tools/Redcapreport',
                    'bin/Xnat_tools/Xnatcheck',
                    'bin/Xnat_tools/Xnatdownload',
