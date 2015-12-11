@@ -169,7 +169,7 @@ class Spider(object):
                                        obj_label=obj_label,
                                        resource=resource)
         list_files = XnatUtils.download_files_from_obj(directory=folder,
-                                                 resource_obj=resource_obj)
+                                                       resource_obj=resource_obj)
         # close connection
         xnat.disconnect()
         return list_files
