@@ -168,10 +168,11 @@ class Spider(object):
         resource_obj = self.select_obj(intf=xnat,
                                        obj_label=obj_label,
                                        resource=resource)
+        list_files = XnatUtils.download_files_from_obj(directory=folder,
+                                                 resource_obj=resource_obj)
         # close connection
         xnat.disconnect()
-        return XnatUtils.download_files_from_obj(directory=folder,
-                                                 resource_obj=resource_obj)
+        return list_files
 
     def define_spider_process_handler(self):
         """
