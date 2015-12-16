@@ -41,7 +41,10 @@ def count_jobs():
         time.sleep(2)
         output = subprocess.check_output(cmd, shell=True)
         error = c_output(output)
-    return int(output)
+    if int(output) < 0:
+        return 0
+    else:
+        return int(output)
 
 def job_status(jobid):
     """ return the job status on the cluster """
