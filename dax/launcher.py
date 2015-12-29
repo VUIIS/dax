@@ -283,7 +283,7 @@ class Launcher(object):
                 assr_name = subject_proc.get_assessor_name(csubject)
                 # Look for existing assessor
                 proc_assr = None
-                first_csess = csubject.sessions()[0]
+                first_csess = csubject.sorted_dropped_sessions()[0]
                 for assr in first_csess.assessors():
                     if assr.info()['label'] == assr_name:
                         proc_assr = assr
@@ -300,14 +300,14 @@ class Launcher(object):
                         subj_task.set_status(task.NO_DATA)
                         subj_task.set_qcstatus(qcstatus)
                 elif proc_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    has_inputs, qcstatus = subject_proc.has_inputs(csess)
+                    has_inputs, qcstatus = subject_proc.has_inputs(csubject)
                     if has_inputs == 1:
-                        subj_task = subject_proc.get_task(xnat, csess, RESULTS_DIR)
+                        subj_task = subject_proc.get_task(xnat, csubject, RESULTS_DIR)
                         self.log_updating_status(subject_proc.name, subj_task.assessor_label)
                         subj_task.set_status(task.NEED_TO_RUN)
                         subj_task.set_qcstatus(task.JOB_PENDING)
                     elif has_inputs == -1:
-                        subj_task = subject_proc.get_task(xnat, csess, RESULTS_DIR)
+                        subj_task = subject_proc.get_task(xnat, csubject, RESULTS_DIR)
                         self.log_updating_status(subject_proc.name, subj_task.assessor_label)
                         subj_task.set_status(task.NO_DATA)
                         subj_task.set_qcstatus(qcstatus)
@@ -549,8 +549,15 @@ The project is not part of the settings."""
         return task_list
 
     @staticmethod
-    def match_proc(assr_info, sess_proc_list, scan_proc_list):
+    def match_proc(assr_info, sess_proc_list, scan_proc_list, subj_proc_list):
         """ return processor if a match is found """
+
+        # Look for a match in subj processors
+        for subj_proc in subj_proc_list:
+            if subj_proc.xsitype == assr_info['xsiType'] and\
+               subj_proc.name == assr_info['proctype']:
+                return subj_proc
+
         # Look for a match in sess processors
         for sess_proc in sess_proc_list:
             if sess_proc.xsitype == assr_info['xsiType'] and\
@@ -565,9 +572,9 @@ The project is not part of the settings."""
 
         return None
 
-    def generate_task(self, xnat, assr_info, sess_proc_list, scan_proc_list):
+    def generate_task(self, xnat, assr_info, sess_proc_list, scan_proc_list, subj_proc_list):
         """ return a task for the assessor in the info"""
-        task_proc = self.match_proc(assr_info, sess_proc_list, scan_proc_list)
+        task_proc = self.match_proc(assr_info, sess_proc_list, scan_proc_list, subj_proc_list)
 
         if task_proc is None:
             LOGGER.warn('no matching processor found:'+assr_info['assessor_label'])
