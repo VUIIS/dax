@@ -209,7 +209,7 @@ class SubjectProcessor(Processor):
 
     def get_task(self, intf, csubject, upload_dir):
         """ return the task for this process """
-        sess_info = csubject.sessions()[0].info()
+        sess_info = csubject.sorted_dropped_sessions()[0].info()
         assessor_name = self.get_assessor_name(csubject)
         session = XnatUtils.get_full_object(intf, sess_info)
         assessor = session.assessor(assessor_name)
