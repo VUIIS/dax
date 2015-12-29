@@ -194,12 +194,13 @@ class SubjectProcessor(Processor):
         """ return if the assessor should exist. This one is still in alpha,
             so let's assume we need to do some deep checks and always return
             false by default"""
-
-        return False
+        return True
 
     def get_assessor_name(self, csubject):
         """ return the assessor label. Note that this assessor is store ONLY in the FIRST session. """
-        session_dict = csubject.sessions()[0]
+
+        # Sort the sessions in ascending date order and select the first one.
+        session_dict = csubject.sorted_dropped_sessions()[0]
 
         proj_label = session_dict.info()['project']
         subj_label = session_dict.info()['subject_label']
