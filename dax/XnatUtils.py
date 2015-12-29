@@ -23,6 +23,7 @@ import os
 import glob
 import shutil
 import tempfile
+import sys
 import collections
 from datetime import datetime
 import gzip
@@ -1641,10 +1642,81 @@ class CachedImageSubject():
 
         return ''
 
+    def sorted_sessions(self):
+        """
+        Method to find all the sessions belonging to a subject in XNAT
+        :return: a list of sorted CachedImageSessions for the subject. Empty dated sessions go at the end
+        """
+        session_list = []
+        date_int_list = []
+        blank_date_session_list = []
+        session_elements = self.subj_element[0]
+        if len(session_elements) !=0:
+            for session in session_elements:
+                csess = CachedImageSession(self.xnat, self.project, self.subject, session.get('label'))
+                session_date = csess.get('xnat:date')
+                if session_date == '':
+                    blank_date_session_list.append(csess)
+                else:
+                    try:
+                        date_int_list.append(int(datetime.strptime(session_date, '%Y-%m-%d').strftime("%s")))
+
+                    except ValueError as valueerror:
+                        sys.stderr.write('ERROR: Session %s somehow does not have a valid date. Can not continue\n' % session.get('label'))
+                        sys.stderr.write('ValueError: %s\n' % valueerror.message)
+                        sys.exit(1)
+                    session_list.append(csess)
+
+        #Resort the sessions based off of the int timestamp which will be greatest with the most recent time
+        sorted_list = [i[0] for i in sorted(zip(session_list, date_int_list), key=lambda l: l[1], reverse=False)]
+        return sorted_list + blank_date_session_list
+
+    def sorted_dropped_sessions(self):
+        """
+        Method to find all the sessions belonging to a subject in XNAT
+        :return: a list of sorted CachedImageSessions for the subject. Empty dated sessions are removed
+        """
+        session_list = []
+        date_int_list = []
+        session_elements = self.subj_element[0]
+        if len(session_elements) !=0:
+            for session in session_elements:
+                csess = CachedImageSession(self.xnat, self.project, self.subject, session.get('label'))
+                session_date = csess.get('xnat:date')
+                if session_date != '':
+                    try:
+                        date_int_list.append(int(datetime.strptime(session_date, '%Y-%m-%d').strftime("%s")))
+
+                    except ValueError as valueerror:
+                        sys.stderr.write('ERROR: Session %s somehow does not have a valid date. Can not continue\n' % session.get('label'))
+                        sys.stderr.write('ValueError: %s\n' % valueerror.message)
+                        sys.exit(1)
+                    session_list.append(csess)
+
+        #Resort the sessions based off of the int timestamp which will be greatest with the most recent time
+        sorted_list = [i[0] for i in sorted(zip(session_list, date_int_list), key=lambda l: l[1], reverse=False)]
+        return sorted_list
+
+    def dropped_sessions(self):
+        """
+        Method to find all the sessions belonging to a subject in XNAT
+        :return: a list of unsorted CachedImageSessions for the subject
+        without sessions that don't have a date
+        """
+        session_list = []
+        session_elements = self.subj_element[0]
+        if len(session_elements) !=0:
+            for session in session_elements:
+                csess = CachedImageSession(self.xnat, self.project, self.subject, session.get('label'))
+                if csess.get('xnat:date') != '':
+                    session_list.append(csess)
+
+        return session_list
+
     def sessions(self):
         """
         Method to find all the sessions belonging to a subject in XNAT
-        :return: a list of CachedImageSessions for the subject
+        :return: a list of unsorted CachedImageSessions for the subject
         """
         session_list = []
         session_elements = self.subj_element[0]
@@ -2047,6 +2119,8 @@ class CachedResource():
         res_info['content'] = self.get('content')
 
         return res_info
+
+
 ####################### File Utils ######################################################
 def gzip_file(file_not_zipped):
     """Method to gzip a file without using os.system"""
