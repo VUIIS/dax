@@ -1617,7 +1617,7 @@ class CachedImageSubject():
 
     def label(self):
         """ return label of the subject """
-        return self.subj_element.get('label')
+        self
 
     def get(self, name):
         """ return value of a variable name for the subject.
@@ -1650,7 +1650,11 @@ class CachedImageSubject():
         session_list = []
         date_int_list = []
         blank_date_session_list = []
-        session_elements = self.subj_element[0]
+        session_elements = []
+        for e in self.subj_element:
+            if e.tag.endswith('experiments'):
+                session_elements = e
+
         if len(session_elements) !=0:
             for session in session_elements:
                 csess = CachedImageSession(self.xnat, self.project, self.subject, session.get('label'))
@@ -1678,7 +1682,11 @@ class CachedImageSubject():
         """
         session_list = []
         date_int_list = []
-        session_elements = self.subj_element[0]
+        session_elements = []
+        for e in self.subj_element:
+            if e.tag.endswith('experiments'):
+                session_elements = e
+
         if len(session_elements) !=0:
             for session in session_elements:
                 csess = CachedImageSession(self.xnat, self.project, self.subject, session.get('label'))
@@ -1704,7 +1712,11 @@ class CachedImageSubject():
         without sessions that don't have a date
         """
         session_list = []
-        session_elements = self.subj_element[0]
+        session_elements = []
+        for e in self.subj_element:
+            if e.tag.endswith('experiments'):
+                session_elements = e
+
         if len(session_elements) !=0:
             for session in session_elements:
                 csess = CachedImageSession(self.xnat, self.project, self.subject, session.get('label'))
@@ -1719,7 +1731,11 @@ class CachedImageSubject():
         :return: a list of unsorted CachedImageSessions for the subject
         """
         session_list = []
-        session_elements = self.subj_element[0]
+        session_elements = []
+        for e in self.subj_element:
+            if e.tag.endswith('experiments'):
+                session_elements = e
+
         if len(session_elements) !=0:
             for session in session_elements:
                 session_list.append(CachedImageSession(self.xnat, self.project, self.subject, session.get('label')))
