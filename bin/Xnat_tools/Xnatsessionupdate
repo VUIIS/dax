@@ -53,7 +53,7 @@ def change_date_all(xnat,list_of_sessions):
     for session in list_of_sessions:
         session_object = XnatUtils.get_full_object(xnat, session)
         session_object.attrs.set('xnat:mrSessionData/original',' ')
-        print '   ->Session changed to need update.'
+        print '   ->Session %s changed to need update.' % session['session_label']
 
 def get_xnat_subject_need_inputs(xnat,project):
     proc_list=XnatUtils.list_project_assessors(xnat, project)
