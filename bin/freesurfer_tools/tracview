@@ -1,0 +1,60 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import os, sys, glob
+
+'''
+Load TRACULA subject in freeview
+
+@author: Brian D. Boyd, Psychiatry, Vanderbilt University
+'''
+
+CPTS_LIST = [
+    'fmajor_PP_avg33_mni_bbr_cpts_7.txt',
+    'fminor_PP_avg33_mni_bbr_cpts_5.txt',
+    'lh.atr_PP_avg33_mni_bbr_cpts_5.txt',
+    'lh.cab_PP_avg33_mni_bbr_cpts_4.txt',
+    'lh.ccg_PP_avg33_mni_bbr_cpts_5.txt',
+    'lh.cst_AS_avg33_mni_bbr_cpts_6.txt',
+    'lh.ilf_AS_avg33_mni_bbr_cpts_5.txt',
+    'lh.slfp_PP_avg33_mni_bbr_cpts_5.txt',
+    'lh.slft_PP_avg33_mni_bbr_cpts_5.txt',
+    'lh.unc_AS_avg33_mni_bbr_cpts_5.txt',
+    'rh.atr_PP_avg33_mni_bbr_cpts_5.txt',
+    'rh.cab_PP_avg33_mni_bbr_cpts_4.txt',
+    'rh.ccg_PP_avg33_mni_bbr_cpts_5.txt',
+    'rh.cst_AS_avg33_mni_bbr_cpts_6.txt',
+    'rh.ilf_AS_avg33_mni_bbr_cpts_5.txt',
+    'rh.slfp_PP_avg33_mni_bbr_cpts_5.txt',
+    'rh.slft_PP_avg33_mni_bbr_cpts_5.txt',
+    'rh.unc_AS_avg33_mni_bbr_cpts_5.txt'
+]
+
+def parse_args():
+    from argparse import ArgumentParser
+    ap = ArgumentParser(prog='tracview', description="Load TRACULA subject in freeview")
+    ap.add_argument('session', help='Session Label')
+    ap.add_argument('-sd','--subjects_dir', help='Subjects Dir', default='/tmp', required=False)
+    return ap.parse_args()
+    
+if __name__ == '__main__':    
+    args = parse_args()
+    sess_label = args.session
+    subjects_dir = args.subjects_dir
+    
+    local_subj_path = glob.glob(subjects_dir+'/*'+sess_label+'*TRACULA_v*/TRACULA/'+sess_label)[0]
+
+    if not os.path.exists(local_subj_path):
+        print 'ERROR:cannot load, '+sess+' not found in local TRACULA subjects directory.'
+        sys.exit(1)
+        
+    cmd = 'freeview'
+    cmd += ' -v '+local_subj_path+'/dmri/dtifit_FA.nii.gz:visible=1'
+    cmd += ' -tv '+ local_subj_path+'/dpath/merged_avg33_mni_bbr.mgz'
+    
+    for cpts in CPTS_LIST:
+        cp_file_path = local_subj_path+'/dlabel/diff/'+cpts[:-4]+'.nii.gz'
+        cmd += ' -v '+cp_file_path+':visible=0:colormap=jet'
+
+    print 'Launching freeview with command:'+cmd        
+    os.system(cmd)
