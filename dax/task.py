@@ -64,7 +64,7 @@ class Task(object):
                 assessor.attrs.mset({atype +'/proctype':self.get_processor_name(),
                 atype+'/procversion':self.get_processor_version()})
 
-            self.set_statuses(NEED_INPUTS, JOB_PENDING)
+            self.set_proc_and_qc_status(NEED_INPUTS, JOB_PENDING)
 
         # Cache for convenience
         self.assessor_id = assessor.id()
@@ -258,7 +258,7 @@ class Task(object):
 
             # Update QC Status
             if new_status == COMPLETE:
-                self.set_statuses(new_status, NEEDS_QA)
+                self.set_proc_and_qc_status(new_status, NEEDS_QA)
             else:
                 self.set_status(new_status)
 
@@ -291,9 +291,8 @@ class Task(object):
         jobid = pbs.submit()
 
         if jobid == '' or jobid == '0':
-            # TODO: raise exception
             LOGGER.error('failed to launch job on cluster')
-            return False
+            raise cluster.ClusterJobIDException
         else:
             self.set_launch(jobid)
             return True
@@ -365,11 +364,21 @@ class Task(object):
         return xnat_status, qcstatus, jobid
 
     def set_status(self, status):
-        """ set the procstatus """
+        """
+        Set the procstatus of an assessor on XNAT
+        :param status: String to set the procstatus of the assessor to
+        :return: None
+        """
         self.assessor.attrs.set(self.atype+'/procstatus', status)
 
     def get_qcstatus(self):
-        """ return qcstatus """
+        """
+        Get the qcstatus of the assessor
+        :return: A string of the qcstatus for the assessor if it exists.
+        If it does not, it returns DOES_NOT_EXIST as defined in XnatUtils.
+        The else case returns an UNKNOWN xsiType with the xsiType of the
+        assessor as stored on XNAT.
+        """
         qcstatus = ''
         atype = self.atype
 
@@ -383,20 +392,39 @@ class Task(object):
         return qcstatus
 
     def set_qcstatus(self, qcstatus):
-        """ set the qcstatus """
+        """
+        Set the qcstatus of the assessor
+        :param qcstatus: String to set the qcstatus to
+        :return: None
+        """
         self.assessor.attrs.set(self.atype+'/validation/status', qcstatus)
         
-    def set_statuses(self, procstatus, qcstatus):
+    def set_proc_and_qc_status(self, procstatus, qcstatus):
+        """
+        Set the procstatus and qcstatus of the assessor
+        :param procstatus: String to set the procstatus of the assessor to
+        :param qcstatus: String to set the qcstatus of the assessor to
+        :return: None
+        """
         atype = self.atype
         """ set the procstatus """
         self.assessor.attrs.mset({atype+'/procstatus':procstatus, atype+'/validation/status':qcstatus})
 
     def set_jobid(self, jobid):
-        """ set the jobid """
+        """
+        Set the job ID of the assessor on XNAT
+        :param jobid: The ID of the process assigned by the grid scheduler
+        :return: None
+        """
         self.assessor.attrs.set(self.atype+'/jobid', jobid)
 
     def set_launch(self, jobid):
-        """ set the launch params  of the assessor """
+        """
+        Set the date that the job started and its associated ID on XNAT.
+         Additionally, set the procstatus to JOB_RUNNING
+        :param jobid: The ID of the process assigned by the grid scheduler
+        :return: None
+        """
         today_str = str(date.today())
         atype = self.atype.lower()
         self.assessor.attrs.mset({
@@ -405,24 +433,48 @@ class Task(object):
             atype+'/procstatus':JOB_RUNNING})
 
     def commands(self, jobdir):
-        """ get the commands from the processor """
+        """
+        Call the get_cmds method of the class Processor.
+        :param jobdir: Fully qualified path where the job will run on the node.
+        Note that this is likely to start with /tmp on most grids.
+        :return: A string that makes a command line call to a spider with all
+        args.
+        """
         return self.processor.get_cmds(self.assessor, os.path.join(jobdir, self.assessor_label))
 
     def pbs_path(self):
-        """ return the pbs path for the task """
+        """
+        Method to return the path of the PBS file for the job
+        :return: A string that is the absolute path to the PBS file that will
+        be submitted to the scheduler for execution.
+        """
         return os.path.join(DEFAULT_PBS_DIR, self.assessor_label+JOB_EXTENSION_FILE)
 
     def outlog_path(self):
-        """ return the outlog path for the task """
+        """
+        Method to return the path of the PBS file for the job
+        :return: A string that is the absolute path to the PBS file that will
+        be submitted to the scheduler for execution.
+        """
         return os.path.join(DEFAULT_OUT_DIR, self.assessor_label+'.output')
 
     def ready_flag_exists(self):
-        """ return the flag path """
+        """
+        Method to see if the flag file
+        <UPLOAD_DIR>/<ASSESSOR_LABEL>/READY_TO_UPLOAD.txt exists
+        :return: True if the file exists. False if the file does not exist.
+        """
         flagfile = os.path.join(self.upload_dir, self.assessor_label, READY_TO_UPLOAD_FLAG_FILENAME)
         return os.path.isfile(flagfile)
 
-    def check_running(self,jobid=None):
-        """ check if the job is still running """
+    def check_running(self, jobid=None):
+        """
+        Check to see if a job specified by the scheduler ID is still running
+        :param jobid: The ID of the job in question assigned by the scheduler.
+        :return: A String of JOB_RUNNING if the job is running or enqueued and
+        JOB_FAILED if the ready flag (see read_flag_exists) does not exist in
+        the assessor label folder in the upload directory.
+        """
         # Check status on cluster
         jobstatus = self.get_job_status(jobid)
 

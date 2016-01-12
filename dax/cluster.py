@@ -201,3 +201,20 @@ class PBS:   #The script file generator class
             jobid = '0'
 
         return jobid.strip()
+
+class ClusterLaunchException(Exception):
+    """Custom exception raised when launch on the grid failed"""
+    def __init__(self):
+        Exception.__init__(self, 'ERROR: Failed to launch job on the grid.')
+
+class ClusterCountJobsException(Exception):
+    """Custom exception raised when attempting to get the number of
+    jobs fails"""
+    def __init__(self):
+        Exception.__init__(self, 'ERROR: Failed to fetch number of '
+                                 'jobs from the grid.')
+
+class ClusterJobIDException(Exception):
+    """Custom exception raised when attempting to get the job id failed"""
+    def __init__(self):
+        Exception.__init__(self, 'ERROR: Failed to get job id.')

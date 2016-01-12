@@ -128,20 +128,23 @@ class Launcher(object):
             cur_task = task_list.pop()
 
             # Confirm task is still ready to run
-            if cur_task.get_status() != task.NEED_TO_RUN:
-                continue
+            # I don't think that we need to make this get here. We've already
+            # filtered the assessors as need to run.
+            # if cur_task.get_status() != task.NEED_TO_RUN:
+            #     continue
 
             mes_format = """  +Launching job:{label}, currently {count} jobs in cluster queue"""
             LOGGER.info(mes_format.format(label=cur_task.assessor_label,
                                           count=str(cur_job_count)))
             success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options)
-            if success != True:
+            if not success:
                 LOGGER.error('ERROR:failed to launch job')
+                raise cluster.ClusterLaunchException
 
             cur_job_count = cluster.count_jobs()
             if cur_job_count == -1:
                 LOGGER.error('ERROR:cannot get count of jobs from cluster')
-                return
+                raise cluster.ClusterCountJobsException
 
     ################## UPDATE Main Method ##################
     def update_tasks(self, lockfile_prefix, project_local, sessions_local):
