@@ -49,7 +49,15 @@ REPROC_RES_SKIP_LIST = [OLD_RESOURCE, EDITS_RESOURCE]
 class Task(object):
     """ Class Task to generate/manage the assessor with the cluster """
     def __init__(self, processor, assessor, upload_dir):
-        """ init function """
+        """
+        Init of class Task
+
+        :param processor: processor used
+        :param assessor: assessor dict ?
+        :param upload_dir: upload directory to copy data to after the job finishes.
+        :return: None
+
+        """
         self.processor = processor
         self.assessor = assessor
         self.upload_dir = upload_dir
@@ -71,27 +79,58 @@ class Task(object):
         self.assessor_label = assessor.label()
 
     def get_processor_name(self):
-        """ return name of the processor """
+        """
+        Get the name of the Processor for the Task.
+
+        :return: String of the Processor name.
+
+        """
         return self.processor.name
 
     def get_processor_version(self):
-        """ return the version of the processor """
+        """
+        Get the version of the Processor.
+
+        :return: String of the Processor version.
+
+        """
         return self.processor.version
 
     def is_open(self):
-        """ return true if the task status is open """
+        """
+        Check to see if a task is still in "Open" status as defined in
+         XnatUtils.OPEN_STATUS_LIST.
+
+        :return: True if the Task is open. False if it is not open
+
+        """
         astatus = self.get_status()
         return astatus in OPEN_STATUS_LIST
         
     def get_job_usage(self):
-        """ return assessor job usage values from XNAT """
+        """
+        Get the amount of memory used, the amount of walltime used, the jobid
+         of the process, the node the process ran on, and when it started
+         from the scheduler.
+
+        :return: List of strings. Memory used, walltime used, jobid, node used,
+         and start date
+
+        """
         atype = self.atype
         [memused, walltime, jobid, jobnode, jobstartdate] = self.assessor.attrs.mget(
             [atype+'/memused', atype+'/walltimeused', atype+'/jobid', atype+'/jobnode', atype+'/jobstartdate'])
         return [memused.strip(), walltime.strip(), jobid.strip(), jobnode.strip(), jobstartdate.strip()]
 
     def check_job_usage(self):
-        """ check the job information on the cluster for the task """
+        """
+        The task has now finished, get the amount of memory used, the amount of
+         walltime used, the jobid of the process, the node the process ran on,
+         and when it started from the scheduler. Set these values on XNAT
+
+        :return: None
+
+        """
         [memused, walltime, jobid, jobnode, jobstartdate] = self.get_job_usage()
 
         if walltime != '':
@@ -128,34 +167,76 @@ class Task(object):
             self.set_jobnode('NotFound')
 
     def get_memused(self):
-        """ return memused of the assessor """
+        """
+        Get the amount of memory used for a process
+
+        :return: String of how much memory was used
+
+        """
         memused = self.assessor.attrs.get(self.atype+'/memused')
         return memused.strip()
 
     def set_memused(self, memused):
-        """ set memused on the assessor """
+        """
+        Set the amount of memory used for a process
+
+        :param memused: String denoting the amount of memory used
+        :return: None
+
+        """
         self.assessor.attrs.set(self.atype+'/memused', memused)
 
     def get_walltime(self):
-        """ return walltime of the assessor """
+        """
+        Get the amount of walltime used for a process
+
+        :return: String of how much walltime was used for a process
+
+        """
         walltime = self.assessor.attrs.get(self.atype+'/walltimeused')
         return walltime.strip()
 
     def set_walltime(self, walltime):
-        """ set walltime on the assessor """
+        """
+        Set the value of walltime used for an assessor on XNAT
+
+        :param walltime: String denoting how much time was used running
+         the process.
+        :return: None
+
+        """
         self.assessor.attrs.set(self.atype+'/walltimeused', walltime)
 
     def get_jobnode(self):
-        """ return jobnode of the assessor"""
+        """
+        Gets the node that a process ran on
+
+        :return: String identifying the node that a job ran on
+
+        """
         jobnode = self.assessor.attrs.get(self.atype+'/jobnode')
         return jobnode.strip()
 
     def set_jobnode(self, jobnode):
-        """ set jobnode on the assessor """
+        """
+        Set the value of the the node that the process ran on on the grid
+
+        :param jobnode: String identifying the node the job ran on
+        :return: None
+
+        """
         self.assessor.attrs.set(self.atype+'/jobnode', jobnode)
 
     def undo_processing(self):
-        """ undo a processing on XNAT """
+        """
+        Unset the job ID, memory used, walltime, and jobnode information
+         for the assessor on XNAT
+
+        :except: pyxnat.core.errors.DatabaseError when attempting to
+         delete a resource
+        :return: None
+
+        """
         from pyxnat.core.errors import DatabaseError
 
         self.set_qcstatus(JOB_PENDING)
@@ -175,7 +256,12 @@ class Task(object):
                     pass
 
     def reproc_processing(self):
-        """ rerun a processing from XNAT """
+        """
+        If the procstatus of an assessor is REPROC on XNAT, rerun the assessor.
+
+        :return: None
+
+        """
         curtime = time.strftime("%Y%m%d-%H%M%S")
         local_dir = self.assessor_label+'_'+curtime
         local_zip = local_dir+'.zip'
@@ -214,7 +300,12 @@ class Task(object):
         # delete the local copies
 
     def update_status(self):
-        """ update the status of a task """
+        """
+        Update the satus of a Task object.
+
+        :return: the "new" status (updated) of the Task.
+
+        """
         old_status, qcstatus, jobid = self.get_statuses()
         new_status = old_status
 
@@ -265,12 +356,23 @@ class Task(object):
         return new_status
 
     def get_jobid(self):
-        """ return jobid for the task """
+        """
+        Get the jobid of an assessor as stored on XNAT
+
+        :return: string of the jobid
+
+        """
         jobid = self.assessor.attrs.get(self.atype+'/jobid').strip()
         return jobid
 
     def get_job_status(self,jobid=None):
-        """ return job status for the task """
+        """
+        Get the status of a job given its jobid as assigned by the scheduler
+
+        :param jobid: job id assigned by the scheduler
+        :return: string from call to cluster.job_status or UNKNOWN.
+
+        """
         jobstatus = 'UNKNOWN'
         if jobid == None:
             jobid = self.get_jobid()
@@ -281,7 +383,18 @@ class Task(object):
         return jobstatus
 
     def launch(self, jobdir, job_email=None, job_email_options=DEFAULT_EMAIL_OPTS):
-        """ launch the task on the cluster """
+        """
+        Method to launch a job on the grid
+
+        :param jobdir: absolute path to where the data will be stored on the node
+        :param job_email: who to email if the job fails
+        :param job_email_options: grid-specific job email options (e.g.,
+         fails, starts, exits etc)
+        :raises: cluster.ClusterLaunchException if the jobid is 0 or empty
+         as returned by pbs.submit() method
+        :return: True if the job failed
+
+        """
         cmds = self.commands(jobdir)
         pbsfile = self.pbs_path()
         outlog = self.outlog_path()
@@ -292,13 +405,19 @@ class Task(object):
 
         if jobid == '' or jobid == '0':
             LOGGER.error('failed to launch job on cluster')
-            raise cluster.ClusterJobIDException
+            raise cluster.ClusterLaunchException
         else:
             self.set_launch(jobid)
             return True
 
     def check_date(self):
-        """ check the date of the job start """
+        """
+        Sets the job created date if the assessor was not made through
+         dax_build
+
+        :return: Returns if get_createdate() is != '', sets date otherwise
+
+        """
         if self.get_createdate() != '':
             return
 
@@ -307,35 +426,76 @@ class Task(object):
             self.set_createdate(jobstartdate)
 
     def get_jobstartdate(self):
-        """ return the starting date of the job """
+        """
+        Get the date that the job started
+
+        :return: String of the date that the job started in "%Y-%m-%d" format
+
+        """
         return self.assessor.attrs.get(self.atype+'/jobstartdate')
 
     def set_jobstartdate_today(self):
-        """ set the starting date for the assessor as the day of today"""
+        """
+        Set the date that the job started on the grid to today
+
+        :return: call to set_jobstartdate with today's date
+
+        """
         today_str = str(date.today())
         return self.set_jobstartdate(today_str)
 
     def set_jobstartdate(self, date_str):
-        """ set the starting date of the assessor """
+        """
+        Set the date that the job started on the grid based on user passed
+         value
+
+        :param date_str: Datestring in the format "%Y-%m-%d" to set the job
+         starte date to
+        :return: None
+
+        """
         self.assessor.attrs.set(self.atype.lower()+'/jobstartdate', date_str)
 
     def get_createdate(self):
-        """ return create date of assessor """
+        """
+        Get the date an assessor was created
+
+        :return: String of the date the assessor was created in "%Y-%m-%d"
+         format
+
+        """
         return self.assessor.attrs.get(self.atype+'/date')
 
     def set_createdate(self, date_str):
-        """ set create date for assessor and return it """
+        """
+        Set the date of the assessor creation to user passed value
+
+        :param date_str: String of the date in "%Y-%m-%d" format
+        :return: String of today's date in "%Y-%m-%d" format
+
+        """
         self.assessor.attrs.set(self.atype+'/date', date_str)
         return date_str
 
     def set_createdate_today(self):
-        """ set create date to today """
+        """
+        Set the date of the assessor creation to today
+
+        :return: String of todays date in "%Y-%m-%d" format
+
+        """
         today_str = str(date.today())
         self.set_createdate(today_str)
         return today_str
 
     def get_status(self):
-        """ return procstatus for assessor """
+        """
+        Get the procstatus of an assessor
+
+        :return: The string of the procstatus of the assessor.
+         XnatUtils.DOES_NOT_EXIST if the assessor does not exist
+
+        """
         if not self.assessor.exists():
             xnat_status = DOES_NOT_EXIST
         elif self.atype == 'proc:genprocdata':
@@ -347,7 +507,12 @@ class Task(object):
         return xnat_status
     
     def get_statuses(self):
-        """ return procstatus and qcstatus for assessor """
+        """
+        Get the procstatus, qcstatus, and job id of an assessor
+
+        :return: Serially ordered strings of the assessor procstatus,
+         qcstatus, then jobid.
+        """
         atype = self.atype
         if not self.assessor.exists():
             xnat_status = DOES_NOT_EXIST
@@ -366,18 +531,21 @@ class Task(object):
     def set_status(self, status):
         """
         Set the procstatus of an assessor on XNAT
+
         :param status: String to set the procstatus of the assessor to
         :return: None
+
         """
         self.assessor.attrs.set(self.atype+'/procstatus', status)
 
     def get_qcstatus(self):
         """
         Get the qcstatus of the assessor
+
         :return: A string of the qcstatus for the assessor if it exists.
-        If it does not, it returns DOES_NOT_EXIST as defined in XnatUtils.
-        The else case returns an UNKNOWN xsiType with the xsiType of the
-        assessor as stored on XNAT.
+         If it does not, it returns DOES_NOT_EXIST as defined in XnatUtils.
+         The else case returns an UNKNOWN xsiType with the xsiType of the
+         assessor as stored on XNAT.
         """
         qcstatus = ''
         atype = self.atype
@@ -394,17 +562,21 @@ class Task(object):
     def set_qcstatus(self, qcstatus):
         """
         Set the qcstatus of the assessor
+
         :param qcstatus: String to set the qcstatus to
         :return: None
+
         """
         self.assessor.attrs.set(self.atype+'/validation/status', qcstatus)
         
     def set_proc_and_qc_status(self, procstatus, qcstatus):
         """
         Set the procstatus and qcstatus of the assessor
+
         :param procstatus: String to set the procstatus of the assessor to
         :param qcstatus: String to set the qcstatus of the assessor to
         :return: None
+
         """
         atype = self.atype
         """ set the procstatus """
@@ -413,17 +585,21 @@ class Task(object):
     def set_jobid(self, jobid):
         """
         Set the job ID of the assessor on XNAT
+
         :param jobid: The ID of the process assigned by the grid scheduler
         :return: None
+
         """
         self.assessor.attrs.set(self.atype+'/jobid', jobid)
 
     def set_launch(self, jobid):
         """
         Set the date that the job started and its associated ID on XNAT.
-         Additionally, set the procstatus to JOB_RUNNING
+        Additionally, set the procstatus to JOB_RUNNING
+
         :param jobid: The ID of the process assigned by the grid scheduler
         :return: None
+
         """
         today_str = str(date.today())
         atype = self.atype.lower()
@@ -435,26 +611,31 @@ class Task(object):
     def commands(self, jobdir):
         """
         Call the get_cmds method of the class Processor.
+
         :param jobdir: Fully qualified path where the job will run on the node.
-        Note that this is likely to start with /tmp on most grids.
+         Note that this is likely to start with /tmp on most grids.
         :return: A string that makes a command line call to a spider with all
-        args.
+         args.
+
         """
         return self.processor.get_cmds(self.assessor, os.path.join(jobdir, self.assessor_label))
 
     def pbs_path(self):
         """
         Method to return the path of the PBS file for the job
+
         :return: A string that is the absolute path to the PBS file that will
-        be submitted to the scheduler for execution.
+         be submitted to the scheduler for execution.
+
         """
         return os.path.join(DEFAULT_PBS_DIR, self.assessor_label+JOB_EXTENSION_FILE)
 
     def outlog_path(self):
         """
         Method to return the path of the PBS file for the job
-        :return: A string that is the absolute path to the PBS file that will
-        be submitted to the scheduler for execution.
+
+        :return: A string that is the absolute path to the PBS file that will be submitted to the scheduler for execution.
+
         """
         return os.path.join(DEFAULT_OUT_DIR, self.assessor_label+'.output')
 
@@ -462,7 +643,9 @@ class Task(object):
         """
         Method to see if the flag file
         <UPLOAD_DIR>/<ASSESSOR_LABEL>/READY_TO_UPLOAD.txt exists
+
         :return: True if the file exists. False if the file does not exist.
+
         """
         flagfile = os.path.join(self.upload_dir, self.assessor_label, READY_TO_UPLOAD_FLAG_FILENAME)
         return os.path.isfile(flagfile)
@@ -470,10 +653,12 @@ class Task(object):
     def check_running(self, jobid=None):
         """
         Check to see if a job specified by the scheduler ID is still running
+
         :param jobid: The ID of the job in question assigned by the scheduler.
         :return: A String of JOB_RUNNING if the job is running or enqueued and
-        JOB_FAILED if the ready flag (see read_flag_exists) does not exist in
-        the assessor label folder in the upload directory.
+         JOB_FAILED if the ready flag (see read_flag_exists) does not exist
+         in the assessor label folder in the upload directory.
+
         """
         # Check status on cluster
         jobstatus = self.get_job_status(jobid)
