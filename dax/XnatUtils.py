@@ -53,11 +53,22 @@ BAD_QA_STATUS = ['bad', 'fail']
 #                                    1) CLASS                                      #
 ####################################################################################
 class InterfaceTemp(Interface):
-    '''Extends the functionality of Interface
-    to have a temporary cache that is removed
-    when .disconnect() is called.
-    '''
+    """
+    Extends the pyxnat.Interface class to make a temporary directory, write the
+     cache to it and then blow it away on the Interface.disconnect call()
+     NOTE: This is deprecated in pyxnat 1.0.0.0
+    """
     def __init__(self, xnat_host, xnat_user, xnat_pass, temp_dir=None):
+        """
+        Entry point for the InterfaceTemp class
+
+        :param xnat_host: XNAT Host url
+        :param xnat_user: XNAT User ID
+        :param xnat_pass: XNAT Password
+        :param temp_dir: Directory to write the Cache to
+        :return: None
+
+        """
         if not temp_dir:
             temp_dir = tempfile.mkdtemp()
         if not os.path.exists(temp_dir):
@@ -66,71 +77,123 @@ class InterfaceTemp(Interface):
         super(InterfaceTemp, self).__init__(server=xnat_host, user=xnat_user, password=xnat_pass, cachedir=temp_dir)
 
     def disconnect(self):
+        """
+        Disconnect the JSESSION and blow away the cache
+
+        :return: None
+
+        """
         self._exec('/data/JSESSION', method='DELETE')
         shutil.rmtree(self.temp_dir)
 
 class AssessorHandler:
-    """ Class to handle assessor label string"""
+    """
+    Class to intelligently deal with the Assessor labels and to hopefully make the splitting of the strings easier.
+    """
     def __init__(self, label):
         """
         The purpose of this method is to split an assessor label and parse out its associated pieces
-        :param label: An assessor label of the form ProjectID-x-Subject_label-x-SessionLabel-x-ScanId-x-proctype
+
+        :param label: An assessor label of the form
+         ProjectID-x-Subject_label-x-SessionLabel-x-ScanId-x-proctype or
+         ProjectID-x-Subject_label-x-SessionLabel-x-proctype
         :return: None
+
         """
         self.assessor_label = label
+        self.is_session_assessor = False
+        self.is_scan_assessor=False
         if len(re.findall('-x-', label)) == 3:
             self.project_id, self.subject_label, self.session_label, self.proctype = label.split('-x-')
             self.scan_id = None
+            self.is_session_assessor = True
         elif len(re.findall('-x-', label)) == 4:
             self.project_id, self.subject_label, self.session_label, self.scan_id, self.proctype = label.split('-x-')
+            self.is_scan_assessor = True
         else:
             self.assessor_label = None
 
     def is_valid(self):
-        """return true if the assessor is a valid label"""
+        """
+        Check to see if we have a valid assessor label (aka not None)
+
+        :return: True if valid, False if not valid
+        """
         return self.assessor_label != None
 
     def get_project_id(self):
-        """ This method retreives the project label from self
+        """
+        Get the project ID from the assessor label
+
         :return: The XNAT project label
+
         """
         return self.project_id
 
     def get_subject_label(self):
-        """ This method retrieves the subject label from self
+        """
+        Get the subject label from the assessor label
+
         :return: The XNAT subject label
+
         """
         return self.subject_label
 
     def get_session_label(self):
-        """ This method retrieves the session label from self
+        """
+        Get the session label from the assessor label
+
         :return: The XNAT session label
+
         """
         return self.session_label
 
     def get_scan_id(self):
-        """ This method retrieves the scan id from the assessor label
-        :return: The XNAT scan ID for the assessor
+        """
+        Get the scan ID from teh assessor label
+
+        :return: The scan id for the assessor label
+
         """
         return self.scan_id
 
     def get_proctype(self):
-        """ This method retrieves the process type from the assessor label
-        :return: The XNAT process type for the assessor
+        """
+        Get the proctype from the assessor label
+
+        :return: The proctype for the assessor
+
         """
         return self.proctype
 
     def select_assessor(self, intf):
-        """ return XNAT object for the assessor
-        :return: None
+        """
+        Run Interface.select() on the assessor label
+
+        :return: The pyxnat EObject of the assessor
+
         """
         string_obj = '''/project/{project}/subject/{subject}/experiment/{session}/assessor/{label}'''.format(project=self.project_id, subject=self.subject_label, session=self.session_label, label=self.assessor_label)
         return intf.select(string_obj)
 
 class SpiderProcessHandler:
-    """ Handle the results of a spider """
+    """
+    Class to handle the uploading of results from a spider to the upload directory
+    """
     def __init__(self, script_name, suffix, project, subject, experiment, scan=None, time_writer=None):
-        """ initialization """
+        """
+        Entry point to the SpierProcessHandler Class
+
+        :param script_name: Basename of the Spider
+        :param suffix: Processor suffix
+        :param project: Project on XNAT
+        :param subject: Subject on XNAT
+        :param experiment: Session on XNAT
+        :param scan: Scan (if needed) On Xnat
+        :param time_writer: TimedWriter object if wanted
+        :return: None
+
+        """
         #Variables:
         self.error = 0
         self.has_pdf = 0
@@ -151,11 +214,10 @@ class SpiderProcessHandler:
             self.version = '1.0.0'
             proctype = script_name
 
-        #if suffix:
         if suffix:
-            if suffix[0] !='_': #check that it starts with an underscore
+            if suffix[0] !='_':
                 suffix = '_'+suffix
-            # suffix: remove any special characters and replace by '_'
+
             suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
             if suffix[-1] == '_':
                 suffix = suffix[:-1]
@@ -178,28 +240,52 @@ class SpiderProcessHandler:
             clean_directory(self.directory)
 
         self.print_msg("INFO: Handling results ...")
-        self.print_msg('''-Creating folder {folder} for {label}'''.format(folder=self.directory, label=assessor_label))
+        self.print_msg('''-Creating folder {folder} for {label}'''.format(folder=self.directory,
+                                                                          label=assessor_label))
 
     def print_msg(self, msg):
-        """ Print message using time_writer if set, print otherwise """
+        """
+        Prints a message using TimedWriter object if defined otherwise default print
+
+        :param msg: Message to print
+        :return: None
+
+        """
         if self.time_writer:
             self.time_writer(msg)
         else:
             print msg
 
     def print_err(self, msg):
-        """ Print error message using time writer if set, print otherwise"""
+        """
+        Print error message using time writer if set, print otherwise
+
+        :param msg: Message to print
+        :return: None
+
+        """
         if self.time_writer:
             self.time_writer.print_stderr_message(msg)
         else:
             print "Error: "+msg
 
     def set_error(self):
-        """ set the error to one """
+        """
+        Set the flag for the error to 1
+
+        :return: None
+
+        """
         self.error = 1
 
     def file_exists(self, fpath):
-        """ check if file exists """
+        """
+        Check to see if a file exists
+
+        :param fpath: full path to a file to assert it exists
+        :return: True if it exists, False if it doesn't
+
+        """
         if not os.path.isfile(fpath.strip()):
             self.error = 1
             self.print_err('''file {file} does not exists.'''.format(file=fpath))
@@ -208,7 +294,13 @@ class SpiderProcessHandler:
             return True
 
     def folder_exists(self, fpath):
-        """ check if folder exists """
+        """
+        Check to see if a folder exists
+
+        :param fpath: Full path to a folder to assert it exists
+        :return: True if it exists, False if it doesn't
+
+        """
         if not os.path.isdir(fpath.strip()):
             self.error = 1
             self.print_err('''folder {folder} does not exists.'''.format(folder=fpath))
@@ -217,11 +309,25 @@ class SpiderProcessHandler:
             return True
 
     def print_copying_statement(self, label, src, dest):
-        """ print statement for copying data """
+        """
+        Print a line that data is being copied to the upload directory
+
+        :param label: The XNAT resource label
+        :param src: Source directory or file
+        :param dest: Destination directory or file
+        :return: None
+
+        """
         self.print_msg('''  -Copying {label}: {src} to {dest}'''.format(label=label, src=src, dest=dest))
 
     def add_pdf(self, filepath):
-        """ add a file to resource pdf in the upload dir """
+        """
+        Add the PDF and run ps2pdf on the file if it ends with .ps
+
+        :param filepath: Full path to the PDF/PS file
+        :return: None
+
+        """
         if self.file_exists(filepath):
             #Check if it's a ps:
             if filepath.lower().endswith('.ps'):
@@ -235,11 +341,25 @@ class SpiderProcessHandler:
             self.has_pdf = 1
 
     def add_snapshot(self, snapshot):
-        """ add a file to resource snapshot in the upload dir """
+        """
+        Add in the snapshots (for quick viewing on XNAT)
+
+        :param snapshot: Full path to the snapshot file
+        :return: None
+
+        """
         self.add_file(snapshot, 'SNAPSHOTS')
 
     def add_file(self, filepath, resource):
-        """ add a file to the upload dir under the resource name """
+        """
+        Add a file in the assessor in the upload directory based on the
+         resource name as will be seen on XNAT
+
+        :param filepath: Full path to a file to upload
+        :param resource: The resource name it should appear under in XNAT
+        :return: None
+
+        """
         if self.file_exists(filepath):
             #make the resource folder
             respath = os.path.join(self.directory, resource)
@@ -253,7 +373,16 @@ class SpiderProcessHandler:
                 os.system('gzip '+os.path.join(respath, os.path.basename(filepath)))
 
     def add_folder(self, folderpath, resource_name=None):
-        """ add a folder to the upload dir (with a specific name if specified) """
+        """
+        Add a folder to the assessor in the upload directory.
+
+        :param folderpath: Full path to the folder to upoad
+        :param resource_name: Resource name desired (if different than basename)
+        :except shutil.Error: Directories are the same
+        :except OSError: The directory doesn't exist
+        :return: None
+
+        """
         if self.folder_exists(folderpath):
             if not resource_name:
                 res = os.path.basename(os.path.abspath(folderpath))
@@ -272,7 +401,12 @@ class SpiderProcessHandler:
                 self.print_err('Directory not copied. Error: %s' % excep)
 
     def set_assessor_status(self, status):
-        """ Set the status of an assessor """
+        """
+        Set the status of the assessor based on passed value
+        :param status: Value to set the procstatus to
+        :except: All catchable errors.
+        :return: None
+        """
         # Connection to Xnat
         try:
             xnat = get_interface()
@@ -295,7 +429,13 @@ class SpiderProcessHandler:
             if 'xnat' in locals() or xnat != None: xnat.disconnect()
 
     def done(self):
-        """ create the flagfile and set the assessor with the new status """
+        """
+        Create a flag file that the assessor is ready to be uploaded and set
+         the status as READY_TO_UPLOAD
+
+        :return: None
+
+        """
         #creating the version file to give the spider version:
         f_obj = open(os.path.join(self.directory, 'version.txt'), 'w')
         f_obj.write(self.version)
@@ -324,7 +464,16 @@ class SpiderProcessHandler:
 #                     2) Query XNAT and Access XNAT obj                            #
 ####################################################################################
 def get_interface(host=None, user=None, pwd=None):
-    """ open interface with XNAT using your log-in information """
+    """
+    Opens a connection to XNAT using XNAT_USER, XNAT_PASS, and XNAT_HOST from
+     env if host/user/pwd are None.
+
+    :param host: URL to connect to XNAT
+    :param user: XNAT username
+    :param pwd: XNAT password
+    :return: InterfaceTemp object which extends functionaly of pyxnat.Interface
+
+    """
     if user == None:
         user = os.environ['XNAT_USER']
     if pwd == None:
@@ -335,21 +484,41 @@ def get_interface(host=None, user=None, pwd=None):
     return InterfaceTemp(host, user, pwd)
 
 def list_projects(intf):
-    """ list of dictionaries for project that you have access to """
+    """
+    Gets a list of all of the projects that you have access to
+
+    :param intf: pyxnat.Interface object
+    :return: list of dictionaries of projects you have access to
+
+    """
     post_uri = '/REST/projects'
     projects_list = intf._get_json(post_uri)
     return projects_list
 
 def list_project_resources(intf, projectid):
-    """ list of dictionaries for the project resources """
-    post_uri = '/REST/projects/'+projectid+'/resources'
+    """
+    Gets a list of all of the project resources for the project ID you want.
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :return: list of resources for the specificed project
+    """
+    post_uri = '/REST/projects/{project_id}/resources'.format(project_id=projectid)
     resource_list = intf._get_json(post_uri)
     return resource_list
 
 def list_subjects(intf, projectid=None):
-    """ list of dictionaries for subjects in a project """
+    """
+    List all the subjects that you have access to. Or, alternatively, list
+    the subjects in a single project based on passed project ID
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :return: list of dictionaries of subjects in the project or projects.
+
+    """
     if projectid:
-        post_uri = '/REST/projects/'+projectid+'/subjects'
+        post_uri = '/REST/projects/{project_id}/subjects'.format(project_id=projectid)
     else:
         post_uri = '/REST/subjects'
 
@@ -371,7 +540,16 @@ def list_subjects(intf, projectid=None):
     return sorted(subject_list, key=lambda k: k['subject_label'])
 
 def list_subject_resources(intf, projectid, subjectid):
-    """ list of dictionaries for the subjects resources """
+    """
+    Gets a list of all of the resources for a subject for a project
+     requested by the user
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :param subjectid: ID/label of a subject to get resources for
+    :return: List of resources for the subject
+
+    """
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/resources'
     resource_list = intf._get_json(post_uri)
     return resource_list
@@ -832,7 +1010,16 @@ def select_assessor(intf, assessor_label):
     return intf.select('/project/'+labels[0]+'/subject/'+labels[1]+'/experiment/'+labels[2]+'/assessor/'+assessor_label)
 
 def get_full_object(intf, obj_dict):
-    """ select object on XNAT from dictionary """
+    """
+    Method to run Interface.select() on a dictionary of scan, assessor,
+     experiment, subject or project data
+
+    :param intf: pyxnat.Interface Object
+    :param obj_dict: A dictionary of information from XnatUtils.list_assessors,
+     XnatUtils.list_scans, XnatUtils.list_sessions, or XnatUtils.list_subjects
+    :return: The pyxnat EObject selected (but not checked for existance)
+
+    """
     if 'scan_id' in obj_dict:
         proj = obj_dict['project_id']
         subj = obj_dict['subject_id']
@@ -861,12 +1048,33 @@ def get_full_object(intf, obj_dict):
         return intf.select('/project/')  #Return non existing object: obj.exists() -> False
 
 def get_assessor(xnat, projid, subjid, sessid, assrid):
-    """ select assessor from ids or labels """
+    """
+    Run Interface.select down to the assessor level
+
+    :param xnat: pyxnat.Interface Object
+    :param projid: XNAT Project ID
+    :param subjid: XNAT Subject ID
+    :param sessid: XNAT Session ID
+    :param assrid: XNAT Assesor label
+    :return: pyxnat EObject of the assessor
+
+    """
     assessor = xnat.select('/projects/'+projid+'/subjects/'+subjid+'/experiments/'+sessid+'/assessors/'+assrid)
     return assessor
 
 def select_obj(intf, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None):
-    """ Select different level object from XNAT by giving the label or id """
+    """
+    Based on inputs, run Interface.select() down the URI tree
+
+    :param intf: pyxnat.Interface Object
+    :param project_id: XNAT Project ID
+    :param subject_id: XNAT Subject ID/label
+    :param session_id: XNAT Session ID/label
+    :param scan_id: XNAT Scan ID/label
+    :param assessor_id: XNAT Assesor ID/label
+    :return: pyxnat EObject based on user inputs
+
+    """
     select_str = ''
     if not project_id:
         print "ERROR: select_obj in XnatUtils: can not select if no project_id given."
@@ -889,8 +1097,24 @@ def select_obj(intf, project_id=None, subject_id=None, session_id=None, scan_id=
 #                     Functions to access/check object                             #
 ####################################################################################
 def is_cscan_unusable(cscan):
-    """ return true if scan unusable """
+    """
+    Check to see if a CachedImageScan is unusable
+
+    :param cscan: XnatUtils.CachedImageScan object
+    :return: True if unusable, False otherwise
+
+    """
     return cscan.info()['quality'] == "unusable"
+
+def is_cscan_usable(cscan):
+    """
+    Check to see if a CachedImageScan is usable
+
+    :param cscan: XnatUtils.CachedImageScan object
+    :return: True if usable, False otherwise
+
+    """
+    return cscan.info()['quality'] == "usable"
 
 def is_cscan_good_type(cscan, types_list):
     """ return true if scan has the right type """
