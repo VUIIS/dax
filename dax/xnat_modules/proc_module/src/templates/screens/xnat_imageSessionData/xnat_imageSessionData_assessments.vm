@@ -1,6 +1,17 @@
+<link rel="stylesheet" type="text/css" href="$content.getURI("scripts/themes/proc/style.css")">
 <script type="text/javascript" src="$content.getURI("scripts/FileViewerProcessing.js")"></script>
 <script type="text/javascript" src="$content.getURI("scripts/FileViewerProcessingPdf.js")"></script>
-
+<script type="text/javascript" src="$content.getURI("scripts/jquery-latest.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/jquery.tablesorter.min.js")"></script>
+<script type="text/javascript" id="js">$(document).ready(function() {
+	// call the tablesorter plugin
+	$("#myTable").tablesorter({
+		// sort on the first column and third column, order asc
+		sortList: [[1,0],[4,0]],
+		// disable columsn 0,2,7
+		headers: {0:{sorter:false}, 2:{sorter:false}, 7:{sorter:false}}
+	});
+}); </script>
 <script type="text/javascript">
 	var obja=new Object();
     obja.uri=serverRoot + "/REST/experiments/$!om.getId()";
@@ -17,7 +28,6 @@
 
 	window.pviewer=new FileViewerProcessing(obja);
 </script>
-
 <script type="text/javascript">
 	var objp=new Object();
     objp.uri=serverRoot + "/REST/experiments/$!om.getId()";
@@ -39,19 +49,21 @@
 </script>
 
 #if($om.getMinimalLoadAssessors().size()>0)
-
 	<div class="edit_header1" style="margin-bottom:16px">Processing</div>
-	<table style="padding-left:5px;padding-right:5px;padding-bottom:1px;padding-top:1px;" cellspacing="0" border="0" width="90%">
+    <table id="myTable" class="tablesorter" border="0" cellpadding="0" cellspacing="1">
+        <thead>
 		<tr>
-			<TH class="underscore"></TH>
-			<TH class="underscore" NOWRAP>Type</TH>
-			<TH class="underscore" align="center" NOWRAP>PDF</TH>
-			<TH class="underscore" NOWRAP>Proc Date</TH>
-			<TH class="underscore" NOWRAP>Proc ID</TH>
-			<TH class="underscore" NOWRAP>Job Status</TH>
-			<TH class="underscore" NOWRAP>QC Status</TH>
-			<TH class="underscore" align="left">Files</TH>
+			<TH></TH>
+			<TH>Type</TH>
+			<TH>PDF</TH>
+			<TH>Proc Date</TH>
+			<TH>Proc ID</TH>
+			<TH>Job Status</TH>
+			<TH>QC Status</TH>
+			<TH>Files</TH>
 		</tr>
+        </thead>
+        <tbody>
 
 		#set ($assessorCounter = 3000)
 
@@ -75,9 +87,8 @@
 
 			#set ($qcStatus  = $!proc.getProperty("xnat:experimentData.validation/status"))
 
-
 			<tr>
-	    		<td border=0 align=left NOWRAP>
+	    		<td>
         			<a name="LINK${assessorCounter}" href="#LINK${assessorCounter}" onClick=" return blocking($assessorCounter);">
           				<img ID="IMG$assessorCounter" src="$content.getURI('images/plus.jpg')" border=0/>
         			</a>
@@ -86,27 +97,27 @@
 					#if($proc.canRead($user))
 						#set ( $url = "$link.setAction('DisplayItemAction').addPathInfo('search_element',$!proc.getXSIType()).addPathInfo('search_field',$procField).addPathInfo('search_value',$procID).addPathInfo('popup',$popup).addPathInfo('project',$!project)" )
 						#if($proc.getHeader())
-							<a href="$url" title="$proc.getIdentifier($project)">$!proc.getHeader()</A>
+							<a href="$url">$!proc.getHeader()</A>
 						#elseif ($procType == 'xnat:qcAssessmentData')
 							#set ($qcType = $!proc.getProperty("type"))
-							<a href="$procurl" title="$proc.getIdentifier($project)">$qcType</A>
+							<a href="$procurl">$qcType</A>
 						#elseif ($procType == 'proc:genProcData')
 							#set ($procType = $!proc.getProperty("proctype"))
-							<a href="$url" title="$proc.getIdentifier($project)">$procType</A>
+							<a href="$url">$procType</A>
 						#else
-							<a href="$url" title="$proc.getIdentifier($project)">$user.getDisplayManager().getDisplayNameForElement($proc.getXSIType())</A>
+							<a href="$url">$user.getDisplayManager().getDisplayNameForElement($proc.getXSIType())</A>
 						#end
 					#else
 						#if($proc.getHeader())
-							<a title="$proc.getIdentifier($project)">$!proc.getHeader()</A>
+							<a>$!proc.getHeader()</A>
 						#elseif ($procType == 'xnat:qcAssessmentData')
 							#set ($qcType = $!proc.getProperty("type"))
-							<a title="$proc.getIdentifier($project)">$qcType</A>
+							<a>$qcType</A>
 						#elseif ($procType == 'proc:genProcData')
 							#set ($procType = $!proc.getProperty("proctype"))
-							<a title="$proc.getIdentifier($project)">$procType</A>
+							<a>$procType</A>
 						#else
-							<a title="$proc.getIdentifier($project)">$user.getDisplayManager().getDisplayNameForElement($proc.getXSIType())</A>
+							<a>$user.getDisplayManager().getDisplayNameForElement($proc.getXSIType())</A>
 						#end
 					#end
 				</TD>
@@ -114,19 +125,27 @@
 					<div id="assessors_${procID}_pdf">...</div>
 				</td>
 				<td NOWRAP>$!procDate</td>
-				<td NOWRAP><a href="$procurl" title="$proc.getIdentifier($project)">$!procLabel</A></td>
+				<td NOWRAP><a href="$procurl" title="$procLabel">$!procLabel</a></td>
 				<td NOWRAP>$!procStatus</td>
 				#if($xsiType == 'proc:genProcData')
 					#if($qcStatus == 'Needs QA')
-						<td NOWRAP><a href="$editprocurl" title="$proc.getIdentifier($project)">$!qcStatus</a></td>
+						<td NOWRAP><a href="$editprocurl">$!qcStatus</a></td>
+					#elseif ($qcStatus.toLowerCase().contains('passed'))
+						<td NOWRAP class="quality-usable">$!qcStatus</td>
+					#elseif ($qcStatus.toLowerCase().contains('fail'))
+						<td NOWRAP class="quality-unusable">$!qcStatus</td>
 					#else
-						<td NOWRAP>$!qcStatus</a></td>
+						<td NOWRAP>$!qcStatus</td>
 					#end
 				#elseif ($xsiType == 'fs:fsData')
 					#if($qcStatus == 'Needs QA')
-						<td NOWRAP><a href="$editfsprocurl" title="$proc.getIdentifier($project)">$!qcStatus</a></td>
+						<td NOWRAP><a href="$editfsprocurl">$!qcStatus</a></td>
+					#elseif ($qcStatus.toLowerCase().contains('passed'))
+						<td NOWRAP class="quality-usable">$!qcStatus</td>
+					#elseif ($qcStatus.toLowerCase().contains('fail'))
+						<td NOWRAP class="quality-unusable">$!qcStatus</td>
 					#else
-						<td NOWRAP>$!qcStatus</a></td>
+						<td NOWRAP>$!qcStatus</td>
 					#end
 				#end
 				<td border=0 align=left NOWRAP>
@@ -135,8 +154,8 @@
 	        		</div>
 	      		</td>
 			</tr>
-			<tr>
-				<td colspan="7" NOWRAP>
+			<tr class="expand-child">
+				<td colspan="8" NOWRAP style="padding: 0px;">
 					<span ID="span$!assessorCounter" style="position:relative; display:none;">
 	          			<table>
 	          				<tr>
@@ -152,6 +171,6 @@
     		</tr>
     		#set ($assessorCounter= $assessorCounter + 1)
 		#end
+		</tbody>
 	</table>
-
 #end
