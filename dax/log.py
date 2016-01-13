@@ -5,7 +5,14 @@ import sys
 import logging
 
 def setup_debug_logger(name, logfile):
-    """Logger of level 10"""
+    """
+    Sets up the debug logger
+
+    :param name: Name of the logger
+    :param logfile: file to store the log to. sys.stdout if no file define
+    :return: logger object
+
+    """
     formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
     
     if logfile:
@@ -21,7 +28,14 @@ def setup_debug_logger(name, logfile):
 
 
 def setup_info_logger(name, logfile):
-    """Logger of level 20"""
+    """
+    Sets up the info logger
+
+    :param name: Name of the logger
+    :param logfile: file to store the log to. sys.stdout if no file define
+    :return: logger object
+
+    """
     if logfile:
         handler = logging.FileHandler(logfile, 'w')
     else:
@@ -34,7 +48,14 @@ def setup_info_logger(name, logfile):
 
 
 def setup_critical_logger(name, logfile):
-    """Logger of level 50"""
+    """
+    Sets up the critical logger
+
+    :param name: Name of the logger
+    :param logfile: file to store the log to. sys.stdout if no file define
+    :return: logger object
+
+    """
     if logfile:
         handler = logging.FileHandler(logfile, 'w')
     else:
@@ -46,7 +67,15 @@ def setup_critical_logger(name, logfile):
     return logger
 
 def setup_warning_logger(name, logfile):
-    """Logger of level 30"""
+    """
+    Sets up the warning logger
+
+    :param name: Name of the logger
+    :param logfile: file to store the log to. sys.stdout if no file define
+    :return: logger object
+
+    """
+
     if logfile:
         handler = logging.FileHandler(logfile, 'w')
     else:
@@ -58,7 +87,14 @@ def setup_warning_logger(name, logfile):
     return logger
 
 def setup_error_logger(name, logfile):
-    """Logger of level 40"""
+    """
+    Sets up the error logger
+
+    :param name: Name of the logger
+    :param logfile: file to store the log to. sys.stdout if no file define
+    :return: logger object
+
+    """
     if logfile:
         handler = logging.FileHandler(logfile, 'w')
     else:
