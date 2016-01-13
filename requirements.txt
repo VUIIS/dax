@@ -1,1 +1,4 @@
-pycap=1.0.0
+pycap
+httplib2
+lxml
+pyxnat
