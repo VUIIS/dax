@@ -10,6 +10,6 @@ Contents:
 
 .. toctree::
    :maxdepth: 2
-   .. autoclass:: dax.dax.task
+   .. autofunction:: dax.dax.task
    tutorials
    
