@@ -36,6 +36,7 @@ class Spider(object):
         :param xnat_user: user for XNAT if not set in environment variables
         :param xnat_pass: password for XNAT if not set in environment variables
         :param suffix: suffix to the assessor creation
+
     """
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
                  xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
@@ -74,14 +75,14 @@ class Spider(object):
 
     def get_default_value(self, variable, env_name, value):
         """
-            Return the default value for the variable:
-                if arg not NULL
-                else env variables define by arguments
+            Return the default value for the variable if arg not NULL else
+             env variables defined by the args
 
             :param variable: variable name
             :param env_name: name of the environment variable
             :param value:    value given by the user
             :return: default value
+
         """
         if value:
             return value
@@ -102,6 +103,7 @@ class Spider(object):
             :param pwd: password
             :param user: user
             :return: default value
+
         """
         if pwd:
             return pwd
@@ -124,6 +126,7 @@ class Spider(object):
             :param obj_label: xnat object label (scan ID or assessor label)
             :param resource: folder name under the xnat object
             return pyxnat object
+
         """
         tmp_dict = collections.OrderedDict([('project', self.xnat_project),
                                             ('subject', self.xnat_subject),
@@ -162,6 +165,7 @@ class Spider(object):
             :param resource: folder name under the xnat object
             :param folder: download directory
             :return: python list of files downloaded
+
         """
         # Open connection to XNAT
         xnat = XnatUtils.get_interface(host=self.host, user=self.user, pwd=self.pwd)
@@ -176,26 +180,37 @@ class Spider(object):
 
     def define_spider_process_handler(self):
         """
-            Define the SpiderProcessHandler for the end of any spider
+        Define the SpiderProcessHandler so the file(s) and PDF are checked for
+         existence and uploaded to the upload_dir accordingly
+
+        :raises: NotImplementedError() if not overridden.
+        :return: None
+
         """
         raise NotImplementedError()
 
     def has_spider_handler(self):
         """
-            Init Spider Handler if it was not already created.
+        Check to see that the SpiderProcessHandler is defined. If it is not,
+         call define_spider_process_handler
+
+        :return: None
+
         """
         if not self.spider_handler:
             self.define_spider_process_handler()
 
     def upload(self, fpath, resource):
         """
-            upload files to the queue on the cluster to be upload to XNAT by DAX pkg
-            E.g:
-                spider.upload("/Users/DATA/", "DATA")
-                spider.upload("/Users/stats_dir/statistical_measures.txt", "STATS")
+            Upload files to the queue on the cluster to be upload to XNAT by DAX pkg
+            E.g: spider.upload("/Users/DATA/", "DATA")
+             spider.upload("/Users/stats_dir/statistical_measures.txt", "STATS")
 
             :param fpath: path to the folder/file to be uploaded
             :param resource: folder name to upload to on the assessor
+            :raises: ValueError if the file to upload does not exist
+            :return: None
+
         """
         self.has_spider_handler()
         if os.path.isfile(fpath):
@@ -212,12 +227,14 @@ class Spider(object):
     def upload_dict(self, files_dict):
         """
             upload files to the queue on the cluster to be upload to XNAT by DAX pkg
-            following the files python dictionary: {resource_name : fpath}
-            E.g:
-                fdict = {"DATA" : "/Users/DATA/", "PDF": "/Users/PDF/report.pdf"}
-                spider.upload_dict(fdict)
+             following the files python dictionary: {resource_name : fpath}
+            E.g: fdict = {"DATA" : "/Users/DATA/", "PDF": "/Users/PDF/report.pdf"}
+             spider.upload_dict(fdict)
 
             :param files_dict: python dictionary containing the pair resource/fpath
+            :raises: ValueError if the filepath is not a string or a list
+            :return: None
+
         """
         self.has_spider_handler()
         for resource, fpath in files_dict.items():
@@ -235,6 +252,8 @@ class Spider(object):
             Finish the script by sending the end of script flag and cleaning the folder
 
             :param jobdir: directory for the spider
+            :return: None
+
         """
         self.has_spider_handler()
         self.spider_handler.done()
@@ -243,13 +262,21 @@ class Spider(object):
 
     def run(self):
         """
-            Method to execute the process
+        Runs the "core" or "image processing process" of the pipeline
+
+        :raises: NotImplementedError if not overridden.
+        :return: None
+
         """
         raise NotImplementedError()
 
     def finish(self):
         """
-            Method to copy the results in the Spider Results folder dax.RESULTS_DIR
+        Method to copy the results in the Spider Results folder dax.RESULTS_DIR
+
+        :raises: NotImplementedError if not overriden by user
+        :return: None
+
         """
         raise NotImplementedError()
 
@@ -261,6 +288,8 @@ class Spider(object):
             :param argument_parse: argument parser
             :param author: author of the spider
             :param email: email of the author
+            :return: None
+
         """
         self.print_info(author, email)
         self.time_writer('-------- Spider starts --------')
@@ -273,6 +302,8 @@ class Spider(object):
             Print message using time writer
 
             :param message: string displayed for the user
+            :return: None
+
         """
         self.time_writer(message)
 
@@ -281,6 +312,8 @@ class Spider(object):
             Print error message using time writer
 
             :param err_message: error message displayed for the user
+            :return: None
+
         """
         self.time_writer.print_stderr_message(err_message)
 
@@ -290,6 +323,8 @@ class Spider(object):
 
             :param author: author of the spider
             :param email: email of the author
+            :return: None
+
         """
         self.print_msg("Running spider : %s" %(self.spider_path))
         self.print_msg("Spider Author: %s" % (author))
@@ -300,6 +335,8 @@ class Spider(object):
             print arguments given to the Spider
 
             :param argument_parse: argument parser
+            :return: None
+
         """
         self.time_writer("-- Arguments given to the spider --")
         for info, value in vars(argument_parse).items():
@@ -308,7 +345,10 @@ class Spider(object):
 
     def print_end(self):
         """
-            Last print statement to give the time and date at the end of the spider
+        Last print statement to give the time and date at the end of the spider
+
+        :return: None
+
         """
         self.time_writer('Time at the end of the Spider: '+ str(datetime.now()))
 
@@ -318,6 +358,8 @@ class Spider(object):
             Run system command line via os.system()
 
             :param cmd: command to run
+            :return: None
+
         """
         os.system(cmd)
 
@@ -331,6 +373,7 @@ class Spider(object):
                   or
                 keys = ["project", "subject", "experiement", "assessor", "out/resource"]
             :return string: string path to select pyxnat object
+
         """
         select_str = ''
         for key, value in xnat_dict.items():
@@ -438,19 +481,35 @@ class TimedWriter(object):
         Written by Andrew Plassard (Vanderbilt)
     '''
     def __init__(self, name=None):
+        """
+        Entry point of TimedWriter class
+
+        :param name: Name to give the TimedWriter
+        :return: None
+
+        """
         self.start_time = time.localtime()
         self.name = name
 
     def print_stderr_message(self, text):
-        '''Prints a timed message to stderr'''
+        """
+        Prints a timed message to stderr
+
+        :param text: The text to print
+        :return: None
+
+        """
         self.print_timed_message(text, pipe=sys.stderr)
 
     def print_timed_message(self, text, pipe=sys.stdout):
-        '''Prints a timed message
-        Args:
-            text - text to display
-            pipe - pipe to write to (default: sys.stdout)
-        '''
+        """
+        Prints a timed message
+
+        :param text: text to print
+        :param pipe: pipe to write to. defaults to sys.stdout
+        :return: None
+
+        """
         msg = ""
         if self.name:
             msg = "[%s]" % self.name
@@ -463,11 +522,14 @@ class TimedWriter(object):
         print >> pipe, msg
 
     def __call__(self, text, pipe=sys.stdout):
-        '''Prints a timed message
-        Inputs:
-            text - text to display
-            pipe - pipe to write to (default: sys.stdout)
-        '''
+        """
+        Prints a timed message calling print_timed_message
+
+        :param text: text to print
+        :param pipe: pipe to write to. defaults to sys.stdout
+        :return: None
+
+        """
         self.print_timed_message(text, pipe=pipe)
 
 #### Functions ####
@@ -476,6 +538,7 @@ def get_default_argparser(name, description):
     Return default argparser arguments for all Spider
 
     :return: argparser obj
+
     """
     from argparse import ArgumentParser
     ap = ArgumentParser(prog=name, description=description)
@@ -493,6 +556,7 @@ def get_session_argparser(name, description):
     Return session argparser arguments for session Spider
 
     :return: argparser obj
+
     """
     ap = get_default_argparser(name, description)
     return ap
@@ -502,6 +566,7 @@ def get_scan_argparser(name, description):
     Return scan argparser arguments for scan Spider
 
     :return: argparser obj
+
     """
     ap = get_default_argparser(name, description)
     ap.add_argument('-c', dest='scan_label', help='Scan label', required=True)
@@ -510,10 +575,12 @@ def get_scan_argparser(name, description):
 def is_good_version(version):
     """
     Check the format of the version and return true if it's a proper format.
-    Format: X.Y.Z
-            see http://semver.org
+     Format: X.Y.Z see http://semver.org
 
     :param version: version given by the user
+    :return: False if the version does not follow semantic
+     versioning, true if it does.
+
     """
     vers = version.split('.')
     if len(vers) != 3:
