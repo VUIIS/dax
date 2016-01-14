@@ -6,8 +6,11 @@ import logging
 import XnatUtils
 from datetime import datetime
 from email.mime.text import MIMEText
-from .dax_settings import SMTP_HOST, SMTP_FROM, SMTP_PASS
-
+from dax_settings import DAX_Settings
+DAX_SETTINGS = DAX_Settings()
+SMTP_HOST = DAX_SETTINGS.get_smtp_host()
+SMTP_FROM = DAX_SETTINGS.get_smtp_from()
+SMTP_PASS = DAX_SETTINGS.get_smtp_pass()
 #Logger for logs
 LOGGER = logging.getLogger('dax')
 

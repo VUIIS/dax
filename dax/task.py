@@ -8,7 +8,11 @@ import cluster
 from cluster import PBS
 import XnatUtils, bin
 
-from dax_settings import RESULTS_DIR, DEFAULT_EMAIL_OPTS, JOB_EXTENSION_FILE
+from dax_settings import DAX_Settings
+DAX_SETTINGS = DAX_Settings()
+RESULTS_DIR = DAX_SETTINGS.get_results_dir()
+DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
+JOB_EXTENSION_FILE = DAX_SETTINGS.get_job_extension_file()
 
 #Logger to print logs
 LOGGER = logging.getLogger('dax')

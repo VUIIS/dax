@@ -30,7 +30,10 @@ import gzip
 from pyxnat import Interface
 from lxml import etree
 import subprocess
-from dax_settings import RESULTS_DIR
+
+from dax_settings import DAX_Settings
+DAX_SETTINGS = DAX_Settings()
+RESULTS_DIR = DAX_SETTINGS.get_results_dir()
 
 import xml.etree.cElementTree as ET
 
