@@ -1,0 +1,1 @@
+squeue -u masispider,vuiiscci --noheader | wc -l
