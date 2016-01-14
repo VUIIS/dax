@@ -1,21 +1,21 @@
 """ XnatUtils contains useful function to interface with XNAT using Pyxnat module
 The functions are divided into 4 categories:
-    1) Class Specific to XNAT and Spiders:
-        InterfaceTemp to create an interface with XNAT using a tempfolder
-        AssessorHandler to handle assessor label string and access object
-        SpiderProcessHandler to handle results at the end of any spider
+1) Class Specific to XNAT and Spiders:
+InterfaceTemp to create an interface with XNAT using a tempfolder
+AssessorHandler to handle assessor label string and access object
+SpiderProcessHandler to handle results at the end of any spider
 
-    2) Methods to query XNAT database and get XNAT object :
+2) Methods to query XNAT database and get XNAT object :
 
-    3) Methods to access/check objects on XNAT
+3) Methods to access/check objects on XNAT
 
-    4) Methods to Download / Upload data to XNAT
+4) Methods to Download / Upload data to XNAT
 
-    5) Other Methods
+5) Other Methods
 
-    6) Cached Class for DAX
+6) Cached Class for DAX
 
-    7) Old download functions still used in some spiders
+7) Old download functions still used in some spiders
 """
 
 import re
@@ -1433,7 +1433,7 @@ def download_biggest_file_from_obj(directory, resource_obj):
     :param resource_obj: Pyxnat EObject to download from
     :return: None if the file was not downloaded. None if the file size is <=0,
      and None if XnatUtils.check_dl_inputs fails. Otherwise, the file path is
-      returned for the file downloaded
+     returned for the file downloaded
 
     """
     file_index = 0
@@ -1886,7 +1886,7 @@ def gzip_nii(directory):
     """
     Gzip all the NIfTI files in a directory via system call.
 
-    :param directory: The directory to filter for *.nii files
+    :param directory: The directory to filter for \*.nii files
     :return: None
 
     """
@@ -1897,7 +1897,7 @@ def ungzip_nii(directory):
     """
     Gunzip all of the NIfTI files in a directory via system call.
 
-    :param directory: The directory to filter for *.nii.gz files
+    :param directory: The directory to filter for \*.nii.gz files
     :return: None
 
     """
@@ -2882,7 +2882,7 @@ def dl_good_resources_scan(Scan,resource_list,Outputdirectory,all_resources):
     :param resource_list: List of resource names to download from for the scan
     :param Outputdirectory: Directory to download all of the data from
     :param all_resources: Override the list and download all the files from
-    all the resources if true, otherwise use the list
+     all the resources if true, otherwise use the list
     :return: None
 
     """
@@ -3178,7 +3178,7 @@ def Download_resource_to_folder(Resource,directory):
 
     :param Resource: pyxnat EObject of the resource to download files from
     :param directory: The directory to download the data to.
-    The resource label name is appeneded as basename
+     The resource label name is appeneded as basename
     :return: None
 
     """

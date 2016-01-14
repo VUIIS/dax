@@ -36,3 +36,9 @@ Source Documentation
 
 .. automodule:: dax.bin
    :members:
+
+:mod:`dax.XnatUtils` -- Collection of utilities for upload/download and general access
+**************************************************************************************
+
+.. automodule:: dax.XnatUtils
+   :members:
