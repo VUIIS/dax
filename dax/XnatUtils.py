@@ -22,6 +22,7 @@ import re
 import os
 import glob
 import shutil
+import sys
 import tempfile
 import random
 import collections
@@ -1136,11 +1137,15 @@ def has_resource(cobj, resource_label):
     return False
 
 def is_assessor_same_scan_unusable(cscan, proctype):
-    """ Check status of an assessor for an other proctype from the same scan:
-        return 0 if assessor not ready or doesn't exist
-        return -1 if assessor failed
-        return 1 if ok
-        Example: dtiQA for Bedpost, same cscan, different proctype
+    """
+    Check to see if the assessor matching the user passed scan and proctype has
+     passed QC.
+
+    :param cscan: CachedImageScan object from XnatUtils
+    :param proctype: Process type of the assessor
+    :return: 0 if the assessor is not ready or doesn't exist. -1 if it failed,
+     or 1 if OK
+
     """
     scan_info = cscan.info()
     assr_label = '-x-'.join([scan_info['project_id'], scan_info['subject_label'], scan_info['session_label'], scan_info['ID'], proctype])
@@ -1151,34 +1156,65 @@ def is_assessor_same_scan_unusable(cscan, proctype):
         return is_bad_qa(assr_list[0]['qcstatus'])
 
 def is_cassessor_good_type(cassr, types_list):
-    """ return true if cassr has the right type """
+    """
+    Check to see if the assessor proctype is of type(s) specificed by user.
+
+    :param cassr: CachedImageAssessor object from XnatUtils
+    :param types_list: List of proctypes
+    :return: True if proctype is in the list, False if not.
+
+    """
     assr_info = cassr.info()
     return assr_info['proctype'] in types_list
 
 def is_cassessor_usable(cassr):
-    """ return 0 if assessor not ready or doesn't exist
-        return -1 if assessor failed
-        return 1 if ok
+    """
+    Check to see if the assessor is usable
+
+    :param cassr: CachedImageAssessor object from XnatUtils
+    :return: 0 if the assessor is not ready or doesn't exist, -1 if failed,
+     1 if OK.
+
     """
     assr_info = cassr.info()
     return is_bad_qa(assr_info['qcstatus'])
 
 def is_assessor_good_type(assessor_obj, types_list):
-    """ return true if assessor obj has the right type """
+    """
+    Deprecated method to check to see if an assessor is of good type.
+     Consider using is_cassessor_good_type
+
+    :param assessor_obj: Assessor EObject from Interface.select()
+    :param types_list: List of proctypes
+    :return: True if assessor is in proctypes list, False if not.
+
+    """
     atype = assessor_obj.attrs.get('xsiType')
     proctype = assessor_obj.attrs.get(atype+'/proctype')
     return proctype in types_list
 
 def is_assessor_usable(assessor_obj):
-    """ return 0 if assessor not ready or doesn't exist
-        return -1 if assessor failed
-        return 1 if ok
+    """
+    Deprecated method to check to see if the assessor is usable
+
+    :param cassr: Assessor EObject object from Interface.select()
+    :return: 0 if the assessor is not ready or doesn't exist, -1 if failed,
+     1 if OK.
+
     """
     atype = assessor_obj.attrs.get('xsiType')
     qcstatus = assessor_obj.attrs.get(atype+'/validation/status')
     return is_bad_qa(qcstatus)
 
 def is_bad_qa(qcstatus):
+    """
+    Method to check to see if the QA status of an assessor is bad
+     (aka unusable)
+
+    :param qcstatus: String of the QC status of the assessor
+    :return: True if bad, False if not bad
+
+    """
     """ function to return False if status is bad qa status """
     if qcstatus in [JOB_PENDING, NEEDS_QA, REPROC]:
         return 0
@@ -1188,7 +1224,16 @@ def is_bad_qa(qcstatus):
     return 1
 
 def get_good_cscans(csess, scantypes):
-    """ return cscans list from a csess if there is a good scan """
+    """
+    Given a CachedImageSession, get the list of all of the usable
+     CachedImageScan objects in the session
+
+    :param csess: CachedImageSession object from XnatUtils
+    :param scantypes: List of scantypes to filter for
+    :return: List of CachedImageScan objects that fit the scantypes and that
+     are usable
+
+    """
     cscans_list = list()
     for cscan in csess.scans():
         if is_cscan_good_type(cscan, scantypes) and not is_cscan_unusable(cscan):
@@ -1196,6 +1241,16 @@ def get_good_cscans(csess, scantypes):
     return cscans_list
 
 def get_good_scans(session_obj, scantypes):
+    """
+    Deprecated method to get usable scans from a session. Consider using
+     get_good_cscans instead.
+
+    :param session_obj: Pyxnat session EObject
+    :param scantypes: List of scanttypes to filter for
+    :return: List of python scan EObjects that fit the scantypes and that are
+     usable
+
+    """
     """ return scan object list if there is a good scan """
     scans = list()
     for scan_obj in session_obj.scans().fetchall('obj'):
@@ -1204,7 +1259,16 @@ def get_good_scans(session_obj, scantypes):
     return scans
 
 def get_good_cassr(csess, proctypes):
-    """ return cassr list from a csess if there is a good assessor """
+    """
+    Get all the assessors in the session and filter out the ones that are
+     usable and that have the proctype(s) specified
+
+    :param csess: CachedImageSession object from XnatUtils
+    :param proctypes: List of proctypes to filter for
+    :return: List of CachedImageAssessor objects that are usable and have
+     one of the proctype(s) specified.
+
+    """
     cassr_list = list()
     for cassr in csess.assessors():
         usable_status = is_cassessor_usable(cassr)
@@ -1213,7 +1277,16 @@ def get_good_cassr(csess, proctypes):
     return cassr_list
 
 def get_good_assr(session_obj, proctypes):
-    """ return assessor object list if there is a good assessor """
+    """
+    Deprecated method to get all the assessors in the session and filter out
+     the ones that are usable and that have the proctype(s) specified
+
+    :param session_obj: Session EObject from Pyxnat
+    :param proctypes: List of proctype(s) to filter for
+    :return: List of Assessor EObjects that are usable and have one of the
+     proctype(s) specified.
+
+    """
     assessors = list()
     for assessor_obj in session_obj.assessors().fetchall('obj'):
         usable_status = is_assessor_usable(assessor_obj)
@@ -1224,18 +1297,35 @@ def get_good_assr(session_obj, proctypes):
 ####################################################################################
 #                     Download/Upload resources from XNAT                          #
 ####################################################################################
-def check_dl_inputs(directory, xnat_obj, fctname):
-    """ Check the inputs for the download function: directory and xnat_obj """
+def check_dl_inputs(directory, xnat_obj, function_name):
+    """
+    Method to check and see if the directory for download exists and that the
+     selected pyxnat EObject exists
+
+    :param directory: Full path to the download directory
+    :param xnat_obj: Pyxnat EObject to download from
+    :param function_name: Function name of the download method in XnatUtils
+    :return: True if object and directory exist, False otherwise.
+
+    """
     if not os.path.exists(directory):
-        print '''ERROR: {fct} in XnatUtils: Folder {path} does not exist.'''.format(fct=fctname, path=directory)
+        print '''ERROR: {fct} in XnatUtils: Folder {path} does not exist.'''.format(fct=function_name, path=directory)
         return False
     if not xnat_obj.exists():
-        print '''ERROR: {fct} in XnatUtils: xnat object for parent <{label}> does not exist on XNAT.'''.format(fct=fctname, label=xnat_obj.parent().label())
+        print '''ERROR: {fct} in XnatUtils: xnat object for parent <{label}> does not exist on XNAT.'''.format(fct=function_name, label=xnat_obj.parent().label())
         return False
     return True
 
 def islist(argument, argname):
-    """ check if the input is a list. If a string, convert to list, else error """
+    """
+    Check to see if the input argument is a list. If it's a string, convert it
+     to a list, if it's not a list or string, print an error
+
+    :param argument: Input datatype to check to see if it is a list or a string
+    :param argname: Name of the argument?
+    :return: List of the string or an empty list (if argument is not of type list or str)
+
+    """
     if isinstance(argument, list):
         pass
     elif isinstance(argument, str):
@@ -1246,15 +1336,14 @@ def islist(argument, argname):
     return argument
 
 def download_file_from_obj(directory, resource_obj, fname=None):
-    """ Download file with the path fname from a resource object from XNAT
-        Inputs:
-            directory: directory where the data will be downloaded
-            resource_obj: resource object from XNAT for any level (project/subject/session/scan/assessor)
-            fname: filepath on XNAT for the resource you want to download
-                   e.g: download_file(...., fname='slicesdir/index.html')
-                   if not set, download biggest file
-        Return:
-            return the file path on your local computer for the file downloaded
+    """
+    Downloads a file from a Pyxnat EObject
+
+    :param directory: Full path to the download directory
+    :param resource_obj: Pyxnat EObject to download a file from
+    :param fname: Name of the file that you want to download
+    :return: File path to the file downloaded. Or None if the file doesn't exist
+
     """
     if not check_dl_inputs(directory, resource_obj, 'download_file_from_obj'):
         return None
@@ -1271,20 +1360,20 @@ def download_file_from_obj(directory, resource_obj, fname=None):
         return download_biggest_file_from_obj(directory, resource_obj)
 
 def download_file(directory, resource, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, fname=None):
-    """ Download file with the path fname from a resource information (project/subject/...) from XNAT
-        Inputs:
-            directory: directory where the data will be downloaded
-            project_id: project ID on XNAT
-            subject_id: subject ID or label on XNAT
-            session_id: session ID or label on XNAT
-            scan_id: scan ID on XNAT
-            assessor_id: assessor ID or label on XNAT
-            resource: resource name on XNAT
-            fname: filepath on XNAT for the resource you want to download
-                   e.g: download_file(...., fname='slicesdir/index.html')
-                   if not set, download biggest file
-        Return:
-            return the file path on your local computer for the file downloaded
+    """
+    Download a file from an arbitrarily defined pyxnat EObject at any
+     hierarcy of the URI tree
+
+    :param directory: Full path to the download directory
+    :param resource: XNAT resource to download from
+    :param project_id: XNAT project ID to download from
+    :param subject_id: Subject ID/label to download from
+    :param session_id: Session ID/label to download from
+    :param scan_id:  Scan ID to download from
+    :param assessor_id: Assessor ID/label to download from
+    :param fname: File name that you want to download from the selected EObject
+    :return: Path to the file downloaded.
+
     """
     xnat = get_interface()
     resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
@@ -1293,12 +1382,14 @@ def download_file(directory, resource, project_id=None, subject_id=None, session
     return fpath
 
 def download_files_from_obj(directory, resource_obj):
-    """ Download all files from a resource object from XNAT
-        Inputs:
-            directory: directory where the data will be downloaded
-            resource_obj: resource object from XNAT for any level (project/subject/session/scan/assessor)
-        Return:
-            return list of filepaths on your local computer for the files downloaded
+    """
+    Download ALL of the files from a Pyxnat EObject
+
+    :param directory: Full path to the download directory
+    :param resource_obj: Pyxnat EObject to download all the files from
+    :return: List of all the files downloaded, or empty list if no files
+     downloaded
+
     """
     fpaths = list()
     if not check_dl_inputs(directory, resource_obj, 'download_files_from_obj'):
@@ -1311,32 +1402,39 @@ def download_files_from_obj(directory, resource_obj):
 
     return fpaths
 
-def download_files(directory, resource, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None):
-    """ Download all files from a resource information (project/subject/...) from XNAT
-        Inputs:
-            directory: directory where the data will be downloaded
-            project_id: project ID on XNAT
-            subject_id: subject ID or label on XNAT
-            session_id: session ID or label on XNAT
-            scan_id: scan ID on XNAT
-            assessor_id: assessor ID or label on XNAT
-            resource: resource name on XNAT
-        Return:
-            return list of filepaths on your local computer for the files downloaded
+def download_files(directory, resource, project_id=None, subject_id=None,
+                   session_id=None, scan_id=None, assessor_id=None):
+    """
+    Download a file from an arbitrarily defined pyxnat EObject at any
+     hierarcy of the URI tree
+
+    :param directory: Full path to the download directory
+    :param resource: XNAT resource to download from
+    :param project_id: XNAT project ID to download from
+    :param subject_id: Subject ID/label to download from
+    :param session_id: Session ID/label to download from
+    :param scan_id:  Scan ID to download from
+    :param assessor_id: Assessor ID/label to download from
+    :return: List of all the files downloaded
+
     """
     xnat = get_interface()
-    resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
+    resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+                              scan_id, assessor_id, resource)
     fpaths = download_files_from_obj(directory, resource_obj)
     xnat.disconnect()
     return fpaths
 
 def download_biggest_file_from_obj(directory, resource_obj):
-    """ Download biggest file from a resource object from XNAT
-        Inputs:
-            directory: directory where the data will be downloaded
-            resource_obj: resource object from XNAT for any level (project/subject/session/scan/assessor)
-        Return:
-            return filepath on your local computer for the file downloaded
+    """
+    Downloads the largest file (based on file size in bytes) from a Pyxnat EObject
+
+    :param directory: Full path to the download directory
+    :param resource_obj: Pyxnat EObject to download from
+    :return: None if the file was not downloaded. None if the file size is <=0,
+     and None if XnatUtils.check_dl_inputs fails. Otherwise, the file path is
+      returned for the file downloaded
+
     """
     file_index = 0
     biggest_size = 0
@@ -1359,18 +1457,22 @@ def download_biggest_file_from_obj(directory, resource_obj):
     else:
         return None
 
-def download_biggest_file(directory, resource, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None):
-    """ Download biggest file from a resource information (project/subject/...) from XNAT
-        Inputs:
-            directory: directory where the data will be downloaded
-            project_id: project ID on XNAT
-            subject_id: subject ID or label on XNAT
-            session_id: session ID or label on XNAT
-            scan_id: scan ID on XNAT
-            assessor_id: assessor ID or label on XNAT
-            resource: resource name on XNAT
-        Return:
-            return filepath on your local computer for the file downloaded
+def download_biggest_file(directory, resource, project_id=None,
+                          subject_id=None, session_id=None,
+                          scan_id=None, assessor_id=None):
+    """
+    Download the larged file (based on file size in bytes) from an arbitrarily
+     defined URI based on project/subject/session etc.
+
+    :param directory: Full path to the download directory
+    :param resource: XNAT resource label to download from
+    :param project_id: XNAT project ID to download from
+    :param subject_id: XNAT subject ID/label to download from
+    :param session_id: XNAT session ID/label to download from
+    :param scan_id: XNAT scan ID to download from
+    :param assessor_id: XNAT assessor label/ID to download from
+    :return: File path of the file downloaded
+
     """
     xnat = get_interface()
     resource_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id, resource)
@@ -1379,6 +1481,18 @@ def download_biggest_file(directory, resource, project_id=None, subject_id=None,
     return fpath
 
 def download_from_obj(directory, xnat_obj, resources, all_files=False):
+    """
+    Download files from resource(s) on XNAT.
+
+    :param directory: Full path to the download directory
+    :param xnat_obj: pyxnat EObject to download files from
+    :param resources: Resource labels (note, 1 level down from xnat_obj) to
+     download from
+    :param all_files: If True download all of the files, if False, download
+     the biggest
+    :return: List of filepaths downloaded
+
+    """
     """ Download resources from an object from XNAT (project/subject/session/scan(or)assessor)
         Inputs:
             directory: directory where the data will be downloaded
@@ -1410,18 +1524,20 @@ def download_from_obj(directory, xnat_obj, resources, all_files=False):
     return fpaths
 
 def download(directory, resources, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, all_files=False):
-    """ Download resources from information provided for an object from XNAT (project/subject/session/scan(or)assessor)
-        Inputs:
-            directory: directory where the data will be downloaded
-            project_id: project ID on XNAT
-            subject_id: subject ID or label on XNAT
-            session_id: session ID or label on XNAT
-            scan_id: scan ID on XNAT
-            assessor_id: assessor ID or label on XNAT
-            resources: list of resources name on XNAT
-            all_files: download all the files from the resources. If False, download the biggest file.
-        Return:
-            list of files downloaded on your local computer
+    """
+    General downloader from arbitrary URI based on inputs.
+
+    :param directory: Full path to the download directory
+    :param resources: List of resource labels to download from
+    :param project_id: XNAT project ID
+    :param subject_id: XNAT subject ID/label
+    :param session_id: XNAT session ID/label
+    :param scan_id: XNAT scan ID
+    :param assessor_id: XNAT assessor ID/label
+    :param all_files: If True, download all of the files, if False, download
+     the biggest file
+    :return: List of filepaths for the downloaded files
+
     """
     xnat = get_interface()
     xnat_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id, assessor_id)
@@ -1430,17 +1546,18 @@ def download(directory, resources, project_id=None, subject_id=None, session_id=
     return fpaths
 
 def download_scan_types(directory, project_id, subject_id, session_id, scantypes, resources, all_files=False):
-    """ Download resources for a session for specific scantypes
-        Inputs:
-            directory: directory where the data will be downloaded
-            project_id: project ID on XNAT
-            subject_id: subject ID or label on XNAT
-            session_id: session ID or label on XNAT
-            scantypes: list of scantypes on XNAT (e.g: ['T1','fMRI'])
-            resources: list of resources name on XNAT
-            all_files: download all the files from the resources. If False, download the biggest file.
-        Return:
-            list of files downloaded
+    """
+    Downloads resources from a scan given a scan type, rather than a scan ID
+
+    :param directory: Directory to download the data to
+    :param project_id: XNAT project ID
+    :param subject_id: XNAT subject ID/label
+    :param session_id: XNAT session ID/label
+    :param scantypes: List of scan types to download resources from.
+    :param resources: List of resources to download data from.
+    :param all_files: If 1, download from all resources for the scan object, otherwise use the list.
+    :return: list of filepaths for the files downloaded
+
     """
     fpaths = list()
     scantypes = islist(scantypes, 'scantypes')
@@ -1455,17 +1572,20 @@ def download_scan_types(directory, project_id, subject_id, session_id, scantypes
     return fpaths
 
 def download_scan_seriesdescriptions(directory, project_id, subject_id, session_id, seriesdescriptions, resources, all_files=False):
-    """ Download resources for a session for specific series description
-        Inputs:
-            directory: directory where the data will be downloaded
-            project_id: project ID on XNAT
-            subject_id: subject ID or label on XNAT
-            session_id: session ID or label on XNAT
-            seriesdescription: list of series description on XNAT
-            resources: list of resources name on XNAT
-            all_files: download all the files from the resources. If False, download the biggest file.
-        Return:
-            list of files downloaded
+    """
+    Downloads resources from a scan given a series type, rather than a scan ID
+
+    :param directory: Directory to download the data to
+    :param project_id: XNAT project ID
+    :param subject_id: XNAT subject ID/label
+    :param session_id: XNAT session ID/label
+    :param seriesdescriptions: List of scan series descriptions to download
+     resources from.
+    :param resources: List of resources to download data from.
+    :param all_files: If 1, download from all resources for the scan object,
+     otherwise use the list.
+    :return: list of filepaths for the files downloaded
+
     """
     fpaths = list()
     seriesdescriptions = islist(seriesdescriptions, 'seriesdescription')
@@ -1480,17 +1600,18 @@ def download_scan_seriesdescriptions(directory, project_id, subject_id, session_
     return fpaths
 
 def download_assessor_proctypes(directory, project_id, subject_id, session_id, proctypes, resources, all_files=False):
-    """ Download resources for a session for specific assessor type (proctype)
-        Inputs:
-            directory: directory where the data will be downloaded
-            project_id: project ID on XNAT
-            subject_id: subject ID or label on XNAT
-            session_id: session ID or label on XNAT
-            proctypes: list of proctypes on XNAT (e.g: ['fMRIQA_v2','dtiQA_v3'])
-            resources: list of resources name on XNAT
-            all_files: download all the files from the resources. If False, download the biggest file.
-        Return:
-            list of files downloaded
+    """
+    Download resources from an assessor based on a list of proctypes
+
+    :param directory: Directory to download the data to
+    :param project_id: XNAT project ID
+    :param subject_id: XNAT subject ID/label
+    :param session_id: XNAT session ID/label
+    :param proctypes: list of proctypes to download from
+    :param resources: list of resources to download from
+    :param all_files: True if download all the files, False if download the biggest file
+    :return: List of filepaths for the files downloaded
+
     """
     fpaths = list()
     proctypes = islist(proctypes, 'proctypes')
@@ -1506,16 +1627,16 @@ def download_assessor_proctypes(directory, project_id, subject_id, session_id, p
     return fpaths
 
 def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False, fname=None):
-    """ Upload file to the resource_obj given to the function
-        Inputs:
-            filepath: path of the file on your local computer
-            resource_obj: resource object on XNAT (select resource for project or subject or session or scan or assessor)
-            remove: remove files that already exists on the resource.
-            removeall: remove all previous files on the resource.
-            fname: give a different name for the file on XNAT (e.g: target.nii.gz --> results/target.nii.gz)
-                   this will create a folder results and put the file in it for the resource.
-        Return:
-            status of the upload (True or False)
+    """
+    Upload a file to a pyxnat EObject
+
+    :param filepath: Full path to the file to upload
+    :param resource_obj: pyxnat EObject to upload the file to. Note this should be a resource
+    :param remove: Remove the file if it exists
+    :param removeall: Remove all of the files
+    :param fname: Override the file name on disk, and change it to this value
+    :return: True if upload was OK, False otherwise
+
     """
     if os.path.isfile(filepath): #Check existence of the file
         if removeall and resource_obj.exists: #Remove previous resource to upload the new one
@@ -1540,21 +1661,20 @@ def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False, fn
         return False
 
 def upload_file(filepath, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False, fname=None):
-    """ Upload the file to a resource information (project/subject/...) from XNAT
-        Inputs:
-            filepath: path of the file on your local computer
-            project_id: project ID on XNAT
-            subject_id: subject ID or label on XNAT
-            session_id: session ID or label on XNAT
-            scan_id: scan ID on XNAT
-            assessor_id: assessor ID or label on XNAT
-            resource: resource name on XNAT
-            remove: remove files that already exists on the resource.
-            removeall: remove all previous files on the resource.
-            fname: give a different name for the file on XNAT (e.g: target.nii.gz --> results/target.nii.gz)
-                   this will create a folder results and put the file in it for the resource.
-        Return:
-            status of the upload (True or False)
+    """
+    Upload a file to an arbitrary URI on XNAT
+
+    :param filepath: Full path of the file to upload
+    :param project_id: XNAT project ID
+    :param subject_id: XNAT subject ID/label
+    :param session_id: XNAT session ID/label
+    :param scan_id: XNAT scan ID
+    :param assessor_id: XNAT assessor ID/label
+    :param resource: Resource label to upload to
+    :param remove: remove the file if it exists in the resource if True
+    :param removeall: remove all of the files that exist for the resource if True
+    :param fname: Override the file name on disk, and change it to this value
+    :return: True if upload was OK, False otherwise
     """
     status = False
     if not resource:
@@ -1567,14 +1687,15 @@ def upload_file(filepath, project_id=None, subject_id=None, session_id=None, sca
     return status
 
 def upload_files_to_obj(filepaths, resource_obj, remove=False, removeall=False):
-    """ Upload a list of files to the resource_obj given to the function
-        Inputs:
-            filepaths: list of files on your local computer
-            resource_obj: resource object on XNAT (select resource for project or subject or session or scan or assessor)
-            remove: remove files that already exists on the resource.
-            removeall: remove all previous files on the resource.
-        Return:
-            list of status of the upload (one status per files you want to upload)
+    """
+    Upload a list of files to a resource on XNAT
+
+    :param filepaths: list of files to upload
+    :param resource_obj: pyxnat EObject to upload all of the files to
+    :param remove: remove files that already exist for the resource.
+    :param removeall: remove all previous files on the resource.
+    :return: True if upload was OK, False otherwise
+
     """
     if removeall and resource_obj.exists: #Remove previous resource to upload the new one
         resource_obj.delete()
@@ -1584,19 +1705,21 @@ def upload_files_to_obj(filepaths, resource_obj, remove=False, removeall=False):
     return status
 
 def upload_files(filepaths, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False):
-    """ Upload a list of files to a resource information (project/subject/...) from XNAT
-        Inputs:
-            filepaths: list of files on your local computer
-            project_id: project ID on XNAT
-            subject_id: subject ID or label on XNAT
-            session_id: session ID or label on XNAT
-            scan_id: scan ID on XNAT
-            assessor_id: assessor ID or label on XNAT
-            resource: resource name on XNAT
-            remove: remove files that already exists on the resource.
-            removeall: remove all previous files on the resource.
-        Return:
-            list of status of the upload (one status per files you want to upload)
+    """
+    Upload files to an arbitrary URI in XNAT
+
+    :param filepaths: list of files to upload to XNAT
+    :param project_id: XNAT project ID
+    :param subject_id: XNAT subject ID/label
+    :param session_id: XNAT session ID/label
+    :param scan_id: XNAT scan ID
+    :param assessor_id: XNAT assessor ID/label
+    :param resource: Label of a resource to upload to on XNAT
+    :param remove: Remove files that already exists on the resource.
+    :param removeall: Remove all previous files on the resource.
+    :return: list of True/False for each file uploaded. True if OK, False if
+     upload failed.
+
     """
     status = [False]*len(filepaths)
     if not resource:
@@ -1609,14 +1732,18 @@ def upload_files(filepaths, project_id=None, subject_id=None, session_id=None, s
     return status
 
 def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False, removeall=False):
-    """ Upload folder (all content) to the resource_obj given to the function
-        Inputs:
-            directory: folder on your local computer (all content will be upload)
-            reosurce_obj: resource object on XNAT (select resource for project or subject or session or scan or assessor)
-            remove: remove files that already exists on the resource.
-            removeall: remove all previous files on the resource.
-        Return:
-            status of the upload (True or False)
+    """
+    Upload all of the files in a folder based on the pyxnat EObject passed
+
+    :param directory: Full path of the directory to upload
+    :param resource_obj: pyxnat EObject to upload the data to
+    :param resource_label: label of where you want the contents of the
+     directory to be stored under on XNAT. Note this is a level down
+     from resource_obj
+    :param remove: Remove the file if it exists if True
+    :param removeall: Remove all of the files if they exist if True
+    :return: True if upload was OK, False otherwise
+
     """
     if not os.path.exists(directory):
         print """ERROR: upload_folder in XnatUtils: directory {directory} does not exist.""".format(directory=directory)
@@ -1643,19 +1770,20 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False, 
     return True
 
 def upload_folder(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False):
-    """ Upload folder (all content) to a resource information (project/subject/...) from XNAT
-        Inputs:
-            directory: folder on your local computer (all content will be upload)
-            project_id: project ID on XNAT
-            subject_id: subject ID or label on XNAT
-            session_id: session ID or label on XNAT
-            scan_id: scan ID on XNAT
-            assessor_id: assessor ID or label on XNAT
-            resource: resource name on XNAT
-            remove: remove files that already exists on the resource.
-            removeall: remove all previous files on the resource.
-        Return:
-            status of the upload (True or False)
+    """
+    Upload a folder to some URI in XNAT based on the inputs
+
+    :param directory: Full path to directory to upload
+    :param project_id: XNAT project ID
+    :param subject_id: XNAT subject ID/label
+    :param session_id: XNAT session ID/label
+    :param scan_id: XNAT scan ID
+    :param assessor_id: XNAT assessor ID
+    :param resource: resource label of where to upload the data to
+    :param remove: Remove the file if it already exists (if True). Otherwise don't upload if exists
+    :param removeall: Remove all of the files that exist, and upload what is in the local directory.
+    :return: True if upload was OK, False otherwise
+
     """
     status = False
     if not resource:
@@ -1668,7 +1796,16 @@ def upload_folder(directory, project_id=None, subject_id=None, session_id=None, 
     return status
 
 def copy_resource_from_obj(directory, xnat_obj, old_res, new_res):
-    """ Copy resource for one object from an old resource to the new resource"""
+    """
+    Copy a resource from an old location to a new location,
+
+    :param directory: Temporary directory to download the old resource to
+    :param xnat_obj: pyxnat EObject of the parent of the old_res
+    :param old_res: pyxnat EObject of resource to copy
+    :param new_res: pyxnat EObject of where to copy the old_res to
+    :return: True if upload was OK, false otherwise.
+
+    """
     #resources objects:
     if xnat_obj.datatype() in ['proc:genProcData', 'fs:fsData']:
         old_resource_obj = xnat_obj.out_resource(old_res)
@@ -1686,7 +1823,20 @@ def copy_resource_from_obj(directory, xnat_obj, old_res, new_res):
     return status
 
 def copy_resource(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, old_res=None, new_res=None):
-    """ Copy resource for one xnat object (project/subject/session/scan/assessor) from an old resource to the new resource"""
+    """
+    Copy a resource from an old location to a new location,
+
+    :param directory: Temporary directory to download the old resource to
+    :param project_id: XNAT Project ID
+    :param subject_id: XNAT Subject ID/label
+    :param session_id: XNAT session ID/label
+    :param scan_id:  XNAT scan ID
+    :param assessor_id: XNAT assessor ID/label
+    :param old_res: pyxnat EObject of resource to copy
+    :param new_res: pyxnat EObject of where to copy the old_res to
+    :return: True if upload was OK, false otherwise.
+
+    """
     status = False
     if not old_res or not new_res:
         print "ERROR: copy_resource in XnatUtils: resource argument (old_res or new_res) not provided."
@@ -1698,6 +1848,15 @@ def copy_resource(directory, project_id=None, subject_id=None, session_id=None, 
     return status
 
 def upload_assessor_snapshots(assessor_obj, original, thumbnail):
+    """
+    Upload the snapshots of the assessor PDF (both the original and the thumbnail)
+
+    :param assessor_obj: pyxnat EObject of the assessor to upload the snapshots to
+    :param original: The original file (full size)
+    :param thumbnail: The thumbnail of the original file
+    :return: True if it uploaded OK, False if it failed.
+
+    """
     """ upload to assessor the original snapshots and thumbnail files """
     if not os.path.isfile(original) or not os.path.isfile(thumbnail):
         print "ERROR: upload_assessor_snapshots in XnatUtils: original or thumbnail snapshots don't exist."
@@ -1707,11 +1866,15 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail):
     assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(original)).put(original, original.split('.')[1].upper(), 'ORIGINAL', overwrite=True)
     return True
 
-####################################################################################
-#                                4) Other Methods                                  #
-####################################################################################
 def clean_directory(directory):
-    """ Empty a directory"""
+    """
+    Remove a directory tree or file
+
+    :param directory: The directory (with sub directories if desired that you
+     want to delete). Also works with a file.
+    :return: None
+
+    """
     for fname in os.listdir(directory):
         fpath = os.path.join(directory, fname)
         if os.path.isdir(fpath):
@@ -1720,20 +1883,36 @@ def clean_directory(directory):
             os.remove(fpath)
 
 def gzip_nii(directory):
-    """ Gzip all niftis in the directory """
+    """
+    Gzip all the NIfTI files in a directory via system call.
+
+    :param directory: The directory to filter for *.nii files
+    :return: None
+
+    """
     for fpath in glob.glob(os.path.join(directory, '*.nii')):
         os.system('gzip '+fpath)
 
 def ungzip_nii(directory):
-    """ Ungzip all nifti.gz in the directory """
+    """
+    Gunzip all of the NIfTI files in a directory via system call.
+
+    :param directory: The directory to filter for *.nii.gz files
+    :return: None
+
+    """
     for fpath in glob.glob(os.path.join(directory, '*.nii.gz')):
         os.system('gzip -d '+fpath)
 
 def run_matlab(matlab_script, verbose=False):
-    """ run matlab script
-        inputs:
-            matlab_script: filepath to the script
-            verbose: if you want to see the matlab print statement
+    """
+    Call MATLAB with -nodesktop -nosplash and -singlecompthread.
+
+    :param matlab_script: Full path to the .m file to run
+    :param verbose: True to print all MATLAB output to terminal, False to
+     suppress.
+    :return: None
+
     """
     print """Matlab script: {script} running ...""".format(script=matlab_script)
     # with xvfb-run: xvfb-run  -e {err} -f {auth} -a --server-args="-screen 0 1600x1280x24 -ac -extension GLX"
@@ -1746,13 +1925,27 @@ def run_matlab(matlab_script, verbose=False):
     print """Matlab script: {script} done""".format(script=matlab_script)
 
 def run_subprocess(args):
-    """run a subprocess call and return std out and std err"""
+    """
+    Runs a subprocess call
+
+    :param args: Args for the call
+    :return: STDOUT, and STDERR
+
+    """
     process = subprocess.Popen(args,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
     return stdout, stderr
 
 def makedir(directory, prefix='TempDir'):
-    """ make tmp directory if already exist"""
+    """
+    Makes a directory if it doesn't exist and if it does, makes a directory
+     with default prefix TempDir and the date.
+
+    :param directory: The directory to create
+    :param prefix: prefix for the base directory
+    :return: Full path of the directory created.
+
+    """
     if not os.path.exists(directory):
         os.mkdir(directory)
     else:
@@ -1765,7 +1958,13 @@ def makedir(directory, prefix='TempDir'):
     return directory
 
 def print_args(options):
-    """ print arguments for Spider"""
+    """
+    Given a dictionary of arguments for the spider, print the key/value pairs.
+
+    :param options: Dictionary of key value pairs
+    :return: None
+
+    """
     print "--Arguments given to the spider--"
     for info, value in vars(options).items():
         if value:
@@ -1775,7 +1974,15 @@ def print_args(options):
     print "---------------------------------"
 
 def get_files_in_folder(folder, label=''):
-    """ Get all the files recursively starting from the folder"""
+    """
+    Recursively list all of the files in a folder
+
+    :param folder: Full path of the folder to search
+    :param label: Prefix to prepend to the file path (not sure why you would do
+     this)
+    :return: List of files in a folder
+
+    """
     f_list = list()
     for fpath in os.listdir(folder):
         ffpath = os.path.join(folder, fpath)
@@ -1792,17 +1999,28 @@ def get_files_in_folder(folder, label=''):
     return f_list
 
 def check_image_format(fpath):
-    """ Check if the path is a nifti or rec image that need to be compress"""
+    """
+    Check to see if a NIfTI file or REC file are uncompress and runs gzip via
+     system command if not compressed
+
+    :param fpath: Filepath of a NIfTI or REC file
+    :return: the new file path of the gzipped file.
+
+    """
     if fpath.endswith('.nii') or fpath.endswith('.rec'):
         os.system('gzip '+fpath)
         fpath = fpath+'.gz'
     return fpath
 
 def upload_list_records_redcap(redcap_project, data):
-    """ Upload data of a dict to a redcap_project project
-        Inputs:
-            redcap_project: project on REDCap open with request
-            data: list of dictionaries that need to be upload
+    """
+    Uploads a dictionary of information to REDCap via PyCap.
+
+    :param redcap_project: PyCap Project object
+    :param data: The data to pupload
+    :except: All catchable errors.
+    :return: None
+
     """
     upload_data = True
     if isinstance(data, dict):
@@ -1823,7 +2041,14 @@ def upload_list_records_redcap(redcap_project, data):
             print 'ERROR: upload_list_records_redcap in XnatUtils: connection to REDCap interupted.'
 
 def get_input_list(input_val, default_val):
-    """ function to convert inputs into a list """
+    """
+    Method to get a list from a comma separated string.
+
+    :param input_val: Input string or list
+    :param default_val: Default value (generally used for a spider)
+    :return: listified string or default value if input is not a list or string.
+
+    """
     if isinstance(input_val, list):
         return input_val
     elif isinstance(input_val, str):
@@ -1832,7 +2057,15 @@ def get_input_list(input_val, default_val):
         return default_val
 
 def get_input_str(input_val, default_val):
-    """ function to convert inputs into a str (if a list, first element) """
+    """
+    Get the first element of a list.
+
+    :param input_val: Input list
+    :param default_val: Default value string
+    :return: If input_val is a list, return first element, if input is a
+     string, return that string, otherwise return the default value.
+
+    """
     if isinstance(input_val, list):
         return input_val[0]
     elif isinstance(input_val, str):
@@ -1844,9 +2077,20 @@ def get_input_str(input_val, default_val):
 #                                5) Cached Class                                   #
 ####################################################################################
 class CachedImageSession():
-    """ Class to cache the session XML information from XNAT """
+    """
+    Class to cache the XML information for a session on XNAT
+    """
     def __init__(self, xnat, proj, subj, sess):
-        """ Init function """
+        """
+        Entry point for the CachedImageSession class
+
+        :param xnat: pyxnat Interface object
+        :param proj: XNAT project ID
+        :param subj: XNAT subject ID/label
+        :param sess: XNAT session ID/label
+        :return: None
+
+        """
         #self.sess_element = ET.fromstring(xnat.session_xml(proj,sess))
         xml_str = xnat.select('/project/'+proj+'/subject/'+subj+'/experiment/'+sess).get()
         self.sess_element = ET.fromstring(xml_str)
@@ -1854,10 +2098,22 @@ class CachedImageSession():
         self.subject = subj
 
     def label(self):
-        """ return label of the session """
+        """
+        Get the label of the session
+
+        :return: String of the session label
+
+        """
         return self.sess_element.get('label')
 
     def get(self, name):
+        """
+        Get the value of a variable name in the session
+
+        :param name: The variable name that you want to get the value of
+        :return: The value of the variable or '' if not found.
+
+        """
         """ return value of a variable name for the session """
         value = self.sess_element.get(name)
         if value != None:
@@ -1879,7 +2135,12 @@ class CachedImageSession():
         return ''
 
     def scans(self):
-        """ return a list of cachescans objects for the session """
+        """
+        Get a list of CachedImageScan objects for the XNAT session
+
+        :return: List of CachedImageScan objects for the session.
+
+        """
         scan_list = []
         scan_elements = self.sess_element.find('xnat:scans', NS)
         if scan_elements:
@@ -1889,7 +2150,12 @@ class CachedImageSession():
         return scan_list
 
     def assessors(self):
-        """ return a list of cacheassessors objects for the session """
+        """
+        Get a list of CachedImageAssessor objects for the XNAT session
+
+        :return: List of CachedImageAssessor objects for the session.
+
+        """
         assr_list = []
 
         assr_elements = self.sess_element.find('xnat:assessors', NS)
@@ -1900,7 +2166,12 @@ class CachedImageSession():
         return assr_list
 
     def info(self):
-        """ return a dict with the XNAT information for the session """
+        """
+        Get a dictionary of lots of variables that correspond to the session
+
+        :return: Dictionary of variables
+
+        """
         sess_info = {}
 
         sess_info['ID'] = self.get('ID')
@@ -1924,7 +2195,11 @@ class CachedImageSession():
         return sess_info
 
     def resources(self):
-        """ return the list of cached Resources object """
+        """
+        Get a list of CachedResource objects for the session
+
+        :return: List of CachedResource objects for the session
+        """
         res_list = []
 
         file_elements = self.sess_element.findall('xnat:resources/xnat:resource', NS)
@@ -1937,26 +2212,58 @@ class CachedImageSession():
         return res_list
 
     def get_resources(self):
-        """ return list of dictionaries of the resources for the session """
+        """
+        Return a list of dictionaries that correspond to the information for each
+         resource
+
+        :return: List of dictionaries that correspond to the information for each
+         resource
+
+        """
         return [res.info() for res in self.resources()]
 
 class CachedImageScan():
-    """ Class to cache the scan XML information from XNAT """
+    """
+    Class to cache the XML information for a scan on XNAT
+    """
     def __init__(self, scan_element, parent):
-        """ Init function """
+        """
+        Entry point for the CachedImageScan class
+
+        :param scan_element: XML string corresponding to a scan
+        :param parent: Parent XML string of the session
+        :return: None
+
+        """
         self.scan_parent = parent
         self.scan_element = scan_element
 
     def parent(self):
-        """ return parent the session """
+        """
+        Get the parent of the scan
+
+        :return: XML String of the scan parent
+
+        """
         return self.scan_parent
 
     def label(self):
-        """ return the ID/label of the scan """
+        """
+        Get the ID of the scan
+
+        :return: String of the scan ID
+
+        """
         return self.scan_element.get('ID')
 
     def get(self, name):
-        """ return the value of a variable name """
+        """
+        Get the value of a variable associated with a scan.
+
+        :param name: Name of the variable to get the value of
+        :return: Value of the variable if it exists, or '' otherwise.
+
+        """
         value = self.scan_element.get(name)
         if value != None:
             return value
@@ -1976,7 +2283,12 @@ class CachedImageScan():
         return ''
 
     def info(self):
-        """ return a dictionary of the scan information """
+        """
+        Get lots of variables assocaited with this scan.
+
+        :return: Dictionary of infomation about the scan.
+
+        """
         scan_info = {}
 
         scan_info['ID'] = self.get('ID')
@@ -2005,7 +2317,11 @@ class CachedImageScan():
         return scan_info
 
     def resources(self):
-        """ return the list of cached Resources object """
+        """
+        Get a list of the CachedResource (s) associated with this scan.
+
+        :return: List of the CachedResource (s) associated with this scan.
+        """
         res_list = []
 
         file_elements = self.scan_element.findall('xnat:file', NS)
@@ -2018,26 +2334,55 @@ class CachedImageScan():
         return res_list
 
     def get_resources(self):
-        """ return list of dictionaries of the resources for the scan """
+        """
+        Get a list of dictionaries of info for each CachedResource.
+
+        :return: List of dictionaries of infor for each CachedResource.
+        """
         return [res.info() for res in self.resources()]
 
 class CachedImageAssessor():
-    """ Class to cache the assessor XML information from XNAT """
+    """
+    Class to cache the XML information for an assessor on XNAT
+    """
     def __init__(self, assr_element, parent):
-        """ Init function """
+        """
+        Entry pint for the CachedImageAssessor class on XNAT
+
+        :param assr_element: the assessor XML string on XNAT
+        :param parent: the parent element of the assessor
+        :return: None
+
+        """
         self.assr_parent = parent
         self.assr_element = assr_element
 
     def parent(self):
-        """ return the session """
+        """
+        Get the parent element of the assessor (session)
+
+        :return: The session element XML string
+
+        """
         return self.assr_parent
 
     def label(self):
-        """ return label of assessor """
+        """
+        Get the label of the assessor
+
+        :return: String of the assessor label
+
+        """
         return self.assr_element.get('label')
 
     def get(self, name):
-        """ return value of a variable for the assessor """
+        """
+        Get the value of a variable associated with the assessor
+
+        :param name: Variable name to get the value of
+        :return: Value of the variable, otherwise ''.
+
+        """
         value = self.assr_element.get(name)
         if value != None:
             return value
@@ -2065,7 +2410,12 @@ class CachedImageAssessor():
         return ''
 
     def info(self):
-        """ return dictionary with the assessor information """
+        """
+        Get a dictionary of information associated with the assessor
+
+        :return: None
+
+        """
         assr_info = {}
 
         assr_info['ID'] = self.get('ID')
@@ -2109,7 +2459,12 @@ class CachedImageAssessor():
         return assr_info
 
     def in_resources(self):
-        """ return list of cached resource object for in resources"""
+        """
+        Get a list of CachedResource objects for "in" type
+
+        :return: List of CachedResource objects for "in" type
+
+        """
         res_list = []
 
         file_elements = self.assr_element.findall('xnat:in/xnat:file', NS)
@@ -2120,7 +2475,12 @@ class CachedImageAssessor():
         return res_list
 
     def out_resources(self):
-        """ return list of cached resource object for out resources"""
+        """
+        Get a list of CachedResource objects for "out" type
+
+        :return: List of CachedResource objects for "out" type
+
+        """
         res_list = []
 
         file_elements = self.assr_element.findall('xnat:out/xnat:file', NS)
@@ -2131,36 +2491,78 @@ class CachedImageAssessor():
         return res_list
 
     def get_in_resources(self):
-        """ return list of dictionaries of the in resources for the assessor """
+        """
+        Get a list of dictionaries of info for the CachedResource objects
+         for "in" type
+
+        :return: List of dictionaries of info for the CachedResource objects
+         for "in" type
+
+        """
         return [res.info() for res in self.in_resources()]
 
     def get_out_resources(self):
-        """ return list of dictionaries of the out resources for the assessor """
+        """
+        Get a list of dictionaries of info for the CachedResource objects
+         for "out" type
+
+        :return: List of dictionaries of info for the CachedResource objects
+         for "out" type
+
+        """
         return [res.info() for res in self.out_resources()]
 
     def get_resources(self):
-        """ return list of dictionaries of the out resources for the assessor """
-        return [res.info() for res in self.out_resources()]
-        #same as get_out_resources()
-        #to be used in has_resource with a cassessor
+        """
+        Makes a call to get_out_resources.
+
+        :return: List of dictionaries of info for the CachedResource objects
+         for "out" type
+
+        """
+        return self.get_out_resources()
 
 class CachedResource():
-    """ Class to cache the resource XML information from XNAT """
+    """
+    Class to cache resource XML info on XNAT
+    """
     def __init__(self, element, parent):
-        """ Init function """
+        """
+        Entry point for the CachgedResource class
+
+        :param element: The XML string of the resource
+        :param parent: Parent XML string from the resource
+        :return:
+        """
         self.res_parent = parent
         self.res_element = element
 
     def parent(self):
-        """ get parent from the resource """
+        """
+        Get the resource parent XML string
+
+        :return: The resource parent XML string
+
+        """
         return self.res_parent
 
     def label(self):
-        """ return label of the resource """
+        """
+        Get the label of the resource
+
+        :return: String of the label of the resource
+
+        """
         return self.res_element.get('label')
 
     def get(self, name):
-        """ return value of variable for resource """
+        """
+        Get the value of a variable associated with the resource
+
+        :param name: Variable name to get the value of
+        :return: The value of the variable, '' otherwise.
+
+        """
         value = self.res_element.get(name)
         if value != None:
             return value
@@ -2181,7 +2583,11 @@ class CachedResource():
         return ''
 
     def info(self):
-        """ return dictionary for the resource information """
+        """
+        Get a dictionary of information relating to the resource
+
+        :returns: dictionary of information about the resource.
+        """
         res_info = {}
 
         res_info['URI'] = self.get('URI')
@@ -2194,17 +2600,31 @@ class CachedResource():
         return res_info
 ####################### File Utils ######################################################
 def gzip_file(file_not_zipped):
-    """Method to gzip a file without using os.system"""
+    """
+    Method to gzip a file using the gzip python package
+
+    :param file_not_zipped: Full path to a file to gzip
+    :return: Full path to the gzipped file
+
+    """
+    file_out = list()
     content = open(file_not_zipped, 'rb')
     content = content.read()
     fout = gzip.open(file_not_zipped + '.gz', 'wb')
     fout.write(content)
     fout.close()
-    files_out.append(file_not_zipped + '.gz')
+    file_out.append(file_not_zipped + '.gz')
     os.remove(file_not_zipped)
+    return file_out
 
 def gunzip_file(file_zipped):
-    """Method to gunzip a file without using os.system. Same file name w/o gz"""
+    """
+    Gunzips a file using the gzip python package
+
+    :param file_zipped: Full path to the gzipped file
+    :return: None
+
+    """
     gzfile = gzip.GzipFile(file_zipped)
     gzdata = gzfile.read()
     gzfile.close()
@@ -2214,18 +2634,19 @@ def gunzip_file(file_zipped):
 ####################### OLD Functions used in different Spiders ##########################
 # It will need to be removed when the spiders are updated
 def download_Scan(Outputdirectory,projectName,subject,experiment,scan,resource_list,all_resources=0):
-    """ Download resources from a specific project/subject/experiment/scan from Xnat into a folder.
-    parameters :
-        - Outputdirectory = directory where the files are going to be download
-        - projectName = project name on Xnat
-        - subject = subject label of the files you want to download from Xnat
-        - experiment = experiment label of the files you want to download from Xnat
-        - scan = scan label of the files you want to download from Xnat
-        - resource_list = List of resources name
-            E.G resource_list=['NIFTI','bval,'bvec']
-        - all_resources : download all the resources. If 0, download the biggest one.
     """
+    Downloads resources from a scan given a scan ID
 
+    :param Outputdirectory: Directory to download the data to
+    :param projectName: XNAT project ID
+    :param subject: XNAT subject ID/label
+    :param experiment: XNAT session ID/label
+    :param scan: Scan ID to download from
+    :param resource_list: List of resources to download data from.
+    :param all_resources: If 1, download from all resources for the scan object, otherwise use the list.
+    :return: None
+
+    """
     print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + '/'+ scan
 
     #Check input for subjects_exps_list :
@@ -2254,7 +2675,18 @@ def download_Scan(Outputdirectory,projectName,subject,experiment,scan,resource_l
 
 ## from a list of scantype given, Download the resources
 def download_ScanType(Outputdirectory,projectName,subject,experiment,List_scantype,resource_list,all_resources=0):
-    """ Same than download_Scan but you give a list of scan type instead of the scan ID
+    """
+    Downloads resources from a scan given a series description, rather than a scan ID
+
+    :param Outputdirectory: Directory to download the data to
+    :param projectName: XNAT project ID
+    :param subject: XNAT subject ID/label
+    :param experiment: XNAT session ID/label
+    :param List_scantype: List of scan types to download resources from.
+    :param resource_list: List of resources to download data from.
+    :param all_resources: If 1, download from all resources for the scan object, otherwise use the list.
+    :return: None
+
     """
 
     print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + ' and the scan types like ',
@@ -2293,9 +2725,19 @@ def download_ScanType(Outputdirectory,projectName,subject,experiment,List_scanty
         xnat.disconnect()
     print '===================================================================\n'
 
-## from a list of scan series_description given, download the resources
 def download_ScanSeriesDescription(Outputdirectory,projectName,subject,experiment,List_scanSD,resource_list,all_resources=0):
-    """ Same than download_Scan but you give a list of series description instead of the scan ID
+    """
+    Downloads resources from a scan given a series description, rather than a scan ID
+
+    :param Outputdirectory: Directory to download the data to
+    :param projectName: XNAT project ID
+    :param subject: XNAT subject ID/label
+    :param experiment: XNAT session ID/label
+    :param List_scanSD: List of series descriptions to download resources from.
+    :param resource_list: List of resources to download data from.
+    :param all_resources: If 1, download from all resources for the scan object, otherwise use the list.
+    :return: None
+
     """
 
     print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + ' and the list of series description ',
@@ -2335,8 +2777,17 @@ def download_ScanSeriesDescription(Outputdirectory,projectName,subject,experimen
         xnat.disconnect()
     print '===================================================================\n'
 
-## from an assessor given, download the resources :
 def download_Assessor(Outputdirectory,assessor_label,resource_list,all_resources=0):
+    """
+    Download resources from a specific assessor.
+
+    :param Outputdirectory: Directory to download data to
+    :param assessor_label: The label of the assessor to download from
+    :param resource_list: The list of resource(s) that you want to download data from
+    :param all_resources: if 1, download all of the resources.
+    :return: None
+
+    """
     """ Download resources from a specific process from Xnat into a folder.
     parameters :
         - Outputdirectory = directory where the files are going to be download
@@ -2369,6 +2820,19 @@ def download_Assessor(Outputdirectory,assessor_label,resource_list,all_resources
 
 ## from an assessor type, download the resources :
 def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_process_type,resource_list,all_resources=0):
+    """
+    Download an assessor by the proctype. Can download a resource, or all resources
+
+    :param Outputdirectory: Directory to download data to
+    :param projectName: XNAT project ID
+    :param subject: XNAT project subject ID/label
+    :param experiment: XNAT project session ID/label
+    :param List_process_type: List of process type(s) (proctypes) to download from
+    :param resource_list: List of resources to download from each proctype
+    :param all_resources: if 1, download from all resources, otherwise use resource_list
+    :return: None
+
+    """
     """ Same than download_Scan but you give a list of series description instead of the scan ID
     """
 
@@ -2411,6 +2875,17 @@ def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_pr
 
 
 def dl_good_resources_scan(Scan,resource_list,Outputdirectory,all_resources):
+    """
+    Download "good" resources from a scan
+
+    :param Scan: pyxnat EObject of the scan
+    :param resource_list: List of resource names to download from for the scan
+    :param Outputdirectory: Directory to download all of the data from
+    :param all_resources: Override the list and download all the files from
+    all the resources if true, otherwise use the list
+    :return: None
+
+    """
     for Resource in resource_list:
         resourceOK=0
         if Scan.resource(Resource).exists():
@@ -2430,6 +2905,16 @@ def dl_good_resources_scan(Scan,resource_list,Outputdirectory,all_resources):
                 print 'ERROR: Download failed, the size of file for the resource is zero.'
 
 def dl_good_resources_assessor(Assessor,resource_list,Outputdirectory,all_resources):
+    """
+    Download all "good" resources from an assessor
+
+    :param Assessor: pyxnat EObject of the assessor
+    :param resource_list: List of resources labels to download resources from
+    :param Outputdirectory: Download directory for the files from the selected resources
+    :param all_resources: If true, download from all resources, otherwise only the specified ones.
+    :return: None
+
+    """
     for Resource in resource_list:
         resourceOK=0
         if Assessor.out_resource(Resource).exists():
@@ -2449,6 +2934,16 @@ def dl_good_resources_assessor(Assessor,resource_list,Outputdirectory,all_resour
                 print 'ERROR: Download failed, the size of file for the resource is zero.'
 
 def download_biggest_resources(Resource,directory,filename='0'):
+    """
+    Download the biggest file from a resource
+
+    :param Resource: pyxnat EObject to download the biggest file from
+    :param directory: Download directory
+    :param filename: Filename to override the current name of. If changed,
+     the value of filename will be the filename as downlaoded.
+    :return: 1 if download worked and then the full path to the file, 0 and nan otherwise.
+
+    """
     if os.path.exists(directory):
         number=0
         Bigger_file_size=0
@@ -2472,6 +2967,14 @@ def download_biggest_resources(Resource,directory,filename='0'):
         print'ERROR download_biggest_resources in XnatUtils: Folder '+directory+' does not exist.'
 
 def download_all_resources(Resource,directory):
+    """
+    From a pyxnat EObject, download all of the files in it
+
+    :param Resource: pyxnat EObject to download resources from
+    :param directory: Directory to download all of the files to
+    :return: None
+
+    """
     if os.path.exists(directory):
         #if more than one file:
         if len(Resource.files().get())>1:
@@ -2495,6 +2998,14 @@ def download_all_resources(Resource,directory):
         print'ERROR download_all_resources in XnatUtils: Folder '+directory+' does not exist.'
 
 def upload_all_resources(Resource,directory):
+    """
+    Upload all of the files in a directory to a resource on XNAT
+
+    :param Resource: pyxnat EObject of the resource to put the files
+    :param directory: Directory to scrape for files to upload to the resource
+    :return: None
+
+    """
     if os.path.exists(directory):
         if not Resource.exists():
             Resource.create()
@@ -2508,7 +3019,7 @@ def upload_all_resources(Resource,directory):
             for filename in Resource_files_list:
                 #if it's a folder, zip it and upload it
                 if os.path.isdir(filename):
-                    upload_zip(filename,directory+'/'+filename)
+                    upload_zip(filename, directory+'/'+filename)
                 elif filename.lower().endswith('.zip'):
                     Resource.put_zip(directory+'/'+filename, overwrite=True, extract=True)
                 else:
@@ -2517,7 +3028,16 @@ def upload_all_resources(Resource,directory):
     else:
         print'ERROR upload_all_resources in XnatUtils: Folder '+directory+' does not exist.'
 
-def upload_zip(Resource,directory):
+def upload_zip(Resource, directory):
+    """
+    Uploads a folder to XNAT as a zip file and then unzips when put. The
+     label of the resource will be the folder name
+
+    :param Resource: pyxnat EObject of the resource to upload to
+    :param directory: Full path to the directory to upload
+    :return: None
+
+    """
     filenameZip=Resource.label()+'.zip'
     initDir=os.getcwd()
     #Zip all the files in the directory
@@ -2529,6 +3049,20 @@ def upload_zip(Resource,directory):
     os.chdir(initDir)
 
 def download_resource_assessor(directory,xnat,project,subject,experiment,assessor_label,resources_list,quiet):
+    """
+    Download resource(s) from an assessor.
+
+    :param directory: The directory to download data to
+    :param xnat: pyxnat Interface object
+    :param project: Project ID on XNAT
+    :param subject: Subject ID/label on XNAT
+    :param experiment: Session ID/label on XNAT
+    :param assessor_label: Assessor ID/label on XNAT
+    :param resources_list: list of resource(s) to download from the assessor
+    :param quiet: Suppress print statements
+    :return: None
+
+    """
     """ Download the resources from the list for the assessor given in the argument (if resource_list[0]='all' -> download all)"""
 
     if not quiet:
@@ -2614,12 +3148,19 @@ def download_resource_assessor(directory,xnat,project,subject,experiment,assesso
                         print "      !!ERROR : The size of the resource is 0."
             else:
                 print '      !!WARNING : no resource '+resource+' for this assessor.'
-
-
     print'\n'
 
-# Upload a folder to a resource all files are zip and then unzip in Xnat
+
 def Upload_folder_to_resource(resourceObj,directory):
+    """
+    Uploads a folder to XNAT as a zip file and then unzips when put. The
+     label of the resource will be the folder name
+
+    :param resourceObj: pyxnat EObject of the resource to upload to
+    :param directory: Full path to the directory to upload
+    :return: None
+
+    """
     filenameZip=resourceObj.label()+'.zip'
     initDir=os.getcwd()
     #Zip all the files in the directory
@@ -2630,19 +3171,32 @@ def Upload_folder_to_resource(resourceObj,directory):
     #return to the initial directory:
     os.chdir(initDir)
 
-# Download all resources in a folder. the folder will have the name Resource.label(),
-# removes the previous folder if there is one.
 def Download_resource_to_folder(Resource,directory):
+    """
+    Download all of the files in an XNAT resource to a directory named
+     with basename == resource label
+
+    :param Resource: pyxnat EObject of the resource to download files from
+    :param directory: The directory to download the data to.
+    The resource label name is appeneded as basename
+    :return: None
+
+    """
     Res_path=os.path.join(directory,Resource.label())
     if os.path.exists(Res_path):
         os.remove(Res_path)
     Resource.get(directory,extract=True)
 
 def get_random_sessions(xnat, project_id, num_sessions):
-    '''Returns a list of N random sessions from a project.
-    This is usful if running a new spider for the first time
-    If n > 0 and n < 1, it is assumed to be a percent of the
-    total number of sessions.'''
+    """
+    Get a random list of session labels from an XNAT project
+
+    :param xnat: pyxnat Interface object
+    :param project_id: XNAT Project ID
+    :param num_sessions: Number of sessions if <1 and >0, it is assumed to be a percent.
+    :return: List of session labels for the project
+
+    """
     sessions = list_experiments(xnat, project_id)
     session_labels = [x['label'] for x in sessions]
     if num_sessions >0 and num_sessions <1:
