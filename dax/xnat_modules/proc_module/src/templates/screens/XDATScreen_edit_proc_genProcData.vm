@@ -6,8 +6,8 @@ $page.setVlinkColor($ui.vlink)
 #set($months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
 #set($days = [ 1..31 ])
 #set($years = [ $!turbineUtils.getYear()..1990])
+#set($qcValues = [["Passed","Passed"], ["Good","Good"], ["OK","OK"], ["Poor","Poor"], ["Rerun","Rerun"], ["Needs QA","Needs QA"], ["Needs Edits","Needs Edits"], ["Bad","Bad"], ["Failed","Failed"]])
 
-#set($qcValues = [["Bad","Bad"], ["Failed","Failed"], ["Rerun","Rerun"], ["Passed","Passed"], ["Good","Good"], ["OK","OK"]])
 #if ($data.message)
 <font color="red" size="3">$data.message</font>
 #end
