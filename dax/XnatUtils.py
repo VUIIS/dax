@@ -555,41 +555,16 @@ def list_subject_resources(intf, projectid, subjectid):
     resource_list = intf._get_json(post_uri)
     return resource_list
 
-def list_experiments(intf, projectid=None, subjectid=None):
-    """ list of dictionaries for sessions in a project or subject with less details than list_session"""
-    if projectid and subjectid:
-        post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
-    elif projectid == None and subjectid == None:
-        post_uri = '/REST/experiments'
-    elif projectid and subjectid == None:
-        post_uri = '/REST/projects/'+projectid+'/experiments'
-    else:
-        return None
-
-    post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:subjectdata/meta/last_modified'
-    experiment_list = intf._get_json(post_uri)
-
-    for exp in experiment_list:
-        if projectid:
-            # Override the project returned to be the one we queried and add others for convenience
-            exp['project'] = projectid
-
-        exp['subject_id'] = exp['subject_ID']
-        exp['session_id'] = exp['ID']
-        exp['session_label'] = exp['label']
-        exp['project_id'] = exp['project']
-        exp['project_label'] = exp['project']
-
-    return sorted(experiment_list, key=lambda k: k['session_label'])
-
-def list_experiment_resources(intf, projectid, subjectid, experimentid):
-    """ list of dictionaries for the session resources """
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/resources'
-    resource_list = intf._get_json(post_uri)
-    return resource_list
-
 def list_sessions(intf, projectid=None, subjectid=None):
-    """ list of dictionaries for sessions in one project or one subject """
+    """
+    List all the sessions that you have access to. Or, alternatively, list
+    the session in a single project (and single subject) based on passed project ID (/subject ID)
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :param subjectid: ID/label of a subject
+    :return: List of sessions
+    """
     type_list = []
     full_sess_list = []
 
@@ -643,6 +618,22 @@ def list_sessions(intf, projectid=None, subjectid=None):
 
     # Return list sorted by label
     return sorted(full_sess_list, key=lambda k: k['session_label'])
+
+def list_session_resources(intf, projectid, subjectid, sessionid):
+    """
+    Gets a list of all of the resources for a session on a subject for a project
+    requested by the user
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :param subjectid: ID/label of a subject
+    :param subjectid: ID/label of a session to get resources for
+    :return: List of resources for the session
+
+    """
+    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+sessionid+'/resources'
+    resource_list = intf._get_json(post_uri)
+    return resource_list
 
 def list_scans(intf, projectid, subjectid, experimentid):
     """ list of dictionaries for scans in one session """
@@ -1093,6 +1084,23 @@ def select_obj(intf, project_id=None, subject_id=None, session_id=None, scan_id=
         if value:
             select_str += '''/{key}/{label}'''.format(key=key, label=value)
     return intf.select(select_str)
+    
+def generate_assessor_handler(project, subject, session, proctype, scan=None):
+	"""
+	Generate an assessorHandler object corresponding to the labels in the parameters
+	
+	:param project: project label on XNAT
+	:param subject: subject label on XNAT
+	:param session: session label on XNAT
+	:param proctype: proctype for the assessor
+	:param scan: scan label on XNAT if apply
+	:return: assessorHandler object
+	"""
+	if scan:
+		assessor_label = '-x-'.join([project, subject, session, scan, proctype])
+	else:
+		assessor_label = '-x-'.join([project, subject, session, proctype])
+	return AssessorHandler(assessor_label)
 
 ####################################################################################
 #                     Functions to access/check object                             #
@@ -2073,6 +2081,22 @@ def get_input_str(input_val, default_val):
     else:
         return default_val
 
+def get_random_sessions(xnat, project_id, num_sessions):
+    """
+    Get a random list of session labels from an XNAT project
+
+    :param xnat: pyxnat Interface object
+    :param project_id: XNAT Project ID
+    :param num_sessions: Number of sessions if <1 and >0, it is assumed to be a percent.
+    :return: List of session labels for the project
+
+    """
+    sessions = list_experiments(xnat, project_id)
+    session_labels = [x['label'] for x in sessions]
+    if num_sessions >0 and num_sessions <1:
+        num_sessions = int(num_sessions*len(session_labels))
+    return ','.join(random.sample(session_labels, num_sessions))
+
 ####################################################################################
 #                                5) Cached Class                                   #
 ####################################################################################
@@ -2631,11 +2655,61 @@ def gunzip_file(file_zipped):
     open(file_zipped[:-3],'w').write(gzdata)
 
 
-####################### OLD Functions used in different Spiders ##########################
+####################### DEPRECATED Functions still in used in different Spiders ##########################
 # It will need to be removed when the spiders are updated
+def list_experiments(intf, projectid=None, subjectid=None):
+    """ 
+    Deprecated method to list all the experiments that you have access to. Or, alternatively, list
+    the experiments in a single project (and single subject) based on passed project ID (/subject ID)
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :param subjectid: ID/label of a subject
+    :return: List of experiments
+    """
+    if projectid and subjectid:
+        post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
+    elif projectid == None and subjectid == None:
+        post_uri = '/REST/experiments'
+    elif projectid and subjectid == None:
+        post_uri = '/REST/projects/'+projectid+'/experiments'
+    else:
+        return None
+
+    post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:subjectdata/meta/last_modified'
+    experiment_list = intf._get_json(post_uri)
+
+    for exp in experiment_list:
+        if projectid:
+            # Override the project returned to be the one we queried and add others for convenience
+            exp['project'] = projectid
+
+        exp['subject_id'] = exp['subject_ID']
+        exp['session_id'] = exp['ID']
+        exp['session_label'] = exp['label']
+        exp['project_id'] = exp['project']
+        exp['project_label'] = exp['project']
+
+    return sorted(experiment_list, key=lambda k: k['session_label'])
+
+def list_experiment_resources(intf, projectid, subjectid, experimentid):
+    """
+    Deprecated method to get a list of all of the resources for an experiment
+    associated to a subject and a project requested by the user
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :param subjectid: ID/label of a subject
+    :param subjectid: ID/label of a session to get resources for
+    :return: List of resources for the session
+    """
+    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/resources'
+    resource_list = intf._get_json(post_uri)
+    return resource_list
+
 def download_Scan(Outputdirectory,projectName,subject,experiment,scan,resource_list,all_resources=0):
     """
-    Downloads resources from a scan given a scan ID
+    Deprecated method to download resources from a scan given a scan ID
 
     :param Outputdirectory: Directory to download the data to
     :param projectName: XNAT project ID
@@ -2676,7 +2750,7 @@ def download_Scan(Outputdirectory,projectName,subject,experiment,scan,resource_l
 ## from a list of scantype given, Download the resources
 def download_ScanType(Outputdirectory,projectName,subject,experiment,List_scantype,resource_list,all_resources=0):
     """
-    Downloads resources from a scan given a series description, rather than a scan ID
+    Deprecated method to download resources from a scan given a series description, rather than a scan ID
 
     :param Outputdirectory: Directory to download the data to
     :param projectName: XNAT project ID
@@ -2727,7 +2801,7 @@ def download_ScanType(Outputdirectory,projectName,subject,experiment,List_scanty
 
 def download_ScanSeriesDescription(Outputdirectory,projectName,subject,experiment,List_scanSD,resource_list,all_resources=0):
     """
-    Downloads resources from a scan given a series description, rather than a scan ID
+    Deprecated method to download resources from a scan given a series description, rather than a scan ID
 
     :param Outputdirectory: Directory to download the data to
     :param projectName: XNAT project ID
@@ -2779,7 +2853,7 @@ def download_ScanSeriesDescription(Outputdirectory,projectName,subject,experimen
 
 def download_Assessor(Outputdirectory,assessor_label,resource_list,all_resources=0):
     """
-    Download resources from a specific assessor.
+    Deprecated method to download resources from a specific assessor.
 
     :param Outputdirectory: Directory to download data to
     :param assessor_label: The label of the assessor to download from
@@ -2821,7 +2895,7 @@ def download_Assessor(Outputdirectory,assessor_label,resource_list,all_resources
 ## from an assessor type, download the resources :
 def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_process_type,resource_list,all_resources=0):
     """
-    Download an assessor by the proctype. Can download a resource, or all resources
+    Deprecated method to download an assessor by the proctype. Can download a resource, or all resources
 
     :param Outputdirectory: Directory to download data to
     :param projectName: XNAT project ID
@@ -2876,7 +2950,7 @@ def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_pr
 
 def dl_good_resources_scan(Scan,resource_list,Outputdirectory,all_resources):
     """
-    Download "good" resources from a scan
+    Deprecated method to download "good" resources from a scan
 
     :param Scan: pyxnat EObject of the scan
     :param resource_list: List of resource names to download from for the scan
@@ -2906,7 +2980,7 @@ def dl_good_resources_scan(Scan,resource_list,Outputdirectory,all_resources):
 
 def dl_good_resources_assessor(Assessor,resource_list,Outputdirectory,all_resources):
     """
-    Download all "good" resources from an assessor
+    Deprecated method to download all "good" resources from an assessor
 
     :param Assessor: pyxnat EObject of the assessor
     :param resource_list: List of resources labels to download resources from
@@ -2935,7 +3009,7 @@ def dl_good_resources_assessor(Assessor,resource_list,Outputdirectory,all_resour
 
 def download_biggest_resources(Resource,directory,filename='0'):
     """
-    Download the biggest file from a resource
+    Deprecated method to download the biggest file from a resource
 
     :param Resource: pyxnat EObject to download the biggest file from
     :param directory: Download directory
@@ -2968,7 +3042,7 @@ def download_biggest_resources(Resource,directory,filename='0'):
 
 def download_all_resources(Resource,directory):
     """
-    From a pyxnat EObject, download all of the files in it
+    Deprecated method from a pyxnat EObject, download all of the files in it
 
     :param Resource: pyxnat EObject to download resources from
     :param directory: Directory to download all of the files to
@@ -2999,7 +3073,7 @@ def download_all_resources(Resource,directory):
 
 def upload_all_resources(Resource,directory):
     """
-    Upload all of the files in a directory to a resource on XNAT
+    Deprecated method to upload all of the files in a directory to a resource on XNAT
 
     :param Resource: pyxnat EObject of the resource to put the files
     :param directory: Directory to scrape for files to upload to the resource
@@ -3030,8 +3104,8 @@ def upload_all_resources(Resource,directory):
 
 def upload_zip(Resource, directory):
     """
-    Uploads a folder to XNAT as a zip file and then unzips when put. The
-     label of the resource will be the folder name
+    Deprecated method to upload a folder to XNAT as a zip file and then unzips when put. The
+    label of the resource will be the folder name
 
     :param Resource: pyxnat EObject of the resource to upload to
     :param directory: Full path to the directory to upload
@@ -3050,7 +3124,7 @@ def upload_zip(Resource, directory):
 
 def download_resource_assessor(directory,xnat,project,subject,experiment,assessor_label,resources_list,quiet):
     """
-    Download resource(s) from an assessor.
+    Deprecated method to download resource(s) from an assessor.
 
     :param directory: The directory to download data to
     :param xnat: pyxnat Interface object
@@ -3153,8 +3227,8 @@ def download_resource_assessor(directory,xnat,project,subject,experiment,assesso
 
 def Upload_folder_to_resource(resourceObj,directory):
     """
-    Uploads a folder to XNAT as a zip file and then unzips when put. The
-     label of the resource will be the folder name
+    Deprecated method to upload a folder to XNAT as a zip file and then unzips when put. The
+    label of the resource will be the folder name
 
     :param resourceObj: pyxnat EObject of the resource to upload to
     :param directory: Full path to the directory to upload
@@ -3173,8 +3247,8 @@ def Upload_folder_to_resource(resourceObj,directory):
 
 def Download_resource_to_folder(Resource,directory):
     """
-    Download all of the files in an XNAT resource to a directory named
-     with basename == resource label
+    Deprecated method to download all of the files in an XNAT resource to a directory named
+    with basename == resource label
 
     :param Resource: pyxnat EObject of the resource to download files from
     :param directory: The directory to download the data to.
@@ -3186,19 +3260,3 @@ def Download_resource_to_folder(Resource,directory):
     if os.path.exists(Res_path):
         os.remove(Res_path)
     Resource.get(directory,extract=True)
-
-def get_random_sessions(xnat, project_id, num_sessions):
-    """
-    Get a random list of session labels from an XNAT project
-
-    :param xnat: pyxnat Interface object
-    :param project_id: XNAT Project ID
-    :param num_sessions: Number of sessions if <1 and >0, it is assumed to be a percent.
-    :return: List of session labels for the project
-
-    """
-    sessions = list_experiments(xnat, project_id)
-    session_labels = [x['label'] for x in sessions]
-    if num_sessions >0 and num_sessions <1:
-        num_sessions = int(num_sessions*len(session_labels))
-    return ','.join(random.sample(session_labels, num_sessions))
