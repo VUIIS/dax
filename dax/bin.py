@@ -173,7 +173,6 @@ def set_variables_dax_manager(record_data, field_prefix, start_end):
     :return: updated record_data to upload to REDCap
 
     """
-    """ set fields to upload to redcap for PID/dates (dax_manager) """
     if start_end == 1:
         key = REDCAP_VAR[field_prefix+'_start_date']
         record_data[key] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
