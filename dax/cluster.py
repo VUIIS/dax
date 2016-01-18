@@ -22,7 +22,12 @@ MAX_TRACE_DAYS = 30
 LOGGER = logging.getLogger('dax')
 
 def c_output(output):
-    """ function to check if the output is a number """
+    """ 
+    Check if the output value is an integer 
+    
+    :param output: variable to check
+    :return: True if output is not an integer, False otherwise.
+    """
     try:
         int(output)
         error = False
@@ -32,7 +37,11 @@ def c_output(output):
     return error
 
 def count_jobs():
-    """ count the number of jobs in the queue """
+    """ 
+    Count the number of jobs in the queue on the cluster
+    
+    :return: number of jobs in the queue
+    """
     cmd = CMD_COUNT_NB_JOBS
     output = subprocess.check_output(cmd, shell=True)
     error = c_output(output)
@@ -47,7 +56,13 @@ def count_jobs():
         return int(output)
 
 def job_status(jobid):
-    """ return the job status on the cluster """
+    """
+    Get the status for a job on the cluster
+    
+    :param jobid: job id to check
+    :return: job status
+    
+    """
     cmd = CMD_GET_JOB_STATUS.safe_substitute({'jobid':jobid})
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
@@ -64,7 +79,12 @@ def job_status(jobid):
         return None
 
 def is_traceable_date(jobdate):
-    """ check if the job is traceable """
+    """
+    Check if the job is traceable on the cluster
+    
+    :param jobdate: launching date of the job
+    :return: True if traceable, False otherwise.
+    """
     try:
         trace_date = datetime.strptime(jobdate, "%Y-%m-%d")
         diff_days = (datetime.today() - trace_date).days
@@ -73,7 +93,13 @@ def is_traceable_date(jobdate):
         return False
 
 def tracejob_info(jobid, jobdate):
-    """ function to trace the job information """
+    """
+    Trace the job information from the cluster
+    
+    :param jobid: job id to check
+    :param jobdate: launching date of the job
+    :return: dictionary object with 'mem_used', 'walltime_used', 'jobnode'
+    """
     time_s = datetime.strptime(jobdate, "%Y-%m-%d")
     diff_days = (datetime.today()-time_s).days+1
     jobinfo = dict()
@@ -84,7 +110,13 @@ def tracejob_info(jobid, jobdate):
     return jobinfo
 
 def get_job_mem_used(jobid, diff_days):
-    """ return memory used for the task from cluster """
+    """
+    Get the memory used for the task from cluster
+    
+    :param jobid: job id to check
+    :param diff_days: difference of days between starting date and now
+    :return: string with the memory usage, empty string if error
+    """
     mem = ''
     # Check for blank jobid
     if not jobid:
@@ -102,7 +134,13 @@ def get_job_mem_used(jobid, diff_days):
     return mem
 
 def get_job_walltime_used(jobid, diff_days):
-    """ return walltime used for the task from cluster """
+    """
+    Get the walltime used for the task from cluster
+    
+    :param jobid: job id to check
+    :param diff_days: difference of days between starting date and now
+    :return: string with the walltime used, empty string if error
+    """
     walltime = ''
     # Check for blank jobid
     if not jobid:
@@ -123,7 +161,13 @@ def get_job_walltime_used(jobid, diff_days):
     return walltime
 
 def get_job_node(jobid, diff_days):
-    """ return job node for the task from cluster """
+    """
+    Get the node where the job was running on the cluster
+    
+    :param jobid: job id to check
+    :param diff_days: difference of days between starting date and now
+    :return: string with the node, empty string if error
+    """
     jobnode = ''
     # Check for blank jobid
     if not jobid:
@@ -141,7 +185,14 @@ def get_job_node(jobid, diff_days):
     return jobnode
 
 def get_specific_str(big_str, prefix, suffix):
-    """ function to extract a specific length out of a string """
+    """
+    Extract a specific length out of a string
+    
+    :param big_str: string to reduce
+    :param prefix: prefix to remove
+    :param suffix: suffix to remove
+    :return: string reduced, return empty string if prefix and suffix not present
+    """
     specific_str = big_str
     if prefix and len(specific_str.split(prefix)) > 1:
         specific_str = specific_str.split(prefix)[1]
@@ -156,7 +207,19 @@ class PBS:   #The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
     def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
                  ppn=1, email=None, email_options=DEFAULT_EMAIL_OPTS):
-        """ init function """
+        """
+        Entry point for the PBS class
+        
+        :param filename: filename for the script
+        :param outfile: filepath for the outlogs
+        :param cmds: commands to run in the script
+        :param walltime_str: walltime to set for the script
+        :param mem_mb: memory in mb to set for the script
+        :param ppn: number of processor to set for the script
+        :param email: email address to set for the script
+        :param email_options: email options to set for the script
+        :return: None
+        """
         self.filename = filename
         self.outfile = outfile
         self.cmds = cmds
@@ -167,7 +230,11 @@ class PBS:   #The script file generator class
         self.ppn = ppn
 
     def write(self):
-        """ write the file """
+        """
+        Write the file
+        
+        :return: None
+        """
         #pbs_dir
         job_dir = os.path.dirname(self.filename)
         if not os.path.exists(job_dir):
@@ -185,7 +252,11 @@ class PBS:   #The script file generator class
             f_obj.write(JOB_TEMPLATE.safe_substitute(job_data))
 
     def submit(self):
-        """ submit the file to the cluster """
+        """
+        Submit the file to the cluster
+        
+        :return: None
+        """
         try:
             cmd = CMD_SUBMIT +' '+ self.filename
             proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
