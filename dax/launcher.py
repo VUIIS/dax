@@ -312,8 +312,10 @@ class Launcher(object):
                         subj_task.set_status(task.NO_DATA)
                         subj_task.set_qcstatus(qcstatus)
                     else:
-                        # Leave as NEED_INPUTS
-                        pass
+                        subj_task = subject_proc.get_task(xnat, csubject, RESULTS_DIR)
+                        self.log_updating_status(subject_proc.name, subj_task.assessor_label)
+                        subj_task.set_status(task.NEED_INPUTS)
+                        subj_task.set_qcstatus(qcstatus)
                 else:
                     # Other statuses handled by dax_update_tasks
                     pass
