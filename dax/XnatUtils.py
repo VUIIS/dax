@@ -169,7 +169,8 @@ class AssessorHandler:
     def select_assessor(self, intf):
         """
         Run Interface.select() on the assessor label
-
+      
+        :param intf: pyxnat.Interface object
         :return: The pyxnat EObject of the assessor
 
         """
