@@ -82,7 +82,6 @@ class InterfaceTemp(Interface):
         Disconnect the JSESSION and blow away the cache
 
         :return: None
-
         """
         self._exec('/data/JSESSION', method='DELETE')
         shutil.rmtree(self.temp_dir)
@@ -183,9 +182,9 @@ class SpiderProcessHandler:
     """
     def __init__(self, script_name, suffix, project, subject, experiment, scan=None, time_writer=None):
         """
-        Entry point to the SpierProcessHandler Class
+        Entry point to the SpiderProcessHandler Class
 
-        :param script_name: Basename of the Spider
+        :param script_name: Basename of the Spider (full path works as well, it will be removed)
         :param suffix: Processor suffix
         :param project: Project on XNAT
         :param subject: Subject on XNAT
@@ -404,6 +403,7 @@ class SpiderProcessHandler:
     def set_assessor_status(self, status):
         """
         Set the status of the assessor based on passed value
+        
         :param status: Value to set the procstatus to
         :except: All catchable errors.
         :return: None
@@ -456,7 +456,11 @@ class SpiderProcessHandler:
             self.set_assessor_status(JOB_FAILED)
 
     def clean(self, directory):
-        """ clean directory if no error and pdf created """
+        """
+        Clean directory if no error and pdf created
+        
+        :param directory: directory to be cleaned
+        """
         if self.has_pdf and not self.error:
             #Remove the data
             shutil.rmtree(directory)
@@ -511,7 +515,7 @@ def list_project_resources(intf, projectid):
 def list_subjects(intf, projectid=None):
     """
     List all the subjects that you have access to. Or, alternatively, list
-    the subjects in a single project based on passed project ID
+     the subjects in a single project based on passed project ID
 
     :param intf: pyxnat.Interface object
     :param projectid: ID of a project on XNAT
@@ -557,8 +561,8 @@ def list_subject_resources(intf, projectid, subjectid):
 
 def list_sessions(intf, projectid=None, subjectid=None):
     """
-    List all the sessions that you have access to. Or, alternatively, list
-    the session in a single project (and single subject) based on passed project ID (/subject ID)
+    List all the sessions that you have access to. Or, alternatively, list the session 
+     in a single project (and single subject) based on passed project ID (/subject ID)
 
     :param intf: pyxnat.Interface object
     :param projectid: ID of a project on XNAT
@@ -621,13 +625,13 @@ def list_sessions(intf, projectid=None, subjectid=None):
 
 def list_session_resources(intf, projectid, subjectid, sessionid):
     """
-    Gets a list of all of the resources for a session on a subject for a project
-    requested by the user
+    Gets a list of all of the resources for a session associated to a subject/project
+     requested by the user
 
     :param intf: pyxnat.Interface object
     :param projectid: ID of a project on XNAT
     :param subjectid: ID/label of a subject
-    :param subjectid: ID/label of a session to get resources for
+    :param sessionid: ID/label of a session to get resources for
     :return: List of resources for the session
 
     """
@@ -635,8 +639,16 @@ def list_session_resources(intf, projectid, subjectid, sessionid):
     resource_list = intf._get_json(post_uri)
     return resource_list
 
-def list_scans(intf, projectid, subjectid, experimentid):
-    """ list of dictionaries for scans in one session """
+def list_scans(intf, projectid, subjectid, sessionid):
+    """
+    List all the scans that you have access to based on passed session/subject/project.
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :param subjectid: ID/label of a subject
+    :param sessionid: ID/label of a session
+    :return: List of all the scans
+    """
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
     post_uri += '?columns=ID,URI,label,subject_label,project'
     post_uri += ',xnat:imagesessiondata/scans/scan/id'
@@ -650,7 +662,7 @@ def list_scans(intf, projectid, subjectid, experimentid):
     new_list = []
 
     for scan in scan_list:
-        if scan['ID'] == experimentid or scan['label'] == experimentid:
+        if scan['ID'] == sessionid or scan['label'] == sessionid:
             snew = {}
             snew['scan_id'] = scan['xnat:imagesessiondata/scans/scan/id']
             snew['scan_label'] = scan['xnat:imagesessiondata/scans/scan/id']
@@ -678,7 +690,14 @@ def list_scans(intf, projectid, subjectid, experimentid):
     return sorted(new_list, key=lambda k: k['label'])
 
 def list_project_scans(intf, projectid, include_shared=True):
-    """ list of dictionaries for scans in a project """
+    """
+    List all the scans that you have access to based on passed project.
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :param include_shared: include the shared data in this project
+    :return: List of all the scans for the project
+    """
     scans_dict = dict()
 
     #Get the sessions list to get the modality:
@@ -792,18 +811,37 @@ def list_project_scans(intf, projectid, include_shared=True):
 
     return sorted(scans_dict.values(), key=lambda k: k['scan_label'])
 
-def list_scan_resources(intf, projectid, subjectid, experimentid, scanid):
-    """ list of dictionaries for the scan resources """
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/scans/'+scanid+'/resources'
+def list_scan_resources(intf, projectid, subjectid, sessionid, scanid):
+    """
+    Gets a list of all of the resources for a scan associated to a session/subject/project
+     requested by the user
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :param subjectid: ID/label of a subject
+    :param sessionid: ID/label of a session
+    :param scanid: ID of a scan to get resources for
+    :return: List of resources for the scan
+    """
+    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+sessionid+'/scans/'+scanid+'/resources'
     resource_list = intf._get_json(post_uri)
     return resource_list
 
-def list_assessors(intf, projectid, subjectid, experimentid):
-    """ list of dictionaries for assessors in one session """
+def list_assessors(intf, projectid, subjectid, sessionid):
+    """
+    List all the assessors that you have access to based on passed session/subject/project.
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :param subjectid: ID/label of a subject
+    :param sessionid: ID/label of a session
+    :return: List of all the assessors
+    
+    """
     new_list = []
 
     # First get FreeSurfer
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors'
+    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+sessionid+'/assessors'
     post_uri += '?columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,URI,fs:fsData/procstatus,fs:fsData/validation/status&xsiType=fs:fsData'
     assessor_list = intf._get_json(post_uri)
 
@@ -827,7 +865,7 @@ def list_assessors(intf, projectid, subjectid, experimentid):
         new_list.append(anew)
 
     # Then add genProcData
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors'
+    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+sessionid+'/assessors'
     post_uri += '?columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,proc:genprocdata/procstatus,proc:genprocdata/proctype,proc:genprocdata/validation/status&xsiType=proc:genprocdata'
     assessor_list = intf._get_json(post_uri)
 
@@ -853,7 +891,13 @@ def list_assessors(intf, projectid, subjectid, experimentid):
     return sorted(new_list, key=lambda k: k['label'])
 
 def list_project_assessors(intf, projectid):
-    """ list of dictionaries for assessors in a project """
+    """
+    List all the assessors that you have access to based on passed project.
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :return: List of all the assessors for the project
+    """
     assessors_dict = dict()
 
     #Get the sessions list to get the different variables needed:
@@ -967,21 +1011,37 @@ def list_project_assessors(intf, projectid):
 
     return sorted(assessors_dict.values(), key=lambda k: k['label'])
 
-def list_assessor_out_resources(intf, projectid, subjectid, experimentid, assessorid):
-    """ list of dictionaries for the assessor resources """
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors/'+assessorid+'/out/resources'
+def list_assessor_out_resources(intf, projectid, subjectid, sessionid, assessorid):
+    """
+    Gets a list of all of the resources for an assessor associated to a session/subject/project
+     requested by the user
+
+    :param intf: pyxnat.Interface object
+    :param projectid: ID of a project on XNAT
+    :param subjectid: ID/label of a subject
+    :param sessionid: ID/label of a session
+    :param assessorid: ID/label of an assessor to get resources for
+    :return: List of resources for the assessor
+    """
+    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+sessionid+'/assessors/'+assessorid+'/out/resources'
     resource_list = intf._get_json(post_uri)
     return resource_list
 
-def get_resource_lastdate_modified(xnat, resource):
-    """ get the last modified data for a resource on XNAT (NOT WORKING: bug on XNAT side) """
+def get_resource_lastdate_modified(intf, resource):
+    """
+    Get the last modified data for a resource on XNAT (NOT WORKING: bug on XNAT side)
+    
+    :param intf: pyxnat.Interface object
+    :param resource: resource label on xnat
+    :return: date of last modified data with the format %Y-%m-%d %H:%M:%S
+    """
     # xpaths for times in resource xml
     created_xpath = "/cat:Catalog/cat:entries/cat:entry/@createdTime"
     modified_xpath = "/cat:Catalog/cat:entries/cat:entry/@modifiedTime"
     # Get the resource object and its uri
     res_xml_uri = resource._uri+'?format=xml'
     # Get the XML for resource
-    xmlstr = xnat._exec(res_xml_uri, 'GET')
+    xmlstr = intf._exec(res_xml_uri, 'GET')
     # Parse out the times
     root = etree.fromstring(xmlstr)
     create_times = root.xpath(created_xpath, namespaces=root.nsmap)
@@ -997,7 +1057,12 @@ def get_resource_lastdate_modified(xnat, resource):
     return res_date
 
 def select_assessor(intf, assessor_label):
-    """ select assessor from his label """
+    """
+    Select assessor from his label
+    
+    :param assessor_label: label for the assessor requested
+    :return: pyxnat EObject for the assessor selected
+    """
     labels = assessor_label.split('-x-')
     return intf.select('/project/'+labels[0]+'/subject/'+labels[1]+'/experiment/'+labels[2]+'/assessor/'+assessor_label)
 
@@ -1086,21 +1151,21 @@ def select_obj(intf, project_id=None, subject_id=None, session_id=None, scan_id=
     return intf.select(select_str)
     
 def generate_assessor_handler(project, subject, session, proctype, scan=None):
-	"""
-	Generate an assessorHandler object corresponding to the labels in the parameters
-	
-	:param project: project label on XNAT
-	:param subject: subject label on XNAT
-	:param session: session label on XNAT
-	:param proctype: proctype for the assessor
-	:param scan: scan label on XNAT if apply
-	:return: assessorHandler object
-	"""
-	if scan:
-		assessor_label = '-x-'.join([project, subject, session, scan, proctype])
-	else:
-		assessor_label = '-x-'.join([project, subject, session, proctype])
-	return AssessorHandler(assessor_label)
+    """
+    Generate an assessorHandler object corresponding to the labels in the parameters
+    
+    :param project: project label on XNAT
+    :param subject: subject label on XNAT
+    :param session: session label on XNAT
+    :param proctype: proctype for the assessor
+    :param scan: scan label on XNAT if apply
+    :return: assessorHandler object
+    """
+    if scan:
+        assessor_label = '-x-'.join([project, subject, session, scan, proctype])
+    else:
+        assessor_label = '-x-'.join([project, subject, session, proctype])
+    return AssessorHandler(assessor_label)
 
 ####################################################################################
 #                     Functions to access/check object                             #
@@ -1126,19 +1191,46 @@ def is_cscan_usable(cscan):
     return cscan.info()['quality'] == "usable"
 
 def is_cscan_good_type(cscan, types_list):
-    """ return true if scan has the right type """
+    """
+    Check to see if the CachedImageScan type is of type(s) specificed by user.
+
+    :param cassr: CachedImageScan object from XnatUtils
+    :param types_list: List of scan types	
+    :return: True if type is in the list, False if not.
+    
+    """
     return cscan.info()['type'] in types_list
 
 def is_scan_unusable(scan_obj):
-    """ return true if scan unusable """
+    """
+    Check to see if a scan is usable
+
+    :param scan_obj: Scan EObject from Interface.select()
+    :return: True if usable, False otherwise
+
+    """
     return scan_obj.attrs.get('xnat:imageScanData/quality') == "unusable"
 
 def is_scan_good_type(scan_obj, types_list):
-    """ return true if scan has the right type """
+    """
+    Check to see if a scan is of good type.
+
+    :param scan_obj: Scan EObject from Interface.select()
+    :param types_list: List of scan types
+    :return: True if scan is in type list, False if not.
+
+    """
     return scan_obj.attrs.get('xnat:imageScanData/type') in types_list
 
 def has_resource(cobj, resource_label):
-    """ return True if the resource exists and has files from the CachedObject"""
+    """
+    Check to see if a CachedImageObject has a specified resource
+
+    :param cobj: CachedImageObject object from XnatUtils
+    :param resource_label: label of the resource to check
+    :return: True if cobj has the resource and there is at least one file, False if not.
+
+    """
     res_list = [res for res in cobj.get_resources() if res['label'] == resource_label]
     if len(res_list) > 0 and res_list[0]['file_count'] > 0:
         return True
@@ -1165,10 +1257,10 @@ def is_assessor_same_scan_unusable(cscan, proctype):
 
 def is_cassessor_good_type(cassr, types_list):
     """
-    Check to see if the assessor proctype is of type(s) specificed by user.
+    Check to see if the CachedImageAssessor proctype is of type(s) specificed by user.
 
     :param cassr: CachedImageAssessor object from XnatUtils
-    :param types_list: List of proctypes
+    :param types_list: List of proctypes	
     :return: True if proctype is in the list, False if not.
 
     """
@@ -1177,7 +1269,7 @@ def is_cassessor_good_type(cassr, types_list):
 
 def is_cassessor_usable(cassr):
     """
-    Check to see if the assessor is usable
+    Check to see if the CachedImageAssessor is usable
 
     :param cassr: CachedImageAssessor object from XnatUtils
     :return: 0 if the assessor is not ready or doesn't exist, -1 if failed,
@@ -1189,8 +1281,7 @@ def is_cassessor_usable(cassr):
 
 def is_assessor_good_type(assessor_obj, types_list):
     """
-    Deprecated method to check to see if an assessor is of good type.
-     Consider using is_cassessor_good_type
+    Check to see if an assessor is of good type.
 
     :param assessor_obj: Assessor EObject from Interface.select()
     :param types_list: List of proctypes
@@ -1203,7 +1294,7 @@ def is_assessor_good_type(assessor_obj, types_list):
 
 def is_assessor_usable(assessor_obj):
     """
-    Deprecated method to check to see if the assessor is usable
+    Check to see if the assessor is usable
 
     :param cassr: Assessor EObject object from Interface.select()
     :return: 0 if the assessor is not ready or doesn't exist, -1 if failed,
@@ -1216,14 +1307,12 @@ def is_assessor_usable(assessor_obj):
 
 def is_bad_qa(qcstatus):
     """
-    Method to check to see if the QA status of an assessor is bad
-     (aka unusable)
+    Check to see if the QA status of an assessor is bad (aka unusable)
 
     :param qcstatus: String of the QC status of the assessor
     :return: True if bad, False if not bad
 
     """
-    """ function to return False if status is bad qa status """
     if qcstatus in [JOB_PENDING, NEEDS_QA, REPROC]:
         return 0
     for qc in BAD_QA_STATUS:
@@ -1250,8 +1339,7 @@ def get_good_cscans(csess, scantypes):
 
 def get_good_scans(session_obj, scantypes):
     """
-    Deprecated method to get usable scans from a session. Consider using
-     get_good_cscans instead.
+    Get usable scans from a session.
 
     :param session_obj: Pyxnat session EObject
     :param scantypes: List of scanttypes to filter for
@@ -1259,7 +1347,6 @@ def get_good_scans(session_obj, scantypes):
      usable
 
     """
-    """ return scan object list if there is a good scan """
     scans = list()
     for scan_obj in session_obj.scans().fetchall('obj'):
         if is_scan_good_type(scan_obj, scantypes) and not is_scan_unusable(scan_obj):
@@ -1286,8 +1373,8 @@ def get_good_cassr(csess, proctypes):
 
 def get_good_assr(session_obj, proctypes):
     """
-    Deprecated method to get all the assessors in the session and filter out
-     the ones that are usable and that have the proctype(s) specified
+    Get all the assessors in the session and filter out the ones 
+     that are usable and that have the proctype(s) specified
 
     :param session_obj: Session EObject from Pyxnat
     :param proctypes: List of proctype(s) to filter for
@@ -1370,7 +1457,7 @@ def download_file_from_obj(directory, resource_obj, fname=None):
 def download_file(directory, resource, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, fname=None):
     """
     Download a file from an arbitrarily defined pyxnat EObject at any
-     hierarcy of the URI tree
+     hierarchy of the URI tree
 
     :param directory: Full path to the download directory
     :param resource: XNAT resource to download from
@@ -1642,7 +1729,7 @@ def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False, fn
     :param resource_obj: pyxnat EObject to upload the file to. Note this should be a resource
     :param remove: Remove the file if it exists
     :param removeall: Remove all of the files
-    :param fname: Override the file name on disk, and change it to this value
+    :param fname: save the file on disk with this value as file name
     :return: True if upload was OK, False otherwise
 
     """
@@ -1681,7 +1768,7 @@ def upload_file(filepath, project_id=None, subject_id=None, session_id=None, sca
     :param resource: Resource label to upload to
     :param remove: remove the file if it exists in the resource if True
     :param removeall: remove all of the files that exist for the resource if True
-    :param fname: Override the file name on disk, and change it to this value
+    :param fname: save the file on disk with this value as file name
     :return: True if upload was OK, False otherwise
     """
     status = False
@@ -1946,11 +2033,11 @@ def run_subprocess(args):
 
 def makedir(directory, prefix='TempDir'):
     """
-    Makes a directory if it doesn't exist and if it does, makes a directory
-     with default prefix TempDir and the date.
+    Makes a directory if it doesn't exist and if it does, makes a sub directory
+     with the format prefix_date in the directory specified.
 
     :param directory: The directory to create
-    :param prefix: prefix for the base directory
+    :param prefix: prefix for the base directory, default: TempDir
     :return: Full path of the directory created.
 
     """
@@ -2025,7 +2112,7 @@ def upload_list_records_redcap(redcap_project, data):
     Uploads a dictionary of information to REDCap via PyCap.
 
     :param redcap_project: PyCap Project object
-    :param data: The data to pupload
+    :param data: The data to upload
     :except: All catchable errors.
     :return: None
 
@@ -2371,7 +2458,7 @@ class CachedImageAssessor():
     """
     def __init__(self, assr_element, parent):
         """
-        Entry pint for the CachedImageAssessor class on XNAT
+        Entry point for the CachedImageAssessor class on XNAT
 
         :param assr_element: the assessor XML string on XNAT
         :param parent: the parent element of the assessor
@@ -2655,12 +2742,12 @@ def gunzip_file(file_zipped):
     open(file_zipped[:-3],'w').write(gzdata)
 
 
-####################### DEPRECATED Functions still in used in different Spiders ##########################
+####################### DEPRECATED Methods still in used in different Spiders ##########################
 # It will need to be removed when the spiders are updated
 def list_experiments(intf, projectid=None, subjectid=None):
     """ 
     Deprecated method to list all the experiments that you have access to. Or, alternatively, list
-    the experiments in a single project (and single subject) based on passed project ID (/subject ID)
+     the experiments in a single project (and single subject) based on passed project ID (/subject ID)
 
     :param intf: pyxnat.Interface object
     :param projectid: ID of a project on XNAT
@@ -2695,7 +2782,7 @@ def list_experiments(intf, projectid=None, subjectid=None):
 def list_experiment_resources(intf, projectid, subjectid, experimentid):
     """
     Deprecated method to get a list of all of the resources for an experiment
-    associated to a subject and a project requested by the user
+     associated to a subject and a project requested by the user
 
     :param intf: pyxnat.Interface object
     :param projectid: ID of a project on XNAT
@@ -2862,14 +2949,6 @@ def download_Assessor(Outputdirectory,assessor_label,resource_list,all_resources
     :return: None
 
     """
-    """ Download resources from a specific process from Xnat into a folder.
-    parameters :
-        - Outputdirectory = directory where the files are going to be download
-        - assessor_label = assessor label on XNAT -> Project-x-subject-x-session(-x-scan)-x-process
-        - resource_list = List of resources name
-            E.G resource_list=['NIFTI','bval,'bvec']
-        - all_resources : download all the resources. If 0, download the biggest one.
-    """
 
     print'Download resources from process '+ assessor_label
 
@@ -2895,7 +2974,8 @@ def download_Assessor(Outputdirectory,assessor_label,resource_list,all_resources
 ## from an assessor type, download the resources :
 def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_process_type,resource_list,all_resources=0):
     """
-    Deprecated method to download an assessor by the proctype. Can download a resource, or all resources
+    Deprecated method to download an assessor by the proctype.
+     Can download a resource, or all resources
 
     :param Outputdirectory: Directory to download data to
     :param projectName: XNAT project ID
@@ -2906,8 +2986,6 @@ def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_pr
     :param all_resources: if 1, download from all resources, otherwise use resource_list
     :return: None
 
-    """
-    """ Same than download_Scan but you give a list of series description instead of the scan ID
     """
 
     print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + ' and the process ',
@@ -3105,7 +3183,7 @@ def upload_all_resources(Resource,directory):
 def upload_zip(Resource, directory):
     """
     Deprecated method to upload a folder to XNAT as a zip file and then unzips when put. The
-    label of the resource will be the folder name
+     label of the resource will be the folder name
 
     :param Resource: pyxnat EObject of the resource to upload to
     :param directory: Full path to the directory to upload
@@ -3137,7 +3215,6 @@ def download_resource_assessor(directory,xnat,project,subject,experiment,assesso
     :return: None
 
     """
-    """ Download the resources from the list for the assessor given in the argument (if resource_list[0]='all' -> download all)"""
 
     if not quiet:
         print '    +Process: '+assessor_label
@@ -3228,7 +3305,7 @@ def download_resource_assessor(directory,xnat,project,subject,experiment,assesso
 def Upload_folder_to_resource(resourceObj,directory):
     """
     Deprecated method to upload a folder to XNAT as a zip file and then unzips when put. The
-    label of the resource will be the folder name
+     label of the resource will be the folder name
 
     :param resourceObj: pyxnat EObject of the resource to upload to
     :param directory: Full path to the directory to upload
@@ -3248,7 +3325,7 @@ def Upload_folder_to_resource(resourceObj,directory):
 def Download_resource_to_folder(Resource,directory):
     """
     Deprecated method to download all of the files in an XNAT resource to a directory named
-    with basename == resource label
+     with basename == resource label
 
     :param Resource: pyxnat EObject of the resource to download files from
     :param directory: The directory to download the data to.
