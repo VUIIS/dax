@@ -33,7 +33,22 @@ class Launcher(object):
                  queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR,
                  xnat_user=None, xnat_pass=None, xnat_host=None,
                  job_email=None, job_email_options='bae', max_age=DEFAULT_MAX_AGE):
-        """ Init method """
+        """
+        Entry point for the Launcher class
+        
+        :param project_process_dict: dictionary associating XNAT project with processes
+        :param project_modules_dict: dictionary associating XNAT project with modules
+        :param priority_project: list of project to describe the priority
+        :param queue_limit: maximum number of jobs in the queue
+        :param root_job_dir: root directory for jobs
+        :param xnat_host: XNAT Host url. By default, use env variable.
+        :param xnat_user: XNAT User ID. By default, use env variable.
+        :param xnat_pass: XNAT Password. By default, use env variable.
+        :param job_email: job email address for report
+        :param job_email_options: email options for the jobs 
+        :param max_age: maximum time before updating again a session
+        :return: None
+        """
         self.queue_limit = queue_limit
         self.root_job_dir = root_job_dir
         self.project_process_dict = project_process_dict
@@ -84,7 +99,16 @@ class Launcher(object):
 
     ################## LAUNCH Main Method ##################
     def launch_jobs(self, lockfile_prefix, project_local, sessions_local):
-        """ Main Method to launch the tasks """
+        """
+        Main Method to launch the tasks
+        
+        :param lockfile_prefix: prefix for flag file to lock the launcher
+        :param project_local: project to run locally
+        :param sessions_local: list of sessions to launch tasks 
+         associated to the project locally
+        :return: None
+        
+        """
         LOGGER.info('-------------- Launch Tasks --------------\n')
 
         flagfile = os.path.join(RESULTS_DIR, 'FlagFiles', lockfile_prefix+'_'+LAUNCH_SUFFIX)
@@ -110,11 +134,21 @@ class Launcher(object):
 
     @staticmethod
     def is_launchable_tasks(assr_info):
-        """ return True if the assessor is launchable """
+        """
+        Check if a task is launchable
+        
+        :param assr_info: dictionary containing procstatus for the assessor
+        :return: True if tasks need to be launch, False otherwise.
+        """
         return assr_info['procstatus'] == task.NEED_TO_RUN
 
     def launch_tasks(self, task_list):
-        """ launch the tasks in the list until the queue is full or the list empty """
+        """
+        Launch tasks from the passed list until the queue is full or the list is empty
+        
+        :param task_list: list of task to launch
+        :return: None
+        """
         # Check number of jobs on cluster
         cur_job_count = cluster.count_jobs()
         if cur_job_count == -1:
@@ -148,7 +182,16 @@ class Launcher(object):
 
     ################## UPDATE Main Method ##################
     def update_tasks(self, lockfile_prefix, project_local, sessions_local):
-        """ Main method to Update the tasks """
+        """
+        Main method to Update the tasks
+        
+        :param lockfile_prefix: prefix for flag file to lock the launcher
+        :param project_local: project to run locally
+        :param sessions_local: list of sessions to update tasks associated
+         to the project locally
+        :return: None
+        
+        """
         LOGGER.info('-------------- Update Tasks --------------\n')
 
         flagfile = os.path.join(RESULTS_DIR, 'FlagFiles', lockfile_prefix+'_'+UPDATE_SUFFIX)
@@ -176,7 +219,13 @@ class Launcher(object):
 
     @staticmethod
     def is_updatable_tasks(assr_info):
-        """ return True if the assessor is updatable """
+        """
+        Check if a task is updatable.
+        
+        :param assr_info: dictionary containing procstatus/qcstatus for the assessor
+        :return: True if tasks need to be update, False otherwise.
+        
+        """
         return assr_info['procstatus'] in task.OPEN_STATUS_LIST or\
                assr_info['qcstatus'] in task.OPEN_QC_LIST
 
