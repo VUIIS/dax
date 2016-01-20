@@ -14,7 +14,8 @@ class Processor(object):
                  version=None, ppn=1, suffix_proc='',
                  xsitype='proc:genProcData'):
         """
-        Init of the Processor
+        Entry point of the Base class for processor.
+        
         :param walltime_str: Amount of walltime to request for the process
         :param memreq_mb: Number of megabytes of memory to use
         :param spider_path: Fully qualified path to the spider to run
@@ -128,16 +129,6 @@ class Processor(object):
 
 class ScanProcessor(Processor):
     """ Scan Processor class for processor on a scan on XNAT """
-    def has_inputs(self):
-        """
-        Method to check and see that the process has all of the inputs that it needs to run.
-
-        :raises: NotImplementedError if not overridden.
-        :return: None
-
-        """
-        raise NotImplementedError()
-
     def __init__(self, scan_types, walltime_str, memreq_mb, spider_path, version=None, ppn=1, suffix_proc=''):
         """
         Entry point of the ScanProcessor Class.
@@ -162,6 +153,16 @@ class ScanProcessor(Processor):
                 self.scan_types = scan_types.split(',')
         else:
             self.scan_types = []
+
+    def has_inputs(self):
+        """
+        Method to check and see that the process has all of the inputs that it needs to run.
+
+        :raises: NotImplementedError if not overridden.
+        :return: None
+
+        """
+        raise NotImplementedError()
 
     def get_assessor_name(self, cscan):
         """
@@ -210,15 +211,6 @@ class ScanProcessor(Processor):
 
 class SessionProcessor(Processor):
     """ Session Processor class for processor on a session on XNAT """
-    def has_inputs(self):
-        """
-        Check to see that the session has the required inputs to run.
-
-        :raises: NotImplementedError if not overriden from base class.
-        :return: None
-        """
-        raise NotImplementedError()
-
     def __init__(self, walltime_str, memreq_mb, spider_path, version=None, ppn=1, suffix_proc=''):
         """
         Entry point for the session processor
@@ -233,6 +225,15 @@ class SessionProcessor(Processor):
 
         """
         super(SessionProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn, suffix_proc)
+
+    def has_inputs(self):
+        """
+        Check to see that the session has the required inputs to run.
+
+        :raises: NotImplementedError if not overriden from base class.
+        :return: None
+        """
+        raise NotImplementedError()
 
     def should_run(self, session_dict):
         """
@@ -284,7 +285,7 @@ def processors_by_type(proc_list):
     :return: List of SessionProcessors, and list of ScanProcessors
 
     """
-    exp_proc_list = list()
+    sess_proc_list = list()
     scan_proc_list = list()
 
     # Build list of processors by type
@@ -292,8 +293,8 @@ def processors_by_type(proc_list):
         if issubclass(proc.__class__, ScanProcessor):
             scan_proc_list.append(proc)
         elif issubclass(proc.__class__, SessionProcessor):
-            exp_proc_list.append(proc)
+            sess_proc_list.append(proc)
         else:
             LOGGER.warn('unknown processor type:'+proc)
 
-    return exp_proc_list, scan_proc_list
+    return sess_proc_list, scan_proc_list
