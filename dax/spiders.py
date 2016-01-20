@@ -24,8 +24,11 @@ from dax import XnatUtils
 from datetime import datetime
 
 class Spider(object):
-    """
-        Base class for spider
+    """ Base class for spider """
+    def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
+                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
+        """
+        Entry point for the Base class for spider
 
         :param spider_path: spider file path
         :param jobdir: directory for temporary files
@@ -36,10 +39,8 @@ class Spider(object):
         :param xnat_user: user for XNAT if not set in environment variables
         :param xnat_pass: password for XNAT if not set in environment variables
         :param suffix: suffix to the assessor creation
-
-    """
-    def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
+        
+        """
         # Spider path:
         self.spider_path = spider_path
         # directory for temporary files + create it
@@ -75,13 +76,13 @@ class Spider(object):
 
     def get_default_value(self, variable, env_name, value):
         """
-            Return the default value for the variable if arg not NULL else
-             env variables defined by the args
+        Return the default value for the variable if arg not NULL else
+         env variables defined by the args
 
-            :param variable: variable name
-            :param env_name: name of the environment variable
-            :param value:    value given by the user
-            :return: default value
+        :param variable: variable name
+        :param env_name: name of the environment variable
+        :param value:    value given by the user
+        :return: default value
 
         """
         if value:
@@ -98,11 +99,11 @@ class Spider(object):
 
     def get_pwd(self, pwd, user):
         """
-            Return the password from env or ask user if the user was set
+        Return the password from env or ask user if the user was set
 
-            :param pwd: password
-            :param user: user
-            :return: default value
+        :param pwd: password
+        :param user: user
+        :return: default value
 
         """
         if pwd:
@@ -121,11 +122,11 @@ class Spider(object):
 
     def select_obj(self, intf, obj_label, resource):
         """
-            Select scan or assessor resource
+        Select scan or assessor resource
 
-            :param obj_label: xnat object label (scan ID or assessor label)
-            :param resource: folder name under the xnat object
-            return pyxnat object
+        :param obj_label: xnat object label (scan ID or assessor label)
+        :param resource: folder name under the xnat object
+        return pyxnat object
 
         """
         tmp_dict = collections.OrderedDict([('project', self.xnat_project),
@@ -155,16 +156,16 @@ class Spider(object):
 
     def download(self, obj_label, resource, folder):
         """
-            Return a python list of the files downloaded for the resource on the scan
-                example:
-                  download(scan_id, "DICOM", "/Users/test")
-                 or
-                  download(assessor_label, "DATA", "/Users/test")
+        Return a python list of the files downloaded for the resource on the scan
+            example:
+              download(scan_id, "DICOM", "/Users/test")
+             or
+              download(assessor_label, "DATA", "/Users/test")
 
-            :param obj_label: xnat object label (scan ID or assessor label)
-            :param resource: folder name under the xnat object
-            :param folder: download directory
-            :return: python list of files downloaded
+        :param obj_label: xnat object label (scan ID or assessor label)
+        :param resource: folder name under the xnat object
+        :param folder: download directory
+        :return: python list of files downloaded
 
         """
         # Open connection to XNAT
@@ -181,11 +182,11 @@ class Spider(object):
     def define_spider_process_handler(self):
         """
         Define the SpiderProcessHandler so the file(s) and PDF are checked for
-         existence and uploaded to the upload_dir accordingly
+         existence and uploaded to the upload_dir accordingly.
+        Implemented in derived classes.
 
         :raises: NotImplementedError() if not overridden.
         :return: None
-
         """
         raise NotImplementedError()
 
@@ -202,14 +203,14 @@ class Spider(object):
 
     def upload(self, fpath, resource):
         """
-            Upload files to the queue on the cluster to be upload to XNAT by DAX pkg
-            E.g: spider.upload("/Users/DATA/", "DATA")
-             spider.upload("/Users/stats_dir/statistical_measures.txt", "STATS")
+        Upload files to the queue on the cluster to be upload to XNAT by DAX pkg
+        E.g: spider.upload("/Users/DATA/", "DATA")
+         spider.upload("/Users/stats_dir/statistical_measures.txt", "STATS")
 
-            :param fpath: path to the folder/file to be uploaded
-            :param resource: folder name to upload to on the assessor
-            :raises: ValueError if the file to upload does not exist
-            :return: None
+        :param fpath: path to the folder/file to be uploaded
+        :param resource: folder name to upload to on the assessor
+        :raises: ValueError if the file to upload does not exist
+        :return: None
 
         """
         self.has_spider_handler()
@@ -226,14 +227,14 @@ class Spider(object):
 
     def upload_dict(self, files_dict):
         """
-            upload files to the queue on the cluster to be upload to XNAT by DAX pkg
-             following the files python dictionary: {resource_name : fpath}
-            E.g: fdict = {"DATA" : "/Users/DATA/", "PDF": "/Users/PDF/report.pdf"}
-             spider.upload_dict(fdict)
+        upload files to the queue on the cluster to be upload to XNAT by DAX pkg
+         following the files python dictionary: {resource_name : fpath}
+        E.g: fdict = {"DATA" : "/Users/DATA/", "PDF": "/Users/PDF/report.pdf"}
+         spider.upload_dict(fdict)
 
-            :param files_dict: python dictionary containing the pair resource/fpath
-            :raises: ValueError if the filepath is not a string or a list
-            :return: None
+        :param files_dict: python dictionary containing the pair resource/fpath
+        :raises: ValueError if the filepath is not a string or a list
+        :return: None
 
         """
         self.has_spider_handler()
@@ -249,10 +250,10 @@ class Spider(object):
 
     def end(self):
         """
-            Finish the script by sending the end of script flag and cleaning the folder
+        Finish the script by sending the end of script flag and cleaning the folder
 
-            :param jobdir: directory for the spider
-            :return: None
+        :param jobdir: directory for the spider
+        :return: None
 
         """
         self.has_spider_handler()
@@ -260,36 +261,46 @@ class Spider(object):
         self.spider_handler.clean(self.jobdir)
         self.print_end()
 
+    
+    def pre_run(self):
+        """
+        Pre-Run method to download and organise inputs for the pipeline
+        Implemented in derived class objects.
+        
+        :raises: NotImplementedError if not overridden.
+        :return: None
+        """
+        raise NotImplementedError()
+
     def run(self):
         """
         Runs the "core" or "image processing process" of the pipeline
-
+        Implemented in derived class objects.
+        
         :raises: NotImplementedError if not overridden.
         :return: None
-
         """
         raise NotImplementedError()
 
     def finish(self):
         """
         Method to copy the results in the Spider Results folder dax.RESULTS_DIR
+        Implemented in derived class objects.
 
         :raises: NotImplementedError if not overriden by user
         :return: None
-
         """
         raise NotImplementedError()
 
     def print_init(self, argument_parse, author, email):
         """
-            Print a message to display information on the init parameters, author,
-            email, and arguments using time writer
+        Print a message to display information on the init parameters, author,
+        email, and arguments using time writer
 
-            :param argument_parse: argument parser
-            :param author: author of the spider
-            :param email: email of the author
-            :return: None
-
+        :param argument_parse: argument parser
+        :param author: author of the spider
+        :param email: email of the author
+        :return: None
         """
         self.print_info(author, email)
         self.time_writer('-------- Spider starts --------')
@@ -299,32 +310,29 @@ class Spider(object):
 
     def print_msg(self, message):
         """
-            Print message using time writer
+        Print message using time writer
 
-            :param message: string displayed for the user
-            :return: None
-
+        :param message: string displayed for the user
+        :return: None
         """
         self.time_writer(message)
 
     def print_err(self, err_message):
         """
-            Print error message using time writer
+        Print error message using time writer
 
-            :param err_message: error message displayed for the user
-            :return: None
-
+        :param err_message: error message displayed for the user
+        :return: None
         """
         self.time_writer.print_stderr_message(err_message)
 
     def print_info(self, author, email):
         """
-            Print information on the spider using time writer
+        Print information on the spider using time writer
 
-            :param author: author of the spider
-            :param email: email of the author
-            :return: None
-
+        :param author: author of the spider
+        :param email: email of the author
+        :return: None
         """
         self.print_msg("Running spider : %s" %(self.spider_path))
         self.print_msg("Spider Author: %s" % (author))
@@ -332,11 +340,10 @@ class Spider(object):
 
     def print_args(self, argument_parse):
         """
-            print arguments given to the Spider
+        print arguments given to the Spider
 
-            :param argument_parse: argument parser
-            :return: None
-
+        :param argument_parse: argument parser
+        :return: None
         """
         self.time_writer("-- Arguments given to the spider --")
         for info, value in vars(argument_parse).items():
@@ -348,32 +355,29 @@ class Spider(object):
         Last print statement to give the time and date at the end of the spider
 
         :return: None
-
         """
         self.time_writer('Time at the end of the Spider: '+ str(datetime.now()))
 
     @staticmethod
     def run_system_cmd(cmd):
         """
-            Run system command line via os.system()
+        Run system command line via os.system()
 
-            :param cmd: command to run
-            :return: None
-
+        :param cmd: command to run
+        :return: None
         """
         os.system(cmd)
 
     @staticmethod
     def select_str(xnat_dict):
         """
-            Return string for pyxnat to select object from python dict
+        Return string for pyxnat to select object from python dict
 
-            :param tmp_dict: python dictionary with xnat information
-                keys = ["project", "subject", "experiement", "scan", "resource"]
-                  or
-                keys = ["project", "subject", "experiement", "assessor", "out/resource"]
-            :return string: string path to select pyxnat object
-
+        :param tmp_dict: python dictionary with xnat information
+            keys = ["project", "subject", "experiement", "scan", "resource"]
+              or
+            keys = ["project", "subject", "experiement", "assessor", "out/resource"]
+        :return string: string path to select pyxnat object
         """
         select_str = ''
         for key, value in xnat_dict.items():
@@ -383,21 +387,25 @@ class Spider(object):
 
 
 class ScanSpider(Spider):
-    """
-        class for scan-spider
-
-        :param super --> see base class
-        :param xnat_scan: scan ID on XNAT (if running on a specific scan)
-    """
+    """ Derived class for scan-spider """
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
                  xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
+        """
+        Entry point for Derived class for Spider on Scan level
+        
+        :param super --> see base class
+        :param xnat_scan: scan ID on XNAT (if running on a specific scan)
+        """
         super(ScanSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
                                          xnat_host, xnat_user, xnat_pass, suffix)
         self.xnat_scan = xnat_scan
 
     def define_spider_process_handler(self):
         """
-            Define the SpiderProcessHandler for the end of session spider
+        Define the SpiderProcessHandler for the end of scan spider
+         using the init attributes about XNAT
+
+        :return: None
         """
         # Create the SpiderProcessHandler if first time upload
         self.spider_handler = XnatUtils.SpiderProcessHandler(self.spider_path,
@@ -410,36 +418,52 @@ class ScanSpider(Spider):
 
     def pre_run(self):
         """
-            Method to download the inputs
+        Pre-Run method to download and organise inputs for the pipeline
+        Implemented in derived class objects.
+        
+        :raises: NotImplementedError if not overridden.
+        :return: None
         """
         raise NotImplementedError()
 
     def run(self):
         """
-            Method to execute the process
+        Runs the "core" or "image processing process" of the pipeline
+        Implemented in derived class objects.
+        
+        :raises: NotImplementedError if not overridden.
+        :return: None
         """
         raise NotImplementedError()
 
     def finish(self):
         """
-            Method to copy the results in the Spider Results folder dax.RESULTS_DIR
+        Method to copy the results in the Spider Results folder dax.RESULTS_DIR
+        Implemented in derived class objects.
+
+        :raises: NotImplementedError if not overriden by user
+        :return: None
         """
         raise NotImplementedError()
 
 class SessionSpider(Spider):
-    """
-        class for session-spider
-
-        :param super --> see base class
-    """
+    """ Derived class for session-spider """
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
                  xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
+        """
+        Entry point for Derived class for Spider on Session level
+        
+        :param super --> see base class
+        """
         super(SessionSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
                                             xnat_host, xnat_user, xnat_pass, suffix)
 
     def define_spider_process_handler(self):
         """
-            Define the SpiderProcessHandler for the end of session spider
+        Define the SpiderProcessHandler for the end of session spider
+         using the init attributes about XNAT
+
+        :return: None
         """
         # Create the SpiderProcessHandler if first time upload
         self.spider_handler = XnatUtils.SpiderProcessHandler(self.spider_path,
@@ -449,15 +473,33 @@ class SessionSpider(Spider):
                                                              self.xnat_session,
                                                              time_writer=self.time_writer)
 
+    def pre_run(self):
+        """
+        Pre-Run method to download and organise inputs for the pipeline
+        Implemented in derived class objects.
+        
+        :raises: NotImplementedError if not overridden.
+        :return: None
+        """
+        raise NotImplementedError()
+
     def run(self):
         """
-            Method to execute the process
+        Runs the "core" or "image processing process" of the pipeline
+        Implemented in derived class objects.
+        
+        :raises: NotImplementedError if not overridden.
+        :return: None
         """
         raise NotImplementedError()
 
     def finish(self):
         """
-            Method to copy the results in the Spider Results folder dax.RESULTS_DIR
+        Method to copy the results in the Spider Results folder dax.RESULTS_DIR
+        Implemented in derived class objects.
+
+        :raises: NotImplementedError if not overriden by user
+        :return: None
         """
         raise NotImplementedError()
 
