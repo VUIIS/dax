@@ -15,9 +15,22 @@ SESSION_PARAMETERS_LIST=['age','scanner','scanner_manufacturer','scanner_model',
 
 ########################################## USEFUL FUNCTIONS ##########################################
 def get_xnat_object(xnat,obj_dict):
+    """
+    Method to get xnat subject object
+    
+    :param xnat: pyxnat.Interface object
+    :param obj_dict: dictionary containing project_id and subject_label
+    :return: pyxnat EObject for the subject selected
+    """
     return xnat.select('/project/'+obj_dict['project_id']+'/subject/'+obj_dict['subject_label'])
     
 def get_gender_from_label(gender):
+    """
+    Method to get the passed gender in XNAT format
+    
+    :param gender: gender selected 
+    :return: value accepted by xnat: 'female' or 'male'
+    """
     if gender.lower() in ['female','f']:
         return 'female'
     elif gender.lower() in ['male','m']:
@@ -26,6 +39,12 @@ def get_gender_from_label(gender):
         return 'unknown'
     
 def get_handedness_from_label(handedness):
+    """
+    Method to get the passed handedness in XNAT format
+    
+    :param handedness: handedness selected 
+    :return: value accepted by xnat: 'right', 'left', or 'ambidextrous'
+    """
     if handedness.lower() in ['right','r']:
         return 'right'
     elif handedness.lower() in ['left','l']:
@@ -36,6 +55,13 @@ def get_handedness_from_label(handedness):
         return 'unknown'
     
 def get_yob_from_label(yob,row_index):
+    """
+    Method to get the passed year of birth in XNAT format
+    
+    :param yob: year of birth selected 
+    :param row_index: row index where an issue occurred
+    :return: value if proper integer, last digit if date, '' if not an integer
+    """
     if '/' in yob:
         print ' warning: row '+str(row_index+1)+' -- "/" detected in the year of birth (yob) value. Using last digit of the string: '+yob.split('/')[-1]
         yob=yob.split('/')[-1]
@@ -47,6 +73,13 @@ def get_yob_from_label(yob,row_index):
         return ''
     
 def read_csv(options):
+    """
+    Method to read the csv passed as an argument and return
+     a list of dictionaries containing the value to set and the header
+    
+    :param options: first output of parse_args()
+    :return: list of dictionaries containing values to set, header
+    """
     demo_list=list()
     header=list()
     session_variables=list()
@@ -83,6 +116,15 @@ def read_csv(options):
     return [x for x in demo_list if x],header
 
 def get_row_csv(row,header,row_index,session_variables):
+    """
+    Method to extract the dictionary from a row in the csv
+    
+    :param row: row to convert
+    :param header: header to use for the dictionary
+    :param row_index: index of the row processed for warnings/errors
+    :param session_variables: if the variables is at the session level
+    :return: dictionary of the row
+    """
     tmp_dict=dict()
     if len(row)!=len(header):
         print ' WARNING: row '+str(row_index+1)+' -- less or more columns than the header. Check the csv file.'
@@ -109,6 +151,14 @@ def get_row_csv(row,header,row_index,session_variables):
         return tmp_dict
 
 def smaller_str(str_option,size=10,end=False):
+    """
+    Method to shorten a string into the smaller size
+    
+    :param str_option: string to shorten
+    :param size: size of the string to keep (default: 10 characters)
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
     if len(str_option)>size:
         if end:
             return '...'+str_option[-size:]
@@ -118,6 +168,13 @@ def smaller_str(str_option,size=10,end=False):
         return str_option
     
 def print_report(demo_list,header):
+    """
+    Method to print the report on the upload of demographic data
+    
+    :param demo_list: list of demographic data to upload
+    :param header: header specified by user in CSV
+    :return: None
+    """
     #Display:
     print 'Report information :'
     print 'List of the data that need to be upload for the header: '
@@ -131,6 +188,13 @@ def print_report(demo_list,header):
     print '-----------------------------------------------------------------------------\n'
 
 def get_row_info(obj_dict,header):
+    """
+    Method to convert information from dictionary into a string
+    
+    :param obj_dict: dictionary to convert
+    :param header: header specified by user in CSV
+    :return: string representing row to display
+    """
     row=list()
     for field in header:
         if field in obj_dict.keys():
@@ -145,6 +209,12 @@ def get_row_info(obj_dict,header):
     return row
 
 def print_info_row(object_dict):
+    """
+    Method to print information when uploading
+    
+    :param obj_dict: dictionary to convert
+    :return: None
+    """
     print ' *Project: '+object_dict['project_id']+' / Subject: '+object_dict['subject_label'],
     print ' / Session: '+object_dict['session_label'] if 'session_label' in object_dict.keys() and object_dict['session_label'] else '',
     if 'upload_demo_subject' in object_dict.keys():
@@ -157,6 +227,12 @@ def print_info_row(object_dict):
 
 ########################################## UPLOAD FUNCTIONS ##########################################
 def upload_demographic_data(demo_list):
+    """
+    Main Method to upload demographic data to XNAT
+    
+    :param demo_list: list of values to upload
+    :return: None
+    """
     for obj_dict in sorted(demo_list, key=lambda k: k['project_id']):
         print_info_row(obj_dict)
         subject_obj=get_xnat_object(xnat,obj_dict)
@@ -166,6 +242,13 @@ def upload_demographic_data(demo_list):
             update_demo_data(subject_obj,obj_dict)
 
 def update_demo_data(subject_obj,obj_dict):
+    """
+    Method to update demographic data for a specified subject
+    
+    :param subject_obj: pyxnat.Interface subject Object
+    :param obj_dict: list of values to upload
+    :return: None
+    """
     if 'upload_demo_subject' in obj_dict.keys():
         for tag,value in obj_dict['upload_demo_subject'].items():
             update_tag_subject(subject_obj,obj_dict['subject_label'],tag,value)
@@ -175,6 +258,15 @@ def update_demo_data(subject_obj,obj_dict):
             update_tag_session(session_obj,obj_dict['session_label'],tag,value)
 
 def update_tag_subject(subject_obj,subject_label,tag,value):
+    """
+    Method to set a tag for a subject
+    
+    :param subject_obj: pyxnat.Interface subject Object
+    :param subject_label: subject label on XNAT
+    :param tag: tag to edit
+    :param value: value to set
+    :return: None
+    """
     if tag and value:
         if tag in SUBJECT_PARAMETERS_LIST: # default attributes
             subject_obj.attrs.set('xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/'+tag.lower(),value)
@@ -187,6 +279,15 @@ def update_tag_subject(subject_obj,subject_label,tag,value):
                 print "  --> warning: tag "+tag+" -- Subject "+subject_label+" doesn't have this tag or wrong value given."
     
 def update_tag_session(session_obj,session_label,tag,value):
+    """
+    Method to set a tag for a specified session
+    
+    :param subject_obj: pyxnat.Interface session Object
+    :param subject_label: session label on XNAT
+    :param tag: tag to edit
+    :param value: value to set
+    :return: None
+    """
     if tag and value:
         if not session_obj.exists():
             print "  --> warning: tag "+tag+" -- Session "+session_label+" doesn't exist or not set."
@@ -203,6 +304,12 @@ def update_tag_session(session_obj,session_label,tag,value):
 
 ########################################## MAIN DISPLAY ##########################################
 def Main_display(parser):
+    """
+    Main display of the executables before any process
+    
+    :param parser: OptionParser Object
+    :return: None
+    """
     (options,args) = parser.parse_args()
     print '################################################################'
     print '#                         XNATDEMOGRAPHIC                      #'
@@ -236,6 +343,13 @@ def Main_display(parser):
         print '################################################################'
         
 def get_proper_str(str_option,end=False):
+    """
+    Method to shorten a string into the proper size for display
+    
+    :param str_option: string to shorten
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
     if len(str_option)>32:
         if end:
             return '...'+str_option[-29:]
@@ -245,6 +359,11 @@ def get_proper_str(str_option,end=False):
         return str_option
 
 def get_usage():
+    """
+    Method to set usage for executables with examples
+    
+    :return: None
+    """
     usage="usage: %prog [options] \n"
     usage+="What is the script doing : \n"
     usage+="   * Upload demographic data to a project on XNAT from a CSV file giving to the script as an input.\n"
@@ -262,6 +381,11 @@ def get_usage():
 
 ########################################## OPTIONS ##########################################
 def parse_args():
+    """
+    Method to parse arguments base on OptionParser
+    
+    :return: parser object
+    """
     from optparse import OptionParser
     usage = get_usage()
     parser = OptionParser(usage=usage)
@@ -282,6 +406,7 @@ def parse_args():
 
 ########################################## MAIN FUNCTION ##########################################
 if __name__ == '__main__':
+    """ Main function """
     parser=parse_args()
     (options,args) = parser.parse_args()
     #############################
