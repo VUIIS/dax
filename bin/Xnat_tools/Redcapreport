@@ -251,7 +251,7 @@ def Main_display(parser):
     Main display of the executables before any process
     
     :param parser: OptParser Object
-    :return: True if options are fine, False otherwise
+    :return: None
     """
     (options,_)=parser.parse_args()
     print '################################################################'
