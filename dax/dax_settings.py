@@ -169,12 +169,17 @@ class DAX_Settings(object):
     #  -- ADMIN section
     def get_user_home(self):
         """
-        Get the user_home value from the admin section
+        Get the user_home value from the admin section. If ~,
+         return os.path.expanduser('~')
 
         :return: String of the user_home, None if empty
 
         """
-        return self.get('admin', 'user_home')
+        user_home = self.get('admin', 'user_home')
+        if user_home == '~':
+            return os.path.expanduser('~')
+        else:
+            return user_home
 
     def get_admin_email(self):
         """
@@ -273,7 +278,6 @@ class DAX_Settings(object):
         if not os.path.isfile(filepath):
             raise OSError(2, 'cmd_get_job_status file does not exist', filepath)
         return self.read_file_and_return_template(filepath)
-
 
     def get_queue_status(self):
         """
