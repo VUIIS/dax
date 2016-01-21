@@ -246,6 +246,7 @@ class DAX_Settings(object):
          NOTE: This should be a relative path to a file up a
          directory in templates
 
+        :raise: OSError if the field is empty or if the file doesn't exist
         :return: String of the command
 
         """
@@ -262,6 +263,7 @@ class DAX_Settings(object):
          NOTE: This should be a relative path to a file up a
          directory in templates
 
+        :raise: OSError if the field is empty or if the file doesn't exist
         :return: Template class of the file containing the command
 
         """
@@ -306,6 +308,7 @@ class DAX_Settings(object):
          NOTE: This should be a relative path to a file up a
          directory in templates
 
+        :raise: OSError if the field is empty or if the file doesn't exist
         :return: Template class of the file containing the command
 
         """
@@ -322,6 +325,7 @@ class DAX_Settings(object):
          NOTE: This should be a relative path to a file up a
          directory in templates
 
+        :raise: OSError if the field is empty or if the file doesn't exist
         :return: Template class of the file containing the command
 
         """
@@ -338,6 +342,7 @@ class DAX_Settings(object):
          NOTE: This should be a relative path to a file up a
          directory in templates
 
+        :raise: OSError if the field is empty or if the file doesn't exist
         :return: Template class of the file containing the command
 
         """
@@ -361,6 +366,7 @@ class DAX_Settings(object):
         """
         Get the job_template value from the cluster section
 
+        :raise: OSError if the field is empty or if the file doesn't exist
         :return: Template class of the file containing the command
 
         """
@@ -379,7 +385,6 @@ class DAX_Settings(object):
 
         """
         return self.get('cluster', 'email_opts')
-
 
     def get_gateway(self):
         """
@@ -403,10 +408,10 @@ class DAX_Settings(object):
         """
         Get the queue_limit value from the cluster section
 
-        :return: String of the queue_limit value, None if empty
+        :return: int of the queue_limit value, None if empty
 
         """
-        return self.get('cluster', 'queue_limit')
+        return int(self.get('cluster', 'queue_limit'))
 
     def get_results_dir(self):
         """
@@ -421,12 +426,12 @@ class DAX_Settings(object):
         """
         Get the max_age value from the cluster section
 
-        :return: String of the max_age value, None if empty
+        :return: int of the max_age value, None if empty
 
         """
-        return self.get('cluster', 'max_age')
+        return int(self.get('cluster', 'max_age'))
 
-   # redcap section
+    # redcap section
     def get_api_url(self):
         """
         Get the api_url value from the cluster section
@@ -460,6 +465,7 @@ class DAX_Settings(object):
         Reads a a file and returns the string as a string Template
 
         :param filepath: the file to read, already checked for existance
+        :raise: OSError if the file is emtpy
         :return: Template for the command in the file
 
         """
@@ -475,6 +481,7 @@ class DAX_Settings(object):
         Reads a a file and returns the string in it
 
         :param filepath: the file to read, already checked for existance
+        :raise: OSError if the file is emtpy
         :return: String of data in text file
 
         """
