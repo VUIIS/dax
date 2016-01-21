@@ -793,7 +793,7 @@ The project is not part of the settings."""
         assr_type_set = set([x['proctype'] for x in assr_list])
 
         # Get unique list of processors prescribed for project
-        proc_name_set = set([x.name for x in exp_proc_list+scan_proc_list])
+        proc_name_set = set([x.name for x in sess_proc_list+scan_proc_list])
 
         # Get list of processors that don't have assessors in XNAT yet
         diff_list = list(proc_name_set.difference(assr_type_set))
