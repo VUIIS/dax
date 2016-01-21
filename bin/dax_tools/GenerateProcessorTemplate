@@ -232,7 +232,9 @@ def write_processor(processor_fpath, templates, args):
 
 def parse_args():
     """
-    Parser for arguments
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
     """
     from argparse import ArgumentParser
     usage = "Generate a processor.py file from the template for dax in a new file."

@@ -11,22 +11,38 @@ import os
 import sys
 from dax import XnatUtils
 
-########################################################################################################
 ########################################## SPECIFIC FUNCTIONS ##########################################
-########################################################################################################
-def get_text_session(xnat,project,txtfile):
+def get_text_session(xnat,project,txtfile,list_experiment):
+    """
+    Method to get session list from a textfile after checking their existences
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param txtfile: text file with sessions to check
+    :param list_experiment: list of sessions in the project
+    :return: subject id
+    """
     session_list=list()
     input_file = open(txtfile, 'r')
     for line in input_file:
         label=line.strip().split('\n')[0]
         #check on XNAT:
-        worked,sess_label=xnat_check(xnat,project,label)
+        worked,sess_label=xnat_check(xnat,project,label,list_experiment)
         if worked:
             session_list.append(sess_label)
-        
+
     return session_list
 
 def xnat_check(xnat,project,label,list_experiment):
+    """
+    Method to check if a session exists on a project
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param label: session label to change
+    :param list_experiment: list of sessions in the proejct
+    :return: subject id
+    """
     if len(label.split('-x-'))>1:
         session=label.split('-x-')[2]
     else:
@@ -39,10 +55,25 @@ def xnat_check(xnat,project,label,list_experiment):
         return False,''
 
 def get_subject_id(xnat,session,list_experiment):
+    """
+    Method to return the subject ID from a list of sessions
+
+    :param xnat: pyxnat.interface object
+    :param session: session label
+    :param list_experiment: list of sessions
+    :return: subject id
+    """
     subject_id=[x['subject_id'] for x in list_experiment if x['session_label']==session]
     return subject_id[0]
-    
+
 def change_date(xnat,project,session,list_experiment):
+    """
+    Method to change the data on all sessions
+
+    :param xnat: pyxnat.interface object
+    :param list_experiment: list of session to modify
+    :return: None
+    """
     subject=get_subject_id(xnat,session,list_experiment)
     Session=xnat.select('/project/'+project+'/subject/'+subject+'/experiment/'+session)
     #set the date to nothing:
@@ -50,37 +81,57 @@ def change_date(xnat,project,session,list_experiment):
     print '   ->Session changed to need update.'
 
 def change_date_all(xnat,list_of_sessions):
+    """
+    Method to change the data on all sessions
+
+    :param xnat: pyxnat.interface object
+    :param list_of_sessions: list of session to modify
+    :return: None
+    """
     for session in list_of_sessions:
         session_object = XnatUtils.get_full_object(xnat, session)
         session_object.attrs.set('xnat:mrSessionData/original',' ')
         print '   ->Session changed to need update.'
 
 def get_xnat_subject_need_inputs(xnat,project):
+    """
+    Method to get the sessions labels from XNAT where processes need inputs
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :return: unique list of sessions labels on XNAT
+    """
     proc_list=XnatUtils.list_project_assessors(xnat, project)
     if not proc_list:
         sys.stdout.write("   !!ERROR: You don't have access to the project: "+project+".!!\n")
         sys.exit()
     proc_list=filter(lambda x: x['procstatus']=='NEED_INPUTS', proc_list)
     return list(set([x['session_label'] for x in proc_list]))
-        
-########################################## CHECK OPTIONS ##########################################                        
+
+########################################## CHECK OPTIONS ##########################################
 def check_options(options):
+    """
+    Method to check options given to executables
+
+    :param options: first output of OptParser.parse_args()
+    :return: True if options are fine, False otherwise
+    """
     # The options :
     if not options.project:
         print 'OPTION ERROR: You need to provide a project with the option -p/--project.'
         return False
-        
+
     if not options.session and not options.txtfile and not options.needinputs and not options.all:
         print 'OPTION ERROR: You need to provide a subject label with -s/--subject or a text file -x/--txtfile or check NEED_INPUTS processes with -n/--needinputs.'
         return False
-    
+
     if options.all:
         print 'OPTION WARNING: You choose --all. It will update all subjects again.'
     else:
         if (options.needinputs and options.session) or (options.needinputs and options.txtfile) or (options.txtfile and options.session):
             print 'OPTION ERROR: You provide different modes together. Please provide only one: -s/--subject or -x/--txtfile or -n/--needinputs.'
             return False
-           
+
     if options.txtfile:
         if not os.path.exists(options.txtfile):
             print "OPTION ERROR: the file "+options.txtfile+" does not exist."
@@ -94,14 +145,20 @@ def check_options(options):
                 if not P.exists():
                     print 'OPTION ERROR: You used the option -p/--project with one or more non existing project ID on XNAT.'
                     return False
-            
-        finally:                                        
+
+        finally:
             xnat.disconnect()
-                
+
     return True
 
-########################################## MAIN DISPLAY FUNCTION ##########################################   
+########################################## MAIN DISPLAY FUNCTION ##########################################
 def Main_display(parser):
+    """
+    Main display of the executables before any process
+
+    :param parser: OptionParser Object
+    :return: None
+    """
     (options,args)=parser.parse_args()
     print '################################################################'
     print '#                      XNATSESSIONUPDATE                       #'
@@ -133,6 +190,13 @@ def Main_display(parser):
         print '################################################################'
 
 def get_proper_str(str_option,end=False):
+    """
+    Method to shorten a string into the proper size for display
+
+    :param str_option: string to shorten
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
     if len(str_option)>32:
         if end:
             return '...'+str_option[-29:]
@@ -142,6 +206,11 @@ def get_proper_str(str_option,end=False):
         return str_option
 
 def get_usage():
+    """
+    Method to set usage for executables with examples
+
+    :return: None
+    """
     usage="usage: %prog [options] \n"
     usage+="What is the script doing : \n"
     usage+="   *Reset sessions last update date to update the sessions during the next dax_update.\n"
@@ -151,8 +220,13 @@ def get_usage():
     usage+="   *Reset some sessions : Xnatsessionupdate -p PID -s 109374,109348\n"
     usage+="   *Reset for the sessions that have assessors NEED_INPUTS: Xnatsessionupdate -p PID -n\n"
     return usage
-    
+
 def parse_args():
+    """
+    Method to parse arguments base on OptionParser
+
+    :return: parser object
+    """
     from optparse import OptionParser
     usage = get_usage()
     parser = OptionParser(usage=usage)
@@ -167,10 +241,8 @@ def parse_args():
     parser.add_option("-a", "--all", dest="all",action="store_true", default=False,
                   help="Change the session last update date for all sessions.", metavar="")
     return parser
-              
-###################################################################################################
+
 ########################################## MAIN FUNCTION ##########################################
-###################################################################################################
 if __name__ == '__main__':
     """ Update the last update date of the session to nothing to be update again """
     parser = parse_args()
@@ -181,7 +253,7 @@ if __name__ == '__main__':
     #check options:
     run=check_options(options)
     #############################
-    
+
     #############################
     # RUN                       #
     #############################
@@ -189,7 +261,7 @@ if __name__ == '__main__':
         # Connection to Xnat
         try:
             xnat = XnatUtils.get_interface()
-            
+
             for indexP,project in enumerate(options.project.split(',')):
                 print '-> Project : '+project
                 print ' INFO: Getting Sessions from XNAT...'
@@ -207,14 +279,14 @@ if __name__ == '__main__':
                     session_list=get_text_session(xnat,project,options.txtfile,list_sessions_xnat)
                 else:
                     session_list=(options.session).split(',')
-                
+
                 if not options.all:
                     print' INFO: Changing XNAT sessions last update date for '+str(len(session_list))+' sessions ...'
                     for indexS,session in enumerate(session_list):
                         print '  *Sessions '+str(indexS+1)+'/'+str(len(session_list))+' : '+session
                         change_date(xnat,project,session,list_sessions_xnat)
-            
-        finally:                                        
+
+        finally:
             xnat.disconnect()
-    
+
     print '===================================================================\n'

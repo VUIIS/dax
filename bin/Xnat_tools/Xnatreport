@@ -25,18 +25,34 @@ VARIABLES_LIST={'commun'   : ['object_type'],
 
 ########################################## USEFUL FUNCTIONS ##########################################
 def setup_info_logger(name,logfile):
+    """
+    Using logger for the executables output.
+     Setting the information for the logger.
+
+    :param name: Name of the logger
+    :param logfile: log file path to write outputs
+    :return: logging object
+    """
     if logfile:
         handler=logging.FileHandler(logfile,'w')
     else:
         handler=logging.StreamHandler()
-    
+
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
     return logger
-    
+
 ########################################## SPECIFIC FUNCTIONS ##########################################
 def report(xnat,options,project_list):
+    """
+    Main Method to report
+
+    :param xnat: pyxnat.interface object
+    :param options: options specified by user
+    :param project_list: list of project ID from XNAT
+    :return: None
+    """
     logger.info('Date: '+str(datetime.now())+'\n')
     #print header:
     if not options.format:
@@ -49,8 +65,15 @@ def report(xnat,options,project_list):
         else:
             header=options.format.split(',')
             customize_report(xnat,project,header)
-    
+
 def default_report(xnat,project):
+    """
+    Default Method to use for report when the header is not specified
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :return: None
+    """
     #get list from XNAT
     scans_list=XnatUtils.list_project_scans(xnat, project)
     assessors_list=XnatUtils.list_project_assessors(xnat,project)
@@ -61,13 +84,21 @@ def default_report(xnat,project):
         #SCAN
         for scan in [s for s in scans_list if s['subject_label']==subject]:
             SResources='/'.join([r['label'] for r in XnatUtils.list_scan_resources(xnat,project,scan['subject_label'],scan['session_label'],scan['ID'])])
-            logger.info(','.join(['scan',scan['subject_label'],scan['session_type'],scan['session_label'],scan['ID'],scan['type'],scan['series_description'],scan['quality'],SResources]))                  
+            logger.info(','.join(['scan',scan['subject_label'],scan['session_type'],scan['session_label'],scan['ID'],scan['type'],scan['series_description'],scan['quality'],SResources]))
         #ASSESSOR
         for assessor in [a for a in assessors_list if a['subject_label']==subject]:
             AResources='/'.join([r['label'] for r in XnatUtils.list_assessor_out_resources(xnat,project,assessor['subject_label'],assessor['session_label'],assessor['label'])])
             logger.info(','.join(['assessor',assessor['subject_label'],assessor['session_type'],assessor['session_label'],assessor['label'],assessor['proctype'],assessor['procstatus'],assessor['qcstatus'],AResources]))
-    
+
 def customize_report(xnat,project,header):
+    """
+    Method to define which display we want to use
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param header: header to display
+    :return: None
+    """
     #Loop through subjects / loop through scan/assessor if needed
     if filter(lambda x: x in header,VARIABLES_LIST['scan']) or filter(lambda x: x in header,VARIABLES_LIST['assessor']):
         customize_report_under_sessions(xnat,project,header)
@@ -78,33 +109,81 @@ def customize_report(xnat,project,header):
     else:
         logger.info(','.join(get_row(xnat,{'project_id':project},header)))
 
-def customize_report_subjects(xnat,project,header): 
+def customize_report_subjects(xnat,project,header):
+    """
+    Method to display customized report on subjects following the header
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param header: header to display
+    :return: None
+    """
     subjects_list=XnatUtils.list_subjects(xnat,project)
     for subject in subjects_list:
-        logger.info(','.join(get_row(xnat,subject,header))) 
-        
-def customize_report_sessions(xnat,project,header): 
+        logger.info(','.join(get_row(xnat,subject,header)))
+
+def customize_report_sessions(xnat,project,header):
+    """
+    Method to display customized report on sessions following the header
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param header: header to display
+    :return: None
+    """
     sessions_list=XnatUtils.list_sessions(xnat,project)
     for session in sorted(sessions_list, key=lambda k: k['session_label']):
-        logger.info(','.join(get_row(xnat,session,header)))    
-            
+        logger.info(','.join(get_row(xnat,session,header)))
+
 def customize_report_under_sessions(xnat,project,header):
+    """
+    Method to display customized report under the sessions following the header
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param header: header to display
+    :return: None
+    """
     if filter(lambda x: x in header,VARIABLES_LIST['scan']):
         customize_report_scans(xnat,project,header)
     if filter(lambda x: x in header,VARIABLES_LIST['assessor']):
         customize_report_assessors(xnat,project,header)
-    
+
 def customize_report_scans(xnat,project,header):
+    """
+    Method to display customized report on scans following the header
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param header: header to display
+    :return: Nond
+    """
     scans_list=XnatUtils.list_project_scans(xnat, project)
     for scan in sorted(scans_list, key=lambda k: k['subject_label']):
         logger.info(','.join(get_row(xnat,scan,header)))
 
 def customize_report_assessors(xnat,project,header):
-    assessors_list=XnatUtils.list_project_assessors(xnat,project)            
+    """
+    Method to display customized report on assessors following the header
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param header: header to display
+    :return: None
+    """
+    assessors_list=XnatUtils.list_project_assessors(xnat,project)
     for assessor in sorted(assessors_list, key=lambda k: k['subject_label']):
         logger.info(','.join(get_row(xnat,assessor,header)))
 
 def get_row(xnat,obj_dict,header):
+    """
+    Method to row for display report from object dictionary
+
+    :param xnat: pyxnat.interface object
+    :param obj_dict: dictionary containing information on object from XNAT
+    :param header: header to display
+    :return: return the string for the row associated to obj_dict
+    """
     row=list()
     for field in header:
         if field=='object_type':
@@ -127,19 +206,25 @@ def get_row(xnat,obj_dict,header):
                 row.append(str(Resources))
             elif 'session_label' in obj_dict.keys():
                 Resources='/'.join([r['label'] for r in XnatUtils.list_experiment_resources(xnat,obj_dict['project_id'],obj_dict['subject_label'],obj_dict['session_label'])])
-                row.append(str(Resources)) 
+                row.append(str(Resources))
             elif 'subject_label' in obj_dict.keys():
                 Resources='/'.join([r['label'] for r in XnatUtils.list_subject_resources(xnat,obj_dict['project_id'],obj_dict['subject_label'])])
                 row.append(str(Resources))
             elif 'project_id' in obj_dict.keys():
                 Resources='/'.join([r['label'] for r in XnatUtils.list_project_resources(xnat,obj_dict['project_id'])])
-                row.append(str(Resources))  
+                row.append(str(Resources))
         else:
-            row.append(obj_dict.get(field)) 
+            row.append(obj_dict.get(field))
     return row
 
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
+    """
+    Method to check options given to executables
+
+    :param options: first output of OptParser.parse_args()
+    :return: True if options are fine, False otherwise
+    """
     #check format:
     if options.format and options.format[-1]==',':
         options.format=options.format[:-1]
@@ -165,6 +250,12 @@ def check_options(options):
 
 ########################################## MAIN DISPLAY ##########################################
 def Main_display(parser):
+    """
+    Main display of the executables before any process
+
+    :param parser: OptionParser Object
+    :return: None
+    """
     (options,args) = parser.parse_args()
     #Display:
     print '################################################################'
@@ -195,6 +286,13 @@ def Main_display(parser):
         print '################################################################'
 
 def get_proper_str(str_option,end=False):
+    """
+    Method to shorten a string into the proper size for display
+
+    :param str_option: string to shorten
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
     if len(str_option)>32:
         if end:
             return '...'+str_option[-29:]
@@ -204,6 +302,11 @@ def get_proper_str(str_option,end=False):
         return str_option
 
 def get_usage():
+    """
+    Method to set usage for executables with examples
+
+    :return: None
+    """
     usage="usage: %prog [options] \n"
     usage+="What is the script doing : \n"
     usage+="   *Create a report about Xnat projects.\n"
@@ -214,8 +317,13 @@ def get_usage():
     usage+="   *print the format available: Xnatreport --printformat \n"
     usage+="   *Save report in a csv: Xnatreport -p PID -c report.csv\n"
     return usage
-    
+
 def parse_args():
+    """
+    Method to parse arguments base on OptionParser
+
+    :return: parser object
+    """
     from optparse import OptionParser
     usage = get_usage()
     parser = OptionParser(usage=usage)
@@ -228,8 +336,9 @@ def parse_args():
     parser.add_option("--printformat", dest="printformat",action="store_true",default=False,
                   help="Print available variables names for the option --format.", metavar="COMMA_SEPARATED_LIST")
     return parser
-    
+
 if __name__ == '__main__':
+    """ Main Function """
     parser=parse_args()
     (options,args) = parser.parse_args()
     #############################
@@ -239,7 +348,7 @@ if __name__ == '__main__':
     run=check_options(options)
     #############################
     logger = setup_info_logger('xnatreport',options.csvfile)
-    
+
     #############################
     # RUN                       #
     #############################
@@ -255,8 +364,8 @@ if __name__ == '__main__':
             if options.format and options.format[-1]==',':
                 options.format=options.format[:-1]
             #Arguments :
-            project_list=options.projects.split(',')  
-            
+            project_list=options.projects.split(',')
+
             """ Report on Xnat database for the list of project for processes or resources on scan """
             if options.format and options.format=='object_type':
                 logger.info('object_type')
@@ -288,7 +397,7 @@ if __name__ == '__main__':
                     print 'WARNING: extracting information from XNAT for a full project might take some time. Please be patient.\n'
                     #Writing report
                     report(xnat,options,project_list)
-                
-                finally:                                        
+
+                finally:
                     xnat.disconnect()
         print '==========================================================================\n'
