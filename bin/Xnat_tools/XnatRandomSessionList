@@ -3,8 +3,12 @@
 import argparse
 from dax import XnatUtils
 
-
 def parse_args():
+	"""
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
+    """
 	parser = argparse.ArgumentParser(description='Program to get a random list of sessions')
 	parser.add_argument("-p", "--project", help="Project to get sessions from", required=True)
 	parser.add_argument("-n", "--num-sessions", help="Number of sessions to return (default=10)",
@@ -14,6 +18,11 @@ def parse_args():
 	return parser.parse_args()
 
 def main():
+	"""
+	Main Method
+
+	:return: None
+	"""
 	args = parse_args()
 	xnat = XnatUtils.get_interface()
 	project_id = args.project
@@ -23,7 +32,7 @@ def main():
 	xnat.disconnect()
 	sesses = sesses.replace(",", delim)
 	print sesses
-	
+
 
 if __name__=='__main__':
 	main()

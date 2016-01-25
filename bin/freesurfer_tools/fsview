@@ -11,15 +11,21 @@ Load freesurfer subject in freeview
 '''
 
 def parse_args():
+    """
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
+    """
     from argparse import ArgumentParser
     ap = ArgumentParser(prog='fsview', description="Load FreeSurfer subject in freeview")
     ap.add_argument('session', help='Session Label')
     return ap.parse_args()
-    
-if __name__ == '__main__':    
+
+if __name__ == '__main__':
+    """ Main Function """    
     args = parse_args()
     sess = args.session
-    
+
     try:
         # Environs
         subjects_dir = os.environ['SUBJECTS_DIR']
@@ -27,13 +33,13 @@ if __name__ == '__main__':
     except KeyError as e:
         print "You must set the environment variable %s" % str(e)
         sys.exit(1)
-        
+
     local_subj_path = subjects_dir+'/'+sess
-                      
+
     if not os.path.exists(local_subj_path):
         print 'ERROR:cannot load, '+sess+' not found in local FreeSurfer subjects directory.'
         sys.exit(1)
-        
+
     cmd = 'freeview'
     cmd += ' -v '+local_subj_path+'/mri/T1.mgz:visible=1'
     cmd += ' '+local_subj_path+'/mri/aparc+aseg.mgz:colormap=lut:opacity=0.7:visible=0'
@@ -43,10 +49,10 @@ if __name__ == '__main__':
     cmd += ' '+local_subj_path+'/surf/lh.pial:edgecolor=red:edgethickness=1'
     cmd += ' '+local_subj_path+'/surf/rh.white:edgecolor=blue:edgethickness=1'
     cmd += ' '+local_subj_path+'/surf/rh.pial:edgecolor=red:edgethickness=1'
-    
+
     cp_file_path = os.path.join(local_subj_path,'tmp','control.dat')
     if os.path.isfile(cp_file_path):
         cmd += ' -c '+cp_file_path+':radius=1'
 
-    print 'Launching freeview with command:'+cmd        
+    print 'Launching freeview with command:'+cmd
     os.system(cmd)

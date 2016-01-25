@@ -32,7 +32,16 @@ RES_OBJ_DICT={'assessor_res':'proctype','scan_res':'series_description','session
 
 ########################################## FILTER CLASS ##########################################
 class filter_variable:
+    """ Class to generate a filter for variable to check on pyxnat Eobject"""
     def __init__(self,rvar,rval,operator):
+        """
+        Entry point for the filter_variable class
+
+        :param rvar: variable name
+        :param rval: value for variable
+        :param operator: operator to apply to variable (=,>,<,!=,...)
+        :return: None
+        """
         if rvar in VARIABLES_FILTERS_LIST:
             self.var=rvar
             self.goodfilter=True
@@ -46,11 +55,23 @@ class filter_variable:
         else:
             print ' WARNING: '+rvar+' -- Not a variable that can be filter. Unusable filter.'
             self.goodfilter=False
-       
+
     def filter(self,list_obj):
+        """
+        Method to filter the list of object with the init parameters
+
+        :param list_obj: list of object to filter
+        :return: filtered list
+        """
         return filter(lambda x: operate_action(self.operator,self.get_obj_value(x),self.val), list_obj)
-        
+
     def get_obj_value(self,obj_dict):
+        """
+        Method to get the value from obj_dict
+
+        :param obj_dict: dictionary of information on an object
+        :return: value for the variable we are filtering
+        """
         if isinstance(self.val,int):
             if self.var=='walltimeused':
                 return getwalltime(obj_dict[self.var])
@@ -73,18 +94,34 @@ class filter_variable:
             return getmemory(obj_dict[self.var])
         else:
             return obj_dict[self.var]
-        
+
     def is_usable_filter(self):
+        """
+        Return True if the filter is usable
+
+        :return: True if filter is good, False otherwise
+        """
         return self.goodfilter
-    
+
     def init_operator(self,operator):
+        """
+        Method to init the operator for the filter
+         default '=' is used
+
+        :return: None
+        """
         if operator not in [d['operator'] for d in VARIABLES_FILTERS_DICT if d['variable_name']==self.var][0].split(','):
             print ' WARNING: '+self.var+' -- Not a good value for operator. Using default "=".'
             self.operator='='
         else:
             self.operator=operator
-            
+
     def init_value(self,value):
+        """
+        Method to init the value for the filter
+
+        :return: None
+        """
         #setting value:
         if 'comma separated list' in [d['format'] for d in VARIABLES_FILTERS_DICT if d['variable_name']==self.var][0]:
             self.val=value.split(',')
@@ -122,9 +159,17 @@ class filter_variable:
                 self.goodfilter=False
         else:
             self.val=value
-                
+
 class filter_resource:
+    """ Class to create filter on XNAT resources"""
     def __init__(self,filterstring,delimiter):
+        """
+        Entry point for the filter_resource class
+
+        :param filterstring: string describing the filter
+        :param delimiter: delimiter in the string
+        :return: None
+        """
         self.delimiter=delimiter
         rvar,rval,operator,res_vars=get_res_filter(filterstring,delimiter)
         if rvar in RESOURCES_LIST:
@@ -145,14 +190,20 @@ class filter_resource:
         else:
             print ' WARNING: '+filterstring+' -- Not a variable for resource that can be filter. Unusable filter.'
             self.goodfilter=False
-    
-    def init_variables(self,res_vars): 
+
+    def init_variables(self,res_vars):
+        """
+        Method to init the variable value for the filter
+
+        :param res_vars: variables n
+        :return: None
+        """
         for rv in res_vars:
             rvar=None
             rval=None
             if '>=' in rv:
                 rvar,rval=rv.split('>=')[:2]
-                self.set_variables(rvar,rval,'>=')             
+                self.set_variables(rvar,rval,'>=')
             elif '<=' in rv:
                 rvar,rval=rv.split('<=')[:2]
                 self.set_variables(rvar,rval,'<=')
@@ -170,8 +221,16 @@ class filter_resource:
                 self.set_variables(rvar,rval,'=')
             else:
                 print ' - warning - '+rv+' - no operator found in the filters for resource.'
-    
+
     def set_variables(self,rvar,rval,operator):
+        """
+        Method to set the variable value for the filter
+
+        :param rvar: variable name
+        :param rval: value for variable
+        :param operator: operator to apply to variable (=,>,<,!=,...)
+        :return: None
+        """
         if rvar=='size':
             self.size=getmemory(rval)
             self.sizeOp=operator
@@ -183,8 +242,14 @@ class filter_resource:
         elif rvar=='fpath':
             self.fpaths=rval.split(',')
             self.hasfilters=True
-                 
+
     def init_operator(self,operator):
+        """
+        Method to init the operator for the filter
+         default '=' is used
+
+        :return: None
+        """
         if ',' in operator:
             print ' WARNING: '+self.var+' -- operator '+operator+' contained a comma. Using default: "=".'
             return '='
@@ -193,24 +258,44 @@ class filter_resource:
         else:
             print ' WARNING: '+self.var+' -- operator '+operator+' not found. Using default: "=".'
             return '='
-                
+
     def is_usable_filter(self):
+        """
+        Return True if the filter is usable
+
+        :return: True if filter is good, False otherwise
+        """
         return self.goodfilter
-    
+
     def filter(self,xnat,objects_list):
+        """
+        Method to filter the list of object on the resource using this filter
+
+        :param xnat: pyxnat.interface Object
+        :param objects_list: list of object to filter
+        :return: filtered list
+        """
         filtered_list=list()
         for object_dict in objects_list:
             if not RES_OBJ_DICT[self.var] in object_dict.keys():
                 filtered_list.append(object_dict)
             else:
-                if self.check_resources(xnat,object_dict): 
+                if self.check_resources(xnat,object_dict):
                     filtered_list.append(object_dict)
         return filtered_list
-    
-    def check_resources(self,xnat,object_dict): #return True if the resource has been checked to not have proper resource
+
+    def check_resources(self,xnat,object_dict):
+        """
+        Method to check the resource for an object on XNAT
+
+        :param xnat: pyxnat.interface Object
+        :param object_dict: pyxnat Eobject to be checked
+        :return: return True if the resource doesn't answer the filter's criteria,
+         False otherwise
+        """
         resources_list=get_resource_list(xnat,object_dict,self.var)
         for reslabel in self.val:
-            if self.operator=='!=': 
+            if self.operator=='!=':
                 if reslabel not in [r['label'] for r in resources_list]:
                     return True
                 else:
@@ -220,7 +305,7 @@ class filter_resource:
                     return False
                 else:
                     pass
-            
+
                 #Check if set the variables:
                 if self.hasfilters:
                     res_xnat=get_resource(xnat,object_dict,self.var,reslabel)
@@ -233,16 +318,36 @@ class filter_resource:
                     if self.nbf:
                         out=self.check_nbf(res_xnat)
                         if not out: return False
-        
+
         return True
-                
+
     def check_size(self,size):
+        """
+        Method to check the size
+
+        :param size: size to check
+        :return: return True if the size answers the filter's criteria, False otherwise
+        """
         return operate_action(self.sizeOp,size,self.size)
-        
+
     def check_nbf(self,res_xnat):
+        """
+        Method to check the number of files for a resource
+
+        :param res_xnat: pyxnat Eobject for the resource
+        :return: return True if the number of files answers the filter's criteria,
+         False otherwise
+        """
         return operate_action(self.nbfOp,len(res_xnat.files().get()),self.nbf)
-    
+
     def check_fpaths(self,res_xnat):
+        """
+        Method to check the number of files
+
+        :param res_xnat: pyxnat Eobject for the resource
+        :return: return True if the number of files answers the filter's criteria,
+         False otherwise
+        """
         for fpath in self.fpaths:
             if not res_xnat.file(fpath).exists():
                 return False
@@ -250,23 +355,22 @@ class filter_resource:
                 out=self.check_size(float(res_xnat.file(fpath).size()))
                 if not out: return False
         return True
-                
-    def generate_printable_filter(self):
-        f_string=''
-        if self.size:
-            f_string+='size'+self.sizeOp+self.size+self.delimiter
-        if self.nbf:
-            f_string+='nbf'+self.nbfOp+self.nbf+self.delimiter
-        if self.fpaths:
-            f_string+='fpaths='+','.join(self.fpaths)
-        
+
 ########################################## USEFUL FUNCTIONS ##########################################
 def setup_info_logger(name,logfile):
+    """
+    Using logger for the executables output.
+     Setting the information for the logger.
+
+    :param name: Name of the logger
+    :param logfile: log file path to write outputs
+    :return: logging object
+    """
     if logfile:
         handler=logging.FileHandler(logfile,'w')
     else:
         handler=logging.StreamHandler(sys.stdout)
-    
+
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
@@ -274,6 +378,13 @@ def setup_info_logger(name,logfile):
 
 ########################################## SPECIFIC FUNCTIONS ##########################################
 def get_res_filter(filterString,delimiter):
+    """
+    Method to generate the init variables for the resource filter
+
+    :param filterString: string describing the filter in the exe arguments
+    :param delimiter: string delimiter in filterstring
+    :return: logging object
+    """
     labels=filterString.split(delimiter)
     if len(labels)>1:
         if '!=' in labels[0]:
@@ -289,8 +400,16 @@ def get_res_filter(filterString,delimiter):
             return labels[0].split('=')[0],labels[0].split('=')[1],'=',[]
         else:
             return None,None,None,[]
-    
+
 def operate_action(operator,value1,value2):
+    """
+    Method to run the operator for a filter
+
+    :param operator: operator to apply
+    :param value1: left side of operator value
+    :param value2: right side of operator value
+    :return: logging object
+    """
     if operator=='<':
         return value1<value2
     elif operator=='<=':
@@ -310,6 +429,14 @@ def operate_action(operator,value1,value2):
         return value1==value2
 
 def get_resource_list(xnat,object_dict,variable_name):
+    """
+    Method to get the resources list from a pyxnat Eobject
+
+    :param xnat: pyxnat.interface object
+    :param object_dict: dictionary describing pyxnat Eobject
+    :param variable_name: name of the variable to filter for resource
+    :return: list object
+    """
     if 'scan' in variable_name:
         return XnatUtils.list_scan_resources(xnat,object_dict['project_id'],object_dict['subject_label'],object_dict['session_label'],object_dict['ID'])
     elif 'assessor' in variable_name:
@@ -318,8 +445,17 @@ def get_resource_list(xnat,object_dict,variable_name):
         return XnatUtils.list_experiment_resources(xnat,object_dict['project_id'],object_dict['subject_label'],object_dict['session_label'])
     else:
         return XnatUtils.list_subject_resources(xnat,object_dict['project_id'],object_dict['subject_label'])
-        
+
 def get_resource(xnat,object_dict,variable_name,resource_label):
+    """
+    Method to select the resource object from URI
+
+    :param xnat: pyxnat.interface object
+    :param object_dict: dictionary describing pyxnat Eobject
+    :param variable_name: name of the variable to filter for resource
+    :param resource_label: resource label to select
+    :return: pyxnat Eobject
+    """
     if 'scan' in variable_name:
         return xnat.select('/project/'+object_dict['project_id']+'/subject/'+object_dict['subject_label']+'/experiment/'+object_dict['session_label']+'/scan/'+object_dict['ID']+'/resource/'+resource_label)
     elif 'assessor' in variable_name:
@@ -328,8 +464,14 @@ def get_resource(xnat,object_dict,variable_name,resource_label):
         return xnat.select('/project/'+object_dict['project_id']+'/subject/'+object_dict['subject_label']+'/experiment/'+object_dict['session_label']+'/resource/'+resource_label)
     else:
         return xnat.select('/project/'+object_dict['project_id']+'/subject/'+object_dict['subject_label']+'/resource/'+resource_label)
-    
+
 def getmemory(memory_str):
+    """
+    Method to convert the memory given in the filter parameters in bytes
+
+    :param memory_str: string representing the memory
+    :return: integer for memory in bytes
+    """
     try:
         if memory_str==NOTFOUND:
             return 0.0
@@ -353,8 +495,14 @@ def getmemory(memory_str):
             return float(memory_str)
     except:
         return 0.0
-    
+
 def getwalltime(walltime_str):
+    """
+    Method to convert the walltime string given in the filter parameters
+
+    :param walltime_str: string representing the walltime
+    :return: value for walltime
+    """
     if walltime_str==NOTFOUND:
         return 0
     elif '-' in walltime_str :
@@ -364,16 +512,29 @@ def getwalltime(walltime_str):
         return int(h+m+s)
     else:
         return walltime_str.replace(':','')
-        
+
 def get_bigger_size(resource):
+    """
+    Method to extract the biggest file size in the files for a pyxnat resource
+     Eobject
+
+    :param resource: pyxnat resource Eobject
+    :return: biggest size
+    """
     Bigger_file_size=0
     for fname in resource.files().get()[:]:
         size_file=float(resource.file(fname).size())
         if Bigger_file_size<size_file:
             Bigger_file_size=size_file
-    return Bigger_file_size   
-                    
+    return Bigger_file_size
+
 def get_option_list(option):
+    """
+    Method to convert option value to a list, None if empty, all if all selected
+
+    :param option: string representing the option
+    :return: None if empty, 'all' if all selected, list otherwise
+    """
     if not option:
         return None
     elif option=='all':
@@ -384,6 +545,12 @@ def get_option_list(option):
         return option.split(',')
 
 def get_size(size):
+    """
+    Method to convert string size in bytes
+
+    :param size: string representing the size
+    :return: integer for the size in bytes
+    """
     if not size:
         return None
     elif 'g' in size.lower():
@@ -398,32 +565,44 @@ def get_size(size):
 
 ########################################## FILTER ##########################################
 def extract_var(filterString):
+    """
+    Method to convert string describing the filter in variable, value, operator
+
+    :param filterString: string describing the filter
+    :return: variable, value, operator
+    """
     rvar=None
     rval=None
     operator=None
     if '>=' in filterString:
-        rvar,rval=filterString.split('>=')[:2]    
-        operator='>='           
+        rvar,rval=filterString.split('>=')[:2]
+        operator='>='
     elif '<=' in filterString:
         rvar,rval=filterString.split('<=')[:2]
-        operator='<=' 
+        operator='<='
     elif '>' in filterString:
         rvar,rval=filterString.split('>')[:2]
-        operator='>' 
+        operator='>'
     elif '<' in filterString:
         rvar,rval=filterString.split('<')[:2]
-        operator='<' 
+        operator='<'
     elif '!=' in filterString:
         rvar,rval=filterString.split('!=')[:2]
-        operator='!=' 
+        operator='!='
     elif '=' in filterString:
         rvar,rval=filterString.split('=')[:2]
-        operator='=' 
+        operator='='
     else:
         print ' - warning - '+filterString+' - no operator found in the filters for resource.'
     return rvar,rval,operator
-                
+
 def create_filters(options):
+    """
+    Method to create the filters object from the OptionParser
+
+    :param options: first arguments from OptionParser.parse_args()
+    :return: list of filters, list of resource filters
+    """
     print 'INFO: Creating your filters from the options.'
     filters_list=list()
     filter_r_list=list()
@@ -440,8 +619,17 @@ def create_filters(options):
                 f=filter_variable(rvar,rval,operator)
                 filters_list.append(f)
     return filters_list,filter_r_list
-    
+
 def filter_project(xnat,project,filters_list,levels):
+    """
+    Method to filter a project on XNAT using the list of filters
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param filters_list: list of filters to apply
+    :param levels: which levels to filter (scan or/and assessor / sessions or subject)
+    :return: list of filters, list of resource filters
+    """
     if 'scan' in levels and 'assessor' in levels: #Get scan and assessor
         scan_list_filter=filter_list(xnat,project,XnatUtils.list_project_scans,[f for f in filters_list if f.grp=='scan'])
         assessor_list_filter=filter_list(xnat,project,XnatUtils.list_project_assessors,[f for f in filters_list if f.grp=='assessor'])
@@ -456,6 +644,15 @@ def filter_project(xnat,project,filters_list,levels):
         return filter_list(xnat,project,XnatUtils.list_subjects,filters_list)
 
 def filter_list(xnat,project,getlist,filters_list):
+    """
+    Method to filter object from a project on XNAT using the list of filters
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param getlist: method to get the list of object (XnatUtils methods)
+    :param filters_list: list of filters to apply
+    :return: list of filters, list of resource filters
+    """
     #Get full object list
     objects_list=getlist(xnat, project)
     #filter
@@ -463,9 +660,17 @@ def filter_list(xnat,project,getlist,filters_list):
         if f.is_usable_filter():
             objects_list=f.filter(objects_list)
     return objects_list
- 
+
 ########################################## GENERATE XNAT OBJECT LIST ##########################################
 def generate_xnat_object_list(filters_list,filter_r,options):
+    """
+    Main Method to generate the list of all XNAT objects that satisfied the user's filters
+
+    :param filters_list: list of regular filters
+    :param filter_r: list of resource filters
+    :param options: first output of OptionParser.parse_args()
+    :return: list of XNAT objects dictionaries
+    """
     object_list=list()
     try:
         #connection to Xnat
@@ -481,11 +686,21 @@ def generate_xnat_object_list(filters_list,filter_r,options):
             else:
                 print ' - '+project
                 object_list.extend(generate_project_object_list(xnat,project,filters_list,filter_r))
-    finally:                                        
+    finally:
         xnat.disconnect()
     return object_list
 
 def generate_project_object_list(xnat,project,filters_list,filter_r_list):
+    """
+    Method to generate the list of all XNAT objects that satisfied the user's filters
+     for a specific project on XNAT
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param filters_list: list of regular filters
+    :param filter_r: list of resource filters
+    :return: list of XNAT objects dictionaries
+    """
     levels=[f.grp for f in filters_list if f.is_usable_filter()]
     if filter_r_list:
         for f_r in filter_r_list:
@@ -499,9 +714,17 @@ def generate_project_object_list(xnat,project,filters_list,filter_r_list):
             if f_r.is_usable_filter():
                 objects_list=f_r.filter(xnat,objects_list)
     return objects_list
- 
+
 ########################################## PRINT REPORT ##########################################
 def print_report(obj_list,formatheader):
+    """
+    Method to print report as a csv on the object found on XNAT
+     answering the filter
+
+    :param obj_list: list of object to display
+    :param formatheader: format for the header
+    :return: None
+    """
     logger.info(','.join(formatheader))
     #sort the list of object by the subject label if present:
     if 'subject_label' in obj_list[0]:
@@ -510,8 +733,15 @@ def print_report(obj_list,formatheader):
         row=get_row(obj,formatheader)
         if not all(x is None for x in row):
             logger.info(','.join(row))
-        
+
 def get_row(obj_dict,header):
+    """
+    Method to convert object dictionary into a csv file row for display
+
+    :param obj_dict: list of object to display
+    :param header: string for the header
+    :return: None
+    """
     row=list()
     for field in header:
         if field=='object_type':
@@ -554,9 +784,15 @@ def get_row(obj_dict,header):
         else:
             row.append(obj_dict.get(field,''))
     return row
-        
+
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
+    """
+    Method to check options given to executables
+
+    :param options: first output of OptParser.parse_args()
+    :return: True if options are fine, False otherwise
+    """
     if not options.printfilters and not options.printformat and not options.projects:
         print "OPTION ERROR: please use the options -p to give the projects you want to check."
         return False
@@ -567,6 +803,12 @@ def check_options(options):
 
 ########################################## MAIN DISPLAY ##########################################
 def Main_display(parser):
+    """
+    Main display of the executables before any process
+
+    :param parser: ArgumentParser Object
+    :return: None
+    """
     options=parser.parse_args()
     print '################################################################'
     print '#                           XNATCHECK                          #'
@@ -590,7 +832,7 @@ def Main_display(parser):
         if options.csvfile:
             print '#     %*s -> %*s#' %(-20,'CSV File',-33,get_proper_str(options.csvfile,True))
         if options.projects:
-            print '#     %*s -> %*s#' %(-20,'Project(s)',-33,get_proper_str(options.projects))  
+            print '#     %*s -> %*s#' %(-20,'Project(s)',-33,get_proper_str(options.projects))
         if options.res_delimiter:
             print '#     %*s -> %*s#' %(-20,'Resource Delimiter',-33,get_proper_str(options.res_delimiter))
         if options.filters:
@@ -600,6 +842,13 @@ def Main_display(parser):
         print '################################################################'
 
 def get_proper_str(str_option,end=False):
+    """
+    Method to shorten a string into the proper size for display
+
+    :param str_option: string to shorten
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
     if len(str_option)>32:
         if end:
             return '...'+str_option[-29:]
@@ -609,6 +858,11 @@ def get_proper_str(str_option,end=False):
         return str_option
 
 def get_description():
+    """
+    Method to set usage for executables with examples
+
+    :return: None
+    """
     usage="What is the script doing : \n"
     usage+="   *Check object on XNAT (subject/session/scan/assessor/resources) specify by the options.\n\n"
     usage+="How to write a filter string:\n"
@@ -632,6 +886,11 @@ def get_description():
 
 ########################################## OPTIONS ##########################################
 def get_parser():
+    """
+    Method to parse arguments base on argparse
+
+    :return: parser object
+    """
     import argparse
     from argparse import RawTextHelpFormatter
     parser = argparse.ArgumentParser(description=get_description(), formatter_class=RawTextHelpFormatter)
@@ -655,6 +914,7 @@ def get_parser():
 
 ########################################## MAIN FUNCTION ##########################################
 if __name__ == '__main__':
+    """ Main function """
     parser=get_parser()
     options = parser.parse_args()
     #############################
@@ -664,7 +924,7 @@ if __name__ == '__main__':
     run=check_options(options)
     #############################
     logger = setup_info_logger('xnatcheck',options.csvfile)
-    
+
     #############################
     # RUN                       #
     #############################

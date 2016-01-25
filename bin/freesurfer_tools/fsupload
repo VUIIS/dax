@@ -15,6 +15,13 @@ from pyxnat import Interface
 from dax import XnatUtils, task
 
 def mri_diff(file1, file2):
+    """
+    Method to estimate the difference between two files using mri_diff
+
+    :param file1: path to file 1
+    :param file2: path to file 2
+    :return: parser object parsed
+    """
     cmd = 'mri_diff '+file1+' '+file2
 
     try:
@@ -25,14 +32,20 @@ def mri_diff(file1, file2):
         return -1
 
 def parse_args():
+    """
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
+    """
     from argparse import ArgumentParser
     ap = ArgumentParser(prog='fsupload', description="Upload FreeSurfer edits to subject on XNAT")
     ap.add_argument('project', help='Project Label')
     ap.add_argument('session', help='Session Label')
     ap.add_argument('proc_suffix', help='Proc name suffix', nargs='?', default='')
     return ap.parse_args()
-    
-if __name__ == '__main__':    
+
+if __name__ == '__main__':
+    """ Main Function """
     args = parse_args()
     proj_label = args.project
     sess_label = args.session
@@ -41,7 +54,7 @@ if __name__ == '__main__':
         proc_suffix = ''
     else:
         proc_suffix = args.proc_suffix
-                      
+
     try:
         # Environs
         xnat_user = os.environ['XNAT_USER']
@@ -51,13 +64,13 @@ if __name__ == '__main__':
 
     except KeyError as e:
         print "ERROR:you must set the environment variable %s" % str(e)
-        sys.exit(1)  
-        
+        sys.exit(1)
+
     local_subj_path = subjects_dir+'/'+sess_label
     if not os.path.exists(local_subj_path):
         print 'ERROR:cannot upload, subject not found in local FreeSurfer subjects directory.'
         sys.exit(1)
-        
+
     xnat = Interface(xnat_host, xnat_user, xnat_pass)
 
     # Find the FreeSurfer assessor
@@ -70,55 +83,55 @@ if __name__ == '__main__':
                 # Skip if not FreeSurfer
                 if assr['proctype'] == 'FreeSurfer':
                     fs_list.append(assr)
-        
+
     if not fs_list:
         print('ERROR:FreeSurfer not found for project='+proj_label+ ', session='+sess_label)
         sys.exit(1)
-        
+
     if len(fs_list) == 1:
         fs = fs_list[0]
     else:
         if not proc_suffix:
             print('ERROR:mutliple FreeSurfer runs found, you must specify an ID suffix, project='+proj_label+ ', session='+sess_label)
             sys.exit(1)
-        
+
         fs_list2 = []
         for assr in fs_list:
             if assr['assessor_label'].endswith(proc_suffix):
                 fs_list2.append(assr)
-                
+
                 if not fs_list2:
                     print('ERROR:FreeSurfer not found for project='+proj_label+ ', session='+sess_label)
                     sys.exit(1)
-        
+
                 if len(fs_list2) == 1:
                     fs = fs_list2[0]
                 else:
                     print('ERROR:mutliple FreeSurfer runs found with specified suffix, project='+proj_label+ ', session='+sess_label)
                     sys.exit(1)
-                    
+
     # TODO: Check for edits saved with original filenames
     #res = mri_diff(local_subj_path+'/mri/brainmask.auto.mgz', local_subj_path+'/mri/brainmask.mgz')
     #print('diff brainmask result='+str(res))
-    
+
     #res = mri_diff(local_subj_path+'/mri/aseg.auto.mgz', local_subj_path+'/mri/aseg.mgz')
     #print('diff aeg result='+str(res))
-        
+
     # Upload the edits - brainmask, wm, aseg, control.dat,...
-    assessor = XnatUtils.get_full_object(xnat,fs)    
+    assessor = XnatUtils.get_full_object(xnat,fs)
     resource = assessor.out_resource('EDITS')
     curtime = time.strftime("%Y%m%d-%H%M%S")
     brainmask_path = local_subj_path+'/mri/brainmask.edited.mgz'
     wm_path = local_subj_path+'/mri/wm.edited.mgz'
     aseg_path = local_subj_path+'/mri/aseg.edited.mgz'
     control_path = local_subj_path+'/tmp/control.dat'
-    
+
     if os.path.isfile(brainmask_path):
         print('Uploading brainmask...')
-        resource.file('brainmask.edited.mgz.'+curtime).put(brainmask_path)   
+        resource.file('brainmask.edited.mgz.'+curtime).put(brainmask_path)
     else:
         print('No edited brainmask found')
-        
+
     if os.path.isfile(wm_path):
         print('Uploading wm...')
         resource.file('wm.edited.mgz.'+curtime).put(wm_path)
@@ -127,19 +140,19 @@ if __name__ == '__main__':
 
     if os.path.isfile(aseg_path):
         print('Uploading aseg...')
-        resource.file('aseg.edited.mgz.'+curtime).put(aseg_path) 
+        resource.file('aseg.edited.mgz.'+curtime).put(aseg_path)
     else:
         print('No edited aseg found')
 
     if os.path.isfile(control_path):
         print('Uploading control.dat...')
-        resource.file('control.dat.'+curtime).put(control_path)   
+        resource.file('control.dat.'+curtime).put(control_path)
     else:
         print('No edited control points found')
 
     # Set QC Status to trigger reprocessing
     print('Setting qcstatus to trigger reprocessing...')
     assessor.attrs.set('fs:fsdata/validation/status',task.REPROC)
-    
+
     xnat.disconnect()
     print 'DONE'

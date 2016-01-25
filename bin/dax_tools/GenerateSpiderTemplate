@@ -286,7 +286,9 @@ def write_spider(spider_fpath, templates, args):
 
 def parse_args():
     """
-        Parser for arguments
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
     """
     from argparse import ArgumentParser
     usage = "Generate your Spider.py following the dax template for spider."

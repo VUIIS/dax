@@ -18,6 +18,15 @@ from datetime import datetime
 ########################################################################################################
 #add to .xnat_setup    
 def add_to_workstation(line,comments):
+    """
+    Method to add variables to your workstation (xnat_profile file)
+     #comments
+     line
+    
+    :param line: string to write the bash command in your profile file
+    :param comments: comments associated to the line
+    :return: None
+    """
     #.xnat_profile path
     profile_path=os.environ['HOME']+'/.xnat_profile'
     if comments[1]!='#':
@@ -32,6 +41,12 @@ def add_to_workstation(line,comments):
             bashrc.write(line+'\n')  
 
 def init_profile(profile_path):
+    """
+    Method to init your profile file to call xnat_profile
+
+    :param profile_path: path to your profile file
+    :return: None
+    """
     comments= '###### XNAT CONFIGURATION FILE ######\n#File running every time you open a new terminal (called by .bash_profile) : created by XnatCheckLogin on '+str(datetime.now())+'\n'
     #Create the file:
     with open(profile_path,"w") as bashrc:
@@ -46,26 +61,41 @@ def init_profile(profile_path):
                 bash_profile.write("#call for .xnat_profile files containing xnat logins: \n")
                 bash_profile.write("source ~/.xnat_profile\n")
                 
-def check_env(variableName,encrypted=False):
-    if variableName in os.environ:
-        if encrypted: print ' * '+variableName+' found in your environment variables.'
-        else: print ' * '+variableName+' found in your environment variables: '+os.environ[variableName]
-        return os.environ[variableName]
+def check_env(env_variable,encrypted=False):
+    """
+    Method to check the environment variable
+
+    :param env_variable: path to your profile file
+    :param encrypted: need to be hidden when asking user for value (password)
+    :return: value of the environment variable if found
+             ask user if not found
+    """
+    if env_variable in os.environ:
+        if encrypted: print ' * '+env_variable+' found in your environment variables.'
+        else: print ' * '+env_variable+' found in your environment variables: '+os.environ[env_variable]
+        return os.environ[env_variable]
     else:
-        print ' * '+variableName+' not found.'
+        print ' * '+env_variable+' not found.'
         if encrypted:
-            return getpass.getpass(prompt='  --> Enter '+variableName+':')
+            return getpass.getpass(prompt='  --> Enter '+env_variable+':')
         else:
-            if variableName=='XNAT_HOST':
-                value=raw_input('  --> Enter '+variableName+' (enter "default" for Vanderbilt XNAT):')
+            if env_variable=='XNAT_HOST':
+                value=raw_input('  --> Enter '+env_variable+' (enter "default" for Vanderbilt XNAT):')
                 if value=="default":
                     return 'http://xnat.vanderbilt.edu:8080/xnat'
                 else:
                     return value
             else:
-                return raw_input('  --> Enter '+variableName+':')
+                return raw_input('  --> Enter '+env_variable+':')
         
 def set_xnat_variables():
+    """
+    Method to set the xnat variables and
+     see if the connection works with the logins
+     set the variables in xnat_profile if not in env variables
+
+    :return: None
+    """
     print 'INFO: Checking XNAT variables:'
     # XNAT_HOST URL
     XNAT_HOST=check_env('XNAT_HOST')
@@ -122,11 +152,17 @@ def set_xnat_variables():
         print "WARNING: Please run the configuration file .xnat_profile:  'source ~/.xnat_profile'  to apply the changes or open a new terminal."
                 
 def parse_args():
+    """
+    Method to parser arguments following ArgumentParser
+    
+    :return: arguments parsed
+    """
     from argparse import ArgumentParser
     ap = ArgumentParser(prog='Xnatsetup', description="Set and Check the logins for XNAT.")
     return ap.parse_args()
          
 if __name__ == '__main__':
+    """ Main function """
     args = parse_args()
     print '================================================================================='
     set_xnat_variables()

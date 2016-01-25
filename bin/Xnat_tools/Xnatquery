@@ -12,32 +12,63 @@ import sys
 from dax import XnatUtils
 from datetime import datetime
 
-######################################################################################################
 ########################################## USEFUL FUNCTIONS ##########################################
-######################################################################################################
 def display_item(project,subject=None,session=None):
+    """
+    Method to display the tree
+    
+    :param project: project ID on XNAT
+    :param subject: subject label on XNAT
+    :param session: session label on XNAT
+    :return: None
+    """
     print'Project: '+project
     if subject:
         print '  +Subject: '+subject
         if session:
             print '    *Session: '+session
-    
-########################################################################################################
+
 ########################################## SPECIFIC FUNCTIONS ##########################################
-########################################################################################################
 def query_project(xnat,project,all=False):
+    """
+    Method to query a project
+    
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param all: query the full hierarchy
+    :return: None
+    """
     for subject in XnatUtils.list_subjects(xnat,project):
         print '  +Subject: '+subject['label']
         if all:
             query_subject(xnat,project,subject['label'],all)
     
 def query_subject(xnat,project,subject,all=False):
+    """
+    Method to query a subject
+    
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param subject: subject label on XNAT
+    :param all: query the full hierarchy
+    :return: None
+    """
     for session in XnatUtils.list_experiments(xnat,project,subject):
         print '    *Session: '+session['label']
         if all:
             query_session(xnat,project,subject,session['label'])
             
 def query_session(xnat,project,subject,session,all=False):
+    """
+    Method to query a session
+    
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param subject: subject label on XNAT
+    :param session: session label on XNAT
+    :param all: query the full hierarchy
+    :return: None
+    """
     print '      ***SCANS***' 
     for scan in XnatUtils.list_scans(xnat,project,subject,session):
         query_scan(xnat,project,subject,session,scan['ID'],scan['type'],all)        
@@ -46,12 +77,32 @@ def query_session(xnat,project,subject,session,all=False):
         query_assessor(xnat,assessor['label'],all)
             
 def query_scan(xnat,project,subject,session,scan,scantype,all=False):
+    """
+    Method to query a scan
+    
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param subject: subject label on XNAT
+    :param session: session label on XNAT
+    :param scan: scan ID on XNAT
+    :param scantype: scan type for display
+    :param all: query the full hierarchy
+    :return: None
+    """
     print '       -'+scan+' -- '+scantype
     if all:
         for resource in XnatUtils.list_scan_resources(xnat,project,subject,session,scan):
             print '         ->'+resource['label']
 
 def query_assessor(xnat,assessor_label,all=False):
+    """
+    Method to query a assessor
+    
+    :param xnat: pyxnat.interface object
+    :param assessor_label: assessor label on XNAT
+    :param all: query the full hierarchy
+    :return: None
+    """
     labels=assessor_label.split('-x-')
     print '       -'+assessor_label
     if all:
@@ -60,6 +111,12 @@ def query_assessor(xnat,assessor_label,all=False):
 
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
+    """
+    Method to check options given to executables
+    
+    :param options: first output of OptParser.parse_args()
+    :return: True if options are fine, False otherwise
+    """
     # The options :
     if not options.me:
         if not options.project and not options.all and not options.assessor:
@@ -124,6 +181,12 @@ def check_options(options):
 
 ########################################## MAIN DISPLAY FUNCTION ##########################################   
 def Main_display(parser):
+    """
+    Main display of the executables before any process
+    
+    :param parser: OptParser Object
+    :return: None
+    """
     (options,args)=parser.parse_args()
     print '################################################################'
     print '#                          XNATQUERY                           #'
@@ -175,6 +238,13 @@ def Main_display(parser):
         print '################################################################'
         
 def get_proper_str(str_option,end=False):
+    """
+    Method to shorten a string into the proper size for display
+    
+    :param str_option: string to shorten
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
     if len(str_option)>32:
         if end:
             return '...'+str_option[-29:]
@@ -184,6 +254,11 @@ def get_proper_str(str_option,end=False):
         return str_option
 
 def get_usage():
+    """
+    Method to set usage for executables with examples
+    
+    :return: None
+    """
     usage="usage: %prog [options] \n"
     usage+="What is the script doing : \n"
     usage+="   *Query on Xnat at any level.\n"
@@ -196,6 +271,11 @@ def get_usage():
     return usage
     
 def parse_args():
+    """
+    Method to parse arguments base on OptionParser
+    
+    :return: parser object
+    """
     from optparse import OptionParser
     usage = get_usage()
     parser = OptionParser(usage=usage)
@@ -221,6 +301,7 @@ def parse_args():
 ########################################## MAIN FUNCTION ##########################################
 ###################################################################################################
 if __name__ == '__main__':
+    """ Main Function """
     parser = parse_args()
     (options,args)=parser.parse_args()
     #############################

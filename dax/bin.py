@@ -14,7 +14,14 @@ import XnatUtils
 from dax_settings import  API_URL, API_KEY_DAX, REDCAP_VAR
 
 def set_logger(logfile, debug):
-    """ function to set the logger """
+    """
+    Set the logging depth
+
+    :param logfile: File to log output to
+    :param debug: Should debug depth be used?
+    :return: logger object
+
+    """
     #Logger for logs
     if debug:
         logger = log.setup_debug_logger('dax', logfile)
@@ -23,7 +30,17 @@ def set_logger(logfile, debug):
     return logger
 
 def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None):
-    """ function to launch tasks on the cluster """
+    """
+    Method to launch jobs on the grid
+
+    :param settings_path: Path to the project settings file
+    :param logfile: Full file of the file used to log to
+    :param debug: Should debug mode be used
+    :param projects: Project(s) that need to be launched
+    :param sessions: Session(s) that need to be updated
+    :return: None
+
+    """
     #Logger for logs
     logger = set_logger(logfile, debug)
 
@@ -40,7 +57,18 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None):
     logger.info('finished update, End Time: '+str(datetime.now()))
 
 def build(settings_path, logfile, debug, projects=None, sessions=None):
-    """ function to build the database: scans inputs and  the assessors """
+    """
+    Method that is responsible for running all modules and putting assessors
+     into the database
+
+    :param settings_path: Path to the project settings file
+    :param logfile: Full file of the file used to log to
+    :param debug: Should debug mode be used
+    :param projects: Project(s) that need to be launched
+    :param sessions: Session(s) that need to be updated
+    :return: None
+
+    """
     #Logger for logs
     logger = set_logger(logfile, debug)
 
@@ -57,7 +85,17 @@ def build(settings_path, logfile, debug, projects=None, sessions=None):
     logger.info('finished update, End Time: '+str(datetime.now()))
 
 def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
-    """ function to run update for tasks """
+    """
+    Method that is responsible for updating a Task.
+
+    :param settings_path: Path to the project settings file
+    :param logfile: Full file of the file used to log to
+    :param debug: Should debug mode be used
+    :param projects: Project(s) that need to be launched
+    :param sessions: Session(s) that need to be updated
+    :return: None
+
+    """
     #Logger for logs
     logger = set_logger(logfile, debug)
 
@@ -74,7 +112,13 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
     logger.info('finished open tasks, End Time: '+str(datetime.now()))
 
 def pi_from_project(project):
-    """ get the pi name for the project """
+    """
+    Get the last name of PI who owns the project on XNAT
+
+    :param project: String of the ID of project on XNAT.
+    :return: String of the PIs last name
+
+    """
     pi_name = ''
     try:
         xnat = XnatUtils.get_interface()
@@ -88,9 +132,14 @@ def pi_from_project(project):
 
 def upload_update_date_redcap(project_list, type_update, start_end):
     """
-        project_list: projects from XNAT that corresponds to record on REDCap
-        type_update : 1 for dax_build / 2 for dax_update_tasks / 3 for dax_launch
-        start_end   : 1 for starting date / 2 for ending date
+    Upload the timestamp of when bin ran on a project (start and finish).
+
+    :param project_list: List of projects that were updated
+    :param type_update: What type of process ran: dax_build (1),
+     dax_update_tasks (2), dax_launch (3)
+    :param start_end: starting timestamp (1) and ending timestamp (2)
+    :return: None
+
     """
     logger = logging.getLogger('dax')
     if API_URL and API_KEY_DAX and REDCAP_VAR:
@@ -115,7 +164,15 @@ def upload_update_date_redcap(project_list, type_update, start_end):
             XnatUtils.upload_list_records_redcap(redcap_project, data)
 
 def set_variables_dax_manager(record_data, field_prefix, start_end):
-    """ set fields to upload to redcap for PID/dates (dax_manager) """
+    """
+    Update the process id of what was running and when
+
+    :param record_data: the REDCap record infor from Project.export_records()
+    :param field_prefix: prefix to make field assignment simpler
+    :param start_end: 1 if starting process, 2 if ending process
+    :return: updated record_data to upload to REDCap
+
+    """
     if start_end == 1:
         key = REDCAP_VAR[field_prefix+'_start_date']
         record_data[key] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())

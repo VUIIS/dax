@@ -259,7 +259,9 @@ def write_module(module_fpath, templates, args):
 
 def parse_args():
     """
-    Parser for arguments
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
     """
     from argparse import ArgumentParser
     usage = "Generate a module.py file from the template for dax in a new file."

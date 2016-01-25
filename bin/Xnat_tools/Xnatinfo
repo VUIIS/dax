@@ -6,7 +6,6 @@ Query through Xnat
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 import os
-import sys
 from dax import XnatUtils
 from datetime import datetime
 
@@ -15,25 +14,43 @@ DEFAULT_STATUS_LIST=['NEED_INPUTS', 'NEED_TO_RUN', 'JOB_RUNNING', 'JOB_FAILED', 
 
 ########################################## SPECIFIC FUNCTIONS ##########################################
 def add_process_to_dict(dictionary,proctype,procstatus):
+    """
+    Method to add process to the dictionary for report
+
+    :param dictionary: dictionary to add process to
+    :param proctype: type of process to add
+    :param procstatus: status of the process to add
+    :return: dictionary updated
+    """
     #proctype:
     if proctype in dictionary:
-        dictionary[proctype][0] += 1                                    
+        dictionary[proctype][0] += 1
     else:
         dictionary[proctype] = [1,0,0,0,0,0,0,0,0,0,0]
-        
+
     #procstatus:
     dictionary[proctype][DEFAULT_STATUS_DICT[procstatus]] += 1
-    
+
     return dictionary
-    
+
 def report_project(xnat,project,filetxt,failed,running):
+    """
+    Main Method to display the report for a project
+
+    :param xnat: first output of OptParser.parse_args()
+    :param project: project ID on XNAT
+    :param filetxt: file txt to write the output into
+    :param failed: print failing jobs
+    :param running: pirnt running jobs
+    :return: None
+    """
     #scan
     scan_unusable=list()
     scan_dict=dict()
     unknow_status=list()
     #for all process except FS
     assessor_dict=dict()   #dictionary: keys = proctype, value= list of 10 values: count, NEED_INPUTS, NEED_TO_RUN, JOB_RUNNING, JOB_FAILED, READY_TO_UPLOAD, UPLOADING, READY_TO_COMPLETE, COMPLETE, UNKNOWN
-    
+
     print('INFO: XNAT querying...')
     #scan loop
     scan_list=XnatUtils.list_project_scans(xnat, project)
@@ -45,10 +62,10 @@ def report_project(xnat,project,filetxt,failed,running):
             scan_unusable.append([scan['subject_label'],scan['session_label'], scan['ID'],scan['type']])
         #add the count for the scan type:
         if scan['type'] in scan_dict:
-            scan_dict[scan['type']] += 1                                    
+            scan_dict[scan['type']] += 1
         else:
             scan_dict[scan['type']] = 1
-            
+
     #assessor loop
     proc_list=XnatUtils.list_project_assessors(xnat, project)
     proc_number=len(proc_list)
@@ -58,8 +75,8 @@ def report_project(xnat,project,filetxt,failed,running):
             assessor_dict=add_process_to_dict(assessor_dict,assessor['proctype'],assessor['procstatus'])
         else:
             unknow_status.append(assessor['procstatus'])
-            assessor_dict=add_process_to_dict(assessor_dict,assessor['proctype'],'UNKNOWN')         
-                                
+            assessor_dict=add_process_to_dict(assessor_dict,assessor['proctype'],'UNKNOWN')
+
     # display informations
     print '\n'
     report_str='Information for project '+project+' on Xnat :\n'
@@ -140,9 +157,15 @@ def report_project(xnat,project,filetxt,failed,running):
         f = open(filetxt,'w')
         f.write(report_str+'\n')
         f.close()
-        
+
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
+    """
+    Method to check options given to executables
+
+    :param options: first output of ArgumentParser.parse_args()
+    :return: True if options are fine, False otherwise
+    """
     # The options :
     if options.filetxt:
         folder=os.path.dirname(os.path.abspath(options.filetxt))
@@ -161,13 +184,19 @@ def check_options(options):
                 if not P.exists():
                     print 'OPTION ERROR: You used the option -p/--project with an not existing project ID.'
                     return False
-        finally:                                        
+        finally:
             xnat.disconnect()
-                
+
     return True
 
-########################################## MAIN DISPLAY FUNCTION ##########################################   
+########################################## MAIN DISPLAY FUNCTION ##########################################
 def Main_display(parser):
+    """
+    Main display of the executables before any process
+
+    :param parser: ArgumentParser Object
+    :return: None
+    """
     args=parser.parse_args()
     print '################################################################'
     print '#                           XNATINFO                           #'
@@ -183,8 +212,15 @@ def Main_display(parser):
     if args.filetxt:
         print '#     %*s -> %*s#' %(-20,'file text',-33,get_proper_str(args.filetxt,True))
     print '################################################################'
-        
+
 def get_proper_str(str_option,end=False):
+    """
+    Method to shorten a string into the proper size for display
+
+    :param str_option: string to shorten
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
     if len(str_option)>32:
         if end:
             return '...'+str_option[-29:]
@@ -194,6 +230,11 @@ def get_proper_str(str_option,end=False):
         return str_option
 
 def parse_args():
+    """
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object
+    """
     from argparse import ArgumentParser
     ap = ArgumentParser(prog='Xnatinfo', description="Generate information on a XNAT project.")
     ap.add_argument(dest='project', help='Project ID on XNAT',default=None)
@@ -201,11 +242,10 @@ def parse_args():
     ap.add_argument('-f','--failed',dest='failed',help='Add this flag to print out failed jobs',action='store_true',default=False)
     ap.add_argument('-r','--running',dest='running',help='Add this flag to print out running jobs',action='store_true',default=False)
     return ap
-    
-###################################################################################################
+
 ########################################## MAIN FUNCTION ##########################################
-###################################################################################################
 if __name__ == '__main__':
+    """ Main function """
     parser = parse_args()
     args=parser.parse_args()
     #############################
@@ -219,7 +259,7 @@ if __name__ == '__main__':
         try:
             xnat = XnatUtils.get_interface()
             report_project(xnat,args.project,args.filetxt,args.failed,args.running)
-        finally:                                        
+        finally:
             xnat.disconnect()
-    
+
     print '===================================================================\n'

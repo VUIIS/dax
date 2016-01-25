@@ -1,9 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Executable to build you sessions for a settings file describing which
+project on XNAT and which pipelines to run on those projects.
+"""
+
 from dax import bin
 
 def parse_args():
+    """
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
+    """
     from argparse import ArgumentParser
     ap = ArgumentParser(prog='dax_build', description="Builds all sessions scans and assessors data (create assessors/create inputs: e.g: generate NIFTI).")
     ap.add_argument(dest='settings_path', help='Settings Path')
@@ -13,7 +23,7 @@ def parse_args():
     ap.add_argument('--nodebug', dest='debug', action='store_false', help='Avoid printing DEBUG information.')
     return ap.parse_args()
 
-if __name__ == '__main__':   
+if __name__ == '__main__':
     args = parse_args()
 
     bin.build(args.settings_path, args.logfile, args.debug, args.project, args.sessions)
