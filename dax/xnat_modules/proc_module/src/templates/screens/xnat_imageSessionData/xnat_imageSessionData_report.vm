@@ -204,9 +204,10 @@
     #if($om.getMinimalLoadAssessors().size()>0)
       obj.categories.ids.push("assessors");
       obj.categories["assessors"]=new Array();
-      #foreach($assessor in $om.getMinimalLoadAssessors())
-        obj.categories["assessors"].push({id:"$assessor.getId()",label:"$!assessor.getLabel() " + window.available_elements.getByName("$!assessor.getXSIType()").singular});
-      #end
+
+      #foreach ($proc in $om.getChildItems("assessors/assessor"))
+        obj.categories["assessors"].push({id:"$proc.getProperty('ID')",label: "[" + window.available_elements.getByName("$!proc.getXSIType()").singular + "] $!proc.getProperty('label')"});
+	  #end
     #end
 
     obj.isImageSession=true;
