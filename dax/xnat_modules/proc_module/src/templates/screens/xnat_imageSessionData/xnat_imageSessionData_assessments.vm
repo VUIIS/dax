@@ -1,7 +1,7 @@
 <link rel="stylesheet" type="text/css" href="$content.getURI("scripts/themes/proc/style.css")">
 <script type="text/javascript" src="$content.getURI("scripts/FileViewerProcessing.js")"></script>
 <script type="text/javascript" src="$content.getURI("scripts/FileViewerProcessingPdf.js")"></script>
-<script type="text/javascript" src="$content.getURI("scripts/jquery-latest.js")"></script>
+<!--<script type="text/javascript" src="$content.getURI("scripts/jquery-latest.js")"></script>-->
 <script type="text/javascript" src="$content.getURI("scripts/jquery.tablesorter.min.js")"></script>
 <script type="text/javascript" id="js">$(document).ready(function() {
 	// call the tablesorter plugin
@@ -130,7 +130,7 @@
 				#if($xsiType == 'proc:genProcData')
 					#if($qcStatus == 'Needs QA')
 						<td NOWRAP><a href="$editprocurl">$!qcStatus</a></td>
-					#elseif ($qcStatus.toLowerCase().contains('passed'))
+					#elseif ($qcStatus.toLowerCase().startswith('passed'))
 						<td NOWRAP class="quality-usable">$!qcStatus</td>
 					#elseif ($qcStatus.toLowerCase().contains('fail'))
 						<td NOWRAP class="quality-unusable">$!qcStatus</td>
@@ -140,7 +140,7 @@
 				#elseif ($xsiType == 'fs:fsData')
 					#if($qcStatus == 'Needs QA')
 						<td NOWRAP><a href="$editfsprocurl">$!qcStatus</a></td>
-					#elseif ($qcStatus.toLowerCase().contains('passed'))
+					#elseif ($qcStatus.toLowerCase().startswith('passed'))
 						<td NOWRAP class="quality-usable">$!qcStatus</td>
 					#elseif ($qcStatus.toLowerCase().contains('fail'))
 						<td NOWRAP class="quality-unusable">$!qcStatus</td>
