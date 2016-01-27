@@ -7,10 +7,11 @@ from string import Template
 
 class DAX_Settings(object):
     """
-    Class for DAX settings based on INI file
+    Class for DAX settings based on INI file.
+    Note that dax_settings should be in the home directory.
     """
 
-    def __init__(self, ini_settings_file='./dax_settings.ini'):
+    def __init__(self, ini_settings_file=os.path.join(os.path.expanduser('~'), '.dax_settings.ini')):
         if not os.path.isfile(ini_settings_file):
             sys.stderr.write('ERROR: file %s not found\n' % ini_settings_file)
             raise OSError
