@@ -16,7 +16,7 @@ from datetime import datetime
 from subprocess import CalledProcessError
 from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
-DEFAULT_EMAIL_OPT = DAX_SETTINGS.get_email_opts()
+DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
 JOB_TEMPLATE = DAX_SETTINGS.get_job_template()
 CMD_SUBMIT = DAX_SETTINGS.get_cmd_submit()
 CMD_COUNT_NB_JOBS = DAX_SETTINGS.get_cmd_count_nb_jobs()
