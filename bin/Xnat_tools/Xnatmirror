@@ -478,7 +478,10 @@ def copy_scan(src_scan, dst_scan, scan_cache_dir):
             dst_res = dst_scan.resource(res_label)
 
         res_cache_dir = os.path.join(scan_cache_dir, res_label)
-        copy_res(src_res, dst_res, res_cache_dir)
+        if res_label == 'SNAPSHOTS':
+            copy_res(src_res, dst_res, res_cache_dir)
+        else:
+            copy_res(src_res, dst_res, res_cache_dir, use_zip=True)
 
 def copy_res(src_res, dst_res, res_cache_dir, use_zip=False):
     '''Copy resource from source XNAT to destination XNAT'''
