@@ -14,7 +14,8 @@ class DAX_Settings(object):
     def __init__(self, ini_settings_file=os.path.join(os.path.expanduser('~'), '.dax_settings.ini')):
         if not os.path.isfile(ini_settings_file):
             sys.stderr.write('ERROR: file %s not found\n' % ini_settings_file)
-            raise OSError
+            sys.stderr.write('Please run dax_setup\n')
+            sys.exit(1)
 
         self.ini_settings_file = ini_settings_file
         self.config_parser = ConfigParser.ConfigParser(allow_no_value=True)

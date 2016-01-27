@@ -9,4 +9,3 @@ from .XnatUtils import SpiderProcessHandler
 from .modules import ScanModule, SessionModule
 from .spiders import ScanSpider, SessionSpider
 from .processors import ScanProcessor, SessionProcessor
-from .dax_settings import DAX_Settings

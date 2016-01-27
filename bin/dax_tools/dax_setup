@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
+from dax import dax_setup_handler
+
+if __name__ == '__main__':
+
+    DSH = dax_setup_handler.DAX_Setup_Handler()
+    DSH.config()
+    DSH.write()
