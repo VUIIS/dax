@@ -6,9 +6,7 @@ Executable to launch all jobs for a settings file describing which
 project on XNAT and which pipelines to run on those projects.
 """
 
-import os, imp
-from datetime import datetime
-from dax import bin
+import dax
 
 def parse_args():
     """
@@ -28,4 +26,4 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    bin.launch_jobs(args.settings_path, args.logfile, args.debug, args.project, args.sessions)
+    dax.bin.launch_jobs(args.settings_path, args.logfile, args.debug, args.project, args.sessions)

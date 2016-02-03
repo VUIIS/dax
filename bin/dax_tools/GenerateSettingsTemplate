@@ -77,14 +77,13 @@ myLauncher = Launcher(proj_proc, proj_mod, priority_project=PRIORITY_ORDER,
 
 """
 
-def write_settings(settings_fpath, args):
+def write_settings():
     """
     Write the ProjectSettingsFile.py from the template
 
-    :param settings_fpath: path where the settings script will be saved
-    :param args: arguments parser
+    :return: None
     """
-    priority = args.p_order.split(",")
+    priority = ARGS.p_order.split(",")
     p_mod = '{'
     p_proc = '{'
     for ind,  project in enumerate(priority):
@@ -97,16 +96,16 @@ def write_settings(settings_fpath, args):
     p_mod = p_mod[:-2]+'}'
     p_proc = p_proc[:-2]+'}'
 
-    settings_code = DEFAULT_TEMPLATE.format(author=args.author,
-                                            email_addr=args.email,
-                                            name=args.name,
+    settings_code = DEFAULT_TEMPLATE.format(author=ARGS.author,
+                                            email_addr=ARGS.email,
+                                            name=ARGS.name,
                                             now=str(datetime.now()),
-                                            q_limit=args.q_limit,
+                                            q_limit=ARGS.q_limit,
                                             p_order=priority,
-                                            e_opts=args.e_opts,
+                                            e_opts=ARGS.e_opts,
                                             p_mod=p_mod,
                                             p_proc=p_proc)
-    f_obj = open(settings_fpath, "w")
+    f_obj = open(SETTINGS_FPATH, "w")
     f_obj.writelines(settings_code)
     f_obj.close()
 
@@ -153,4 +152,4 @@ if __name__ == '__main__':
         SETTINGS_FPATH = os.path.join(os.getcwd(), SETTINGS_NAME)
 
     print "Generating file %s for scan processor %s ..." % (SETTINGS_FPATH, ARGS.name)
-    write_settings(SETTINGS_FPATH, ARGS)
+    write_settings()
