@@ -14,7 +14,7 @@ import modules
 import XnatUtils
 import task
 import cluster
-import bin
+import bin as db
 from task import Task
 from dax_settings import RESULTS_DIR, DEFAULT_ROOT_JOB_DIR, DEFAULT_QUEUE_LIMIT, DEFAULT_MAX_AGE
 
@@ -35,7 +35,7 @@ class Launcher(object):
                  job_email=None, job_email_options='bae', max_age=DEFAULT_MAX_AGE):
         """
         Entry point for the Launcher class
-        
+
         :param project_process_dict: dictionary associating XNAT project with processes
         :param project_modules_dict: dictionary associating XNAT project with modules
         :param priority_project: list of project to describe the priority
@@ -45,7 +45,7 @@ class Launcher(object):
         :param xnat_user: XNAT User ID. By default, use env variable.
         :param xnat_pass: XNAT Password. By default, use env variable.
         :param job_email: job email address for report
-        :param job_email_options: email options for the jobs 
+        :param job_email_options: email options for the jobs
         :param max_age: maximum time before updating again a session
         :return: None
         """
@@ -101,13 +101,13 @@ class Launcher(object):
     def launch_jobs(self, lockfile_prefix, project_local, sessions_local):
         """
         Main Method to launch the tasks
-        
+
         :param lockfile_prefix: prefix for flag file to lock the launcher
         :param project_local: project to run locally
-        :param sessions_local: list of sessions to launch tasks 
+        :param sessions_local: list of sessions to launch tasks
          associated to the project locally
         :return: None
-        
+
         """
         LOGGER.info('-------------- Launch Tasks --------------\n')
 
@@ -117,6 +117,9 @@ class Launcher(object):
         try:
             LOGGER.info('Connecting to XNAT at '+self.xnat_host)
             xnat = XnatUtils.get_interface(self.xnat_host, self.xnat_user, self.xnat_pass)
+
+            if not XnatUtils.has_dax_datatypes(xnat):
+                raise Exception('error: dax datatypes are not installed on your xnat <%s>' % (self.xnat_host))
 
             LOGGER.info('Getting launchable tasks list...')
             task_list = self.get_tasks(xnat,
@@ -136,7 +139,7 @@ class Launcher(object):
     def is_launchable_tasks(assr_info):
         """
         Check if a task is launchable
-        
+
         :param assr_info: dictionary containing procstatus for the assessor
         :return: True if tasks need to be launch, False otherwise.
         """
@@ -145,7 +148,7 @@ class Launcher(object):
     def launch_tasks(self, task_list):
         """
         Launch tasks from the passed list until the queue is full or the list is empty
-        
+
         :param task_list: list of task to launch
         :return: None
         """
@@ -184,13 +187,13 @@ class Launcher(object):
     def update_tasks(self, lockfile_prefix, project_local, sessions_local):
         """
         Main method to Update the tasks
-        
+
         :param lockfile_prefix: prefix for flag file to lock the launcher
         :param project_local: project to run locally
         :param sessions_local: list of sessions to update tasks associated
          to the project locally
         :return: None
-        
+
         """
         LOGGER.info('-------------- Update Tasks --------------\n')
 
@@ -200,6 +203,9 @@ class Launcher(object):
         try:
             LOGGER.info('Connecting to XNAT at '+self.xnat_host)
             xnat = XnatUtils.get_interface(self.xnat_host, self.xnat_user, self.xnat_pass)
+
+            if not XnatUtils.has_dax_datatypes(xnat):
+                raise Exception('error: dax datatypes are not installed on your xnat <%s>' % (self.xnat_host))
 
             LOGGER.info('Getting task list...')
             task_list = self.get_tasks(xnat,
@@ -221,25 +227,25 @@ class Launcher(object):
     def is_updatable_tasks(assr_info):
         """
         Check if a task is updatable.
-        
+
         :param assr_info: dictionary containing procstatus/qcstatus for the assessor
         :return: True if tasks need to be update, False otherwise.
-        
+
         """
         return assr_info['procstatus'] in task.OPEN_STATUS_LIST or\
-               assr_info['qcstatus'] in task.OPEN_QC_LIST
+               assr_info['qcstatus'] in task.OPEN_QA_LIST
 
     ################## BUILD Main Method ##################
     def build(self, lockfile_prefix, project_local, sessions_local):
-        """ 
+        """
         Main method to build the tasks and the sessions
-        
+
         :param lockfile_prefix: prefix for flag file to lock the launcher
         :param project_local: project to run locally
-        :param sessions_local: list of sessions to launch tasks 
+        :param sessions_local: list of sessions to launch tasks
          associated to the project locally
         :return: None
-        
+
         """
         LOGGER.info('-------------- Build --------------\n')
 
@@ -249,6 +255,9 @@ class Launcher(object):
         try:
             LOGGER.info('Connecting to XNAT at '+self.xnat_host)
             xnat = XnatUtils.get_interface(self.xnat_host, self.xnat_user, self.xnat_pass)
+
+            if not XnatUtils.has_dax_datatypes(xnat):
+                raise Exception('error: dax datatypes are not installed on your xnat <%s>' % (self.xnat_host))
 
             #Priority if set:
             if self.priority_project and not project_local:
@@ -264,13 +273,13 @@ class Launcher(object):
             self.finish_script(xnat, flagfile, project_list, 1, 2, project_local)
 
     def build_project(self, xnat, project_id, lockfile_prefix, sessions_local):
-        """ 
+        """
         Build the project
-        
+
         :param xnat: pyxnat.Interface object
         :param project_id: project ID on XNAT
         :param lockfile_prefix: prefix for flag file to lock the launcher
-        :param sessions_local: list of sessions to launch tasks 
+        :param sessions_local: list of sessions to launch tasks
         :return: None
         """
         #Modules prerun
@@ -326,11 +335,11 @@ class Launcher(object):
                       scan_proc_list, sess_mod_list, scan_mod_list):
         """
         Build a session
-        
+
         :param xnat: pyxnat.Interface object
         :param sess_info: python ditionary from XnatUtils.list_sessions method
         :param sess_proc_list: list of processors running on a session
-        :param scan_proc_list: list of processors running on a scan 
+        :param scan_proc_list: list of processors running on a scan
         :param sess_mod_list: list of modules running on a session
         :param scan_mod_list: list of modules running on a scan
         :return: None
@@ -406,7 +415,7 @@ class Launcher(object):
     def log_updating_status(procname, assessor_label):
         """
         Print as debug the status updating string
-        
+
         :param procname: process name
         :param assessors_label: assessor label
         :return: None
@@ -418,10 +427,10 @@ class Launcher(object):
     def build_scan(self, xnat, cscan, scan_proc_list, scan_mod_list):
         """
         Build the scan
-        
+
         :param xnat: pyxnat.Interface object
         :param cscan: CachedImageScan from XnatUtils
-        :param scan_proc_list: list of processors running on a scan 
+        :param scan_proc_list: list of processors running on a scan
         :param scan_mod_list: list of modules running on a scan
         :return: None
         """
@@ -467,7 +476,7 @@ class Launcher(object):
     def module_prerun(self, project_id, settings_filename=''):
         """
         Run the module prerun method
-        
+
         :param xnat: pyxnat.Interface object
         :param project_id: project ID on XNAT
         :param settings_filename: name of the settings file used to name temp dir
@@ -480,7 +489,7 @@ class Launcher(object):
     def module_afterrun(self, xnat, project_id):
         """
         Run the module afterrun method
-        
+
         :param xnat: pyxnat.Interface object
         :param project_id: project ID on XNAT
         :return: None
@@ -493,7 +502,7 @@ class Launcher(object):
     def init_script(self, flagfile, project_local, type_update, start_end):
         """
         Init script for any of the main methods: build/update/launch
-        
+
         :param flagfile: flag file for the method to run
         :param project_local: project to run locally
         :param type_update: What type of process ran: dax_build (1),
@@ -526,13 +535,13 @@ The project is not part of the settings."""
             ulist = set(self.project_process_dict.keys()+self.project_modules_dict.keys())
             project_list = sorted(ulist)
             #Set the date on REDCAP for update starting
-            bin.upload_update_date_redcap(project_list, type_update, start_end)
+            db.upload_update_date_redcap(project_list, type_update, start_end)
         return project_list
 
     def finish_script(self, xnat, flagfile, project_list, type_update, start_end, project_local):
         """
         Finish script for any of the main methods: build/update/launch
-        
+
         :param flagfile: flag file for the method to run
         :param project_list: List of projects that were updated by the method
         :param type_update: What type of process ran: dax_build (1),
@@ -544,7 +553,7 @@ The project is not part of the settings."""
         if not project_local:
             self.unlock_flagfile(flagfile)
             #Set the date on REDCAP for update ending
-            bin.upload_update_date_redcap(project_list, type_update, start_end)
+            db.upload_update_date_redcap(project_list, type_update, start_end)
         xnat.disconnect()
         LOGGER.info('Connection to XNAT closed')
 
@@ -552,7 +561,7 @@ The project is not part of the settings."""
     def lock_flagfile(lock_file):
         """
         Create the flagfile to lock the process
-        
+
         :param lock_file: flag file use to lock the process
         :return: True if the file didn't exist, False otherwise
         """
@@ -566,7 +575,7 @@ The project is not part of the settings."""
     def unlock_flagfile(lock_file):
         """
         Remove the flagfile to unlock the process
-        
+
         :param lock_file: flag file use to lock the process
         :return: None
         """
@@ -576,7 +585,7 @@ The project is not part of the settings."""
     def get_tasks(self, xnat, is_valid_assessor, project_list=None, sessions_local=None):
         """
         Get list of tasks for a projects list
-        
+
         :param xnat: pyxnat.Interface object
         :param is_valid_assessor: method to validate the assessor
         :param project_list: List of projects to search tasks from
@@ -604,10 +613,10 @@ The project is not part of the settings."""
         return task_list
 
     def get_project_tasks(self, xnat, project_id, sessions_local, is_valid_assessor):
-        """ 
-        Get list of tasks for a specific project where each task agrees 
+        """
+        Get list of tasks for a specific project where each task agrees
          the is_valid_assessor conditions
-        
+
         :param xnat: pyxnat.Interface object
         :param project_id: project ID on XNAT
         :param sessions_local: list of sessions to update tasks associated
@@ -635,12 +644,12 @@ The project is not part of the settings."""
 
     @staticmethod
     def match_proc(assr_info, sess_proc_list, scan_proc_list):
-        """ 
+        """
         Check if an assessor is a match with the processors
-        
+
         :param assr_info: dictionary containing the assessor info (See XnatUtils.list_assessors)
         :param sess_proc_list: list of processors running on a session
-        :param scan_proc_list: list of processors running on a scan 
+        :param scan_proc_list: list of processors running on a scan
         :return: processor if found, None otherwise
         """
         # Look for a match in sess processors
@@ -658,13 +667,13 @@ The project is not part of the settings."""
         return None
 
     def generate_task(self, xnat, assr_info, sess_proc_list, scan_proc_list):
-        """ 
+        """
         Generate a task for the assessor in the info
-        
+
         :param xnat: pyxnat.Interface object
         :param assr_info: dictionary containing the assessor info (See XnatUtils.list_assessors)
         :param sess_proc_list: list of processors running on a session
-        :param scan_proc_list: list of processors running on a scan 
+        :param scan_proc_list: list of processors running on a scan
         :return: task if processor and assessor match, None otherwise
         """
         task_proc = self.match_proc(assr_info, sess_proc_list, scan_proc_list)
@@ -682,7 +691,7 @@ The project is not part of the settings."""
     def get_assessors_list(xnat, project_id, slocal):
         """
         Get the assessor list from XNAT and filter it if necessary
-        
+
         :param xnat: pyxnat.Interface object
         :param project_id: project ID on XNAT
         :param slocal: session selected by user
@@ -705,7 +714,7 @@ The project is not part of the settings."""
     def get_sessions_list(xnat, project_id, slocal):
         """
         Get the sessions list from XNAT and sort it. Move the new sessions to the front.
-        
+
         :param xnat: pyxnat.Interface object
         :param project_id: project ID on XNAT
         :param slocal: session selected by user
@@ -728,9 +737,9 @@ The project is not part of the settings."""
         return sorted_list
 
     def get_project_list(self, all_projects):
-        """ 
+        """
         Get project list from the file priority + the other ones
-        
+
         :param all_projects: list of all the projects in the settings file
         :return: list of project sorted to update
         """
@@ -741,7 +750,7 @@ The project is not part of the settings."""
     def get_lastupdated(info):
         """
         Get the last updated date from XNAT
-        
+
         :param info: dictionary of an assessor
         :return: date in UPDATE_PREFIX if last updated date found
          None otherwise
@@ -754,9 +763,9 @@ The project is not part of the settings."""
 
     @staticmethod
     def set_session_lastupdated(xnat, sess_info, update_start_time):
-        """ 
+        """
         Set the last session update on XNAT
-            
+
         :param xnat: pyxnat.Interface object
         :param sess_info: dictionary of session information
         :param update_start_time: date when the update started
@@ -781,11 +790,11 @@ The project is not part of the settings."""
     def has_new_processors(xnat, project_id, sess_proc_list, scan_proc_list):
         """
         Check if has new processors
-        
+
         :param xnat: pyxnat.Interface object
         :param project_id: project ID on XNAT
         :param sess_proc_list: list of processors running on a session
-        :param scan_proc_list: list of processors running on a scan 
+        :param scan_proc_list: list of processors running on a scan
         :return: True if has new processors, False otherwise
         """
         # Get unique list of assessors already in XNAT

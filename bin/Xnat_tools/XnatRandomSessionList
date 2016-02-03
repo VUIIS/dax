@@ -5,16 +5,16 @@ from dax import XnatUtils
 
 def parse_args():
 	"""
-    Method to parse arguments base on ArgumentParser
+	Method to parse arguments base on ArgumentParser
 
-    :return: parser object parsed
-    """
+	:return: parser object parsed
+	"""
 	parser = argparse.ArgumentParser(description='Program to get a random list of sessions')
 	parser.add_argument("-p", "--project", help="Project to get sessions from", required=True)
 	parser.add_argument("-n", "--num-sessions", help="Number of sessions to return (default=10)",
-                            default=10, required=False)
+	                        default=10, required=False)
 	parser.add_argument("-d", "--delimeter", help="Delimeter to separate session IDs (default=,)",
-                            default=",", required=False)
+	                        default=",", required=False)
 	return parser.parse_args()
 
 def main():

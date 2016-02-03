@@ -1,44 +1,45 @@
 # Example for MOAB PBS:
 
 import os
-from string import Template 
+from string import Template
 from stat import S_IXUSR, ST_MODE
 from os.path import expanduser
 
 USER_HOME = expanduser("~")
 
 """ This file can be edited by users to match their cluster commands.
-    
+
     1) PBS:
 You can customize the command for PBS.
 One command is to count the number of jobs from the cluster running under the USER.
 CMD_SUBMIT_PBS        --> command to submit jobs (default: qsub)
 PREFIX_JOBID          --> string before the job ID in the output of the CMD_SUBMIT_PBS
 SUFFIX_JOBID          --> string after the job ID in the output of the CMD_SUBMIT_PBS
-CMD_COUNT_NB_JOBS     --> command to return the number of jobs 
+CMD_COUNT_NB_JOBS     --> command to return the number of jobs
 CMD_GET_JOB_STATUS    --> command to return the status of a job given it jobid
 RUNNING_STATUS        --> string return for RUNNING Job (e.g: 'r')
 QUEUE_STATUS          --> string return for IN QUEUE Job (e.g: 'qw')
-CMD_GET_JOB_MEMORY    --> command to get job memory used 
+CMD_GET_JOB_MEMORY    --> command to get job memory used
 CMD_GET_JOB_WALLTIME  --> command to get job walltime used
 JOB_EXTENSION_FILE    --> extension for job script (default: .pbs)
 DEFAULT_EMAIL_OPTS    --> EMAIL options (default: bae)
+XSITYPE_INCLUDE       --> define which datatypes on XNAT is required for DAX (and installed)
 
     2) PATH / default value for cluster
-    
+
 DEFAULT_GATEWAY --> Name of the computer you are working on (define by HOSTNAME), default value if HOSTNAME not in env
 RESULTS_DIR     --> where results from jobs are stored to be upload to xnat later.
 ROOT_JOB_DIR    --> Directory used for temp job folder for intermediate results
 QUEUE_LIMIT     --> Number max of jobs authorized in the queue.
 
     3) Email information to send email (optional)
-    
+
 SMTP_FROM --> address from where you will send the email.
 SMTP_PASS --> password for the email address.
 SMTP_HOST --> server HOST ID (e.g: google --> stmp.gmail.com)
 
     4) REDCap for dax_manager (optional)
-    
+
 API_URL      --> api url for redcap database
 API_KEY_DAX  --> api key for redcap project holding the information for the settings
 API_KEY_XNAT --> api key for redcap project holding the jobID submit to the cluster
@@ -63,7 +64,7 @@ QUEUE_STATUS='Q'
 CMD_GET_JOB_MEMORY=Template("""rsh vmpsched "tracejob -n ${numberofdays} ${jobid}" 2> /dev/null | awk -v FS="(resources_used.mem=|kb)" '{print $2}' | sort -u | tail -1""")
 CMD_GET_JOB_WALLTIME=Template("""rsh vmpsched "tracejob -n ${numberofdays} ${jobid}" 2> /dev/null | awk -v FS="(resources_used.walltime=|\n)" '{print $2}' | sort -u | tail -1""")
 #Template for your PBS
-JOB_EXTENSION_FILE='.pbs' 
+JOB_EXTENSION_FILE='.pbs'
 PBS_TEMPLATE = Template("""#!/bin/bash
 #PBS -M ${pbs_email}
 #PBS -m ${pbs_email_options}
@@ -78,6 +79,7 @@ ${pbs_cmds}
 """)
 #Default EMAIL options:
 DEFAULT_EMAIL_OPTS='bae'
+XSITYPE_INCLUDE = ["proc:genProcData"]
 
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
@@ -122,30 +124,30 @@ if 'UPLOAD_SPIDER_DIR' not in os.environ:
     if not os.path.exists(RESULTS_DIR):
         os.mkdir(RESULTS_DIR)
 else:
-    RESULTS_DIR=os.environ['UPLOAD_SPIDER_DIR'] 
+    RESULTS_DIR=os.environ['UPLOAD_SPIDER_DIR']
 #Settings to send email (optional):
 #STMP_FROM:
 if 'SMTP_FROM' not in os.environ:
     SMTP_FROM=DEFAULT_SMTP_FROM
 else:
-    SMTP_FROM=os.environ['SMTP_FROM'] 
+    SMTP_FROM=os.environ['SMTP_FROM']
 #API_URL:
 if 'SMTP_PASS' not in os.environ:
     SMTP_PASS=DEFAULT_SMTP_PASS
 else:
-    SMTP_PASS=os.environ['SMTP_PASS'] 
+    SMTP_PASS=os.environ['SMTP_PASS']
 #API_URL:
 if 'SMTP_HOST' not in os.environ:
     SMTP_HOST=DEFAULT_SMTP_HOST
 else:
-    SMTP_HOST=os.environ['SMTP_HOST'] 
+    SMTP_HOST=os.environ['SMTP_HOST']
 #Management using REDCap (optional):
 #Variables for REDCap:
 #API_URL:
 if 'API_URL' not in os.environ:
     API_URL=DEFAULT_API_URL
 else:
-    API_URL=os.environ['API_URL'] 
+    API_URL=os.environ['API_URL']
 #API_KEY for dax project (save here or in .bashrc and name the env variable API_KEY_DAX):
 if 'API_KEY_DAX' not in os.environ:
     API_KEY_DAX=DEFAULT_API_KEY_DAX
@@ -155,5 +157,4 @@ else:
 if 'API_KEY_XNAT' not in os.environ:
     API_KEY_XNAT=DEFAULT_API_KEY_XNAT
 else:
-    API_KEY_XNAT=os.environ['API_KEY_XNAT'] 
-
+    API_KEY_XNAT=os.environ['API_KEY_XNAT']

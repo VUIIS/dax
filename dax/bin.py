@@ -4,7 +4,6 @@
 
 import os
 import imp
-import socket
 import redcap
 import logging
 from datetime import datetime
@@ -128,7 +127,7 @@ def pi_from_project(project):
         pass
     finally:
         xnat.disconnect()
-        return pi_name
+    return pi_name
 
 def upload_update_date_redcap(project_list, type_update, start_end):
     """
