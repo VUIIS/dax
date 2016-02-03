@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 '''
 Created on Jan 24, 2013
 Upgraded on February 19, 2015
@@ -7,102 +8,175 @@ Upgraded on February 19, 2015
 @author: yvernabc
 '''
 
-import os,sys
+import os
+import sys
+import dax
+import getpass
+from datetime import datetime
 from dax import XnatUtils
 
-########################################## USEFUL FUNCTIONS ##########################################
-def get_option_list(option):
+########### VARIABLES ###########
+DEFAULT_ARGUMENTS = {'username': None, 'status': None, 'sessions': None,
+                     'txtfile': None, 'formerstatus': None, 'project': None,
+                     'needinputs': None, 'host': None, 'subjects': None,
+                     'printstatus': False, 'deleteR': False, 'proctypes': None,
+                     'qcstatus': False, 'select': None}
+DESCRIPTION = """What is the script doing :
+    *Switch/Set the status for assessors on XNAT selected by the proctype.
+Examples:
+    *See status managed by DAX: XnatSwitchProcessStatus --printstatus
+    *Set all fMRIQA to a specific status Error for a project: XnatSwitchProcessStatus -p PID -s Error -t fMRIQA
+    *Set all Multi_Atlas that have the status JOB_FAILED to NEED_TO_RUN to have the processes run again: XnatSwitchProcessStatus -p PID -f JOB_FAILED -t Multi_Atlas -s NEED_TO_RUN
+    *Set all VBMQA to NEED_TO_RUN for a project and delete resources: XnatSwitchProcessStatus -p PID -s NEED_TO_RUN -t VBMQA -d
+    *Set all VBMQA to NEED_TO_RUN, delete resources, and set linked assessors fMRI_Preprocess to NEED_INPUTS: XnatSwitchProcessStatus -p PID -s NEED_TO_RUN -t VBMQA -d -n fMRI_Preprocess
+    *Set all dtiQA_v2 qa status to Passed for a project: XnatSwitchProcessStatus -p PID -s Passed -t dtiQA_v2 --qc
+    *Set FreeSurfer for a specific project/subject to NEED_INPUTS: XnatSwitchProcessStatus -p PID --subj 123 -s NEED_INPUTS -t FreeSurfer
+"""
+
+########### USEFUL FUNCTIONS ###########
+def get_option_list(option, proc_type=False):
+    """
+    Method to convert option value to a list, None if empty, all if all selected
+
+    :param option: string representing the option
+    :return: None if empty, 'all' if all selected, list otherwise
+    """
     if not option:
         return None
-    elif option=='all':
+    elif option == 'all':
         return 'all'
-    elif option=='nan':
+    elif option == 'nan':
         return None
     else:
-        return option.split(',')
+        opt_list = option.split(',')
+        if proc_type and 'FS' in opt_list:
+            opt_list.remove('FS')
+            opt_list.append('FreeSurfer')
+        return opt_list
 
-def isFreeSurfer(proctype):
-    return proctype=='FS' or proctype=='FreeSurfer'
-                    
 def get_assessor_dict(assessor_label):
-    assessor_dict=dict()
-    labels=assessor_label.split('-x-')
-    if len(labels)==1:
+    """
+    Method to convert assessor label into a dictionary
+
+    :param assessor_label: assessor label to transform into dictionary
+    :return: assessor dictionary
+    """
+    assessor_dict = dict()
+    labels = assessor_label.split('-x-')
+    if len(labels) == 1:
         print'ERROR: WRONG PROCESS LABEL: the assessor label can not be set (ERROR no "-x-" in the name)'
-        print'  -> Skipping the processor '+assessor_label
+        print'  -> Skipping the processor %s' % (assessor_label)
     else:
-        assessor_dict['project_id']=labels[0]
-        assessor_dict['subject_label']=labels[1]
-        assessor_dict['session_label']=labels[2]
-        assessor_dict['label']=assessor_label
-        assessor_dict['proctype']=labels[-1]
+        assessor_dict['project_id'] = labels[0]
+        assessor_dict['subject_label'] = labels[1]
+        assessor_dict['session_label'] = labels[2]
+        assessor_dict['label'] = assessor_label
+        assessor_dict['proctype'] = labels[-1]
+        if assessor_dict['proctype'] == 'FS' and XnatUtils.has_fs_datatypes:
+            assessor_dict['xsiType'] = XnatUtils.DEFAULT_FS_DATATYPE
+        else:
+            assessor_dict['xsiType'] = XnatUtils.DEFAULT_DATATYPE
     return assessor_dict
 
-########################################## XNAT FUNCTIONS ##########################################
-def xnat_list_assessors(xnat,options):
-    projects_assessors_list=list()
+def get_list_projects():
+    """
+    Method to get the list of projects ID from XNAT accessible by the user
+     from the options he specified
+
+    :return: list of projects ID
+    """
+    projects_list = list()
+    projects_selected = get_option_list(OPTIONS.project)
+    if projects_selected == 'all':
+        post_uri_project = '/REST/projects/'
+        for project in XNAT._get_json(post_uri_project):
+            if XnatUtils.list_subjects(XNAT, project['ID']):
+                projects_list.append(project['ID'])
+            else:
+                sys.stdout.write("   !!ERROR: You don't have access to the project: %s.!!\n" % (project))
+    elif isinstance(projects_selected, list):
+        projects_list = projects_selected
+    return projects_list
+
+########### XNAT FUNCTIONS ###########
+def xnat_list_assessors():
+    """
+    Method to extract the list of assessors for the projects selected and
+     corresponding to the options specified by the user.
+
+    :return: list of assessors dictionaries to change status
+    """
+    all_projects_assessors_list = list()
     print 'INFO: Querying XNAT to get assessors labels for all the projects.'
-    for project in get_option_list(options.project):
-        sys.stdout.write("  *Project: "+project+'\t\t\t\t\t\t\n')
-        #for all processors in the project:
-        proc_list=XnatUtils.list_project_assessors(xnat, project)
-        if not proc_list:
-            sys.stdout.write("   !!ERROR: You don't have access to the project: "+project+".!!\n")
+    for project in get_list_projects():
+        sys.stdout.write("  *Project: %s\t\t\t\t\t\t\n" % (project))
+        assessors_list = XnatUtils.list_project_assessors(XNAT, project)
+        if not assessors_list:
+            sys.stdout.write("   !!ERROR: You don't have access to the project: %s.!!\n" % (project))
             continue
         #Filters for subjects/sessions/Proctypes/status
-        projects_assessors_list.extend(filter_assessors(options,proc_list))
-    
+        all_projects_assessors_list.extend(filter_assessors(assessors_list))
+
     #Print number of assessors found:
     print 'INFO: Number of XNAT assessors found after filters for all the project:'
-    if projects_assessors_list:
+    if all_projects_assessors_list:
         print ' ---------------------------------------------'
-        print '| %*s | %*s |' % (-20,'Project ID',-20,'Number of Assessors')
+        print '| %*s | %*s |' % (-20, 'Project ID', -20, 'Number of Assessors')
         print ' ---------------------------------------------'
-        for project in set([o['project_id'] for o in projects_assessors_list]):
-            print '| %*s | %*s |' % (-20,project,-20,len([s for s in projects_assessors_list if s['project_id']==project]))
+        for project in set([item['project_id'] for item in all_projects_assessors_list]):
+            print '| %*s | %*s |' % (-20, project,
+                                     -20, len([s for s in all_projects_assessors_list if s['project_id'] == project]))
         print ' ---------------------------------------------\n'
-    return projects_assessors_list
+    return all_projects_assessors_list
 
-def filter_assessors(options, obj_list):
-    subjects = get_option_list(options.subjects)
-    sessions = get_option_list(options.sessions)
-    proctypes = get_option_list(options.proctypes)
-    #FS for FREESURFER
-    if proctypes and proctypes != 'all' and 'FS' in proctypes:
-        proctypes.remove('FS')
-        proctypes.append('FreeSurfer')
-    status = options.formerstatus
-    qastatus = options.qastatus
+def filter_assessors(assessors_list):
+    """
+    Method to filter the list of assessors to keep the ones respecting the options
+     specified by the user.
+
+    :param assessors_list: list of assessors dictionaries from XNAT
+    :return: list of assessors dictionaries filtered
+    """
+    subjects = get_option_list(OPTIONS.subjects)
+    sessions = get_option_list(OPTIONS.sessions)
+    proc_types = get_option_list(OPTIONS.proctypes)
     if subjects and subjects != 'all':
-        obj_list = filter(lambda x: x['subject_label'] in subjects, obj_list)
+        assessors_list = filter(lambda x: x['subject_label'] in subjects, assessors_list)
     if sessions and sessions != 'all':
-        obj_list = filter(lambda x: x['session_label'] in sessions, obj_list)
-    if proctypes and proctypes != 'all':
-        obj_list = filter(lambda x: x['proctype'] in proctypes, obj_list)
-    if status and status != 'all':
-        if qastatus:
-            obj_list = filter(lambda x: x['qcstatus'] in status, obj_list)
+        assessors_list = filter(lambda x: x['session_label'] in sessions, assessors_list)
+    if proc_types and proc_types != 'all':
+        assessors_list = filter(lambda x: x['proctype'] in proc_types, assessors_list)
+    if OPTIONS.formerstatus and OPTIONS.formerstatus != 'all':
+        if OPTIONS.qcstatus:
+            assessors_list = filter(lambda x: x['qcstatus'] in OPTIONS.formerstatus, assessors_list)
         else:
-            obj_list = filter(lambda x: x['procstatus'] in status, obj_list)  
-    return obj_list
+            assessors_list = filter(lambda x: x['procstatus'] in OPTIONS.formerstatus, assessors_list)
+    return assessors_list
 
-def delete_Out_Resource(assessor_obj,resource_label):
-    deleted=False
-    count=0
-    while count<3 and deleted==False:
+def delete_resource(assessor_obj, resource_label):
+    """
+    Method to delete the resources for an assessors
+
+    :param assessor_obj: pyxnat assessor Eobject
+    :param resource_label: label of the resource to delete
+    :return: None
+    """
+    deleted = False
+    count = 0
+    while count < 3 and deleted == False:
         try:
             if assessor_obj.out_resource(resource_label).exists():
                 assessor_obj.out_resource(resource_label).delete()
-            deleted=True
+            deleted = True
         except Exception as e:
-            if isinstance(e,KeyboardInterrupt):
+            if isinstance(e, KeyboardInterrupt):
                 sys.exit()
             else:
                 sys.stdout.write('     ->WARNING: Timing Out while deleting: Resource Too big.Trying again.\n')
-                count+=1
-    
+                count += 1
+
     if not deleted:
-        sys.stdout.write('     ->WARNING: Can not remove resource '+resource_label+'. Deleting file by file.\n')
+        sys.stdout.write('     ->WARNING: Can not remove resource %s. Deleting file by file.\n' % (resource_label))
         try:
             for fname in assessor_obj.out_resource(resource_label).files().get()[:]:
                 assessor_obj.out_resource(resource_label).file(fname).delete()
@@ -111,119 +185,169 @@ def delete_Out_Resource(assessor_obj,resource_label):
             if isinstance(e,KeyboardInterrupt):
                 sys.exit()
             else:
-                sys.stdout.write('     ->ERROR: deleting file by file for the resource '+resource_label+'\n')
+                sys.stdout.write('     ->ERROR: deleting file by file for the resource %s\n' % (resource_label))
                 print e
-    sys.stdout.write('     ->Resource '+resource_label+' deleted\n')
+    sys.stdout.write('     ->Resource %s deleted\n' % (resource_label))
 
-########################################## SWITCH JOB/QC STATUS FS/DEFAULT PROC ##########################################
-def set_qastatus_FS(assessor_obj,status):
-    assessor_obj.attrs.set('fs:fsData/validation/status',status)
-    sys.stdout.write('   -QA Status on Assessor '+assessor_obj.label()+' changed to '+status+'\n')
-    
-def set_qastatus_default(assessor_obj,status):
-    assessor_obj.attrs.set('proc:genProcData/validation/status',status)
-    sys.stdout.write('   -QA Status on Assessor '+assessor_obj.label()+' changed to '+status+'\n')
-    
-def set_status_FS(assessor_obj,status):
-    assessor_obj.attrs.set('fs:fsData/procstatus',status)
-    if status=='NEED_TO_RUN' or status=='NEED_INPUTS':
-        assessor_obj.attrs.mset({'fs:fsData/validation/status':'Job Pending',
-                                 'fs:fsData/jobid':' ',
-                                 'fs:fsData/memused':' ',
-                                 'fs:fsData/walltimeused':' ',
-                                 'fs:fsData/jobnode':' '})
-    #display
-    sys.stdout.write('   -JOB Status on Assessor '+assessor_obj.label()+' changed to '+status+'\n')
+########### SWITCH JOB/QC STATUS FS/DEFAULT PROC ###########
+def set_qc_status(assessor_obj, status, xsitype=XnatUtils.DEFAULT_DATATYPE):
+    """
+    Method to set the qcStatus for an assessor
 
-def set_status_default(assessor_obj,status):
-    assessor_obj.attrs.set('proc:genProcData/procstatus',status)
-    if status=='NEED_TO_RUN' or status=='NEED_INPUTS':
-        assessor_obj.attrs.mset({'proc:genProcData/validation/status':'Job Pending',
-                                 'proc:genProcData/jobid':' ',
-                                 'proc:genProcData/memused':' ',
-                                 'proc:genProcData/walltimeused':' ',
-                                 'proc:genProcData/jobnode':' '})
-    #display
-    sys.stdout.write('   -JOB Status on Assessor '+assessor_obj.label()+' changed to '+status+'\n')
-
-def set_NEED_INPUTS_proctype(xnat,assessor_dict,needinputs_proctypes):
-    list_NI_assessors=XnatUtils.list_assessors(xnat, assessor_dict['project_id'], assessor_dict['subject_label'], assessor_dict['session_label'])
-    list_NI_assessors=filter(lambda x: x['proctype'] in needinputs_proctypes, list_NI_assessors)
-    for assessor in list_NI_assessors:
-        assessor_obj=xnat.select('/project/'+assessor['project_id']+'/subjects/'+assessor['subject_id']+'/experiments/'+assessor['session_id']+'/assessors/'+assessor['label'])
-        if assessor_obj.exists():
-            if isFreeSurfer(assessor['proctype']): set_status_FS(assessor_obj,'NEED_INPUTS')
-            else: set_status_default(assessor_obj,'NEED_INPUTS')
-            for resource in XnatUtils.list_assessor_out_resources(xnat,assessor['project_id'],assessor['subject_id'],assessor['session_id'],assessor['label']):
-                delete_Out_Resource(assessor_obj,resource['label'])
-
-########################################## SET ASSESSOR ##########################################                 
-def set_status_assessor(xnat,assessor_dict,needinputs,status,deleteR,qastatus):
-    assessor_obj=xnat.select('/project/'+assessor_dict['project_id']+'/subjects/'+assessor_dict['subject_label']+'/experiments/'+assessor_dict['session_label']+'/assessors/'+assessor_dict['label'])
-    if not assessor_obj.exists():
-        print 'ERROR: Assessors '+assessor_dict['label']+' does not exist on XNAT.'
+    :param assessor_obj: pyxnat assessor Eobject
+    :param status: qc status to set
+    :param xsitype: datatype to change status
+    :return: None
+    """
+    today = datetime.now()
+    if status == dax.task.NEEDS_QA:
+        user = 'NULL'
+        date = 'NULL'
+        note = 'NULL'
     else:
-        if qastatus:
-            if isFreeSurfer(assessor_dict['proctype']):
-                set_qastatus_FS(assessor_obj,status)
-            else:
-                set_qastatus_default(assessor_obj,status)
-        else:
-            if isFreeSurfer(assessor_dict['proctype']): 
-                set_status_FS(assessor_obj,status)
-            else:
-                set_status_default(assessor_obj,status)
-            if needinputs:
-                sys.stdout.write('  +Setting assessors status to NEED_INPUTS that are linked to '+assessor_obj.label()+' : \n')
-                set_NEED_INPUTS_proctype(xnat,assessor_dict,needinputs)
-            if deleteR:
-                for resource in XnatUtils.list_assessor_out_resources(xnat,assessor_dict['project_id'],assessor_dict['subject_label'],assessor_dict['session_label'],assessor_dict['label']):
-                    delete_Out_Resource(assessor_obj,resource['label'])
+        user = USER
+        date = '{:%d-%m-%Y}'.format(today)
+        note = 'set by XnatSwitchProcessStatus'
+    assessor_obj.attrs.mset({xsitype+'/validation/status':status,
+                             xsitype+'/validation/validated_by':user,
+                             xsitype+'/validation/date':date,
+                             xsitype+'/validation/notes':note,
+                             xsitype+'/validation/method':note})
+    sys.stdout.write('   - QC Status on Assessor %s changed to %s\n' % (assessor_obj.label(), status))
 
-########################################## SWITCH ALL ##########################################
-def Switch_project_status(xnat,options):
-    #Variables
-    status=options.status
-    projects_assessors_list=xnat_list_assessors(xnat,options)
-    if not projects_assessors_list:
+def set_proc_status(assessor_obj, status, xsitype=XnatUtils.DEFAULT_DATATYPE):
+    """
+    Method to set the proc status and remove other information for an assessor
+
+    :param assessor_obj: pyxnat assessor Eobject
+    :param status: proc status to set
+    :param xsitype: datatype to change status
+    :return: None
+    """
+    assessor_obj.attrs.set(xsitype+'/procstatus', status)
+    if status == dax.task.NEED_INPUTS or status == dax.task.NEED_TO_RUN:
+        assessor_obj.attrs.mset({xsitype+'/validation/status':'Job Pending',
+                                 xsitype+'/jobid':'NULL',
+                                 xsitype+'/memused':'NULL',
+                                 xsitype+'/walltimeused':'NULL',
+                                 xsitype+'/jobnode':'NULL',
+                                 xsitype+'/jobstartdate':'NULL',
+                                 xsitype+'/validation/validated_by':'NULL',
+                                 xsitype+'/validation/date':'NULL',
+                                 xsitype+'/validation/notes':'NULL',
+                                 xsitype+'/validation/method':'NULL'})
+    sys.stdout.write('   - Job Status on Assessor %s changed to %s\n' % (assessor_obj.label(), status))
+    if status == dax.task.COMPLETE:
+        set_qc_status(assessor_obj, dax.task.NEEDS_QA, xsitype=xsitype)
+
+def set_need_inputs_proctype(assessor_dict):
+    """
+    Method to set to NEED_INPUTS the assessors linked to the assessor that is changing
+
+    :param assessor_dict: assessor dictionary that was modified
+    :return: None
+    """
+    list_ni_assessors = XnatUtils.list_assessors(XNAT, assessor_dict['project_id'],
+                                                 assessor_dict['subject_label'],
+                                                 assessor_dict['session_label'])
+    list_ni_assessors = filter(lambda x: x['proctype'] in OPTIONS.needinputs, list_ni_assessors)
+    for a_linked_dict in list_ni_assessors:
+        assessor_obj = XnatUtils.select_assessor(XNAT, a_linked_dict['label'])
+        if assessor_obj.exists():
+            if a_linked_dict['xsiType'] == XnatUtils.DEFAULT_FS_DATATYPE:
+                set_proc_status(assessor_obj, dax.task.NEED_INPUTS, xsitype=XnatUtils.DEFAULT_FS_DATATYPE)
+            else:
+                set_proc_status(assessor_obj, dax.task.NEED_INPUTS)
+            for resource in XnatUtils.list_assessor_out_resources(XNAT, a_linked_dict['project_id'],
+                                                                  a_linked_dict['subject_id'],
+                                                                  a_linked_dict['session_id'],
+                                                                  a_linked_dict['label']):
+                delete_resource(assessor_obj, resource['label'])
+
+########### SET ASSESSOR ###########
+def set_status_assessor(assessor_dict):
+    """
+    Main method to set the status for an assessor specified by it dictionary
+
+    :param assessor_dict: assessor dictionary that need to be modified
+    :return: None
+    """
+    assessor_obj = XnatUtils.select_assessor(XNAT, assessor_dict['label'])
+    if not assessor_obj.exists():
+        print 'ERROR: Assessors %s does not exist on XNAT.' % assessor_dict['label']
+    else:
+        if OPTIONS.qcstatus:
+            if assessor_dict['xsiType'] == XnatUtils.DEFAULT_FS_DATATYPE:
+                set_qc_status(assessor_obj, OPTIONS.status, xsitype=XnatUtils.DEFAULT_FS_DATATYPE)
+            else:
+                set_qc_status(assessor_obj, OPTIONS.status)
+        else:
+            if assessor_dict['xsiType'] == XnatUtils.DEFAULT_FS_DATATYPE:
+                set_proc_status(assessor_obj, OPTIONS.status, xsitype=XnatUtils.DEFAULT_FS_DATATYPE)
+            else:
+                set_proc_status(assessor_obj, OPTIONS.status)
+            if OPTIONS.needinputs:
+                sys.stdout.write('  +Setting assessors status to %s that are linked to %s\n' % (dax.task.NEED_INPUTS, assessor_obj.label()))
+                set_need_inputs_proctype(assessor_dict)
+            if OPTIONS.deleteR:
+                for resource in XnatUtils.list_assessor_out_resources(XNAT, assessor_dict['project_id'],
+                                                                      assessor_dict['subject_label'],
+                                                                      assessor_dict['session_label'],
+                                                                      assessor_dict['label']):
+                    delete_resource(assessor_obj, resource['label'])
+
+########### SWITCH ALL ###########
+def Switch_project_status():
+    """
+    Method to switch the status for all assessors from a project on XNAT.
+
+    :return: None
+    """
+    assessors_list = xnat_list_assessors()
+    if not assessors_list:
         print 'INFO: No assessors found.'
     else:
         #For each assessor in the list sorted by the label
         print 'INFO: Switching assessors status:'
-        for index,assessor_dict in enumerate(sorted(projects_assessors_list, key=lambda k: k['label'])):
-            sys.stdout.write('  + Process '+str(index+1)+'/'+str(len(projects_assessors_list))+' : '+assessor_dict['label']+'\n')
+        max_ind = str(len(assessors_list))
+        for index, assessor_dict in enumerate(sorted(assessors_list, key=lambda k: k['label'])):
+            sys.stdout.write('  + Process %s/%s : %s\n' % (str(index+1), max_ind, assessor_dict['label']))
             sys.stdout.flush()
-            set_status_assessor(xnat,assessor_dict,options.needinputs,status,options.deleteR,options.qastatus)
+            set_status_assessor(assessor_dict)
 
-########################################## CHECK OPTIONS ##########################################
-def check_options(options):
+########### CHECK OPTIONS ###########
+def check_options():
     #Checked argument values if not:
-    if options.txtfile:
-        if not os.path.exists(options.txtfile):
-            print "OPTION ERROR: the file "+options.txtfile+" does not exist."
+    if OPTIONS.txtfile:
+        if not os.path.exists(OPTIONS.txtfile):
+            print "OPTION ERROR: the file %s does not exist." % (OPTIONS.txtfile)
             return False
     else:
-        if not options.txtfile and not options.select and not options.printstatus:
-            if not options.project :
-                print'OPTION ERROR: No project ID given, please give one with -p options. Use -h to check the options.'
+        if not OPTIONS.txtfile and not OPTIONS.select and not OPTIONS.printstatus:
+            if not OPTIONS.project :
+                print'OPTION ERROR: No project ID given, please give one with -p option.'
                 return False
-            if not options.proctypes :
-                print'OPTION ERROR: No process type given, please give one with -t options. Use -h to check the options.'
+            if not OPTIONS.proctypes :
+                print'OPTION ERROR: No process type given, please give one with -t option.'
                 print'E.G: fMRIQA,dtiQA_v2,FreeSurfer'
                 return False
-    
-    if not options.status and not options.printstatus:
-        print 'OPTION ERROR: No status given, please give one with -s options. Use -h to check the options.'
+
+    if not OPTIONS.status and not OPTIONS.printstatus:
+        print 'OPTION ERROR: No status given, please give one with -s option.'
         return False
-    
-    if options.deleteR:
+
+    if OPTIONS.deleteR:
         print'OPTION WARNING: The resources/files on the process will be deleted before changing the status since you used the option -d / --deleteR.'
-    
+
     return True
-                            
-########################################## MAIN DISPLAY FUNCTION ##########################################
-def Main_display(parser):
-    (options,_) = parser.parse_args()    
+
+########### MAIN DISPLAY FUNCTION ###########
+def main_display():
+    """
+    Main display of the executables before any process
+
+    :return: None
+    """
     #Display:
     print '################################################################'
     print '#                   XNATSWITCHPROCESSSTATUS                    #'
@@ -234,45 +358,56 @@ def Main_display(parser):
     print '# Usage:                                                       #'
     print '#     Change assessor job/quality control status               #'
     print '# Parameters :                                                 #'
-    if options=={'printstatus':False,'status': None, 'qastatus': False, 'needinputs': None, 'proctypes': None, 'txtfile': None, 'project': None, 'sessions': None, 'deleteR': False, 'formerstatus': None, 'select': None, 'subjects': None}:
+    if vars(OPTIONS) == DEFAULT_ARGUMENTS:
         print '#     No Arguments given                                       #'
         print '#     Use "XnatSwitchProcessStatus -h" to see the options      #'
-        print '################################################################'
-        parser.print_help()
+        print '################################################################\n'
+        PARSER.print_help()
         sys.exit()
-    else:        
-        if options.txtfile:
-            print '#     %*s -> %*s#' %(-20,'File txt',-33,get_proper_str(options.txtfile,True))
-        elif options.select:
-            print '#     %*s -> %*s#' %(-20,'Selected Process',-33,get_proper_str(options.select,True))
+    else:
+        if OPTIONS.host:
+            print '#     %*s -> %*s#' %(-20, 'XNAT Host', -33, get_proper_str(OPTIONS.host))
+        if OPTIONS.username:
+            print '#     %*s -> %*s#' %(-20, 'XNAT User', -33, get_proper_str(OPTIONS.username))
+        if OPTIONS.txtfile:
+            print '#     %*s -> %*s#' %(-20, 'File txt', -33, get_proper_str(OPTIONS.txtfile, True))
+        elif OPTIONS.select:
+            print '#     %*s -> %*s#' %(-20, 'Selected Process', -33, get_proper_str(OPTIONS.select, True))
         else:
-            if options.project:
-                print '#     %*s -> %*s#' %(-20,'Project(s)',-33,get_proper_str(options.project))
+            if OPTIONS.project:
+                print '#     %*s -> %*s#' %(-20, 'Project(s)', -33, get_proper_str(OPTIONS.project))
             #Subjects
-            if options.subjects:
-                print '#     %*s -> %*s#' %(-20,'Subject(s)',-33,get_proper_str(options.subjects))
+            if OPTIONS.subjects:
+                print '#     %*s -> %*s#' %(-20, 'Subject(s)', -33, get_proper_str(OPTIONS.subjects))
             #Experiment
-            if options.sessions:
-                print '#     %*s -> %*s#' %(-20,'Session(s)',-33,get_proper_str(options.sessions))
-            #Processes    
-            if options.proctypes:
-                print '#     %*s -> %*s#' %(-20,'Process Types',-33,get_proper_str(options.proctypes))
-            if options.needinputs:
-                print '#     %*s -> %*s#' %(-20,'NEED_INPUTS Types',-33,get_proper_str(options.needinputs))
-        if options.status:
-            print '#     %*s -> %*s#' %(-20,'New Status',-33,options.status)
-        if options.formerstatus:
-            print '#     %*s -> %*s#' %(-20,'Previous Status',-33,get_proper_str(options.formerstatus))
-        if options.qastatus:
-            print '#     %*s -> %*s#' %(-20,'Change QA status',-33,'on')
-        if options.deleteR:
-            print '#     %*s -> %*s#' %(-20,'Delete resources',-33,'on')
-        if options.printstatus:
-            print '#     %*s -> %*s#' %(-20,'Print Status',-33,'on')
+            if OPTIONS.sessions:
+                print '#     %*s -> %*s#' %(-20, 'Session(s)', -33, get_proper_str(OPTIONS.sessions))
+            #Processes
+            if OPTIONS.proctypes:
+                print '#     %*s -> %*s#' %(-20, 'Process Types', -33, get_proper_str(OPTIONS.proctypes))
+            if OPTIONS.needinputs:
+                print '#     %*s -> %*s#' %(-20, dax.task.NEED_INPUTS+' Types', -33, get_proper_str(OPTIONS.needinputs))
+        if OPTIONS.status:
+            print '#     %*s -> %*s#' %(-20, 'New Status', -33, OPTIONS.status)
+        if OPTIONS.formerstatus:
+            print '#     %*s -> %*s#' %(-20, 'Previous Status', -33, get_proper_str(OPTIONS.formerstatus))
+        if OPTIONS.qcstatus:
+            print '#     %*s -> %*s#' %(-20, 'Change QC status', -33, 'on')
+        if OPTIONS.deleteR:
+            print '#     %*s -> %*s#' %(-20, 'Delete resources', -33, 'on')
+        if OPTIONS.printstatus:
+            print '#     %*s -> %*s#' %(-20, 'Print Status', -33, 'on')
     print '################################################################'
-    
-def get_proper_str(str_option,end=False):
-    if len(str_option)>32:
+
+def get_proper_str(str_option, end=False):
+    """
+    Method to shorten a string into the proper size for display
+
+    :param str_option: string to shorten
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
+    if len(str_option) > 32:
         if end:
             return '...'+str_option[-29:]
         else:
@@ -280,99 +415,107 @@ def get_proper_str(str_option,end=False):
     else:
         return str_option
 
-def get_description():
-    usage="""usage: %prog [options]\nWhat is the script doing : 
-    *Switch/Set the status for assessors on XNAT specify by their proctype.
-    \nExamples:
-    *See status managed by DAX: XnatSwitchProcessStatus --printstatus
-    *Set all fMRIQA to a specific status Error for a project: XnatSwitchProcessStatus -p PID -s Error -t fMRIQA
-    *Set all Multi_Atlas that have the status JOB_FAILED to NEED_TO_RUN to have the processes run again: XnatSwitchProcessStatus -p PID -f JOB_FAILED -t Multi_Atlas -s NEED_TO_RUN
-    *Set all VBMQA to NEED_TO_RUN for a project and delete resources: XnatSwitchProcessStatus -p PID -s NEED_TO_RUN -t VBMQA -d
-    *Set all VBMQA to NEED_TO_RUN, delete resources, and set linked assessors fMRI_Preprocess to NEED_INPUTS: XnatSwitchProcessStatus -p PID -s NEED_TO_RUN -t VBMQA -d -n fMRI_Preprocess
-    *Set all dtiQA_v2 qa status to Passed for a project: XnatSwitchProcessStatus -p PID -s Passed -t dtiQA_v2 --qc
-    *Set FreeSurfer for a specific project/subject to NEED_INPUTS: XnatSwitchProcessStatus -p PID --subj 123 -s NEED_INPUTS -t FreeSurfer"""
-    return usage
-
-########################################## OPTIONS ##########################################
+########### OPTIONS ###########
 def parse_args():
-    from optparse import OptionParser
-    usage =get_description()
-    parser = OptionParser(usage=usage)
-    parser.add_option("--select", dest="select",default=None,
-                    help="Give the process label that you want to change the status. E.G : BLSA-x-BLSA_0000-x-BLSA_0000_00-x-FreeSurfer", metavar="STRING")   
-    parser.add_option("-x","--txtfile",dest="txtfile",default=None,
-                    help="File txt with at each line the label of the assessor where the status need to be changed. E.G for label: project-x-subject-x-experiment-x-scan-x-process_name.", metavar="STRING")  
-    parser.add_option("-p", "--project", dest="project",default=None,
-                    help="Project ID on XNAT or list of Project ID", metavar="COMMA_SEPARATED_LIST")
-    parser.add_option("--subj", dest="subjects",default=None,
-                  help="Change Status for only this subject/list of subjects. E.G: --subj VUSTP2,VUSTP3", metavar="COMMA_SEPARATED_LIST")
-    parser.add_option("--sess", dest="sessions",default=None,
-                  help="Change Status for only this session/list of sessions. Use the options --subj with it. E.G: --exp VUSTP2a,VUSTP3b", metavar="COMMA_SEPARATED_LIST")
-    parser.add_option("-s", "--status", dest="status",default=None,
-                    help="Status you want to set on the Processes. E.G: 'NEED_TO_RUN'", metavar="STRING")
-    parser.add_option("-f","--formerStatus", dest="formerstatus",default=None,
-                    help="Status that need to be changed to the new one. E.G: 'JOB_FAILED'", metavar="STRING")           
-    parser.add_option("-t","--type", dest="proctypes",default=None,
-                    help="Process type you want the status to changed. E.G: fMRIQA,dtiQA_v2. You can use 'all' for all of them. If not use, will change the status for the processes with the right Type.", metavar="COMMA_SEPARATED_LIST")  
-    parser.add_option("-n","--Needinputs", dest="needinputs",default=None,
-                    help="Process type that will need inputs if you change the proctype given to the option -t.", metavar="COMMA_SEPARATED_LIST") 
-    parser.add_option("-d","--deleteR",dest="deleteR",action="store_true", default=False,
-                    help="Delete the resources present on the process.")
-    parser.add_option("--qc",dest="qastatus",action="store_true", default=False,
-                    help="Change the quality control status on XNAT.")
-    parser.add_option("--printstatus",dest="printstatus",action="store_true", default=False,
-                    help="Print status used by DAX to manage assessors.")
-    return parser
+    """
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object
+    """
+    from argparse import ArgumentParser, RawDescriptionHelpFormatter
+    argp = ArgumentParser(prog='XnatDemographic', description=DESCRIPTION,
+                          formatter_class=RawDescriptionHelpFormatter)
+    argp.add_argument('--host', dest='host', default=None,
+                      help='Host for XNAT. Default: using $XNAT_HOST.')
+    argp.add_argument('-u', '--username', dest='username', default=None,
+                      help='Username for XNAT. Default: using $XNAT_USER.')
+    argp.add_argument("--select", dest="select", default=None,
+                      help="Give the assessor label that you want to change the status.")
+    argp.add_argument("-x", "--txtfile",dest="txtfile", default=None,
+                      help="File txt. Each line represents the label of the assessor which need to change status.")
+    argp.add_argument("-p", "--project", dest="project", default=None,
+                      help="Project ID on XNAT or list of Project ID")
+    argp.add_argument("--subj", dest="subjects", default=None,
+                      help="Change Status for only this subject/list of subjects. E.G: --subj VUSTP2,VUSTP3")
+    argp.add_argument("--sess", dest="sessions", default=None,
+                      help="Change Status for only this session/list of sessions. Use the options --subj with it. E.G: --sess VUSTP2a,VUSTP3b")
+    argp.add_argument("-s", "--status", dest="status", default=None,
+                      help="Status you want to set on the Processes. E.G: 'NEED_TO_RUN'")
+    argp.add_argument("-f", "--formerStatus", dest="formerstatus", default=None,
+                      help="Chaning status for the assessors that possesse this status. E.G: 'JOB_FAILED'")
+    argp.add_argument("-t", "--type", dest="proctypes", default=None,
+                      help="Process type you want the status to changed. E.G: fMRIQA,dtiQA_v2. You can use 'all' for all of them.")
+    argp.add_argument("-n", "--Needinputs", dest="needinputs", default=None,
+                      help="Process type that will need inputs if you change the proctype given to the option -t.")
+    argp.add_argument("-d", "--deleteR",dest="deleteR",action="store_true",
+                      help="Delete the resources present on the assessor.")
+    argp.add_argument("--qc",dest="qcstatus",action="store_true",
+                      help="Change the quality control status on XNAT.")
+    argp.add_argument("--printstatus",dest="printstatus",action="store_true",
+                      help="Print status used by DAX to manage assessors.")
+    return argp
 
 ########################################## MAIN FUNCTION ##########################################
 if __name__ == '__main__':
-    parser=parse_args()
-    (options,args) = parser.parse_args()
-    #############################
-    #Main display:
-    Main_display(parser)
-    #check options:
-    run=check_options(options)
-    #############################
-    
-    #############################
-    # RUN                       #
-    #############################
-    if run:
-        #############################
-        status=options.status
-        needinputs=get_option_list(options.needinputs)
-        if needinputs and status!="NEED_TO_RUN":
-            print 'Warning: You want to change the status for linked assessors '+options.needinputs+' to NEED_INPUTS but the status set is not NEED_TO_RUN but '+options.status
+    PARSER = parse_args()
+    OPTIONS = PARSER.parse_args()
+    main_display()
+    SHOULD_RUN = check_options()
+    if SHOULD_RUN:
+        NEED_INPUTS = get_option_list(OPTIONS.needinputs)
+        if NEED_INPUTS and OPTIONS.status != dax.task.NEED_TO_RUN:
+            print 'Warning: You want to change the status for linked assessors %s to %s but the status set is not NEED_TO_RUN but %s' % (OPTIONS.needinputs, dax.task.NEED_INPUTS, OPTIONS.status)
             print '         The tool will not change the status on the linked assessors.'
-        if options.printstatus:
+        if OPTIONS.printstatus:
             print "INFO: Status used by DAX package:"
-            print " * NEED_INPUTS       - the assessor need inputs to run. Default status when creating the assessor."
-            print " * NEED_TO_RUN       - the assessor is ready to run. It will be launch in the next dax_update_open_task."
-            print " * JOB_RUNNING       - the assessor is running on the cluster."
-            print " * JOB_FAILED        - the assessor failed. You should check the outlog files."
-            print " * READY_TO_UPLOAD   - the assessor is waiting in the upload queue to be upload."
-            print " * UPLOADING         - the assessor is being uploaded at this instant."
-            print " * READY_TO_COMPLETE - the assessor is waiting for dax_update_open_task to set the job information on XNAT (memory/walltime...)"
-            print " * COMPLETE          - the assessor is complete. All resources and informations are on XNAT."
-            print "QA status: "
-            print " * Reproc            - rerun an assessor with new resources (EG: FreeSurfer)."
-            print " * passed            - assessor that passed the quality control."
-            print " * failed            - assessor that failed the quality control." 
+            print " * %*s - the assessor need inputs to run. Default status when creating the assessor." % (-18, dax.task.NEED_INPUTS)
+            print " * %*s - the assessor is ready to run. It will be launch in the next dax_update_open_task." % (-18, dax.task.NEED_TO_RUN)
+            print " * %*s - the assessor is running on the cluster." % (-18, dax.task.JOB_RUNNING)
+            print " * %*s - the assessor failed. You should check the outlog files." % (-18, dax.task.JOB_FAILED)
+            print " * %*s - the assessor is waiting in the upload queue to be upload." % (-18, dax.task.READY_TO_UPLOAD)
+            print " * %*s - the assessor is being uploaded at this instant." % (-18, dax.task.UPLOADING)
+            print " * %*s - the assessor is waiting for dax_update_open_task to set the job information on XNAT (memory/walltime...)" % (-18, dax.task.READY_TO_COMPLETE)
+            print " * %*s - the assessor is complete. All resources and informations are on XNAT." % (-18, dax.task.COMPLETE)
+            print "QC status: "
+            print " * %*s - assessor without results yet to control." % (-28, dax.task.JOB_PENDING)
+            print " * %*s - assessor waiting for quality control." % (-28, dax.task.NEEDS_QA)
+            print " * %*s - assessor that passed the quality control." % (-28, dax.task.PASSED_QA)
+            print " * %*s - assessor that failed the quality control." % (-28, dax.task.FAILED)
+            print " * %*s - assessor that will be set back to %s." % (-28, dax.task.RERUN, dax.task.NEED_INPUTS)
+            print " * %*s - assessor that will keep a copy of the present resources in a resource named OLD and set the assessor back to %s ." % (-28, dax.task.REPROC, dax.task.NEED_INPUTS)
+            print " * %*s - assessor that failed but need to reprocessing." % (-28, dax.task.FAILED_NEEDS_REPROC)
+            print " * %*s - assessor that passed with some edits from user." % (-28, dax.task.PASSED_EDITED_QA)
+
         try:
-            xnat = XnatUtils.get_interface()
-            if options.select: #SPECIFIC ASSESSOR SELECTED
-                print "INFO: Changing Status on assessor "+options.select+" to "+status
-                set_status_assessor(xnat,get_assessor_dict(options.select),needinputs,status,options.deleteR,options.qastatus)            
-            elif options.txtfile: #TEXTFILE
-                assessor_label_list=list()
-                input_file = open(options.txtfile, 'r')
-                for index,line in enumerate(input_file):
-                    assessor_label=line.strip().split('\n')[0]
-                    set_status_assessor(xnat,get_assessor_dict(assessor_label),needinputs,status,options.deleteR,options.qastatus)
-            elif options.project:  #ALL ASSESSORS FOR PROJECT
-                Switch_project_status(xnat,options)
-        finally:                
-            xnat.disconnect()    
-        
+            if OPTIONS.host:
+                HOST = OPTIONS.host
+            else:
+                HOST = os.environ['XNAT_HOST']
+            if OPTIONS.username:
+                USER = OPTIONS.username
+            else:
+                USER = os.environ['XNAT_USER']
+            if OPTIONS.username:
+                MSG = "Please provide the password for user <%s> on xnat(%s):" % (USER, HOST)
+                PWD = getpass.getpass(prompt=MSG)
+            else:
+                PWD = None
+
+            print 'INFO: connection to xnat <%s>:' % (HOST)
+            XNAT = XnatUtils.get_interface(host=OPTIONS.host, user=OPTIONS.username, pwd=PWD)
+
+            if OPTIONS.select: #SPECIFIC ASSESSOR SELECTED
+                print "INFO: Changing Status on assessor %s to %s" % (OPTIONS.select, OPTIONS.status)
+                set_status_assessor(get_assessor_dict(OPTIONS.select))
+            elif OPTIONS.txtfile: #TEXTFILE
+                assessors_labels_list = list()
+                input_file = open(OPTIONS.txtfile, 'r')
+                for line in input_file:
+                    asse_label = line.strip().split('\n')[0]
+                    set_status_assessor(get_assessor_dict(asse_label))
+            elif OPTIONS.project:  #ALL ASSESSORS FOR PROJECT
+                Switch_project_status()
+        finally:
+            XNAT.disconnect()
+
     print '===================================================================\n'

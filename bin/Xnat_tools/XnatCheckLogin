@@ -12,25 +12,23 @@ import sys
 import getpass
 from dax import XnatUtils
 from datetime import datetime
-    
-########################################################################################################
-########################################## INSTALL FUNCTIONS ###########################################
-########################################################################################################
-#add to .xnat_setup    
-def add_to_workstation(line,comments):
+
+########### INSTALL FUNCTIONS ###########
+#add to .xnat_setup
+def add_to_workstation(line, comments):
     """
     Method to add variables to your workstation (xnat_profile file)
      #comments
      line
-    
+
     :param line: string to write the bash command in your profile file
     :param comments: comments associated to the line
     :return: None
     """
     #.xnat_profile path
-    profile_path=os.environ['HOME']+'/.xnat_profile'
-    if comments[1]!='#':
-        comments='#'+comments
+    profile_path = os.path.join(os.environ['HOME'], '.xnat_profile')
+    if comments[1] != '#':
+        comments = '#%s' % (comments)
     #If no xnat_profile, create it and add to bash_profile the call for it
     if not os.path.exists(profile_path):
         init_profile(profile_path)
@@ -38,7 +36,7 @@ def add_to_workstation(line,comments):
     if not line in open(profile_path).read():
         with open(profile_path,"a") as bashrc:
             bashrc.write(comments+'\n')
-            bashrc.write(line+'\n')  
+            bashrc.write(line+'\n')
 
 def init_profile(profile_path):
     """
@@ -51,7 +49,7 @@ def init_profile(profile_path):
     #Create the file:
     with open(profile_path,"w") as bashrc:
         bashrc.write(comments+'\n')
-    
+
     #link the file in the bashrc or profile
     bash_profile_path=os.environ['HOME']+'/.bash_profile'
     #Add the line in bash_profile
@@ -60,7 +58,7 @@ def init_profile(profile_path):
             with open(bash_profile_path, "a") as bash_profile:
                 bash_profile.write("#call for .xnat_profile files containing xnat logins: \n")
                 bash_profile.write("source ~/.xnat_profile\n")
-                
+
 def check_env(env_variable,encrypted=False):
     """
     Method to check the environment variable
@@ -87,7 +85,7 @@ def check_env(env_variable,encrypted=False):
                     return value
             else:
                 return raw_input('  --> Enter '+env_variable+':')
-        
+
 def set_xnat_variables():
     """
     Method to set the xnat variables and
@@ -102,7 +100,7 @@ def set_xnat_variables():
     # XNAT_USER username
     XNAT_USER=check_env('XNAT_USER')
     # XNAT_PASS password
-    XNAT_PASS=check_env('XNAT_PASS',encrypted=True)   
+    XNAT_PASS=check_env('XNAT_PASS',encrypted=True)
     print "INFO: Trying to open a connection with XNAT with your login..."
     #Check that the the user can open a connection to XNAT and close it
     #connection
@@ -110,7 +108,7 @@ def set_xnat_variables():
     xnat=Interface(XNAT_HOST,XNAT_USER,XNAT_PASS)
     try:
         #check connection
-        list_projects = XnatUtils.list_projects(xnat)
+        _ = XnatUtils.list_projects(xnat)
         xnat.disconnect()
         print ' -->Good login.'
     except:
@@ -122,23 +120,23 @@ def set_xnat_variables():
         xnat=Interface(XNAT_HOST,XNAT_USER,XNAT_PASS)
         try:
             #check connection
-            list_projects = XnatUtils.list_projects(xnat)
+            _ = XnatUtils.list_projects(xnat)
             xnat.disconnect()
             print '  -->Good login.'
         except:
             print '  --> error: Wrong login.'
-            solution="""To check if you have the good login, follow these steps: 
+            solution="""To check if you have the good login, follow these steps:
     1) Check on XNAT that you are typing the good information (Username/Password)
     2) Check on your system the value that are set with this command:
-       echo $XNAT_USER 
+       echo $XNAT_USER
        echo $XNAT_PASS
        if the values are wrong, edit your configuration file (either: .xnat_profile or .profile or .bashrc)
     3) close your terminal, open it again and run XnatCheckLogin one more time.
 =================================================================================
             """
             print solution
-            sys.exit() 
-                   
+            sys.exit()
+
     #Send to the .xnat_profile
     if not 'XNAT_HOST' in os.environ or not 'XNAT_USER' in os.environ or not 'XNAT_PASS' in os.environ:
         print "INFO: Setting your XNAT variables to .xnat_profile"
@@ -148,23 +146,21 @@ def set_xnat_variables():
         print " *XNAT_USER set up in ~/.xnat_profile"
         add_to_workstation('export XNAT_PASS='+XNAT_PASS,"#Xnat password")
         print " *XNAT_PASS set up in ~/.xnat_profile"
-        
+
         print "WARNING: Please run the configuration file .xnat_profile:  'source ~/.xnat_profile'  to apply the changes or open a new terminal."
-                
+
 def parse_args():
     """
     Method to parser arguments following ArgumentParser
-    
+
     :return: arguments parsed
     """
     from argparse import ArgumentParser
     ap = ArgumentParser(prog='Xnatsetup', description="Set and Check the logins for XNAT.")
     return ap.parse_args()
-         
+
 if __name__ == '__main__':
-    """ Main function """
     args = parse_args()
     print '================================================================================='
     set_xnat_variables()
     print '================================================================================='
-    
