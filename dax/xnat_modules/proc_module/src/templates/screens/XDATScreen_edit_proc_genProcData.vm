@@ -60,7 +60,7 @@ $page.setVlinkColor($ui.vlink)
                                                     <TR><TD>Notes</TD><TD>#xdatTextArea("proc:genProcData/validation/notes" $item "" $vr 10 30)</TD></TR>
 													#xdatHiddenBox("proc:genProcData/validation/xnat_validationData_id" $item "")
 													#xdatHiddenBox("proc:genProcData/imageSession_ID" $item "")
-													#xdatHiddenBox("proc:genProcData/validation/validated_by" $item $user.username)
+													#xdatHiddenBox("proc:genProcData/validation/validated_by" "" $user.username)
 													#xdatHiddenBox("proc:genProcData/validation/date" $item "")
                                                 </TABLE>
                                             </TD>
