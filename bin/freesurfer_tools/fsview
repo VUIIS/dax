@@ -10,6 +10,9 @@ Load freesurfer subject in freeview
 @author: Brian D. Boyd, Psychiatry, Vanderbilt University
 '''
 
+# Variables
+FREEVIEW_CMD = '''freeview -v {ls_path}/mri/T1.mgz:visible=1 {ls_path}/mri/aparc+aseg.mgz:colormap=lut:opacity=0.7:visible=0 {ls_path}/mri/wm.mgz:colormap=heat:opacity=0.7:visible=1 {ls_path}/mri/brainmask.mgz:visible=1 -f {ls_path}/surf/lh.white:edgecolor=blue:edgethickness=1 {ls_path}/surf/lh.pial:edgecolor=red:edgethickness=1 {ls_path}/surf/rh.white:edgecolor=blue:edgethickness=1 {ls_path}/surf/rh.pial:edgecolor=red:edgethickness=1'''
+
 def parse_args():
     """
     Method to parse arguments base on ArgumentParser
@@ -22,7 +25,6 @@ def parse_args():
     return ap.parse_args()
 
 if __name__ == '__main__':
-    """ Main Function """    
     args = parse_args()
     sess = args.session
 
@@ -37,18 +39,10 @@ if __name__ == '__main__':
     local_subj_path = subjects_dir+'/'+sess
 
     if not os.path.exists(local_subj_path):
-        print 'ERROR:cannot load, '+sess+' not found in local FreeSurfer subjects directory.'
+        print 'ERROR:cannot load, %s not found in local FreeSurfer subjects directory.' % (sess)
         sys.exit(1)
 
-    cmd = 'freeview'
-    cmd += ' -v '+local_subj_path+'/mri/T1.mgz:visible=1'
-    cmd += ' '+local_subj_path+'/mri/aparc+aseg.mgz:colormap=lut:opacity=0.7:visible=0'
-    cmd += ' '+local_subj_path+'/mri/wm.mgz:colormap=heat:opacity=0.7:visible=1'
-    cmd += ' '+local_subj_path+'/mri/brainmask.mgz:visible=1'
-    cmd += ' -f '+ local_subj_path+'/surf/lh.white:edgecolor=blue:edgethickness=1'
-    cmd += ' '+local_subj_path+'/surf/lh.pial:edgecolor=red:edgethickness=1'
-    cmd += ' '+local_subj_path+'/surf/rh.white:edgecolor=blue:edgethickness=1'
-    cmd += ' '+local_subj_path+'/surf/rh.pial:edgecolor=red:edgethickness=1'
+    cmd = FREEVIEW_CMD.format(ls_path=local_subj_path)
 
     cp_file_path = os.path.join(local_subj_path,'tmp','control.dat')
     if os.path.isfile(cp_file_path):

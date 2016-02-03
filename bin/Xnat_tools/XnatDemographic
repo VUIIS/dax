@@ -6,204 +6,225 @@ Edited on February 19, 2015
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
-import os,sys,datetime,csv
+import os
+import sys
+import csv
+import getpass
 from dax import XnatUtils
 
-REQUIRED_VARIABLES_LIST=['project_id','subject_label','session_label']
-SUBJECT_PARAMETERS_LIST=['handedness','gender','yob']
-SESSION_PARAMETERS_LIST=['age','scanner','scanner_manufacturer','scanner_model','acquisition_site']
+########### VARIABLES ###########
+REQUIRED_VARIABLES_LIST = ['project_id', 'subject_label', 'session_label']
+SUBJECT_PARAMETERS_LIST = ['handedness', 'gender', 'yob']
+SESSION_PARAMETERS_LIST = ['age', 'scanner', 'scanner_manufacturer',
+                           'scanner_model', 'acquisition_site']
 
-########################################## USEFUL FUNCTIONS ##########################################
-def get_xnat_object(xnat,obj_dict):
+DESCRIPTION = """What is the script doing :
+   * Upload demographic data to a project on XNAT from a CSV file giving to the script as an input.
+     Demographic data can only be upload on a SUBJECT or SESSION with this tool.
+     Default parameters that can be uploaded to XNAT: handedness/gender/yob/age/scanner/scanner_manufacturer/scanner_model/acquisition_site.
+     You can also upload your specific parameters but you need to create them first on XNAT.
+     By default, specific parameters are supposed to be part of the subject level.
+
+Examples:
+   *Upload demographic data handedness/gender/age: XnatDemographic -i demographic_data.csv
+   *See the report before uploading: Xnatdemographic -i demographic_data.csv
+   *Upload demographic data with a file delimited by a /: Xnatdemographic -i demographic_data.csv --delimiter="/"
+   *Upload demographic data with a different header that the default one:
+    Xnatdemographic -i demographic_data.csv --format=project_id,subject_label,session_label,race,handedness,gender,age
+   *Upload demographic data with a different header (and session variables):
+    Xnatdemographic -i demographic_data.csv --format=project_id,subject_label,session_label,gender,MCR,state --sessformat MCR,state
+"""
+
+DEFAULT_ARGUMENTS = {'host': None, 'username': None, 'csvfile':None, 'session_format': None,
+                     'delimiter': ',', 'report': False, 'printformat':False, 'format':None}
+
+########### USEFUL FUNCTIONS ###########
+def get_xnat_object(obj_dict):
     """
     Method to get xnat subject object
-    
-    :param xnat: pyxnat.Interface object
+
     :param obj_dict: dictionary containing project_id and subject_label
     :return: pyxnat EObject for the subject selected
     """
-    return xnat.select('/project/'+obj_dict['project_id']+'/subject/'+obj_dict['subject_label'])
-    
+    return XNAT.select('/project/'+obj_dict['project_id']+'/subject/'+obj_dict['subject_label'])
+
 def get_gender_from_label(gender):
     """
     Method to get the passed gender in XNAT format
-    
-    :param gender: gender selected 
+
+    :param gender: gender selected
     :return: value accepted by xnat: 'female' or 'male'
     """
-    if gender.lower() in ['female','f']:
+    if gender.lower() in ['female', 'f']:
         return 'female'
-    elif gender.lower() in ['male','m']:
+    elif gender.lower() in ['male', 'm']:
         return 'male'
     else:
         return 'unknown'
-    
+
 def get_handedness_from_label(handedness):
     """
     Method to get the passed handedness in XNAT format
-    
-    :param handedness: handedness selected 
+
+    :param handedness: handedness selected
     :return: value accepted by xnat: 'right', 'left', or 'ambidextrous'
     """
-    if handedness.lower() in ['right','r']:
+    if handedness.lower() in ['right', 'r']:
         return 'right'
-    elif handedness.lower() in ['left','l']:
+    elif handedness.lower() in ['left', 'l']:
         return 'left'
-    elif handedness.lower() in ['ambidextrous','a']:
+    elif handedness.lower() in ['ambidextrous', 'a']:
         return 'ambidextrous'
     else:
         return 'unknown'
-    
-def get_yob_from_label(yob,row_index):
+
+def get_yob_from_label(yob, row_index):
     """
     Method to get the passed year of birth in XNAT format
-    
-    :param yob: year of birth selected 
+
+    :param yob: year of birth selected
     :param row_index: row index where an issue occurred
     :return: value if proper integer, last digit if date, '' if not an integer
     """
     if '/' in yob:
-        print ' warning: row '+str(row_index+1)+' -- "/" detected in the year of birth (yob) value. Using last digit of the string: '+yob.split('/')[-1]
-        yob=yob.split('/')[-1]
+        print ' warning: row %s -- "/" detected in the year of birth (yob) value. Using last digit of the string: %s' % (str(row_index+1), yob.split('/')[-1])
+        yob = yob.split('/')[-1]
     try:
-        _=int(yob)
+        _ = int(yob)
         return yob
     except:
-        print ' warning: row '+str(row_index+1)+' -- year of birth (yob) not a proper integer.'
+        print ' warning: row %s -- year of birth (yob) not a proper integer.' % (str(row_index+1))
         return ''
-    
-def read_csv(options):
+
+def read_csv():
     """
     Method to read the csv passed as an argument and return
      a list of dictionaries containing the value to set and the header
-    
-    :param options: first output of parse_args()
+
     :return: list of dictionaries containing values to set, header
     """
-    demo_list=list()
-    header=list()
-    session_variables=list()
+    demo_list = list()
+    header = list()
+    session_variables = list()
     #Get the sessions variables:
-    if options.session_format:
-        session_variables=set(options.session_format.split(',')+SESSION_PARAMETERS_LIST)
+    if OPTIONS.session_format:
+        session_variables = set(OPTIONS.session_format.split(',')+SESSION_PARAMETERS_LIST)
     else:
-        session_variables=SESSION_PARAMETERS_LIST
-    print 'Warning: the variables for a session are the following : '+','.join(session_variables)
+        session_variables = SESSION_PARAMETERS_LIST
+    print 'Warning: the variables for a session are the following : %s' % (','.join(session_variables))
     #Header if set:
-    if options.format:
+    if OPTIONS.format:
         print 'Warning: the header has been set by the options --format.'
-        header=options.format.split(',')
+        header = OPTIONS.format.split(',')
     else:
         print 'Warning: the header has not been set. Using the first line for the header.'
     print 'INFO: Reading CSV -- if you see any warning, it means that the information on the row will not be uploaded.'
-    with open(options.csvfile,'rb') as csvfileread:
-        csvreader = csv.reader(csvfileread,delimiter=options.delimiter)
-        for index,row in enumerate(csvreader):
-            if index==0: #possible header, check it out
+    with open(OPTIONS.csvfile,'rb') as csvfileread:
+        csvreader = csv.reader(csvfileread, delimiter=OPTIONS.delimiter)
+        for index, row in enumerate(csvreader):
+            if index == 0: #possible header, check it out
                 if not header:
-                    header=row
+                    header = row
                 else:
-                    demo_list.append(get_row_csv(row,header,index,session_variables))
+                    demo_list.append(get_row_csv(row, header, index, session_variables))
                 #Check the header
                 if 'project_id' not in header or 'subject_label' not in header:
-                    print ' warning: row '+str(index+1)+' -- "project_id" and "subject_label" not in the header. Check the header.'
+                    print ' warning: row %s -- "project_id" and "subject_label" not in the header. Check the header.' % (str(index+1))
                     return None,None
                 if 'age' in header and not 'session_label' in header:
-                    print ' warning: row '+str(index+1)+' -- age found in header but session_label not in it. Check the header.'
+                    print ' warning: row %s -- age found in header but session_label not in it. Check the header.' % (str(index+1))
             else:
-                demo_list.append(get_row_csv(row,header,index,session_variables))
+                demo_list.append(get_row_csv(row, header, index, session_variables))
     #Remove empty dictionaries:
-    return [x for x in demo_list if x],header
+    return [x for x in demo_list if x], header
 
 def get_row_csv(row,header,row_index,session_variables):
     """
     Method to extract the dictionary from a row in the csv
-    
+
     :param row: row to convert
     :param header: header to use for the dictionary
     :param row_index: index of the row processed for warnings/errors
     :param session_variables: if the variables is at the session level
     :return: dictionary of the row
     """
-    tmp_dict=dict()
-    if len(row)!=len(header):
-        print ' WARNING: row '+str(row_index+1)+' -- less or more columns than the header. Check the csv file.'
+    tmp_dict = dict()
+    if len(row) != len(header):
+        print ' WARNING: row %s -- less or more columns than the header.\
+                Check the csv file.' % (str(row_index+1))
         return tmp_dict
     else:
-        tmp_dict['upload_demo_subject']=dict()
-        tmp_dict['upload_demo_session']=dict()
+        tmp_dict['upload_demo_subject'] = dict()
+        tmp_dict['upload_demo_session'] = dict()
         for index,value in enumerate(row):
             if header[index] in REQUIRED_VARIABLES_LIST:
-                tmp_dict[header[index]]=value
+                tmp_dict[header[index]] = value
             else:
                 if value:
                     if header[index] in session_variables:
                         tmp_dict['upload_demo_session'][header[index]]=value
                     else:
-                        if header[index]=='handedness':
-                            tmp_dict['upload_demo_subject'][header[index]]=get_handedness_from_label(value)
-                        elif header[index]=='gender':
-                            tmp_dict['upload_demo_subject'][header[index]]=get_gender_from_label(value)
-                        elif header[index]=='yob':
-                            tmp_dict['upload_demo_subject'][header[index]]=get_yob_from_label(value,row_index)
+                        if header[index] == 'handedness':
+                            tmp_dict['upload_demo_subject'][header[index]] = get_handedness_from_label(value)
+                        elif header[index] == 'gender':
+                            tmp_dict['upload_demo_subject'][header[index]] = get_gender_from_label(value)
+                        elif header[index] == 'yob':
+                            tmp_dict['upload_demo_subject'][header[index]] = get_yob_from_label(value, row_index)
                         else:
-                            tmp_dict['upload_demo_subject'][header[index]]=value
+                            tmp_dict['upload_demo_subject'][header[index]] = value
         return tmp_dict
 
-def smaller_str(str_option,size=10,end=False):
+def smaller_str(str_option, size=10, end=False):
     """
     Method to shorten a string into the smaller size
-    
+
     :param str_option: string to shorten
     :param size: size of the string to keep (default: 10 characters)
     :param end: keep the end of the string visible (default beginning)
     :return: shortened string
     """
-    if len(str_option)>size:
+    if len(str_option) > size:
         if end:
             return '...'+str_option[-size:]
         else:
             return str_option[:size]+'...'
     else:
         return str_option
-    
-def print_report(demo_list,header):
+
+def print_report():
     """
     Method to print the report on the upload of demographic data
-    
-    :param demo_list: list of demographic data to upload
-    :param header: header specified by user in CSV
+
     :return: None
     """
     #Display:
     print 'Report information :'
     print 'List of the data that need to be upload for the header: '
-    print ' , '.join(header)
+    print ','.join(HEADER)
     print '-----------------------------------------------------------------------------'
-    newlist = sorted(demo_list, key=lambda k: k['project_id']) 
-    for obj_dict in sorted(newlist):
+    new_list = sorted(DEMO_LIST, key=lambda k: k['project_id'])
+    for obj_dict in sorted(new_list):
         if obj_dict:
-            row=get_row_info(obj_dict,header)
-            print ' , '.join(row)
+            row = get_row_info(obj_dict)
+            print ','.join(row)
     print '-----------------------------------------------------------------------------\n'
 
-def get_row_info(obj_dict,header):
+def get_row_info(obj_dict):
     """
     Method to convert information from dictionary into a string
-    
+
     :param obj_dict: dictionary to convert
-    :param header: header specified by user in CSV
     :return: string representing row to display
     """
-    row=list()
-    for field in header:
+    row = list()
+    for field in HEADER:
         if field in obj_dict.keys():
-            row.append(obj_dict.get(field,''))
+            row.append(obj_dict.get(field, ''))
         else:
             if field in obj_dict['upload_demo_subject'].keys():
-                row.append(obj_dict['upload_demo_subject'].get(field,''))
+                row.append(obj_dict['upload_demo_subject'].get(field, ''))
             elif field in obj_dict['upload_demo_session'].keys():
-                row.append(obj_dict['upload_demo_session'].get(field,''))
+                row.append(obj_dict['upload_demo_session'].get(field, ''))
             else:
                 row.append('')
     return row
@@ -211,7 +232,7 @@ def get_row_info(obj_dict,header):
 def print_info_row(object_dict):
     """
     Method to print information when uploading
-    
+
     :param obj_dict: dictionary to convert
     :return: None
     """
@@ -225,42 +246,65 @@ def print_info_row(object_dict):
             print ' / '+tag+': '+value,
     print ''
 
-########################################## UPLOAD FUNCTIONS ##########################################
-def upload_demographic_data(demo_list):
+def print_format():
     """
-    Main Method to upload demographic data to XNAT
-    
-    :param demo_list: list of values to upload
+    Printing the variables available for the csv as subject/session level.
+     Displaying the variables required as well in the csv.
+
     :return: None
     """
-    for obj_dict in sorted(demo_list, key=lambda k: k['project_id']):
-        print_info_row(obj_dict)
-        subject_obj=get_xnat_object(xnat,obj_dict)
-        if not subject_obj.exists():
-            print " --> WARNING: Subject "+obj_dict['subject_label']+" doesn't exist. No information will be uploaded."
-        else:
-            update_demo_data(subject_obj,obj_dict)
+    print 'INFO: Printing the variables available for the csv as subject/session level\
+           (required as well in the csv to know where to set the information specified by the user): '
+    print 'Required variables:'
+    for value in REQUIRED_VARIABLES_LIST:
+        print ' * %*s ' % (-30, value)
+    print 'Default Subject demographic attributes:'
+    for value in SUBJECT_PARAMETERS_LIST:
+        print ' * %*s ' % (-30, value)
+    print 'Default Session demographic attributes:'
+    for value in SESSION_PARAMETERS_LIST:
+        print ' * %*s ' % (-30, value)
+    print'\nINFO: You can generate your own attributes by creating them on the XNAT directly and use the script to upload the values.'
+    print'WARNING:'
+    print'    * you need to have "project_id,subject_label" if you upload demographic data to a subject.'
+    print'    * for session attributes, you need to give the session_label as well.'
+    print'    * for specific attributes that you created on XNAT, please put the name of the variables in the header.'
 
-def update_demo_data(subject_obj,obj_dict):
+########### UPLOAD FUNCTIONS ###########
+def upload_demographic_data():
+    """
+    Main Method to upload demographic data to XNAT
+
+    :return: None
+    """
+    for obj_dict in sorted(DEMO_LIST, key=lambda k: k['project_id']):
+        print_info_row(obj_dict)
+        subject_obj = get_xnat_object(obj_dict)
+        if not subject_obj.exists():
+            print " --> WARNING: Subject %s doesn't exist. No information will be uploaded." % (obj_dict['subject_label'])
+        else:
+            update_demo_data(subject_obj, obj_dict)
+
+def update_demo_data(subject_obj, obj_dict):
     """
     Method to update demographic data for a specified subject
-    
+
     :param subject_obj: pyxnat.Interface subject Object
     :param obj_dict: list of values to upload
     :return: None
     """
     if 'upload_demo_subject' in obj_dict.keys():
-        for tag,value in obj_dict['upload_demo_subject'].items():
-            update_tag_subject(subject_obj,obj_dict['subject_label'],tag,value)
+        for tag, value in obj_dict['upload_demo_subject'].items():
+            update_tag_subject(subject_obj, obj_dict['subject_label'], tag, value)
     if 'upload_demo_session' in obj_dict.keys():
-        session_obj=subject_obj.experiment(obj_dict['session_label'])
-        for tag,value in obj_dict['upload_demo_session'].items():
-            update_tag_session(session_obj,obj_dict['session_label'],tag,value)
+        session_obj = subject_obj.experiment(obj_dict['session_label'])
+        for tag, value in obj_dict['upload_demo_session'].items():
+            update_tag_session(session_obj, obj_dict['session_label'], tag, value)
 
-def update_tag_subject(subject_obj,subject_label,tag,value):
+def update_tag_subject(subject_obj, subject_label, tag, value):
     """
     Method to set a tag for a subject
-    
+
     :param subject_obj: pyxnat.Interface subject Object
     :param subject_label: subject label on XNAT
     :param tag: tag to edit
@@ -269,19 +313,19 @@ def update_tag_subject(subject_obj,subject_label,tag,value):
     """
     if tag and value:
         if tag in SUBJECT_PARAMETERS_LIST: # default attributes
-            subject_obj.attrs.set('xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/'+tag.lower(),value)
-            print "  - "+tag+" set."
+            subject_obj.attrs.set('xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/'+tag.lower(), value)
+            print "  - %s set." % (tag)
         else: # specific attributes
-            try: 
-                subject_obj.attrs.set("xnat:subjectData/fields/field[name="+tag.lower()+"]/field",value)
-                print "  - "+tag+" set."
+            try:
+                subject_obj.attrs.set("xnat:subjectData/fields/field[name="+tag.lower()+"]/field", value)
+                print "  - %s set." % (tag)
             except:
-                print "  --> warning: tag "+tag+" -- Subject "+subject_label+" doesn't have this tag or wrong value given."
-    
-def update_tag_session(session_obj,session_label,tag,value):
+                print "  --> warning: tag %s -- Subject %s doesn't have this tag or wrong value given." % (tag, subject_label)
+
+def update_tag_session(session_obj, session_label, tag, value):
     """
     Method to set a tag for a specified session
-    
+
     :param subject_obj: pyxnat.Interface session Object
     :param subject_label: session label on XNAT
     :param tag: tag to edit
@@ -290,67 +334,69 @@ def update_tag_session(session_obj,session_label,tag,value):
     """
     if tag and value:
         if not session_obj.exists():
-            print "  --> warning: tag "+tag+" -- Session "+session_label+" doesn't exist or not set."
+            print "  --> warning: tag %s -- Session %s doesn't exist or not set." % (tag, session_label)
         else:
             if tag in SESSION_PARAMETERS_LIST: # default attributes
                 session_obj.attrs.set(session_obj.attrs.get('xsiType')+'/'+tag.lower(),value)
-                print "  - "+tag+" set."
+                print "  - %s set." % (tag)
             else: # specific attributes
                 try:
                     session_obj.attrs.set(session_obj.attrs.get('xsiType')+"/fields/field[name="+tag.lower()+"]/field",value)
-                    print "  - "+tag+" set."
+                    print "  - %s set." % (tag)
                 except:
-                    print "  --> warning: tag "+tag+" -- Session "+session_label+" doesn't have this tag."
+                    print "  --> warning: tag %s -- Session %s doesn't have this tag." % (tag, session_label)
 
-########################################## MAIN DISPLAY ##########################################
-def Main_display(parser):
+########### MAIN DISPLAY ###########
+def main_display():
     """
     Main display of the executables before any process
-    
-    :param parser: OptionParser Object
+
     :return: None
     """
-    (options,args) = parser.parse_args()
     print '################################################################'
     print '#                         XNATDEMOGRAPHIC                      #'
     print '#                                                              #'
-    print '# Developed by the MASI Lab Vanderbilt University, TN, USA.     #'
+    print '# Developed by the MASI Lab Vanderbilt University, TN, USA.    #'
     print '# If issues, please start a thread here:                       #'
     print '# https://groups.google.com/forum/#!forum/vuiis-cci            #'
     print '# Usage:                                                       #'
     print '#     Upload demographic data to XNAT from a csv file          #'
     print '# Parameters :                                                 #'
-    if options=={ 'csvfile':None,'delimiter': ',', 'report': False,'printformat':False,'format':None}:
+    if vars(OPTIONS) == DEFAULT_ARGUMENTS:
         print '#     No Arguments given                                       #'
-        print '#     Use "XnatDemographic -h" to see the options              #'
-        print '################################################################'
-        parser.print_help()
+        print '#     See the options below or use "XnatDemographic -h"        #'
+        print '################################################################\n'
+        PARSER.print_help()
         sys.exit()
     else:
-        if options.printformat:
-            print '#     %*s -> %*s#' %(-20,'Print format',-33,'on') 
+        if OPTIONS.host:
+            print '#     %*s -> %*s#' %(-20, 'XNAT Host', -33, get_proper_str(OPTIONS.host))
+        if OPTIONS.username:
+            print '#     %*s -> %*s#' %(-20, 'XNAT User', -33, get_proper_str(OPTIONS.username))
+        if OPTIONS.printformat:
+            print '#     %*s -> %*s#' %(-20, 'Print format', -33, 'on')
         else:
-            if options.csvfile:
-                print '#     %*s -> %*s#' %(-20,'Input File Path',-33,get_proper_str(options.csvfile,True))
-            if options.delimiter:
-                print '#     %*s -> %*s#' %(-20,'Delimiter for output',-33,get_proper_str(options.delimiter))
-            if options.format:
-                print '#     %*s -> %*s#' %(-20,'Header format',-33,get_proper_str(options.format))
-            if options.session_format:
-                print '#     %*s -> %*s#' %(-20,'Session attributes',-33,get_proper_str(options.session_format))
-            if options.report:
-                print '#     %*s -> %*s#' %(-20,'Report Mode',-33,'on')   
+            if OPTIONS.csvfile:
+                print '#     %*s -> %*s#' %(-20, 'Input File Path', -33, get_proper_str(OPTIONS.csvfile, True))
+            if OPTIONS.delimiter:
+                print '#     %*s -> %*s#' %(-20, 'Delimiter for output', -33, get_proper_str(OPTIONS.delimiter))
+            if OPTIONS.format:
+                print '#     %*s -> %*s#' %(-20, 'Header format', -33, get_proper_str(OPTIONS.format))
+            if OPTIONS.session_format:
+                print '#     %*s -> %*s#' %(-20, 'Session attributes', -33, get_proper_str(OPTIONS.session_format))
+            if OPTIONS.report:
+                print '#     %*s -> %*s#' %(-20, 'Report Mode', -33, 'on')
         print '################################################################'
-        
-def get_proper_str(str_option,end=False):
+
+def get_proper_str(str_option, end=False):
     """
     Method to shorten a string into the proper size for display
-    
+
     :param str_option: string to shorten
     :param end: keep the end of the string visible (default beginning)
     :return: shortened string
     """
-    if len(str_option)>32:
+    if len(str_option) > 32:
         if end:
             return '...'+str_option[-29:]
         else:
@@ -358,94 +404,69 @@ def get_proper_str(str_option,end=False):
     else:
         return str_option
 
-def get_usage():
-    """
-    Method to set usage for executables with examples
-    
-    :return: None
-    """
-    usage="usage: %prog [options] \n"
-    usage+="What is the script doing : \n"
-    usage+="   * Upload demographic data to a project on XNAT from a CSV file giving to the script as an input.\n"
-    usage+="     Demographic data can only be upload on a SUBJECT or SESSION with this tool.\n"
-    usage+="     Default parameters that can be uploaded to XNAT: handedness/gender/yob/age/scanner/scanner_manufacturer/scanner_model/acquisition_site'.\n"
-    usage+="     You can also upload your specific parameters but you need to create them first on XNAT.\n"
-    usage+="     By default, specific parameters are supposed to be part of the subject level.\n\n"
-    #Example
-    usage+="Examples:\n"
-    usage+="   *Upload demographic data handedness/gender/age: XnatDemographic -i demographic_data.csv \n"
-    usage+="   *See the report before uploading: Xnatdemographic -i demographic_data.csv \n"
-    usage+="   *Upload demographic data with a file delimited by a /: Xnatdemographic -i demographic_data.csv --delimiter=/ \n"
-    usage+="   *Upload demographic data with a different header that the default one: Xnatdemographic -i demographic_data.csv --format=project_id,subject_label,session_label,race,handedness,gender,age\n"
-    return usage
-
-########################################## OPTIONS ##########################################
+########### OPTIONS ###########
 def parse_args():
     """
-    Method to parse arguments base on OptionParser
-    
+    Method to parse arguments base on ArgumentParser
+
     :return: parser object
     """
-    from optparse import OptionParser
-    usage = get_usage()
-    parser = OptionParser(usage=usage)
-    #need this options
-    parser.add_option("-c","--csv",dest="csvfile",default=None,
-                  help="File path as inputs that will be read for XNAT information. Default header to use: project_id,subject_label,session_label,handedness,gender,age.", metavar="FILEPATH")
-    parser.add_option("-d","--delimiter",dest="delimiter",default=',',
-                  help="Delimiter for the output file. Default: comma.", metavar="STRING")
-    parser.add_option("--format", dest="format",default=None,
-                  help="Header for the csv. format: list of variables name separated by a comma. Default: using first line in the csv for the header.", metavar="COMMA_SEPARATED_LIST")
-    parser.add_option("--sessformat",dest="session_format",default=None,
-                  help="List of specific attributes for a session. format: comma separated list.", metavar="COMMA_SEPARATED_LIST")
-    parser.add_option("--report",dest="report",action="store_true", default=False,
-                  help="Show what information the script will upload to XNAT.", metavar="FILEPATH")
-    parser.add_option("--printformat",dest="printformat",action='store_true',default=False,
-                  help="Print available parameters for the csv header.", metavar="")
-    return parser
+    from argparse import ArgumentParser, RawDescriptionHelpFormatter
+    argp = ArgumentParser(prog='XnatDemographic', description=DESCRIPTION,
+                          formatter_class=RawDescriptionHelpFormatter)
+    argp.add_argument('--host', dest='host', default=None,
+                      help='Host for XNAT. Default: using $XNAT_HOST.')
+    argp.add_argument('-u', '--username', dest='username', default=None,
+                      help='Username for XNAT. Default: using $XNAT_USER.')
+    argp.add_argument("-c", "--csv", dest="csvfile", default=None,
+                      help="File path as inputs that will be read for XNAT information. Default header used: project_id,subject_label,session_label,handedness,gender,age.")
+    argp.add_argument("-d", "--delimiter", dest="delimiter", default=',',
+                      help="Delimiter for the output file. Default: comma.")
+    argp.add_argument("--format", dest="format",default=None,
+                      help="Header for the csv. format: list of variables name separated by a comma. Default: using first line in the csv for the header.")
+    argp.add_argument("--sessformat", dest="session_format", default=None,
+                      help="List of variables for the session from the header. format: comma separated list.")
+    argp.add_argument("--report",dest="report",action="store_true", default=False,
+                      help="Show what information the script will upload to XNAT.")
+    argp.add_argument("--printformat", dest="printformat", action='store_true',
+                      help="Print available parameters for the csv header.")
+    return argp
 
-########################################## MAIN FUNCTION ##########################################
+########### MAIN FUNCTION ###########
 if __name__ == '__main__':
-    """ Main function """
-    parser=parse_args()
-    (options,args) = parser.parse_args()
-    #############################
+    PARSER = parse_args()
+    OPTIONS = PARSER.parse_args()
     #Main display:
-    Main_display(parser)
-    #############################
-    # RUN                       #
-    #############################
+    main_display()
+
     print '=========================================================================='
-    if options.printformat:
-        print 'INFO: Printing the variables available for formating the output: '
-        print 'Required variables:'
-        for value in REQUIRED_VARIABLES_LIST:
-            print ' * %*s ' % (-30,value)
-        print 'Default Subject demographic attributes:' 
-        for value in SUBJECT_PARAMETERS_LIST:
-            print ' * %*s ' % (-30,value)
-        print 'Default Session demographic attributes:' 
-        for value in SESSION_PARAMETERS_LIST:
-            print ' * %*s ' % (-30,value)
-        print'\nINFO: You can generate your own attributes by creating them on the XNAT directly and use the script to upload the values.'
-        print'WARNING:'
-        print'    * you need to have "project_id,subject_label" if you upload demographic data to a subject.'
-        print'    * for session attributes, you need to give the session_label as well.'
-        print'    * for specific attributes that you created on XNAT, please put the name of the variables in the header.'
-    if options.csvfile:
-        if not os.path.exists(options.csvfile):
-            print 'ERROR: the csv file '+options.csvfile+' does not exist.'
+    if OPTIONS.printformat:
+        print_format()
+    if OPTIONS.csvfile:
+        if not os.path.exists(OPTIONS.csvfile):
+            print 'ERROR: the csv file '+OPTIONS.csvfile+' does not exist.'
         else:
-            demo_list,header=read_csv(options)
-            if not demo_list:
-                print 'INFO: no valid demographic found.'
-            elif options.report:
-                print_report(demo_list,header)
-            else:      
+            DEMO_LIST, HEADER = read_csv()
+            if not DEMO_LIST:
+                print 'INFO: no valid demographic data found.'
+            elif OPTIONS.report:
+                print_report()
+            else:
                 try:
-                    xnat=XnatUtils.get_interface()
-                    print 'INFO: Uploading demographics data to XNAT. It will take some time to upload demographic data. Please be patient.'
-                    upload_demographic_data(demo_list)
+                    if OPTIONS.host:
+                        HOST = OPTIONS.host
+                    else:
+                        HOST = os.environ['XNAT_HOST']
+                    if OPTIONS.username:
+                        MSG = "Please provide the password for user <%s> on xnat(%s):" % (OPTIONS.username, HOST)
+                        PWD = getpass.getpass(prompt=MSG)
+                    else:
+                        PWD = None
+
+                    print 'INFO: connection to xnat <%s>:' % (HOST)
+                    XNAT = XnatUtils.get_interface(host=OPTIONS.host, user=OPTIONS.username, pwd=PWD)
+                    print 'INFO: Uploading demographics data to XNAT <%s>. It will take some time to upload demographic data. Please be patient.' % (HOST)
+                    upload_demographic_data()
                 finally:
-                    xnat.disconnect()
+                    XNAT.disconnect()
     print '=========================================================================='

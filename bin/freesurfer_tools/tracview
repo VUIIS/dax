@@ -31,30 +31,35 @@ CPTS_LIST = [
 ]
 
 def parse_args():
+    """
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
+    """
     from argparse import ArgumentParser
     ap = ArgumentParser(prog='tracview', description="Load TRACULA subject in freeview")
     ap.add_argument('session', help='Session Label')
     ap.add_argument('-sd','--subjects_dir', help='Subjects Dir', default='/tmp', required=False)
     return ap.parse_args()
-    
-if __name__ == '__main__':    
+
+if __name__ == '__main__':
     args = parse_args()
     sess_label = args.session
     subjects_dir = args.subjects_dir
-    
-    local_subj_path = glob.glob(subjects_dir+'/*'+sess_label+'*TRACULA_v*/TRACULA/'+sess_label)[0]
+
+    local_subj_path = glob.glob(subjects_dir+'/*'++'*TRACULA_v*/TRACULA/'+sess_label)[0]
 
     if not os.path.exists(local_subj_path):
-        print 'ERROR:cannot load, '+sess+' not found in local TRACULA subjects directory.'
+        print 'ERROR:cannot load, %s not found in local TRACULA subjects directory.' % (sess_label)
         sys.exit(1)
-        
+
     cmd = 'freeview'
     cmd += ' -v '+local_subj_path+'/dmri/dtifit_FA.nii.gz:visible=1'
     cmd += ' -tv '+ local_subj_path+'/dpath/merged_avg33_mni_bbr.mgz'
-    
+
     for cpts in CPTS_LIST:
         cp_file_path = local_subj_path+'/dlabel/diff/'+cpts[:-4]+'.nii.gz'
         cmd += ' -v '+cp_file_path+':visible=0:colormap=jet'
 
-    print 'Launching freeview with command:'+cmd        
+    print 'Launching freeview with command:'+cmd
     os.system(cmd)

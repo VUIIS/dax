@@ -25,6 +25,7 @@ from dax import ADMIN_EMAIL, RESULTS_DIR, DEFAULT_GATEWAY,\
                 SMTP_PASS, DEFAULT_EMAIL_OPTS, DEFAULT_MAX_AGE
 from dax.launcher import BUILD_SUFFIX, UPDATE_SUFFIX, LAUNCH_SUFFIX
 
+######### Variables ##########
 #Information on gateway/user
 USER = os.environ['USER']
 try:
@@ -73,13 +74,32 @@ EMAIL_HEADER = """Long updates running on <{gateway}> for the user <{user}>:
 ----------------------------------------------------------------------------------
 """
 
+UPDATE_EMAIL_DICT = {'dax_build still running after 2 days':[],
+                     'dax_build still running after 7 days':[],
+                     'dax_launch still running after 2 days':[],
+                     'dax_launch still running after 7 days':[],
+                     'dax_update_tasks still running after 2 days':[],
+                     'dax_update_tasks still running after 7 days':[]}
+
 #Class for settings:
 class Settings_File:
     """ Class to generate settings file """
     def __init__(self, filepath, tmpdir='/tmp/', email=None,
                  email_opts=DEFAULT_EMAIL_OPTS, dax_logs_path='/tmp/',
                  queue_limit=200, max_age=DEFAULT_MAX_AGE, admin_email=ADMIN_EMAIL):
-        """ init function """
+        """
+        Entry point for the filter_variable class
+
+        :param filepath: path for the settings file
+        :param tmpdir: temp directory to write the settings file
+        :param email: email for the jobs in the settings file
+        :param email_opts: email options for the jobs in the settings file
+        :param dax_logs_path: path for the logs
+        :param queue_limit: queue limit to submit to the cluster for the settings file
+        :param max_age: maximum age before restarting a session and update it again
+        :param admin_email: admin email address for this settings file
+        :return: None
+        """
         self.filepath = filepath
         #email
         if isinstance(email, list):
@@ -103,12 +123,12 @@ class Settings_File:
         #logs for dax path
         self.dax_logs_path = dax_logs_path
         #Maximum Number of job that can be submitted
-        if queue_limit.isdigit():
+        if isinstance(queue_limit, str):
             self.queue_limit = int(queue_limit)
         else:
             self.queue_limit = 400
         #Admin email to receve error from dax
-        if isinstance(email, list):
+        if isinstance(admin_email, list):
             self.admin_email = admin_email
         else:
             self.admin_email = admin_email.split(',')
@@ -119,7 +139,13 @@ class Settings_File:
             self.max_age = max_age
 
     def add_mod_str(self, project, mod_str):
-        """ add a module string for a new module """
+        """
+        Add a module define by the string to a project
+
+        :param project: project id of XNAT to add the module
+        :param mod_str: module string to add
+        :return: None
+        """
         self.mod_str += mod_str+'\n'
         if project in self.pm_dict.keys():
             self.pm_dict[project].append(mod_str.split('=')[0])
@@ -127,7 +153,13 @@ class Settings_File:
             self.pm_dict[project] = [mod_str.split('=')[0]]
 
     def add_proc_str(self, project, proc_str):
-        """ add a processor string for a new proc """
+        """
+        Add a processor define by the string to a project
+
+        :param project: project id of XNAT to add the processor
+        :param proc_str: processor string to add
+        :return: None
+        """
         self.proc_str += proc_str+'\n'
         if project in self.pp_dict.keys():
             self.pp_dict[project].append(proc_str.split('=')[0])
@@ -135,11 +167,20 @@ class Settings_File:
             self.pp_dict[project] = [proc_str.split('=')[0]]
 
     def get_project_list(self):
-        """ return the list of project """
+        """
+        Get the list of projects for the settings file
+
+        :return: a list of projects ID
+        """
         return set(self.pm_dict.keys()+self.pp_dict.keys())
 
     def merge_settings(self, settings):
-        """ merge the settings for different projects """
+        """
+        Merge an other settings class object to this class
+
+        :param settings: settings class object to add to this class
+        :return: None
+        """
         #Email:
         if list(set(self.email)-set(settings.email)):
             self.email += list(set(self.email)-set(settings.email))
@@ -155,11 +196,20 @@ class Settings_File:
         self.pp_dict.update(settings.pp_dict)
 
     def set_order(self, proj_order):
-        """ set the order for the project """
+        """
+        Set the order for the project
+
+        :param proj_order: list of projects ID ordered
+        :return: None
+        """
         self.proj_order = proj_order
 
     def get_order(self):
-        """ get the order for the project """
+        """
+        Get the order for the projects
+
+        :return: list of projects ordered in a string
+        """
         order_str = '['
         for project in self.proj_order:
             order_str += """'{project}',""".format(project=project)
@@ -169,7 +219,11 @@ class Settings_File:
         return order_str
 
     def get_admin_email(self):
-        """ return the list of the admin emails """
+        """
+        Get the list of the administrator email addresses for the settings file
+
+        :return: list of email addresses from admins
+        """
         email_list = list()
         if '' in self.email:
             self.email.remove('')
@@ -186,7 +240,12 @@ class Settings_File:
             return email_list
 
     def get_email_list(self):
-        """ return the list of the emails """
+        """
+        Get the list of the email addresses for the settings file dedicated
+         to the cluster jobs
+
+        :return: list of email addresses for jobs
+        """
         email_list = list()
         if '' in self.email:
             self.email.remove('')
@@ -203,14 +262,24 @@ class Settings_File:
             return email_list
 
     def get_email_opts(self):
-        """ return the email options """
+        """
+        Get the email options for the settings file dedicated
+         to the cluster jobs
+
+        :return: email options
+        """
         if self.email_opts == '':
             return DEFAULT_EMAIL_OPTS
         else:
             return self.email_opts
 
     def get_pm_dict(self):
-        """ return the dict for the project modules """
+        """
+        Get the dictionary representing the project/modules as strings
+         to run for the settings file
+
+        :return: dictionary of project/modules strings
+        """
         pm_dict_str = '{'
         first_elem = True
         spacing = 12*" "
@@ -235,7 +304,12 @@ class Settings_File:
         return pm_dict_str
 
     def get_pp_dict(self):
-        """ return the dict for the project processors """
+        """
+        Get the dictionary representing the project/processors as strings
+         to run for the settings file
+
+        :return: dictionary of project/processors strings
+        """
         pp_dict_str = '{'
         first_elem = True
         spacing = 13*" "
@@ -260,10 +334,16 @@ class Settings_File:
         return pp_dict_str
 
 def get_list_modproc(redcap_project):
-    """ return the list of modules and processors """
+    """
+    Get the list of modules and processors from redcap project
+
+    :param redcap_project: pycap project object
+    :return: list of modules, list of processors
+    """
     #Getting modules/processors
     all_forms = list()
     fnames, _ = redcap_project.names_labels()
+    k = ''
     for k in fnames:
         try:
             field = filter(lambda x: x['field_name'] == k, redcap_project.metadata)[0]
@@ -278,13 +358,20 @@ def get_list_modproc(redcap_project):
     return mod, proc
 
 def get_field_for_modproc(redcap_project, form_name):
-    """ return the list of the variables for the module """
+    """
+    Get the list of fields for the form requested from redcap project
+
+    :param redcap_project: pycap project object
+    :param form_name: name of the form
+    :return: list of fields
+    """
     avoid_labels = [form_name[7:]+'_inputs',
                     form_name[7:]+'_on',
                     form_name[8:]+'_inputs',
                     form_name[8:]+'_on']
     fields_list = list()
     fnames, _ = redcap_project.names_labels()
+    k = ''
     for k in fnames:
         try:
             field = filter(lambda x: x['field_name'] == k, redcap_project.metadata)[0]
@@ -296,7 +383,12 @@ def get_field_for_modproc(redcap_project, form_name):
     return fields_list
 
 def read_redcap_db(redcap_project):
-    """ read the project on redcap """
+    """
+    Read the project on redcap and extract the records for the user and gateway requested
+
+    :param redcap_project: pycap project object
+    :return: list of records
+    """
     #Extract all attributes for the records that belong to the gateway/user we are on:
     fields_search = [redcap_project.def_field, REDCAP_VAR['user'], REDCAP_VAR['gateway']]
     record_list = redcap_project.export_records(fields=fields_search)
@@ -307,21 +399,20 @@ def read_redcap_db(redcap_project):
     else:
         return list()
 
-def generate_settings(gateway, user, redcap_project, settings_info):
-    """ create the settings file """
+def generate_settings(redcap_project, settings_info):
+    """
+    Generate the settings file for the redcap project selected
+
+    :param redcap_project: pycap project object
+    :param settings_info: dictionary representing the settings information
+    :return: dictionary of settings (key = filepath, value = Settings_File Class object)
+    """
     #Variable:
     settings_dict = dict()
     modules_list, processes_list = get_list_modproc(redcap_project)
     LOGGER.info('Projects found on Redcap: ')
     if not settings_info:
         LOGGER.info('  - No project found')
-
-    update_email_dict = {'dax_build still running after 2 days':[],
-                         'dax_build still running after 7 days':[],
-                         'dax_launch still running after 2 days':[],
-                         'dax_launch still running after 7 days':[],
-                         'dax_update_tasks still running after 2 days':[],
-                         'dax_update_tasks still running after 7 days':[]}
 
     #Organize the data to in complex dictionaries:
     for project_settings in settings_info:
@@ -333,7 +424,7 @@ def generate_settings(gateway, user, redcap_project, settings_info):
         LOGGER.info(message)
         if project_settings['general_complete'] == '2':
             #Check the process:
-            update_email_dict = check_executables(project_settings, update_email_dict)
+            check_executables(project_settings)
             #New PSettings
             psettings = Settings_File(filepath=project_settings[REDCAP_VAR['settingsfile']],
                                       tmpdir=project_settings[REDCAP_VAR['tmp']],
@@ -393,8 +484,7 @@ def generate_settings(gateway, user, redcap_project, settings_info):
                                 field_name = field['field_name'].split(proc_name[8:]+'_')[1]
                                 args_proc_dict[field_name] = read_value(project_settings,
                                                                         index,
-                                                                        field['field_name'],
-                                                                        field['field_note'])
+                                                                        field['field_name'])
                         processors = generate_proc(project_settings[REDCAP_VAR['project']],
                                                    procname, args_proc_dict, str(index))
                         psettings.add_proc_str(project_settings[REDCAP_VAR['project']], processors)
@@ -406,7 +496,7 @@ def generate_settings(gateway, user, redcap_project, settings_info):
     LOGGER.info('\n')
 
     email_text = EMAIL_HEADER.format(gateway=gateway, user=user)
-    for header, proj_list in update_email_dict.items():
+    for header, proj_list in UPDATE_EMAIL_DICT.items():
         if proj_list:
             email_text += '\t'+header+' -->  '+' , '.join(proj_list)+'\n'
             email_text += '-----------------------------------------'\
@@ -415,12 +505,17 @@ def generate_settings(gateway, user, redcap_project, settings_info):
     if email_text != EMAIL_HEADER:
         subject = 'Dax_manager ADMIN: updates running for 2/7days '
         if ADMIN_EMAIL:
-            email(email_text, ADMIN_EMAIL, subject)
+            send_email(email_text, ADMIN_EMAIL, subject)
 
     return settings_dict
 
 def get_status(settings_info):
-    """ get the status of the dax executables that are running """
+    """
+    Get the status of the executables that are running
+
+    :param settings_info: dictionary representing the settings information
+    :return: dictionary of settings (key = filepath, value = Settings_File Class object)
+    """
     LOGGER.info('Status on each settings updates:')
     separator = '-'*160
     LOGGER.info(' '+separator)
@@ -441,13 +536,13 @@ def get_status(settings_info):
             build_start = str(pset[REDCAP_VAR['dax_build_start_date']][:-3])
             launch_start = str(pset[REDCAP_VAR['dax_launch_start_date']][:-3])
             up_tasks_start = str(pset[REDCAP_VAR['dax_update_tasks_start_date']][:-3])
-            build_info = get_update_info(pset[REDCAP_VAR['dax_build_start_date']], 
+            build_info = get_update_info(pset[REDCAP_VAR['dax_build_start_date']],
                                          pset[REDCAP_VAR['dax_build_end_date']],
                                          pset[REDCAP_VAR['dax_build_pid']])
-            launch_info = get_update_info(pset[REDCAP_VAR['dax_launch_start_date']], 
+            launch_info = get_update_info(pset[REDCAP_VAR['dax_launch_start_date']],
                                           pset[REDCAP_VAR['dax_launch_end_date']],
                                           pset[REDCAP_VAR['dax_launch_pid']])
-            up_tasks_info = get_update_info(pset[REDCAP_VAR['dax_update_tasks_start_date']], 
+            up_tasks_info = get_update_info(pset[REDCAP_VAR['dax_update_tasks_start_date']],
                                             pset[REDCAP_VAR['dax_update_tasks_end_date']],
                                             pset[REDCAP_VAR['dax_update_tasks_pid']])
             val = '| %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s |' % (-23, projectstr,
@@ -462,14 +557,26 @@ def get_status(settings_info):
     LOGGER.info(' '+separator)
 
 def get_status_string(status):
-    """ return ON if project is ON on REDCap, OFF else """
+    """
+    Get the status of the project on REDCap from the value (0,1,2)
+
+    :param status: status int value
+    :return: Y if project is ON, N otherwise
+    """
     if str(status) == '2':
         return 'Y'
     else:
         return 'N'
 
 def get_update_info(update_start, update_end, update_pid):
-    """ return string update information """
+    """
+    Get the string update information
+
+    :param update_start: update start date
+    :param update_end: update end date
+    :param update_pid: update PID
+    :return: string
+    """
     if update_end == 'In Process':
         return update_end+' PID:'+update_pid
     else : # both are datetimes
@@ -490,7 +597,14 @@ def get_update_info(update_start, update_end, update_pid):
         return elapsed_time
 
 def smaller_str(str_option, size, end=False):
-    """ return a smaller string """
+    """
+    Method to shorten a string into the smaller size
+
+    :param str_option: string to shorten
+    :param size: size of the string to keep (default: 10 characters)
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
     if len(str_option) > size:
         if end:
             return '...'+str_option[-size-3:]
@@ -500,7 +614,14 @@ def smaller_str(str_option, size, end=False):
         return str_option
 
 def check_number_process(project_settings, proc_name):
-    """ return the number of processes if more than just one set """
+    """
+    Shorten a string into the smaller size
+
+    :param str_option: string to shorten
+    :param size: size of the string to keep (default: 10 characters)
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
     proc_name_tags = project_settings[proc_name[8:]+'_proc_name'].split(';')
     spider_tags = project_settings[proc_name[8:]+'_spider_path'].split(';')
     suffix_tags = project_settings[proc_name[8:]+'_suffix_proc'].split(';')
@@ -508,7 +629,15 @@ def check_number_process(project_settings, proc_name):
     return max(len(l) for l in [proc_name_tags, spider_tags, suffix_tags, version_tags])
 
 def read_procname(project_settings, index, field_name, field_note):
-    """ return procname from REDCap"""
+    """
+    Read the procname from the settings by giving the field name and note on REDCap
+
+    :param project_settings: settings for a project
+    :param index: index of the process
+    :param field_name: name of the field on REDCap to retrieve
+    :param field_note: note for the field on REDCap
+    :return: value from the project_settings
+    """
     if ';' in project_settings[field_name]:
         value = project_settings[field_name].split(';')
         if len(value) <= index:
@@ -528,8 +657,15 @@ def read_procname(project_settings, index, field_name, field_note):
         else:
             return project_settings[field_name]
 
-def read_value(project_settings, index, field_name, field_note):
-    """ return the value for a field """
+def read_value(project_settings, index, field_name):
+    """
+    Read the value from the settings by giving the field name on REDCap
+
+    :param project_settings: settings for a project
+    :param index: index of the process
+    :param field_name: name of the field on REDCap to retrieve
+    :return: value for a field
+    """
     if ';' in project_settings[field_name]:
         value = project_settings[field_name].split(';')
         if len(value) <= index:
@@ -547,29 +683,49 @@ def read_value(project_settings, index, field_name, field_note):
         return project_settings[field_name]
 
 def generate_proc(project, procname, args_dict, tag):
-    """ return the processor call to write down in the settings """
+    """
+    Generate the processor call to write in the settings
+
+    :param project: project ID on XNAT
+    :param procname: processors to run for the project
+    :param args_dict: arguments for the processor
+    :param tag: tag added to the project for the procname of the processor
+    :return: string representing the processor
+    """
     #Get the arguments
-    arguments = dict2str(args_dict)
+    args = dict2str(args_dict)
     #Get the string for a processor
     proc_data = {'PROJECT':project.replace('-', '_')+'_'+tag,
                  'PROCNAME':procname,
-                 'ARGUMENTS':arguments}
+                 'ARGUMENTS':args}
 
     return PROC_TEMPLATE.safe_substitute(**proc_data)
 
 def generate_mod(project, modname, args_dict):
-    """ return the module call to write down in the settings """
+    """
+    Generate the module call to write in the settings
+
+    :param project: project ID on XNAT
+    :param modname: modules to run
+    :param args_dict: arguments for the module
+    :return: string representing the module
+    """
     #Get the arguments
-    arguments = dict2str(args_dict)
+    args = dict2str(args_dict)
     #Get the string for a processor
     mod_data = {'PROJECT':project.replace('-', '_'),
                 'MODNAME':modname,
-                'ARGUMENTS':arguments}
+                'ARGUMENTS':args}
 
     return MOD_TEMPLATE.safe_substitute(**mod_data)
 
 def dict2str(arg_dict):
-    """ convert a dict into a string """
+    """
+    Convert a dictionary into a string for the template
+
+    :param arg_dict: argument dictionary
+    :return: string of the arguments
+    """
     arg_str = ''
     for key, value in arg_dict.items():
         if value != '':
@@ -580,7 +736,13 @@ def dict2str(arg_dict):
         return ''
 
 def ordering_project(setting, settings_info):
-    """ return the order for the projects """
+    """
+    Order the projects in a list from REDCap priority settings
+
+    :param setting: Settings_File Class Object
+    :param settings_info: list of information for settings
+    :return: list of ordered projects
+    """
     list_priority = dict()
     #Organize the data to in complex dictionaries:
     for project in setting.get_project_list():
@@ -591,7 +753,12 @@ def ordering_project(setting, settings_info):
     return sorted(list_priority, key=list_priority.get)
 
 def write_settings(settings):
-    """ write down the settings """
+    """
+    Write the settings file
+
+    :param settings: Settings_File Class Object
+    :return: None
+    """
     # Check the Settings path:
     if '.py' not in os.path.basename(settings.filepath):
         LOGGER.error('Settings filepath is not a proper file. It needs the extension .py .')
@@ -613,8 +780,15 @@ def write_settings(settings):
         with open(settings.filepath, 'w') as f:
             f.write(SETTINGS_TEMPLATE.safe_substitute(**settings_data))
 
-def email(content, to_addr, subject):
-    """ send an email """
+def send_email(content, to_addr, subject):
+    """
+    Send an email to the address
+
+    :param content: content of the email
+    :param to_addr: address to send the email to
+    :param subject: subject of the email
+    :return: None
+    """
     if SMTP_FROM and SMTP_HOST and SMTP_PASS:
         # Create the container (outer) email message.
         msg = MIMEText(content)
@@ -631,57 +805,75 @@ def email(content, to_addr, subject):
         smtp.quit()
 
 def unlock_executables(flagfile, suffix):
-    """ unlock the executables by removing the flagfile """
-    lockfile_prefix = os.path.splitext(os.path.basename(filepath))[0]
+    """
+    Unlock the executables by removing the FlagFiles
+
+    :param flagfile: flagfile path
+    :param suffix: suffix added to the flagfile
+    :return: None
+    """
+    lockfile_prefix = os.path.splitext(os.path.basename(flagfile))[0]
     flagfile = os.path.join(RESULTS_DIR, 'FlagFiles',
                             lockfile_prefix+'_'+suffix)
     if os.path.exists(flagfile):
         os.remove(flagfile)
 
-def check_executables(project_settings, update_email_dict):
-    """ check for how long the executables are running """
+def check_executables(project_settings):
+    """
+    Check the date on REDCap to see if any dax executables ran
+     for more than few days
+
+    :param project_settings: list of project settings
+    :return: None
+    """
     today_date = int('{:%Y%m%d%H%M%S}'.format(datetime.now()))
     #dax_build:
     if 'In Process' in project_settings['dax_build_end_date']:
-        update_email_dict = check_date(update_email_dict,
-                                       project_settings[REDCAP_VAR['project']],
-                                       project_settings['dax_build_start_date'],
-                                       today_date,
-                                       'dax_build')
+        check_date(project_settings[REDCAP_VAR['project']],
+                   project_settings['dax_build_start_date'],
+                   today_date, 'dax_build')
 
     #dax_launch
     if 'In Process' in project_settings['dax_launch_end_date']:
-        update_email_dict = check_date(update_email_dict,
-                                       project_settings[REDCAP_VAR['project']],
-                                       project_settings['dax_launch_start_date'],
-                                       today_date,
-                                       'dax_launch')
+        check_date(project_settings[REDCAP_VAR['project']],
+                   project_settings['dax_launch_start_date'],
+                   today_date, 'dax_launch')
 
     #dax_update_tasks
     if 'In Process' in project_settings['dax_launch_end_date']:
-        update_email_dict = check_date(update_email_dict,
-                                       project_settings[REDCAP_VAR['project']],
-                                       project_settings['dax_update_tasks_start_date'],
-                                       today_date,
-                                       'dax_update_tasks')
+        check_date(project_settings[REDCAP_VAR['project']],
+                   project_settings['dax_update_tasks_start_date'],
+                   today_date, 'dax_update_tasks')
 
-    return update_email_dict
+def check_date(project, start_date, now, exec_name):
+    """
+    Check the date for an executable
 
-def check_date(update_email_dict, project, start_date, now, exec_name):
-    """ check the date for the executable """
+    :param project: project ID
+    :param start_date: date when the dax executable started
+    :param now: date at the time of today
+    :param exec_name: name of the dax executable (dax_build/dax_launch/...)
+    :return: None
+    """
     if start_date:
         start_date = int(start_date.replace('-', '').replace(':', '').replace(' ', ''))
         start_date_2days = start_date+2000000 #adding 2 days
         start_date_2days2hours = start_date+2020000 #adding 2 days - 2 hours
         start_date_7days = start_date+7000000 #adding 7 days
         if start_date_2days <= now <= start_date_2days2hours:
-            update_email_dict[exec_name+' still running after 2 days'].append(project)
+            UPDATE_EMAIL_DICT[exec_name+' still running after 2 days'].append(project)
         if start_date_7days <= now:
-            update_email_dict[exec_name+' still running after 7 days'].append(project)
-    return update_email_dict
+            UPDATE_EMAIL_DICT[exec_name+' still running after 7 days'].append(project)
 
 def get_logfile_name(logdir, prefix, filepath):
-    """ return the name of the logfile """
+    """
+    Get the path of the logfile
+
+    :param logdir: directory for the logs
+    :param prefix: prefix for the log file
+    :param filepath: filepath of the settings file
+    :return: path of the log file
+    """
     if not os.path.exists(logdir):
         os.makedirs(logdir)
     project = os.path.basename(filepath).split('.')[0]
@@ -692,26 +884,39 @@ def get_logfile_name(logdir, prefix, filepath):
     return os.path.join(logdir, filename)
 
 def email_error(exec_name, email_add, filepath):
-    """ email if error in dax executables """
+    """
+    Send an email if an error is caught in the dax executables
+
+    :param exec_name: dax executable failing
+    :param email_add: email address
+    :param filepath: filepath of the settings file
+    :return: None
+    """
     temp = """Caught exception in worker "{exec_name}" {file} : \n{trace}"""
     content = temp.format(exec_name=exec_name,
                           file=filepath,
                           trace=traceback.format_exc())
     subject = """Error in {exec_name} for {file}""".format(exec_name=exec_name,
                                                            file=filepath)
-    email(content, email_add, subject)
+    send_email(content, email_add, subject)
+
 ####################################################################################
 #####################           Principal functions            #####################
 ####################################################################################
-def generate_settings_REDCap(gateway, user, api_key, status=False):
-    """Extract information from REDCap and generate the settings file"""
+def generate_settings_REDCap():
+    """
+    Extract information from REDCap and generate the settings file
+
+    :return: list of path settings generated, dict of logs for dax executables,
+              dictionaries of email addresses for dax executables
+    """
     settings_path_list = list()
     daxlogsdir_dict = dict()
     email_dict = dict()
     #get the information for xnat from redcap for the projects:
     LOGGER.info('Loading RedCap to extract information to run dax_updates...')
     try:
-        redcap_project = redcap.Project(API_URL, api_key)
+        redcap_project = redcap.Project(API_URL, API_KEY)
     except:
         LOGGER.error('Could not access redcap. Either wrong API_URL/API_KEY or redcap down.',
                      exc_info=True)
@@ -720,13 +925,11 @@ def generate_settings_REDCap(gateway, user, api_key, status=False):
     #Extract the information about the settings from redcap
     settings_info = read_redcap_db(redcap_project)
     #Status:
-    if status:
+    if PARGS.status:
         get_status(settings_info)
     else:
         #Generate information for the settings
-        settings_dict = generate_settings(gateway,
-                                          user,
-                                          redcap_project,
+        settings_dict = generate_settings(redcap_project,
                                           settings_info)
         #For each settings in the dict:
         for filepath, setting in settings_dict.items():
@@ -742,7 +945,15 @@ def generate_settings_REDCap(gateway, user, api_key, status=False):
     return settings_path_list, daxlogsdir_dict, email_dict
 
 def run_dax_build(filepath, logdir, debug, email_add):
-    """Run dax_build with the settings file and redirect output to the logfile"""
+    """
+    Function to submit dax_build to the cluster and redirect output to the logfile
+
+    :param filepath: filepath of the settings file
+    :param logdir: directory for the logs
+    :param debug: debug mode or not
+    :param email_add: email address
+    :return: None
+    """
     try:
         logfile = get_logfile_name(logdir, "buildlog", filepath)
         dax.bin.build(filepath, logfile, debug)
@@ -755,7 +966,15 @@ def run_dax_build(filepath, logdir, debug, email_add):
             email_error('dax_build', email_add, filepath)
 
 def run_dax_launch(filepath, logdir, debug, email_add):
-    """Run dax_launch with the settings file and redirect output to the logfile"""
+    """
+    Function to submit dax_launch to the cluster and redirect output to the logfile
+
+    :param filepath: filepath of the settings file
+    :param logdir: directory for the logs
+    :param debug: debug mode or not
+    :param email_add: email address
+    :return: None
+    """
     try:
         logfile = get_logfile_name(logdir, "launchlog", filepath)
         dax.bin.launch_jobs(filepath, logfile, debug)
@@ -768,7 +987,15 @@ def run_dax_launch(filepath, logdir, debug, email_add):
             email_error('dax_launch', email_add, filepath)
 
 def run_dax_update_tasks(filepath, logdir, debug, email_add):
-    """Run dax_update_task with the settings file and redirect output to the logfile"""
+    """
+    Function to submit dax_update_tasks to the cluster and redirect output to the logfile
+
+    :param filepath: filepath of the settings file
+    :param logdir: directory for the logs
+    :param debug: debug mode or not
+    :param email_add: email address
+    :return: None
+    """
     try:
         logfile = get_logfile_name(logdir, "update_taskslog", filepath)
         dax.bin.update_tasks(filepath, logfile, debug)
@@ -780,15 +1007,28 @@ def run_dax_update_tasks(filepath, logdir, debug, email_add):
         if email_add:
             email_error('dax_update_tasks', email_add, filepath)
 
-def submit_exec(target, arguments, filepath, exec_name):
-    """ submit executables on the gateway: return the process """
+def submit_exec(target, args, filepath, exec_name):
+    """
+    Function to submit one executable using multiprocessing on the gateway
+
+    :param target: one of the function define above
+                   (run_dax_build/run_dax_launch/run_dax_update_tasks)
+    :param args: arguments for the function
+    :param filepath: filepath of the settings file
+    :param exec_name: name of the dax executable
+    :return: PID for the executable
+    """
     LOGGER.debug("""new process {execn} on {file}""".format(execn=exec_name, file=filepath))
-    proc = multiprocessing.Process(target=target, args=arguments)
+    proc = multiprocessing.Process(target=target, args=args)
     proc.start()
     return proc
 
 def parse_args():
-    """ options parser for the script """
+    """
+    Method to parse arguments base on argparse
+
+    :return: parser object parsed
+    """
     from argparse import ArgumentParser
     des = "dax_manager to manage project from redcap database or lists of settings files"
     argp = ArgumentParser(prog='dax_manager', description=des)
@@ -833,28 +1073,25 @@ if __name__ == '__main__':
     DAX_LOGS_DIRS_DICT = dict()
     EMAIL_DICT = dict()
     LOGGER.info('Time at the beginning of the DAX Manager: '+ str(datetime.now()))
-    LOGGER.info('Current Process ID: '+str(os.getpid()))
-    LOGGER.info('Current Process Name: '+os.path.basename(__file__))
-    LOGGER.info('Current User: '+USER)
+    LOGGER.info('Current Process ID: %s' % (str(os.getpid())))
+    LOGGER.info('Current Process Name: %s' % (os.path.basename(__file__)))
+    LOGGER.info('Current User: %s' % (USER))
     if GATEWAY:
-        LOGGER.info('Current Gateway/Computer: '+GATEWAY+'\n')
+        LOGGER.info('Current Gateway/Computer: %s\n' % (GATEWAY))
     else:
         LOGGER.debug('Current Gateway/Computer: not found...\n')
 
     #If api_key given, use the redcap db:
     if API_KEY:
-        SETTINGS_PATHS, DAX_LOGS_DIRS_DICT, EMAIL_DICT = generate_settings_REDCap(GATEWAY,
-                                                                                  USER,
-                                                                                  API_KEY,
-                                                                                  PARGS.status)
+        SETTINGS_PATHS, DAX_LOGS_DIRS_DICT, EMAIL_DICT = generate_settings_REDCap()
 
     if PARGS.writeonly or PARGS.status:
         pass
     else:
         if PARGS.debug:
             LOGGER.debug('Settings file found: ')
-            for filepath in SETTINGS_PATHS:
-                LOGGER.debug('  -'+os.path.basename(filepath))
+            for fpath in SETTINGS_PATHS:
+                LOGGER.debug('  - %s' % (os.path.basename(fpath)))
             LOGGER.debug('\n')
 
         # Workers:
@@ -868,25 +1105,25 @@ if __name__ == '__main__':
         LOGGER.info('dax_update_tasks will run on odd hours...')
         LOGGER.info('dax_launcher will run every hour...')
         LOGGER.info('Submitting dax executables for each settings file...')
-        for filepath in SETTINGS_PATHS:
-            if filepath in DAX_LOGS_DIRS_DICT.keys():
-                DAX_LOGS_DIR = DAX_LOGS_DIRS_DICT[filepath]
-            if filepath in EMAIL_DICT.keys():
-                EMAIL_LIST = EMAIL_DICT[filepath]
+        for fpath in SETTINGS_PATHS:
+            if fpath in DAX_LOGS_DIRS_DICT.keys():
+                dax_logs_dir = DAX_LOGS_DIRS_DICT[fpath]
+            if fpath in EMAIL_DICT.keys():
+                elist = EMAIL_DICT[fpath]
 
             # start processes
-            arguments = (filepath, DAX_LOGS_DIR, PARGS.debug, EMAIL_LIST)
+            arguments = (fpath, dax_logs_dir, PARGS.debug, elist)
             if NOW_HOUR == 6 or NOW_HOUR == 20: #6am-8pm
-                proc = submit_exec(run_dax_build, arguments, filepath, 'dax_build')
-                WORKERS.append(proc)
+                process = submit_exec(run_dax_build, arguments, fpath, 'dax_build')
+                WORKERS.append(process)
 
             if NOW_HOUR%2 == 1: # odd hours
-                proc = submit_exec(run_dax_update_tasks, arguments, filepath, 'dax_update_tasks')
-                WORKERS.append(proc)
+                process = submit_exec(run_dax_update_tasks, arguments, fpath, 'dax_update_tasks')
+                WORKERS.append(process)
 
             # Run every time that dax_manager run
-            proc = submit_exec(run_dax_launch, arguments, filepath, 'dax_launch')
-            WORKERS.append(proc)
+            process = submit_exec(run_dax_launch, arguments, fpath, 'dax_launch')
+            WORKERS.append(process)
 
         #If ctrl-c, kill all children
         try:
@@ -897,4 +1134,4 @@ if __name__ == '__main__':
             worker.terminate()
             worker.join()
 
-    LOGGER.info('Time at the end of the DAX Manager: '+ str(datetime.now()))
+    LOGGER.info('Time at the end of the DAX Manager: %s' % (str(datetime.now())))

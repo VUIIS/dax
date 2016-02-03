@@ -6,7 +6,7 @@ Executable to build you sessions for a settings file describing which
 project on XNAT and which pipelines to run on those projects.
 """
 
-from dax import bin
+import dax
 
 def parse_args():
     """
@@ -25,5 +25,5 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-
-    bin.build(args.settings_path, args.logfile, args.debug, args.project, args.sessions)
+    
+    dax.bin.build(args.settings_path, args.logfile, args.debug, args.project, args.sessions)

@@ -11,13 +11,14 @@ CMD_COUNT_NB_JOBS     --> command to return the number of jobs
 CMD_GET_JOB_STATUS    --> command to return the status of a job given it jobid
 RUNNING_STATUS        --> string return for RUNNING Job (e.g: 'r')
 QUEUE_STATUS          --> string return for IN QUEUE Job (e.g: 'qw')
-COMPLETE_STATUS       --> string return for complete job 
+COMPLETE_STATUS       --> string return for complete job
 JOB_EXTENSION_FILE    --> extension for script file (default: .slurm)
 CMD_GET_JOB_MEMORY    --> command to get job memory used
 CMD_GET_JOB_WALLTIME  --> command to get job walltime used
 CMD_GET_JOB_NODE      --> command to get job node used
 JOB_EXTENSION_FILE    --> extension for job script (default: .slurm)
 DEFAULT_EMAIL_OPTS    --> EMAIL options (default: ALL)
+XSITYPE_INCLUDE       --> define which datatypes on XNAT is required for DAX (and installed)
 
     2) PATH / default value for cluster
 
@@ -99,6 +100,7 @@ ${job_cmds}
 """)
 #Default EMAIL options:
 DEFAULT_EMAIL_OPTS = 'FAIL'
+XSITYPE_INCLUDE = ["proc:genProcData"]
 
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
