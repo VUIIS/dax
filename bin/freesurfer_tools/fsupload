@@ -8,7 +8,7 @@ Upload manual edits to FreeSurfer subject on XNAT
 '''
 
 import os, sys, time
-from subprocess import CalledProcessError
+import subprocess
 
 from pyxnat import Interface
 
@@ -22,13 +22,13 @@ def mri_diff(file1, file2):
     :param file2: path to file 2
     :return: parser object parsed
     """
-    cmd = 'mri_diff '+file1+' '+file2
+    cmd = 'mri_diff %s %s' % (file1, file2)
 
     try:
         #print(cmd)
         output = subprocess.call(cmd, stderr=subprocess.STDOUT, shell=True)
         return output
-    except (CalledProcessError,ValueError):
+    except (subprocess.CalledProcessError,ValueError):
         return -1
 
 def parse_args():
@@ -45,7 +45,6 @@ def parse_args():
     return ap.parse_args()
 
 if __name__ == '__main__':
-    """ Main Function """
     args = parse_args()
     proj_label = args.project
     sess_label = args.session
@@ -85,14 +84,14 @@ if __name__ == '__main__':
                     fs_list.append(assr)
 
     if not fs_list:
-        print('ERROR:FreeSurfer not found for project='+proj_label+ ', session='+sess_label)
+        print('ERROR:FreeSurfer not found for project=%s, session=%s' % (proj_label, sess_label))
         sys.exit(1)
 
     if len(fs_list) == 1:
         fs = fs_list[0]
     else:
         if not proc_suffix:
-            print('ERROR:mutliple FreeSurfer runs found, you must specify an ID suffix, project='+proj_label+ ', session='+sess_label)
+            print('ERROR:mutliple FreeSurfer runs found, you must specify an ID suffix, project=%s, session=%s' % (proj_label, sess_label))
             sys.exit(1)
 
         fs_list2 = []
@@ -101,13 +100,13 @@ if __name__ == '__main__':
                 fs_list2.append(assr)
 
                 if not fs_list2:
-                    print('ERROR:FreeSurfer not found for project='+proj_label+ ', session='+sess_label)
+                    print('ERROR:FreeSurfer not found for project=%s, session=%s' % (proj_label, sess_label))
                     sys.exit(1)
 
                 if len(fs_list2) == 1:
                     fs = fs_list2[0]
                 else:
-                    print('ERROR:mutliple FreeSurfer runs found with specified suffix, project='+proj_label+ ', session='+sess_label)
+                    print('ERROR:mutliple FreeSurfer runs found with specified suffix, project=%s, session=%s' % (proj_label, sess_label))
                     sys.exit(1)
 
     # TODO: Check for edits saved with original filenames
@@ -118,13 +117,13 @@ if __name__ == '__main__':
     #print('diff aeg result='+str(res))
 
     # Upload the edits - brainmask, wm, aseg, control.dat,...
-    assessor = XnatUtils.get_full_object(xnat,fs)
-    resource = assessor.out_resource('EDITS')
+    assessor_obj = XnatUtils.get_full_object(xnat, fs)
+    resource = assessor_obj.out_resource('EDITS')
     curtime = time.strftime("%Y%m%d-%H%M%S")
-    brainmask_path = local_subj_path+'/mri/brainmask.edited.mgz'
-    wm_path = local_subj_path+'/mri/wm.edited.mgz'
-    aseg_path = local_subj_path+'/mri/aseg.edited.mgz'
-    control_path = local_subj_path+'/tmp/control.dat'
+    brainmask_path = os.path.join(local_subj_path, 'mri', 'brainmask.edited.mgz')
+    wm_path = os.path.join(local_subj_path, 'mri', 'wm.edited.mgz')
+    aseg_path = os.path.join(local_subj_path, 'mri', 'aseg.edited.mgz')
+    control_path = os.path.join(local_subj_path, 'tmp', 'control.dat')
 
     if os.path.isfile(brainmask_path):
         print('Uploading brainmask...')
@@ -152,7 +151,7 @@ if __name__ == '__main__':
 
     # Set QC Status to trigger reprocessing
     print('Setting qcstatus to trigger reprocessing...')
-    assessor.attrs.set('fs:fsdata/validation/status',task.REPROC)
+    assessor_obj.attrs.set(XnatUtils.DEFAULT_FS_DATATYPE+'/validation/status',task.REPROC)
 
     xnat.disconnect()
     print 'DONE'
