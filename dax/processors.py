@@ -15,7 +15,7 @@ class Processor(object):
                  xsitype='proc:genProcData'):
         """
         Entry point of the Base class for processor.
-        
+
         :param walltime_str: Amount of walltime to request for the process
         :param memreq_mb: Number of megabytes of memory to use
         :param spider_path: Fully qualified path to the spider to run
@@ -31,7 +31,7 @@ class Processor(object):
         #default values:
         self.version = "1.0.0"
         if not suffix_proc:
-             self.suffix_proc=''
+            self.suffix_proc = ''
         else:
             if suffix_proc and suffix_proc[0] != '_':
                 self.suffix_proc = '_'+suffix_proc

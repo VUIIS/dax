@@ -22,9 +22,9 @@ MAX_TRACE_DAYS = 30
 LOGGER = logging.getLogger('dax')
 
 def c_output(output):
-    """ 
-    Check if the output value is an integer 
-    
+    """
+    Check if the output value is an integer
+
     :param output: variable to check
     :return: True if output is not an integer, False otherwise.
     """
@@ -37,9 +37,9 @@ def c_output(output):
     return error
 
 def count_jobs():
-    """ 
+    """
     Count the number of jobs in the queue on the cluster
-    
+
     :return: number of jobs in the queue
     """
     cmd = CMD_COUNT_NB_JOBS
@@ -58,10 +58,10 @@ def count_jobs():
 def job_status(jobid):
     """
     Get the status for a job on the cluster
-    
+
     :param jobid: job id to check
     :return: job status
-    
+
     """
     cmd = CMD_GET_JOB_STATUS.safe_substitute({'jobid':jobid})
     try:
@@ -81,7 +81,7 @@ def job_status(jobid):
 def is_traceable_date(jobdate):
     """
     Check if the job is traceable on the cluster
-    
+
     :param jobdate: launching date of the job
     :return: True if traceable, False otherwise.
     """
@@ -95,7 +95,7 @@ def is_traceable_date(jobdate):
 def tracejob_info(jobid, jobdate):
     """
     Trace the job information from the cluster
-    
+
     :param jobid: job id to check
     :param jobdate: launching date of the job
     :return: dictionary object with 'mem_used', 'walltime_used', 'jobnode'
@@ -112,7 +112,7 @@ def tracejob_info(jobid, jobdate):
 def get_job_mem_used(jobid, diff_days):
     """
     Get the memory used for the task from cluster
-    
+
     :param jobid: job id to check
     :param diff_days: difference of days between starting date and now
     :return: string with the memory usage, empty string if error
@@ -136,7 +136,7 @@ def get_job_mem_used(jobid, diff_days):
 def get_job_walltime_used(jobid, diff_days):
     """
     Get the walltime used for the task from cluster
-    
+
     :param jobid: job id to check
     :param diff_days: difference of days between starting date and now
     :return: string with the walltime used, empty string if error
@@ -163,7 +163,7 @@ def get_job_walltime_used(jobid, diff_days):
 def get_job_node(jobid, diff_days):
     """
     Get the node where the job was running on the cluster
-    
+
     :param jobid: job id to check
     :param diff_days: difference of days between starting date and now
     :return: string with the node, empty string if error
@@ -187,7 +187,7 @@ def get_job_node(jobid, diff_days):
 def get_specific_str(big_str, prefix, suffix):
     """
     Extract a specific length out of a string
-    
+
     :param big_str: string to reduce
     :param prefix: prefix to remove
     :param suffix: suffix to remove
@@ -209,7 +209,7 @@ class PBS:   #The script file generator class
                  ppn=1, email=None, email_options=DEFAULT_EMAIL_OPTS):
         """
         Entry point for the PBS class
-        
+
         :param filename: filename for the script
         :param outfile: filepath for the outlogs
         :param cmds: commands to run in the script
@@ -232,7 +232,7 @@ class PBS:   #The script file generator class
     def write(self):
         """
         Write the file
-        
+
         :return: None
         """
         #pbs_dir
@@ -254,7 +254,7 @@ class PBS:   #The script file generator class
     def submit(self):
         """
         Submit the file to the cluster
-        
+
         :return: None
         """
         try:
