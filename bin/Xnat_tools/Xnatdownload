@@ -17,6 +17,7 @@ import os
 import sys
 import csv
 import copy
+import time
 import shutil
 import getpass
 import logging
@@ -343,6 +344,17 @@ def need_download(object_dict, objects_dl_dict, resources_list):
     else:
         return True
 
+def get_file_timestamp(filepath):
+    """
+    Get the file timestamp when it was last modified on the local Station
+
+    :param filepath: path to the file
+    :return: timestamp with format %Y%m%d%H%M%S
+    """
+    date_object = datetime.strptime(time.ctime(os.path.getmtime(filepath)),
+                                    '%a %b %d %H:%M:%S %Y')
+    return '{:%Y%m%d%H%M%S}'.format(date_object)
+
 ########### Function related to XNAT ###########
 def check_projects(projects_list):
     """
@@ -595,8 +607,9 @@ def one_dir_download(directory, res_obj, res_label, label,
         #Add fpath
         if row is not None:
             row.append(res_path)
+        file_date = get_file_timestamp(res_path)
         if not os.path.exists(res_path) or \
-           (last_dl_date and last_dl_date < int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))):
+           (last_dl_date and int(file_date) < int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))):
             dl_files(res_obj, directory)
             shutil.move(os.path.join(directory, res_label), res_path)
             if CSVWRITER:
@@ -608,8 +621,9 @@ def one_dir_download(directory, res_obj, res_label, label,
         res_path = os.path.join(directory, label+'__'+res_obj.files().get()[0])
         if row is not None:
             row.append(res_path)
+        file_date = get_file_timestamp(res_path)
         if not os.path.exists(res_path) or \
-           (last_dl_date and last_dl_date < int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))):
+           (last_dl_date and int(file_date) < int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))):
             dl_file(res_obj, res_path)
             if CSVWRITER:
                 CSVWRITER.writerow(row)
@@ -633,8 +647,9 @@ def default_download(directory, res_obj, res_label, row, last_dl_date):
     if row is not None:
         row.append(res_label)
         row.append(res_path)
+    file_date = get_file_timestamp(res_path)
     if not os.path.exists(res_path) or \
-       (last_dl_date and last_dl_date < int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))) \
+       (last_dl_date and int(file_date) < int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))) \
        or not os.listdir(res_path):
         dl_files(res_obj, directory)
         if CSVWRITER:
@@ -880,7 +895,8 @@ def main_display():
         print '################################################################'
         print "IMPORTANT WARNING FOR ALL USERS: "
         print "  --update OPTIONS isn't working."
-        print "  The last modified resources date can't be access right now on XNAT."
+        print "  The last modified resources date can't be access right now "
+        print "  if XNAT version is less than 1.6.5."
         print '====================================================================='
 
 def get_proper_str(str_option, end=False):

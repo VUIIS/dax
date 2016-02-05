@@ -1055,13 +1055,13 @@ def list_assessor_out_resources(intf, projectid, subjectid, sessionid, assessori
     resource_list = intf._get_json(post_uri)
     return resource_list
 
-def get_resource_lastdate_modified(intf, resource):
+def get_resource_lastdate_modified(intf, resource_obj):
     """
     Get the last modified data for a resource on XNAT (NOT WORKING: bug on XNAT side)
 
     :param intf: pyxnat.Interface object
-    :param resource: resource label on xnat
-    :return: date of last modified data with the format %Y-%m-%d %H:%M:%S
+    :param resource: resource pyxnat Eobject
+    :return: date of last modified data with the format %Y%m%d%H%M%S
     """
     # xpaths for times in resource xml
     created_dicom_xpath = "/cat:DCMCatalog/cat:entries/cat:entry/@createdTime"
@@ -1069,7 +1069,7 @@ def get_resource_lastdate_modified(intf, resource):
     created_xpath = "/cat:Catalog/cat:entries/cat:entry/@createdTime"
     modified_xpath = "/cat:Catalog/cat:entries/cat:entry/@modifiedTime"
     # Get the resource object and its uri
-    res_xml_uri = '%s?format=xml' % (resource._uri)
+    res_xml_uri = '%s?format=xml' % (resource_obj._uri)
     # Get the XML for resource
     xmlstr = intf._exec(res_xml_uri, 'GET')
     # Parse out the times
@@ -1087,8 +1087,7 @@ def get_resource_lastdate_modified(intf, resource):
         date = max_time.split('.')[0]
         res_date = date.split('T')[0].replace('-', '')+date.split('T')[1].replace(':', '')
     else:
-        res_date = resource.parent().parent().attrs.get('date').strip().replace('-', '')+'000000'
-        #res_date = ('{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())).strip().replace('-', '').replace(':', '').replace(' ', '')
+        res_date = ('{:%Y%m%d%H%M%S}'.format(datetime.now()))
     return res_date
 
 def select_assessor(intf, assessor_label):
