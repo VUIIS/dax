@@ -2,8 +2,9 @@ Contributors
 ============
 DAX is a multi-institution collaborative effort of the following labs:
 
-`TIG <http://cmictig.cs.ucl.ac.uk/>`_
+`MASI <https://masi.vuse.vanderbilt.edu/index.php/Main_Page/>`_ at Vanderbilt University, Nashville, Tennessee, USA
 
-`Center for Cognitive Medicine <https://medschool.vanderbilt.edu/ccm/>`_
+`Center for Cognitive Medicine <https://medschool.vanderbilt.edu/ccm/>`_ at Vanderbilt University, Nashville, Tennessee, USA
 
-`MASI <https://masi.vuse.vanderbilt.edu/index.php/Main_Page/>`_
+`TIG <http://cmictig.cs.ucl.ac.uk/>`_ at UCL (University College London), London, UK 
+
