@@ -850,11 +850,6 @@ def list_assessors(intf, projectid, subjectid, sessionid):
     """
     new_list = list()
 
-    #Check that the assessors types are present on XNAT
-    if not has_dax_datatypes(intf):
-        print '** WARNING: datatypes for processors not found on XNAT. **'
-        return new_list
-
     if has_fs_datatypes:
         # First get FreeSurfer
         post_uri = ASSESSORS_URI.format(project=projectid,
@@ -920,11 +915,6 @@ def list_project_assessors(intf, projectid):
     :return: List of all the assessors for the project
     """
     assessors_dict = dict()
-
-    #Check that the assessors types are present on XNAT
-    if not has_dax_datatypes(intf):
-        print '** WARNING: datatypes for processors not found on XNAT. **'
-        return list()
 
     #Get the sessions list to get the different variables needed:
     session_list = list_sessions(intf, projectid)
