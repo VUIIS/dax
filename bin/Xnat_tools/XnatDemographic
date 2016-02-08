@@ -294,57 +294,54 @@ def update_demo_data(subject_obj, obj_dict):
     :return: None
     """
     if 'upload_demo_subject' in obj_dict.keys():
-        for tag, value in obj_dict['upload_demo_subject'].items():
-            update_tag_subject(subject_obj, obj_dict['subject_label'], tag, value)
+        update_tags_subject(subject_obj, obj_dict['subject_label'], obj_dict['upload_demo_subject'])
+
     if 'upload_demo_session' in obj_dict.keys() and 'session_label' in obj_dict.keys():
         session_obj = subject_obj.experiment(obj_dict['session_label'])
-        for tag, value in obj_dict['upload_demo_session'].items():
-            update_tag_session(session_obj, obj_dict['session_label'], tag, value)
+        update_tags_session(session_obj, obj_dict['session_label'], obj_dict['upload_demo_session'])
 
-def update_tag_subject(subject_obj, subject_label, tag, value):
+def update_tags_subject(subject_obj, subject_label, subj_dict):
     """
     Method to set a tag for a subject
 
     :param subject_obj: pyxnat.Interface subject Object
     :param subject_label: subject label on XNAT
-    :param tag: tag to edit
-    :param value: value to set
+    :param subj_dict: dictionary of tag and value to set for the subject
     :return: None
     """
-    if tag and value:
+    mset_dict = dict()
+    for tag, value in subj_dict.items():
         if tag in SUBJECT_PARAMETERS_LIST: # default attributes
-            subject_obj.attrs.set('xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/'+tag.lower(), value)
-            print "  - %s set." % (tag)
-        else: # specific attributes
-            try:
-                subject_obj.attrs.set("xnat:subjectData/fields/field[name="+tag.lower()+"]/field", value)
-                print "  - %s set." % (tag)
-            except:
-                print "  --> warning: tag %s -- Subject %s doesn't have this tag or wrong value given." % (tag, subject_label)
+            mset_dict['xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/'+tag.lower()] = value
+        else:
+            mset_dict["xnat:subjectData/fields/field[name="+tag.lower()+"]/field"] = value
 
-def update_tag_session(session_obj, session_label, tag, value):
+    subject_obj.attrs.mset(mset_dict)
+    print "  - %s set on subject." % (', '.join(subj_dict.keys()))
+
+def update_tags_session(session_obj, session_label, sess_dict):
     """
     Method to set a tag for a specified session
 
     :param subject_obj: pyxnat.Interface session Object
     :param subject_label: session label on XNAT
-    :param tag: tag to edit
-    :param value: value to set
+    :param sess_dict: dictionary of tag and value to set for the session
     :return: None
     """
-    if tag and value:
-        if not session_obj.exists():
-            print "  --> warning: tag %s -- Session %s doesn't exist or not set." % (tag, session_label)
-        else:
-            if tag in SESSION_PARAMETERS_LIST: # default attributes
-                session_obj.attrs.set(session_obj.attrs.get('xsiType')+'/'+tag.lower(),value)
-                print "  - %s set." % (tag)
-            else: # specific attributes
-                try:
-                    session_obj.attrs.set(session_obj.attrs.get('xsiType')+"/fields/field[name="+tag.lower()+"]/field",value)
-                    print "  - %s set." % (tag)
-                except:
-                    print "  --> warning: tag %s -- Session %s doesn't have this tag." % (tag, session_label)
+    mset_dict = dict()
+
+    if not session_obj.exists():
+        print "  --> warning: Session %s doesn't exist or not set." % (session_label)
+    else:
+        xsitype_sess = session_obj.attrs.get('xsiType')
+        for tag, value in sess_dict.items():
+            if tag in SESSION_PARAMETERS_LIST:
+                mset_dict[xsitype_sess+'/'+tag.lower()] = value
+            else:
+                mset_dict[xsitype_sess+"/fields/field[name="+tag.lower()+"]/field"] = value
+
+        session_obj.attrs.mset(mset_dict)
+        print "  - %s set on session." % (', '.join(sess_dict.keys()))
 
 ########### MAIN DISPLAY ###########
 def main_display():
