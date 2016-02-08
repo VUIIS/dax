@@ -27,12 +27,12 @@ DESCRIPTION = """What is the script doing :
 
 Examples:
    *Upload demographic data handedness/gender/age: XnatDemographic -i demographic_data.csv
-   *See the report before uploading: Xnatdemographic -i demographic_data.csv
-   *Upload demographic data with a file delimited by a /: Xnatdemographic -i demographic_data.csv --delimiter="/"
+   *See the report before uploading: XnatDemographic -i demographic_data.csv
+   *Upload demographic data with a file delimited by a /: XnatDemographic -i demographic_data.csv --delimiter="/"
    *Upload demographic data with a different header that the default one:
-    Xnatdemographic -i demographic_data.csv --format=project_id,subject_label,session_label,race,handedness,gender,age
+    XnatDemographic -i demographic_data.csv --format=project_id,subject_label,session_label,race,handedness,gender,age
    *Upload demographic data with a different header (and session variables):
-    Xnatdemographic -i demographic_data.csv --format=project_id,subject_label,session_label,gender,MCR,state --sessformat MCR,state
+    XnatDemographic -i demographic_data.csv --format=project_id,subject_label,session_label,gender,MCR,state --sessformat MCR,state
 """
 
 DEFAULT_ARGUMENTS = {'host': None, 'username': None, 'csvfile':None, 'session_format': None,
