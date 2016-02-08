@@ -296,7 +296,7 @@ def update_demo_data(subject_obj, obj_dict):
     if 'upload_demo_subject' in obj_dict.keys():
         for tag, value in obj_dict['upload_demo_subject'].items():
             update_tag_subject(subject_obj, obj_dict['subject_label'], tag, value)
-    if 'upload_demo_session' in obj_dict.keys():
+    if 'upload_demo_session' in obj_dict.keys() and 'session_label' in obj_dict.keys():
         session_obj = subject_obj.experiment(obj_dict['session_label'])
         for tag, value in obj_dict['upload_demo_session'].items():
             update_tag_session(session_obj, obj_dict['session_label'], tag, value)
