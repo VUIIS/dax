@@ -43,7 +43,7 @@ LOGGER = logging.getLogger('dax')
 
 # Default values for arguments:
 # EDIT PARAMETERS FOR YOUR SPIDER CASE (SPIDER_PATH, WALLTIME, etc...)
-DEFAULT_SPIDER_PATH = os.path.join(SPIDER_PATH, 'Spider_{name}_1_0_0.py')
+DEFAULT_SPIDER_PATH = os.path.join(SPIDER_PATH, 'Spider_{name}_v1_0_0.py')
 DEFAULT_WALLTIME = '01:00:00'
 DEFAULT_MEM = 2048
 """
@@ -123,7 +123,7 @@ class Processor_{name}(ScanProcessor):
         subj_label = assessor.parent().parent().label()
         sess_label = assessor.parent().label()
         assr_label = assessor.label()
-        scan_label = assr.split('-x-')[3]
+        scan_label = assr_label.split('-x-')[3]
 
         #
         # ADD CUSTOM PARAMETERS TO THE SPIDER TEMPLATE (don't forgot the SPIDER_FORMAT (top))
