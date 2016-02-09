@@ -28,16 +28,17 @@ OPEN_STATUS_LIST = [NEED_TO_RUN, UPLOADING, JOB_RUNNING, READY_TO_COMPLETE, JOB_
 
 # QC Statuses
 JOB_PENDING = 'Job Pending' # job is still running, not ready for QA yet
-NEEDS_QA = 'Needs QA' # For FS, the complete status
+NEEDS_QA = 'Needs QA' # job ready to be QA
+GOOD = 'Good'  # QC status set by the Image Analyst after looking at the results.
 PASSED_QA = 'Passed' # QC status set by the Image Analyst after looking at the results.
 FAILED = 'Failed' # QC status set by the Image Analyst after looking at the results.
-BAD = 'BAD' # QC status set by the Image Analyst after looking at the results.
-FAILED_NEEDS_REPROC = 'Failed-needs reprocessing'
-PASSED_EDITED_QA = 'Passed with edits'
+BAD = 'Bad' # QC status set by the Image Analyst after looking at the results.
+POOR = 'Poor' # QC status set by the Image Analyst after looking at the results.
 RERUN = 'Rerun' # will cause spider to delete results and rerun the processing
 REPROC = 'Reproc' # will cause spider to zip the current results and put in OLD, and then processing
+DONOTRUN = 'Do Not Run' # Do not run this assessor anymore
 OPEN_QA_LIST = [RERUN, REPROC]
-BAD_QA_STATUS = [FAILED, BAD]
+BAD_QA_STATUS = [FAILED, BAD, POOR, DONOTRUN]
 
 # Other Constants
 DEFAULT_PBS_DIR = os.path.join(RESULTS_DIR, 'PBS')
