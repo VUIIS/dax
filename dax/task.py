@@ -37,6 +37,8 @@ POOR = 'Poor' # QC status set by the Image Analyst after looking at the results.
 RERUN = 'Rerun' # will cause spider to delete results and rerun the processing
 REPROC = 'Reproc' # will cause spider to zip the current results and put in OLD, and then processing
 DONOTRUN = 'Do Not Run' # Do not run this assessor anymore
+FAILED_NEEDS_REPROC = 'Failed-needs reprocessing' # FS
+PASSED_EDITED_QA = 'Passed with edits' # FS
 OPEN_QA_LIST = [RERUN, REPROC]
 BAD_QA_STATUS = [FAILED, BAD, POOR, DONOTRUN]
 
