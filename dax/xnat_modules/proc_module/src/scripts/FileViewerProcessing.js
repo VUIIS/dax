@@ -124,13 +124,13 @@ function FileViewerProcessing(_obja){
 	   				aSize=0;
 	   				dest.innerHTML="";
 	   				for(var acAC=0;acAC<assessors[aC].cats.length;acAC++){
-	   					dest.innerHTML+=assessors[aC].cats[acAC].label
+	   				    zip_uri=this.obja.uri+"/resources/"+assessors[aC].cats[acAC].xnat_abstractresource_id;
+   						dest.innerHTML+="<a href=\""+zip_uri+"/files\?format=zip\">"+assessors[aC].cats[acAC].label+"</a>";
 	   					dest.innerHTML+=" (";
 	   					dest.innerHTML+=assessors[aC].cats[acAC].file_count;
-	   					dest.innerHTML+=" files, "
+	   					dest.innerHTML+=" files, ";
    						dest.innerHTML+=size_format(assessors[aC].cats[acAC].file_size)
-   						dest.innerHTML+=") ";
-	   					
+   					    dest.innerHTML+=") ";
 	   					if(catName=="assessors"){
 	   						if(assessor_counts[assessors[aC].cats[acAC].label]==undefined){
 	   							assessor_counts[assessors[aC].cats[acAC].label]=new Object();

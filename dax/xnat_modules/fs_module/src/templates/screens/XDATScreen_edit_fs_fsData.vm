@@ -62,7 +62,7 @@ $page.setVlinkColor($ui.vlink)
                                                     #xdatHiddenBox("fs:fsData/imageSession_ID" $item "")
                                                     #xdatHiddenBox("fs:fsData/fsversion" $item "")
                                                     #xdatHiddenBox("fs:fsData/procversion" $item "")
-													#xdatHiddenBox("fs:fsData/validation/validated_by" $item $user.username)
+													#xdatHiddenBox("fs:fsData/validation/validated_by" "" $user.username)
 													#xdatHiddenBox("fs:fsData/validation/date" $item "")
                                                 </TABLE>
                                             </TD>
