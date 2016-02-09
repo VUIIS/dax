@@ -13,9 +13,15 @@ import os, sys, shutil
 from pyxnat import Interface
 from dax import XnatUtils
 
-def parse_args():
-    '''Parse commandline arguments'''
+# Variables
+CURL_CMD = '''curl -qu {xuser}:{xpass} {xhost}/data/archive/projects/{proj}/subjects/{subj}/experiments/{sess}}/assessors/{asse}/out/resources/DATA/files?format=zip > {zip}'''
 
+def parse_args():
+    """
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
+    """
     from argparse import ArgumentParser
     parser = ArgumentParser(prog='tracdownload', description='Download TRACULA subject from XNAT')
     parser.add_argument('project', help='Project Label')
@@ -45,7 +51,7 @@ if __name__ == '__main__':
         print('You must set the environment variable '+ str(e))
         sys.exit(1)
 
-    if os.path.exists(subjects_dir + '/' + sess_label):
+    if os.path.exists(os.path.join(subjects_dir, sess_label)):
         print('ERROR:cannot download, session already exists in TRACULA subjects directory.')
         sys.exit(1)
 
@@ -63,14 +69,14 @@ if __name__ == '__main__':
                     trac_list.append(assr)
 
     if not trac_list:
-        print('ERROR:TRACULA not found for project=' + proj_label + ', session=' + sess_label)
+        print('ERROR:TRACULA not found for project=%s, session=%s' % (proj_label, sess_label))
         sys.exit(1)
 
     if len(trac_list) == 1:
         trac = trac_list[0]
     else:
         if not proc_suffix:
-            print('ERROR:multiple runs, specify suffix,proj=' + proj_label + ',sess=' + sess_label)
+            print('ERROR:multiple runs, specify suffix,proj=%s, sess=%s' % (proj_label, sess_label))
             sys.exit(1)
 
         trac_list2 = []
@@ -79,19 +85,19 @@ if __name__ == '__main__':
                 trac_list2.append(assr)
 
                 if not trac_list2:
-                    print('ERROR:TRACULA not found for proj=' + proj_label + ', sess=' + sess_label)
+                    print('ERROR:TRACULA not found for proj=%s, sess=%s' % (proj_label, sess_label))
                     sys.exit(1)
 
                 if len(trac_list2) == 1:
                     trac = trac_list2[0]
                 else:
-                    print('ERROR:multiple runs with suffix, proj=' + proj_label + ', sess=' + sess_label)
+                    print('ERROR:multiple runs with suffix, proj=%s, sess=%s' % (proj_label, sess_label))
                     sys.exit(1)
     # Download it
     assr_label = trac['assessor_label']
-    out_zip = subjects_dir + '/' + sess_label + '.zip'
-    if os.path.exists(subjects_dir + '/' + assr_label):
-        print('ERROR:cannot download, trac already exists:' + subjects_dir + '/' + assr_label)
+    out_zip = os.path.join(subjects_dir, sess_label+'.zip')
+    if os.path.exists(os.path.join(subjects_dir, assr_label)):
+        print('ERROR:cannot download, trac already exists: %s' % (os.path.join(subjects_dir, assr_label)))
         sys.exit(1)
 
     if os.path.exists(out_zip):
@@ -99,31 +105,31 @@ if __name__ == '__main__':
         sys.exit(1)
 
     print('Downloading:' + assr_label + ' to ' + subjects_dir)
-    cmd = 'curl -qu ' + xnat_user + ':' + xnat_pass + ' ' + xnat_host
-    cmd += '/data/archive/projects/' + trac['project_id'] + '/subjects/' + trac['subject_id']
-    cmd += '/experiments/' + trac['session_id'] + '/assessors/' + trac['assessor_id']
-    cmd += '/out/resources/DATA/files?format=zip > ' + out_zip
+    cmd = CURL_CMD.format(xuser=xnat_user, xpass=xnat_pass, xhost=xnat_host,
+                          proj=trac['project_id'], subj=trac['subject_id'],
+                          sess=trac['session_id'], asse=trac['assessor_id'],
+                          zip=out_zip)
     os.system(cmd)
 
-    if os.path.exists(subjects_dir + '/' + sess_label):
-        print('ERROR:cannot unzip, already exists:' + subjects_dir + '/' + sess_label)
+    if os.path.exists(os.path.join(subjects_dir, sess_label)):
+        print('ERROR:cannot unzip, already exists:%s' % (os.path.join(subjects_dir, sess_label)))
         sys.exit(1)
 
     # Unzip
     os.chdir(subjects_dir)
-    cmd = 'unzip -q ' + out_zip
+    cmd = 'unzip -q %s' % (out_zip)
     os.system(cmd)
 
     # Determine format of unzipped data
-    if os.path.exists(os.path.join(subjects_dir, assr_label, 'out/resources/DATA/files', assr_label)):
+    if os.path.exists(os.path.join(subjects_dir, assr_label, 'out', 'resources', 'DATA', 'files', assr_label)):
         # <assr_label>/out/resources/DATA/files/<assr_label>
-        src = os.path.join(subjects_dir, assr_label, 'out/resources/DATA/files', assr_label)
-    elif os.path.exists(os.path.join(subjects_dir, assr_label, 'out/resources/DATA/files/Subjects', assr_label)):
+        src = os.path.join(subjects_dir, assr_label, 'out', 'resources', 'DATA', 'files', assr_label)
+    elif os.path.exists(os.path.join(subjects_dir, assr_label, 'out', 'resources', 'DATA', 'files', 'Subjects', assr_label)):
         # <assr_label>/out/resources/DATA/files/Subjects/assr_label
-        src = os.path.join(subjects_dir, assr_label, 'out/resources/DATA/files/Subjects', assr_label)
-    elif os.path.exists(os.path.join(subjects_dir, assr_label, 'out/resources/DATA/files/dlabel.zip')):
+        src = os.path.join(subjects_dir, assr_label, 'out', 'resources', 'DATA', 'files', 'Subjects', assr_label)
+    elif os.path.exists(os.path.join(subjects_dir, assr_label, 'out', 'resources', 'DATA', 'files', 'dlabel.zip')):
         # <assr_label>/out/resources/DATA/files
-        src = os.path.join(subjects_dir, assr_label, 'out/resources/DATA/files')
+        src = os.path.join(subjects_dir, assr_label, 'out', 'resources', 'DATA', 'files')
     else:
         print('ERROR:failed to find TRACULA data in downloaded files.')
         sys.exit()
@@ -159,8 +165,8 @@ if __name__ == '__main__':
     os.remove('scripts.zip')
 
     # Delete the downloaded directory
-    if os.path.exists(subjects_dir + '/' + assr_label + '/out'):
-        shutil.rmtree(subjects_dir + '/' + assr_label + '/out')
+    if os.path.exists(os.path.join(subjects_dir, assr_label, 'out')):
+        shutil.rmtree(os.path.join(subjects_dir, assr_label, 'out'))
 
     # Delete the downloaded zip
     os.remove(out_zip)

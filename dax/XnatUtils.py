@@ -20,18 +20,20 @@ SpiderProcessHandler to handle results at the end of any spider
 
 import re
 import os
-import glob
-import shutil
 import sys
+import glob
+import gzip
+import shutil
 import tempfile
 import random
-import collections
-from datetime import datetime
-import gzip
-from pyxnat import Interface
-from lxml import etree
 import subprocess
-from dax_settings import RESULTS_DIR
+import collections
+from lxml import etree
+from pyxnat import Interface
+from datetime import datetime
+
+import task
+from dax_settings import RESULTS_DIR, XSITYPE_INCLUDE
 
 import xml.etree.cElementTree as ET
 
@@ -41,14 +43,46 @@ NS = {'xnat' : 'http://nrg.wustl.edu/xnat',
       'xsi'  : 'http://www.w3.org/2001/XMLSchema-instance'}
 
 ### VARIABLE ###
-# Status:
-JOB_PENDING = 'Job Pending' # job is still running, not ready for QA yet
-NEEDS_QA = 'Needs QA' # For FS, the complete status
-JOB_RUNNING = 'JOB_RUNNING' # the job has been submitted on the cluster and is running right now.
-JOB_FAILED = 'JOB_FAILED' # the job failed on the cluster.
-READY_TO_UPLOAD = 'READY_TO_UPLOAD' # Job done, waiting for the Spider to upload the results
-REPROC = 'Reproc' # will cause spider to zip the current results and put in OLD, and then processing
-BAD_QA_STATUS = ['bad', 'fail']
+# Assessor datatypes
+DEFAULT_FS_DATATYPE = 'fs:fsData'
+DEFAULT_DATATYPE = 'proc:genProcData'
+
+# URI
+PROJECTS_URI     = '/REST/projects'
+PROJECT_URI      = '/REST/projects/{project}'
+P_RESOURCES_URI  = '/REST/projects/{project}/resources'
+P_RESOURCE_URI   = '/REST/projects/{project}/resources/{resource}'
+ALL_SUBJ_URI     = '/REST/subjects'
+SUBJECTS_URI     = '/REST/projects/{project}/subjects'
+SUBJECT_URI      = '/REST/projects/{project}/subjects/{subject}'
+SU_RESOURCES_URI = '/REST/projects/{project}/subjects/{subject}/resources'
+SU_RESOURCE_URI  = '/REST/projects/{project}/subjects/{subject}/resources/{resource}'
+SE_ARCHIVE_URI   = '/REST/archive/experiments'
+ALL_SESS_URI     = '/REST/experiments'
+ALL_SESS_PROJ_URI= '/REST/projects/{project}/experiments'
+SESSIONS_URI     = '/REST/projects/{project}/subjects/{subject}/experiments'
+SESSION_URI      = '/REST/projects/{project}/subjects/{subject}/experiments/{session}'
+SE_RESOURCES_URI = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/resources'
+SE_RESOURCE_URI  = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/resources/{resource}'
+SCANS_URI        = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/scans'
+SCAN_URI         = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/scans/{scan}'
+SC_RESOURCES_URI = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/scans/{scan}/resources'
+SC_RESOURCE_URI  = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/scans/{scan}/resources/{resource}'
+ASSESSORS_URI    = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/assessors'
+ASSESSOR_URI     = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/assessors/{assessor}'
+A_RESOURCES_URI  = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/assessors/{assessor}/out/resources'
+A_RESOURCE_URI   = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/assessors/{assessor}/out/resources/{resource}'
+
+# List post URI variables:
+SUBJECT_POST_URI = '''?columns=ID,project,label,URI,last_modified,src,handedness,gender,yob'''
+SESSION_POST_URI = '''?xsiType={stype}&columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,{stype}/age,label,{stype}/meta/last_modified,{stype}/original'''
+SCAN_POST_URI = '''?columns=ID,URI,label,subject_label,project,xnat:imagesessiondata/scans/scan/id,xnat:imagesessiondata/scans/scan/type,xnat:imagesessiondata/scans/scan/quality,xnat:imagesessiondata/scans/scan/note,xnat:imagesessiondata/scans/scan/frames,xnat:imagesessiondata/scans/scan/series_description,xnat:imagesessiondata/subject_id'''
+SCAN_PROJ_POST_URI = '''?project={project}&xsiType=xnat:imageSessionData&columns=ID,URI,label,subject_label,project,xnat:imagesessiondata/subject_id,xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,xnat:imagescandata/note,xnat:imagescandata/frames,xnat:imagescandata/series_description,xnat:imagescandata/file/label'''
+SCAN_PROJ_INCLUDED_POST_URI = '''?xnat:imagesessiondata/sharing/share/project={project}&xsiType=xnat:imageSessionData&columns=ID,URI,label,subject_label,project,xnat:imagesessiondata/subject_id,xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,xnat:imagescandata/note,xnat:imagescandata/frames,xnat:imagescandata/series_description,xnat:imagescandata/file/label'''
+ASSESSOR_FS_POST_URI = '''?columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,URI,{fstype}/procstatus,{fstype}/validation/status&xsiType={fstype}'''
+ASSESSOR_PR_POST_URI = '''?columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,{pstype}/procstatus,{pstype}/proctype,{pstype}/validation/status&xsiType={pstype}'''
+ASSESSOR_FS_PROJ_POST_URI = '''?project={project}&xsiType={fstype}&columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,subject_label,xnat:imagesessiondata/id,xnat:imagesessiondata/label,URI,{fstype}/procstatus,{fstype}/validation/status,{fstype}/procversion,{fstype}/jobstartdate,{fstype}/memused,{fstype}/walltimeused,{fstype}/jobid,{fstype}/jobnode,{fstype}/out/file/label'''
+ASSESSOR_PR_PROJ_POST_URI = '''?project={project}&xsiType={pstype}&columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,{pstype}/procstatus,{pstype}/proctype,{pstype}/validation/status,{pstype}/procversion,{pstype}/jobstartdate,{pstype}/memused,{pstype}/walltimeused,{pstype}/jobid,{pstype}/jobnode,{pstype}/out/file/label'''
 
 ####################################################################################
 #                                    1) CLASS                                      #
@@ -169,7 +203,7 @@ class AssessorHandler:
     def select_assessor(self, intf):
         """
         Run Interface.select() on the assessor label
-      
+
         :param intf: pyxnat.Interface object
         :return: The pyxnat EObject of the assessor
 
@@ -404,7 +438,7 @@ class SpiderProcessHandler:
     def set_assessor_status(self, status):
         """
         Set the status of the assessor based on passed value
-        
+
         :param status: Value to set the procstatus to
         :except: All catchable errors.
         :return: None
@@ -414,15 +448,15 @@ class SpiderProcessHandler:
             xnat = get_interface()
             assessor = self.assr_handler.select_assessor(xnat)
             if self.assr_handler.get_proctype() == 'FS':
-                former_status = assessor.attrs.get('fs:fsdata/procstatus')
+                former_status = assessor.attrs.get(DEFAULT_FS_DATATYPE+'/procstatus')
             else:
-                former_status = assessor.attrs.get('proc:genProcData/procstatus')
-            if assessor.exists() and former_status == JOB_RUNNING :
+                former_status = assessor.attrs.get(DEFAULT_DATATYPE+'/procstatus')
+            if assessor.exists() and former_status == task.JOB_RUNNING :
                 if self.assr_handler.get_proctype() == 'FS':
-                    assessor.attrs.set('fs:fsdata/procstatus', status)
+                    assessor.attrs.set(DEFAULT_FS_DATATYPE+'/procstatus', status)
                     self.print_msg('  -status set for FreeSurfer to '+str(status))
                 else:
-                    assessor.attrs.set('proc:genProcData/procstatus', status)
+                    assessor.attrs.set(DEFAULT_DATATYPE+'/procstatus', status)
                     self.print_msg('  -status set for assessor to '+str(status))
         except:
             # fail to access XNAT -- let dax_upload set the status
@@ -446,20 +480,20 @@ class SpiderProcessHandler:
         if not self.error and self.has_pdf:
             self.print_msg('INFO: Job ready to be upload, error: '+ str(self.error))
             #make the flag folder
-            open(os.path.join(self.directory, READY_TO_UPLOAD+'.txt'), 'w').close()
+            open(os.path.join(self.directory, task.READY_TO_UPLOAD+'.txt'), 'w').close()
             #set status to ReadyToUpload
-            self.set_assessor_status(READY_TO_UPLOAD)
+            self.set_assessor_status(task.READY_TO_UPLOAD)
         else:
             self.print_msg('INFO: Job failed, check the outlogs, error: '+ str(self.error))
             #make the flag folder
-            open(os.path.join(self.directory, JOB_FAILED+'.txt'), 'w').close()
+            open(os.path.join(self.directory, task.JOB_FAILED+'.txt'), 'w').close()
             #set status to JOB_FAILED
-            self.set_assessor_status(JOB_FAILED)
+            self.set_assessor_status(task.JOB_FAILED)
 
     def clean(self, directory):
         """
         Clean directory if no error and pdf created
-        
+
         :param directory: directory to be cleaned
         """
         if self.has_pdf and not self.error:
@@ -497,8 +531,7 @@ def list_projects(intf):
     :return: list of dictionaries of projects you have access to
 
     """
-    post_uri = '/REST/projects'
-    projects_list = intf._get_json(post_uri)
+    projects_list = intf._get_json(PROJECTS_URI)
     return projects_list
 
 def list_project_resources(intf, projectid):
@@ -509,7 +542,7 @@ def list_project_resources(intf, projectid):
     :param projectid: ID of a project on XNAT
     :return: list of resources for the specificed project
     """
-    post_uri = '/REST/projects/{project_id}/resources'.format(project_id=projectid)
+    post_uri = P_RESOURCES_URI.format(project=projectid)
     resource_list = intf._get_json(post_uri)
     return resource_list
 
@@ -524,11 +557,11 @@ def list_subjects(intf, projectid=None):
 
     """
     if projectid:
-        post_uri = '/REST/projects/{project_id}/subjects'.format(project_id=projectid)
+        post_uri = SUBJECTS_URI.format(project=projectid)
     else:
-        post_uri = '/REST/subjects'
+        post_uri = ALL_SUBJ_URI
 
-    post_uri += '?columns=ID,project,label,URI,last_modified,src,handedness,gender,yob'
+    post_uri += SUBJECT_POST_URI
 
     subject_list = intf._get_json(post_uri)
 
@@ -556,13 +589,13 @@ def list_subject_resources(intf, projectid, subjectid):
     :return: List of resources for the subject
 
     """
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/resources'
+    post_uri = SU_RESOURCES_URI.format(project=projectid, subject=subjectid)
     resource_list = intf._get_json(post_uri)
     return resource_list
 
 def list_sessions(intf, projectid=None, subjectid=None):
     """
-    List all the sessions that you have access to. Or, alternatively, list the session 
+    List all the sessions that you have access to. Or, alternatively, list the session
      in a single project (and single subject) based on passed project ID (/subject ID)
 
     :param intf: pyxnat.Interface object
@@ -574,11 +607,11 @@ def list_sessions(intf, projectid=None, subjectid=None):
     full_sess_list = []
 
     if projectid and subjectid:
-        post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
+        post_uri = SESSIONS_URI.format(project=projectid, subject=subjectid)
     elif projectid == None and subjectid == None:
-        post_uri = '/REST/experiments'
+        post_uri = ALL_SESS_URI
     elif projectid and subjectid == None:
-        post_uri = '/REST/projects/'+projectid+'/experiments'
+        post_uri = ALL_SESS_PROJ_URI.format(project=projectid)
     else:
         return None
 
@@ -596,7 +629,7 @@ def list_sessions(intf, projectid=None, subjectid=None):
 
     # Get list of sessions for each type since we have to specific about last_modified field
     for sess_type in type_list:
-        post_uri_type = post_uri + '?xsiType='+sess_type+'&columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,'+sess_type+'/age,label,'+sess_type+'/meta/last_modified,'+sess_type+'/original'
+        post_uri_type = post_uri + SESSION_POST_URI.format(stype=sess_type)
         sess_list = intf._get_json(post_uri_type)
 
         for sess in sess_list:
@@ -636,7 +669,7 @@ def list_session_resources(intf, projectid, subjectid, sessionid):
     :return: List of resources for the session
 
     """
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+sessionid+'/resources'
+    post_uri = SE_RESOURCES_URI.format(project=projectid, subject=subjectid, session=sessionid)
     resource_list = intf._get_json(post_uri)
     return resource_list
 
@@ -650,15 +683,8 @@ def list_scans(intf, projectid, subjectid, sessionid):
     :param sessionid: ID/label of a session
     :return: List of all the scans
     """
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
-    post_uri += '?columns=ID,URI,label,subject_label,project'
-    post_uri += ',xnat:imagesessiondata/scans/scan/id'
-    post_uri += ',xnat:imagesessiondata/scans/scan/type'
-    post_uri += ',xnat:imagesessiondata/scans/scan/quality'
-    post_uri += ',xnat:imagesessiondata/scans/scan/note'
-    post_uri += ',xnat:imagesessiondata/scans/scan/frames'
-    post_uri += ',xnat:imagesessiondata/scans/scan/series_description'
-    post_uri += ',xnat:imagesessiondata/subject_id'
+    post_uri = SESSIONS_URI.format(project=projectid, subject=subjectid)
+    post_uri += SCAN_POST_URI
     scan_list = intf._get_json(post_uri)
     new_list = []
 
@@ -705,20 +731,10 @@ def list_project_scans(intf, projectid, include_shared=True):
     session_list = list_sessions(intf, projectid)
     sess_id2mod = dict((sess['session_id'], [sess['handedness'], sess['gender'], sess['yob'], sess['age'], sess['last_modified'], sess['last_updated']]) for sess in session_list)
 
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=xnat:imageSessionData'
-    post_uri += '&columns=ID,URI,label,subject_label,project'
-    post_uri += ',xnat:imagesessiondata/subject_id'
-    post_uri += ',xnat:imagescandata/id'
-    post_uri += ',xnat:imagescandata/type'
-    post_uri += ',xnat:imagescandata/quality'
-    post_uri += ',xnat:imagescandata/note'
-    post_uri += ',xnat:imagescandata/frames'
-    post_uri += ',xnat:imagescandata/series_description'
-    post_uri += ',xnat:imagescandata/file/label'
+    post_uri = SE_ARCHIVE_URI
+    post_uri += SCAN_PROJ_POST_URI.format(project=projectid)
     scan_list = intf._get_json(post_uri)
-    
+
     for scan in scan_list:
         key = scan['ID']+'-x-'+scan['xnat:imagescandata/id']
         if scans_dict.get(key):
@@ -758,18 +774,8 @@ def list_project_scans(intf, projectid, include_shared=True):
             scans_dict[key] = (snew)
 
     if include_shared:
-        post_uri = '/REST/archive/experiments'
-        post_uri += '?xnat:imagesessiondata/sharing/share/project='+projectid
-        post_uri += '&xsiType=xnat:imageSessionData'
-        post_uri += '&columns=ID,URI,label,subject_label,project'
-        post_uri += ',xnat:imagesessiondata/subject_id'
-        post_uri += ',xnat:imagescandata/id'
-        post_uri += ',xnat:imagescandata/type'
-        post_uri += ',xnat:imagescandata/quality'
-        post_uri += ',xnat:imagescandata/note'
-        post_uri += ',xnat:imagescandata/frames'
-        post_uri += ',xnat:imagescandata/series_description'
-        post_uri += ',xnat:imagescandata/file/label'
+        post_uri = SE_ARCHIVE_URI
+        post_uri += SCAN_PROJ_INCLUDED_POST_URI.format(project=projectid)
         scan_list = intf._get_json(post_uri)
 
         for scan in scan_list:
@@ -824,7 +830,10 @@ def list_scan_resources(intf, projectid, subjectid, sessionid, scanid):
     :param scanid: ID of a scan to get resources for
     :return: List of resources for the scan
     """
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+sessionid+'/scans/'+scanid+'/resources'
+    post_uri = SC_RESOURCES_URI.format(project=projectid,
+                                       subject=subjectid,
+                                       session=sessionid,
+                                       scan=scanid)
     resource_list = intf._get_json(post_uri)
     return resource_list
 
@@ -837,57 +846,63 @@ def list_assessors(intf, projectid, subjectid, sessionid):
     :param subjectid: ID/label of a subject
     :param sessionid: ID/label of a session
     :return: List of all the assessors
-    
+
     """
-    new_list = []
+    new_list = list()
 
-    # First get FreeSurfer
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+sessionid+'/assessors'
-    post_uri += '?columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,URI,fs:fsData/procstatus,fs:fsData/validation/status&xsiType=fs:fsData'
-    assessor_list = intf._get_json(post_uri)
+    if has_fs_datatypes:
+        # First get FreeSurfer
+        post_uri = ASSESSORS_URI.format(project=projectid,
+                                        subject=subjectid,
+                                        session=sessionid)
+        post_uri += ASSESSOR_FS_POST_URI.format(fstype=DEFAULT_FS_DATATYPE)
+        assessor_list = intf._get_json(post_uri)
 
-    for asse in assessor_list:
-        anew = {}
-        anew['ID'] = asse['ID']
-        anew['label'] = asse['label']
-        anew['uri'] = asse['URI']
-        anew['assessor_id'] = asse['ID']
-        anew['assessor_label'] = asse['label']
-        anew['assessor_uri'] = asse['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = asse['session_ID']
-        anew['session_label'] = asse['session_label']
-        anew['procstatus'] = asse['fs:fsdata/procstatus']
-        anew['qcstatus'] = asse['fs:fsdata/validation/status']
-        anew['proctype'] = 'FreeSurfer'
-        anew['xsiType'] = asse['xsiType']
-        new_list.append(anew)
+        for asse in assessor_list:
+            anew = {}
+            anew['ID'] = asse['ID']
+            anew['label'] = asse['label']
+            anew['uri'] = asse['URI']
+            anew['assessor_id'] = asse['ID']
+            anew['assessor_label'] = asse['label']
+            anew['assessor_uri'] = asse['URI']
+            anew['project_id'] = projectid
+            anew['project_label'] = projectid
+            anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+            anew['session_id'] = asse['session_ID']
+            anew['session_label'] = asse['session_label']
+            anew['procstatus'] = asse['fs:fsdata/procstatus']
+            anew['qcstatus'] = asse['fs:fsdata/validation/status']
+            anew['proctype'] = 'FreeSurfer'
+            anew['xsiType'] = asse['xsiType']
+            new_list.append(anew)
 
-    # Then add genProcData
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+sessionid+'/assessors'
-    post_uri += '?columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,proc:genprocdata/procstatus,proc:genprocdata/proctype,proc:genprocdata/validation/status&xsiType=proc:genprocdata'
-    assessor_list = intf._get_json(post_uri)
+    if has_genproc_datatypes:
+        # Then add genProcData
+        post_uri = ASSESSORS_URI.format(project=projectid,
+                                        subject=subjectid,
+                                        session=sessionid)
+        post_uri += ASSESSOR_PR_POST_URI.format(pstype=DEFAULT_DATATYPE)
+        assessor_list = intf._get_json(post_uri)
 
-    for asse in assessor_list:
-        anew = {}
-        anew['ID'] = asse['ID']
-        anew['label'] = asse['label']
-        anew['uri'] = asse['URI']
-        anew['assessor_id'] = asse['ID']
-        anew['assessor_label'] = asse['label']
-        anew['assessor_uri'] = asse['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = asse['session_ID']
-        anew['session_label'] = asse['session_label']
-        anew['procstatus'] = asse['proc:genprocdata/procstatus']
-        anew['proctype'] = asse['proc:genprocdata/proctype']
-        anew['qcstatus'] = asse['proc:genprocdata/validation/status']
-        anew['xsiType'] = asse['xsiType']
-        new_list.append(anew)
+        for asse in assessor_list:
+            anew = {}
+            anew['ID'] = asse['ID']
+            anew['label'] = asse['label']
+            anew['uri'] = asse['URI']
+            anew['assessor_id'] = asse['ID']
+            anew['assessor_label'] = asse['label']
+            anew['assessor_uri'] = asse['URI']
+            anew['project_id'] = projectid
+            anew['project_label'] = projectid
+            anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+            anew['session_id'] = asse['session_ID']
+            anew['session_label'] = asse['session_label']
+            anew['procstatus'] = asse['proc:genprocdata/procstatus']
+            anew['proctype'] = asse['proc:genprocdata/proctype']
+            anew['qcstatus'] = asse['proc:genprocdata/validation/status']
+            anew['xsiType'] = asse['xsiType']
+            new_list.append(anew)
 
     return sorted(new_list, key=lambda k: k['label'])
 
@@ -903,112 +918,106 @@ def list_project_assessors(intf, projectid):
 
     #Get the sessions list to get the different variables needed:
     session_list = list_sessions(intf, projectid)
-    sess_id2mod = dict((sess['session_id'], [sess['subject_label'], sess['type'], sess['handedness'], sess['gender'], sess['yob'], sess['age'], sess['last_modified'], sess['last_updated']]) for sess in session_list)
+    sess_id2mod = dict((sess['session_id'], [sess['subject_label'],
+                        sess['type'], sess['handedness'], sess['gender'],
+                        sess['yob'], sess['age'], sess['last_modified'],
+                        sess['last_updated']]) for sess in session_list)
 
-    # First get FreeSurfer
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=fs:fsdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,subject_label,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
-    post_uri += ',fs:fsData/validation/status,fs:fsData/procversion,fs:fsData/jobstartdate,fs:fsData/memused,fs:fsData/walltimeused,fs:fsData/jobid,fs:fsData/jobnode'
-    post_uri += ',fs:fsData/out/file/label'
-    assessor_list = intf._get_json(post_uri)
-    
-    for asse in assessor_list:
-        if asse['label']:
-            key = asse['label']
-            if assessors_dict.get(key):
-                assessors_dict[key]['resources'].append(asse['fs:fsdata/out/file/label'])
-            else:
-                anew = {}
-                anew['ID'] = asse['ID']
-                anew['label'] = asse['label']
-                anew['uri'] = asse['URI']
-                anew['assessor_id'] = asse['ID']
-                anew['assessor_label'] = asse['label']
-                anew['assessor_uri'] = asse['URI']
-                anew['project_id'] = projectid
-                anew['project_label'] = projectid
-                anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
-                anew['subject_label'] = asse['subject_label']
-                anew['session_type'] = sess_id2mod[asse['session_ID']][1]
-                anew['session_id'] = asse['session_ID']
-                anew['session_label'] = asse['session_label']
-                anew['procstatus'] = asse['fs:fsdata/procstatus']
-                anew['qcstatus'] = asse['fs:fsdata/validation/status']
-                anew['proctype'] = 'FreeSurfer'
-    
-                if len(asse['label'].rsplit('-x-FS')) > 1:
-                    anew['proctype'] = anew['proctype']+asse['label'].rsplit('-x-FS')[1]
-    
-                anew['version'] = asse.get('fs:fsdata/procversion')
-                anew['xsiType'] = asse['xsiType']
-                anew['jobid'] = asse.get('fs:fsdata/jobid')
-                anew['jobstartdate'] = asse.get('fs:fsdata/jobstartdate')
-                anew['memused'] = asse.get('fs:fsdata/memused')
-                anew['walltimeused'] = asse.get('fs:fsdata/walltimeused')
-                anew['jobnode'] = asse.get('fs:fsdata/jobnode')
-                anew['handedness'] = sess_id2mod[asse['session_ID']][2]
-                anew['gender'] = sess_id2mod[asse['session_ID']][3]
-                anew['yob'] = sess_id2mod[asse['session_ID']][4]
-                anew['age'] = sess_id2mod[asse['session_ID']][5]
-                anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
-                anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
-                anew['resources'] = [asse['fs:fsdata/out/file/label']]
-                assessors_dict[key] = anew
+    if has_fs_datatypes:
+        # First get FreeSurfer
+        post_uri = SE_ARCHIVE_URI
+        post_uri += ASSESSOR_FS_PROJ_POST_URI.format(project=projectid,
+                                                     fstype=DEFAULT_FS_DATATYPE)
+        assessor_list = intf._get_json(post_uri)
 
-    # Then add genProcData
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=proc:genprocdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
-    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status,proc:genprocdata/procversion'
-    post_uri += ',proc:genprocdata/jobstartdate,proc:genprocdata/memused,proc:genprocdata/walltimeused,proc:genprocdata/jobid,proc:genprocdata/jobnode'
-    post_uri += ',proc:genprocdata/out/file/label'
-    assessor_list = intf._get_json(post_uri)
+        for asse in assessor_list:
+            if asse['label']:
+                key = asse['label']
+                if assessors_dict.get(key):
+                    assessors_dict[key]['resources'].append(asse['fs:fsdata/out/file/label'])
+                else:
+                    anew = {}
+                    anew['ID'] = asse['ID']
+                    anew['label'] = asse['label']
+                    anew['uri'] = asse['URI']
+                    anew['assessor_id'] = asse['ID']
+                    anew['assessor_label'] = asse['label']
+                    anew['assessor_uri'] = asse['URI']
+                    anew['project_id'] = projectid
+                    anew['project_label'] = projectid
+                    anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+                    anew['subject_label'] = asse['subject_label']
+                    anew['session_type'] = sess_id2mod[asse['session_ID']][1]
+                    anew['session_id'] = asse['session_ID']
+                    anew['session_label'] = asse['session_label']
+                    anew['procstatus'] = asse['fs:fsdata/procstatus']
+                    anew['qcstatus'] = asse['fs:fsdata/validation/status']
+                    anew['proctype'] = 'FreeSurfer'
 
-    for asse in assessor_list:
-        if asse['label']:
-            key = asse['label']
-            if assessors_dict.get(key):
-                assessors_dict[key]['resources'].append(asse['proc:genprocdata/out/file/label'])
-            else:
-                anew = {}
-                anew['ID'] = asse['ID']
-                anew['label'] = asse['label']
-                anew['uri'] = asse['URI']
-                anew['assessor_id'] = asse['ID']
-                anew['assessor_label'] = asse['label']
-                anew['assessor_uri'] = asse['URI']
-                anew['project_id'] = projectid
-                anew['project_label'] = projectid
-                anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
-                anew['subject_label'] = sess_id2mod[asse['session_ID']][0]
-                anew['session_type'] = sess_id2mod[asse['session_ID']][1]
-                anew['session_id'] = asse['session_ID']
-                anew['session_label'] = asse['session_label']
-                anew['procstatus'] = asse['proc:genprocdata/procstatus']
-                anew['proctype'] = asse['proc:genprocdata/proctype']
-                anew['qcstatus'] = asse['proc:genprocdata/validation/status']
-                anew['version'] = asse['proc:genprocdata/procversion']
-                anew['xsiType'] = asse['xsiType']
-                anew['jobid'] = asse.get('proc:genprocdata/jobid')
-                anew['jobnode'] = asse.get('proc:genprocdata/jobnode')
-                anew['jobstartdate'] = asse.get('proc:genprocdata/jobstartdate')
-                anew['memused'] = asse.get('proc:genprocdata/memused')
-                anew['walltimeused'] = asse.get('proc:genprocdata/walltimeused')
-                anew['handedness'] = sess_id2mod[asse['session_ID']][2]
-                anew['gender'] = sess_id2mod[asse['session_ID']][3]
-                anew['yob'] = sess_id2mod[asse['session_ID']][4]
-                anew['age'] = sess_id2mod[asse['session_ID']][5]
-                anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
-                anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
-                anew['resources'] = [asse['proc:genprocdata/out/file/label']]
-                assessors_dict[key] = anew
+                    if len(asse['label'].rsplit('-x-FS')) > 1:
+                        anew['proctype'] = anew['proctype']+asse['label'].rsplit('-x-FS')[1]
+
+                    anew['version'] = asse.get('fs:fsdata/procversion')
+                    anew['xsiType'] = asse['xsiType']
+                    anew['jobid'] = asse.get('fs:fsdata/jobid')
+                    anew['jobstartdate'] = asse.get('fs:fsdata/jobstartdate')
+                    anew['memused'] = asse.get('fs:fsdata/memused')
+                    anew['walltimeused'] = asse.get('fs:fsdata/walltimeused')
+                    anew['jobnode'] = asse.get('fs:fsdata/jobnode')
+                    anew['handedness'] = sess_id2mod[asse['session_ID']][2]
+                    anew['gender'] = sess_id2mod[asse['session_ID']][3]
+                    anew['yob'] = sess_id2mod[asse['session_ID']][4]
+                    anew['age'] = sess_id2mod[asse['session_ID']][5]
+                    anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
+                    anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
+                    anew['resources'] = [asse['fs:fsdata/out/file/label']]
+                    assessors_dict[key] = anew
+
+    if has_genproc_datatypes:
+        # Then add genProcData
+        post_uri = SE_ARCHIVE_URI
+        post_uri += ASSESSOR_PR_PROJ_POST_URI.format(project=projectid,
+                                                     pstype=DEFAULT_DATATYPE)
+        assessor_list = intf._get_json(post_uri)
+
+        for asse in assessor_list:
+            if asse['label']:
+                key = asse['label']
+                if assessors_dict.get(key):
+                    assessors_dict[key]['resources'].append(asse['proc:genprocdata/out/file/label'])
+                else:
+                    anew = {}
+                    anew['ID'] = asse['ID']
+                    anew['label'] = asse['label']
+                    anew['uri'] = asse['URI']
+                    anew['assessor_id'] = asse['ID']
+                    anew['assessor_label'] = asse['label']
+                    anew['assessor_uri'] = asse['URI']
+                    anew['project_id'] = projectid
+                    anew['project_label'] = projectid
+                    anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+                    anew['subject_label'] = sess_id2mod[asse['session_ID']][0]
+                    anew['session_type'] = sess_id2mod[asse['session_ID']][1]
+                    anew['session_id'] = asse['session_ID']
+                    anew['session_label'] = asse['session_label']
+                    anew['procstatus'] = asse['proc:genprocdata/procstatus']
+                    anew['proctype'] = asse['proc:genprocdata/proctype']
+                    anew['qcstatus'] = asse['proc:genprocdata/validation/status']
+                    anew['version'] = asse['proc:genprocdata/procversion']
+                    anew['xsiType'] = asse['xsiType']
+                    anew['jobid'] = asse.get('proc:genprocdata/jobid')
+                    anew['jobnode'] = asse.get('proc:genprocdata/jobnode')
+                    anew['jobstartdate'] = asse.get('proc:genprocdata/jobstartdate')
+                    anew['memused'] = asse.get('proc:genprocdata/memused')
+                    anew['walltimeused'] = asse.get('proc:genprocdata/walltimeused')
+                    anew['handedness'] = sess_id2mod[asse['session_ID']][2]
+                    anew['gender'] = sess_id2mod[asse['session_ID']][3]
+                    anew['yob'] = sess_id2mod[asse['session_ID']][4]
+                    anew['age'] = sess_id2mod[asse['session_ID']][5]
+                    anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
+                    anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
+                    anew['resources'] = [asse['proc:genprocdata/out/file/label']]
+                    assessors_dict[key] = anew
 
     return sorted(assessors_dict.values(), key=lambda k: k['label'])
 
@@ -1024,29 +1033,43 @@ def list_assessor_out_resources(intf, projectid, subjectid, sessionid, assessori
     :param assessorid: ID/label of an assessor to get resources for
     :return: List of resources for the assessor
     """
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+sessionid+'/assessors/'+assessorid+'/out/resources'
+    #Check that the assessors types are present on XNAT
+    if not has_dax_datatypes(intf):
+        print 'WARNING: datatypes fs:fsData or proc:genProcData not found on XNAT.'
+        return list()
+
+    post_uri = A_RESOURCES_URI.format(project=projectid,
+                                      subject=subjectid,
+                                      session=sessionid,
+                                      assessor=assessorid)
     resource_list = intf._get_json(post_uri)
     return resource_list
 
-def get_resource_lastdate_modified(intf, resource):
+def get_resource_lastdate_modified(intf, resource_obj):
     """
     Get the last modified data for a resource on XNAT (NOT WORKING: bug on XNAT side)
-    
+
     :param intf: pyxnat.Interface object
-    :param resource: resource label on xnat
-    :return: date of last modified data with the format %Y-%m-%d %H:%M:%S
+    :param resource: resource pyxnat Eobject
+    :return: date of last modified data with the format %Y%m%d%H%M%S
     """
     # xpaths for times in resource xml
+    created_dicom_xpath = "/cat:DCMCatalog/cat:entries/cat:entry/@createdTime"
+    modified_dicom_xpath = "/cat:DCMCatalog/cat:entries/cat:entry/@modifiedTime"
     created_xpath = "/cat:Catalog/cat:entries/cat:entry/@createdTime"
     modified_xpath = "/cat:Catalog/cat:entries/cat:entry/@modifiedTime"
     # Get the resource object and its uri
-    res_xml_uri = resource._uri+'?format=xml'
+    res_xml_uri = '%s?format=xml' % (resource_obj._uri)
     # Get the XML for resource
     xmlstr = intf._exec(res_xml_uri, 'GET')
     # Parse out the times
     root = etree.fromstring(xmlstr)
     create_times = root.xpath(created_xpath, namespaces=root.nsmap)
+    if not create_times:
+        create_times = root.xpath(created_dicom_xpath, namespaces=root.nsmap)
     mod_times = root.xpath(modified_xpath, namespaces=root.nsmap)
+    if not mod_times:
+        mod_times = root.xpath(modified_dicom_xpath, namespaces=root.nsmap)
     # Find the most recent time
     all_times = create_times + mod_times
     if all_times:
@@ -1054,13 +1077,13 @@ def get_resource_lastdate_modified(intf, resource):
         date = max_time.split('.')[0]
         res_date = date.split('T')[0].replace('-', '')+date.split('T')[1].replace(':', '')
     else:
-        res_date = ('{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())).strip().replace('-', '').replace(':', '').replace(' ', '')
+        res_date = ('{:%Y%m%d%H%M%S}'.format(datetime.now()))
     return res_date
 
 def select_assessor(intf, assessor_label):
     """
     Select assessor from his label
-    
+
     :param assessor_label: label for the assessor requested
     :return: pyxnat EObject for the assessor selected
     """
@@ -1150,11 +1173,11 @@ def select_obj(intf, project_id=None, subject_id=None, session_id=None, scan_id=
         if value:
             select_str += '''/{key}/{label}'''.format(key=key, label=value)
     return intf.select(select_str)
-    
+
 def generate_assessor_handler(project, subject, session, proctype, scan=None):
     """
     Generate an assessorHandler object corresponding to the labels in the parameters
-    
+
     :param project: project label on XNAT
     :param subject: subject label on XNAT
     :param session: session label on XNAT
@@ -1167,6 +1190,41 @@ def generate_assessor_handler(project, subject, session, proctype, scan=None):
     else:
         assessor_label = '-x-'.join([project, subject, session, proctype])
     return AssessorHandler(assessor_label)
+
+def has_dax_datatypes(intf):
+    """
+    Check if Xnat instance has the datatypes for DAX
+
+    :param intf: pyxnat.Interface object
+    :return: True if it does, False otherwise
+    """
+    xnat_datatypes = intf.inspect.datatypes()
+    for dax_datatype in XSITYPE_INCLUDE:
+        if dax_datatype not in xnat_datatypes:
+            return False
+    return True
+
+def has_fs_datatypes(intf):
+    """
+    Check if Xnat instance has the fs:fsData types installed
+
+    :param intf: pyxnat.Interface object
+    :return: True if it does, False otherwise
+    """
+    if DEFAULT_FS_DATATYPE not in intf.inspect.datatypes():
+        return False
+    return True
+
+def has_genproc_datatypes(intf):
+    """
+    Check if Xnat instance has the fs:fsData types installed
+
+    :param intf: pyxnat.Interface object
+    :return: True if it does, False otherwise
+    """
+    if DEFAULT_DATATYPE not in intf.inspect.datatypes():
+        return False
+    return True
 
 ####################################################################################
 #                     Functions to access/check object                             #
@@ -1196,9 +1254,9 @@ def is_cscan_good_type(cscan, types_list):
     Check to see if the CachedImageScan type is of type(s) specificed by user.
 
     :param cassr: CachedImageScan object from XnatUtils
-    :param types_list: List of scan types	
+    :param types_list: List of scan types
     :return: True if type is in the list, False if not.
-    
+
     """
     return cscan.info()['type'] in types_list
 
@@ -1261,7 +1319,7 @@ def is_cassessor_good_type(cassr, types_list):
     Check to see if the CachedImageAssessor proctype is of type(s) specificed by user.
 
     :param cassr: CachedImageAssessor object from XnatUtils
-    :param types_list: List of proctypes	
+    :param types_list: List of proctypes
     :return: True if proctype is in the list, False if not.
 
     """
@@ -1314,9 +1372,9 @@ def is_bad_qa(qcstatus):
     :return: True if bad, False if not bad
 
     """
-    if qcstatus in [JOB_PENDING, NEEDS_QA, REPROC]:
+    if qcstatus in [task.JOB_PENDING, task.NEEDS_QA, task.REPROC]:
         return 0
-    for qc in BAD_QA_STATUS:
+    for qc in task.BAD_QA_STATUS:
         if qc in qcstatus.split(' ')[0].lower():
             return -1
     return 1
@@ -1374,7 +1432,7 @@ def get_good_cassr(csess, proctypes):
 
 def get_good_assr(session_obj, proctypes):
     """
-    Get all the assessors in the session and filter out the ones 
+    Get all the assessors in the session and filter out the ones
      that are usable and that have the proctype(s) specified
 
     :param session_obj: Session EObject from Pyxnat
@@ -1953,7 +2011,6 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail):
     :return: True if it uploaded OK, False if it failed.
 
     """
-    """ upload to assessor the original snapshots and thumbnail files """
     if not os.path.isfile(original) or not os.path.isfile(thumbnail):
         print "ERROR: upload_assessor_snapshots in XnatUtils: original or thumbnail snapshots don't exist."
         return False
@@ -1982,7 +2039,7 @@ def gzip_nii(directory):
     """
     Gzip all the NIfTI files in a directory via system call.
 
-    :param directory: The directory to filter for \*.nii files
+    :param directory: The directory to filter for *.nii files
     :return: None
 
     """
@@ -1993,7 +2050,7 @@ def ungzip_nii(directory):
     """
     Gunzip all of the NIfTI files in a directory via system call.
 
-    :param directory: The directory to filter for \*.nii.gz files
+    :param directory: The directory to filter for *.nii.gz files
     :return: None
 
     """
@@ -2226,7 +2283,6 @@ class CachedImageSession():
         :return: The value of the variable or '' if not found.
 
         """
-        """ return value of a variable name for the session """
         value = self.sess_element.get(name)
         if value != None:
             return value
@@ -2746,7 +2802,7 @@ def gunzip_file(file_zipped):
 ####################### DEPRECATED Methods still in used in different Spiders ##########################
 # It will need to be removed when the spiders are updated
 def list_experiments(intf, projectid=None, subjectid=None):
-    """ 
+    """
     Deprecated method to list all the experiments that you have access to. Or, alternatively, list
      the experiments in a single project (and single subject) based on passed project ID (/subject ID)
 
@@ -2756,11 +2812,11 @@ def list_experiments(intf, projectid=None, subjectid=None):
     :return: List of experiments
     """
     if projectid and subjectid:
-        post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
+        post_uri = SESSIONS_URI.format(project=projectid, subject=subjectid)
     elif projectid == None and subjectid == None:
-        post_uri = '/REST/experiments'
+        post_uri = ALL_SESS_URI
     elif projectid and subjectid == None:
-        post_uri = '/REST/projects/'+projectid+'/experiments'
+        post_uri = ALL_SESS_PROJ_URI.format(project=projectid)
     else:
         return None
 
@@ -2791,7 +2847,7 @@ def list_experiment_resources(intf, projectid, subjectid, experimentid):
     :param subjectid: ID/label of a session to get resources for
     :return: List of resources for the session
     """
-    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/resources'
+    post_uri = SE_RESOURCES_URI.format(project=projectid, subject=subjectid, session=experimentid)
     resource_list = intf._get_json(post_uri)
     return resource_list
 
@@ -3053,7 +3109,7 @@ def dl_good_resources_scan(Scan,resource_list,Outputdirectory,all_resources):
         if resourceOK and all_resources:
             download_all_resources(Scan.resource(Resource),Outputdirectory)
         elif resourceOK and not all_resources:
-            dl,DLFileName=download_biggest_resources(Scan.resource(Resource),Outputdirectory)
+            dl,_=download_biggest_resources(Scan.resource(Resource),Outputdirectory)
             if not dl:
                 print 'ERROR: Download failed, the size of file for the resource is zero.'
 
@@ -3082,7 +3138,7 @@ def dl_good_resources_assessor(Assessor,resource_list,Outputdirectory,all_resour
         if resourceOK and all_resources:
             download_all_resources(Assessor.out_resource(Resource),Outputdirectory)
         elif resourceOK and not all_resources:
-            dl,DLFileName=download_biggest_resources(Assessor.out_resource(Resource),Outputdirectory)
+            dl,_=download_biggest_resources(Assessor.out_resource(Resource),Outputdirectory)
             if not dl:
                 print 'ERROR: Download failed, the size of file for the resource is zero.'
 
@@ -3240,7 +3296,7 @@ def download_resource_assessor(directory,xnat,project,subject,experiment,assesso
 
     #all resources
     if resources_list[0]=='all':
-        post_uri_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources'
+        post_uri_resource = A_RESOURCES_URI.format(project=project, subject=subject, session=experiment, assessor=assessor_label)
         resources_list = xnat._get_json(post_uri_resource)
         for resource in resources_list:
             Resource=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource['label'])

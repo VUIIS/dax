@@ -6,7 +6,6 @@ from datetime import date
 
 import cluster
 from cluster import PBS
-import XnatUtils, bin
 
 from dax_settings import RESULTS_DIR, DEFAULT_EMAIL_OPTS, JOB_EXTENSION_FILE
 
@@ -17,26 +16,28 @@ LOGGER = logging.getLogger('dax')
 NO_DATA = 'NO_DATA'         # assessor that doesn't have data to run (for session assessor): E.G: dtiqa multi but no dti present.
 NEED_TO_RUN = 'NEED_TO_RUN' # assessor that is ready to be launch on the cluster (ACCRE). All the input data for the process to run are there.
 NEED_INPUTS = 'NEED_INPUTS' # assessor where input data are missing from a scan, multiple scans or other assessor.
-JOB_RUNNING = XnatUtils.JOB_RUNNING # the job has been submitted on the cluster and is running right now.
-JOB_FAILED = XnatUtils.JOB_FAILED # the job failed on the cluster.
-READY_TO_UPLOAD = XnatUtils.READY_TO_UPLOAD # Job done, waiting for the Spider to upload the results
+JOB_RUNNING = 'JOB_RUNNING' # the job has been submitted on the cluster and is running right now.
+JOB_FAILED = 'JOB_FAILED' # the job failed on the cluster.
+READY_TO_UPLOAD = 'READY_TO_UPLOAD' # Job done, waiting for the Spider to upload the results
 UPLOADING = 'UPLOADING' # in the process of uploading the resources on XNAT.
 COMPLETE = 'COMPLETE' # the assessors contains all the files. The upload and the job are done.
 READY_TO_COMPLETE = 'READY_TO_COMPLETE' # the job finished and upload is complete
 DOES_NOT_EXIST = 'DOES_NOT_EXIST'
 OPEN_STATUS_LIST = [NEED_TO_RUN, UPLOADING, JOB_RUNNING, READY_TO_COMPLETE, JOB_FAILED]
 
-# QA Statuses
-BAD_QA_STATUS = XnatUtils.BAD_QA_STATUS
-JOB_PENDING = XnatUtils.JOB_PENDING
-NEEDS_QA = XnatUtils.NEEDS_QA
-PASSED_QA = 'Passed' # QA status set by the Image Analyst after looking at the results.
-FAILED = 'Failed' # QA status set by the Image Analyst after looking at the results.
+
+# QC Statuses
+JOB_PENDING = 'Job Pending' # job is still running, not ready for QA yet
+NEEDS_QA = 'Needs QA' # For FS, the complete status
+PASSED_QA = 'Passed' # QC status set by the Image Analyst after looking at the results.
+FAILED = 'Failed' # QC status set by the Image Analyst after looking at the results.
+BAD = 'BAD' # QC status set by the Image Analyst after looking at the results.
 FAILED_NEEDS_REPROC = 'Failed-needs reprocessing'
 PASSED_EDITED_QA = 'Passed with edits'
 RERUN = 'Rerun' # will cause spider to delete results and rerun the processing
-REPROC = XnatUtils.REPROC
-OPEN_QC_LIST = [RERUN, REPROC]
+REPROC = 'Reproc' # will cause spider to zip the current results and put in OLD, and then processing
+OPEN_QA_LIST = [RERUN, REPROC]
+BAD_QA_STATUS = [FAILED, BAD]
 
 # Other Constants
 DEFAULT_PBS_DIR = os.path.join(RESULTS_DIR, 'PBS')
@@ -99,14 +100,14 @@ class Task(object):
     def is_open(self):
         """
         Check to see if a task is still in "Open" status as defined in
-         XnatUtils.OPEN_STATUS_LIST.
+         OPEN_STATUS_LIST.
 
         :return: True if the Task is open. False if it is not open
 
         """
         astatus = self.get_status()
         return astatus in OPEN_STATUS_LIST
-        
+
     def get_job_usage(self):
         """
         Get the amount of memory used, the amount of walltime used, the jobid
@@ -136,7 +137,6 @@ class Task(object):
         if walltime != '':
             if memused != '' and jobnode != '':
                 LOGGER.debug('memused and walltime already set, skipping')
-                pass
             else:
                 if memused == '':
                     self.set_memused('NotFound')
@@ -253,7 +253,6 @@ class Task(object):
                     out_resource.delete()
                 except DatabaseError:
                     LOGGER.error('   ERROR:deleting resource.')
-                    pass
 
     def reproc_processing(self):
         """
@@ -311,11 +310,11 @@ class Task(object):
 
         if old_status == COMPLETE or old_status == JOB_FAILED:
             if qcstatus == REPROC:
-                LOGGER.info('   *qcstatus=REPROC, running reproc_processing...')
+                LOGGER.info('   * qcstatus=REPROC, running reproc_processing...')
                 self.reproc_processing()
                 new_status = NEED_TO_RUN
             elif qcstatus == RERUN:
-                LOGGER.info('   *qcstatus=RERUN, running undo_processing...')
+                LOGGER.info('   * qcstatus=RERUN, running undo_processing...')
                 self.undo_processing()
                 new_status = NEED_TO_RUN
             else:
@@ -342,10 +341,10 @@ class Task(object):
         elif old_status == NO_DATA:
             pass
         else:
-            LOGGER.warn('   *unknown status for '+self.assessor_label+': '+old_status)
+            LOGGER.warn('   * unknown status for '+self.assessor_label+': '+old_status)
 
         if new_status != old_status:
-            LOGGER.info('   *changing status from '+old_status+' to '+new_status)
+            LOGGER.info('   * changing status from '+old_status+' to '+new_status)
 
             # Update QC Status
             if new_status == COMPLETE:
@@ -493,7 +492,7 @@ class Task(object):
         Get the procstatus of an assessor
 
         :return: The string of the procstatus of the assessor.
-         XnatUtils.DOES_NOT_EXIST if the assessor does not exist
+         DOES_NOT_EXIST if the assessor does not exist
 
         """
         if not self.assessor.exists():
@@ -505,7 +504,7 @@ class Task(object):
         else:
             xnat_status = 'UNKNOWN_xsiType:'+self.atype
         return xnat_status
-    
+
     def get_statuses(self):
         """
         Get the procstatus, qcstatus, and job id of an assessor
@@ -543,7 +542,7 @@ class Task(object):
         Get the qcstatus of the assessor
 
         :return: A string of the qcstatus for the assessor if it exists.
-         If it does not, it returns DOES_NOT_EXIST as defined in XnatUtils.
+         If it does not, it returns DOES_NOT_EXIST.
          The else case returns an UNKNOWN xsiType with the xsiType of the
          assessor as stored on XNAT.
         """
@@ -567,8 +566,12 @@ class Task(object):
         :return: None
 
         """
-        self.assessor.attrs.set(self.atype+'/validation/status', qcstatus)
-        
+        self.assessor.attrs.mset({self.atype+'/validation/status': qcstatus,
+                                  self.atype+'/validation/validated_by':'NULL',
+                                  self.atype+'/validation/date':'NULL',
+                                  self.atype+'/validation/notes':'NULL',
+                                  self.atype+'/validation/method':'NULL'})
+
     def set_proc_and_qc_status(self, procstatus, qcstatus):
         """
         Set the procstatus and qcstatus of the assessor
@@ -578,9 +581,8 @@ class Task(object):
         :return: None
 
         """
-        atype = self.atype
-        """ set the procstatus """
-        self.assessor.attrs.mset({atype+'/procstatus':procstatus, atype+'/validation/status':qcstatus})
+        self.assessor.attrs.mset({self.atype+'/procstatus':procstatus,
+                                  self.atype+'/validation/status':qcstatus})
 
     def set_jobid(self, jobid):
         """

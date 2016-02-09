@@ -43,7 +43,7 @@ LOGGER = logging.getLogger('dax')
 
 # Default values for arguments:
 # EDIT PARAMETERS FOR YOUR SPIDER CASE (SPIDER_PATH, WALLTIME, etc...)
-DEFAULT_SPIDER_PATH = os.path.join(SPIDER_PATH, 'Spider_{name}_1_0_0.py')
+DEFAULT_SPIDER_PATH = os.path.join(SPIDER_PATH, 'Spider_{name}_v1_0_0.py')
 DEFAULT_WALLTIME = '01:00:00'
 DEFAULT_MEM = 2048
 """
@@ -123,7 +123,7 @@ class Processor_{name}(ScanProcessor):
         subj_label = assessor.parent().parent().label()
         sess_label = assessor.parent().label()
         assr_label = assessor.label()
-        scan_label = assr.split('-x-')[3]
+        scan_label = assr_label.split('-x-')[3]
 
         #
         # ADD CUSTOM PARAMETERS TO THE SPIDER TEMPLATE (don't forgot the SPIDER_FORMAT (top))
@@ -213,7 +213,7 @@ class {name}_Processor(SessionProcessor):
         return [cmd]
 """
 
-def write_processor(processor_fpath, templates, args):
+def write_processor(templates):
     """
     Write the Processor.py with the proper template
 
@@ -221,12 +221,12 @@ def write_processor(processor_fpath, templates, args):
     :param templates: template to use (scan or session)
     :param args: arguments parser
     """
-    processor_code = templates.format(author=args.author,
-                                      email_addr=args.email,
-                                      name=args.name,
+    processor_code = templates.format(author=ARGS.author,
+                                      email_addr=ARGS.email,
+                                      name=ARGS.name,
                                       now=str(datetime.now()),
-                                      purpose=args.purpose)
-    f_obj = open(processor_fpath, "w")
+                                      purpose=ARGS.purpose)
+    f_obj = open(PROCESSOR_FPATH, "w")
     f_obj.writelines(processor_code)
     f_obj.close()
 
@@ -271,7 +271,7 @@ if __name__ == '__main__':
         PROCESSOR_FPATH = os.path.join(os.getcwd(), PROCESSOR_NAME)
     if ARGS.on_scan:
         print "Generating file %s for scan processor %s ..." % (PROCESSOR_FPATH, ARGS.name)
-        write_processor(PROCESSOR_FPATH, SCAN_LEVEL_TEMPLATE, ARGS)
+        write_processor(SCAN_LEVEL_TEMPLATE)
     else:
         print "Generating file %s for session processor %s ..." % (PROCESSOR_FPATH, ARGS.name)
-        write_processor(PROCESSOR_FPATH, SESSION_LEVEL_TEMPLATE, ARGS)
+        write_processor(SESSION_LEVEL_TEMPLATE)
