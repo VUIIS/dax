@@ -11,3 +11,4 @@ Contents:
    dax
    dax_manager
    contributors
+   how_to_contribute
