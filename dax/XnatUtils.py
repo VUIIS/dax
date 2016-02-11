@@ -850,7 +850,7 @@ def list_assessors(intf, projectid, subjectid, sessionid):
     """
     new_list = list()
 
-    if has_fs_datatypes:
+    if has_fs_datatypes(intf):
         # First get FreeSurfer
         post_uri = ASSESSORS_URI.format(project=projectid,
                                         subject=subjectid,
@@ -877,7 +877,7 @@ def list_assessors(intf, projectid, subjectid, sessionid):
             anew['xsiType'] = asse['xsiType']
             new_list.append(anew)
 
-    if has_genproc_datatypes:
+    if has_genproc_datatypes(intf):
         # Then add genProcData
         post_uri = ASSESSORS_URI.format(project=projectid,
                                         subject=subjectid,
@@ -923,7 +923,7 @@ def list_project_assessors(intf, projectid):
                         sess['yob'], sess['age'], sess['last_modified'],
                         sess['last_updated']]) for sess in session_list)
 
-    if has_fs_datatypes:
+    if has_fs_datatypes(intf):
         # First get FreeSurfer
         post_uri = SE_ARCHIVE_URI
         post_uri += ASSESSOR_FS_PROJ_POST_URI.format(project=projectid,
@@ -973,7 +973,7 @@ def list_project_assessors(intf, projectid):
                     anew['resources'] = [asse['fs:fsdata/out/file/label']]
                     assessors_dict[key] = anew
 
-    if has_genproc_datatypes:
+    if has_genproc_datatypes(intf):
         # Then add genProcData
         post_uri = SE_ARCHIVE_URI
         post_uri += ASSESSOR_PR_PROJ_POST_URI.format(project=projectid,
@@ -1034,8 +1034,8 @@ def list_assessor_out_resources(intf, projectid, subjectid, sessionid, assessori
     :return: List of resources for the assessor
     """
     #Check that the assessors types are present on XNAT
-    if not has_dax_datatypes(intf):
-        print 'WARNING: datatypes fs:fsData or proc:genProcData not found on XNAT.'
+    if not has_genproc_datatypes(intf):
+        print 'WARNING: datatypes proc:genProcData not found on XNAT. Needed by default for dax.'
         return list()
 
     post_uri = A_RESOURCES_URI.format(project=projectid,
