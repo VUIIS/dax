@@ -101,16 +101,17 @@ def report_project():
     report_str+='  %*s : %*s' % (-13, 'Processes', -30, assessor_number) + '\n'
     report_str+='--------------------------------------------------------------------------\n'
     report_str+='\n'
-    report_str+='Scan info :\n'
-    report_str+='--------------------------------------------------------------------------\n'
-    report_str+='  %*s | %*s' % (-30, 'Scan type', -30, 'Count') + '\n'
-    report_str+='  ---------------------------------------\n'
-    for key in sorted(scans_found):
-        report_str+='  %*s | %*s' % (-30, key[:30], -30, scans_found[key]) +'\n'
-    report_str+='  ---------------------------------------\n'
-    report_str+='  %*s | %*s' % (-30, 'Total', -30, scan_number)+'\n'
-    report_str+='\n'
-    if scans_unusable:
+    if not OPTIONS.ignorescans:
+        report_str+='Scan info :\n'
+        report_str+='--------------------------------------------------------------------------\n'
+        report_str+='  %*s | %*s' % (-30, 'Scan type', -30, 'Count') + '\n'
+        report_str+='  ---------------------------------------\n'
+        for key in sorted(scans_found):
+            report_str+='  %*s | %*s' % (-30, key[:30], -30, scans_found[key]) +'\n'
+        report_str+='  ---------------------------------------\n'
+        report_str+='  %*s | %*s' % (-30, 'Total', -30, scan_number)+'\n'
+        report_str+='\n'
+    if scans_unusable and not OPTIONS.ignoreunusable:
         report_str+='  List of unusable scan :\n'
         report_str+='  -----------------------\n'
         report_str+='  %*s | %*s | %*s | %*s' % (-20, 'Subject',-20, 'Experiment',-20, 'Scan', -20, 'Type')+'\n'
@@ -256,6 +257,8 @@ def parse_args():
     ap.add_argument("-x","--filetxt",dest='filetxt', help='Path to a txt file to save the report',default=None)
     ap.add_argument('-f','--failed',dest='failed',help='Add this flag to print out failed jobs',action='store_true',default=False)
     ap.add_argument('-r','--running',dest='running',help='Add this flag to print out running jobs',action='store_true',default=False)
+    ap.add_argument('--ignoreUnusable', dest='ignoreunusable', help='Ignore print statement of unusable scans', action='store_true')
+    ap.add_argument('--ignoreScans', dest='ignorescans', help='Ignore print statement of scans', action='store_true')
     return ap
 
 ########### MAIN FUNCTION ###########
