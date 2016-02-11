@@ -607,9 +607,8 @@ def one_dir_download(directory, res_obj, res_label, label,
         #Add fpath
         if row is not None:
             row.append(res_path)
-        file_date = get_file_timestamp(res_path)
         if not os.path.exists(res_path) or \
-           (last_dl_date and int(file_date) < int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))):
+           (last_dl_date and int(get_file_timestamp(res_path)) < int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))):
             dl_files(res_obj, directory)
             shutil.move(os.path.join(directory, res_label), res_path)
             if CSVWRITER:
@@ -621,9 +620,8 @@ def one_dir_download(directory, res_obj, res_label, label,
         res_path = os.path.join(directory, label+'__'+res_obj.files().get()[0])
         if row is not None:
             row.append(res_path)
-        file_date = get_file_timestamp(res_path)
         if not os.path.exists(res_path) or \
-           (last_dl_date and int(file_date) < int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))):
+           (last_dl_date and int(get_file_timestamp(res_path)) < int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))):
             dl_file(res_obj, res_path)
             if CSVWRITER:
                 CSVWRITER.writerow(row)
@@ -647,9 +645,8 @@ def default_download(directory, res_obj, res_label, row, last_dl_date):
     if row is not None:
         row.append(res_label)
         row.append(res_path)
-    file_date = get_file_timestamp(res_path)
     if not os.path.exists(res_path) or \
-       (last_dl_date and int(file_date) < int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))) \
+       (last_dl_date and int(get_file_timestamp(res_path)) < int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))) \
        or not os.listdir(res_path):
         dl_files(res_obj, directory)
         if CSVWRITER:
