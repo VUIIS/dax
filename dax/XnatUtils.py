@@ -1348,8 +1348,8 @@ def is_assessor_on_same_session_usable(cobj, proctype, is_scan_proc=False):
 
 def is_assessor_same_scan_unusable(cscan, proctype):
     """
-    Check to see if the assessor matching the user passed scan and proctype has
-     passed QC.
+    Deprecated method to check to see if the assessor matching the user passed scan and proctype has
+     passed QC. (See is_assessor_on_same_session_usable)
 
     :param cscan: CachedImageScan object from XnatUtils
     :param proctype: Process type of the assessor
