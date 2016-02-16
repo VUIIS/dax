@@ -1308,13 +1308,13 @@ def get_cassr_on_same_session(cobj, proctype, is_scan_proc=False):
     """
     obj_info = cobj.info()
     cassr_list = list()
-    if isinstance(cobj, 'CachedImageScan'):
+    if isinstance(cobj, CachedImageScan):
         if is_scan_proc:
             assr_label = '-x-'.join([obj_info['project_id'], obj_info['subject_label'], obj_info['session_label'], obj_info['ID'], proctype])
         else:
             assr_label = '-x-'.join([obj_info['project_id'], obj_info['subject_label'], obj_info['session_label'],  proctype])
         cassr_list = [cassr for cassr in cobj.parent().assessors() if cassr.info()['label'] == assr_label]
-    elif isinstance(cobj, 'CachedImageSession'):
+    elif isinstance(cobj, CachedImageSession):
         cassr_list = [cassr for cassr in cobj.assessors() if cassr.info()['proctype'] == proctype]
     return cassr_list
 
