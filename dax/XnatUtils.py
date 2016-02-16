@@ -1295,6 +1295,57 @@ def has_resource(cobj, resource_label):
         return True
     return False
 
+def get_cassr_on_same_session(cobj, proctype, is_scan_proc=False):
+    """
+    Get the list of all CachedImageAssessor object with the proctype given
+     associated to a cobj (session, scan -> for scan, same scan used)
+
+    :param cobj: CachedImage object from XnatUtils (scan/session)
+    :param proctype: Process type of the assessor to check
+    :param is_scan_proc: if the assessor you are looking for
+                         is attached to a scan (scan level processor)
+    :return: list of CachedImageAssessor objects
+    """
+    obj_info = cobj.info()
+    cassr_list = list()
+    if isinstance(cobj, 'CachedImageScan'):
+        if is_scan_proc:
+            assr_label = '-x-'.join([obj_info['project_id'], obj_info['subject_label'], obj_info['session_label'], obj_info['ID'], proctype])
+        else:
+            assr_label = '-x-'.join([obj_info['project_id'], obj_info['subject_label'], obj_info['session_label'],  proctype])
+        cassr_list = [cassr for cassr in cobj.parent().assessors() if cassr.info()['label'] == assr_label]
+    elif isinstance(cobj, 'CachedImageSession'):
+        cassr_list = [cassr for cassr in cobj.assessors() if cassr.info()['proctype'] == proctype]
+    return cassr_list
+
+def is_assessor_on_same_session_usable(cobj, proctype, is_scan_proc=False):
+    """
+    Check to see if the assessor matching the user passed proctype has
+     passed QC.
+
+    :param cobj: CachedImage object from XnatUtils (scan/session)
+    :param proctype: Process type of the assessor to check
+    :param is_scan_proc: if the assessor you are looking for
+                         is attached to a scan (scan level processor)
+    :return: 0 if the assessor is not ready or doesn't exist. -1 if it failed,
+            or 1 if OK
+    """
+    cassr_list = get_cassr_on_same_session(cobj, proctype, is_scan_proc)
+
+    if not cassr_list:
+        return 0
+    elif len(cassr_list) == 1:
+        return is_bad_qa(cassr_list[0].info()['qcstatus'])
+    else:
+        # too many assessors checked if one rdy??
+        good_cassr_list = [cassr.info() for cassr in cassr_list if is_bad_qa(cassr.info()['qcstatus']) == 1]
+        if len(good_cassr_list) == 1:
+            return 1
+        elif len(good_cassr_list) > 1:
+            print "WARNING: too many assessors %s with a good QC status." % (proctype)
+            return 0
+    return 0
+
 def is_assessor_same_scan_unusable(cscan, proctype):
     """
     Check to see if the assessor matching the user passed scan and proctype has
