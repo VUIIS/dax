@@ -634,7 +634,7 @@ def parse_args():
     """
     from argparse import ArgumentParser, RawTextHelpFormatter
     description = DESCRIPTION.format(folder=RESULTS_DIR)
-    ap = ArgumentParser(prog='Xnatcheck', description=description,
+    ap = ArgumentParser(prog='dax_upload', description=description,
                         formatter_class=RawTextHelpFormatter)
     ap.add_argument('--host', dest='host', default=None,
                     help='Host for XNAT. Default: using $XNAT_HOST.')
