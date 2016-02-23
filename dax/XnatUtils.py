@@ -34,6 +34,7 @@ import subprocess
 from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
 RESULTS_DIR = DAX_SETTINGS.get_results_dir()
+XSITYPE_INCLUDE = DAX_SETTINGS.get_xsitype_include()
 
 import xml.etree.cElementTree as ET
 
