@@ -5,6 +5,7 @@ admin_email={admin_email}
 smtp_host={smtp_host}
 smtp_from={smtp_from}
 smtp_pass={smtp_pass}
+xsitype_include={xsitype_include}
 
 ; Deep information about the cluster. This should include commands that are grid-specific to get job id, walltime usage etc. Additionally, there are several templates that needed to be specified. See readthedocs for a description
 [cluster]
@@ -180,6 +181,20 @@ class DAX_Setup_Handler(object):
             self._set('smtp_pass', value)
         else:
             self._set_null('smtp_pass')
+
+    def _get_xsitype_include(self):
+        """
+        Prompt the user for the xsitypes for DAX to access in the project
+
+        :return: None
+
+        """
+        if self.settings_dict['xsitype_include'] != '':
+            value = self._prompt("Please enter the xsitypes you would like DAX"
+                                 " to access in your XNAT instance")
+            self._set('xsitype_include', value)
+        else:
+            self._set_null('xsitype_include')
 
     # Begin cluster section
     def _get_cmd_submit(self):
