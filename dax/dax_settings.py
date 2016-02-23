@@ -54,12 +54,12 @@ class DAX_Settings(object):
             self._print_error_and_exit('ERROR: missing section "cluster"', ClusterNSE)
         try:
             self.config_parser.options('admin')
-        except ConfigParser.NoSectionError as ClusterNSE:
-            self._print_error_and_exit('ERROR: missing section "admin"', ClusterNSE)
+        except ConfigParser.NoSectionError as AdminNSE:
+            self._print_error_and_exit('ERROR: missing section "admin"', AdminNSE)
         try:
             self.config_parser.options('redcap')
-        except ConfigParser.NoSectionError as ClusterNSE:
-            self._print_error_and_exit('ERROR: missing section "redcap"', ClusterNSE)
+        except ConfigParser.NoSectionError as redcapNSE:
+            self._print_error_and_exit('ERROR: missing section "redcap"', redcapNSE)
         try:
             self.config_parser.options('dax_manager')
             self.using_dax_manager = True
