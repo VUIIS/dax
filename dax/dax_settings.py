@@ -1,5 +1,3 @@
-__author__ = 'damons'
-
 import os
 import sys
 import ConfigParser
