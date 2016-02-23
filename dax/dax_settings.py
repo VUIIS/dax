@@ -217,6 +217,15 @@ class DAX_Settings(object):
         """
         return self.get('admin', 'smtp_pass')
 
+    def get_xsitype_include(self):
+        """
+        Get the xsitype_include value from the admin section
+
+        :return: List of xsitypes for DAX to check for
+
+        """
+        return self.get('admin', 'xsitpye_include').split(',')
+
     # Begin cluster section
     def get_cmd_submit(self):
         """
