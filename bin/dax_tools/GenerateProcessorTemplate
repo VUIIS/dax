@@ -145,7 +145,7 @@ SESSION_LEVEL_TEMPLATE = DEFAULT_TEMPLATE+"""
 SPIDER_FORMAT = '''python {{spider}} -p {{proj}} -s {{subj}} -e {{sess}} \
 -d {{dir}} --suffix "{{suffix_proc}}"'''
 
-class {name}_Processor(SessionProcessor):
+class Processor_{name}(SessionProcessor):
     '''
     Processor class for {name} that runs on a session
 
@@ -161,7 +161,7 @@ class {name}_Processor(SessionProcessor):
     def __init__(self, spider_path=DEFAULT_SPIDER_PATH, version=None,
                  walltime=DEFAULT_WALLTIME, mem_mb=DEFAULT_MEM,
                  suffix_proc=''):
-        super({name}_Processor, self).__init__(walltime, mem_mb, spider_path, version,
+        super(Processor_{name}, self).__init__(walltime, mem_mb, spider_path, version,
                                                suffix_proc=suffix_proc)
         #
         # ADD MORE PARAMETERS AS NEEDED HERE LIKE self.param = param
