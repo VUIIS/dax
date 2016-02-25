@@ -265,6 +265,8 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_count_nb_jobs')
+        if filepath.startswith('~/'):
+            filepath = os.path.join(self.get_user_home(), filepath)
         if filepath is None:
             raise OSError(2, 'cmd_count_nb_jobs is None. Must specify')
         if not os.path.isfile(filepath):
@@ -282,6 +284,8 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_get_job_status')
+        if filepath.startswith('~/'):
+            filepath = os.path.join(self.get_user_home(), filepath)
         if filepath is None:
             raise OSError(2, 'cmd_get_job_status is None. Must specify')
         if not os.path.isfile(filepath):
@@ -326,6 +330,8 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_get_job_memory')
+        if filepath.startswith('~/'):
+            filepath = os.path.join(self.get_user_home(), filepath)
         if filepath is None:
             raise OSError(2, 'cmd_get_job_memory is None. Must specify')
         if not os.path.isfile(filepath):
@@ -343,6 +349,8 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_get_job_walltime')
+        if filepath.startswith('~/'):
+            filepath = os.path.join(self.get_user_home(), filepath)
         if filepath is None:
             raise OSError(2, 'cmd_get_job_walltime is None. Must specify')
         if not os.path.isfile(filepath):
@@ -360,6 +368,8 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_get_job_node')
+        if filepath.startswith('~/'):
+            filepath = os.path.join(self.get_user_home(), filepath)
         if filepath is None:
             raise OSError(2, 'cmd_get_job_node is None. Must specify')
         if not os.path.isfile(filepath):
@@ -384,6 +394,8 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'job_template')
+        if filepath.startswith('~/'):
+            filepath = os.path.join(self.get_user_home(), filepath)
         if filepath is None:
             raise OSError(2, 'job_template is None. Must specify')
         if not os.path.isfile(filepath):
