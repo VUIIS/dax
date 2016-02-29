@@ -315,7 +315,7 @@ class DAX_Setup_Handler(object):
 
         """
         value = self._prompt("Please enter the full path to the text file"
-                             " containing the command used to see how munch"
+                             " containing the command used to see how much"
                              " memory a job used : ", is_path=True)
         self._set('cmd_get_job_memory', value)
 
