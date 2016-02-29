@@ -5,6 +5,7 @@
 import os
 import sys
 import socket
+import getpass
 import readline, glob
 
 def complete(text, state):
@@ -52,28 +53,28 @@ api_key_dax={api_key_dax}
 
 ; Keeping this outside of redcap so we dont have to add a prefix to all the variables
 [dax_manager]
-project={project}
-settingsfile={settingsfile}
-masimatlab={masimatlab}
-tmp={tmp}
-logsdir={logsdir}
-user={user}
-gateway={gateway}
-email={email}
-queue={queue}
-priority={priority}
-email_opts={email_opts}
-dax_build_start_date={dax_build_start_date}
-dax_build_end_date={dax_build_end_date}
-dax_build_pid={dax_build_pid}
-dax_update_tasks_start_date={dax_update_tasks_start_date}
-dax_update_tasks_end_date={dax_update_tasks_end_date}
-dax_update_tasks_pid={dax_update_tasks_pid}
-dax_launch_start_date={dax_launch_start_date}
-dax_launch_end_date={dax_launch_end_date}
-dax_launch_pid={dax_launch_pid}
-max_age={max_age}
-admin_email={admin_email}
+project={dm_project}
+settingsfile={dm_settingsfile}
+masimatlab={dm_masimatlab}
+tmp={dm_tmp}
+logsdir={dm_logsdir}
+user={dm_user}
+gateway={dm_gateway}
+email={dm_email}
+queue={dm_queue}
+priority={dm_priority}
+email_opts={dm_email_opts}
+dax_build_start_date={dm_dax_build_start_date}
+dax_build_end_date={dm_dax_build_end_date}
+dax_build_pid={dm_dax_build_pid}
+dax_update_tasks_start_date={dm_dax_update_tasks_start_date}
+dax_update_tasks_end_date={dm_dax_update_tasks_end_date}
+dax_update_tasks_pid={dm_dax_update_tasks_pid}
+dax_launch_start_date={dm_dax_launch_start_date}
+dax_launch_end_date={dm_dax_launch_end_date}
+dax_launch_pid={dm_dax_launch_pid}
+max_age={dm_max_age}
+admin_email={dm_admin_email}
 """
 
 class DAX_Setup_Handler(object):
@@ -196,8 +197,8 @@ class DAX_Setup_Handler(object):
 
         """
         if self.settings_dict['smtp_from'] != '':
-            value = self._prompt("Please enter the password associated with email"
-                                 " address %s : " % self.settings_dict['smtp_from'])
+            value = getpass.getpass("Please enter the password associated with email"
+                                    " address %s : " % self.settings_dict['smtp_from'])
             self._set('smtp_pass', value)
         else:
             self._set_null('smtp_pass')
@@ -328,7 +329,7 @@ class DAX_Setup_Handler(object):
 
         """
         value = self._prompt("Please enter the full path to the text file"
-                             " containing the command used to see how munch"
+                             " containing the command used to see how much"
                              " walltime a job used : ", is_path=True)
         self._set('cmd_get_job_walltime', value)
 
@@ -458,53 +459,53 @@ class DAX_Setup_Handler(object):
         :return: None
         """
         if self.settings_dict['api_key_dax'] != '':
-            print '\n  DAX_MANAGER :'
-            self._set('project','dax_project')
-            self._set('settingsfile','dax_settings_full_path')
-            self._set('masimatlab','dax_masimatlab')
-            self._set('tmp','dax_tmp_directory')
-            self._set('logsdir','dax_logs_path')
-            self._set('user','dax_cluster_user')
-            self._set('gateway','dax_gateway')
-            self._set('email','dax_cluster_email')
-            self._set('queue','dax_queue_limit')
-            self._set('priority','dax_proj_order')
-            self._set('email_opts','dax_job_email_options')
-            self._set('dax_build_start_date','dax_build_start_date')
-            self._set('dax_build_end_date','dax_build_end_date')
-            self._set('dax_build_pid','dax_build_pid')
-            self._set('dax_update_tasks_start_date','dax_update_tasks_start_date')
-            self._set('dax_update_tasks_end_date','dax_update_tasks_end_date')
-            self._set('dax_update_tasks_pid','dax_update_tasks_pid')
-            self._set('dax_launch_start_date','dax_launch_start_date')
-            self._set('dax_launch_end_date','dax_launch_end_date')
-            self._set('dax_launch_pid','dax_launch_pid')
-            self._set('max_age','dax_max_age')
-            self._set('admin_email','dax_email_address')
+            print '\n  DAX_MANAGER set using Vanderbilt default REDCap fields. Edit .dax_settings.ini to change the fields name.'
+            self._set('dm_project','dax_project')
+            self._set('dm_settingsfile','dax_settings_full_path')
+            self._set('dm_masimatlab','dax_masimatlab')
+            self._set('dm_tmp','dax_tmp_directory')
+            self._set('dm_logsdir','dax_logs_path')
+            self._set('dm_user','dax_cluster_user')
+            self._set('dm_gateway','dax_gateway')
+            self._set('dm_email','dax_cluster_email')
+            self._set('dm_queue','dax_queue_limit')
+            self._set('dm_priority','dax_proj_order')
+            self._set('dm_email_opts','dax_job_email_options')
+            self._set('dm_dax_build_start_date','dax_build_start_date')
+            self._set('dm_dax_build_end_date','dax_build_end_date')
+            self._set('dm_dax_build_pid','dax_build_pid')
+            self._set('dm_dax_update_tasks_start_date','dax_update_tasks_start_date')
+            self._set('dm_dax_update_tasks_end_date','dax_update_tasks_end_date')
+            self._set('dm_dax_update_tasks_pid','dax_update_tasks_pid')
+            self._set('dm_dax_launch_start_date','dax_launch_start_date')
+            self._set('dm_dax_launch_end_date','dax_launch_end_date')
+            self._set('dm_dax_launch_pid','dax_launch_pid')
+            self._set('dm_max_age','dax_max_age')
+            self._set('dm_admin_email','dax_email_address')
         else:
             print '\n  REDCap not used. Setting the dax_manager to null.'
-            self._set_null('project')
-            self._set_null('settingsfile')
-            self._set_null('masimatlab')
-            self._set_null('tmp')
-            self._set_null('logsdir')
-            self._set_null('user')
-            self._set_null('gateway')
-            self._set_null('email')
-            self._set_null('queue')
-            self._set_null('priority')
-            self._set_null('email_opts')
-            self._set_null('dax_build_start_date')
-            self._set_null('dax_build_end_date')
-            self._set_null('dax_build_pid')
-            self._set_null('dax_update_tasks_start_date')
-            self._set_null('dax_update_tasks_end_date')
-            self._set_null('dax_update_tasks_pid')
-            self._set_null('dax_launch_start_date')
-            self._set_null('dax_launch_end_date')
-            self._set_null('dax_launch_pid')
-            self._set_null('max_age')
-            self._set_null('admin_email')
+            self._set_null('dm_project')
+            self._set_null('dm_settingsfile')
+            self._set_null('dm_masimatlab')
+            self._set_null('dm_tmp')
+            self._set_null('dm_logsdir')
+            self._set_null('dm_user')
+            self._set_null('dm_gateway')
+            self._set_null('dm_email')
+            self._set_null('dm_queue')
+            self._set_null('dm_priority')
+            self._set_null('dm_email_opts')
+            self._set_null('dm_dax_build_start_date')
+            self._set_null('dm_dax_build_end_date')
+            self._set_null('dm_dax_build_pid')
+            self._set_null('dm_dax_update_tasks_start_date')
+            self._set_null('dm_dax_update_tasks_end_date')
+            self._set_null('dm_dax_update_tasks_pid')
+            self._set_null('dm_dax_launch_start_date')
+            self._set_null('dm_dax_launch_end_date')
+            self._set_null('dm_dax_launch_pid')
+            self._set_null('dm_max_age')
+            self._set_null('dm_admin_email')
 
     def write(self):
         """
@@ -522,7 +523,7 @@ class DAX_Setup_Handler(object):
 
         """
         print 'Starting to config the dax_settings.ini file:'
-        print '  ADMIN :'
+        print '\n  ADMIN :'
         self._get_user_home()
         self._get_admin_email()
         self._get_smtp_from()
