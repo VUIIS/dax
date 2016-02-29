@@ -558,7 +558,7 @@ def create_assessor(assessor, assessor_dict):
         assessor.create(assessors='proc:genProcData')
         assessor.attrs.mset({XnatUtils.DEFAULT_DATATYPE+'/procstatus': assessor_dict['procstatus'],
                              XnatUtils.DEFAULT_DATATYPE+'/validation/status':assessor_dict['qcstatus'],
-                             XnatUtils.DEFAULT_DATATYPE+'/proctype':'FreeSurfer',
+                             XnatUtils.DEFAULT_DATATYPE+'/proctype':assessor_dict['proctype'],
                              XnatUtils.DEFAULT_DATATYPE+'/date':today})
     return assessor
 
