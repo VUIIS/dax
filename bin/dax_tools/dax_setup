@@ -110,15 +110,14 @@ class DAX_Setup_Handler(object):
         else:
             stdin = raw_input(message)
 
-        if is_path:
-            if not stdin:
-                print "No Path specified. Please provide a path."
-                stdin = self._prompt(message, default, is_path)
+        if is_path and stdin:
+            if stdin.starswith('~/'):
+                stdin = os.path.join(os.path.expanduser('~'), stdin[1:])
             else:
                 stdin = os.path.abspath(stdin)
-                if not os.path.exists(stdin):
-                    print "Path <%s> does not exists." % stdin
-                    stdin = self._prompt(message, default, is_path)
+            if not os.path.exists(stdin):
+                print "Path <%s> does not exists." % stdin
+                stdin = self._prompt(message, default, is_path)
         return stdin
 
     def _set(self, key, value):
