@@ -111,8 +111,8 @@ class DAX_Setup_Handler(object):
             stdin = raw_input(message)
 
         if is_path and stdin:
-            if stdin.starswith('~/'):
-                stdin = os.path.join(os.path.expanduser('~'), stdin[1:])
+            if stdin.startswith('~/'):
+                stdin = os.path.join(os.path.expanduser('~'), stdin[2:])
             else:
                 stdin = os.path.abspath(stdin)
             if not os.path.exists(stdin):
@@ -231,7 +231,7 @@ class DAX_Setup_Handler(object):
         :return: None
 
         """
-        value = self._prompt("Please enter a string to print before the job id after submission : ", 'Submitted batch job')
+        value = self._prompt("Please enter a string to print before the job id after submission.", 'Submitted batch job')
         self._set('prefix_jobid', value)
 
     def _get_suffix_jobid(self):
@@ -241,7 +241,7 @@ class DAX_Setup_Handler(object):
         :return: None
 
         """
-        value = self._prompt("Please enter a string to print after the job id after submission : ", '\\n')
+        value = self._prompt("Please enter a string to print after the job id after submission.", '\\n')
         self._set('suffix_jobid', value)
 
     def _get_cmd_count_nb_jobs(self):
@@ -278,9 +278,8 @@ class DAX_Setup_Handler(object):
         :return: None
 
         """
-        value = self._prompt("Please enter the full path to the text file"
-                             " containing the string that will be printed"
-                             " if the job ID failed to submit : ", is_path=True)
+        value = self._prompt("Please enter the string the job scheduler would "
+                             "use to indicate that a job is 'in the queue' : ")
         self._set('queue_status', value)
 
     def _get_running_status(self):
@@ -353,7 +352,7 @@ class DAX_Setup_Handler(object):
         :return: None
 
         """
-        value = self._prompt("Please enter an extension for the job batch file : ", '.pbs')
+        value = self._prompt("Please enter an extension for the job batch file.", '.pbs')
         self._set('job_extension_file', value)
 
     def _get_job_template(self):
@@ -376,8 +375,8 @@ class DAX_Setup_Handler(object):
         :return: None
 
         """
-        value = self._prompt("Please enter when you want to be notified about"
-                             " a job as defined by your grid scheduler : ")
+        value = self._prompt("Please provide the options for the email notification"
+                             " for a job as defined by your grid scheduler : ")
         self._set('email_opts', value)
 
     def _get_gateway(self):
@@ -388,8 +387,7 @@ class DAX_Setup_Handler(object):
 
         """
         default = socket.gethostname()
-        value = self._prompt("Please enter when you want to be notified about"
-                             " a job as defined by your grid scheduler.", default)
+        value = self._prompt("Please enter the hostname of the server to run dax on.", default)
         self._set('gateway', value)
 
     def _get_root_job_dir(self):
@@ -399,7 +397,7 @@ class DAX_Setup_Handler(object):
         :return: None
 
         """
-        value = self._prompt("Please enter where the data should be stored on the node : ", '/tmp')
+        value = self._prompt("Please enter where the data should be stored on the node.", '/tmp', is_path=True)
         self._set('root_job_dir', value)
 
     def _get_queue_limit(self):
@@ -409,7 +407,7 @@ class DAX_Setup_Handler(object):
         :return: None
 
         """
-        value = self._prompt("Please enter the maximum number of jobs that should run at once : ", '600')
+        value = self._prompt("Please enter the maximum number of jobs that should run at once.", '600')
         self._set('queue_limit', value)
 
     def _get_results_dir(self):
@@ -430,7 +428,7 @@ class DAX_Setup_Handler(object):
         :return: None
 
         """
-        value = self._prompt("Please max days before re-running dax_build on a session : ", '7')
+        value = self._prompt("Please max days before re-running dax_build on a session.", '7')
         self._set('max_age', value)
 
     # redcap section
@@ -460,6 +458,7 @@ class DAX_Setup_Handler(object):
         :return: None
         """
         if self.settings_dict['api_key_dax'] != '':
+            print '\n  DAX_MANAGER :'
             self._set('project','dax_project')
             self._set('settingsfile','dax_settings_full_path')
             self._set('masimatlab','dax_masimatlab')
@@ -483,6 +482,7 @@ class DAX_Setup_Handler(object):
             self._set('max_age','dax_max_age')
             self._set('admin_email','dax_email_address')
         else:
+            print '\n  REDCap not used. Setting the dax_manager to null.'
             self._set_null('project')
             self._set_null('settingsfile')
             self._set_null('masimatlab')
@@ -521,12 +521,15 @@ class DAX_Setup_Handler(object):
         :return: None
 
         """
-        print 'CONFIG:'
+        print 'Starting to config the dax_settings.ini file:'
+        print '  ADMIN :'
         self._get_user_home()
         self._get_admin_email()
         self._get_smtp_from()
         self._get_smtp_host()
         self._get_smtp_pass()
+        self._get_xsitype_include()
+        print '\n  CLUSTER :'
         self._get_cmd_submit()
         self._get_prefix_jobid()
         self._get_suffix_jobid()
@@ -546,9 +549,9 @@ class DAX_Setup_Handler(object):
         self._get_queue_limit()
         self._get_results_dir()
         self._get_max_age()
+        print '\n  REDCAP :'
         self._get_api_url()
         self._get_api_key_dax()
-        self._get_xsitype_include()
         self._get_dax_manager_dict()
 
 if __name__ == '__main__':
