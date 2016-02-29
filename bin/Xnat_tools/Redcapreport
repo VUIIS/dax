@@ -7,61 +7,103 @@ Created on November 5, 2013
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
-import os,sys
+import os
+import sys
 import redcap
 
-DEFAULT_API_URL='https://redcap.vanderbilt.edu/api/'
+########### VARIABLES ###########
+DEFAULT_API_URL = 'https://redcap.vanderbilt.edu/api/'
+DEFAULT_ARGUMENTS = {'libraries': None, 'procfile': None, 'lib': False, 'all': False,
+                     'proctype': None, 'csvfile': None, 'txtfile': None, 'project': None,
+                     'session': None, 'names': False, 'key': None, 'assessor': None,
+                     'subject': None}
+DESCRIPTION = '''What is the script doing :
+   *Extract data from REDCap as a csv file.
 
-######################################################################################################
-########################################## USEFUL FUNCTIONS ##########################################
-######################################################################################################   
-def read_txt(filepath):
-    if filepath:
-        print 'INFO: Export data from text file '+filepath+' ...'
-        obj_list=list()
-        if not os.path.exists(filepath):
-            print '  error: '+filepath+' does not exist.'
+Examples:
+   *Save the data in a csv file: Redcapreport -k KEY -c extract_redcap.csv
+   *print the libraries name: Redcapreport -k KEY -L
+   *print all fields name and label: Redcapreport -k KEY -F
+   *Extract values for all record: Redcapreport -k KEY --all
+   *Filter for specific project/subject/session/assessor type:
+    Redcapreport -k KEY -p PID -s 109387 -e 109387_1,109387_2 -t FS,TRACULA_v1,dtiQA_v2
+   *Extract for specific assessor: Redcapreport -k KEY -p PID -a PID-x-109387-x-109387_1-x-FS
+   *Extract for specific libraries type: Redcapreport -k KEY -p PID -l library_name
+   *Extract only the fields described in the txt file: Redcapreport -k KEY -x fields.txt
+'''
+
+########### USEFUL FUNCTIONS ###########
+def read_txt():
+    """
+    Method to read the txt file path with per line, the name
+     of the variable on REDCap you want to extract
+
+    :return: list of REDCap variables
+    """
+    if OPTIONS.txtfile:
+        print 'INFO: Export data from text file '+OPTIONS.txtfile+' ...'
+        obj_list = list()
+        if not os.path.exists(OPTIONS.txtfile):
+            print '  error: %s does not exist.' % (OPTIONS.txtfile)
             sys.exit()
         else:
-            input_file = open(filepath,'r')
+            input_file = open(OPTIONS.txtfile, 'r')
             for line in input_file:
-                obj_list.append(line.strip().split('\n')[0])    
+                obj_list.append(line.strip().split('\n')[0])
             input_file.close()
     else:
-        obj_list=None
+        obj_list = None
     return obj_list
 
-def write_csv(csvfile,list_values):
+def write_csv():
+    """
+    Method to write the report as a csv file
+     with the values from REDCap
+
+    :return: None
+    """
     print 'INFO: Writing report ...'
-    output_file = open(csvfile,'w')
-    for line in list_values:
+    output_file = open(OPTIONS.csvfile, 'w')
+    for line in CSV_STRING:
         output_file.write(line)
     output_file.close()
-    
-def get_option_list(option):
-    if not option:
+
+def get_option_list(string):
+    """
+    Method to switch the string of value separated by a comma into a list.
+     If the value is 'all', keep all.
+
+    :param string: string to change
+    :return: None if not set, all if all, list of value otherwise
+    """
+    if not string:
         return None
-    elif option=='all':
+    elif string == 'all':
         return 'all'
-    elif option=='nan':
+    elif string == 'nan':
         return None
     else:
-        return option.split(',')
-    
-########################################## SPECIFIC FUNCTIONS ##########################################
-def print_lib(project):
-    error=False
-    all_forms=list()
-    fnames,flabels=project.names_labels()
-    for k in fnames:
+        return string.split(',')
+
+########### SPECIFIC FUNCTIONS ###########
+def print_lib():
+    """
+    Print all the libraries name in your REDCap project
+
+    :return: None
+    """
+    all_forms = list()
+    field_names,_ = REDCAP_PROJECT.names_labels()
+    field_name = None
+    for field_name in field_names:
         try:
-            field = filter(lambda x: x['field_name'] == k, project.metadata)[0]
+            field = filter(lambda x: x['field_name'] == field_name, REDCAP_PROJECT.metadata)[0]
             all_forms.append(field['form_name'])
         except IndexError as e:
             print 'ERROR: IndexError when checking the libraries.'
             print e
-            sys.exit()      
-    
+            sys.exit()
+
     #print the forms
     unique_forms = set(all_forms)
     print 'INFO: Printing REDCap libraries name'
@@ -69,30 +111,49 @@ def print_lib(project):
     for form in unique_forms:
         print form
 
-def get_records(project_redcap,options):
+def get_records():
+    """
+    Method to get records from REDCap
+
+    :param project_redcap: REDCap project ID
+    :return: list of records
+    """
     #variables:
-    list_records=get_option_list(options.assessor)
-    projects_list=get_option_list(options.project)
-    subjects_list=get_option_list(options.subject)
-    sessions_list=get_option_list(options.session)
-    proctypes_list=get_option_list(options.proctype)
-            
-    if options.all:
-        'INFO: Export ALL records from redcap project...'
-        record_list = project_redcap.export_records(fields=[project_redcap.def_field])
-        list_records=[r[project_redcap.def_field] for r in record_list]
+    list_records = get_option_list(OPTIONS.assessor)
+    projects_list = get_option_list(OPTIONS.project)
+    subjects_list = get_option_list(OPTIONS.subject)
+    sessions_list = get_option_list(OPTIONS.session)
+    proctypes_list = get_option_list(OPTIONS.proctype)
+
+    if OPTIONS.all:
+        print 'INFO: Export ALL records from redcap project...'
+        record_list = REDCAP_PROJECT.export_records(fields=[REDCAP_PROJECT.def_field])
+        list_records = [r[REDCAP_PROJECT.def_field] for r in record_list]
     elif not list_records:
-        list_records=list()
+        list_records = list()
         print 'INFO: Export SPECIFIC records from redcap project...'
-        rc_fields=['record_id','project_xnat','subject_xnat','experiment_xnat','process_name_xnat']
-        rc_list = project_redcap.export_records(fields=rc_fields)
+        rc_fields = ['record_id', 'project_xnat', 'subject_xnat',
+                     'experiment_xnat', 'process_name_xnat']
+        rc_list = REDCAP_PROJECT.export_records(fields=rc_fields)
         #Filter:
-        rc_list=filter(lambda x: isGoodRecord(x,projects_list,subjects_list,sessions_list,proctypes_list), rc_list)
+        rc_list = filter(lambda x: is_good_record(x, projects_list, subjects_list,
+                                                  sessions_list, proctypes_list), rc_list)
         #Get list:
-        list_records=[r['record_id'] for r in rc_list]
+        list_records = [r['record_id'] for r in rc_list]
     return list_records
-            
-def isGoodRecord(obj_dict,projects_list,subjects_list,sessions_list,proctypes_list):
+
+def is_good_record(obj_dict, projects_list, subjects_list, sessions_list, proctypes_list):
+    """
+    Method to check if a record is requested by user meaning
+     good project/subject/session/proctype
+
+    :param obj_dict: record on REDCap to check
+    :param projects_list: list of projects IDs from XNAT
+    :param subjects_list: list of subjects labels from XNAT
+    :param sessions_list: list of sessions labels from XNAT
+    :param proctypes_list: list of proctypes from XNAT
+    :return: True if record meet criteria, False otherwise
+    """
     if projects_list and obj_dict['project_xnat'] not in projects_list:
         return False
     if subjects_list and obj_dict['subject_xnat'] not in subjects_list:
@@ -102,117 +163,156 @@ def isGoodRecord(obj_dict,projects_list,subjects_list,sessions_list,proctypes_li
     if proctypes_list and obj_dict['process_name_xnat'] not in proctypes_list:
         return False
     return True
-    
-def extract_redcap_data(project,m_records=None,m_fields=None,m_forms=None):
-    if len(m_records)<100:
-        print 'INFO: Export data from REDCap for the '+str(len(m_records))+' records that need to be download...'
+
+def extract_redcap_data():
+    """
+    Method to get the information out of REDCap Project
+
+    :return: csv string representing the data
+    """
+    if len(LIST_RECORDS) < 100:
+        print 'INFO: Export data from REDCap for the %s records that need to be download...' % (str(len(LIST_RECORDS)))
         try:
-            csv_string=project.export_records(records=m_records,forms=m_forms,fields=m_fields,format='csv')
-            return True,csv_string
+            csv_string = REDCAP_PROJECT.export_records(records=LIST_RECORDS,
+                                                       forms=LIST_FORMS,
+                                                       fields=SPECIFIC_FIELDS,
+                                                       format='csv')
+            return True, csv_string
         except redcap.RedcapError as e:
             print 'ERROR from PyCap, see below: '
             print e
         except:
             print 'ERROR: Connection to REDCap stoped.'
-            return False,''
+            return False, ''
     else:
-        return chunked_export(project,m_records,forms=m_forms,fields=m_fields)
+        return chunked_export()
 
 def chunks(l, n):
-    """Yield successive n-sized chunks from list l"""
+    """
+    Yield successive n-sized chunks from list l
+
+    :param l: list to chunk
+    :param n: size of each chunk
+    :return: None
+    """
     for i in xrange(0, len(l), n):
         yield l[i:i+n]
-            
-def chunked_export(project,records,forms=None,fields=None,chunk_size=100):
-    print 'INFO: Extracting data from REDCap 100 by 100 records for the '+str(len(records))+' records that need to be download...'
+
+def chunked_export(chunk_size=100):
+    """
+    Method to chunck the export of records into smaller batch of records (default 100).
+
+    :param chunk_size: size for each chunk (default: 100)
+    :return: None
+    """
+    print 'INFO: Extracting data from REDCap 100 by 100 records for the %s records that need to be download...' % (str(len(LIST_RECORDS)))
     try:
         response = []
-        for index,record_chunk in enumerate(chunks(records, chunk_size)):
+        for index, record_chunk in enumerate(chunks(LIST_RECORDS, chunk_size)):
             print ' > index: '+str(index)+' x100'
-            chunked_response = project.export_records(records=record_chunk,forms=forms,fields=fields,format='csv')
+            chunked_response = REDCAP_PROJECT.export_records(records=record_chunk,
+                                                             forms=LIST_FORMS,
+                                                             fields=SPECIFIC_FIELDS,
+                                                             format='csv')
             response.extend(chunked_response)
-    except RedcapError:
+    except redcap.RedcapError:
         msg = "Chunked export failed for chunk_size={:d}".format(chunk_size)
         raise ValueError(msg)
     else:
-        return True,response
-        
-########################################## CHECK OPTIONS ##########################################                        
-def check_options(options):
-    if not options.key:
-        print "OPTION ERROR: the API KEY "+options.key+" does not work. Please check the argument."
+        return True, response
+
+########### CHECK OPTIONS ###########
+def check_options():
+    """
+    Method to check options specified by the user
+
+    :return: True if options are fine, False otherwise
+    """
+    if not OPTIONS.key:
+        print "OPTION ERROR: the API KEY %s does not work. Please check the argument." % (OPTIONS.key)
         return False
-        
-    if not options.lib and not options.names:
-        if options.csvfile:
-            if not os.path.exists(os.path.dirname(options.csvfile)):
-                print "OPTION ERROR: the file "+options.csvfile+" does not exist."
+
+    if not OPTIONS.lib and not OPTIONS.names:
+        if OPTIONS.csvfile:
+            if not os.path.exists(os.path.dirname(OPTIONS.csvfile)):
+                print "OPTION ERROR: the file %s does not exist."  % (OPTIONS.csvfile)
                 return False
-            if options.csvfile.split('.')[-1]!='csv':
-                print "OPTION ERROR: the file "+options.csvfile+" does not have the right extension. Please change it to '.csv' ."
+            if OPTIONS.csvfile.split('.')[-1]!='csv':
+                print "OPTION ERROR: the file %s does not have the right extension. Please change it to '.csv' ." % (OPTIONS.csvfile)
                 return False
         else:
             print "OPTION ERROR: You didn't provide a csv file path for the output. Please provide it with the options -c/--csvfile."
             return False
-        
-        if options.txtfile:
-            if not os.path.exists(options.txtfile):
-                print "OPTION ERROR: the file "+options.txtfile+" does not exist."
+
+        if OPTIONS.txtfile:
+            if not os.path.exists(OPTIONS.txtfile):
+                print "OPTION ERROR: the file %s does not exist." % (OPTIONS.txtfile)
                 return False
-        
-        if options.procfile:
-            if not os.path.exists(options.procfile):
-                print "OPTION ERROR: the file "+options.procfile+" does not exist."
+
+        if OPTIONS.procfile:
+            if not os.path.exists(OPTIONS.procfile):
+                print "OPTION ERROR: the file %s does not exist." % (OPTIONS.procfile)
                 return False
-    
+
     return True
 
-########################################## MAIN DISPLAY FUNCTION ##########################################   
-def Main_display(parser):
-    (options,_)=parser.parse_args()
+########### MAIN DISPLAY FUNCTION ###########
+def main_display():
+    """
+    Main display of the executables before any process
+
+    :return: None
+    """
     print '################################################################'
     print '#                         REDCAPREPORT                         #'
     print '#                                                              #'
-    print '# Developed by the MASI Lab Vanderbilt University, TN, USA.     #'
+    print '# Developed by the MASI Lab Vanderbilt University, TN, USA.    #'
     print '# If issues, please start a thread here:                       #'
     print '# https://groups.google.com/forum/#!forum/vuiis-cci            #'
     print '# Usage:                                                       #'
     print '#     Generate REDCap report from a redcap project             #'
     print '#     (Need API key)                                           #'
     print '# Parameters :                                                 #'
-    if options=={'procfile': None, 'lib': False, 'proctype': None,'project':None, 'all': False, 'csvfile': None, 'libraries': None, 'txtfile': None, 'session': None, 'names': False, 'key': None, 'assessor': None, 'subject': None}:
+    if vars(OPTIONS) == DEFAULT_ARGUMENTS:
         print '#     No Arguments given                                       #'
         print '#     See the help bellow or Use "Redcapreport" -h             #'
-        print '################################################################'
-        parser.print_help()
+        print '################################################################\n'
+        PARSER.print_help()
         sys.exit()
     else:
-        if options.names:
-            print '#     %*s -> %*s#' %(-20,'Print field names/labels',-33,'on')
-        elif options.lib:
-            print '#     %*s -> %*s#' %(-20,'Print libraries names',-33,'on')
+        if OPTIONS.names:
+            print '#     %*s -> %*s#' %(-20, 'Print field names/labels', -33, 'on')
+        elif OPTIONS.lib:
+            print '#     %*s -> %*s#' %(-20, 'Print libraries names', -33, 'on')
         else:
-            if options.all:
-                print '#     %*s -> %*s#' %(-20,'Records',-33,'all')
-            if options.csvfile:
-                print '#     %*s -> %*s#' %(-20,'OUPUT CSV File',-33,get_proper_str(options.csvfile,True))
-            if options.txtfile:
-                print '#     %*s -> %*s#' %(-20,'Records-field File',-33,get_proper_str(options.txtfile,True))
-            if options.procfile:
-                print '#     %*s -> %*s#' %(-20,'Records File',-33,get_proper_str(options.procfile,True))
-            if options.project:
-                print '#     %*s -> %*s#' %(-20,'Records-Project(s)',-33,get_proper_str(options.project))
-            if options.subject:
-                print '#     %*s -> %*s#' %(-20,'Records-Subject(s)',-33,get_proper_str(options.subject))
-            if options.session:
-                print '#     %*s -> %*s#' %(-20,'Records-Session(s)',-33,get_proper_str(options.session))
-            if options.assessor:
-                print '#     %*s -> %*s#' %(-20,'Records',-33,get_proper_str(options.assessor))
-            if options.proctype:
-                print '#     %*s -> %*s#' %(-20,'Records-Proctype(s)',-33,get_proper_str(options.proctype))
+            if OPTIONS.all:
+                print '#     %*s -> %*s#' %(-20,'Records', -33, 'all')
+            if OPTIONS.csvfile:
+                print '#     %*s -> %*s#' %(-20, 'OUPUT CSV File', -33, get_proper_str(OPTIONS.csvfile, True))
+            if OPTIONS.txtfile:
+                print '#     %*s -> %*s#' %(-20, 'Records-field File', -33, get_proper_str(OPTIONS.txtfile, True))
+            if OPTIONS.procfile:
+                print '#     %*s -> %*s#' %(-20, 'Records File', -33, get_proper_str(OPTIONS.procfile, True))
+            if OPTIONS.project:
+                print '#     %*s -> %*s#' %(-20, 'Records-Project(s)', -33, get_proper_str(OPTIONS.project))
+            if OPTIONS.subject:
+                print '#     %*s -> %*s#' %(-20, 'Records-Subject(s)', -33, get_proper_str(OPTIONS.subject))
+            if OPTIONS.session:
+                print '#     %*s -> %*s#' %(-20, 'Records-Session(s)', -33, get_proper_str(OPTIONS.session))
+            if OPTIONS.assessor:
+                print '#     %*s -> %*s#' %(-20, 'Records', -33, get_proper_str(OPTIONS.assessor))
+            if OPTIONS.proctype:
+                print '#     %*s -> %*s#' %(-20, 'Records-Proctype(s)', -33, get_proper_str(OPTIONS.proctype))
         print '################################################################'
 
 def get_proper_str(str_option,end=False):
+    """
+    Method to shorten a string into the proper size for display
+
+    :param str_option: string to shorten
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
     if len(str_option)>32:
         if end:
             return '...'+str_option[-29:]
@@ -220,99 +320,87 @@ def get_proper_str(str_option,end=False):
             return str_option[:29]+'...'
     else:
         return str_option
-        
-def get_usage():
-    usage="usage: %prog [options] \n"
-    usage+="What is the script doing : \n"
-    usage+="   *Extract data from REDCap as a csv file.\n\n"
-    #Example
-    usage+="Examples:\n"
-    usage+="   *Save the data in a csv file: Redcapreport -k KEY -c extract_redcap.csv \n"
-    usage+="   *print the libraries name: Redcapreport -k KEY -L \n"
-    usage+="   *print all fields name and label: Redcapreport -k KEY -F \n"
-    usage+="   *Extract values for all record: Redcapreport -k KEY --all\n"
-    usage+="   *Filter for specific project/subject/session/assessor type: Redcapreport -k KEY -p PID -s 109387 -e 109387_1,109387_2 -t FS,TRACULA_v1,dtiQA_v2\n"
-    usage+="   *Extract for specific assessor: Redcapreport -k KEY -p PID -a PID-x-109387-x-109387_1-x-FS\n"
-    usage+="   *Extract for specific libraries type: Redcapreport -k KEY -p PID -l library_name\n"
-    usage+="   *Extract only the fields described in the txt file: Redcapreport -k KEY -x fields.txt\n"
-    return usage
 
-########################################## OPTIONS ##########################################
-def parse_args():
-    from optparse import OptionParser
-    usage = get_usage()
-    parser = OptionParser(usage=usage)
-    parser.add_option("-k", "--key", dest="key",default=None,
-                      help="API Token for REDCap project.", metavar="API_KEY")
-    parser.add_option("-c", "--csvfile", dest="csvfile",default=None,
-                      help="csv file path where the report will be save.", metavar="CSVFILEPATH")
-    parser.add_option("-x", "--txtfile", dest="txtfile",default=None,
-                      help="txt file path with each line one the name of the variable you want to extract the values.", metavar="TXTFILEPATH")
-    parser.add_option("-p", "--project", dest="project",default=None,
-                      help="Extract values for processes for the projects chosen. Warning: will be added to the subject or experiment or proctype. E.G: subject1,subject2", metavar="PROJECTS_XNAT")
-    parser.add_option("-s", "--subject", dest="subject",default=None,
-                      help="Extract values for processes for the subjects chosen. Warning: will be added to the project or experiment or proctype. E.G: subject1,subject2", metavar="SUBJECTS_XNAT")
-    parser.add_option("-e", "--session", dest="session",default=None,
-                      help="Extract values for processes for the sessions chosen. Warning: will be added to the project or subject or proctype. E.G: session1,session2", metavar="SESSIONS_XNAT")
-    parser.add_option("-a", "--assessor", dest="assessor",default=None,
-                      help="Extract values for processors chosen. E.G: processor1,processor2", metavar="PROCESSOR_XNAT")
-    parser.add_option("-t", "--proctype", dest="proctype",default=None,
-                      help="Extract values for processes types chosen. Warning: will be added to the subject or experiment. E.G: fMRIQA,dtiQA", metavar="PROCTYPE")
-    parser.add_option("-f", "--procfile", dest="procfile",default=None,
-                      help="file path with each line one processor label. Extract values for processes types chosen.", metavar="PROCFILE")
-    parser.add_option("-l","--libraries",dest="libraries",default=None,
-                      help="Extract values for only the libraries specify. Check the project for the libraries name. Switch spaces by '_' and everything lower case. E.G: dti_quality_assurance. By default: all libraries", metavar="")
-    parser.add_option("-F","--fields",dest="names",action="store_true", default=False,
-                      help="Print all field names and labels", metavar="")
-    parser.add_option("-L","--printlib",dest="lib",action="store_true", default=False,
-                      help="Print all libraries names for the project.", metavar="")
-    parser.add_option("--all",dest="all",action="store_true", default=False,
-                      help="Extract values for all records.", metavar="")
-    return parser
+########### PARSER OPTIONS ###########
+def get_parser():
+    """
+    Method to parse arguments base on ArgumentParser
 
-###################################################################################################
-########################################## MAIN FUNCTION ##########################################
-###################################################################################################
+    :return: parser object
+    """
+    from argparse import ArgumentParser, RawDescriptionHelpFormatter
+    argp = ArgumentParser(prog='Redcapreport', description=DESCRIPTION,
+                          formatter_class=RawDescriptionHelpFormatter)
+    argp.add_argument("-k", "--key", dest="key", default=None,
+                      help="API Token for REDCap project.")
+    argp.add_argument("-c", "--csvfile", dest="csvfile", default=None,
+                      help="csv file path where the report will be save.")
+    argp.add_argument("-x", "--txtfile", dest="txtfile", default=None,
+                      help="txt file path with per line, the name of the variable on REDCap you want to extract.")
+    argp.add_argument("-p", "--project", dest="project", default=None,
+                      help="Extract values for processes for the projects chosen. E.G: project1,project2")
+    argp.add_argument("-s", "--subject", dest="subject", default=None,
+                      help="Extract values for processes for the subjects chosen. E.G: subject1,subject2")
+    argp.add_argument("-e", "--session", dest="session", default=None,
+                      help="Extract values for processes for the sessions chosen. E.G: session1,session2")
+    argp.add_argument("-a", "--assessor", dest="assessor", default=None,
+                      help="Extract values for processors chosen. E.G: processor1,processor2")
+    argp.add_argument("-t", "--proctype", dest="proctype", default=None,
+                      help="Extract values for processes types chosen. E.G: fMRIQA,dtiQA")
+    argp.add_argument("-f", "--procfile", dest="procfile", default=None,
+                      help="file path with each line one processor label. Extract values for processes types chosen.")
+    argp.add_argument("-l","--libraries", dest="libraries", default=None,
+                      help="Extract values for only the libraries specify. Check the project for the libraries name. Switch spaces by '_' and everything lower case. E.G: dti_quality_assurance. By default: all libraries")
+    argp.add_argument("-F","--fields", dest="names", action="store_true",
+                      help="Print all field names and labels")
+    argp.add_argument("-L","--printlib", dest="lib", action="store_true",
+                      help="Print all libraries names for the project.")
+    argp.add_argument("--all", dest="all", action="store_true",
+                      help="Extract values for all records.")
+    return argp
+
+########### MAIN FUNCTION ###########
 if __name__ == '__main__':
-    parser = parse_args()
-    (options,args)=parser.parse_args()
+    PARSER = get_parser()
+    OPTIONS = PARSER.parse_args()
     #############################
     #Main display:
-    Main_display(parser)
+    main_display()
     #check options:
-    run=check_options(options)
+    SHOULD_RUN = check_options()
     #############################
-    
-    #############################
-    # RUN                       #
-    #############################
-    if run:
+
+    if SHOULD_RUN:
         #variables:
-        Specific_fields=read_txt(options.txtfile)
-        if options.libraries:
-            list_forms=options.libraries.strip().replace(' ','_').lower().split(',')
-        
+        SPECIFIC_FIELDS = read_txt()
+        if OPTIONS.libraries:
+            LIST_FORMS = OPTIONS.libraries.strip().replace(' ','_').lower().split(',')
+
         try:
             print 'INFO: Loading REDCap project...'
-            rp = redcap.Project(DEFAULT_API_URL,options.key)
+            REDCAP_PROJECT = redcap.Project(DEFAULT_API_URL, OPTIONS.key)
         except redcap.RedcapError:
             print 'ERROR: Connection to REDCap failed.'
-            print 'INFO: Check the key passed with the argument -k/--key.'
+            print 'INFO: Check the key, options -k/--key passed to the executable.'
             sys.exit()
-        
-        if options.names:
-            fnames,flabels=rp.names_labels(True)
-        elif options.lib:
-            print_lib(rp)
+
+        if OPTIONS.names:
+            FNAMES, FLABELS = REDCAP_PROJECT.names_labels(True)
+            print 'INFO: Printing fields name and label'
+            print '------------------------------------'
+            for ind, FNAME in enumerate(FNAMES):
+                print "%s : %s" % (FNAME, FLABELS[ind])
+        elif OPTIONS.lib:
+            print_lib()
         else:
-            list_records=get_records(rp,options)
-            worked,csv_string=extract_redcap_data(project=rp,m_records=list_records,m_fields=Specific_fields,m_forms=list_forms)    
-            
-            if not worked:
+            LIST_RECORDS = get_records()
+            WORKED, CSV_STRING = extract_redcap_data()
+
+            if not WORKED:
                 print 'ERROR: No values to write. Failed extracting data from REDCap.'
             else:
                 #write data
-                write_csv(options.csvfile,csv_string)
-        
+                write_csv()
+
         print '-------DONE-------'
     print '===================================================================\n'

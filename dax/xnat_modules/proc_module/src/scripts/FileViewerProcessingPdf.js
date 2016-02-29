@@ -129,7 +129,7 @@ function FileViewerProcessingPdf(_objp){
 										if (files.length>0) {
    											file=files[0];
 											var pdfImage=serverRoot+"/images/pdf.gif";
-											oResponse.argument.dest.innerHTML="<a style='font-size:9px' target='_blank' onclick=\"location.href=\"" +serverRoot + file.URI + "';\"><img src=\""+pdfImage+"\" /></a>";	
+											//oResponse.argument.dest.innerHTML="<a style='font-size:9px' target='_blank' onclick=\"location.href=\"" +serverRoot + file.URI + "';\"><img src=\""+pdfImage+"\" /></a>";
 											oResponse.argument.dest.innerHTML="<a href=\"" +serverRoot + file.URI + "\"><img src=\""+pdfImage+"\" /></a>";	
 										} else {
 											oResponse.argument.dest.innerHTML="No PDF";

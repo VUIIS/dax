@@ -1,11 +1,14 @@
-'''
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
 Created on January 14th, 2015: initial commit -- XnatNDAR creation
 Edited on April 14th, 2015: second commit -- add processed data
 
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 
 Script to generate the folder for a NDAR submission using one of these options:
- 1) the template image03 for raw data 
+ 1) the template image03 for raw data
  2) the template fmriresults01 for processed data.
 You need to specify with the csv options which one you want to upload.
 
@@ -43,9 +46,7 @@ assessor,fMRIQA,fMRI NIFTI,STATS, ,fMRIQA,Spiders_fMRIQA.py,Matlab_r2013a,1.0.0,
 assessor,Multi_Atlas,MR Structural (T1/MPRAGE) NIFTI,VOL_TXT, ,Multi Atlas, Spiders_Multi_Atlas.py,"Matlab_r2013a,JIST,MIPAV",1.0.0,,MR structural (T1)
 scan,T1,MR Structural (T1/MPRAGE) NIFTI and Multi Atlas Segmentation,,NIFTI_noskull,Module_T1_skull_strip, Module_T1_skull_strip.py,Matlab_2013,1.0.0,,MR structural (T1)
 
-'''
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+"""
 
 import os
 import csv
@@ -712,7 +713,12 @@ def zipping_resource(folder, fname):
 
 ########################################## CHECK OPTIONS ##########################################
 def check_options(options):
-    """ Check options given to script"""
+    """
+    Method to check options given to executables
+
+    :param options: first output of OptParser.parse_args()
+    :return: True if options are fine, False otherwise
+    """
     #Checked argument values if not:
     if options.assessorinfo and options.scaninfo:
         print "OPTION WARNING: you gave the scan csv and the assessor csv. Only one at a time."
@@ -758,7 +764,12 @@ def check_options(options):
 
 ########################################## MAIN DISPLAY ##########################################
 def Main_display(parser):
-    """ Main display for any Xnat tools """
+    """
+    Main display of the executables before any process
+
+    :param parser: OptionParser Object
+    :return: None
+    """
     (options, _) = parser.parse_args()
     print '################################################################'
     print '#                           XNATNDAR                           #'
@@ -796,7 +807,13 @@ def Main_display(parser):
         print '################################################################'
 
 def get_proper_str(str_option, end=False):
-    """ return a smaller string for print purpose """
+    """
+    Method to shorten a string into the proper size for display
+
+    :param str_option: string to shorten
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
     if len(str_option) > 32:
         if end:
             return '...'+str_option[-29:]
@@ -807,6 +824,11 @@ def get_proper_str(str_option, end=False):
 
 ########################################## OPTIONS ##########################################
 def parse_args():
+    """
+    Method to parse arguments base on OptionParser
+
+    :return: parser object
+    """
     from optparse import OptionParser
     usage = "usage: %prog [options] \nWhat is the script doing : Generate a CSV file for NDAR submission for the template image_03 only."
     parser = OptionParser(usage=usage)
@@ -832,6 +854,7 @@ def parse_args():
 ########################################## MAIN FUNCTION ##########################################
 ###################################################################################################
 if __name__ == '__main__':
+    """ Main Function """
     parser = parse_args()
     (options, args) = parser.parse_args()
     #############################

@@ -13,13 +13,25 @@ class Processor(object):
     def __init__(self, walltime_str, memreq_mb, spider_path,
                  version=None, ppn=1, suffix_proc='',
                  xsitype='proc:genProcData'):
-        """ init function """
+        """
+        Entry point of the Base class for processor.
+
+        :param walltime_str: Amount of walltime to request for the process
+        :param memreq_mb: Number of megabytes of memory to use
+        :param spider_path: Fully qualified path to the spider to run
+        :param version: Version of the spider
+        :param ppn: Number of processors per not to use.
+        :param suffix_proc: Processor suffix (if desired)
+        :param xsitype: the XNAT xsiType.
+        :return: None
+
+        """
         self.walltime_str = walltime_str # 00:00:00 format
         self.memreq_mb = memreq_mb  # memory required in megabytes
         #default values:
         self.version = "1.0.0"
         if not suffix_proc:
-             self.suffix_proc=''
+            self.suffix_proc = ''
         else:
             if suffix_proc and suffix_proc[0] != '_':
                 self.suffix_proc = '_'+suffix_proc
@@ -43,7 +55,14 @@ class Processor(object):
 
     #get the spider_path right with the version:
     def set_spider_settings(self, spider_path, version):
-        """ function to set the spider version/path/name from the filepath """
+        """
+        Method to set the spider version, path, and name from filepath
+
+        :param spider_path: Fully qualified path and file of the spider
+        :param version: version of the spider
+        :return: None
+
+        """
         if version:
             #get the proc_name
             proc_name = os.path.basename(spider_path)[7:-3]
@@ -61,7 +80,13 @@ class Processor(object):
             self.default_settings_spider(spider_path)
 
     def default_settings_spider(self, spider_path):
-        """ default function to get the spider version/name """
+        """
+        Get the default spider version and name
+
+        :param spider_path: Fully qualified path and file of the spider
+        :return: None
+
+        """
         #set spider path
         self.spider_path = spider_path
         #set the name and the version of the spider
@@ -79,7 +104,13 @@ class Processor(object):
     # i.e. only 1 required by 2 found?
     # other arguments here, could be Proj/Subj/Sess/Scan/Assessor depending on processor type?
     def has_inputs(self):
-        """ has_inputs function to check if inputs present on XNAT to run the job """
+        """
+        Check to see if the spider has all the inputs necessary to run.
+
+        :raises: NotImplementedError if user does not override
+        :return: None
+
+        """
         raise NotImplementedError()
 
     # should_run - is the object of the proper object type?
@@ -87,22 +118,31 @@ class Processor(object):
     # e.g. is it a T1?
     # other arguments here, could be Proj/Subj/Sess/Scan/Assessor depending on processor type?
     def should_run(self):
-        """ return True if the assessor should exist/ False if not """
+        """
+        Responsible for determining if the assessor should shouw up in the XNAT Session.
+
+        :raises: NotImplementedError if not overridden.
+        :return: None
+
+        """
         raise NotImplementedError()
 
 class ScanProcessor(Processor):
     """ Scan Processor class for processor on a scan on XNAT """
-    def has_inputs(self):
-        """ return status, qcstatus
-            status = 0 if still NEED_INPUTS, -1 if NO_DATA, 1 if NEED_TO_RUN
-            qcstatus = only when -1 or 0.
-            You can set it to a short string that explain why it's no ready to run.
-                e.g: No NIFTI
-        """
-        raise NotImplementedError()
-
     def __init__(self, scan_types, walltime_str, memreq_mb, spider_path, version=None, ppn=1, suffix_proc=''):
-        """ init function overridden from base class """
+        """
+        Entry point of the ScanProcessor Class.
+
+        :param scan_types: Types of scans that the spider should run on
+        :param walltime_str: Amount of walltime to request for the process
+        :param memreq_mb: Amount of memory in megavytes to request for the process
+        :param spider_path: Absolute path to the spider
+        :param version: Version of the spider (taken from the file name)
+        :param ppn: Number of processors per node to request
+        :param suffix_proc: Processor suffix
+        :return: None
+
+        """
         super(ScanProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn, suffix_proc)
         if isinstance(scan_types, list):
             self.scan_types = scan_types
@@ -114,8 +154,24 @@ class ScanProcessor(Processor):
         else:
             self.scan_types = []
 
+    def has_inputs(self):
+        """
+        Method to check and see that the process has all of the inputs that it needs to run.
+
+        :raises: NotImplementedError if not overridden.
+        :return: None
+
+        """
+        raise NotImplementedError()
+
     def get_assessor_name(self, cscan):
-        """ return the assessor label """
+        """
+        Returns the label of the assessor
+
+        :param cscan: CachedImageScan object from XnatUtils
+        :return: String of the assessor label
+
+        """
         scan_dict = cscan.info()
         subj_label = scan_dict['subject_label']
         sess_label = scan_dict['session_label']
@@ -124,7 +180,16 @@ class ScanProcessor(Processor):
         return proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+scan_label+'-x-'+self.name
 
     def get_task(self, intf, cscan, upload_dir):
-        """ return the task object for this assessor """
+        """
+        Get the Task object
+
+        :param intf: XNAT interface (pyxnat.Interface class)
+        :param cscan: CachedImageScan object from XnatUtils
+        :param upload_dir: the directory to put the processed data when the
+         process is done
+        :return: Task object
+
+        """
         scan_dict = cscan.info()
         assessor_name = self.get_assessor_name(cscan)
         scan = XnatUtils.get_full_object(intf, scan_dict)
@@ -132,7 +197,13 @@ class ScanProcessor(Processor):
         return task.Task(self, assessor, upload_dir)
 
     def should_run(self, scan_dict):
-        """ should_run function overwrited from base-class to check if it's a right scan"""
+        """
+        Method to see if the assessor should appear in the session.
+
+        :param scan_dict: Dictionary of information about the scan
+        :return: True if it should run, false if it shouldn't
+
+        """
         if self.scan_types == 'all':
             return True
         else:
@@ -140,25 +211,49 @@ class ScanProcessor(Processor):
 
 class SessionProcessor(Processor):
     """ Session Processor class for processor on a session on XNAT """
+    def __init__(self, walltime_str, memreq_mb, spider_path, version=None, ppn=1, suffix_proc=''):
+        """
+        Entry point for the session processor
+
+        :param walltime_str: Amount of walltime to request for the process
+        :param memreq_mb: Amount of memory in megavytes to request for the process
+        :param spider_path: Absolute path to the spider
+        :param version: Version of the spider (taken from the file name)
+        :param ppn: Number of processors per node to request
+        :param suffix_proc: Processor suffix
+        :return: None
+
+        """
+        super(SessionProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn, suffix_proc)
+
     def has_inputs(self):
-        """ return status, qcstatus
-            status = 0 if still NEED_INPUTS, -1 if NO_DATA, 1 if NEED_TO_RUN
-            qcstatus = only when -1 or 0.
-            You can set it to a short string that explain why it's no ready to run.
-                e.g: No NIFTI
+        """
+        Check to see that the session has the required inputs to run.
+
+        :raises: NotImplementedError if not overriden from base class.
+        :return: None
         """
         raise NotImplementedError()
 
-    def __init__(self, walltime_str, memreq_mb, spider_path, version=None, ppn=1, suffix_proc=''):
-        """ init function overridden from base class """
-        super(SessionProcessor, self).__init__(walltime_str, memreq_mb, spider_path, version, ppn, suffix_proc)
-
     def should_run(self, session_dict):
-        """ return if the assessor should exist. Always true on a session """
+        """
+        By definition, this should always run, so it just returns true with no checks
+
+        :param session_dict: Dictionary of session information for
+         XnatUtils.list_experiments()
+        :return: True
+
+        """
         return True
 
     def get_assessor_name(self, csess):
-        """ return the assessor label """
+        """
+        Get the name of the assessor
+
+        :param csess: CachedImageSession from XnatUtils
+        :return: String of the assessor label
+
+        """
         session_dict = csess.info()
         proj_label = session_dict['project']
         subj_label = session_dict['subject_label']
@@ -166,7 +261,15 @@ class SessionProcessor(Processor):
         return proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+self.name
 
     def get_task(self, intf, csess, upload_dir):
-        """ return the task for this process """
+        """
+        Return the Task object
+
+        :param intf: XNAT interface see pyxnat.Interface
+        :param csess: CachedImageSession from XnatUtils
+        :param upload_dir: directory to put the data after run on the node
+        :return: Task object of the assessor
+
+        """
         sess_info = csess.info()
         assessor_name = self.get_assessor_name(csess)
         session = XnatUtils.get_full_object(intf, sess_info)
@@ -174,10 +277,15 @@ class SessionProcessor(Processor):
         return task.Task(self, assessor, upload_dir)
 
 def processors_by_type(proc_list):
-    """ function to organize the assessor by type
-        return two lists: one for scan, one for session
     """
-    exp_proc_list = list()
+    Organize the processor types and return a list of session processors
+     first, then scan
+
+    :param proc_list: List of Processor classes from the DAX settings file
+    :return: List of SessionProcessors, and list of ScanProcessors
+
+    """
+    sess_proc_list = list()
     scan_proc_list = list()
 
     # Build list of processors by type
@@ -185,8 +293,8 @@ def processors_by_type(proc_list):
         if issubclass(proc.__class__, ScanProcessor):
             scan_proc_list.append(proc)
         elif issubclass(proc.__class__, SessionProcessor):
-            exp_proc_list.append(proc)
+            sess_proc_list.append(proc)
         else:
             LOGGER.warn('unknown processor type:'+proc)
 
-    return exp_proc_list, scan_proc_list
+    return sess_proc_list, scan_proc_list

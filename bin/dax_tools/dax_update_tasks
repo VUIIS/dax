@@ -1,11 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, imp
-from datetime import datetime
-from dax import bin
+"""
+Executable to update all tasks that need to be updated for a settings file describing
+which project on XNAT and which pipelines to run on those projects.
+"""
+
+import dax
 
 def parse_args():
+    """
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
+    """
     from argparse import ArgumentParser
     ap = ArgumentParser(prog='dax_update_open_tasks', description="Updates tasks status for open tasks (NEED_INPUTS/JOB_RUNNIN/JOB_FAILED/READY_TO_COMPLETE) ")
     ap.add_argument(dest='settings_path', help='Settings Path')
@@ -15,7 +23,7 @@ def parse_args():
     ap.add_argument('--nodebug', dest='debug', action='store_false', help='Avoid printing DEBUG information.')
     return ap.parse_args()
 
-if __name__ == '__main__':   
+if __name__ == '__main__':
     args = parse_args()
 
-    bin.update_tasks(args.settings_path, args.logfile, args.debug, args.project, args.sessions)
+    dax.bin.update_tasks(args.settings_path, args.logfile, args.debug, args.project, args.sessions)

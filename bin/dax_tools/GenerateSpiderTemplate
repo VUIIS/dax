@@ -266,27 +266,28 @@ if __name__ == '__main__':
     spider_obj.finish()
 """
 
-def write_spider(spider_fpath, templates, args):
+def write_spider(templates):
     """
-        Create the Spider path with the proper template
+    Create the Spider path with the proper template
 
-        :param spider_fpath: path where the spider script will be saved
-        :param templates: template to use (scan or session)
-        :param args: arguments parser
+    :param templates: template to use (scan or session)
+    :return: None
     """
-    spider_code = templates.format(author=args.author,
-                                   email_addr=args.email,
-                                   name=args.name,
-                                   version=args.version,
+    spider_code = templates.format(author=ARGS.author,
+                                   email_addr=ARGS.email,
+                                   name=ARGS.name,
+                                   version=ARGS.version,
                                    now=str(datetime.now()),
-                                   purpose=args.purpose)
-    f_obj = open(spider_fpath, "w")
+                                   purpose=ARGS.purpose)
+    f_obj = open(SPIDER_FPATH, "w")
     f_obj.writelines(spider_code)
     f_obj.close()
 
 def parse_args():
     """
-        Parser for arguments
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
     """
     from argparse import ArgumentParser
     usage = "Generate your Spider.py following the dax template for spider."
@@ -335,7 +336,7 @@ if __name__ == '__main__':
         SPIDER_FPATH = os.path.join(os.getcwd(), SPIDER_NAME)
     if ARGS.on_scan:
         print "Generating file %s for scan spider %s ..." % (SPIDER_FPATH, ARGS.name)
-        write_spider(SPIDER_FPATH, SCAN_LEVEL_TEMPLATE, ARGS)
+        write_spider(SCAN_LEVEL_TEMPLATE)
     else:
         print "Generating file %s for session spider %s ..." % (SPIDER_FPATH, ARGS.name)
-        write_spider(SPIDER_FPATH, SESSION_LEVEL_TEMPLATE, ARGS)
+        write_spider(SESSION_LEVEL_TEMPLATE)

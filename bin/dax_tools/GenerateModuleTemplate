@@ -240,26 +240,27 @@ class Module_{name}(SessionModule):
         session_obj.resource(RESOURCE_FLAG_NAME).create()
 """
 
-def write_module(module_fpath, templates, args):
+def write_module(templates):
     """
     Write the Module.py with the proper template
 
-    :param module_fpath: path where the module script will be saved
     :param templates: template to use (scan or session)
-    :param args: arguments parser
+    :return: None
     """
-    module_code = templates.format(author=args.author,
-                                   email_addr=args.email,
-                                   name=args.name,
+    module_code = templates.format(author=ARGS.author,
+                                   email_addr=ARGS.email,
+                                   name=ARGS.name,
                                    now=str(datetime.now()),
-                                   purpose=args.purpose)
-    f_obj = open(module_fpath, "w")
+                                   purpose=ARGS.purpose)
+    f_obj = open(MODULE_FPATH, "w")
     f_obj.writelines(module_code)
     f_obj.close()
 
 def parse_args():
     """
-    Parser for arguments
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
     """
     from argparse import ArgumentParser
     usage = "Generate a module.py file from the template for dax in a new file."
@@ -296,7 +297,7 @@ if __name__ == '__main__':
         MODULE_FPATH = os.path.join(os.getcwd(), MODULE_NAME)
     if ARGS.on_scan:
         print "Generating file %s for scan module %s ..." % (MODULE_FPATH, ARGS.name)
-        write_module(MODULE_FPATH, SCAN_LEVEL_TEMPLATE, ARGS)
+        write_module(SCAN_LEVEL_TEMPLATE)
     else:
         print "Generating file %s for session module %s ..." % (MODULE_FPATH, ARGS.name)
-        write_module(MODULE_FPATH, SESSION_LEVEL_TEMPLATE, ARGS)
+        write_module(SESSION_LEVEL_TEMPLATE)

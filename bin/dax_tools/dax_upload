@@ -5,15 +5,16 @@
 
 import os
 import sys
+import dax
+import shutil
 import smtplib
+import getpass
 from datetime import datetime
 from email.mime.text import MIMEText
-from dax import bin, XnatUtils
-from dax import RESULTS_DIR, SMTP_HOST, SMTP_FROM, SMTP_PASS
+from dax import XnatUtils, RESULTS_DIR, SMTP_HOST, SMTP_FROM, SMTP_PASS
 from dax.task import READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED, JOB_PENDING
-import shutil
 
-# Variables
+########### VARIABLES ###########
 _READY_FLAG_FILE = 'READY_TO_UPLOAD.txt'
 _FAILED_FLAG_FILE = 'JOB_FAILED.txt'
 _EMAILED_FLAG_FILE = 'ALREADY_SEND_EMAIL.txt'
@@ -42,8 +43,30 @@ You should:
 """
 WARNING_SUBJECT = 'ERROR/WARNING: dax_upload'
 
+DESCRIPTION = """What is the dax executable doing :
+   * Upload all processes run through dax back to XNAT from the queue folder <{folder}>
+
+Examples:
+   * run dax_upload: dax_upload
+   * run dax_upload and write output to a file: dax_upload -l /path/to/file.log
+   * run dax_upload and send email warnings/errors: dax_upload -e ...@gmail.com
+   * run dax_upload for a specific xnat: dax_upload --host https://...
+   * run dax_upload for a specific xnat/username: dax_upload --host https://... -u admin
+"""
+
+########### Functions ###########
 def send_email(from_add, password, dests, subject, content, server):
-    """ send email using the server/from/pws """
+    """
+    Send email using the server/from/pws
+
+    :param from_add: address to send the email from
+    :param password: password for the email address
+    :param dests: list of emails addresses to send to
+    :param subject: subject for the email
+    :param content: content of the email
+    :param server: SMTP server used to send email.
+    :return: None
+    """
     # Create the container (outer) email message.
     msg = MIMEText(content)
     msg['Subject'] = subject
@@ -57,20 +80,27 @@ def send_email(from_add, password, dests, subject, content, server):
     s_obj.sendmail(from_add, dests, msg.as_string())
     s_obj.quit()
 
-def send_warning_emails(warnings, dests):
-    """ send warning emails about the dax_upload queue """
-    if warnings and dests:
-        if warnings:
-            content = WARNING_START_CONTENT
-            for warning in warnings:
-                content += ' - '+warning+'\n'
-            content += WARNING_END_CONTENT
+def send_warning_emails():
+    """
+    Send warning emails about the dax_upload queue
+
+    :return: None
+    """
+    if WARNING_LIST and OPTIONS.emailaddress:
+        content = WARNING_START_CONTENT
+        for warning in WARNING_LIST:
+            content += ' - %s\n' % (warning)
+        content += WARNING_END_CONTENT
         if SMTP_FROM and SMTP_PASS and SMTP_HOST:
-            send_email(SMTP_FROM, SMTP_PASS, dests,
+            send_email(SMTP_FROM, SMTP_PASS, OPTIONS.emailaddress.split(','),
                        WARNING_SUBJECT, content, SMTP_HOST)
 
 def check_folders():
-    """ Check that the default folders exist """
+    """
+    Check that the default folders exist and if not create them
+
+    :return: None
+    """
     #make the directories if they don't exist:
     if not os.path.exists(RESULTS_DIR):
         os.mkdir(RESULTS_DIR)
@@ -84,7 +114,13 @@ def check_folders():
         os.mkdir(os.path.join(RESULTS_DIR, _FLAG_FILES))
 
 def select_assessor(xnat, assessor_dict):
-    """ return assessor object """
+    """
+    Select the assessor pyxnat Eobject from the assessor dictionary information
+
+    :param xnat: pyxnat.interface object
+    :param assessor_dict: assessor dictionary
+    :return: assessor pyxnat Eobject
+    """
     return XnatUtils.select_obj(xnat,
                                 assessor_dict['project_id'],
                                 assessor_dict['subject_label'],
@@ -92,26 +128,37 @@ def select_assessor(xnat, assessor_dict):
                                 assessor_id=assessor_dict['label'])
 
 def is_dax_upload_running():
-    """ return True if the process is already running """
+    """
+    Check if dax_upload is not already running on the station
+
+    :return: True if dax_upload already running, False otherwise.
+    """
     if os.path.exists(DAX_UPLOAD_FLAGFILE):
         LOGGER.warn('Upload already running.')
         return True
     else:
         f_obj = open(DAX_UPLOAD_FLAGFILE, 'w')
         today = datetime.now()
-        datestr = "Date: "+str(today.year)\
-                          +str(today.month)\
-                          +str(today.day)\
-                          +'_'+str(today.hour)\
-                          +':'+str(today.minute)\
-                          +':'+str(today.second)
+        datestr = "Date: %s%s%s_%s:%s:%s" % (str(today.year),
+                                             str(today.month),
+                                             str(today.day),
+                                             str(today.hour),
+                                             str(today.minute),
+                                             str(today.second))
         f_obj.write(datestr+'\n')
         f_obj.close()
-        LOGGER.debug('Flagfile created: '+DAX_UPLOAD_FLAGFILE+' with date: '+datestr)
+        LOGGER.debug('Flagfile created: %s with date: %s' % (DAX_UPLOAD_FLAGFILE,
+                                                             datestr))
         return False
 
 def get_assessor_dict(assessor_label, assessor_path):
-    """ generate the dict for an assessor """
+    """
+    Generate the dictionary for an assessor from the folder in the queue
+
+    :param assessor_label: assessor label
+    :param assessor_path: assessor path on the station
+    :return: None
+    """
     assessor_dict = dict()
     keys = ['project_id', 'subject_label', 'session_label', 'label', 'proctype', 'path']
     labels = assessor_label.split('-x-')
@@ -121,7 +168,11 @@ def get_assessor_dict(assessor_label, assessor_path):
     return assessor_dict
 
 def get_assessor_list():
-    """ return list of assessor to upload from upload folder """
+    """
+    Get the list of assessors labels to upload to XNAT from the queue folder.
+
+    :return: list of assessor to upload from upload folder
+    """
     assessor_label_list = list()
 
     LOGGER.debug(' - Get Processes names from the upload folder...')
@@ -143,7 +194,11 @@ def get_assessor_list():
     return assessor_label_list
 
 def get_pbs_list():
-    """ return the list of pbs file from the PBS folder """
+    """
+    Get the list of PBS file to upload to XNAT.
+
+    :return: list of pbs file from the PBS folder
+    """
     pbs_list = list()
 
     LOGGER.debug(' - Get the PBS for the processes...')
@@ -156,7 +211,12 @@ def get_pbs_list():
     return pbs_list
 
 def get_version_assessor(assessor_path):
-    """ Return version of the assessor from the version.txt file """
+    """
+    Get the version of the assessor that we are uploading from text file
+
+    :param assessor_path: path for the assessor
+    :return: version of the assessor from the version.txt file
+    """
     version = '1.0.0'
     if os.path.exists(os.path.join(assessor_path, 'version.txt')):
         f_obj = open(os.path.join(assessor_path, 'version.txt'), 'r')
@@ -165,7 +225,12 @@ def get_version_assessor(assessor_path):
     return version
 
 def generate_snapshots(assessor_path):
-    """ Generate Snapshots from the PDF """
+    """
+    Generate Snapshots from the PDF if it exists.
+
+    :param assessor_path: path for the assessor
+    :return: None
+    """
     snapshot_dir = os.path.join(assessor_path, 'SNAPSHOTS')
     snapshot_original = os.path.join(snapshot_dir, SNAPSHOTS_ORIGINAL)
     snapshot_preview = os.path.join(snapshot_dir, SNAPSHOTS_PREVIEW)
@@ -187,7 +252,12 @@ def generate_snapshots(assessor_path):
         os.system(cmd)
 
 def copy_outlog(assessor_dict):
-    """ copy outlog to assessor directory """
+    """
+    Copy the oulog files to the assessor folder if we are uploading the assessor
+
+    :param assessor_dict: dictionary for the assessor
+    :return: None
+    """
     outlog_path = os.path.join(RESULTS_DIR, _OUTLOG,
                                assessor_dict['label']+'.output')
     new_outlog_path = os.path.join(assessor_dict['path'], _OUTLOG,
@@ -197,52 +267,83 @@ def copy_outlog(assessor_dict):
         os.rename(outlog_path, new_outlog_path)
 
 def get_xsitype(assessor_dict):
-    """ return xsitype for the assessor_dict """
+    """
+    Copy the oulog files to the assessor folder if we are uploading the assessor
+
+    :param assessor_dict: dictionary for the assessor
+    :return: xsitype for the assessor_dict
+    """
     proctype = assessor_dict['proctype']
     if proctype.startswith('FS') and not proctype.startswith('FSL'):
-        return 'fs:fsData'
+        return XnatUtils.DEFAULT_FS_DATATYPE
     else:
-        return 'proc:genProcData'
+        return XnatUtils.DEFAULT_DATATYPE
 
 def is_complete(assessor_dict, procstatus):
-    """ return true if assessor is complete """
+    """
+    Copy the oulog files to the assessor folder if we are uploading the assessor
+
+    :param assessor_dict: dictionary for the assessor
+    :param procstatus: status to set for the assessor
+    :return: True if the assessor is Complete, False otherwise
+    """
     if procstatus == READY_TO_COMPLETE or procstatus == COMPLETE:
         open(os.path.join(assessor_dict['path'], _EMAILED_FLAG_FILE), 'w').close()
         mess = """    - Assessor label : {label}\n"""
         message = mess.format(label=assessor_dict['label'])
-        warning_list.append(message)
+        WARNING_LIST.append(message)
         LOGGER.warn('  -->Data already present on XNAT.\n')
         return True
     else:
         return False
 
 def create_freesurfer_assessor(assessor_obj):
-    """ Create freesurfer assessor """
-    #create the assessor and set the status
-    assessor_obj.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
-    now = datetime.now()
-    today = str(now.year)+'-'+str(now.month)+'-'+str(now.day)
+    """
+    Create freesurfer specific assessor using the DEFAULT_FS_DATATYPE from dax
 
-    assessor_obj.attrs.mset({'fs:fsData/validation/status': JOB_PENDING,
-                            'fs:fsData/date': today})
+    :param assessor_obj: pyxnat assessor Eobject
+    :return: None
+    """
+    #create the assessor and set the status
+    assessor_obj.create(assessors=XnatUtils.DEFAULT_FS_DATATYPE,
+                        **{XnatUtils.DEFAULT_FS_DATATYPE+'/fsversion':'0'})
+    now = datetime.now()
+    today = '%s-%s-%s-' % (str(now.year), str(now.month), str(now.day))
+
+    assessor_obj.attrs.mset({XnatUtils.DEFAULT_FS_DATATYPE+'/validation/status': JOB_PENDING,
+                             XnatUtils.DEFAULT_FS_DATATYPE+'/date': today})
 
 def create_default_assessor(assessor_obj, proctype):
-    """ Create default assessor with proctype given """
+    """
+    Create default assessor using the DEFAULT_DATATYPE from dax
+
+    :param assessor_obj: pyxnat assessor Eobject
+    :param proctype: proctype for the assessor
+    :return: None
+    """
     # Create the assessor and set attributes
     now = datetime.now()
-    today = str(now.year)+'-'+str(now.month)+'-'+str(now.day)
+    today = '%s-%s-%s-' % (str(now.year), str(now.month), str(now.day))
 
-    assessor_obj.create(assessors='proc:genProcData')
+    assessor_obj.create(assessors=XnatUtils.DEFAULT_DATATYPE)
     # Call mset to only make a single HTTP request
-    assessor_obj.attrs.mset({'proc:genProcData/validation/status': JOB_PENDING,
-                             'proc:genProcData/proctype': proctype,
-                             'proc:genProcData/date': today})
+    assessor_obj.attrs.mset({XnatUtils.DEFAULT_DATATYPE+'/validation/status': JOB_PENDING,
+                             XnatUtils.DEFAULT_DATATYPE+'/proctype': proctype,
+                             XnatUtils.DEFAULT_DATATYPE+'/date': today})
 
 
 def should_upload_assessor(assessor_obj, assessor_dict, xsitype, version):
-    """ check if the assessor should be upload """
+    """
+    Check if the assessor is ready to be uploaded to XNAT
+
+    :param assessor_obj: pyxnat assessor Eobject
+    :param assessor_dict: assessor dictionary
+    :param xsitype: xsitype for the assessor (fsData or proc:GenProcData, ...)
+    :param version: version for the assessor
+    :return: True if the assessor should be upload, False otherwise
+    """
     if not assessor_obj.exists():
-        if xsitype == 'fs:fsData':
+        if xsitype == XnatUtils.DEFAULT_FS_DATATYPE:
             create_freesurfer_assessor(assessor_obj)
         else:
             create_default_assessor(assessor_obj, assessor_dict['proctype'])
@@ -257,7 +358,13 @@ def should_upload_assessor(assessor_obj, assessor_dict, xsitype, version):
     return True
 
 def upload_assessor(xnat, assessor_dict):
-    """ upload results to an assessor """
+    """
+    Upload results to an assessor
+
+    :param xnat: pyxnat.Interface object
+    :param assessor_dict: assessor dictionary
+    :return: None
+    """
     #get spiderpath from version.txt file:
     version = get_version_assessor(assessor_dict['path'])
     session_obj = XnatUtils.select_obj(xnat,
@@ -278,14 +385,14 @@ def upload_assessor(xnat, assessor_dict):
         copy_outlog(assessor_dict)
 
         #Upload the XML if FreeSurfer
-        if xsitype == 'fs:fsData':
+        if xsitype == XnatUtils.DEFAULT_FS_DATATYPE:
             xmlpath = os.path.join(assessor_dict['path'], 'XML')
             if os.path.exists(xmlpath):
                 LOGGER.debug('    +setting XML for FreeSurfer')
                 xml_files_list = os.listdir(xmlpath)
                 if len(xml_files_list) != 1:
                     fpath = assessor_dict['path']
-                    LOGGER.error('cannot upload FreeSufer, unable to find XML file:'+fpath)
+                    LOGGER.error('cannot upload FreeSufer, unable to find XML file: %s' % (fpath))
                     return
                 xml_path = os.path.join(assessor_dict['path'], 'XML', xml_files_list[0])
                 assessor_obj.create(xml=xml_path, allowDataDeletion=False)
@@ -295,7 +402,7 @@ def upload_assessor(xnat, assessor_dict):
             resource_path = os.path.join(assessor_dict['path'], resource)
             #Need to be in a folder to create the resource :
             if os.path.isdir(resource_path):
-                LOGGER.debug('    +uploading '+resource)
+                LOGGER.debug('    +uploading %s' % (resource))
                 upload_resource(assessor_obj, resource, resource_path)
 
         ## after Upload ##
@@ -307,7 +414,14 @@ def upload_assessor(xnat, assessor_dict):
         shutil.rmtree(assessor_dict['path'])
 
 def upload_resource(assessor_obj, resource, resource_path):
-    """ upload a resource folder in the queue to the assessor """
+    """
+    Upload a resource folder to an assessor
+
+    :param assessor_obj: pyxnat assessor Eobject
+    :param resource: resource to upload
+    :param resource_path: resource path on the station
+    :return: None
+    """
     if resource == 'SNAPSHOTS':
         upload_snapshots(assessor_obj, resource_path)
     else:
@@ -330,7 +444,13 @@ def upload_resource(assessor_obj, resource, resource_path):
                                              removeall=True)
 
 def upload_snapshots(assessor_obj, resource_path):
-    """ function to upload the snapshots to the assessor """
+    """
+    Upload snapshots to an assessor
+
+    :param assessor_obj: pyxnat assessor Eobject
+    :param resource_path: resource path on the station
+    :return: None
+    """
     #Remove the previous Snapshots:
     if assessor_obj.out_resource('SNAPSHOTS').exists:
         assessor_obj.out_resource('SNAPSHOTS').delete()
@@ -353,7 +473,12 @@ def upload_snapshots(assessor_obj, resource_path):
 
 ########################### Main Functions to Upload results/PBS/OUTLOG ###########################
 def upload_assessors(xnat):
-    """ Upload results for assessor from the folder """
+    """
+    Upload all assessors to XNAT
+
+    :param xnat: pyxnat.Interface object
+    :return: None
+    """
     #Get the assessor label from the directory :
     assessors_list = get_assessor_list()
     number_of_processes = len(assessors_list)
@@ -372,7 +497,12 @@ def upload_assessors(xnat):
             LOGGER.warn('     --> wrong label')
 
 def upload_pbs(xnat):
-    """ Upload the pbs files """
+    """
+    Upload all pbs files to XNAT
+
+    :param xnat: pyxnat.Interface object
+    :return: None
+    """
     pbs_list = get_pbs_list()
     number_pbs = len(pbs_list)
     for index, pbsfile in enumerate(pbs_list):
@@ -384,18 +514,18 @@ def upload_pbs(xnat):
         assessor_label = os.path.splitext(pbsfile)[0]
         assessor_dict = get_assessor_dict(assessor_label, 'none')
         if not assessor_dict:
-            LOGGER.warn('wrong assessor label for '+pbsfile)
+            LOGGER.warn('wrong assessor label for %s' % (pbsfile))
             os.rename(pbs_fpath, os.path.join(RESULTS_DIR, _TRASH, pbsfile))
         else:
             assessor_obj = select_assessor(xnat, assessor_dict)
             if not assessor_obj.exists():
-                LOGGER.warn('assessor does not exist for '+pbsfile)
+                LOGGER.warn('assessor does not exist for %s' % (pbsfile))
                 os.rename(pbs_fpath, os.path.join(RESULTS_DIR, _TRASH, pbsfile))
             else:
                 resource_obj = assessor_obj.out_resource(_PBS)
                 if resource_obj.exists():
                     label = assessor_dict['label']
-                    LOGGER.warn('the PBS resource already exists for the assessor '+label)
+                    LOGGER.warn('the PBS resource already exists for the assessor %s' % (label))
                     if  os.path.isdir(os.path.join(RESULTS_DIR, assessor_dict['label'])):
                         LOGGER.warn('Copying the pbs file in the assessor folder...')
                         assr_pbs_folder = os.path.join(RESULTS_DIR, assessor_dict['label'], _PBS)
@@ -412,7 +542,12 @@ def upload_pbs(xnat):
                         os.remove(pbs_fpath)
 
 def upload_outlog(xnat):
-    """ Upload the outlog files """
+    """
+    Upload all outlog files to XNAT
+
+    :param xnat: pyxnat.Interface object
+    :return: None
+    """
     outlogs_list = os.listdir(os.path.join(RESULTS_DIR, _OUTLOG))
     number_outlog = len(outlogs_list)
     for index, outlogfile in enumerate(outlogs_list):
@@ -441,18 +576,36 @@ def upload_outlog(xnat):
                         if status:
                             os.remove(outlog_fpath)
 
-def upload_results(email_address):
-    """ Upload the results / PBS / OUTOG and email the user """
+def upload_results():
+    """
+    Main function to upload the results / PBS / OUTLOG of assessors
+     from the queue folder
+
+    :return: None
+    """
     #Start Uploading
-    LOGGER.info('-------- Upload Directory: '+RESULTS_DIR+' --------')
+    LOGGER.info('-------- Upload Directory: %s --------' % (RESULTS_DIR))
     ###VARIABLES###
     if len(os.listdir(RESULTS_DIR)) == 0:
         LOGGER.warn('No data need to be uploaded.\n')
         sys.exit()
 
     try:
-        LOGGER.info('Connecting to XNAT to start uploading processes')
-        xnat = XnatUtils.get_interface()
+        if OPTIONS.host:
+            HOST = OPTIONS.host
+        else:
+            HOST = os.environ['XNAT_HOST']
+        if OPTIONS.username:
+            MSG = "Please provide the password for user <%s> on xnat(%s):" % (OPTIONS.username, HOST)
+            PWD = getpass.getpass(prompt=MSG)
+        else:
+            PWD = None
+
+        LOGGER.info('Connecting to XNAT <%s> to start uploading processes' % (HOST))
+        xnat = XnatUtils.get_interface(host=OPTIONS.host, user=OPTIONS.username, pwd=PWD)
+
+        if not XnatUtils.has_dax_datatypes(xnat):
+            raise Exception('error: dax datatypes are not installed on your xnat <%s>' % (os.environ['XNAT_HOST']))
 
         ################# 1) Upload the assessor data ###############
         #For each assessor label that need to be upload :
@@ -471,13 +624,22 @@ def upload_results(email_address):
     finally:
         xnat.disconnect()
         LOGGER.info('Connection to Xnat closed')
-        send_warning_emails(warning_list, email_address)
+        send_warning_emails()
 
 def parse_args():
-    """ return the arguments given to the executables """
-    from argparse import ArgumentParser
-    description = "Upload results from the dax_upload folder to Xnat."
-    ap = ArgumentParser(prog='dax_update', description=description)
+    """
+    Method to parse arguments base on argparse
+
+    :return: parser object
+    """
+    from argparse import ArgumentParser, RawTextHelpFormatter
+    description = DESCRIPTION.format(folder=RESULTS_DIR)
+    ap = ArgumentParser(prog='dax_upload', description=description,
+                        formatter_class=RawTextHelpFormatter)
+    ap.add_argument('--host', dest='host', default=None,
+                    help='Host for XNAT. Default: using $XNAT_HOST.')
+    ap.add_argument('-u', '--username', dest='username', default=None,
+                    help='Username for XNAT. Default: using $XNAT_USER.')
     ap.add_argument('-e', '--email', dest='emailaddress',
                     help='Email address to inform you about the warnings and errors.', default=None)
     ap.add_argument('-l', '--logfile', dest='logfile',
@@ -486,12 +648,12 @@ def parse_args():
     return ap.parse_args()
 
 if __name__ == '__main__':
-    args = parse_args()
+    OPTIONS = parse_args()
     #Local Variables
-    flag_files_list = list()
-    warning_list = list()
+    FLAG_FILES_LIST = list()
+    WARNING_LIST = list()
     #Logger for logs
-    LOGGER = bin.set_logger(args.logfile, args.debug)
+    LOGGER = dax.bin.set_logger(OPTIONS.logfile, OPTIONS.debug)
     LOGGER.info('Time at the beginning of the Process_Upload: '+ str(datetime.now())+'\n')
     #Check if folders exist
     check_folders()
@@ -500,7 +662,7 @@ if __name__ == '__main__':
         sys.exit()
     else:
         try:
-            upload_results(args.emailaddress)
+            upload_results()
         finally:
             #remove flagfile
             os.remove(DAX_UPLOAD_FLAGFILE)
