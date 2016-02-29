@@ -15,7 +15,7 @@ def parse_args():
     :return: parser object parsed
     """
     from argparse import ArgumentParser
-    ap = ArgumentParser(prog='dax_update', description="Launch all tasks that need to run (NEED_TO_RUN).")
+    ap = ArgumentParser(prog='dax_launch', description="Launch all tasks that need to run (NEED_TO_RUN).")
     ap.add_argument(dest='settings_path', help='Settings Path')
     ap.add_argument('--logfile', dest='logfile', help='Logs file path if needed.', default=None)
     ap.add_argument('--project', dest='project', help='Project ID from XNAT to run dax_update on locally (only one project).', default=None)
