@@ -3,6 +3,8 @@ import sys
 import ConfigParser
 from string import Template
 
+DEFAULT_TEMPLATE = Template("""echo """)
+
 class DAX_Settings(object):
     """
     Class for DAX settings based on INI file.
@@ -224,7 +226,7 @@ class DAX_Settings(object):
         :return: List of xsitypes for DAX to check for
 
         """
-        return self.get('admin', 'xsitpye_include').split(',')
+        return self.get('admin', 'xsitype_include').split(',')
 
     # Begin cluster section
     def get_cmd_submit(self):
@@ -330,10 +332,10 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_get_job_memory')
-        if filepath.startswith('~/'):
+        if len(filepath) == 0: #no files specify, set to echo
+            return DEFAULT_TEMPLATE
+        elif filepath.startswith('~/'):
             filepath = os.path.join(self.get_user_home(), filepath)
-        if filepath is None:
-            raise OSError(2, 'cmd_get_job_memory is None. Must specify')
         if not os.path.isfile(filepath):
             raise OSError(2, 'cmd_get_job_memory file does not exist', filepath)
         return self.read_file_and_return_template(filepath)
@@ -349,10 +351,10 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_get_job_walltime')
-        if filepath.startswith('~/'):
+        if len(filepath) == 0: #no files specify, set to echo
+            return DEFAULT_TEMPLATE
+        elif filepath.startswith('~/'):
             filepath = os.path.join(self.get_user_home(), filepath)
-        if filepath is None:
-            raise OSError(2, 'cmd_get_job_walltime is None. Must specify')
         if not os.path.isfile(filepath):
             raise OSError(2, 'cmd_get_job_walltime file does not exist', filepath)
         return self.read_file_and_return_template(filepath)
@@ -368,10 +370,10 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_get_job_node')
-        if filepath.startswith('~/'):
+        if len(filepath) == 0: #no files specify, set to echo
+            return DEFAULT_TEMPLATE
+        elif filepath.startswith('~/'):
             filepath = os.path.join(self.get_user_home(), filepath)
-        if filepath is None:
-            raise OSError(2, 'cmd_get_job_node is None. Must specify')
         if not os.path.isfile(filepath):
             raise OSError(2, 'cmd_get_job_node file does not exist', filepath)
         return self.read_file_and_return_template(filepath)
@@ -515,4 +517,3 @@ class DAX_Settings(object):
         if data is None or data == '':
             raise OSError(2, 'No data in file', filepath)
         return data
-
