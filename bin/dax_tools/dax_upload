@@ -23,7 +23,7 @@ _TRASH = 'TRASH'
 _PBS = 'PBS'
 _FLAG_FILES = 'FlagFiles'
 _UPLOAD_SKIP_LIST = [_OUTLOG, _TRASH, _PBS, _FLAG_FILES]
-DAX_UPLOAD_FLAGFILE = os.path.join(RESULTS_DIR, _FLAG_FILES, 'Process_Upload_running.txt')
+FLAGFILE_TEMPLATE = os.path.join(RESULTS_DIR, _FLAG_FILES, 'Process_Upload_running')
 SNAPSHOTS_ORIGINAL = 'snapshot_original.png'
 SNAPSHOTS_PREVIEW = 'snapshot_preview.png'
 
@@ -52,6 +52,7 @@ Examples:
    * run dax_upload and send email warnings/errors: dax_upload -e ...@gmail.com
    * run dax_upload for a specific xnat: dax_upload --host https://...
    * run dax_upload for a specific xnat/username: dax_upload --host https://... -u admin
+   * run dax_upload for a specific xnat/username: dax_upload --host https://... -u admin -p project1,project2
 """
 
 ########### Functions ###########
@@ -181,6 +182,10 @@ def get_assessor_list():
         if assessor_label in _UPLOAD_SKIP_LIST:
             continue
 
+        # If projects set, check that the project is in the list of projects to upload to XNAT
+        if OPTIONS.projects and assessor_label.split('-x-')[0] not in OPTIONS.projects:
+            continue
+
         assessor_path = os.path.join(RESULTS_DIR, assessor_label)
         if not os.path.isdir(assessor_path):
             continue
@@ -204,6 +209,11 @@ def get_pbs_list():
     LOGGER.debug(' - Get the PBS for the processes...')
     #check all files/folder in the directory
     for pbs_name in os.listdir(os.path.join(RESULTS_DIR, _PBS)):
+
+        # If projects set, check that the project is in the list of projects to upload to XNAT
+        if OPTIONS.projects and pbs_name.split('-x-')[0] not in OPTIONS.projects:
+            continue
+
         pbs_file = os.path.join(RESULTS_DIR, _PBS, pbs_name)
         if os.path.isfile(pbs_file):
             pbs_list.append(pbs_name)
@@ -263,8 +273,8 @@ def copy_outlog(assessor_dict):
     new_outlog_path = os.path.join(assessor_dict['path'], _OUTLOG,
                                    assessor_dict['label']+'.output')
     if os.path.exists(outlog_path):
-        os.mkdir(os.path.join(assessor_dict['path'], _OUTLOG))
-        os.rename(outlog_path, new_outlog_path)
+        os.makedirs(os.path.join(assessor_dict['path'], _OUTLOG))
+        shutil.move(outlog_path, new_outlog_path)
 
 def get_xsitype(assessor_dict):
     """
@@ -549,6 +559,9 @@ def upload_outlog(xnat):
     :return: None
     """
     outlogs_list = os.listdir(os.path.join(RESULTS_DIR, _OUTLOG))
+    if OPTIONS.projects:
+        outlogs_list = [logfile for logfile in outlogs_list if logfile.split('-x-')[0] in OPTIONS.projects]
+
     number_outlog = len(outlogs_list)
     for index, outlogfile in enumerate(outlogs_list):
         outlog_fpath = os.path.join(RESULTS_DIR, _OUTLOG, outlogfile)
@@ -595,9 +608,15 @@ def upload_results():
             HOST = OPTIONS.host
         else:
             HOST = os.environ['XNAT_HOST']
+
         if OPTIONS.username:
             MSG = "Please provide the password for user <%s> on xnat(%s):" % (OPTIONS.username, HOST)
-            PWD = getpass.getpass(prompt=MSG)
+            if not OPTIONS.password:
+                PWD = getpass.getpass(prompt=MSG)
+            elif 'API_KEY_DAX' in os.environ:
+                PWD = os.environ[OPTIONS.password]
+            else:
+                PWD =  OPTIONS.password
         else:
             PWD = None
 
@@ -640,8 +659,14 @@ def parse_args():
                     help='Host for XNAT. Default: using $XNAT_HOST.')
     ap.add_argument('-u', '--username', dest='username', default=None,
                     help='Username for XNAT. Default: using $XNAT_USER.')
-    ap.add_argument('-e', '--email', dest='emailaddress',
-                    help='Email address to inform you about the warnings and errors.', default=None)
+    ap.add_argument('--pwd', dest='password', default=None,
+                    help="Password for XNAT. You can specify the environment's variable for this option. Default: using $XNAT_PASS.")
+    ap.add_argument('-s', '--suffix', dest='suffix', default="",
+                    help='Suffix for the flagfile for dax_upload (Use this option if you use different XNAT_HOST).')
+    ap.add_argument('-p', '--projects', dest='projects', default=None,
+                    help='List of projects to upload to XNAT from the queue.')
+    ap.add_argument('-e', '--email', dest='emailaddress', default=None,
+                    help='Email address to inform you about the warnings and errors.')
     ap.add_argument('-l', '--logfile', dest='logfile',
                     help='Logs file path if needed.', default=None)
     ap.add_argument('--nodebug', dest='debug', action='store_false', help='Avoid printing DEBUG information.')
@@ -657,6 +682,7 @@ if __name__ == '__main__':
     LOGGER.info('Time at the beginning of the Process_Upload: '+ str(datetime.now())+'\n')
     #Check if folders exist
     check_folders()
+    DAX_UPLOAD_FLAGFILE = "%s%s.txt" % (FLAGFILE_TEMPLATE, OPTIONS.suffix)
     #create the flag file showing that the spider is running
     if is_dax_upload_running():
         sys.exit()
