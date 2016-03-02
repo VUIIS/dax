@@ -2140,25 +2140,25 @@ def run_subprocess(args):
     stdout, stderr = process.communicate()
     return stdout, stderr
 
-def makedir(directory, prefix='TempDir'):
+def makedir(directory, prefix='TempDir', subdir=True):
     """
     Makes a directory if it doesn't exist and if it does, makes a sub directory
      with the format prefix_date in the directory specified.
-
     :param directory: The directory to create
     :param prefix: prefix for the base directory, default: TempDir
+    :param subdir: create a subdir if directory exists using the prefix and the date
     :return: Full path of the directory created.
-
     """
     if not os.path.exists(directory):
         os.mkdir(directory)
     else:
-        today = datetime.now()
-        directory = os.path.join(directory, prefix+'_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day))
-        if not os.path.exists(directory):
-            os.mkdir(directory)
-        else:
-            clean_directory(directory)
+        if subdir:
+            today = datetime.now()
+            directory = os.path.join(directory, prefix+'_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day))
+            if not os.path.exists(directory):
+                os.mkdir(directory)
+            else:
+                clean_directory(directory)
     return directory
 
 def print_args(options):
