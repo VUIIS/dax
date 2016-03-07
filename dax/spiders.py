@@ -508,13 +508,14 @@ class SessionSpider(Spider):
         """
         raise NotImplementedError()
 
-class AutoSpider(object):
+class AutoSpider(Spider):
     def __init__(self, name, params, outputs, template, datatype='session'):
         self.name = name
         self.params = params
         self.outputs = outputs
         self.template = template
         self.datatype = datatype
+        self.copy_list = []
 
         # Make the parser
         parser = self.get_argparser()
@@ -528,6 +529,9 @@ class AutoSpider(object):
             args.temp_dir, args.proj_label, args.subj_label, args.sess_label,
             xnat_host=args.host, xnat_user=args.xnat_user, xnat_pass=args.xnat_pass,
             suffix=args.suffix, skip_finish=args.skipfinish)
+
+        if datatype == 'scan':
+            self.xnat_scan = args.scan_label
 
         # Make a list of parameters that need to be copied locally
         for p in params:
