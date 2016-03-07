@@ -527,7 +527,7 @@ class AutoSpider(Spider):
         # Initialize spider with the args
         super(AutoSpider, self).__init__(name,
             args.temp_dir, args.proj_label, args.subj_label, args.sess_label,
-            xnat_host=args.host, xnat_user=args.xnat_user, xnat_pass=args.xnat_pass,
+            xnat_host=args.host, xnat_user=args.user, xnat_pass=None,
             suffix=args.suffix, skip_finish=args.skipfinish)
 
         if datatype == 'scan':
