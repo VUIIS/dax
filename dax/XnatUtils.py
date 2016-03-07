@@ -33,7 +33,10 @@ from pyxnat import Interface
 from datetime import datetime
 
 import task
-from dax_settings import RESULTS_DIR, XSITYPE_INCLUDE
+from dax_settings import DAX_Settings
+DAX_SETTINGS = DAX_Settings()
+RESULTS_DIR = DAX_SETTINGS.get_results_dir()
+XSITYPE_INCLUDE = DAX_SETTINGS.get_xsitype_include()
 
 import xml.etree.cElementTree as ET
 

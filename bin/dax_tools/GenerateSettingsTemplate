@@ -18,7 +18,11 @@ __modifications__ = '29 Septembre 2015 - Original write'
 import os
 import re
 from datetime import datetime
-from dax import dax_settings
+from dax import DAX_Settings
+
+DAX_SETTINGS = DAX_Settings()
+DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
+DEFAULT_QUEUE_LIMIT = DAX_SETTINGS.get_queue_limit()
 
 DEFAULT_TEMPLATE = """'''
     Author:                     {author}
@@ -122,10 +126,10 @@ def parse_args():
     argp.add_argument('-a', dest='author', help='Author name.', required=True)
     argp.add_argument('-e', dest='email', help='Author email address.', required=True)
     argp.add_argument('-p', dest='p_order', help='Projects to process in order separate by a coma. E.G: ADNI,Test,Project3', required=True)
-    argp.add_argument('--Qlimit', dest='q_limit', help='Queue limit on cluster to submit jobs. Default: '+str(dax_settings.DEFAULT_QUEUE_LIMIT),
-                      default=dax_settings.DEFAULT_QUEUE_LIMIT)
-    argp.add_argument('--Eopts', dest='e_opts', help='Options for email in the job. Default= '+dax_settings.DEFAULT_EMAIL_OPTS,
-                      default=dax_settings.DEFAULT_EMAIL_OPTS)
+    argp.add_argument('--Qlimit', dest='q_limit', help='Queue limit on cluster to submit jobs. Default: %s' % str(DEFAULT_QUEUE_LIMIT),
+                      default=DEFAULT_QUEUE_LIMIT)
+    argp.add_argument('--Eopts', dest='e_opts', help='Options for email in the job. Default= %s' % (DEFAULT_EMAIL_OPTS),
+                      default=DEFAULT_EMAIL_OPTS)
     argp.add_argument('-d', dest='directory', help='Directory where the processor file will be generated. Default: current directory.', default=None)
     return argp.parse_args()
 

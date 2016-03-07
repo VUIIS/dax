@@ -16,7 +16,12 @@ import task
 import cluster
 import bin
 from task import Task
-from dax_settings import RESULTS_DIR, DEFAULT_ROOT_JOB_DIR, DEFAULT_QUEUE_LIMIT, DEFAULT_MAX_AGE
+from dax_settings import DAX_Settings
+DAX_SETTINGS = DAX_Settings()
+RESULTS_DIR = DAX_SETTINGS.get_results_dir()
+DEFAULT_ROOT_JOB_DIR = DAX_SETTINGS.get_root_job_dir()
+DEFAULT_QUEUE_LIMIT = DAX_SETTINGS.get_queue_limit()
+DEFAULT_MAX_AGE = DAX_SETTINGS.get_max_age()
 
 UPDATE_PREFIX = 'updated--'
 UPDATE_FORMAT = "%Y-%m-%d %H:%M:%S"

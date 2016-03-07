@@ -1,0 +1,1 @@
+expr `qstat -u $USER | wc -l` - 2
