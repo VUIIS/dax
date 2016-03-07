@@ -42,7 +42,6 @@ if __name__ == '__main__':
                    'bin/dax_tools/dax_update_tasks', 
                    'bin/dax_tools/dax_upload',
                    'bin/dax_tools/run_spider',
-                   'bin/dax_tools/GenerateAutoSpider',
                    'bin/dax_tools/GenerateModuleTemplate',
                    'bin/dax_tools/GenerateProcessorTemplate',
                    'bin/dax_tools/GenerateSpiderTemplate',
@@ -67,6 +66,7 @@ if __name__ == '__main__':
                    'bin/Xnat_tools/XnatSwitchProcessStatus',
                    'bin/Xnat_tools/XnatRandomSessionList',
                    'bin/Xnat_tools/Xnatupload',
+                    'bin/dax_tools/GenerateAutoSpider'
                    ],
           classifiers=[
                        # As from http://pypi.python.org/pypi?%3Aaction=list_classifiers
