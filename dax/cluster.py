@@ -231,6 +231,7 @@ class PBS:   #The script file generator class
         :param ppn: number of processor to set for the script
         :param email: email address to set for the script
         :param email_options: email options to set for the script
+        :param xnat_host: set the XNAT_HOST for the job (export)
         :return: None
         """
         self.filename = filename

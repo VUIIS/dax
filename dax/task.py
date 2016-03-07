@@ -388,7 +388,7 @@ class Task(object):
 
         return jobstatus
 
-    def launch(self, jobdir, job_email=None, job_email_options=DEFAULT_EMAIL_OPTS, xnat_host=os.environ['XNAT_HOST']):
+    def launch(self, jobdir, job_email=None, job_email_options=DEFAULT_EMAIL_OPTS, xnat_host=os.environ['XNAT_HOST'], writeonly=False):
         """
         Method to launch a job on the grid
 
@@ -396,6 +396,8 @@ class Task(object):
         :param job_email: who to email if the job fails
         :param job_email_options: grid-specific job email options (e.g.,
          fails, starts, exits etc)
+        :param xnat_host: set the XNAT_HOST in the PBS job
+        :param writeonly: write the job files without submitting them
         :raises: cluster.ClusterLaunchException if the jobid is 0 or empty
          as returned by pbs.submit() method
         :return: True if the job failed
@@ -407,14 +409,17 @@ class Task(object):
         pbs = PBS(pbsfile, outlog, cmds, self.processor.walltime_str, self.processor.memreq_mb,
                   self.processor.ppn, job_email, job_email_options, xnat_host)
         pbs.write()
-        jobid = pbs.submit()
-
-        if jobid == '' or jobid == '0':
-            LOGGER.error('failed to launch job on cluster')
-            raise cluster.ClusterLaunchException
-        else:
-            self.set_launch(jobid)
+        if writeonly:
             return True
+        else:
+            jobid = pbs.submit()
+
+            if jobid == '' or jobid == '0':
+                LOGGER.error('failed to launch job on cluster')
+                raise cluster.ClusterLaunchException
+            else:
+                self.set_launch(jobid)
+                return True
 
     def check_date(self):
         """
