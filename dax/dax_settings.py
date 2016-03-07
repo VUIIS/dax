@@ -226,7 +226,11 @@ class DAX_Settings(object):
         :return: List of xsitypes for DAX to check for
 
         """
-        return self.get('admin', 'xsitype_include').split(',')
+        xsitype = self.get('admin', 'xsitype_include')
+        if len(xsitype) > 0:
+            return xsitype.split(',')
+        else:
+            return []
 
     # Begin cluster section
     def get_cmd_submit(self):
