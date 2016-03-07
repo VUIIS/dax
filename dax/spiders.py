@@ -830,3 +830,25 @@ def is_good_version(version):
            not vers[2].isdigit():
             return False
     return True
+
+def load_inputs(inputs_file):
+    import csv
+
+    with open(inputs_file, 'Ur') as f:
+        data = list(tuple(rec) for rec in csv.reader(f, delimiter=','))
+
+    return data
+
+def load_outputs(outputs_file):
+    import csv
+
+    with open(outputs_file, 'Ur') as f:
+       data = list(tuple(rec) for rec in csv.reader(f, delimiter=','))
+
+    return data
+
+def load_template(template_file):
+    with open (template_file, "r") as f:
+        data = f.read()
+
+    return data
