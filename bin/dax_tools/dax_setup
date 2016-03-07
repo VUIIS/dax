@@ -89,7 +89,6 @@ SGE_TEMPLATE = """#!/bin/bash
 #$ -l h_rt=${job_walltime}
 #$ -l tmem=${job_memory}M
 #$ -l h_vmem=${job_memory}M
-#$ -l vf=${job_memory}M
 #$ -o ${job_output_file}
 #$ -pe smp ${job_ppn}
 #$ -j y
