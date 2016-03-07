@@ -42,6 +42,7 @@ if __name__ == '__main__':
                    'bin/dax_tools/dax_update_tasks', 
                    'bin/dax_tools/dax_upload',
                    'bin/dax_tools/run_spider',
+                   'bin/dax_tools/GenerateAutoSpider',
                    'bin/dax_tools/GenerateModuleTemplate',
                    'bin/dax_tools/GenerateProcessorTemplate',
                    'bin/dax_tools/GenerateSpiderTemplate',
