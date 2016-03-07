@@ -22,11 +22,14 @@ import getpass
 import collections
 from dax import XnatUtils
 from datetime import datetime
+from stat import S_IXUSR, ST_MODE
+from shutil import copyfile
+from string import Template
 
 class Spider(object):
     """ Base class for spider """
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
+                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", skip_finish=False):
         """
         Entry point for the Base class for spider
 
@@ -73,6 +76,8 @@ class Spider(object):
         os.environ['XNAT_HOST'] = self.host
         os.environ['XNAT_USER'] = self.user
         os.environ['XNAT_PASS'] = self.pwd
+        # run the finish or not
+        self.skip_finish = skip_finish
 
     def get_default_value(self, variable, env_name, value):
         """
@@ -503,6 +508,192 @@ class SessionSpider(Spider):
         """
         raise NotImplementedError()
 
+class AutoSpider(object):
+    def __init__(self, name, params, outputs, template, datatype='session'):
+        self.name = name
+        self.params = params
+        self.outputs = outputs
+        self.template = template
+        self.datatype = datatype
+
+        # Make the parser
+        parser = self.get_argparser()
+
+        # Now parse commandline arguments
+        args = parser.parse_args()
+        print(args)
+
+        # Initialize spider with the args
+        super(AutoSpider, self).__init__(name,
+            args.temp_dir, args.proj_label, args.subj_label, args.sess_label,
+            xnat_host=args.host, xnat_user=args.xnat_user, xnat_pass=args.xnat_pass,
+            suffix=args.suffix, skip_finish=args.skipfinish)
+
+        # Make a list of parameters that need to be copied locally
+        for p in params:
+            if p[1] == 'FILE' or p[1] == 'DIR':
+                self.copy_list.append(p[0])
+
+        self.src_inputs = vars(args)
+        self.input_dir = os.path.join(self.jobdir, 'INPUT')
+        self.run_inputs = {}
+
+    def get_argparser(self):
+        if self.datatype == 'scan':
+            parser = get_scan_argparser(self.name, 'Run '+self.name)
+        else:
+            parser = get_session_argparser(self.name, 'Run '+self.name)
+
+        # Add input params to arguments
+        for p in self.params:
+            parser.add_argument('--'+p[0], dest=p[0], help=p[2], required=True)
+
+        return parser
+
+    def define_spider_process_handler(self):
+        """
+        Define the SpiderProcessHandler for the end of spider
+         using the init attributes about XNAT
+        :return: None
+        """
+        # Create the SpiderProcessHandler if first time upload
+        if self.datatype == 'scan':
+            self.spider_handler = XnatUtils.SpiderProcessHandler(
+                self.spider_path,
+                self.suffix,
+                self.xnat_project,
+                self.xnat_subject,
+                self.xnat_session,
+                time_writer=self.time_writer
+            )
+
+        else:
+            self.spider_handler = XnatUtils.SpiderProcessHandler(
+                self.spider_path,
+                self.suffix,
+                self.xnat_project,
+                self.xnat_subject,
+                self.xnat_session,
+                self.xnat_scan,
+                time_writer=self.time_writer
+            )
+
+    def copy_inputs(self):
+        self.run_inputs = self.src_inputs
+
+        os.mkdir(self.input_dir)
+
+        for _input in self.copy_list:
+            src = self.src_inputs[_input]
+            if src.startswith('xnat://'):
+                src = src[len('xnat:/'):]
+                _res, _file = src.split('/files/')
+                dst = os.path.join(self.input_dir, _file)
+                print('DEBUG:downloading from XNAT:'+src+' to '+dst)
+                try:
+                    xnat = XnatUtils.get_interface(self.host, self.user, self.pwd)
+                    res = xnat.select(_res)
+                    result = res.file(_file).get(dst)
+                except:
+                    print('ERROR:downloading from XNAT')
+                    return
+            else:
+                dst = os.path.join(self.input_dir, os.path.basename(src))
+                print('DEBUG:copying src:'+src+' to '+dst)
+                copyfile(src, dst)
+
+            self.run_inputs[_input] = dst
+
+        return self.run_inputs
+
+    def go(self):
+
+        self.print_info()
+
+        self.pre_run()
+
+        self.run()
+
+        if not self.skip_finish:
+            self.finish()
+
+    def pre_run(self):
+        '''Pre-Run method to download and organise inputs for the pipeline
+        Implemented in derived class objects.'''
+        print('DEBUG:pre_run()')
+        self.copy_inputs()
+
+    def run(self):
+        print('DEBUG:run()')
+        if self.template.startswith('#PYTHON'):
+            self.run_python(self.template, 'example.py')
+        elif self.template.startswith('%MATLAB'):
+            self.run_matlab(self.template, 'example.m')
+
+    def finish(self):
+        print('DEBUG:finish()')
+
+        self.check_spider_handler()
+
+        # Add each output
+        if self.outputs:
+            for _output in self.outputs:
+                _path = os.path.join(self.jobdir, _output[0])
+                _type = _output[1]
+                _res = _output[2]
+
+                if _type == 'FILE':
+                    if _res == 'PDF':
+                        self.spider_handler.add_pdf(_path)
+                    else:
+                        self.spider_handler.add_file(_path, _res)
+                elif _type == 'DIR':
+                    self.spider_handler.add_folder(_path, _res)
+                else:
+                    print('ERROR:unknown type:'+_type)
+        else:
+            for _output in os.listdir(self.jobdir):
+                _path = os.path.join(self.jobdir, _output)
+                _res = os.path.basename(_output)
+                self.spider_handler.add_folder(_path, _res)
+
+        self.end()
+
+    def run_matlab(self, mat_template, filename):
+        filepath = os.path.join(self.script_dir, filename)
+        template = Template(mat_template)
+
+        # Write the script
+        with open(filepath, 'w') as f:
+            f.write(template.substitute(self.run_inputs))
+
+        # Run the script
+        XnatUtils.run_matlab(filepath, verbose=True)
+
+    def run_shell(self, sh_template, filename):
+        filepath = os.path.join(self.script_dir, filename)
+        template = Template(sh_template)
+
+        # Write the script
+        with open(filepath, 'w') as f:
+            f.write(template.substitute(self.run_inputs))
+
+        # Run it
+        os.chmod(filepath, os.stat(filepath)[ST_MODE] | S_IXUSR)
+        os.system(filepath)
+
+    def run_python(self, py_template, filename):
+        filepath = os.path.join(self.script_dir, filename)
+        template = Template(py_template)
+
+        # Write the script
+        with open(filepath, 'w') as f:
+            f.write(template.substitute(self.run_inputs))
+
+        # Run it
+        os.chmod(filepath, os.stat(filepath)[ST_MODE] | S_IXUSR)
+        os.system('python '+filepath)
+
 #### CLASSES ####
 # class to display time
 class TimedWriter(object):
@@ -591,6 +782,7 @@ def get_default_argparser(name, description):
     ap.add_argument('--suffix', dest='suffix', help='assessor suffix. default: None', default=None)
     ap.add_argument('--host', dest='host', help='Set XNAT Host. Default: using env variable XNAT_HOST', default=None)
     ap.add_argument('--user', dest='user', help='Set XNAT User. Default: using env variable XNAT_USER', default=None)
+    ap.add_argument('--skipfinish', help='Skip the finish step, so do not move files to upload queue', action='store_true')
     return ap
 
 def get_session_argparser(name, description):
