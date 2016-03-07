@@ -384,7 +384,7 @@ class Task(object):
 
         return jobstatus
 
-    def launch(self, jobdir, job_email=None, job_email_options=DEFAULT_EMAIL_OPTS):
+    def launch(self, jobdir, job_email=None, job_email_options=DEFAULT_EMAIL_OPTS, xnat_host=os.environ['XNAT_HOST']):
         """
         Method to launch a job on the grid
 
@@ -401,7 +401,7 @@ class Task(object):
         pbsfile = self.pbs_path()
         outlog = self.outlog_path()
         pbs = PBS(pbsfile, outlog, cmds, self.processor.walltime_str, self.processor.memreq_mb,
-                  self.processor.ppn, job_email, job_email_options)
+                  self.processor.ppn, job_email, job_email_options, xnat_host)
         pbs.write()
         jobid = pbs.submit()
 

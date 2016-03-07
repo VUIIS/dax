@@ -206,7 +206,7 @@ def get_specific_str(big_str, prefix, suffix):
 class PBS:   #The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
     def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
-                 ppn=1, email=None, email_options=DEFAULT_EMAIL_OPTS):
+                 ppn=1, email=None, email_options=DEFAULT_EMAIL_OPTS, xnat_host=os.environ['XNAT_HOST']):
         """
         Entry point for the PBS class
 
@@ -228,6 +228,7 @@ class PBS:   #The script file generator class
         self.email = email
         self.email_options = email_options
         self.ppn = ppn
+        self.xnat_host = xnat_host
 
     def write(self):
         """
@@ -247,7 +248,8 @@ class PBS:   #The script file generator class
                     'job_memory':str(self.mem_mb),
                     'job_output_file':self.outfile,
                     'job_output_file_options':'oe',
-                    'job_cmds':'\n'.join(self.cmds)}
+                    'job_cmds':'\n'.join(self.cmds),
+                    'xnat_host':self.xnat_host}
         with open(self.filename, 'w') as f_obj:
             f_obj.write(JOB_TEMPLATE.safe_substitute(job_data))
 

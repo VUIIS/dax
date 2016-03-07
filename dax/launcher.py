@@ -173,7 +173,7 @@ class Launcher(object):
             mes_format = """  +Launching job:{label}, currently {count} jobs in cluster queue"""
             LOGGER.info(mes_format.format(label=cur_task.assessor_label,
                                           count=str(cur_job_count)))
-            success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options)
+            success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options, self.xnat_host)
             if not success:
                 LOGGER.error('ERROR:failed to launch job')
                 raise cluster.ClusterLaunchException

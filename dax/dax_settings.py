@@ -1,4 +1,4 @@
-""" This file can be edited by users to match their cluster commands.
+"""file can be edited by users to match their cluster commands.
 
     1) Submission System (by default SLURM) and script file:
 You can customize the command for your Submission System.
@@ -61,36 +61,41 @@ ADMIN_EMAIL = []
 #### Default value set by users ####
 #Function for PBS cluster jobs:
 #Command to submit job to the cluster:
-CMD_SUBMIT = 'sbatch'
-PREFIX_JOBID = 'Submitted batch job '
-SUFFIX_JOBID = '\n'
+CMD_SUBMIT = 'qsub'
+PREFIX_JOBID = 'Your job '
+SUFFIX_JOBID = '("'
 #Command to count the number of jobs running for a user
-CMD_COUNT_NB_JOBS = "squeue -u $USER --noheader | wc -l"
+CMD_COUNT_NB_JOBS = "expr `qstat -u $USER | wc -l` - 2"
 #Command to get the status of a job giving it jobid.
 #Shoudl return R/Q/C for running/queue or others that will mean clear
-CMD_GET_JOB_STATUS = Template("""squeue -j ${jobid} --noheader | awk {'print $5'}""")
-RUNNING_STATUS = 'R'
-QUEUE_STATUS = 'Q'
-COMPLETE_STATUS = 'slurm_load_jobs error: Invalid job id specified'
+CMD_GET_JOB_STATUS = Template("""qstat -u $USER | grep ${jobid} | awk {'print $5'}""")
+RUNNING_STATUS = 'r'
+QUEUE_STATUS = 'qw'
+COMPLETE_STATUS = ''
 #Command to get the walltime and memory used by the jobs at the end of the job
-TEMPLATE = """sacct -j ${jobid}.batch --format MaxRss --noheader | awk '{print $1+0}'"""
-CMD_GET_JOB_MEMORY = Template(TEMPLATE)
-CMD_GET_JOB_WALLTIME = Template("""sacct -j ${jobid}.batch --format CPUTime --noheader""")
-CMD_GET_JOB_NODE = Template("""sacct -j ${jobid}.batch --format NodeList --noheader""")
+CMD_GET_JOB_MEMORY = Template("""echo ''""")
+CMD_GET_JOB_WALLTIME = Template("""echo ''""")
+CMD_GET_JOB_NODE = Template("""echo ''""") #not define
 #Template for your script file to submit a job
-JOB_EXTENSION_FILE = '.slurm'
+JOB_EXTENSION_FILE = '.pbs'
 JOB_TEMPLATE = Template("""#!/bin/bash
-#SBATCH --mail-user=${job_email}
-#SBATCH --mail-type=${job_email_options}
-#SBATCH --nodes=1
-#SBATCH --ntasks=${job_ppn}
-#SBATCH --time=${job_walltime}
-#SBATCH --mem=${job_memory}mb
-#SBATCH -o ${job_output_file}
+#$ -S /bin/sh
+#$ -M ${job_email}
+#$ -m ${job_email_options}
+#$ -l h_rt=${job_walltime}
+#$ -l tmem=${job_memory}M
+#$ -l h_vmem=${job_memory}M
+#$ -o ${job_output_file}
+#$ -pe smp ${job_ppn}
+#$ -j y
+#$ -cwd
+#$ -V
 
 uname -a # outputs node info (name, date&time, type, OS, etc)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use only good amount of ppn
+export XNAT_HOST=${xnat_host}
 SCREEN=$$$$$$$$
+echo 'XNAT host: ' $XNAT_HOST
 echo 'Screen display number for xvfb-run' $SCREEN
 xvfb-run --wait=5 \
 -a -e /tmp/xvfb_$SCREEN.err -f /tmp/xvfb_$SCREEN.auth \
@@ -99,16 +104,16 @@ xvfb-run --wait=5 \
 ${job_cmds}
 """)
 #Default EMAIL options:
-DEFAULT_EMAIL_OPTS = 'FAIL'
+DEFAULT_EMAIL_OPTS = 'a'
 XSITYPE_INCLUDE = ["proc:genProcData"]
 
 #Path for results from job by default.
 #Gateway of the computer you are running on for default if HOSTNAME is not an env:
 DEFAULT_GATEWAY = None
 #Root directory for jobs
-DEFAULT_ROOT_JOB_DIR = '/tmp'
+DEFAULT_ROOT_JOB_DIR = '/home/byvernau/jobsdir/'
 #Number maximun of job in the queue:
-DEFAULT_QUEUE_LIMIT = 600
+DEFAULT_QUEUE_LIMIT = 50
 #Result dir
 DEFAULT_RESULTS_DIR = os.path.join(USER_HOME, 'RESULTS_XNAT_SPIDER')
 #Email
