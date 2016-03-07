@@ -540,6 +540,7 @@ class AutoSpider(Spider):
 
         self.src_inputs = vars(args)
         self.input_dir = os.path.join(self.jobdir, 'INPUT')
+        self.script_dir = os.path.join(self.jobdir, 'SCRIPT')
         self.run_inputs = {}
 
     def get_argparser(self):
@@ -568,6 +569,7 @@ class AutoSpider(Spider):
                 self.xnat_project,
                 self.xnat_subject,
                 self.xnat_session,
+                self.xnat_scan,
                 time_writer=self.time_writer
             )
 
@@ -578,7 +580,6 @@ class AutoSpider(Spider):
                 self.xnat_project,
                 self.xnat_subject,
                 self.xnat_session,
-                self.xnat_scan,
                 time_writer=self.time_writer
             )
 
@@ -612,8 +613,6 @@ class AutoSpider(Spider):
 
     def go(self):
 
-        self.print_info()
-
         self.pre_run()
 
         self.run()
@@ -629,6 +628,8 @@ class AutoSpider(Spider):
 
     def run(self):
         print('DEBUG:run()')
+        os.mkdir(self.script_dir)
+
         if self.template.startswith('#PYTHON'):
             self.run_python(self.template, 'example.py')
         elif self.template.startswith('%MATLAB'):
@@ -637,7 +638,7 @@ class AutoSpider(Spider):
     def finish(self):
         print('DEBUG:finish()')
 
-        self.check_spider_handler()
+        self.has_spider_handler()
 
         # Add each output
         if self.outputs:
