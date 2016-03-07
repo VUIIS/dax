@@ -20,10 +20,21 @@ from email.mime.text import MIMEText
 from subprocess import CalledProcessError
 
 import dax
-from dax import ADMIN_EMAIL, RESULTS_DIR, DEFAULT_GATEWAY,\
-                REDCAP_VAR, API_URL, API_KEY_DAX, SMTP_FROM, SMTP_HOST,\
-                SMTP_PASS, DEFAULT_EMAIL_OPTS, DEFAULT_MAX_AGE
+from dax import DAX_Settings
 from dax.launcher import BUILD_SUFFIX, UPDATE_SUFFIX, LAUNCH_SUFFIX
+
+DAX_SETTINGS = DAX_Settings()
+ADMIN_EMAIL = DAX_SETTINGS.get_admin_email()
+RESULTS_DIR = DAX_SETTINGS.get_results_dir()
+DEFAULT_GATEWAY = DAX_SETTINGS.get_gateway()
+REDCAP_VAR = DAX_SETTINGS.get_redcap_config()
+API_URL = DAX_SETTINGS.get_api_url()
+API_KEY_DAX = DAX_SETTINGS.get_api_key_dax()
+SMTP_FROM = DAX_SETTINGS.get_smtp_from()
+SMTP_HOST = DAX_SETTINGS.get_smtp_host()
+SMTP_PASS = DAX_SETTINGS.get_smtp_pass()
+DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
+DEFAULT_MAX_AGE = DAX_SETTINGS.get_max_age()
 
 ######### Variables ##########
 #Information on gateway/user

@@ -14,8 +14,21 @@ import logging
 import subprocess
 from datetime import datetime
 from subprocess import CalledProcessError
-from dax_settings import DEFAULT_EMAIL_OPTS, JOB_TEMPLATE, CMD_SUBMIT, CMD_COUNT_NB_JOBS, CMD_GET_JOB_STATUS, CMD_GET_JOB_WALLTIME, CMD_GET_JOB_MEMORY, CMD_GET_JOB_NODE, RUNNING_STATUS, QUEUE_STATUS, COMPLETE_STATUS, PREFIX_JOBID, SUFFIX_JOBID
-
+from dax_settings import DAX_Settings
+DAX_SETTINGS = DAX_Settings()
+DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
+JOB_TEMPLATE = DAX_SETTINGS.get_job_template()
+CMD_SUBMIT = DAX_SETTINGS.get_cmd_submit()
+CMD_COUNT_NB_JOBS = DAX_SETTINGS.get_cmd_count_nb_jobs()
+CMD_GET_JOB_STATUS = DAX_SETTINGS.get_cmd_get_job_status()
+CMD_GET_JOB_WALLTIME = DAX_SETTINGS.get_cmd_get_job_walltime()
+CMD_GET_JOB_MEMORY = DAX_SETTINGS.get_cmd_get_job_memory()
+CMD_GET_JOB_NODE = DAX_SETTINGS.get_cmd_get_job_node()
+RUNNING_STATUS = DAX_SETTINGS.get_running_status()
+QUEUE_STATUS = DAX_SETTINGS.get_queue_status()
+COMPLETE_STATUS = DAX_SETTINGS.get_complete_status()
+PREFIX_JOBID = DAX_SETTINGS.get_prefix_jobid()
+SUFFIX_JOBID = DAX_SETTINGS.get_suffix_jobid()
 MAX_TRACE_DAYS = 30
 
 #Logger to print logs

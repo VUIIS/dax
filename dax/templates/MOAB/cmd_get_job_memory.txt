@@ -1,0 +1,1 @@
+rsh vmpsched "tracejob -n ${numberofdays} ${jobid}" 2> /dev/null | awk -v FS="(resources_used.mem=|kb)" '{print $2}' | sort -u | tail -1
