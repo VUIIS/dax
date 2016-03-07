@@ -5,6 +5,7 @@
 import os
 import sys
 import socket
+import shutil
 import getpass
 import readline, glob
 
@@ -76,6 +77,116 @@ dax_launch_pid={dm_dax_launch_pid}
 max_age={dm_max_age}
 admin_email={dm_admin_email}
 """
+
+DEFAULT_FILE_FIELDS = ['cmd_get_job_memory', 'cmd_get_job_node',
+                       'cmd_count_nb_jobs', 'cmd_get_job_status',
+                       'cmd_get_job_walltime', 'job_template']
+
+SGE_TEMPLATE = """#!/bin/bash
+#$ -S /bin/sh
+#$ -M ${job_email}
+#$ -m ${job_email_options}
+#$ -l h_rt=${job_walltime}
+#$ -l tmem=${job_memory}M
+#$ -l h_vmem=${job_memory}M
+#$ -l vf=${job_memory}M
+#$ -o ${job_output_file}
+#$ -pe smp ${job_ppn}
+#$ -j y
+#$ -cwd
+#$ -V
+uname -a # outputs node info (name, date&time, type, OS, etc)
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use only good amount of ppn
+SCREEN=$$$$$$$$
+echo 'Screen display number for xvfb-run' $SCREEN
+xvfb-run --wait=5 \
+-a -e /tmp/xvfb_$SCREEN.err -f /tmp/xvfb_$SCREEN.auth \
+--server-num=$SCREEN \
+--server-args="-screen 0 1920x1200x24 -ac +extension GLX" \
+${job_cmds}\n"""
+
+DEFAULT_SGE_DICT = {'cmd_submit': 'qsub',
+                    'prefix_jobid': 'Your job ',
+                    'suffix_jobid': '("',
+                    'cmd_count_nb_jobs': 'expr `qstat -u $USER | wc -l` - 2\n',
+                    'queue_status': 'qw',
+                    'running_status': 'r',
+                    'complete_status': '',
+                    'cmd_get_job_memory': "echo ''\n",
+                    'cmd_get_job_node': "echo ''\n",
+                    'cmd_get_job_status': "qstat -u $USER | grep ${jobid} | awk {'print $5'}\n",
+                    'cmd_get_job_walltime': "echo ''\n",
+                    'job_extension_file': '.pbs',
+                    'job_template': SGE_TEMPLATE,
+                    'email_opts': 'a'}
+
+SLURM_TEMPLATE = """#!/bin/bash
+#SBATCH --mail-user=${job_email}
+#SBATCH --mail-type=${job_email_options}
+#SBATCH --nodes=1
+#SBATCH --ntasks=${job_ppn}
+#SBATCH --time=${job_walltime}
+#SBATCH --mem=${job_memory}mb
+#SBATCH -o ${job_output_file}
+
+uname -a # outputs node info (name, date&time, type, OS, etc)
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use only good amount of ppn
+SCREEN=$$$$$$$$
+echo 'Screen display number for xvfb-run' $SCREEN
+xvfb-run --wait=5 \
+-a -e /tmp/xvfb_$SCREEN.err -f /tmp/xvfb_$SCREEN.auth \
+--server-num=$SCREEN \
+--server-args="-screen 0 1920x1200x24 -ac +extension GLX" \
+${job_cmds}\n"""
+
+DEFAULT_SLURM_DICT = {'cmd_submit': 'sbatch',
+                      'prefix_jobid': 'Submitted batch job ',
+                      'suffix_jobid': '\n',
+                      'cmd_count_nb_jobs': 'squeue -u masispider,vuiiscci --noheader | wc -l\n',
+                      'queue_status': 'Q',
+                      'running_status': 'R',
+                      'complete_status': 'slurm_load_jobs error: Invalid job id specified\n',
+                      'cmd_get_job_memory': "sacct -j ${jobid}.batch --format MaxRss --noheader | awk '{print $1+0}'\n",
+                      'cmd_get_job_node': 'sacct -j ${jobid}.batch --format NodeList --noheader\n',
+                      'cmd_get_job_status': 'slurm_load_jobs error: Invalid job id specified\n',
+                      'cmd_get_job_walltime': 'sacct -j ${jobid}.batch --format CPUTime --noheader\n',
+                      'job_extension_file': '.slurm',
+                      'job_template': SLURM_TEMPLATE,
+                      'email_opts': 'FAIL'}
+
+MOAB_TEMPLATE = """#!/bin/bash
+#PBS -M ${job_email}
+#PBS -m ${job_email_options}
+#PBS -l nodes=1:ppn=${job_ppn}
+#PBS -l walltime=${job_walltime}
+#PBS -l mem=${job_memory}mb
+#PBS -o ${job_output_file}
+#PBS -j y
+
+uname -a # outputs node info (name, date&time, type, OS, etc)
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use only good amount of ppn
+SCREEN=$$$$$$$$
+echo 'Screen display number for xvfb-run' $SCREEN
+xvfb-run --wait=5 \
+-a -e /tmp/xvfb_$SCREEN.err -f /tmp/xvfb_$SCREEN.auth \
+--server-num=$SCREEN \
+--server-args="-screen 0 1920x1200x24 -ac +extension GLX" \
+${job_cmds}\n"""
+
+DEFAULT_MOAB_DICT = {'cmd_submit': 'qsub',
+                     'prefix_jobid': '',
+                     'suffix_jobid': '.',
+                     'cmd_count_nb_jobs': 'qstat | grep $USER | wc -l\n',
+                     'queue_status': 'Q',
+                     'running_status': 'R',
+                     'complete_status': 'C',
+                     'cmd_get_job_memory': "rsh vmpsched 'tracejob -n ${numberofdays} ${jobid}' 2> /dev/null | awk -v FS='(resources_used.mem=|kb)' '{print $2}' | sort -u | tail -1\n",
+                     'cmd_get_job_node': "echo ''\n",
+                     'cmd_get_job_status': "qstat -f ${jobid} | grep job_state | awk {'print $3'}\n",
+                     'cmd_get_job_walltime': "rsh vmpsched 'tracejob -n ${numberofdays} ${jobid}' 2> /dev/null | awk -v FS='(resources_used.walltime=|\n)' '{print $2}' | sort -u | tail -1\n",
+                     'job_extension_file': '.pbs',
+                     'job_template': MOAB_TEMPLATE,
+                     'email_opts': 'a'}
 
 class DAX_Setup_Handler(object):
 
@@ -507,6 +618,52 @@ class DAX_Setup_Handler(object):
             self._set_null('dm_max_age')
             self._set_null('dm_admin_email')
 
+    def _use_cluster_default(self):
+        """
+        Ask the user if they want to use default settings
+
+        :return: True if using default, False otherwise
+        """
+        value = ''
+        while value.lower() not in ['yes', 'no', 'n', 'y']:
+            value = self._prompt("Do you want to download default templates file from DAX? [yes/no] ")
+        if value in ['yes', 'y']:
+            return True
+        else:
+            return False
+
+    def _set_cluster_default(self):
+        """
+        Use the default cluster settings from the cluster type selected
+
+        :return: None
+        """
+        cluster_type = '0'
+        while cluster_type not in ['1', '2', '3']:
+            cluster_type = self._prompt("Which cluster are you using? [1.SGE 2.SLURM 3.MOAB] ")
+        if cluster_type == '1':
+            cluster_dict = DEFAULT_SGE_DICT
+        elif cluster_type == '2':
+            cluster_dict = DEFAULT_SLURM_DICT
+        else:
+            cluster_dict = DEFAULT_MOAB_DICT
+
+        #Copy the files from the template:
+        templates_path = os.path.join(os.path.expanduser('~'), '.dax_templates')
+        if not os.path.exists(templates_path): os.makedirs(templates_path)
+        for field, value in cluster_dict.items():
+            if field in DEFAULT_FILE_FIELDS:
+                with open(os.path.join(templates_path, field+'.txt'), 'w') as fid:
+                    fid.writelines(value)
+                self._set(field, os.path.join(templates_path, field+'.txt'))
+            else:
+                self._set(field, value)
+        self._get_gateway()
+        self._get_root_job_dir()
+        self._get_queue_limit()
+        self._get_results_dir()
+        self._get_max_age()
+
     def write(self):
         """
         Write the all of the config options to the ~/.dax_settings.ini file
@@ -531,25 +688,29 @@ class DAX_Setup_Handler(object):
         self._get_smtp_pass()
         self._get_xsitype_include()
         print '\n  CLUSTER :'
-        self._get_cmd_submit()
-        self._get_prefix_jobid()
-        self._get_suffix_jobid()
-        self._get_cmd_count_nb_jobs()
-        self._get_cmd_get_job_status()
-        self._get_queue_status()
-        self._get_running_status()
-        self._get_complete_status()
-        self._get_cmd_get_job_memory()
-        self._get_cmd_get_job_walltime()
-        self._get_cmd_get_job_node()
-        self._get_job_extension_file()
-        self._get_job_template()
-        self._get_email_opts()
-        self._get_gateway()
-        self._get_root_job_dir()
-        self._get_queue_limit()
-        self._get_results_dir()
-        self._get_max_age()
+        use_default = self._use_cluster_default()
+        if use_default:
+            self._set_cluster_default()
+        else:
+            self._get_cmd_submit()
+            self._get_prefix_jobid()
+            self._get_suffix_jobid()
+            self._get_cmd_count_nb_jobs()
+            self._get_cmd_get_job_status()
+            self._get_queue_status()
+            self._get_running_status()
+            self._get_complete_status()
+            self._get_cmd_get_job_memory()
+            self._get_cmd_get_job_walltime()
+            self._get_cmd_get_job_node()
+            self._get_job_extension_file()
+            self._get_job_template()
+            self._get_email_opts()
+            self._get_gateway()
+            self._get_root_job_dir()
+            self._get_queue_limit()
+            self._get_results_dir()
+            self._get_max_age()
         print '\n  REDCAP :'
         self._get_api_url()
         self._get_api_key_dax()
