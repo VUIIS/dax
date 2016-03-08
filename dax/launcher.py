@@ -177,9 +177,14 @@ class Launcher(object):
             # if cur_task.get_status() != task.NEED_TO_RUN:
             #     continue
 
-            mes_format = """  +Launching job:{label}, currently {count} jobs in cluster queue"""
-            LOGGER.info(mes_format.format(label=cur_task.assessor_label,
-                                          count=str(cur_job_count)))
+            if writeonly:
+                mes_format = """  +Writing PBS file for job:{label}, currently {count} jobs in cluster queue"""
+                LOGGER.info(mes_format.format(label=cur_task.assessor_label,
+                                              count=str(cur_job_count)))
+            else:
+                mes_format = """  +Launching job:{label}, currently {count} jobs in cluster queue"""
+                LOGGER.info(mes_format.format(label=cur_task.assessor_label,
+                                              count=str(cur_job_count)))
             success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options, self.xnat_host, writeonly)
             if not success:
                 LOGGER.error('ERROR:failed to launch job')
