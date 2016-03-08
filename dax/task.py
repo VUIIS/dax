@@ -680,7 +680,7 @@ class Task(object):
         if not jobstatus or jobstatus == 'R' or jobstatus == 'Q':
             # Still running
             return JOB_RUNNING
-        elif jobstatus == 'F' and not self.ready_flag_exists():
+        elif not self.ready_flag_exists(): #jobstatus == 'F' and
             # Check for a flag file created upon completion, if it's not there then the job failed
             return JOB_FAILED
         else:

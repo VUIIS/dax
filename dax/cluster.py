@@ -77,7 +77,6 @@ def job_status(jobid):
 
     """
     cmd = CMD_GET_JOB_STATUS.safe_substitute({'jobid':jobid})
-    print cmd
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
         output = output.strip()
@@ -87,8 +86,8 @@ def job_status(jobid):
             return 'Q'
         elif output == COMPLETE_STATUS:
             return 'C'
-        elif len(output) == 0:
-            return 'F'
+        #elif len(output) == 0:
+        #    return 'F'
         else:
             return None
     except CalledProcessError:
