@@ -168,7 +168,7 @@ class Launcher(object):
         LOGGER.info(str(cur_job_count)+' jobs currently in queue')
 
         # Launch until we reach cluster limit or no jobs left to launch
-        while cur_job_count < self.queue_limit and len(task_list) > 0 or writeonly:
+        while (cur_job_count < self.queue_limit or writeonly) and len(task_list) > 0:
             cur_task = task_list.pop()
 
             # Confirm task is still ready to run
