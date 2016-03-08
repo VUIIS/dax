@@ -6,6 +6,7 @@
 import os
 import sys
 import dax
+import imp
 import shutil
 import smtplib
 import getpass
@@ -60,6 +61,9 @@ Examples:
    * run dax_upload for a specific xnat/username: dax_upload --host https://... -u admin
    * run dax_upload for a specific xnat/username: dax_upload --host https://... -u admin -p project1,project2
 """
+
+########### SEVERAL HOSTS ###########
+
 
 ########### Functions ###########
 def send_email(from_add, password, dests, subject, content, server):
@@ -174,10 +178,11 @@ def get_assessor_dict(assessor_label, assessor_path):
         assessor_dict = dict(zip(keys, values))
     return assessor_dict
 
-def get_assessor_list():
+def get_assessor_list(projects):
     """
     Get the list of assessors labels to upload to XNAT from the queue folder.
 
+    :param projects: list of projects to upload to XNAT
     :return: list of assessor to upload from upload folder
     """
     assessor_label_list = list()
@@ -189,7 +194,7 @@ def get_assessor_list():
             continue
 
         # If projects set, check that the project is in the list of projects to upload to XNAT
-        if OPTIONS.projects and assessor_label.split('-x-')[0] not in OPTIONS.projects:
+        if projects and assessor_label.split('-x-')[0] not in projects:
             continue
 
         assessor_path = os.path.join(RESULTS_DIR, assessor_label)
@@ -204,10 +209,11 @@ def get_assessor_list():
 
     return assessor_label_list
 
-def get_pbs_list():
+def get_pbs_list(projects):
     """
     Get the list of PBS file to upload to XNAT.
 
+    :param projects: list of projects to upload to XNAT
     :return: list of pbs file from the PBS folder
     """
     pbs_list = list()
@@ -217,7 +223,7 @@ def get_pbs_list():
     for pbs_name in os.listdir(os.path.join(RESULTS_DIR, _PBS)):
 
         # If projects set, check that the project is in the list of projects to upload to XNAT
-        if OPTIONS.projects and pbs_name.split('-x-')[0] not in OPTIONS.projects:
+        if projects and pbs_name.split('-x-')[0] not in projects:
             continue
 
         pbs_file = os.path.join(RESULTS_DIR, _PBS, pbs_name)
@@ -488,15 +494,16 @@ def upload_snapshots(assessor_obj, resource_path):
                                        'SNAPSHOTS')
 
 ########################### Main Functions to Upload results/PBS/OUTLOG ###########################
-def upload_assessors(xnat):
+def upload_assessors(xnat, projects):
     """
     Upload all assessors to XNAT
 
     :param xnat: pyxnat.Interface object
+    :param projects: list of projects to upload to XNAT
     :return: None
     """
     #Get the assessor label from the directory :
-    assessors_list = get_assessor_list()
+    assessors_list = get_assessor_list(projects)
     number_of_processes = len(assessors_list)
     for index, assessor_label in enumerate(assessors_list):
         assessor_path = os.path.join(RESULTS_DIR, assessor_label)
@@ -512,14 +519,15 @@ def upload_assessors(xnat):
         else:
             LOGGER.warn('     --> wrong label')
 
-def upload_pbs(xnat):
+def upload_pbs(xnat, projects):
     """
     Upload all pbs files to XNAT
 
     :param xnat: pyxnat.Interface object
+    :param projects: list of projects to upload to XNAT
     :return: None
     """
-    pbs_list = get_pbs_list()
+    pbs_list = get_pbs_list(projects)
     number_pbs = len(pbs_list)
     for index, pbsfile in enumerate(pbs_list):
         pbs_fpath = os.path.join(RESULTS_DIR, _PBS, pbsfile)
@@ -557,16 +565,17 @@ def upload_pbs(xnat):
                     if status:
                         os.remove(pbs_fpath)
 
-def upload_outlog(xnat):
+def upload_outlog(xnat, projects):
     """
     Upload all outlog files to XNAT
 
     :param xnat: pyxnat.Interface object
+    :param projects: list of projects to upload to XNAT
     :return: None
     """
     outlogs_list = os.listdir(os.path.join(RESULTS_DIR, _OUTLOG))
-    if OPTIONS.projects:
-        outlogs_list = [logfile for logfile in outlogs_list if logfile.split('-x-')[0] in OPTIONS.projects]
+    if projects:
+        outlogs_list = [logfile for logfile in outlogs_list if logfile.split('-x-')[0] in projects]
 
     number_outlog = len(outlogs_list)
     for index, outlogfile in enumerate(outlogs_list):
@@ -609,47 +618,65 @@ def upload_results():
         LOGGER.warn('No data need to be uploaded.\n')
         sys.exit()
 
-    try:
-        if OPTIONS.host:
-            HOST = OPTIONS.host
-        else:
-            HOST = os.environ['XNAT_HOST']
+    for host, projects in XNAT_HOST_PROJECTS.items():
+        try:
 
-        if OPTIONS.username:
-            MSG = "Please provide the password for user <%s> on xnat(%s):" % (OPTIONS.username, HOST)
-            if not OPTIONS.password:
-                PWD = getpass.getpass(prompt=MSG)
-            elif 'API_KEY_DAX' in os.environ:
-                PWD = os.environ[OPTIONS.password]
+            if OPTIONS.username:
+                MSG = "Please provide the password for user <%s> on xnat(%s):" % (OPTIONS.username, host)
+                if not OPTIONS.password:
+                    PWD = getpass.getpass(prompt=MSG)
+                elif 'API_KEY_DAX' in os.environ:
+                    PWD = os.environ[OPTIONS.password]
+                else:
+                    PWD =  OPTIONS.password
             else:
-                PWD =  OPTIONS.password
+                PWD = None
+
+            LOGGER.info('Connecting to XNAT <%s> to start uploading processes' % (host))
+            xnat = XnatUtils.get_interface(host=host, user=OPTIONS.username, pwd=PWD)
+
+            if not XnatUtils.has_dax_datatypes(xnat):
+                raise Exception('error: dax datatypes are not installed on your xnat <%s>' % (host))
+
+            ################# 1) Upload the assessor data ###############
+            #For each assessor label that need to be upload :
+            LOGGER.info(' - Uploading results for assessors')
+            upload_assessors(xnat, projects)
+
+            ################# 2) Upload the PBS files ###############
+            #For each file, upload it to the PBS resource
+            LOGGER.info(' - Uploading PBS files ...')
+            upload_pbs(xnat, projects)
+
+            ################# 3) Upload the OUTLOG files not uploaded with processes ###############
+            LOGGER.info(' - Checking OUTLOG files to upload them for JOB_FAILED jobs ...')
+            upload_outlog(xnat, projects)
+
+        finally:
+            xnat.disconnect()
+            LOGGER.info('Connection to Xnat closed')
+            send_warning_emails()
+
+def load_upload_settings():
+    """
+    Method to parse arguments base on argparse
+
+    :return: dictionary with keys = XNAT host,
+     value = list of projects to upload for the host
+    """
+    host_projs = dict()
+    #If settings file given, load it and use it:
+    if os.path.isfile(OPTIONS.upload_settings):
+        host_projs = imp.load_source('host_projects', OPTIONS.upload_settings)
+    else: #if not file, use the environment variables and options
+        if OPTIONS.HOST:
+            if OPTIONS.projects:
+                host_projs = {OPTIONS.HOST: OPTIONS.projects.split(',')}
+            else:
+                host_projs = {OPTIONS.HOST: []}
         else:
-            PWD = None
-
-        LOGGER.info('Connecting to XNAT <%s> to start uploading processes' % (HOST))
-        xnat = XnatUtils.get_interface(host=OPTIONS.host, user=OPTIONS.username, pwd=PWD)
-
-        if not XnatUtils.has_dax_datatypes(xnat):
-            raise Exception('error: dax datatypes are not installed on your xnat <%s>' % (os.environ['XNAT_HOST']))
-
-        ################# 1) Upload the assessor data ###############
-        #For each assessor label that need to be upload :
-        LOGGER.info(' - Uploading results for assessors')
-        upload_assessors(xnat)
-
-        ################# 2) Upload the PBS files ###############
-        #For each file, upload it to the PBS resource
-        LOGGER.info(' - Uploading PBS files ...')
-        upload_pbs(xnat)
-
-        ################# 3) Upload the OUTLOG files not uploaded with processes ###############
-        LOGGER.info(' - Checking OUTLOG files to upload them for JOB_FAILED jobs ...')
-        upload_outlog(xnat)
-
-    finally:
-        xnat.disconnect()
-        LOGGER.info('Connection to Xnat closed')
-        send_warning_emails()
+            host_projs = {os.environ['XNAT_HOST']: []}
+    return host_projs
 
 def parse_args():
     """
@@ -671,6 +698,8 @@ def parse_args():
                     help='Suffix for the flagfile for dax_upload (Use this option if you use different XNAT_HOST).')
     ap.add_argument('-p', '--projects', dest='projects', default=None,
                     help='List of projects to upload to XNAT from the queue.')
+    ap.add_argument('f', '--uploadFileSettings', dest='upload_settings', default=None,
+                    help='Python file describing each XNAT host and projects to upload.')
     ap.add_argument('-e', '--email', dest='emailaddress', default=None,
                     help='Email address to inform you about the warnings and errors.')
     ap.add_argument('-l', '--logfile', dest='logfile',
@@ -689,6 +718,8 @@ if __name__ == '__main__':
     #Check if folders exist
     check_folders()
     DAX_UPLOAD_FLAGFILE = "%s%s.txt" % (FLAGFILE_TEMPLATE, OPTIONS.suffix)
+    #Load the settings for upload
+    XNAT_HOST_PROJECTS = load_upload_settings()
     #create the flag file showing that the spider is running
     if is_dax_upload_running():
         sys.exit()
