@@ -86,8 +86,8 @@ def job_status(jobid):
             return 'Q'
         elif output == COMPLETE_STATUS:
             return 'C'
-        #elif len(output) == 0:
-        #    return 'F'
+        elif len(output) == 0:
+            return 'F'
         else:
             return None
     except CalledProcessError:
