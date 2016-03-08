@@ -7,6 +7,8 @@ import os
 import sys
 import dax
 import imp
+import csv
+import json
 import shutil
 import smtplib
 import getpass
@@ -33,6 +35,7 @@ _UPLOAD_SKIP_LIST = [_OUTLOG, _TRASH, _PBS, _FLAG_FILES]
 FLAGFILE_TEMPLATE = os.path.join(RESULTS_DIR, _FLAG_FILES, 'Process_Upload_running')
 SNAPSHOTS_ORIGINAL = 'snapshot_original.png'
 SNAPSHOTS_PREVIEW = 'snapshot_preview.png'
+DEFAULT_HEADER = ['host', 'username', 'password', 'projects']
 
 #Cmd:
 GS_CMD = """gs -q -o {original} -sDEVICE=pngalpha -dLastPage=1 {assessor_path}/PDF/*.pdf"""
@@ -158,8 +161,8 @@ def is_dax_upload_running():
                                              str(today.second))
         f_obj.write(datestr+'\n')
         f_obj.close()
-        LOGGER.debug('Flagfile created: %s with date: %s' % (DAX_UPLOAD_FLAGFILE,
-                                                             datestr))
+        LOGGER.debug('Flagfile created: %s with date: %s\n' % (DAX_UPLOAD_FLAGFILE,
+                                                               datestr))
         return False
 
 def get_assessor_dict(assessor_label, assessor_path):
@@ -611,9 +614,6 @@ def upload_results():
 
     :return: None
     """
-    #Start Uploading
-    LOGGER.info('-------- Upload Directory: %s --------' % (RESULTS_DIR))
-    ###VARIABLES###
     if len(os.listdir(RESULTS_DIR)) == 0:
         LOGGER.warn('No data need to be uploaded.\n')
         sys.exit()
@@ -661,9 +661,26 @@ def load_upload_settings():
     """
     host_projs = list()
     #If settings file given, load it and use it:
-    if OPTIONS.upload_settings and os.path.isfile(OPTIONS.upload_settings):
-        settings = imp.load_source('settings', OPTIONS.upload_settings)
-        host_projs = settings.host_projects
+    if OPTIONS.upload_settings:
+        if not os.path.isfile(os.path.abspath(OPTIONS.upload_settings)):
+            raise Exception('No upload settings file found: %s' % os.path.abspath(OPTIONS.upload_settings))
+        if OPTIONS.upload_settings.endswith('.json'):
+            with open(os.path.abspath(OPTIONS.upload_settings)) as data_file:
+                host_projs = json.load(data_file)
+        elif OPTIONS.upload_settings.endswith('.py'):
+            settings = imp.load_source('settings', os.path.abspath(OPTIONS.upload_settings))
+            host_projs = settings.host_projects
+        elif OPTIONS.upload_settings.endswith('.csv'):
+            with open(os.path.abspath(OPTIONS.upload_settings), 'rb') as csvfileread:
+                csvreader = csv.reader(csvfileread, delimiter=',')
+                for index, row in (csvreader):
+                    if len(row) < 4:
+                        raise Exception("error: could not read the csv row. Missing argument. 4 needed, %s found at line %s." % (str(len(row)), str(index)))
+                    else:
+                        if row != DEFAULT_HEADER:
+                            host_projs.append(dict(zip(DEFAULT_HEADER, row[:4])))
+        else:
+            raise Exception("error: doesn't recognize the file format for the settings file. Please use either JSON/PYTHON/CSV format.")
     else: #if not file, use the environment variables and options
         host = os.environ['XNAT_HOST']
         username = None
@@ -684,8 +701,21 @@ def load_upload_settings():
                 password = os.environ[OPTIONS.password]
             else:
                 password =  OPTIONS.password
-        host_projs = [{'host':host, 'username':username, 'password':password, 'projects':projects}]
+        host_projs.append(dict(zip(DEFAULT_HEADER, [host, username, password, projects])))
     return host_projs
+
+def print_upload_settings():
+    """
+    Display Host/Username/Projects that will be used to upload data from the queue
+
+    :return: None
+    """
+    LOGGER.info('Upload Settings selected by user:')
+    for info in UPLOAD_SETTINGS:
+        proj_str = ','.join(info['projects']) if info['projects'] else 'all'
+        user_str = info['username'] if info['username'] else os.environ['XNAT_USER']
+        LOGGER.info('XNAT Host: %s -- Xnat Username: %s -- projects: %s' % (info['host'], user_str, proj_str))
+    LOGGER.info('Upload Directory: %s ' % (RESULTS_DIR))
 
 def parse_args():
     """
@@ -708,7 +738,7 @@ def parse_args():
     ap.add_argument('-p', '--projects', dest='projects', default=None,
                     help='List of projects to upload to XNAT from the queue.')
     ap.add_argument('-f', '--uploadFileSettings', dest='upload_settings', default=None,
-                    help='Python file describing each XNAT host and projects to upload.')
+                    help='File describing each XNAT host and projects to upload  (.py/.csv/.json).')
     ap.add_argument('-e', '--email', dest='emailaddress', default=None,
                     help='Email address to inform you about the warnings and errors.')
     ap.add_argument('-l', '--logfile', dest='logfile',
@@ -729,6 +759,7 @@ if __name__ == '__main__':
     DAX_UPLOAD_FLAGFILE = "%s%s.txt" % (FLAGFILE_TEMPLATE, OPTIONS.suffix)
     #Load the settings for upload
     UPLOAD_SETTINGS = load_upload_settings()
+    print_upload_settings()
     #create the flag file showing that the spider is running
     if is_dax_upload_running():
         sys.exit()
