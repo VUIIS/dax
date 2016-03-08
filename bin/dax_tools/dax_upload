@@ -698,7 +698,7 @@ def parse_args():
                     help='Suffix for the flagfile for dax_upload (Use this option if you use different XNAT_HOST).')
     ap.add_argument('-p', '--projects', dest='projects', default=None,
                     help='List of projects to upload to XNAT from the queue.')
-    ap.add_argument('f', '--uploadFileSettings', dest='upload_settings', default=None,
+    ap.add_argument('-f', '--uploadFileSettings', dest='upload_settings', default=None,
                     help='Python file describing each XNAT host and projects to upload.')
     ap.add_argument('-e', '--email', dest='emailaddress', default=None,
                     help='Email address to inform you about the warnings and errors.')
