@@ -32,7 +32,7 @@ def set_logger(logfile, debug):
         logger = log.setup_info_logger('dax', logfile)
     return logger
 
-def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None):
+def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None, writeonly=False):
     """
     Method to launch jobs on the grid
 
@@ -56,7 +56,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None):
 
     # Run the updates
     logger.info('running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions)
+    settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions, writeonly)
     logger.info('finished update, End Time: '+str(datetime.now()))
 
 def build(settings_path, logfile, debug, projects=None, sessions=None):
