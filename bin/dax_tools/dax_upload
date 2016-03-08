@@ -618,64 +618,73 @@ def upload_results():
         LOGGER.warn('No data need to be uploaded.\n')
         sys.exit()
 
-    for host, projects in XNAT_HOST_PROJECTS.items():
+    for upload_dict in UPLOAD_SETTINGS:
         try:
-
-            if OPTIONS.username:
-                MSG = "Please provide the password for user <%s> on xnat(%s):" % (OPTIONS.username, host)
-                if not OPTIONS.password:
-                    PWD = getpass.getpass(prompt=MSG)
-                elif 'API_KEY_DAX' in os.environ:
-                    PWD = os.environ[OPTIONS.password]
-                else:
-                    PWD =  OPTIONS.password
-            else:
-                PWD = None
-
-            LOGGER.info('Connecting to XNAT <%s> to start uploading processes' % (host))
-            xnat = XnatUtils.get_interface(host=host, user=OPTIONS.username, pwd=PWD)
-
+            LOGGER.info('===================================================================')
+            proj_str = upload_dict['projects'] if upload_dict['projects'] else 'all'
+            LOGGER.info('Connecting to XNAT <%s> to start uploading processes for projects: %s' % (upload_dict['host'], proj_str))
+            xnat = XnatUtils.get_interface(host=upload_dict['host'], user=upload_dict['username'], pwd=upload_dict['password'])
             if not XnatUtils.has_dax_datatypes(xnat):
-                raise Exception('error: dax datatypes are not installed on your xnat <%s>' % (host))
+                raise Exception('error: dax datatypes are not installed on your xnat <%s>' % (upload_dict['host']))
 
             ################# 1) Upload the assessor data ###############
             #For each assessor label that need to be upload :
             LOGGER.info(' - Uploading results for assessors')
-            upload_assessors(xnat, projects)
+            upload_assessors(xnat, upload_dict['projects'])
 
             ################# 2) Upload the PBS files ###############
             #For each file, upload it to the PBS resource
             LOGGER.info(' - Uploading PBS files ...')
-            upload_pbs(xnat, projects)
+            upload_pbs(xnat, upload_dict['projects'])
 
             ################# 3) Upload the OUTLOG files not uploaded with processes ###############
             LOGGER.info(' - Checking OUTLOG files to upload them for JOB_FAILED jobs ...')
-            upload_outlog(xnat, projects)
+            upload_outlog(xnat, upload_dict['projects'])
 
         finally:
             xnat.disconnect()
             LOGGER.info('Connection to Xnat closed')
+            LOGGER.info('===================================================================\n')
             send_warning_emails()
 
 def load_upload_settings():
     """
     Method to parse arguments base on argparse
 
-    :return: dictionary with keys = XNAT host,
-     value = list of projects to upload for the host
+    :return: list of dictionaries info_dict
+       info_dict for the host [key:value]:
+        host : string for XNAT host
+        username : string for XNAT username
+        password : string for XNAT password
+          (can be the environment variable containing the value)
+        projects : list of projects to upload for the host
     """
-    host_projs = dict()
+    host_projs = list()
     #If settings file given, load it and use it:
-    if os.path.isfile(OPTIONS.upload_settings):
-        host_projs = imp.load_source('host_projects', OPTIONS.upload_settings)
+    if OPTIONS.upload_settings and os.path.isfile(OPTIONS.upload_settings):
+        settings = imp.load_source('settings', OPTIONS.upload_settings)
+        host_projs = settings.host_projects
     else: #if not file, use the environment variables and options
-        if OPTIONS.HOST:
-            if OPTIONS.projects:
-                host_projs = {OPTIONS.HOST: OPTIONS.projects.split(',')}
+        host = os.environ['XNAT_HOST']
+        username = None
+        password = None
+        projects = []
+        if OPTIONS.host:
+            host = OPTIONS.host
+        if OPTIONS.projects:
+            projects = OPTIONS.projects.split(',')
+        if OPTIONS.username:
+            username = OPTIONS.username
+            if not OPTIONS.password:
+                MSG = "Please provide the password for user <%s> on xnat(%s):" % (OPTIONS.username, host)
+                password = getpass.getpass(prompt=MSG)
+                if not password:
+                    raise Exception('error: the password entered was empty. please provide a password')
+            elif OPTIONS.password in os.environ:
+                password = os.environ[OPTIONS.password]
             else:
-                host_projs = {OPTIONS.HOST: []}
-        else:
-            host_projs = {os.environ['XNAT_HOST']: []}
+                password =  OPTIONS.password
+        host_projs = [{'host':host, 'username':username, 'password':password, 'projects':projects}]
     return host_projs
 
 def parse_args():
@@ -719,7 +728,7 @@ if __name__ == '__main__':
     check_folders()
     DAX_UPLOAD_FLAGFILE = "%s%s.txt" % (FLAGFILE_TEMPLATE, OPTIONS.suffix)
     #Load the settings for upload
-    XNAT_HOST_PROJECTS = load_upload_settings()
+    UPLOAD_SETTINGS = load_upload_settings()
     #create the flag file showing that the spider is running
     if is_dax_upload_running():
         sys.exit()
@@ -729,4 +738,3 @@ if __name__ == '__main__':
         finally:
             #remove flagfile
             os.remove(DAX_UPLOAD_FLAGFILE)
-            LOGGER.info('===================================================================\n')
