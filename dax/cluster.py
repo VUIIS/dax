@@ -80,6 +80,7 @@ def job_status(jobid):
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
         output = output.strip()
+        print output
         if output == RUNNING_STATUS:
             return 'R'
         elif output == QUEUE_STATUS:
