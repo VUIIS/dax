@@ -49,6 +49,7 @@ BAD_QA_STATUS = [FAILED, BAD, POOR, DONOTRUN]
 # Other Constants
 DEFAULT_PBS_DIR = os.path.join(RESULTS_DIR, 'PBS')
 DEFAULT_OUT_DIR = os.path.join(RESULTS_DIR, 'OUTLOG')
+DEFAULT_TRASH_DIR = os.path.join(RESULTS_DIR, 'TRASH')
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
 OLD_RESOURCE = 'OLD'
 EDITS_RESOURCE = 'EDITS'
@@ -404,7 +405,7 @@ class Task(object):
 
         """
         cmds = self.commands(jobdir)
-        pbsfile = self.pbs_path()
+        pbsfile = self.pbs_path(writeonly)
         outlog = self.outlog_path()
         pbs = PBS(pbsfile, outlog, cmds, self.processor.walltime_str, self.processor.memreq_mb,
                   self.processor.ppn, job_email, job_email_options, xnat_host)
@@ -634,15 +635,19 @@ class Task(object):
         """
         return self.processor.get_cmds(self.assessor, os.path.join(jobdir, self.assessor_label))
 
-    def pbs_path(self):
+    def pbs_path(self, writeonly):
         """
         Method to return the path of the PBS file for the job
 
+        :param writeonly: write the job files without submitting them in TRASH
         :return: A string that is the absolute path to the PBS file that will
          be submitted to the scheduler for execution.
 
         """
-        return os.path.join(DEFAULT_PBS_DIR, self.assessor_label+JOB_EXTENSION_FILE)
+        if writeonly:
+            return os.path.join(DEFAULT_TRASH_DIR, self.assessor_label+JOB_EXTENSION_FILE)
+        else:
+            return os.path.join(DEFAULT_PBS_DIR, self.assessor_label+JOB_EXTENSION_FILE)
 
     def outlog_path(self):
         """
@@ -680,7 +685,7 @@ class Task(object):
         if not jobstatus or jobstatus == 'R' or jobstatus == 'Q':
             # Still running
             return JOB_RUNNING
-        elif not self.ready_flag_exists(): 
+        elif not self.ready_flag_exists():
             # Check for a flag file created upon completion, if it's not there then the job failed
             return JOB_FAILED
         else:
