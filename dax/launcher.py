@@ -103,7 +103,7 @@ class Launcher(object):
             sys.exit(1)
 
     ################## LAUNCH Main Method ##################
-    def launch_jobs(self, lockfile_prefix, project_local, sessions_local, writeonly=False):
+    def launch_jobs(self, lockfile_prefix, project_local, sessions_local, writeonly=False, pbsdir=None):
         """
         Main Method to launch the tasks
 
@@ -112,6 +112,7 @@ class Launcher(object):
         :param sessions_local: list of sessions to launch tasks
          associated to the project locally
         :param writeonly: write the job files without submitting them
+        :param pbsdir: folder to store the pbs file
         :return: None
 
         """
@@ -136,7 +137,7 @@ class Launcher(object):
             LOGGER.info(str(len(task_list))+' tasks that need to be launched found')
 
             #Launch the task that need to be launch
-            self.launch_tasks(task_list, writeonly)
+            self.launch_tasks(task_list, writeonly, pbsdir)
 
         finally:
             self.finish_script(xnat, flagfile, project_list, 3, 2, project_local)
@@ -151,12 +152,13 @@ class Launcher(object):
         """
         return assr_info['procstatus'] == task.NEED_TO_RUN
 
-    def launch_tasks(self, task_list, writeonly=False):
+    def launch_tasks(self, task_list, writeonly=False, pbsdir=None):
         """
         Launch tasks from the passed list until the queue is full or the list is empty
 
         :param task_list: list of task to launch
         :param writeonly: write the job files without submitting them
+        :param pbsdir: folder to store the pbs file
         :return: None
         """
         # Check number of jobs on cluster
@@ -185,7 +187,7 @@ class Launcher(object):
                 mes_format = """  +Launching job:{label}, currently {count} jobs in cluster queue"""
                 LOGGER.info(mes_format.format(label=cur_task.assessor_label,
                                               count=str(cur_job_count)))
-            success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options, self.xnat_host, writeonly)
+            success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options, self.xnat_host, writeonly, pbsdir)
             if not success:
                 LOGGER.error('ERROR:failed to launch job')
                 raise cluster.ClusterLaunchException

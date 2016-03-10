@@ -389,7 +389,7 @@ class Task(object):
 
         return jobstatus
 
-    def launch(self, jobdir, job_email=None, job_email_options=DEFAULT_EMAIL_OPTS, xnat_host=os.environ['XNAT_HOST'], writeonly=False):
+    def launch(self, jobdir, job_email=None, job_email_options=DEFAULT_EMAIL_OPTS, xnat_host=os.environ['XNAT_HOST'], writeonly=False, pbsdir=None):
         """
         Method to launch a job on the grid
 
@@ -399,18 +399,21 @@ class Task(object):
          fails, starts, exits etc)
         :param xnat_host: set the XNAT_HOST in the PBS job
         :param writeonly: write the job files without submitting them
+        :param pbsdir: folder to store the pbs file
         :raises: cluster.ClusterLaunchException if the jobid is 0 or empty
          as returned by pbs.submit() method
         :return: True if the job failed
 
         """
         cmds = self.commands(jobdir)
-        pbsfile = self.pbs_path(writeonly)
+        pbsfile = self.pbs_path(writeonly, pbsdir)
         outlog = self.outlog_path()
         pbs = PBS(pbsfile, outlog, cmds, self.processor.walltime_str, self.processor.memreq_mb,
                   self.processor.ppn, job_email, job_email_options, xnat_host)
         pbs.write()
         if writeonly:
+            mes_format = """   filepath: {path}"""
+            LOGGER.info(mes_format.format(path=pbsfile))
             return True
         else:
             jobid = pbs.submit()
@@ -635,17 +638,21 @@ class Task(object):
         """
         return self.processor.get_cmds(self.assessor, os.path.join(jobdir, self.assessor_label))
 
-    def pbs_path(self, writeonly):
+    def pbs_path(self, writeonly, pbsdir=None):
         """
         Method to return the path of the PBS file for the job
 
         :param writeonly: write the job files without submitting them in TRASH
+        :param pbsdir: folder to store the pbs file
         :return: A string that is the absolute path to the PBS file that will
          be submitted to the scheduler for execution.
 
         """
         if writeonly:
-            return os.path.join(DEFAULT_TRASH_DIR, self.assessor_label+JOB_EXTENSION_FILE)
+            if pbsdir and os.path.isdir(pbsdir):
+                return os.path.join(pbsdir, self.assessor_label+JOB_EXTENSION_FILE)
+            else:
+                return os.path.join(DEFAULT_TRASH_DIR, self.assessor_label+JOB_EXTENSION_FILE)
         else:
             return os.path.join(DEFAULT_PBS_DIR, self.assessor_label+JOB_EXTENSION_FILE)
 
