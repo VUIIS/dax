@@ -1,4 +1,5 @@
-![https://github.com/VUIIS/dax/blob/master/docs/images/dax_logo.png] DAX: Distributed Automation for XNAT
+[[https://github.com/VUIIS/dax/blob/master/docs/images/dax_logo.png]]
+DAX: Distributed Automation for XNAT
 ===
 
 # Install DAX
