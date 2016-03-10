@@ -1,4 +1,4 @@
--- ![](https://github.com/VUIIS/dax/blob/master/docs/images/dax_logo.png) --
+                          ![](https://github.com/VUIIS/dax/blob/master/docs/images/dax_logo.png)
 Distributed Automation for XNAT
 ===
 
