@@ -389,7 +389,7 @@ class Task(object):
 
         return jobstatus
 
-    def launch(self, jobdir, job_email=None, job_email_options=DEFAULT_EMAIL_OPTS, xnat_host=os.environ['XNAT_HOST'], writeonly=False, pbsdir=None):
+    def launch(self, jobdir, job_email=None, job_email_options=DEFAULT_EMAIL_OPTS, xnat_host=None, writeonly=False, pbsdir=None):
         """
         Method to launch a job on the grid
 
