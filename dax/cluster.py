@@ -84,7 +84,7 @@ def job_status(jobid):
             return 'R'
         elif output == QUEUE_STATUS:
             return 'Q'
-        elif output == COMPLETE_STATUS:
+        elif output == COMPLETE_STATUS or len(output) == 0:
             return 'C'
         else:
             return None
@@ -219,7 +219,7 @@ def get_specific_str(big_str, prefix, suffix):
 class PBS:   #The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
     def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
-                 ppn=1, email=None, email_options=DEFAULT_EMAIL_OPTS):
+                 ppn=1, email=None, email_options=DEFAULT_EMAIL_OPTS, xnat_host=None):
         """
         Entry point for the PBS class
 
@@ -231,6 +231,7 @@ class PBS:   #The script file generator class
         :param ppn: number of processor to set for the script
         :param email: email address to set for the script
         :param email_options: email options to set for the script
+        :param xnat_host: set the XNAT_HOST for the job (export)
         :return: None
         """
         self.filename = filename
@@ -241,6 +242,10 @@ class PBS:   #The script file generator class
         self.email = email
         self.email_options = email_options
         self.ppn = ppn
+        if xnat_host:
+            self.xnat_host = xnat_host
+        else:
+            self.xnat_host = os.environ['XNAT_HOST']
 
     def write(self):
         """
@@ -260,7 +265,8 @@ class PBS:   #The script file generator class
                     'job_memory':str(self.mem_mb),
                     'job_output_file':self.outfile,
                     'job_output_file_options':'oe',
-                    'job_cmds':'\n'.join(self.cmds)}
+                    'job_cmds':'\n'.join(self.cmds),
+                    'xnat_host':self.xnat_host}
         with open(self.filename, 'w') as f_obj:
             f_obj.write(JOB_TEMPLATE.safe_substitute(job_data))
 
