@@ -410,7 +410,7 @@ class test_results:
             self.inc_error()
             return False
 
-    def test_run(self):
+    def test_run(self, project, sessions):
         """
         Method to test run function for a module
 
@@ -420,8 +420,7 @@ class test_results:
         """
         print_sub_test('test_run')
 
-        sessions = randomly_get_sessions(ARGS.project)
-        cobj_list = set_mod_cobjs_list(self.tobj, ARGS.project, sessions)
+        cobj_list = set_mod_cobjs_list(self.tobj, project, sessions)
         try:
             self.inc_test()
             print "Run on sessions: %s ..." % ','.join(sessions)
@@ -498,7 +497,7 @@ class test_results:
         else:
             print "prerun() FAILED"
 
-        if self.test_run():
+        if self.test_run(ARGS.project, sessions):
             print "run() SUCCEEDED"
         else:
             print "run() FAILED"
