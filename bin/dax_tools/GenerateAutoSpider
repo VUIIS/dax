@@ -41,7 +41,7 @@ def parse_args():
     parser.add_argument('-o', dest='outputs_file', help='Path to outputs file', required=True)
     parser.add_argument('-c', dest='code_file', help='Path to code template file', required=True)
     parser.add_argument('-d', dest='directory', help="Directory where spider file will be written",default=None)
-    parser.add_argument('-t', dest='type', help='Type of Spider: session, scan', default='session')
+    parser.add_argument('-t', dest='type', help='Type of Spider: session, scan', default='session', choices=['session','scan'])
     return parser.parse_args()
 
 if __name__ == '__main__':

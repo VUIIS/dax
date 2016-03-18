@@ -24,6 +24,7 @@ from dax import XnatUtils
 from datetime import datetime
 from stat import S_IXUSR, ST_MODE
 from shutil import copyfile
+from shutil import copytree
 from string import Template
 
 class Spider(object):
@@ -533,7 +534,7 @@ class AutoSpider(Spider):
         if datatype == 'scan':
             self.xnat_scan = args.scan_label
 
-        # Make a list of parameters that need to be copied locally
+        # Make a list of parameters that need to be copied to our input directory
         for p in params:
             if p[1] == 'FILE' or p[1] == 'DIR':
                 self.copy_list.append(p[0])
@@ -589,25 +590,20 @@ class AutoSpider(Spider):
         os.mkdir(self.input_dir)
 
         for _input in self.copy_list:
-            src = self.src_inputs[_input]
-            if src.startswith('xnat://'):
-                src = src[len('xnat:/'):]
-                _res, _file = src.split('/files/')
-                dst = os.path.join(self.input_dir, _file)
-                print('DEBUG:downloading from XNAT:'+src+' to '+dst)
-                try:
-                    xnat = XnatUtils.get_interface(self.host, self.user, self.pwd)
-                    res = xnat.select(_res)
-                    result = res.file(_file).get(dst)
-                except:
-                    print('ERROR:downloading from XNAT')
-                    return
-            else:
-                dst = os.path.join(self.input_dir, os.path.basename(src))
-                print('DEBUG:copying src:'+src+' to '+dst)
-                copyfile(src, dst)
+            # Split the list and handle each copy each individual file/dir
+            src_list = self.src_inputs[_input].split(',')
+            dst_list = []
+            for i, src in enumerate(src_list):
+                input_name = _input+'_'+str(i)
+                dst = self.copy_input(src, input_name)
+                if not dst:
+                    print('ERROR:copying inputs')
+                    return None
+                else:
+                    dst_list.append(dst)
 
-            self.run_inputs[_input] = dst
+            # Build new comma-separated list with local paths
+            self.run_inputs[_input] = ','.join(dst_list)
 
         return self.run_inputs
 
@@ -698,6 +694,101 @@ class AutoSpider(Spider):
         # Run it
         os.chmod(filepath, os.stat(filepath)[ST_MODE] | S_IXUSR)
         os.system('python '+filepath)
+
+    def copy_input(self, src, input_name):
+
+        if self.is_xnat_uri(src):
+            print('DEBUG:copying xnat input:'+src)
+            src = self.parse_xnat_uri(src)
+            dst = self.copy_xnat_input(src, input_name)
+        else:
+            print('DEBUG:copying local input:'+src)
+            dst = self.copy_local_input(src, input_name)
+
+        return dst
+
+    def copy_xnat_input(self, src, input_name):
+        dst_dir = os.path.join(self.input_dir, input_name)
+        os.makedirs(dst_dir)
+
+        if '/files/' in src:
+            # Handle file
+            _res, _file = src.split('/files/')
+            dst = os.path.join(dst_dir, _file)
+
+            print('DEBUG:downloading from XNAT:'+src+' to '+dst)
+            result =  self.download_xnat_file(src, dst)
+            return result
+
+        elif '/resources/' in src:
+            # Handle resource
+            print('DEBUG:downloading from XNAT:'+src+' to '+dst_dir)
+            result = self.download_xnat_resource(src, dst_dir)
+            return result
+        else:
+            print('ERROR:invalid xnat path')
+            return None
+
+    def copy_local_input(self, src, input_name):
+        dst_dir = os.path.join(self.input_dir, input_name)
+        os.makedirs(dst_dir)
+
+        if os.path.isdir(src):
+            dst = os.path.join(dst_dir, os.path.basename(src))
+            copytree(src, dst)
+        elif os.path.isfile(src):
+            dst = os.path.join(dst_dir, os.path.basename(src))
+            copyfile(src, dst)
+        else:
+            print('ERROR:input does not exist:'+src)
+            dst = None
+
+        return dst
+
+    def download_xnat_file(self, src, dst):
+        result = None
+
+        try:
+            xnat = XnatUtils.get_interface(self.host, self.user, self.pwd)
+
+            try:
+                _res, _file = src.split('/files/')
+                res = xnat.select(_res)
+                result = res.file(_file).get(dst)
+            except:
+                print('ERROR:downloading from XNAT')
+        except:
+            print('ERROR:FAILED to get XNAT connection')
+        finally:
+            xnat.disconnect()
+
+        return result
+
+    def download_xnat_resource(self, src, dst):
+        result = None
+
+        try:
+            xnat = XnatUtils.get_interface(self.host, self.user, self.pwd)
+            try:
+                res = xnat.select(src)
+                res.get(dst, extract=True)
+                result = dst
+            except:
+                print('ERROR:downloading from XNAT')
+        except:
+            print('ERROR:FAILED to get XNAT connection')
+        finally:
+            xnat.disconnect()
+
+        return result
+
+    def is_xnat_uri(self, uri):
+        return uri.startswith('xnat:/')
+
+    def parse_xnat_uri(self, src):
+        src = src[len('xnat:/'):]
+        src = src.replace('{session}', '/projects/'+self.xnat_project+'/subjects/'+self.xnat_subject+'/experiments/'+self.xnat_session)
+        return src
 
 #### CLASSES ####
 # class to display time
