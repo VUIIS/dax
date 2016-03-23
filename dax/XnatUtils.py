@@ -1755,10 +1755,7 @@ class CachedImageSubject():
         Note that scans is a list, assessors is a list, and
         sessions is also a list. The list here is not sorted.
         It is the default return of the REST call. The requirement
-        to check for proper order should be handled in the processor
-
-        TODO: Do we want to include assessors here? I don't think it makes
-        any sense but we can if it seems prudent"""
+        to check for proper order should be handled in the processor"""
 
     def __init__(self, xnat, proj, subj):
         """ Init function """
@@ -1897,17 +1894,16 @@ class CachedImageSubject():
 
         return session_list
 
-    # See comment in the classdoc
-    # def assessors(self):
-    #     """ return a list of cacheassessors objects for the FIRST session only"""
-    #     assr_list = []
-    #
-    #     assr_elements = self.subj_element[0][0].find('xnat:assessors', NS)
-    #     if assr_elements:
-    #         for assr in assr_elements:
-    #             assr_list.append(CachedImageAssessor(assr, self))
-    #
-    #     return assr_list
+    def assessors(self):
+        """ return a list of cached assessors objects for the subject"""
+        assr_list = []
+
+        assr_elements = self.subj_element.find('xnat:assessors', NS)
+        if assr_elements:
+            for assr in assr_elements:
+                assr_list.append(CachedImageAssessor(assr, self))
+
+        return assr_list
 
     def info(self):
         """ return a dict with the XNAT information for the session """
