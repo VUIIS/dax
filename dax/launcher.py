@@ -226,14 +226,33 @@ class Launcher(object):
         # Get the list of subjects:
         subjects = self.get_subjects_list(xnat, project_id, subjects_local)
 
-        # Update each subject from the list:
-        # By default, we're going to update these each time if they exist.
-        # If we set a date for the update, then the first experiment will always skip
-        # its update
 
-        for subject_info in subjects:
-            LOGGER.info('  +Subject:{subject}: updating'.format(subject=subject_info['label']))
-            self.build_subject(xnat, subject_info, subj_procs)
+        # Update each subject from the list:
+        for subj_info in subjects:
+            last_mod = datetime.strptime(subj_info['last_modified'][0:19], UPDATE_FORMAT)
+            now_date = datetime.today()
+            last_up = self.get_lastupdated(subj_info)
+
+            #If sessions_local is set, skip checking the date
+            if not has_new and last_up != None and \
+                last_mod < last_up and not subjects_local and \
+                now_date < last_mod+timedelta(days=int(self.max_age)):
+                mess = """  +Subject:{subj}: skipping, last_mod={mod},last_up={up}"""
+                mess_str = mess.format(subj=subj_info['label'], mod=str(last_mod), up=str(last_up))
+                LOGGER.info(mess_str)
+            else:
+                update_run_count = 0
+                got_updated = False
+                while update_run_count < 3 and not got_updated:
+                    mess = """  +Subject:{subj}: updating (count:{count})..."""
+                    LOGGER.info(mess.format(subj=subj_info['label'], count=update_run_count))
+                    # NOTE: we keep the starting time of the update
+                    # and will check if something change during the update
+                    update_start_time = datetime.now()
+                    self.build_subject(xnat, subj_info, subj_procs)
+                    got_updated = self.set_subject_lastupdated(xnat, subj_info, update_start_time)
+                    update_run_count +=1
+                    LOGGER.debug('\n')
 
         # Update each session from the list:
         for sess_info in sessions:
@@ -243,8 +262,8 @@ class Launcher(object):
 
             #If sessions_local is set, skip checking the date
             if not has_new and last_up != None and \
-               last_mod < last_up and not sessions_local and \
-               now_date < last_mod+timedelta(days=int(self.max_age)):
+                last_mod < last_up and not sessions_local and \
+                now_date < last_mod+timedelta(days=int(self.max_age)):
                 mess = """  +Session:{sess}: skipping, last_mod={mod},last_up={up}"""
                 mess_str = mess.format(sess=sess_info['label'], mod=str(last_mod), up=str(last_up))
                 LOGGER.info(mess_str)
@@ -283,8 +302,7 @@ class Launcher(object):
                 assr_name = subject_proc.get_assessor_name(csubject)
                 # Look for existing assessor
                 proc_assr = None
-                first_csess = csubject.sorted_dropped_sessions()[0]
-                for assr in first_csess.assessors():
+                for assr in csubject.assessors():
                     if assr.info()['label'] == assr_name:
                         proc_assr = assr
 
@@ -683,6 +701,27 @@ The project is not part of the settings."""
             # since setting update field will change last modified time
             LOGGER.debug('setting last_updated for:'+sess_info['label']+' to '+update_str)
             sess_obj.attrs.set(xsi_type+'/original', UPDATE_PREFIX+update_str)
+            return True
+
+    @staticmethod
+    def set_subject_lastupdated(xnat, subj_info, update_start_time):
+        """ set the last subject update on XNAT
+            return False if the session change and don't set the last update date
+            return True otherwise
+        """
+        xsi_type = subj_info['xsiType']
+        subj_obj = XnatUtils.get_full_object(xnat, subj_info)
+        last_modified_xnat = subj_obj.attrs.get(xsi_type+'/meta/last_modified')
+        last_mod = datetime.strptime(last_modified_xnat[0:19], '%Y-%m-%d %H:%M:%S')
+        if last_mod > update_start_time:
+            return False
+        else:
+            # ormat:
+            update_str = (datetime.now()+timedelta(minutes=1)).strftime(UPDATE_FORMAT)
+            # We set update to one minute into the future
+            # since setting update field will change last modified time
+            LOGGER.debug('setting last_updated for:'+subj_info['label']+' to '+update_str)
+            subj_obj.attrs.set(xsi_type+'/original', UPDATE_PREFIX+update_str)
             return True
 
     @staticmethod
