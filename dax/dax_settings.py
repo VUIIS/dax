@@ -227,7 +227,7 @@ class DAX_Settings(object):
 
         """
         xsitype = self.get('admin', 'xsitype_include')
-        if len(xsitype) > 0:
+        if xsitype:
             return xsitype.split(',')
         else:
             return []
@@ -271,10 +271,10 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_count_nb_jobs')
-        if filepath.startswith('~/'):
-            filepath = os.path.join(self.get_user_home(), filepath)
         if filepath is None:
             raise OSError(2, 'cmd_count_nb_jobs is None. Must specify')
+        if filepath.startswith('~/'):
+            filepath = os.path.join(self.get_user_home(), filepath)
         if not os.path.isfile(filepath):
             raise OSError(2, 'cmd_count_bj_jobs file does not exist', filepath)
         return self.read_file_and_return_string(filepath)
@@ -290,10 +290,10 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_get_job_status')
-        if filepath.startswith('~/'):
-            filepath = os.path.join(self.get_user_home(), filepath)
         if filepath is None:
             raise OSError(2, 'cmd_get_job_status is None. Must specify')
+        if filepath.startswith('~/'):
+            filepath = os.path.join(self.get_user_home(), filepath)
         if not os.path.isfile(filepath):
             raise OSError(2, 'cmd_get_job_status file does not exist', filepath)
         return self.read_file_and_return_template(filepath)
@@ -336,9 +336,9 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_get_job_memory')
-        if len(filepath) == 0: #no files specify, set to echo
+        if filepath is None: #no files specify, set to echo
             return DEFAULT_TEMPLATE
-        elif filepath.startswith('~/'):
+        if filepath.startswith('~/'):
             filepath = os.path.join(self.get_user_home(), filepath)
         if not os.path.isfile(filepath):
             raise OSError(2, 'cmd_get_job_memory file does not exist', filepath)
@@ -355,9 +355,9 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_get_job_walltime')
-        if len(filepath) == 0: #no files specify, set to echo
+        if filepath is None: #no files specify, set to echo
             return DEFAULT_TEMPLATE
-        elif filepath.startswith('~/'):
+        if filepath.startswith('~/'):
             filepath = os.path.join(self.get_user_home(), filepath)
         if not os.path.isfile(filepath):
             raise OSError(2, 'cmd_get_job_walltime file does not exist', filepath)
@@ -374,9 +374,9 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'cmd_get_job_node')
-        if len(filepath) == 0: #no files specify, set to echo
+        if filepath is None: #no files specify, set to echo
             return DEFAULT_TEMPLATE
-        elif filepath.startswith('~/'):
+        if filepath.startswith('~/'):
             filepath = os.path.join(self.get_user_home(), filepath)
         if not os.path.isfile(filepath):
             raise OSError(2, 'cmd_get_job_node file does not exist', filepath)
@@ -400,10 +400,10 @@ class DAX_Settings(object):
 
         """
         filepath = self.get('cluster', 'job_template')
-        if filepath.startswith('~/'):
-            filepath = os.path.join(self.get_user_home(), filepath)
         if filepath is None:
             raise OSError(2, 'job_template is None. Must specify')
+        if filepath.startswith('~/'):
+            filepath = os.path.join(self.get_user_home(), filepath)
         if not os.path.isfile(filepath):
             raise OSError(2, 'job_template file does not exist', filepath)
         return self.read_file_and_return_template(filepath)
