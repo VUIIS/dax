@@ -204,15 +204,14 @@ class SubjectProcessor(Processor):
 
         proj_label = session_dict.info()['project']
         subj_label = session_dict.info()['subject_label']
-        sess_label = session_dict.info()['label']
-        return proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+self.name
+        return proj_label+'-x-'+subj_label+'-x-'+self.name
 
     def get_task(self, intf, csubject, upload_dir):
         """ return the task for this process """
-        sess_info = csubject.sorted_dropped_sessions()[0].info()
+        subj_info = csubject.info()
         assessor_name = self.get_assessor_name(csubject)
-        session = XnatUtils.get_full_object(intf, sess_info)
-        assessor = session.assessor(assessor_name)
+        subject = XnatUtils.get_full_object(intf, subj_info)
+        assessor = subject.assessor(assessor_name)
         return task.Task(self, assessor, upload_dir)
 
 def processors_by_type(proc_list):
