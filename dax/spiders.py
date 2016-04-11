@@ -30,7 +30,7 @@ from string import Template
 class Spider(object):
     """ Base class for spider """
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", skip_finish=False):
+                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", subdir=True, skip_finish=False):
         """
         Entry point for the Base class for spider
 
@@ -43,12 +43,12 @@ class Spider(object):
         :param xnat_user: user for XNAT if not set in environment variables
         :param xnat_pass: password for XNAT if not set in environment variables
         :param suffix: suffix to the assessor creation
-        
+        :param subdir: create a subdir Temp in the jobdir if the directory isn't empty
         """
         # Spider path:
         self.spider_path = spider_path
         # directory for temporary files + create it
-        self.jobdir = XnatUtils.makedir(os.path.abspath(jobdir))
+        self.jobdir = XnatUtils.makedir(os.path.abspath(jobdir), subdir=subdir)
         # to copy results at the end
         self.spider_handler = None
         # Xnat info:
@@ -267,7 +267,7 @@ class Spider(object):
         self.spider_handler.clean(self.jobdir)
         self.print_end()
 
-    
+
     def pre_run(self):
         """
         Pre-Run method to download and organise inputs for the pipeline
@@ -395,7 +395,7 @@ class Spider(object):
 class ScanSpider(Spider):
     """ Derived class for scan-spider """
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
-                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
+                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", subdir=True):
         """
         Entry point for Derived class for Spider on Scan level
         
@@ -403,7 +403,7 @@ class ScanSpider(Spider):
         :param xnat_scan: scan ID on XNAT (if running on a specific scan)
         """
         super(ScanSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                                         xnat_host, xnat_user, xnat_pass, suffix)
+                                         xnat_host, xnat_user, xnat_pass, suffix, subdir)
         self.xnat_scan = xnat_scan
 
     def define_spider_process_handler(self):
@@ -455,14 +455,14 @@ class ScanSpider(Spider):
 class SessionSpider(Spider):
     """ Derived class for session-spider """
     def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
+                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", subdir=True):
         """
         Entry point for Derived class for Spider on Session level
         
         :param super --> see base class
         """
         super(SessionSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                                            xnat_host, xnat_user, xnat_pass, suffix)
+                                            xnat_host, xnat_user, xnat_pass, suffix, subdir)
 
     def define_spider_process_handler(self):
         """
