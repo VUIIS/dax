@@ -1,0 +1,19 @@
+#!/bin/bash
+#PBS -M ${job_email}
+#PBS -m ${job_email_options}
+#PBS -l nodes=1:ppn=${job_ppn}
+#PBS -l walltime=${job_walltime}
+#PBS -l mem=${job_memory}mb
+#PBS -o ${job_output_file}
+#PBS -j y
+
+uname -a # outputs node info (name, date&time, type, OS, etc)
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use only good amount of ppn
+SCREEN=$$$$$$$$
+SCREEN=${SCREEN:0:8}
+echo 'Screen display number for xvfb-run' $SCREEN
+xvfb-run --wait=5 \
+-a -e /tmp/xvfb_$SCREEN.err -f /tmp/xvfb_$SCREEN.auth \
+--server-num=$SCREEN \
+--server-args="-screen 0 1920x1200x24 -ac +extension GLX" \
+${job_cmds}

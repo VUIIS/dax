@@ -1,0 +1,19 @@
+#!/bin/bash
+#SBATCH --mail-user=${job_email}
+#SBATCH --mail-type=${job_email_options}
+#SBATCH --nodes=1
+#SBATCH --ntasks=${job_ppn}
+#SBATCH --time=${job_walltime}
+#SBATCH --mem=${job_memory}mb
+#SBATCH -o ${job_output_file}
+
+uname -a # outputs node info (name, date&time, type, OS, etc)
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use only good amount of ppn
+SCREEN=$$$$$$$$
+SCREEN=${SCREEN:0:8}
+echo 'Screen display number for xvfb-run' $SCREEN
+xvfb-run --wait=5 \
+-a -e /tmp/xvfb_$SCREEN.err -f /tmp/xvfb_$SCREEN.auth \
+--server-num=$SCREEN \
+--server-args="-screen 0 1920x1200x24 -ac +extension GLX" \
+${job_cmds}

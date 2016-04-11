@@ -16,7 +16,12 @@ import task
 import cluster
 import bin
 from task import Task
-from dax_settings import RESULTS_DIR, DEFAULT_ROOT_JOB_DIR, DEFAULT_QUEUE_LIMIT, DEFAULT_MAX_AGE
+from dax_settings import DAX_Settings
+DAX_SETTINGS = DAX_Settings()
+RESULTS_DIR = DAX_SETTINGS.get_results_dir()
+DEFAULT_ROOT_JOB_DIR = DAX_SETTINGS.get_root_job_dir()
+DEFAULT_QUEUE_LIMIT = DAX_SETTINGS.get_queue_limit()
+DEFAULT_MAX_AGE = DAX_SETTINGS.get_max_age()
 
 UPDATE_PREFIX = 'updated--'
 UPDATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -98,7 +103,7 @@ class Launcher(object):
             sys.exit(1)
 
     ################## LAUNCH Main Method ##################
-    def launch_jobs(self, lockfile_prefix, project_local, sessions_local):
+    def launch_jobs(self, lockfile_prefix, project_local, sessions_local, writeonly=False, pbsdir=None):
         """
         Main Method to launch the tasks
 
@@ -106,6 +111,8 @@ class Launcher(object):
         :param project_local: project to run locally
         :param sessions_local: list of sessions to launch tasks
          associated to the project locally
+        :param writeonly: write the job files without submitting them
+        :param pbsdir: folder to store the pbs file
         :return: None
 
         """
@@ -130,7 +137,7 @@ class Launcher(object):
             LOGGER.info(str(len(task_list))+' tasks that need to be launched found')
 
             #Launch the task that need to be launch
-            self.launch_tasks(task_list)
+            self.launch_tasks(task_list, writeonly, pbsdir)
 
         finally:
             self.finish_script(xnat, flagfile, project_list, 3, 2, project_local)
@@ -145,11 +152,13 @@ class Launcher(object):
         """
         return assr_info['procstatus'] == task.NEED_TO_RUN
 
-    def launch_tasks(self, task_list):
+    def launch_tasks(self, task_list, writeonly=False, pbsdir=None):
         """
         Launch tasks from the passed list until the queue is full or the list is empty
 
         :param task_list: list of task to launch
+        :param writeonly: write the job files without submitting them
+        :param pbsdir: folder to store the pbs file
         :return: None
         """
         # Check number of jobs on cluster
@@ -161,7 +170,7 @@ class Launcher(object):
         LOGGER.info(str(cur_job_count)+' jobs currently in queue')
 
         # Launch until we reach cluster limit or no jobs left to launch
-        while cur_job_count < self.queue_limit and len(task_list) > 0:
+        while (cur_job_count < self.queue_limit or writeonly) and len(task_list) > 0:
             cur_task = task_list.pop()
 
             # Confirm task is still ready to run
@@ -170,10 +179,15 @@ class Launcher(object):
             # if cur_task.get_status() != task.NEED_TO_RUN:
             #     continue
 
-            mes_format = """  +Launching job:{label}, currently {count} jobs in cluster queue"""
-            LOGGER.info(mes_format.format(label=cur_task.assessor_label,
-                                          count=str(cur_job_count)))
-            success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options)
+            if writeonly:
+                mes_format = """  +Writing PBS file for job:{label}, currently {count} jobs in cluster queue"""
+                LOGGER.info(mes_format.format(label=cur_task.assessor_label,
+                                              count=str(cur_job_count)))
+            else:
+                mes_format = """  +Launching job:{label}, currently {count} jobs in cluster queue"""
+                LOGGER.info(mes_format.format(label=cur_task.assessor_label,
+                                              count=str(cur_job_count)))
+            success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options, self.xnat_host, writeonly, pbsdir)
             if not success:
                 LOGGER.error('ERROR:failed to launch job')
                 raise cluster.ClusterLaunchException

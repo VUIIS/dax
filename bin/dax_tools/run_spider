@@ -3,6 +3,7 @@
 CMD=$@
 
 SCREEN=$$$$
+SCREEN=${SCREEN:0:8}
 
 xvfb-run \
 --wait=5 \

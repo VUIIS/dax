@@ -1,0 +1,1 @@
+qstat -f ${jobid} | grep job_state | awk {'print $3'}

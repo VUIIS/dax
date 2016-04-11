@@ -7,7 +7,11 @@ from datetime import date
 import cluster
 from cluster import PBS
 
-from dax_settings import RESULTS_DIR, DEFAULT_EMAIL_OPTS, JOB_EXTENSION_FILE
+from dax_settings import DAX_Settings
+DAX_SETTINGS = DAX_Settings()
+RESULTS_DIR = DAX_SETTINGS.get_results_dir()
+DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
+JOB_EXTENSION_FILE = DAX_SETTINGS.get_job_extension_file()
 
 #Logger to print logs
 LOGGER = logging.getLogger('dax')
@@ -45,6 +49,7 @@ BAD_QA_STATUS = [FAILED, BAD, POOR, DONOTRUN]
 # Other Constants
 DEFAULT_PBS_DIR = os.path.join(RESULTS_DIR, 'PBS')
 DEFAULT_OUT_DIR = os.path.join(RESULTS_DIR, 'OUTLOG')
+DEFAULT_TRASH_DIR = os.path.join(RESULTS_DIR, 'TRASH')
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
 OLD_RESOURCE = 'OLD'
 EDITS_RESOURCE = 'EDITS'
@@ -384,7 +389,7 @@ class Task(object):
 
         return jobstatus
 
-    def launch(self, jobdir, job_email=None, job_email_options=DEFAULT_EMAIL_OPTS):
+    def launch(self, jobdir, job_email=None, job_email_options=DEFAULT_EMAIL_OPTS, xnat_host=None, writeonly=False, pbsdir=None):
         """
         Method to launch a job on the grid
 
@@ -392,25 +397,33 @@ class Task(object):
         :param job_email: who to email if the job fails
         :param job_email_options: grid-specific job email options (e.g.,
          fails, starts, exits etc)
+        :param xnat_host: set the XNAT_HOST in the PBS job
+        :param writeonly: write the job files without submitting them
+        :param pbsdir: folder to store the pbs file
         :raises: cluster.ClusterLaunchException if the jobid is 0 or empty
          as returned by pbs.submit() method
         :return: True if the job failed
 
         """
         cmds = self.commands(jobdir)
-        pbsfile = self.pbs_path()
+        pbsfile = self.pbs_path(writeonly, pbsdir)
         outlog = self.outlog_path()
         pbs = PBS(pbsfile, outlog, cmds, self.processor.walltime_str, self.processor.memreq_mb,
-                  self.processor.ppn, job_email, job_email_options)
+                  self.processor.ppn, job_email, job_email_options, xnat_host)
         pbs.write()
-        jobid = pbs.submit()
-
-        if jobid == '' or jobid == '0':
-            LOGGER.error('failed to launch job on cluster')
-            raise cluster.ClusterLaunchException
-        else:
-            self.set_launch(jobid)
+        if writeonly:
+            mes_format = """   filepath: {path}"""
+            LOGGER.info(mes_format.format(path=pbsfile))
             return True
+        else:
+            jobid = pbs.submit()
+
+            if jobid == '' or jobid == '0':
+                LOGGER.error('failed to launch job on cluster')
+                raise cluster.ClusterLaunchException
+            else:
+                self.set_launch(jobid)
+                return True
 
     def check_date(self):
         """
@@ -625,15 +638,23 @@ class Task(object):
         """
         return self.processor.get_cmds(self.assessor, os.path.join(jobdir, self.assessor_label))
 
-    def pbs_path(self):
+    def pbs_path(self, writeonly, pbsdir=None):
         """
         Method to return the path of the PBS file for the job
 
+        :param writeonly: write the job files without submitting them in TRASH
+        :param pbsdir: folder to store the pbs file
         :return: A string that is the absolute path to the PBS file that will
          be submitted to the scheduler for execution.
 
         """
-        return os.path.join(DEFAULT_PBS_DIR, self.assessor_label+JOB_EXTENSION_FILE)
+        if writeonly:
+            if pbsdir and os.path.isdir(pbsdir):
+                return os.path.join(pbsdir, self.assessor_label+JOB_EXTENSION_FILE)
+            else:
+                return os.path.join(DEFAULT_TRASH_DIR, self.assessor_label+JOB_EXTENSION_FILE)
+        else:
+            return os.path.join(DEFAULT_PBS_DIR, self.assessor_label+JOB_EXTENSION_FILE)
 
     def outlog_path(self):
         """

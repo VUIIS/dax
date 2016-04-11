@@ -10,7 +10,11 @@ from datetime import datetime
 
 import log
 import XnatUtils
-from dax_settings import  API_URL, API_KEY_DAX, REDCAP_VAR
+from dax_settings import DAX_Settings
+DAX_SETTINGS = DAX_Settings()
+API_URL = DAX_SETTINGS.get_api_url()
+API_KEY_DAX = DAX_SETTINGS.get_api_key_dax()
+REDCAP_VAR = DAX_SETTINGS.get_dax_manager_data_dictionary()
 
 def set_logger(logfile, debug):
     """
@@ -28,7 +32,7 @@ def set_logger(logfile, debug):
         logger = log.setup_info_logger('dax', logfile)
     return logger
 
-def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None):
+def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None, writeonly=False, pbsdir=None):
     """
     Method to launch jobs on the grid
 
@@ -37,6 +41,8 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None):
     :param debug: Should debug mode be used
     :param projects: Project(s) that need to be launched
     :param sessions: Session(s) that need to be updated
+    :param writeonly:  write the job files without submitting them
+    :param pbsdir: folder to store the pbs file
     :return: None
 
     """
@@ -52,7 +58,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None):
 
     # Run the updates
     logger.info('running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions)
+    settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions, writeonly, pbsdir)
     logger.info('finished update, End Time: '+str(datetime.now()))
 
 def build(settings_path, logfile, debug, projects=None, sessions=None):

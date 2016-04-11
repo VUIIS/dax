@@ -44,6 +44,7 @@ class Spider(object):
         :param xnat_pass: password for XNAT if not set in environment variables
         :param suffix: suffix to the assessor creation
         :param subdir: create a subdir Temp in the jobdir if the directory isn't empty
+
         """
         # Spider path:
         self.spider_path = spider_path
@@ -272,7 +273,7 @@ class Spider(object):
         """
         Pre-Run method to download and organise inputs for the pipeline
         Implemented in derived class objects.
-        
+
         :raises: NotImplementedError if not overridden.
         :return: None
         """
@@ -282,7 +283,7 @@ class Spider(object):
         """
         Runs the "core" or "image processing process" of the pipeline
         Implemented in derived class objects.
-        
+
         :raises: NotImplementedError if not overridden.
         :return: None
         """
@@ -398,7 +399,7 @@ class ScanSpider(Spider):
                  xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", subdir=True):
         """
         Entry point for Derived class for Spider on Scan level
-        
+
         :param super --> see base class
         :param xnat_scan: scan ID on XNAT (if running on a specific scan)
         """
@@ -426,7 +427,7 @@ class ScanSpider(Spider):
         """
         Pre-Run method to download and organise inputs for the pipeline
         Implemented in derived class objects.
-        
+
         :raises: NotImplementedError if not overridden.
         :return: None
         """
@@ -436,7 +437,7 @@ class ScanSpider(Spider):
         """
         Runs the "core" or "image processing process" of the pipeline
         Implemented in derived class objects.
-        
+
         :raises: NotImplementedError if not overridden.
         :return: None
         """
@@ -458,7 +459,7 @@ class SessionSpider(Spider):
                  xnat_host=None, xnat_user=None, xnat_pass=None, suffix="", subdir=True):
         """
         Entry point for Derived class for Spider on Session level
-        
+
         :param super --> see base class
         """
         super(SessionSpider, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
@@ -483,7 +484,7 @@ class SessionSpider(Spider):
         """
         Pre-Run method to download and organise inputs for the pipeline
         Implemented in derived class objects.
-        
+
         :raises: NotImplementedError if not overridden.
         :return: None
         """
@@ -493,7 +494,7 @@ class SessionSpider(Spider):
         """
         Runs the "core" or "image processing process" of the pipeline
         Implemented in derived class objects.
-        
+
         :raises: NotImplementedError if not overridden.
         :return: None
         """
