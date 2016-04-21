@@ -1061,9 +1061,9 @@ if __name__ == '__main__':
     # Arguments:
     PARGS = parse_args()
     if PARGS.email:
-        EMAIL_LIST = PARGS.email.split(',')
+        elist = PARGS.email.split(',')
     else:
-        EMAIL_LIST = list()
+        elist = list()
     API_KEY = PARGS.key
     if not API_KEY and not PARGS.settings and API_KEY_DAX:
         API_KEY = API_KEY_DAX
