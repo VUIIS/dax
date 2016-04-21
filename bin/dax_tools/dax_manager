@@ -1080,7 +1080,7 @@ if __name__ == '__main__':
     else:
         LOGGER = dax.log.setup_info_logger('manager', PARGS.logfile)
 
-    DAX_LOGS_DIR = PARGS.daxlogsdir
+    dax_logs_dir = PARGS.daxlogsdir
     DAX_LOGS_DIRS_DICT = dict()
     EMAIL_DICT = dict()
     LOGGER.info('Time at the beginning of the DAX Manager: '+ str(datetime.now()))
