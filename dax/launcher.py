@@ -395,7 +395,7 @@ class Launcher(object):
                     if assr.info()['label'] == assr_name:
                         proc_assr = assr
 
-                if proc_assr == None:
+                if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
                     # Create it if it doesn't exist
                     sess_task = sess_proc.get_task(xnat, csess, RESULTS_DIR)
                     self.log_updating_status(sess_proc.name, sess_task.assessor_label)
@@ -406,21 +406,8 @@ class Launcher(object):
                     elif has_inputs == -1:
                         sess_task.set_status(task.NO_DATA)
                         sess_task.set_qcstatus(qcstatus)
-                elif proc_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    has_inputs, qcstatus = sess_proc.has_inputs(csess)
-                    if has_inputs == 1:
-                        sess_task = sess_proc.get_task(xnat, csess, RESULTS_DIR)
-                        self.log_updating_status(sess_proc.name, sess_task.assessor_label)
-                        sess_task.set_status(task.NEED_TO_RUN)
-                        sess_task.set_qcstatus(task.JOB_PENDING)
-                    elif has_inputs == -1:
-                        sess_task = sess_proc.get_task(xnat, csess, RESULTS_DIR)
-                        self.log_updating_status(sess_proc.name, sess_task.assessor_label)
-                        sess_task.set_status(task.NO_DATA)
-                        sess_task.set_qcstatus(qcstatus)
                     else:
-                        # Leave as NEED_INPUTS
-                        pass
+                        sess_task.set_qcstatus(qcstatus)
                 else:
                     # Other statuses handled by dax_update_tasks
                     pass
@@ -482,7 +469,8 @@ class Launcher(object):
                     elif has_inputs == -1:
                         scan_task.set_status(task.NO_DATA)
                         scan_task.set_qcstatus(qcstatus)
-
+                    else:
+                        scan_task.set_qcstatus(qcstatus)
                 else:
                     # Other statuses handled by dax_update_open_tasks
                     pass

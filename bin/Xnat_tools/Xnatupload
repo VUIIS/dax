@@ -724,7 +724,7 @@ def upload_folder(resource_obj, fpath):
         os.system('zip -r %s * > /dev/null' % (filename_zip))
         #upload
         LOGGER.info('     - Folder %s: uploading folder...' % (fpath))
-        resource_obj.put_zip(os.path.join(fpath, filename_zip), overwrite=True, extract=True)
+        resource_obj.put_zip(os.path.join(fpath, filename_zip), overwrite=True, extract=OPTIONS.extract)
         #remove the tmp zip file:
         if os.path.exists(os.path.join(fpath, filename_zip)):
             os.remove(os.path.join(fpath, filename_zip))
@@ -830,6 +830,8 @@ def main_display():
                 print '#     %*s -> %*s#' %(-20, 'Delete resources', -33, 'on')
             if OPTIONS.deleteAll:
                 print '#     %*s -> %*s#' %(-20, 'Delete All', -33, 'on')
+            if OPTIONS.extract:
+                print '#     %*s -> %*s#' %(-20, 'Extract ZIP', -33, 'on')
             if OPTIONS.outputfile:
                 print '#     %*s -> %*s#' %(-20, 'Output file', -33, get_proper_str(OPTIONS.outputfile))
         print '################################################################'
@@ -884,6 +886,8 @@ def parse_args():
                         help="Delete resources prior to upload.")
     parser.add_argument("--deleteAll", dest="deleteAll", action="store_true",
                         help="Delete all resources in the scan or assessor prior to upload.")
+    parser.add_argument("--noextract", dest="extract", action="store_false",
+                        help="Avoid extracting the zip files on XNAT when uploading a folder.")
     #Possible modality
     parser.add_argument("--printmodality", dest="printmodality", action="store_true",
                         help="Display the different modality available with XNAT for a session.")
