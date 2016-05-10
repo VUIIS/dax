@@ -28,7 +28,7 @@ COMPLETE = 'COMPLETE' # the assessors contains all the files. The upload and the
 READY_TO_COMPLETE = 'READY_TO_COMPLETE' # the job finished and upload is complete
 DOES_NOT_EXIST = 'DOES_NOT_EXIST'
 OPEN_STATUS_LIST = [NEED_TO_RUN, UPLOADING, JOB_RUNNING, READY_TO_COMPLETE, JOB_FAILED]
-
+JOB_BUILT = 'JOB_BUILT'
 
 # QC Statuses
 JOB_PENDING = 'Job Pending' # job is still running, not ready for QA yet
@@ -54,6 +54,9 @@ READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
 OLD_RESOURCE = 'OLD'
 EDITS_RESOURCE = 'EDITS'
 REPROC_RES_SKIP_LIST = [OLD_RESOURCE, EDITS_RESOURCE]
+INPUTS_DIRNAME = 'INPUTS'
+BATCH_DIRNAME = 'BATCH'
+OUTLOG_DIRNAME = 'OUTLOG'
 
 class Task(object):
     """ Class Task to generate/manage the assessor with the cluster """
@@ -142,8 +145,8 @@ class Task(object):
         """
         [memused, walltime, jobid, jobnode, jobstartdate] = self.get_job_usage()
 
-        if walltime != '':
-            if memused != '' and jobnode != '':
+        if walltime:
+            if memused and jobnode:
                 LOGGER.debug('memused and walltime already set, skipping')
             else:
                 if memused == '':
@@ -408,6 +411,9 @@ class Task(object):
         cmds = self.commands(jobdir)
         pbsfile = self.pbs_path(writeonly, pbsdir)
         outlog = self.outlog_path()
+        outlog_dir = os.path.dirname(outlog)
+        if not os.path.exists(outlog_dir):
+            os.makedirs(outlog_dir)
         pbs = PBS(pbsfile, outlog, cmds, self.processor.walltime_str, self.processor.memreq_mb,
                   self.processor.ppn, job_email, job_email_options, xnat_host)
         pbs.write()
@@ -638,7 +644,7 @@ class Task(object):
         """
         return self.processor.get_cmds(self.assessor, os.path.join(jobdir, self.assessor_label))
 
-    def pbs_path(self, writeonly, pbsdir=None):
+    def pbs_path(self, writeonly=False, pbsdir=None):
         """
         Method to return the path of the PBS file for the job
 
@@ -658,12 +664,12 @@ class Task(object):
 
     def outlog_path(self):
         """
-        Method to return the path of the PBS file for the job
+        Method to return the path of outlog file for the job
 
-        :return: A string that is the absolute path to the PBS file that will be submitted to the scheduler for execution.
-
+        :return: A string that is the absolute path to the OUTLOG file.
         """
-        return os.path.join(DEFAULT_OUT_DIR, self.assessor_label+'.output')
+        label = self.assessor_label
+        return os.path.join(self.upload_dir, OUTLOG_DIRNAME, label+'.output')
 
     def ready_flag_exists(self):
         """
@@ -698,3 +704,674 @@ class Task(object):
         else:
             # Let Upload Spider handle the upload
             return JOB_RUNNING
+
+class NeedInputsException(Exception):
+    def __init__(self,value):
+        self.value=value
+
+    def __str__(self):
+        return repr(self.value)
+
+class NoDataException(Exception):
+    def __init__(self,value):
+        self.value=value
+
+    def __str__(self):
+        return repr(self.value)
+
+class ClusterTask(Task):
+    """ Class Task to generate/manage the assessor with the cluster """
+    def __init__(self, assr_label, upload_dir, diskq):
+        """
+        Init of class ClusterTask
+        :return: None
+
+        """
+        self.assessor_label = assr_label
+        self.processor = None
+        self.assessor = None
+        self.atype = None
+        self.assessor_id = None
+        self.diskq = diskq
+        self.upload_dir = upload_dir
+
+    def get_processor_name(self):
+        """
+        Get the name of the Processor for the Task.
+
+        :return: String of the Processor name.
+
+        """
+        raise NotImplementedError()
+
+    def get_processor_version(self):
+        """
+        Get the version of the Processor.
+
+        :return: String of the Processor version.
+
+        """
+        raise NotImplementedError()
+
+    def is_open(self):
+        """
+        Check to see if a task is still in "Open" status as defined in
+         OPEN_STATUS_LIST.
+
+        :return: True if the Task is open. False if it is not open
+
+        """
+        astatus = self.get_status()
+        return astatus in OPEN_STATUS_LIST
+
+    def get_job_usage(self):
+        """
+        Get the amount of memory used, the amount of walltime used, the jobid
+         of the process, the node the process ran on, and when it started
+         from the scheduler.
+
+        :return: List of strings. Memory used, walltime used, jobid, node used, and start date
+
+        """
+        memused = self.get_attr('memused')
+        walltime = self.get_attr('walltimeused')
+        jobid = self.get_attr('jobid')
+        jobnode = self.get_attr('jobnode')
+        jobstartdate = self.get_attr('jobstartdate')
+
+        return [memused, walltime, jobid, jobnode, jobstartdate]
+
+    def check_job_usage(self):
+        """
+        The task has now finished, get the amount of memory used, the amount of
+         walltime used, the jobid of the process, the node the process ran on,
+         and when it started from the scheduler. Set these values locally
+
+        :return: None
+
+        """
+        [memused, walltime, jobid, jobnode, jobstartdate] = self.get_job_usage()
+
+        if walltime:
+            if memused and jobnode:
+                LOGGER.debug('memused and walltime already set, skipping')
+            else:
+                if memused == '':
+                    self.set_memused('NotFound')
+                if jobnode == '':
+                    self.set_jobnode('NotFound')
+            return
+
+        # We can't get info from cluster if job too old
+        if not cluster.is_traceable_date(jobstartdate):
+            self.set_walltime('NotFound')
+            self.set_memused('NotFound')
+            self.set_jobnode('NotFound')
+            return
+
+        # Get usage with tracejob
+        jobinfo = cluster.tracejob_info(jobid, jobstartdate)
+        if jobinfo['mem_used'].strip():
+            self.set_memused(jobinfo['mem_used'])
+        else:
+            self.set_memused('NotFound')
+        if jobinfo['walltime_used'].strip():
+            self.set_walltime(jobinfo['walltime_used'])
+        else:
+            self.set_walltime('NotFound')
+        if jobinfo['jobnode'].strip():
+            self.set_jobnode(jobinfo['jobnode'])
+        else:
+            self.set_jobnode('NotFound')
+
+    def get_memused(self):
+        """
+        Get the amount of memory used for a process
+
+        :return: String of how much memory was used
+
+        """
+        memused = self.get_attr('memused')
+        return memused
+
+    def set_memused(self,memused):
+        """
+        Set the amount of memory used for a process
+
+        :param memused: String denoting the amount of memory used
+        :return: None
+
+        """
+        self.set_attr('memused', memused)
+
+    def get_walltime(self):
+        """
+        Get the amount of walltime used for a process
+
+        :return: String of how much walltime was used for a process
+
+        """
+        walltime = self.get_attr('walltimeused')
+        return walltime
+
+    def set_walltime(self,walltime):
+        """
+        Set the value of walltime used for an assessor
+
+        :param walltime: String denoting how much time was used running
+         the process.
+        :return: None
+
+        """
+        self.set_attr('walltimeused',walltime)
+
+    def get_jobnode(self):
+        """
+        Gets the node that a process ran on
+
+        :return: String identifying the node that a job ran on
+
+        """
+        jobnode = self.get_attr('jobnode')
+        return jobnode
+
+    def set_jobnode(self,jobnode):
+        """
+        Set the value of the the node that the process ran on on the grid
+
+        :param jobnode: String identifying the node the job ran on
+        :return: None
+
+        """
+        self.set_attr('jobnode',jobnode)
+
+    def undo_processing(self):
+       raise NotImplementedError()
+
+    def reproc_processing(self):
+        """
+        :raises: NotImplementedError
+        :return: None
+
+        """
+        raise NotImplementedError()
+
+    def update_status(self):
+        """
+        Update the status of a Cluster Task object.
+
+        :return: the "new" status (updated) of the Task.
+
+        """
+        old_status = self.get_status()
+        new_status = old_status
+
+        if old_status == JOB_RUNNING:
+            new_status = self.check_running()
+        elif old_status == READY_TO_UPLOAD:
+            new_status = self.complete_task()
+        elif old_status in [COMPLETE, JOB_FAILED, NEED_TO_RUN, 
+            NEED_INPUTS, READY_TO_UPLOAD, UPLOADING, NO_DATA]:
+            pass
+        else:
+            LOGGER.warn('   * unknown status for ' + self.assessor_label + ': ' + old_status)
+
+        if new_status != old_status:
+            LOGGER.info('   * changing status from ' + old_status + ' to ' + new_status)
+            self.set_status(new_status)
+
+        return new_status
+
+    def get_jobid(self):
+        """
+        Get the jobid of an assessor as stored in local cache
+
+        :return: string of the jobid
+
+        """
+        jobid = self.get_attr('jobid')
+        return jobid
+
+    def get_job_status(self):
+        """
+        Get the status of a job given its jobid as assigned by the scheduler
+
+        :param jobid: job id assigned by the scheduler
+        :return: string from call to cluster.job_status or UNKNOWN.
+
+        """
+        jobstatus = 'UNKNOWN'
+        jobid = self.get_jobid()
+
+        if jobid and jobid != '0':
+            jobstatus = cluster.job_status(jobid)
+
+        return jobstatus
+
+    def launch(self):
+        """
+        Method to launch a job on the grid
+
+        :raises: cluster.ClusterLaunchException if the jobid is 0 or empty
+         as returned by pbs.submit() method
+        :return: True if the job failed
+
+        """
+        batch_path = self.batch_path()
+        jobid = cluster.submit_job(batch_path)
+
+        if jobid == '' or jobid == '0':
+            LOGGER.error('failed to launch job on cluster')
+            raise cluster.ClusterLaunchException
+        else:
+            self.set_launch(jobid)
+            return True
+
+    def check_date(self):
+        """
+        Sets the job created date if the assessor was not made through dax_build
+        """
+        raise NotImplementedError()
+
+    def get_jobstartdate(self):
+        """
+        Get the date that the job started
+
+        :return: String of the date that the job started in "%Y-%m-%d" format
+
+        """
+        return self.get_attr('jobstartdate')
+
+    def set_jobstartdate(self,date_str):
+        """
+        Set the date that the job started on the grid based on user passed
+         value
+
+        :param date_str: Datestring in the format "%Y-%m-%d" to set the job
+         starte date to
+        :return: None
+
+        """
+        self.set_attr('jobstartdate', date_str)
+
+    def get_createdate(self):
+        """
+        Get the date an assessor was created
+
+        :return: String of the date the assessor was created in "%Y-%m-%d"
+         format
+
+        """
+        raise NotImplementedError()
+
+    def set_createdate(self,date_str):
+        """
+        Set the date of the assessor creation to user passed value
+
+        :param date_str: String of the date in "%Y-%m-%d" format
+        :return: String of today's date in "%Y-%m-%d" format
+
+        """
+        raise NotImplementedError()
+
+    def set_createdate_today(self):
+        """
+        Set the date of the assessor creation to today
+
+        :return: String of todays date in "%Y-%m-%d" format
+
+        """
+        raise NotImplementedError()
+
+    def get_status(self):
+        """
+        Get the procstatus
+
+        :return: The string of the procstatus
+        """
+        procstatus = self.get_attr('procstatus')
+
+        if not procstatus:
+            procstatus = NEED_TO_RUN
+
+        return procstatus
+
+    def get_statuses(self):
+        """
+        Get the procstatus, qcstatus, and job id of an assessor
+        """
+        raise NotImplementedError()
+
+    def set_status(self, status):
+        """
+        Set the procstatus of an assessor on XNAT
+
+        :param status: String to set the procstatus of the assessor to
+        :return: None
+
+        """
+        self.set_attr('procstatus', status)
+
+    def get_qcstatus(self):
+        """
+        Get the qcstatus
+        """
+        raise NotImplementedError()
+
+    def set_qcstatus(self, qcstatus):
+        """
+        Set the qcstatus of the assessor
+
+        :param qcstatus: String to set the qcstatus to
+        :return: None
+
+        """
+        raise NotImplementedError()
+
+    def set_proc_and_qc_status(self, procstatus, qcstatus):
+        """
+        Set the procstatus and qcstatus of the assessor
+        """
+        raise NotImplementedError()
+
+
+    def set_jobid(self, jobid):
+        """
+        Set the job ID of the assessor
+
+        :param jobid: The ID of the process assigned by the grid scheduler
+        :return: None
+
+        """
+        self.set_attr('jobid', jobid)
+
+    def set_launch(self, jobid):
+        """
+        Set the date that the job started and its associated ID.
+        Additionally, set the procstatus to JOB_RUNNING
+
+        :param jobid: The ID of the process assigned by the grid scheduler
+        :return: None
+
+        """
+        today_str = str(date.today())
+        self.set_attr('jobstartdate', today_str)
+        self.set_attr('jobid', jobid)
+        self.set_attr('procstatus', JOB_RUNNING)
+
+    def commands(self, jobdir):
+        """
+        Call the get_cmds method of the class Processor.
+
+        :param jobdir: Fully qualified path where the job will run on the node.
+         Note that this is likely to start with /tmp on most grids.
+        :return: A string that makes a command line call to a spider with all
+         args.
+
+        """
+        raise NotImplementedError()
+
+    def batch_path(self):
+        """
+        Method to return the path of the PBS file for the job
+
+        :return: A string that is the absolute path to the PBS file that will
+         be submitted to the scheduler for execution.
+
+        """
+        label = self.assessor_label
+        return os.path.join(self.diskq, BATCH_DIRNAME, label + JOB_EXTENSION_FILE)
+
+    def outlog_path(self):
+        """
+        Method to return the path of outlog file for the job
+
+        :return: A string that is the absolute path to the OUTLOG file.
+        """
+        label = self.assessor_label
+        return os.path.join(self.diskq, OUTLOG_DIRNAME, label+'.txt')
+
+    def check_running(self):
+        """
+        Check to see if a job specified by the scheduler ID is still running
+
+        :param jobid: The ID of the job in question assigned by the scheduler.
+        :return: A String of JOB_RUNNING if the job is running or enqueued and
+         JOB_FAILED if the ready flag (see read_flag_exists) does not exist
+         in the assessor label folder in the upload directory.
+
+        """
+
+        if self.ready_flag_exists():
+            return READY_TO_UPLOAD
+
+         # Check status on cluster
+        jobstatus = self.get_job_status()
+
+        if not jobstatus or jobstatus == 'R' or jobstatus == 'Q':
+            # Still running
+            return JOB_RUNNING
+        else:
+            return JOB_FAILED
+
+    def build_task(self):
+        """
+        Method to build a job
+        """
+        raise NotImplementedError()
+
+    def build_commands(self):
+        """
+        Call the get_cmds method of the class Processor.
+
+        :param jobdir: Fully qualified path where the job will run on the node.
+         Note that this is likely to start with /tmp on most grids.
+        :return: A string that makes a command line call to a spider with all
+         args.
+
+        """
+        raise NotImplementedError()
+
+    def get_attr(self, name):
+        apath = self.attr_path(name)
+
+        if not os.path.exists(apath):
+            return None
+
+        with open(apath, 'r') as f:
+            return f.read().strip()
+
+    def set_attr(self, name, value):
+        attr_path = self.attr_path(name)
+        attr_dir = os.path.dirname(attr_path)
+        if not os.path.isdir(attr_dir):
+            os.mkdir(attr_dir)
+
+        with open(self.attr_path(name), 'w') as f:
+            f.write(str(value) + '\n')
+
+    def attr_path(self, attr):
+        return os.path.join(self.diskq, attr, self.assessor_label)
+
+    def complete_task(self):
+        self.check_job_usage()
+        open(os.path.join(RESULTS_DIR, self.assessor_label, READY_TO_COMPLETE + '.txt'), 'w').close()
+        return COMPLETE
+
+class XnatTask(Task):
+    """ Class Task to generate/manage the assessor with the cluster """
+    def __init__(self, processor, assessor, upload_dir, diskq):
+        """
+        Init of class Task
+
+        :param processor: processor used
+        :param assessor: assessor dict ?
+        :param upload_dir: upload directory to copy data to after the job finishes.
+        :return: None
+
+        """
+        super(XnatTask,self).__init__(processor, assessor, upload_dir)
+        self.diskq = diskq
+
+    def check_job_usage(self):
+        """
+        The task has now finished, get the amount of memory used, the amount of
+         walltime used, the jobid of the process, the node the process ran on,
+         and when it started from the scheduler. Set these values on XNAT
+
+        :return: None
+
+        """
+        raise NotImplementedError()
+
+    def update_status(self):
+        """
+        Update the satus of an XNAT Task object.
+
+        :return: the "new" status (updated) of the Task.
+
+        """
+        old_status, qcstatus, jobid = self.get_statuses()
+        new_status = old_status
+
+        if old_status == COMPLETE or old_status == JOB_FAILED:
+            if qcstatus == REPROC:
+                LOGGER.info('   * qcstatus=REPROC, running reproc_processing...')
+                self.reproc_processing()
+                new_status = NEED_TO_RUN
+            elif qcstatus == RERUN:
+                LOGGER.info('   * qcstatus=RERUN, running undo_processing...')
+                self.undo_processing()
+                new_status = NEED_TO_RUN
+            else:
+                pass
+        elif old_status in [NEED_TO_RUN, READY_TO_COMPLETE, NEED_INPUTS, JOB_RUNNING,
+            READY_TO_UPLOAD, UPLOADING,NO_DATA, JOB_BUILT]:
+            pass
+        else:
+            LOGGER.warn('   * unknown status for ' + self.assessor_label+': '+old_status)
+
+        if new_status != old_status:
+            LOGGER.info('   * changing status from '+old_status+' to '+new_status)
+            self.set_status(new_status)
+
+        return new_status
+
+    def get_job_status(self):
+        raise NotImplementedError()
+
+    def launch(self):
+        """
+        Method to launch a job on the grid
+        """
+        raise NotImplementedError()
+
+    def set_launch(self, jobid):
+        """
+        Set the date that the job started and its associated ID on XNAT.
+        Additionally, set the procstatus to JOB_RUNNING
+
+        :param jobid: The ID of the process assigned by the grid scheduler
+        :return: None
+
+        """
+        raise NotImplementedError()
+
+    def batch_path(self):
+        """
+        Method to return the path of the PBS file for the job
+
+        :return: A string that is the absolute path to the PBS file that will
+         be submitted to the scheduler for execution.
+
+        """
+        label = self.assessor_label
+        return os.path.join(self.diskq, BATCH_DIRNAME, label+JOB_EXTENSION_FILE)
+
+    def outlog_path(self):
+        """
+        Method to return the path of outlog file for the job
+
+        :return: A string that is the absolute path to the OUTLOG file.
+        """
+        label = self.assessor_label
+        return os.path.join(self.diskq, OUTLOG_DIRNAME,label+'.txt')
+
+    def check_running(self):
+        """
+        Check to see if a job specified by the scheduler ID is still running
+
+        :param jobid: The ID of the job in question assigned by the scheduler.
+        :return: A String of JOB_RUNNING if the job is running or enqueued and
+         JOB_FAILED if the ready flag (see read_flag_exists) does not exist
+         in the assessor label folder in the upload directory.
+
+        """
+        raise NotImplementedError()
+
+    def build_task(self,
+        csess,
+        jobdir,
+        job_email=None,
+        job_email_options=DEFAULT_EMAIL_OPTS,
+        xnat_host=None):
+        """
+        Method to build a job
+        """
+
+        (old_proc_status,old_qc_status,_) = self.get_statuses()
+
+        try:
+            cmds = self.build_commands(csess, jobdir)
+            batch_file = self.batch_path()
+            outlog = self.outlog_path()
+            batch = PBS(batch_file,
+                      outlog,
+                      cmds,
+                      self.processor.walltime_str,
+                      self.processor.memreq_mb,
+                      self.processor.ppn,
+                      job_email,
+                      job_email_options,
+                      xnat_host)
+            LOGGER.info('writing:' + batch_file)
+            batch.write()
+
+            new_proc_status = JOB_BUILT
+            new_qc_status = JOB_PENDING
+        except NeedInputsException as e:
+            new_proc_status = NEED_INPUTS
+            new_qc_status = e.value
+        except NoDataException as e:
+            new_proc_status = NO_DATA
+            new_qc_status = e.value
+
+        if new_proc_status != old_proc_status or new_qc_status != old_qc_status:
+            self.set_proc_and_qc_status(new_proc_status, new_qc_status)
+
+        return (new_proc_status,new_qc_status)
+
+    def build_commands(self, cobj, jobdir):
+        """
+        Call the build_cmds method of the class Processor.
+
+        :param jobdir: Fully qualified path where the job will run on the node.
+         Note that this is likely to start with /tmp on most grids.
+        :return: A string that makes a command line call to a spider with all
+         args.
+
+        """
+        
+        try:
+            return self.processor.build_cmds(cobj, os.path.join(jobdir, self.assessor_label))
+        except NotImplementedError:
+            # Handle older processors without build_cmds()
+            has_inputs, qcstatus = self.processor.has_inputs(cobj)
+            if has_inputs == 1:
+                return self.processor.get_cmds(self.assessor, os.path.join(jobdir, self.assessor_label))
+            elif has_inputs == -1:
+                raise NoDataException(qcstatus)
+            else:
+                sess_task.set_qcstatus(qcstatus)
+                raise NeedInputsException(qcstatus)
+    

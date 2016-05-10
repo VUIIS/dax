@@ -15,13 +15,14 @@ import XnatUtils
 import task
 import cluster
 import bin
-from task import Task
+from task import Task, ClusterTask, XnatTask
 from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
 RESULTS_DIR = DAX_SETTINGS.get_results_dir()
 DEFAULT_ROOT_JOB_DIR = DAX_SETTINGS.get_root_job_dir()
 DEFAULT_QUEUE_LIMIT = DAX_SETTINGS.get_queue_limit()
 DEFAULT_MAX_AGE = DAX_SETTINGS.get_max_age()
+DEFAULT_LAUNCHER_TYPE = DAX_SETTINGS.get_launcher_type()
 
 UPDATE_PREFIX = 'updated--'
 UPDATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -32,12 +33,29 @@ LAUNCH_SUFFIX = 'LAUNCHER_RUNNING.txt'
 #Logger to print logs
 LOGGER = logging.getLogger('dax')
 
+FLAG_DIR = os.path.join(RESULTS_DIR, 'FlagFiles')
+OUTLOG_DIR = os.path.join(RESULTS_DIR, 'OUTLOG')
+BATCH_DIR = os.path.join(RESULTS_DIR, 'PBS')
+
+DISKQ_DIR = os.path.join(RESULTS_DIR, 'DISKQ')
+DISKQ_BATCH_DIR = os.path.join(DISKQ_DIR, 'BATCH')
+DISKQ_OUTLOG_DIR = os.path.join(DISKQ_DIR, 'OUTLOG')
+DISKQ_INPUTS_DIR = os.path.join(DISKQ_DIR, 'INPUTS')
+
+def check_dir(dir_path):
+    try:
+        os.makedirs(dir_path)
+    except OSError:
+        if not os.path.isdir(dir_path):
+            raise
+
 class Launcher(object):
     """ Launcher object to manage a list of projects from a settings file """
     def __init__(self, project_process_dict, project_modules_dict, priority_project=None,
                  queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR,
                  xnat_user=None, xnat_pass=None, xnat_host=None,
-                 job_email=None, job_email_options='bae', max_age=DEFAULT_MAX_AGE):
+                 job_email=None, job_email_options='bae', max_age=DEFAULT_MAX_AGE, 
+                 launcher_type=DEFAULT_LAUNCHER_TYPE):
         """
         Entry point for the Launcher class
 
@@ -62,16 +80,20 @@ class Launcher(object):
         self.job_email = job_email
         self.job_email_options = job_email_options
         self.max_age = max_age
+        self.launcher_type = launcher_type
 
-        #Creating Folders for flagfile/pbs/outlog in RESULTS_DIR
-        if not os.path.exists(RESULTS_DIR):
-            os.mkdir(RESULTS_DIR)
-        if not os.path.exists(os.path.join(RESULTS_DIR, 'PBS')):
-            os.mkdir(os.path.join(RESULTS_DIR, 'PBS'))
-        if not os.path.exists(os.path.join(RESULTS_DIR, 'OUTLOG')):
-            os.mkdir(os.path.join(RESULTS_DIR, 'OUTLOG'))
-        if not os.path.exists(os.path.join(RESULTS_DIR, 'FlagFiles')):
-            os.mkdir(os.path.join(RESULTS_DIR, 'FlagFiles'))
+        # Creating Folders for flagfile/pbs/outlog in RESULTS_DIR
+        if launcher_type in ['diskq-xnat', 'diskq-cluster']:
+            check_dir(DISKQ_DIR)
+            check_dir(DISKQ_INPUTS_DIR)
+            check_dir(DISKQ_OUTLOG_DIR)
+            check_dir(DISKQ_BATCH_DIR)
+            check_dir(FLAG_DIR)
+        else:
+            check_dir(RESULTS_DIR)
+            check_dir(FLAG_DIR)
+            check_dir(OUTLOG_DIR)
+            check_dir(BATCH_DIR)
 
         # Add empty lists for projects in one list but not the other
         for proj in self.project_process_dict.keys():
@@ -116,29 +138,41 @@ class Launcher(object):
         :return: None
 
         """
-        LOGGER.info('-------------- Launch Tasks --------------\n')
+        if self.launcher_type == 'diskq-xnat':
+            LOGGER.error('cannot launch jobs with this launcher type:' + self.launcher_type)
+            return
 
-        flagfile = os.path.join(RESULTS_DIR, 'FlagFiles', lockfile_prefix+'_'+LAUNCH_SUFFIX)
+        LOGGER.info('-------------- Launch Tasks --------------\n')
+        LOGGER.info('launcher_type = '+self.launcher_type)
+
+        xnat = None
+        flagfile = os.path.join(FLAG_DIR, lockfile_prefix + '_' + LAUNCH_SUFFIX)
         project_list = self.init_script(flagfile, project_local, type_update=3, start_end=1)
 
         try:
-            LOGGER.info('Connecting to XNAT at '+self.xnat_host)
-            xnat = XnatUtils.get_interface(self.xnat_host, self.xnat_user, self.xnat_pass)
+            if self.launcher_type == 'diskq-cluster':
+                LOGGER.info('Loading task queue from:' + DISKQ_DIR)
+                task_list = load_task_queue(status=task.NEED_TO_RUN)
 
-            if not XnatUtils.has_dax_datatypes(xnat):
-                raise Exception('error: dax datatypes are not installed on your xnat <%s>' % (self.xnat_host))
+                LOGGER.info(str(len(task_list)) + ' tasks that need to be launched found')
+                self.launch_tasks(task_list)
+            else:
+                LOGGER.info('Connecting to XNAT at ' + self.xnat_host)
+                xnat = XnatUtils.get_interface(self.xnat_host, self.xnat_user, self.xnat_pass)
 
-            LOGGER.info('Getting launchable tasks list...')
-            task_list = self.get_tasks(xnat,
-                                       self.is_launchable_tasks,
-                                       project_list,
-                                       sessions_local)
+                if not XnatUtils.has_dax_datatypes(xnat):
+                    raise Exception('error: dax datatypes are not installed on your xnat <%s>' % (self.xnat_host))
 
-            LOGGER.info(str(len(task_list))+' tasks that need to be launched found')
+                LOGGER.info('Getting launchable tasks list...')
+                task_list = self.get_tasks(xnat,
+                                           self.is_launchable_tasks,
+                                           project_list,
+                                           sessions_local)
 
-            #Launch the task that need to be launch
-            self.launch_tasks(task_list, writeonly, pbsdir)
+                LOGGER.info(str(len(task_list))+' tasks that need to be launched found')
 
+                # Launch the task that need to be launch
+                self.launch_tasks(task_list, writeonly, pbsdir)
         finally:
             self.finish_script(xnat, flagfile, project_list, 3, 2, project_local)
 
@@ -187,7 +221,11 @@ class Launcher(object):
                 mes_format = """  +Launching job:{label}, currently {count} jobs in cluster queue"""
                 LOGGER.info(mes_format.format(label=cur_task.assessor_label,
                                               count=str(cur_job_count)))
-            success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options, self.xnat_host, writeonly, pbsdir)
+            if self.launcher_type == 'diskq-cluster':
+                success = cur_task.launch()
+            else:
+                success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options, self.xnat_host, writeonly, pbsdir)
+
             if not success:
                 LOGGER.error('ERROR:failed to launch job')
                 raise cluster.ClusterLaunchException
@@ -209,31 +247,47 @@ class Launcher(object):
         :return: None
 
         """
-        LOGGER.info('-------------- Update Tasks --------------\n')
+        if self.launcher_type == 'diskq-xnat':
+            LOGGER.error('cannot update jobs with this launcher type:' + self.launcher_type)
+            return
 
-        flagfile = os.path.join(RESULTS_DIR, 'FlagFiles', lockfile_prefix+'_'+UPDATE_SUFFIX)
+        LOGGER.info('-------------- Update Tasks --------------\n')
+        LOGGER.info('launcher_type = '+self.launcher_type)
+
+        xnat = None
+        flagfile = os.path.join(FLAG_DIR, lockfile_prefix + '_' + UPDATE_SUFFIX)
         project_list = self.init_script(flagfile, project_local, type_update=2, start_end=1)
 
         try:
-            LOGGER.info('Connecting to XNAT at '+self.xnat_host)
-            xnat = XnatUtils.get_interface(self.xnat_host, self.xnat_user, self.xnat_pass)
+            if self.launcher_type == 'diskq-cluster':
+                LOGGER.info('Loading task queue from:' + DISKQ_DIR)
+                task_list = load_task_queue()
 
-            if not XnatUtils.has_dax_datatypes(xnat):
-                raise Exception('error: dax datatypes are not installed on your xnat <%s>' % (self.xnat_host))
+                LOGGER.info(str(len(task_list)) + ' tasks found.')
 
-            LOGGER.info('Getting task list...')
-            task_list = self.get_tasks(xnat,
-                                       self.is_updatable_tasks,
-                                       project_list,
-                                       sessions_local)
+                LOGGER.info('Updating tasks...')
+                for cur_task in task_list:
+                    LOGGER.info('Updating task:' + cur_task.assessor_label)
+                    cur_task.update_status()
+            else:
+                LOGGER.info('Connecting to XNAT at ' + self.xnat_host)
+                xnat = XnatUtils.get_interface(self.xnat_host, self.xnat_user, self.xnat_pass)
 
-            LOGGER.info(str(len(task_list))+' open tasks found')
+                if not XnatUtils.has_dax_datatypes(xnat):
+                    raise Exception('error: dax datatypes are not installed on your xnat <%s>' % (self.xnat_host))
 
-            LOGGER.info('Updating tasks...')
-            for cur_task in task_list:
-                LOGGER.info('     Updating task:'+cur_task.assessor_label)
-                cur_task.update_status()
+                LOGGER.info('Getting task list...')
+                task_list = self.get_tasks(xnat,
+                                           self.is_updatable_tasks,
+                                           project_list,
+                                           sessions_local)
 
+                LOGGER.info(str(len(task_list))+' open tasks found')
+
+                LOGGER.info('Updating tasks...')
+                for cur_task in task_list:
+                    LOGGER.info('     Updating task:' + cur_task.assessor_label)
+                    cur_task.update_status()
         finally:
             self.finish_script(xnat, flagfile, project_list, 2, 2, project_local)
 
@@ -261,9 +315,15 @@ class Launcher(object):
         :return: None
 
         """
-        LOGGER.info('-------------- Build --------------\n')
+        if self.launcher_type == 'diskq-cluster':
+            LOGGER.error('cannot build jobs with this launcher type:' + self.launcher_type)
+            return
 
-        flagfile = os.path.join(RESULTS_DIR, 'FlagFiles', lockfile_prefix+'_'+BUILD_SUFFIX)
+        LOGGER.info('-------------- Build --------------\n')
+        LOGGER.info('launcher_type = '+self.launcher_type)
+
+
+        flagfile = os.path.join(FLAG_DIR, lockfile_prefix + '_' + BUILD_SUFFIX)
         project_list = self.init_script(flagfile, project_local, type_update=1, start_end=1)
 
         try:
@@ -306,6 +366,9 @@ class Launcher(object):
         # Get lists of modules/processors per scan/exp for this project
         exp_mods, scan_mods = modules.modules_by_type(self.project_modules_dict[project_id])
         exp_procs, scan_procs = processors.processors_by_type(self.project_process_dict[project_id])
+        #proj_settings = self.proj_settings_dict[project_id]
+        #use_lastupdate = proj_settings.use_lastupdate
+        use_lastupdate = False
 
         # Check for new processors
         has_new = self.has_new_processors(xnat, project_id, exp_procs, scan_procs)
@@ -315,30 +378,27 @@ class Launcher(object):
 
         # Update each session from the list:
         for sess_info in sessions:
-            last_mod = datetime.strptime(sess_info['last_modified'][0:19], UPDATE_FORMAT)
-            now_date = datetime.today()
-            last_up = self.get_lastupdated(sess_info)
+            if use_lastupdate and not has_new and not sessions_local:
+                last_mod = datetime.strptime(sess_info['last_modified'][0:19], UPDATE_FORMAT)
+                now_date = datetime.today()
+                last_up = self.get_lastupdated(sess_info)
+                if last_up != None and \
+                    last_mod < last_up and \
+                    now_date < last_mod + timedelta(days=int(self.max_age)):
+                    mess = """  +Session:{sess}: skipping, last_mod={mod},last_up={up}"""
+                    mess_str = mess.format(sess=sess_info['label'], mod=str(last_mod), up=str(last_up))
+                    LOGGER.info(mess_str)
+                    continue
 
-            #If sessions_local is set, skip checking the date
-            if not has_new and last_up != None and \
-               last_mod < last_up and not sessions_local and \
-               now_date < last_mod+timedelta(days=int(self.max_age)):
-                mess = """  +Session:{sess}: skipping, last_mod={mod},last_up={up}"""
-                mess_str = mess.format(sess=sess_info['label'], mod=str(last_mod), up=str(last_up))
-                LOGGER.info(mess_str)
-            else:
-                update_run_count = 0
-                got_updated = False
-                while update_run_count < 3 and not got_updated:
-                    mess = """  +Session:{sess}: updating (count:{count})..."""
-                    LOGGER.info(mess.format(sess=sess_info['label'], count=update_run_count))
-                    # NOTE: we keep the starting time of the update
-                    # and will check if something change during the update
-                    update_start_time = datetime.now()
-                    self.build_session(xnat, sess_info, exp_procs, scan_procs, exp_mods, scan_mods)
-                    got_updated = self.set_session_lastupdated(xnat, sess_info, update_start_time)
-                    update_run_count = update_run_count+1
-                    LOGGER.debug('\n')
+            mess = """  +Session:{sess}: building..."""
+            LOGGER.info(mess.format(sess=sess_info['label']))
+
+            if use_lastupdate:
+                update_start_time = datetime.now()
+
+            self.build_session(xnat, sess_info, exp_procs, scan_procs, exp_mods, scan_mods)
+            if use_lastupdate:
+                self.set_session_lastupdated(xnat, sess_info, update_start_time)
 
         if not sessions_local or sessions_local.lower() == 'all':
             # Modules after run
@@ -365,38 +425,70 @@ class Launcher(object):
         session_info = csess.info()
         sess_obj = None
 
-        # Modules on session
-        LOGGER.debug('== Build modules for session ==')
-        for sess_mod in sess_mod_list:
-            LOGGER.debug('* Module: '+sess_mod.getname())
-            if sess_mod.needs_run(csess, xnat):
-                if sess_obj == None:
-                    sess_obj = XnatUtils.get_full_object(xnat, session_info)
+        # Modules
+        mod_count = 0
+        while mod_count < 3:
+            mess = """== Build modules (count:{count}) =="""
+            LOGGER.debug(mess.format(count=mod_count))
+            # NOTE: we keep starting time to check if something changes below
+            start_time = datetime.now()
+            if sess_mod_list:
+                self.build_session_modules(xnat, csess, sess_mod_list)
+            if scan_mod_list:
+                for cscan in csess.scans():
+                    LOGGER.debug('+SCAN: ' + cscan.info()['scan_id'])
+                    self.build_scan_modules(xnat, cscan, scan_mod_list)
 
-                sess_mod.run(session_info, sess_obj)
+            if not sess_was_modified(xnat, sess_info, start_time):
+                break
 
-        # Scans
-        LOGGER.debug('== Build modules/processors for scans in session ==')
-        if scan_proc_list or scan_mod_list:
+            csess.reload()
+            mod_count += 1
+
+        # Scan Processors
+        LOGGER.debug('== Build scan processors ==')
+        if scan_proc_list:
             for cscan in csess.scans():
-                LOGGER.debug('+SCAN: '+cscan.info()['scan_id'])
-                self.build_scan(xnat, cscan, scan_proc_list, scan_mod_list)
+                LOGGER.debug('+SCAN: ' + cscan.info()['scan_id'])
+                self.build_scan_processors(xnat, cscan, scan_proc_list)
 
-        # Processors
-        LOGGER.debug('== Build processors for session ==')
+        # Session Processors
+        LOGGER.debug('== Build session processors ==')
+        if sess_proc_list:
+            self.build_session_processors(xnat, csess, sess_proc_list)
+
+    def build_session_processors(self, xnat, csess, sess_proc_list):
+        sess_info = csess.info()
+
         for sess_proc in sess_proc_list:
-            if sess_proc.should_run(session_info):
+            if not sess_proc.should_run(sess_info):
+                continue
 
-                assr_name = sess_proc.get_assessor_name(csess)
+            assr_name = sess_proc.get_assessor_name(csess)
 
-                # Look for existing assessor
-                proc_assr = None
-                for assr in csess.assessors():
-                    if assr.info()['label'] == assr_name:
-                        proc_assr = assr
+            # Look for existing assessor
+            proc_assr = None
+            for assr in csess.assessors():
+                if assr.info()['label'] == assr_name:
+                    proc_assr = assr
+                    break
 
+            if self.launcher_type == 'diskq-xnat':
                 if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    # Create it if it doesn't exist
+                    assessor = csess.full_object().assessor(assr_name)
+                    xtask = XnatTask(sess_proc, assessor, RESULTS_DIR, DISKQ_DIR)
+                    LOGGER.debug('building task:' + assr_name)
+                    (proc_status, qc_status) = xtask.build_task(
+                        csess,
+                        self.root_job_dir,
+                        self.job_email,
+                        self.job_email_options)
+                    LOGGER.debug('proc_status=' + proc_status + ', qc_status=' + qc_status)
+                else:
+                    # TODO: check that it actually exists in QUEUE
+                    LOGGER.debug('skipping, already built:' + assr_name)
+            else:
+                if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
                     sess_task = sess_proc.get_task(xnat, csess, RESULTS_DIR)
                     self.log_updating_status(sess_proc.name, sess_task.assessor_label)
                     has_inputs, qcstatus = sess_proc.has_inputs(csess)
@@ -408,24 +500,32 @@ class Launcher(object):
                         sess_task.set_qcstatus(qcstatus)
                     else:
                         sess_task.set_qcstatus(qcstatus)
+
                 else:
                     # Other statuses handled by dax_update_tasks
                     pass
 
-    @staticmethod
-    def log_updating_status(procname, assessor_label):
+    def build_session_modules(self, xnat, csess, sess_mod_list):
         """
-        Print as debug the status updating string
+        Build a session
 
-        :param procname: process name
-        :param assessors_label: assessor label
+        :param xnat: pyxnat.Interface object
+        :param sess_info: python ditionary from XnatUtils.list_sessions method
+        :param sess_mod_list: list of modules running on a session
         :return: None
         """
-        mess = """* Processor:{proc}: updating status: {label}"""
-        mess_str = mess.format(proc=procname, label=assessor_label)
-        LOGGER.debug(mess_str)
 
-    def build_scan(self, xnat, cscan, scan_proc_list, scan_mod_list):
+        sess_obj = None
+        sess_info = csess.info()
+        for sess_mod in sess_mod_list:
+            LOGGER.debug('* Module: ' + sess_mod.getname())
+            if sess_mod.needs_run(csess, xnat):
+                if sess_obj == None:
+                    sess_obj = csess.full_object()
+
+                sess_mod.run(sess_info, sess_obj)
+
+    def build_scan_processors(self, xnat, cscan, scan_proc_list):
         """
         Build the scan
 
@@ -436,29 +536,37 @@ class Launcher(object):
         :return: None
         """
         scan_info = cscan.info()
-        scan_obj = None
-
-        # Modules
-        for scan_mod in scan_mod_list:
-            LOGGER.debug('* Module: '+scan_mod.getname())
-            if scan_mod.needs_run(cscan, xnat):
-                if scan_obj == None:
-                    scan_obj = XnatUtils.get_full_object(xnat, scan_info)
-
-                scan_mod.run(scan_info, scan_obj)
 
         # Processors
         for scan_proc in scan_proc_list:
-            if scan_proc.should_run(scan_info):
-                assr_name = scan_proc.get_assessor_name(cscan)
+            if not scan_proc.should_run(scan_info):
+                continue
 
-                # Look for existing assessor
-                proc_assr = None
-                for assr in cscan.parent().assessors():
-                    if assr.info()['label'] == assr_name:
-                        proc_assr = assr
+            assr_name = scan_proc.get_assessor_name(cscan)
 
-                # Create it if it doesn't exist
+            # Look for existing assessor
+            proc_assr = None
+            for assr in cscan.parent().assessors():
+                if assr.info()['label'] == assr_name:
+                    proc_assr = assr
+
+            if self.launcher_type == 'diskq-xnat':
+                if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
+                    # TODO: get session object directly
+                    scan = XnatUtils.get_full_object(xnat, scan_info)
+                    assessor = scan.parent().assessor(assr_name)
+                    xtask = XnatTask(scan_proc, assessor, RESULTS_DIR, DISKQ_DIR)
+                    LOGGER.debug('building task:' + assr_name)
+                    (proc_status, qc_status) = xtask.build_task(
+                        cscan,
+                        self.root_job_dir,
+                        self.job_email,
+                        self.job_email_options)
+                    LOGGER.debug('proc_status=' + proc_status + ', qc_status=' + qc_status)
+                else:
+                    # TODO: check that it actually exists in QUEUE
+                    LOGGER.debug('skipping, already built:' + assr_name)
+            else:
                 if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
                     scan_task = scan_proc.get_task(xnat, cscan, RESULTS_DIR)
                     self.log_updating_status(scan_proc.name, scan_task.assessor_label)
@@ -474,6 +582,21 @@ class Launcher(object):
                 else:
                     # Other statuses handled by dax_update_open_tasks
                     pass
+
+
+    def build_scan_modules(self, xnat, cscan, scan_mod_list):
+
+        scan_info = cscan.info()
+        scan_obj = None
+
+        # Modules
+        for scan_mod in scan_mod_list:
+            LOGGER.debug('* Module: ' + scan_mod.getname())
+            if scan_mod.needs_run(cscan, xnat):
+                if scan_obj == None:
+                    scan_obj = XnatUtils.get_full_object(xnat, scan_info)
+
+                scan_mod.run(scan_info, scan_obj)
 
     def module_prerun(self, project_id, settings_filename=''):
         """
@@ -556,8 +679,10 @@ The project is not part of the settings."""
             self.unlock_flagfile(flagfile)
             #Set the date on REDCAP for update ending
             bin.upload_update_date_redcap(project_list, type_update, start_end)
-        xnat.disconnect()
-        LOGGER.info('Connection to XNAT closed')
+            
+        if xnat:
+            xnat.disconnect()
+            LOGGER.info('Connection to XNAT closed')
 
     @staticmethod
     def lock_flagfile(lock_file):
@@ -779,14 +904,14 @@ The project is not part of the settings."""
         last_mod = datetime.strptime(last_modified_xnat[0:19], '%Y-%m-%d %H:%M:%S')
         if last_mod > update_start_time:
             return False
-        else:
-            #format:
-            update_str = (datetime.now()+timedelta(minutes=1)).strftime(UPDATE_FORMAT)
-            # We set update to one minute into the future
-            # since setting update field will change last modified time
-            LOGGER.debug('setting last_updated for:'+sess_info['label']+' to '+update_str)
-            sess_obj.attrs.set(xsi_type+'/original', UPDATE_PREFIX+update_str)
-            return True
+
+        # format:
+        update_str = (datetime.now()+timedelta(minutes=1)).strftime(UPDATE_FORMAT)
+        # We set update to one minute into the future
+        # since setting update field will change last modified time
+        LOGGER.debug('setting last_updated for:' + sess_info['label'] + ' to ' + update_str)
+        sess_obj.attrs.set(xsi_type + '/original', UPDATE_PREFIX + update_str)
+        return True
 
     @staticmethod
     def has_new_processors(xnat, project_id, sess_proc_list, scan_proc_list):
@@ -811,3 +936,39 @@ The project is not part of the settings."""
 
         # Are there any?
         return len(diff_list) > 0
+
+def load_task_queue(status=None):
+    task_list = list()
+
+    for t in os.listdir(DISKQ_BATCH_DIR):
+        # task_path = os.path.join(BATCH_DIR, t)
+
+        LOGGER.debug('loading:' + t)
+        task = ClusterTask(os.path.splitext(t)[0], RESULTS_DIR, DISKQ_DIR)
+        LOGGER.debug('status = ' + task.get_status())
+
+        # TODO:filter based on project, subject, session, type
+        if not status or task.get_status() == status:
+            LOGGER.debug('adding task to list:' + t)
+            task_list.append(task)
+
+    return task_list
+
+def get_sess_lastmod(xnat, sess_info):
+    xsi_type = sess_info['xsiType']
+    sess_obj = XnatUtils.get_full_object(xnat, sess_info)
+    last_modified_xnat = sess_obj.attrs.get(xsi_type + '/meta/last_modified')
+    last_mod = datetime.strptime(last_modified_xnat[0:19], '%Y-%m-%d %H:%M:%S')
+    return last_mod
+
+def sess_was_modified(xnat, sess_info, build_start_time):
+    """
+    Compare modified time with start time
+    :param xnat: pyxnat.Interface object
+    :param sess_info: dictionary of session information
+    :param update_start_time: date when the update started
+    :return: False if the session change and don't set the last update date, True otherwise
+    """
+    last_mod = get_sess_lastmod(xnat, sess_info)
+    return (last_mod > build_start_time)
+

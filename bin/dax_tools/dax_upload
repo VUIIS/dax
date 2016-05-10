@@ -16,11 +16,16 @@ from datetime import datetime
 from email.mime.text import MIMEText
 
 from dax import XnatUtils, DAX_Settings
-from dax.task import READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED, JOB_PENDING
+from dax.task import READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED, JOB_PENDING, NEEDS_QA
+from dax.task import ClusterTask
 
 ########### VARIABLES ###########
 DAX_SETTINGS = DAX_Settings()
 RESULTS_DIR = DAX_SETTINGS.get_results_dir()
+JOB_EXTENSION_FILE = DAX_SETTINGS.get_job_extension_file()
+DISKQ_DIR = os.path.join(RESULTS_DIR, 'DISKQ')
+DISKQ_BATCH_DIR = os.path.join(DISKQ_DIR, 'BATCH')
+_COMPLETE_FLAG_FILE = 'READY_TO_COMPLETE.txt'
 SMTP_FROM = DAX_SETTINGS.get_smtp_from()
 SMTP_HOST = DAX_SETTINGS.get_smtp_host()
 SMTP_PASS = DAX_SETTINGS.get_smtp_pass()
@@ -205,8 +210,9 @@ def get_assessor_list(projects):
             continue
         if os.path.exists(os.path.join(assessor_path, _EMAILED_FLAG_FILE)):
             continue
-        if os.path.exists(os.path.join(assessor_path, _READY_FLAG_FILE)) or\
-           os.path.exists(os.path.join(assessor_path, _FAILED_FLAG_FILE)):
+        if (os.path.exists(os.path.join(assessor_path, _READY_FLAG_FILE)) or\
+           os.path.exists(os.path.join(assessor_path, _FAILED_FLAG_FILE))) and\
+           (not is_diskq_assessor(assessor_label) or os.path.exists(os.path.join(assessor_path, _COMPLETE_FLAG_FILE))):
             # Passed all checks, so add it to upload list
             assessor_label_list.append(assessor_label)
 
@@ -398,7 +404,7 @@ def upload_assessor(xnat, assessor_dict):
                                        assessor_dict['session_label'])
     if not session_obj.exists():
         LOGGER.error('Cannot upload assessor, session does not exist.')
-        return
+        return True
 
     #Select assessor
     assessor_obj = session_obj.assessor(assessor_dict['label'])
@@ -432,11 +438,28 @@ def upload_assessor(xnat, assessor_dict):
 
         ## after Upload ##
         if os.path.exists(os.path.join(assessor_dict['path'], _READY_FLAG_FILE)):
-            assessor_obj.attrs.set(xsitype+'/procstatus', READY_TO_COMPLETE)
+            if is_diskq_assessor(assessor_dict['label']): # was this run using the DISKQ option
+                # Read attributes
+                ctask = ClusterTask(assessor_dict['label'], RESULTS_DIR, DISKQ_DIR)
+                assessor_obj.attrs.mset({
+                    xsitype + '/procstatus': COMPLETE,
+                    xsitype + '/validation/status': NEEDS_QA,
+                    xsitype + '/jobid': ctask.get_jobid(),
+                    xsitype + '/jobnode': ctask.get_jobnode(),
+                    xsitype + '/memused': ctask.get_memused(),
+                    xsitype + '/walltimeused': ctask.get_walltime(),
+                    xsitype + '/jobstartdate': ctask.get_jobstartdate()
+                })
+            else:
+                assessor_obj.attrs.set(xsitype + '/procstatus', READY_TO_COMPLETE)
         else:
             assessor_obj.attrs.set(xsitype+'/procstatus', JOB_FAILED)
         #Remove the folder
         shutil.rmtree(assessor_dict['path'])
+
+def is_diskq_assessor(assr_label):
+    # Does a batch file exist for this assessor?
+    return os.path.exists(os.path.join(DISKQ_BATCH_DIR, assr_label + JOB_EXTENSION_FILE))
 
 def upload_resource(assessor_obj, resource, resource_path):
     """
@@ -753,7 +776,7 @@ if __name__ == '__main__':
     WARNING_LIST = list()
     #Logger for logs
     LOGGER = dax.bin.set_logger(OPTIONS.logfile, OPTIONS.debug)
-    LOGGER.info('Time at the beginning of the Process_Upload: '+ str(datetime.now())+'\n')
+    LOGGER.info('Time at the beginning of the Process_Upload: '+str(datetime.now())+'\n')
     #Check if folders exist
     check_folders()
     DAX_UPLOAD_FLAGFILE = "%s%s.txt" % (FLAGFILE_TEMPLATE, OPTIONS.suffix)
