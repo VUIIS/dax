@@ -461,6 +461,15 @@ class DAX_Settings(object):
 
         """
         return int(self.get('cluster', 'max_age'))
+    
+    def get_launcher_type(self):
+        """
+        Get the launcher type from the cluster
+
+        :return: String of the launcher type: xnatq-combined, diskq-xnat, diskq-cluster
+
+        """
+        return self.get('cluster', 'launcher_type')
 
     # redcap section
     def get_api_url(self):
