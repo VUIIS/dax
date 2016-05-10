@@ -77,8 +77,9 @@ A_RESOURCES_URI  = '/REST/projects/{project}/subjects/{subject}/experiments/{ses
 A_RESOURCE_URI   = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/assessors/{assessor}/out/resources/{resource}'
 
 # List post URI variables:
-SUBJECT_POST_URI = '''?columns=ID,project,label,URI,last_modified,src,handedness,gender,yob'''
+SUBJECT_POST_URI = '''?columns=ID,project,label,URI,last_modified,src,handedness,gender,yob,dob'''
 SESSION_POST_URI = '''?xsiType={stype}&columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,{stype}/age,label,{stype}/meta/last_modified,{stype}/original'''
+NO_MOD_SESSION_POST_URI = '''?xsiType={stype}&columns=ID,URI,subject_label,subject_ID,project,date,xsiType,{stype}/age,label,{stype}/meta/last_modified,{stype}/original'''
 SCAN_POST_URI = '''?columns=ID,URI,label,subject_label,project,xnat:imagesessiondata/scans/scan/id,xnat:imagesessiondata/scans/scan/type,xnat:imagesessiondata/scans/scan/quality,xnat:imagesessiondata/scans/scan/note,xnat:imagesessiondata/scans/scan/frames,xnat:imagesessiondata/scans/scan/series_description,xnat:imagesessiondata/subject_id'''
 SCAN_PROJ_POST_URI = '''?project={project}&xsiType=xnat:imageSessionData&columns=ID,URI,label,subject_label,project,xnat:imagesessiondata/subject_id,xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,xnat:imagescandata/note,xnat:imagescandata/frames,xnat:imagescandata/series_description,xnat:imagescandata/file/label'''
 SCAN_PROJ_INCLUDED_POST_URI = '''?xnat:imagesessiondata/sharing/share/project={project}&xsiType=xnat:imageSessionData&columns=ID,URI,label,subject_label,project,xnat:imagesessiondata/subject_id,xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,xnat:imagescandata/note,xnat:imagescandata/frames,xnat:imagescandata/series_description,xnat:imagescandata/file/label'''
@@ -628,11 +629,14 @@ def list_sessions(intf, projectid=None, subjectid=None):
 
     #Get the subjects list to get the subject ID:
     subj_list = list_subjects(intf, projectid)
-    subj_id2lab = dict((subj['ID'], [subj['handedness'], subj['gender'], subj['yob']]) for subj in subj_list)
+    subj_id2lab = dict((subj['ID'], [subj['handedness'], subj['gender'], subj['yob'], subj['dob']]) for subj in subj_list)
 
     # Get list of sessions for each type since we have to specific about last_modified field
     for sess_type in type_list:
-        post_uri_type = post_uri + SESSION_POST_URI.format(stype=sess_type)
+        if sess_type.startswith('xnat:') and 'session' in sess_type:
+            post_uri_type = post_uri + SESSION_POST_URI.format(stype=sess_type)
+        else:
+            post_uri_type = post_uri + NO_MOD_SESSION_POST_URI.format(stype=sess_type)
         sess_list = intf._get_json(post_uri_type)
 
         for sess in sess_list:
@@ -645,14 +649,19 @@ def list_sessions(intf, projectid=None, subjectid=None):
             sess['subject_id'] = sess['subject_ID']
             sess['session_id'] = sess['ID']
             sess['session_label'] = sess['label']
-            sess['session_type'] = sess_type.split('xnat:')[1].split('session')[0].upper()
-            sess['type'] = sess_type.split('xnat:')[1].split('session')[0].upper()
-            sess['last_modified'] = sess[sess_type+'/meta/last_modified']
-            sess['last_updated'] = sess[sess_type+'/original']
-            sess['age'] = sess[sess_type+'/age']
+            if sess_type.startswith('xnat:') and 'session' in sess_type:
+                sess['session_type'] = sess_type.split('xnat:')[1].split('session')[0].upper()
+                sess['type'] = sess_type.split('xnat:')[1].split('session')[0].upper()
+            else:
+                sess['session_type'] = sess_type
+                sess['type'] = sess_type
+            sess['last_modified'] = sess.get(sess_type+'/meta/last_modified', None)
+            sess['last_updated'] = sess.get(sess_type+'/original', None)
+            sess['age'] = sess.get(sess_type+'/age', None)
             sess['handedness'] = subj_id2lab[sess['subject_ID']][0]
             sess['gender'] = subj_id2lab[sess['subject_ID']][1]
             sess['yob'] = subj_id2lab[sess['subject_ID']][2]
+            sess['dob'] = subj_id2lab[sess['subject_ID']][3]
 
         # Add sessions of this type to full list
         full_sess_list.extend(sess_list)
