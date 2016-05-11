@@ -83,7 +83,7 @@ class Launcher(object):
         self.launcher_type = launcher_type
 
         # Creating Folders for flagfile/pbs/outlog in RESULTS_DIR
-        if launcher_type in ['diskq-xnat', 'diskq-cluster']:
+        if launcher_type in ['diskq-xnat', 'diskq-cluster', 'diskq-combined']:
             check_dir(DISKQ_DIR)
             check_dir(DISKQ_INPUTS_DIR)
             check_dir(DISKQ_OUTLOG_DIR)
@@ -150,7 +150,7 @@ class Launcher(object):
         project_list = self.init_script(flagfile, project_local, type_update=3, start_end=1)
 
         try:
-            if self.launcher_type == 'diskq-cluster':
+            if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
                 LOGGER.info('Loading task queue from:' + DISKQ_DIR)
                 task_list = load_task_queue(status=task.NEED_TO_RUN)
 
@@ -221,7 +221,7 @@ class Launcher(object):
                 mes_format = """  +Launching job:{label}, currently {count} jobs in cluster queue"""
                 LOGGER.info(mes_format.format(label=cur_task.assessor_label,
                                               count=str(cur_job_count)))
-            if self.launcher_type == 'diskq-cluster':
+            if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
                 success = cur_task.launch()
             else:
                 success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options, self.xnat_host, writeonly, pbsdir)
@@ -259,7 +259,7 @@ class Launcher(object):
         project_list = self.init_script(flagfile, project_local, type_update=2, start_end=1)
 
         try:
-            if self.launcher_type == 'diskq-cluster':
+            if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
                 LOGGER.info('Loading task queue from:' + DISKQ_DIR)
                 task_list = load_task_queue()
 
@@ -473,7 +473,7 @@ class Launcher(object):
                     proc_assr = assr
                     break
 
-            if self.launcher_type == 'diskq-xnat':
+            if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
                 if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
                     assessor = csess.full_object().assessor(assr_name)
                     xtask = XnatTask(sess_proc, assessor, RESULTS_DIR, DISKQ_DIR)
@@ -550,7 +550,7 @@ class Launcher(object):
                 if assr.info()['label'] == assr_name:
                     proc_assr = assr
 
-            if self.launcher_type == 'diskq-xnat':
+            if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
                 if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
                     # TODO: get session object directly
                     scan = XnatUtils.get_full_object(xnat, scan_info)
