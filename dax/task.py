@@ -92,7 +92,11 @@ class Task(object):
 
         # Create assessor if needed
         if not assessor.exists():
-            assessor.create(assessors=self.atype)
+            if self.atype == 'fs:fsdata':
+                assessor.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})       
+            else:
+                assessor.create(assessors=self.atype)
+            
             self.set_createdate_today()
             atype = self.atype.lower()
             if atype == 'proc:genprocdata':
