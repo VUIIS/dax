@@ -1,52 +1,55 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
-    Title: generate_spider_template.py
-    Author: Benjamin Yvernault
-    contact: b.yvernault@ucl.ac.uk
-    Purpose:
-        Generate your Spider.py following the template for spider describe in this file.
-"""
+"""Generator for Spider templates.
 
-__author__ = 'Benjamin Yvernault'
-__email__ = 'b.yvernault@ucl.ac.uk'
-__purpose__ = "Generate your Spider.py following the template for spider describe in this file."
-__version__ = '1.0.0'
-__modifications__ = '21 August 2015 - Original write'
+Title: generate_spider_template.py
+Author: Benjamin Yvernault
+contact: b.yvernault@ucl.ac.uk
+Purpose: Generate your Spider.py following the template for spider describe
+         in this file.
+"""
 
 import os
 import re
 from dax import spiders
 from datetime import datetime
 
-DEFAULT_TEMPLATE = """'''
-    Author:         {author}
-    contact:        {email_addr}
-    Spider name:    {name}
-    Spider version: {version}
-    Creation date:  {now}
-    Purpose:        {purpose}
-'''
+__author__ = 'Benjamin Yvernault'
+__email__ = 'b.yvernault@ucl.ac.uk'
+__purpose__ = "Generate your Spider.py following the template for spider\
+describe in this file."
+__version__ = '1.0.0'
+__modifications__ = '21 August 2015 - Original write'
+
+DEFAULT_TEMPLATE = '''"""Spider_{name}.
+
+Author:         {author}
+contact:        {email_addr}
+Spider name:    {name}
+Spider version: {version}
+Creation date:  {now}
+Purpose:        {purpose}
+"""
+
+# Python packages import
+import os
+import sys
+from dax import XnatUtils, spiders, ScanSpider, SessionSpider
 
 __author__ = "{author}"
 __email__ = "{email_addr}"
 __purpose__ = "{purpose}"
 __spider_name__ = "{name}"
 __version__ = "{version}"
-__modifications__ = "{now} - Original write"
+__modifications__ = """{now} - Original write"""
 
-# Python packages import
-import os
-import sys
-from datetime import datetime
-from dax import XnatUtils, spiders, RESULTS_DIR, ScanSpider, SessionSpider
-"""
+'''
 
-SCAN_LEVEL_TEMPLATE = DEFAULT_TEMPLATE+"""
+SCAN_LEVEL_TEMPLATE = DEFAULT_TEMPLATE + '''
 def parse_args():
-    '''
-    Argument parser for the spider input variables
+    """Argument parser for the spider input variables.
+
     by default (set in get_session_argparser):
         -p       : proj_label
         -s       : subj_label
@@ -60,46 +63,56 @@ def parse_args():
         ...
 
     :return: argument parser object created by parse_args()
-    '''
-    from argparse import ArgumentParser
+    """
     ap = spiders.get_scan_argparser("{name}", "{purpose}")
 
     #
     # ADD YOUR OTHER OPTIONS FOR THIS SPECIFIC SPIDER
     # example to add one options:
-    # ap.add_argument("--option", dest="option_id", default=None, help="Option description.", required=True)
+    # ap.add_argument("--option", dest="option_id", default=None, \
+help="Option description.", required=True)
     #
 
     return ap.parse_args()
 
-class Spider_{name}(ScanSpider):
-    '''
-        Scan Spider class to do: {purpose}
 
-        :param spider_path: spider file path
-        :param jobdir: directory for temporary files
-        :param xnat_project: project ID on XNAT
-        :param xnat_subject: subject label on XNAT
-        :param xnat_session: experiment label on XNAT
-        :param xnat_scan: scan label on XNAT
-        :param xnat_host: host for XNAT if not set in environment variables
-        :param xnat_user: user for XNAT if not set in environment variables
-        :param xnat_pass: password for XNAT if not set in environment variables
-        :param suffix: suffix to the assessor creation
-    '''
-    def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
-                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
-        super(Spider_{name}, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session, xnat_scan,
-                                            xnat_host, xnat_user, xnat_pass, suffix)
+class Spider_{name}(ScanSpider):
+    """Scan Spider: Spider_{name}
+
+    :param spider_path: spider file path
+    :param jobdir: directory for temporary files
+    :param xnat_project: project ID on XNAT
+    :param xnat_subject: subject label on XNAT
+    :param xnat_session: experiment label on XNAT
+    :param xnat_scan: scan label on XNAT
+
+    #
+    # ADD MORE PARAMETERS AS NEEDED HERE AND IN __INIT__
+    #
+
+    :param xnat_host: host for XNAT if not set in environment variables
+    :param xnat_user: user for XNAT if not set in environment variables
+    :param xnat_pass: password for XNAT if not set in environment variables
+    :param suffix: suffix to the assessor creation
+    """
+
+    def __init__(self, spider_path, jobdir,
+                 xnat_project, xnat_subject, xnat_session, xnat_scan,
+                 xnat_host=None, xnat_user=None, xnat_pass=None,
+                 suffix=""):
+        """Entry point for Spider_{name} Class."""
+        super(Spider_{name},
+              self).__init__(spider_path, jobdir, xnat_project, xnat_subject,
+                             xnat_session, xnat_scan, xnat_host, xnat_user,
+                             xnat_pass, suffix)
         self.inputs = list()
 
     def pre_run(self, argument_parse):
-        '''
-            Method to download data from XNAT
+        """Method to download data from XNAT.
 
-            :param argument_parse: argument parser object return by parse_args()
-        '''
-        resource = 'XXXX' #resource to download from the scan on XNAT
+        :param argument_parse: argument parser object return by parse_args()
+        """
+        resource = 'XXXX'  # resource to download from the scan on XNAT
         folder = os.path.join(self.jobdir, 'inputs')
         os.makedirs(folder)
         self.inputs.extend(self.download(self.xnat_scan, resource, folder))
@@ -110,25 +123,21 @@ class Spider_{name}(ScanSpider):
         #
 
     def run(self):
-        '''
-            Method running the process for the spider on the inputs data
-        '''
+        """Method running the process for the spider on the inputs data."""
         #
         # CODE THAT YOU WANT TO RUN ON THE DATA
         #
 
     def finish(self):
-        '''
-            Method to copy the results in the Spider Results folder dax.RESULTS_DIR
-        '''
-        self.time_writer('Results saved in folder: %s' % (RESULTS_DIR))
-        results_dict = {{'PDF': pdfpath,
+        """Method to copy the results in dax.RESULTS_DIR."""
+        results_dict = {{'PDF': 'pdfpath'
                         #
                         # ADD OTHER RESULTS YOU WANT TO SAVE
                         #
                         }}
         self.upload_dict(results_dict)
         self.end()
+
 
 if __name__ == '__main__':
     args = parse_args()
@@ -154,66 +163,78 @@ if __name__ == '__main__':
 
     # Finish method to copy results
     spider_obj.finish()
-"""
+'''
 
-SESSION_LEVEL_TEMPLATE = DEFAULT_TEMPLATE+"""
+SESSION_LEVEL_TEMPLATE = DEFAULT_TEMPLATE + '''
 def parse_args():
-    '''
-        Argument parser for the spider input variables
-        by default (set in get_session_argparser):
-            -p       : proj_label
-            -s       : subj_label
-            -e       : sess_label
-            -d       : temp_dir
-            --suffix : suffix (suffix for assessor proctype on XNAT)
-            --host : host for XNAT (default: XNAT_HOST env variable)
-            --user : user on XNAT (default: XNAT_USER env variable)
-        your arguments:
-            ...
+    """Argument parser for the spider input variables.
 
-        :return: argument parser object created by parse_args()
-    '''
-    from argparse import ArgumentParser
+    by default (set in get_session_argparser):
+        -p       : proj_label
+        -s       : subj_label
+        -e       : sess_label
+        -d       : temp_dir
+        --suffix : suffix (suffix for assessor proctype on XNAT)
+        --host : host for XNAT (default: XNAT_HOST env variable)
+        --user : user on XNAT (default: XNAT_USER env variable)
+    your arguments:
+        ...
+
+    :return: argument parser object created by parse_args()
+    """
     ap = spiders.get_session_argparser("{name}", "{purpose}")
 
     #
     # ADD YOUR OTHER OPTIONS FOR THIS SPECIFIC SPIDER
     # example to add one options:
-    # ap.add_argument("--option", dest="option_id", default=None, help="Option description.", required=True)
+    # ap.add_argument("--option", dest="option_id", default=None, \
+help="Option description.", required=True)
     #
 
     return ap.parse_args()
 
-class Spider_{name}(SessionSpider):
-    '''
-        Session Spider class to do: {purpose}
 
-        :param spider_path: spider file path
-        :param jobdir: directory for temporary files
-        :param xnat_project: project ID on XNAT
-        :param xnat_subject: subject label on XNAT
-        :param xnat_session: experiment label on XNAT
-        :param xnat_host: host for XNAT if not set in environment variables
-        :param xnat_user: user for XNAT if not set in environment variables
-        :param xnat_pass: password for XNAT if not set in environment variables
-        :param suffix: suffix to the assessor creation
-    '''
-    def __init__(self, spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                 xnat_host=None, xnat_user=None, xnat_pass=None, suffix=""):
-        super(Spider_{name}, self).__init__(spider_path, jobdir, xnat_project, xnat_subject, xnat_session,
-                                            xnat_host, xnat_user, xnat_pass, suffix)
+class Spider_{name}(SessionSpider):
+    """Session Spider: Spider_{name}.
+
+    :param spider_path: spider file path
+    :param jobdir: directory for temporary files
+    :param xnat_project: project ID on XNAT
+    :param xnat_subject: subject label on XNAT
+    :param xnat_session: experiment label on XNAT
+
+    #
+    # ADD MORE PARAMETERS AS NEEDED HERE AND IN __INIT__
+    #
+
+    :param xnat_host: host for XNAT if not set in environment variables
+    :param xnat_user: user for XNAT if not set in environment variables
+    :param xnat_pass: password for XNAT if not set in environment variables
+    :param suffix: suffix to the assessor creation
+    """
+
+    def __init__(self, spider_path, jobdir,
+                 xnat_project, xnat_subject, xnat_session,
+                 xnat_host=None, xnat_user=None, xnat_pass=None,
+                 suffix=""):
+        """Entry point for Spider_{name} Class."""
+        super(Spider_{name},
+              self).__init__(spider_path, jobdir,
+                             xnat_project, xnat_subject, xnat_session,
+                             xnat_host, xnat_user, xnat_pass,
+                             suffix)
         self.inputs = list()
 
     def pre_run(self, argument_parse):
-        '''
-            Method to download data from XNAT
+        """Method to download data from XNAT.
 
-            :param argument_parse: argument parser object return by parse_args()
-        '''
-        resource = 'XXXX' #resource to download from the scan on XNAT
+        :param argument_parse: argument parser object return by parse_args()
+        """
+        resource = 'XXXX'  # resource to download from the scan on XNAT
         folder = os.path.join(self.jobdir, 'inputs')
         os.makedirs(folder)
-        self.inputs.extend(self.download(argument_parse.scan, resource, folder))
+        self.inputs.extend(self.download(argument_parse.scan, resource,
+                                         folder))
 
         #
         # YOU CAN ADD MORE line to download other data LIKE
@@ -221,25 +242,21 @@ class Spider_{name}(SessionSpider):
         #
 
     def run(self):
-        '''
-            Method running the process for the spider on the inputs data
-        '''
+        """Method running the process for the spider on the inputs data."""
         #
         # CODE THAT YOU WANT TO RUN ON THE DATA
         #
 
     def finish(self):
-        '''
-            Method to copy the results in the Spider Results folder dax.RESULTS_DIR
-        '''
-        self.time_writer('Results saved in folder: %s' % (RESULTS_DIR))
-        results_dict = {{'PDF': pdfpath,
+        """Method to copy the results in dax.RESULTS_DIR."""
+        results_dict = {{'PDF': 'pdfpath'
                         #
                         # ADD OTHER RESULTS YOU WANT TO SAVE
                         #
                         }}
         self.upload_dict(results_dict)
         self.end()
+
 
 if __name__ == '__main__':
     args = parse_args()
@@ -264,11 +281,11 @@ if __name__ == '__main__':
 
     # Finish method to copy results
     spider_obj.finish()
-"""
+'''
+
 
 def write_spider(templates):
-    """
-    Create the Spider path with the proper template
+    """Create the Spider path with the proper template.
 
     :param templates: template to use (scan or session)
     :return: None
@@ -283,31 +300,36 @@ def write_spider(templates):
     f_obj.writelines(spider_code)
     f_obj.close()
 
+
 def parse_args():
-    """
-    Method to parse arguments base on ArgumentParser
+    """Method to parse arguments base on ArgumentParser.
 
     :return: parser object parsed
     """
     from argparse import ArgumentParser
     usage = "Generate your Spider.py following the dax template for spider."
     argp = ArgumentParser(prog='GenerateSpiderTemplate', description=usage)
-    argp.add_argument('-n', dest='name', help='Name for Spider. E.G: fMRIQA.', required=True)
-    argp.add_argument('-v', dest='version',
-                      help='Spider version (format: X.Y.Z). E.G: 1.0.0', required=True)
+    argp.add_argument('-n', dest='name', required=True,
+                      help='Name for Spider. E.G: fMRIQA.')
+    argp.add_argument('-v', dest='version', required=True,
+                      help='Spider version (format: X.Y.Z). E.G: 1.0.0')
     argp.add_argument('-a', dest='author', help='Author name.', required=True)
-    argp.add_argument('-e', dest='email', help='Author email address.', required=True)
-    argp.add_argument('-p', dest='purpose', help='Spider purpose.', required=True)
-    argp.add_argument('-c', dest='on_scan', action='store_true', help='Use Scan type Spider.')
-    argp.add_argument('-d', dest='directory',
-                      help="Directory where the spider file will be generated. Default: current directory.",
-                      default=None)
+    argp.add_argument('-e', dest='email', required=True,
+                      help='Author email address.')
+    argp.add_argument('-p', dest='purpose', required=True,
+                      help='Spider purpose.')
+    argp.add_argument('-c', dest='on_scan', action='store_true',
+                      help='Use Scan type Spider.')
+    argp.add_argument('-d', dest='directory', default=None,
+                      help="Directory where the spider file will be generated. \
+Default: current directory.")
     return argp.parse_args()
+
 
 if __name__ == '__main__':
     ARGS = parse_args()
 
-    ## Get a proper name from the input
+    # Get a proper name from the input
     # remove .py if present at the end of the file
     if ARGS.name.endswith('.py'):
         ARGS.name = ARGS.name[:-3]
@@ -320,10 +342,10 @@ if __name__ == '__main__':
     if ARGS.name[-1] == '_':
         ARGS.name = ARGS.name[:-1]
 
-    ## Check version
+    # Check version
     if not spiders.is_good_version(ARGS.version):
         err = "wrong format version given to script." + \
-              "It must follow the X.Y.Z template with X, Y, and Z integers." + \
+              "It must follow the X.Y.Z template with X, Y, and Z integers." +\
               "Look at http://semver.org for more information."
         raise ValueError(err)
 
@@ -335,8 +357,10 @@ if __name__ == '__main__':
     else:
         SPIDER_FPATH = os.path.join(os.getcwd(), SPIDER_NAME)
     if ARGS.on_scan:
-        print "Generating file %s for scan spider %s ..." % (SPIDER_FPATH, ARGS.name)
+        print "Generating file %s for scan spider %s ..." % \
+              (SPIDER_FPATH, ARGS.name)
         write_spider(SCAN_LEVEL_TEMPLATE)
     else:
-        print "Generating file %s for session spider %s ..." % (SPIDER_FPATH, ARGS.name)
+        print "Generating file %s for session spider %s ..." % \
+              (SPIDER_FPATH, ARGS.name)
         write_spider(SESSION_LEVEL_TEMPLATE)
