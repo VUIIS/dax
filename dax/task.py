@@ -924,6 +924,11 @@ class ClusterTask(Task):
             new_status = self.check_running()
             if new_status == READY_TO_UPLOAD:
                 new_status = self.complete_task()
+            elif new_status == JOB_FAILED:
+                new_status = self.fail_task()
+            else:
+                # still running
+                pass
         elif old_status in [COMPLETE, JOB_FAILED, NEED_TO_RUN, 
             NEED_INPUTS, READY_TO_UPLOAD, UPLOADING, NO_DATA]:
             pass
@@ -1244,6 +1249,31 @@ class ClusterTask(Task):
         create_flag(os.path.join(RESULTS_DIR, self.assessor_label, READY_TO_COMPLETE + '.txt'))
         
         return COMPLETE
+    
+    def fail_task(self):
+        self.check_job_usage()
+        
+        # Copy batch file, note we don't move so dax_upload knows the task origin
+        src = self.batch_path()
+        dst = self.upload_pbs_dir()
+        mkdirp(dst)
+        LOGGER.debug('copying batch file from '+src+' to '+dst)
+        shutil.copy(src, dst)
+        
+        # Move output file
+        src = self.outlog_path()
+        dst = self.upload_outlog_dir()
+        mkdirp(dst)
+        LOGGER.debug('moving outlog file from '+src+' to '+dst)
+        shutil.move(src, dst)
+        
+        # Touch file for dax_upload that job failed
+        create_flag(os.path.join(RESULTS_DIR, self.assessor_label, JOB_FAILED + '.txt'))
+        
+        # Touch file for dax_upload to check
+        create_flag(os.path.join(RESULTS_DIR, self.assessor_label, READY_TO_COMPLETE + '.txt'))
+        
+        return JOB_FAILED
     
     def delete_attr(self, attr):
         os.remove(self.attr_path(attr))
