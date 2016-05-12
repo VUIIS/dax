@@ -1,42 +1,45 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
-    Title: GenerateModuleTemplate
-    Author: Benjamin Yvernault
-    contact: b.yvernault@ucl.ac.uk
-    Purpose:
-        Generate your module.py following the template for module describe in this file.
-"""
+"""Generator for Module templates.
 
-__author__ = 'Benjamin Yvernault'
-__email__ = 'b.yvernault@ucl.ac.uk'
-__purpose__ = "Generate your module.py following the template for module describe in this file."
-__version__ = '1.0.0'
-__modifications__ = '24 August 2015 - Original write'
+Title: GenerateModuleTemplate
+Author: Benjamin Yvernault
+contact: b.yvernault@ucl.ac.uk
+Purpose: Generate your module.py following the template for module
+         described in this file.
+"""
 
 import os
 import re
 from datetime import datetime
 
-DEFAULT_TEMPLATE = """'''
-    Author:         {author}
-    contact:        {email_addr}
-    Module name:    Module_{name}
-    Creation date:  {now}
-    Purpose:        {purpose}
-'''
+__author__ = 'Benjamin Yvernault'
+__email__ = 'b.yvernault@ucl.ac.uk'
+__purpose__ = "Generate your module.py following the template for \
+module describe in this file."
+__version__ = '1.0.0'
+__modifications__ = '24 August 2015 - Original write'
 
-__author__ = "{author}"
-__email__ = "{email_addr}"
-__purpose__ = "{purpose}"
-__module_name__ = "Module_{name}"
-__modifications__ = "{now} - Original write"
+DEFAULT_TEMPLATE = '''"""Module to do: {purpose}.
+
+Author:         {author}
+contact:        {email_addr}
+Module name:    Module_{name}
+Creation date:  {now}
+Purpose:        {purpose}
+"""
 
 # Python packages import
 import os
 import logging
 from dax import XnatUtils, ScanModule, SessionModule
+
+__author__ = "{author}"
+__email__ = "{email_addr}"
+__purpose__ = "{purpose}"
+__module_name__ = "Module_{name}"
+__modifications__ = """{now} - Original write"""
 
 # set-up logger for printing statements
 LOGGER = logging.getLogger('dax')
@@ -46,35 +49,41 @@ LOGGER = logging.getLogger('dax')
 DEFAULT_TPM_PATH = '/tmp/{name}_temp/'
 DEFAULT_MODULE_NAME = '{name}'
 DEFAULT_TEXT_REPORT = 'ERROR/WARNING for {name} :\\n'
-"""
+'''
 
-SCAN_LEVEL_TEMPLATE = DEFAULT_TEMPLATE+"""
+SCAN_LEVEL_TEMPLATE = DEFAULT_TEMPLATE + '''
+
 class Module_{name}(ScanModule):
-    '''
-    Module class for {name} that runs on a scan
+    """Module class for {name} that runs on a scan.
 
     :param mod_name: module name
     :param directory: temp directory for the module temporary files
     :param email: email address to send error/warning to
     :param text_report: title for the report
     #
-    # ADD MORE PARAMETERS AS NEEDED HERE
+    # ADD MORE PARAMETERS AS NEEDED HERE AND IN __INIT__
     #
-    '''
-    def __init__(self, mod_name=DEFAULT_MODULE_NAME, directory=DEFAULT_TPM_PATH, email=None,
+    """
+
+    def __init__(self, mod_name=DEFAULT_MODULE_NAME,
+                 directory=DEFAULT_TPM_PATH, email=None,
                  text_report=DEFAULT_TEXT_REPORT):
-        super(Module_{name}, self).__init__(mod_name, directory, email, text_report=text_report)
+        """Entry point for Module_{name} Class."""
+        super(Module_{name},
+              self).__init__(mod_name, directory, email,
+                             text_report=text_report)
         #
         # ADD MORE PARAMETERS AS NEEDED HERE LIKE self.param = param
         #
 
     def prerun(self, settings_filename=''):
-        '''
-        prerun function overridden from base-class
-        method that runs at the beginning, before looping over the sessions for the project
+        """Method overridden from base-class.
 
-        :param settings_filename: settings file name to set the temporary folder
-        '''
+        Method that runs at the beginning, before looping over the sessions
+        in a project on XNAT
+
+        :param settings_filename: settings filename to set the temporary folder
+        """
         # make temporary directory using the settings filename
         self.make_dir(settings_filename)
 
@@ -83,13 +92,14 @@ class Module_{name}(ScanModule):
         #
 
     def afterrun(self, xnat, project):
-        '''
-        afterrun function overridden from base-class
-        method that runs at the end, after looping over the sessions for the project
+        """Method overridden from base-class.
+
+        Method that runs at the end, after looping over the sessions
+        in a project on XNAT
 
         :param xnat: interface to xnat object (XnatUtils.get_interface())
         :param project: project ID/label on XNAT
-        '''
+        """
         #
         # ADD CODE HERE IF YOU NEED TO EXECUTE SOMETHING AFTER THE LOOP
         #
@@ -102,17 +112,19 @@ class Module_{name}(ScanModule):
         try:
             os.rmdir(self.directory)
         except:
-            LOGGER.warn('{name} -- afterrun -- '+self.directory+' not empty. Could not delete it.')
+            warn = '{name} -- afterrun -- %s not empty. Could not delete it.'
+            LOGGER.warn(warn % self.directory)
 
     def needs_run(self, cscan, xnat):
-        '''
-        needs_run function overridden from base-class
-        method that runs before each loop step to check if we need to run on this scan
+        """Method overridden from base-class.
+
+        Method that runs before each loop step to check
+        if we need to run on this scan
 
         :param cscan: CacheScan object from XnatUtils
         :param xnat: interface to xnat object (XnatUtils.get_interface())
         :return: boolean, True if needs to run
-        '''
+        """
         #
         # CODE TO CHECK IF THE MODULE NEEDS TO RUN FOR THE SCAN DEFINE BY CSCAN
         #
@@ -132,51 +144,58 @@ class Module_{name}(ScanModule):
         return True
 
     def run(self, scan_info, scan_obj):
-        '''
-        run method: {purpose}
-          lines of code that will be executed for the scan
+        """Method: {purpose}.
 
-        :param scan_info: python dictionary with information on the scan (see output of XnatUtils.list_scans)
+        Lines of code that will be executed for the scan
+
+        :param scan_info: python dictionary with information on the scan
+                          (see output of XnatUtils.list_scans)
         :param scan_obj: pyxnat Scan object
-        '''
+        """
         #
         # CODE TO EXECUTE ON THE SCAN (E.G: GENERATE NIFTI/PREVIEW)
         #
 
         # clean temporary folder
         self.clean_directory()
-"""
+'''
 
-SESSION_LEVEL_TEMPLATE = DEFAULT_TEMPLATE+"""
+SESSION_LEVEL_TEMPLATE = DEFAULT_TEMPLATE + '''
 # Resource name set on session to know that the module ran
 RESOURCE_FLAG_NAME = 'Module_{name}'
 
+
 class Module_{name}(SessionModule):
-    '''
-    Module class for {name} that runs on a session
+    """Module class for {name} that runs on a session.
 
     :param mod_name: module name
     :param directory: temp directory for the module temporary files
     :param email: email address to send error/warning to
     :param text_report: title for the report
     #
-    # ADD MORE PARAMETERS AS NEEDED HERE
+    # ADD MORE PARAMETERS AS NEEDED HERE AND IN __INIT__
     #
-    '''
-    def __init__(self, mod_name=DEFAULT_MODULE_NAME, directory=DEFAULT_TPM_PATH, email=None,
+    """
+
+    def __init__(self, mod_name=DEFAULT_MODULE_NAME,
+                 directory=DEFAULT_TPM_PATH, email=None,
                  text_report=DEFAULT_TEXT_REPORT):
-        super(Module_{name}, self).__init__(mod_name, directory, email, text_report=text_report)
+        """Entry point for Module_{name} Class."""
+        super(Module_{name},
+              self).__init__(mod_name, directory, email,
+                             text_report=text_report)
         #
         # ADD MORE PARAMETERS AS NEEDED HERE LIKE self.param = param
         #
 
     def prerun(self, settings_filename=''):
-        '''
-        prerun function overridden from base-class
-        method that runs at the beginning, before looping over the sessions for the project
+        """Method overridden from base-class.
 
-        :param settings_filename: settings file name to set the temporary folder
-        '''
+        Method that runs at the beginning, before looping over the sessions
+        in a project on XNAT
+
+        :param settings_filename: settings filename to set the temporary folder
+        """
         # make temporary directory using the settings filename
         self.make_dir(settings_filename)
 
@@ -185,13 +204,14 @@ class Module_{name}(SessionModule):
         #
 
     def afterrun(self, xnat, project):
-        '''
-        afterrun function overridden from base-class
-        method that runs at the end, after looping over the sessions for the project
+        """Method overridden from base-class.
+
+        Method that runs at the end, after looping over the sessions
+        in a project on XNAT
 
         :param xnat: interface to xnat object (XnatUtils.get_interface())
         :param project: project ID/label on XNAT
-        '''
+        """
         #
         # ADD CODE HERE IF YOU NEED TO EXECUTE SOMETHING AFTER THE LOOP
         #
@@ -204,31 +224,37 @@ class Module_{name}(SessionModule):
         try:
             os.rmdir(self.directory)
         except:
-            LOGGER.warn('{name} -- afterrun -- '+self.directory+' not empty. Could not delete it.')
+            warn = '{name} -- afterrun -- %s not empty. Could not delete it.'
+            LOGGER.warn(warn % self.directory)
 
     def needs_run(self, csess, xnat):
-        '''
-        needs_run function overridden from base-class
-        method that runs before each loop step to check if we need to run on this session
+        """Method overridden from base-class.
+
+        Method that runs before each loop step to check if we need to run
+        on this session
 
         :param csess: CacheSession object from XnatUtils
         :param xnat: interface to xnat object (XnatUtils.get_interface())
         :return: boolean, True if needs to run
-        '''
+        """
+
         #
-        # CODE TO CHECK IF THE MODULE NEEDS TO RUN FOR THE SESSION DEFINE BY CSESS
+        # CODE TO CHECK IF THE MODULE NEEDS TO RUN FOR THE SESSION DEFINE \
+BY CSESS
         # FOR SESSION MODULE, SET A RESOURCE ON SESSION WITH FLAG NAME
         #
+
         return self.has_flag_resource(csess, RESOURCE_FLAG_NAME)
 
     def run(self, session_info, session_obj):
-        '''
-        run method: {purpose}
-          lines of code that will be executed for the session
+        """Method: {purpose}.
 
-        :param session_info: python dictionary with information on the session (see output of XnatUtils.list_sessions)
+        Lines of code that will be executed for the session
+
+        :param session_info: python dictionary with information on the session
+                             (see output of XnatUtils.list_sessions)
         :param session_obj: pyxnat Session object
-        '''
+        """
         #
         # CODE TO EXECUTE ON THE SESSION (E.G: SET SCAN TYPE)
         #
@@ -238,11 +264,11 @@ class Module_{name}(SessionModule):
 
         # create the flag resource on the session
         session_obj.resource(RESOURCE_FLAG_NAME).create()
-"""
+'''
+
 
 def write_module(templates):
-    """
-    Write the Module.py with the proper template
+    """Write the Module.py with the proper template.
 
     :param templates: template to use (scan or session)
     :return: None
@@ -256,28 +282,33 @@ def write_module(templates):
     f_obj.writelines(module_code)
     f_obj.close()
 
+
 def parse_args():
-    """
-    Method to parse arguments base on ArgumentParser
+    """Method to parse arguments base on ArgumentParser.
 
     :return: parser object parsed
     """
     from argparse import ArgumentParser
-    usage = "Generate a module.py file from the template for dax in a new file."
-    argp = ArgumentParser(prog='GenerateModuleTemplate', description=usage)
-    argp.add_argument('-n', dest='name', help='Name for module. E.G: dcm2nii.', required=True)
+    argp = ArgumentParser(prog='GenerateModuleTemplate',
+                          description=__purpose__)
+    argp.add_argument('-n', dest='name', required=True,
+                      help='Name for module. E.G: dcm2nii.')
     argp.add_argument('-a', dest='author', help='Author name.', required=True)
-    argp.add_argument('-e', dest='email', help='Author email address.', required=True)
-    argp.add_argument('-p', dest='purpose', help='Module purpose.', required=True)
-    argp.add_argument('--onScan', dest='on_scan', action='store_true', help='Use Scan type Spider.')
-    argp.add_argument('-d', dest='directory',
-                      help='Directory where the module file will be generated. Default: current directory.', default=None)
+    argp.add_argument('-e', dest='email', required=True,
+                      help='Author email address.')
+    argp.add_argument('-p', dest='purpose', required=True,
+                      help='Module purpose.')
+    argp.add_argument('--onScan', dest='on_scan', action='store_true',
+                      help='Use Scan type Spider.')
+    argp.add_argument('-d', dest='directory', default=None,
+                      help='Directory where the module file will be generated. \
+Default: current directory.')
     return argp.parse_args()
 
 if __name__ == '__main__':
     ARGS = parse_args()
 
-    ## Get a proper name from the input
+    # Get a proper name from the input
     # remove .py if present at the end of the file
     if ARGS.name.endswith('.py'):
         ARGS.name = ARGS.name[:-3]
@@ -296,8 +327,10 @@ if __name__ == '__main__':
     else:
         MODULE_FPATH = os.path.join(os.getcwd(), MODULE_NAME)
     if ARGS.on_scan:
-        print "Generating file %s for scan module %s ..." % (MODULE_FPATH, ARGS.name)
+        print "Generating file %s for scan module %s ..." % \
+              (MODULE_FPATH, ARGS.name)
         write_module(SCAN_LEVEL_TEMPLATE)
     else:
-        print "Generating file %s for session module %s ..." % (MODULE_FPATH, ARGS.name)
+        print "Generating file %s for session module %s ..." % \
+              (MODULE_FPATH, ARGS.name)
         write_module(SESSION_LEVEL_TEMPLATE)
