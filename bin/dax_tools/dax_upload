@@ -437,24 +437,28 @@ def upload_assessor(xnat, assessor_dict):
                 upload_resource(assessor_obj, resource, resource_path)
 
         ## after Upload ##
-        if os.path.exists(os.path.join(assessor_dict['path'], _READY_FLAG_FILE)):
-            if is_diskq_assessor(assessor_dict['label']): # was this run using the DISKQ option
-                # Read attributes
-                ctask = ClusterTask(assessor_dict['label'], RESULTS_DIR, DISKQ_DIR)
-                assessor_obj.attrs.mset({
-                    xsitype + '/procstatus': COMPLETE,
-                    xsitype + '/validation/status': NEEDS_QA,
-                    xsitype + '/jobid': ctask.get_jobid(),
-                    xsitype + '/jobnode': ctask.get_jobnode(),
-                    xsitype + '/memused': ctask.get_memused(),
-                    xsitype + '/walltimeused': ctask.get_walltime(),
-                    xsitype + '/jobstartdate': ctask.get_jobstartdate()
-                })
-                ctask.delete()
-            else:
-                assessor_obj.attrs.set(xsitype + '/procstatus', READY_TO_COMPLETE)
+        if is_diskq_assessor(assessor_dict['label']): # was this run using the DISKQ option
+            # Read attributes
+            ctask = ClusterTask(assessor_dict['label'], RESULTS_DIR, DISKQ_DIR)
+            
+            # Set on XNAT
+            assessor_obj.attrs.mset({
+                xsitype + '/procstatus': ctask.get_status(),
+                xsitype + '/validation/status': NEEDS_QA,
+                xsitype + '/jobid': ctask.get_jobid(),
+                xsitype + '/jobnode': ctask.get_jobnode(),
+                xsitype + '/memused': ctask.get_memused(),
+                xsitype + '/walltimeused': ctask.get_walltime(),
+                xsitype + '/jobstartdate': ctask.get_jobstartdate()
+            })
+            
+            # Delete the task from diskq
+            ctask.delete()
+        elif os.path.exists(os.path.join(assessor_dict['path'], _READY_FLAG_FILE)):
+            assessor_obj.attrs.set(xsitype + '/procstatus', READY_TO_COMPLETE)
         else:
             assessor_obj.attrs.set(xsitype+'/procstatus', JOB_FAILED)
+            
         #Remove the folder
         shutil.rmtree(assessor_dict['path'])
 
