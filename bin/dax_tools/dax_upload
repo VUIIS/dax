@@ -450,6 +450,7 @@ def upload_assessor(xnat, assessor_dict):
                     xsitype + '/walltimeused': ctask.get_walltime(),
                     xsitype + '/jobstartdate': ctask.get_jobstartdate()
                 })
+                ctask.delete()
             else:
                 assessor_obj.attrs.set(xsitype + '/procstatus', READY_TO_COMPLETE)
         else:
