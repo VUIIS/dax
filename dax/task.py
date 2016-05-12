@@ -1,5 +1,7 @@
 """ Task object to generate / manage assessors and cluster """
 import os
+import shutil
+import errno
 import time
 import logging
 from datetime import date
@@ -57,6 +59,19 @@ REPROC_RES_SKIP_LIST = [OLD_RESOURCE, EDITS_RESOURCE]
 INPUTS_DIRNAME = 'INPUTS'
 BATCH_DIRNAME = 'BATCH'
 OUTLOG_DIRNAME = 'OUTLOG'
+PBS_DIRNAME = 'PBS'
+
+def mkdirp(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST:
+            pass
+        else: 
+            raise
+        
+def create_flag(flag_path):
+    open(flag_path, 'w').close()
 
 class Task(object):
     """ Class Task to generate/manage the assessor with the cluster """
@@ -278,7 +293,7 @@ class Task(object):
         xml_filename = os.path.join(self.upload_dir, local_dir, self.assessor_label+'.xml')
 
         # Make the temp dir
-        os.makedirs(os.path.join(self.upload_dir, local_dir))
+        mkdirp(os.path.join(self.upload_dir, local_dir))
 
         # Download the current resources
         out_resource_list = self.assessor.out_resources()
@@ -412,8 +427,7 @@ class Task(object):
         pbsfile = self.pbs_path(writeonly, pbsdir)
         outlog = self.outlog_path()
         outlog_dir = os.path.dirname(outlog)
-        if not os.path.exists(outlog_dir):
-            os.makedirs(outlog_dir)
+        mkdirp(outlog_dir)
         pbs = PBS(pbsfile, outlog, cmds, self.processor.walltime_str, self.processor.memreq_mb,
                   self.processor.ppn, job_email, job_email_options, xnat_host)
         pbs.write()
@@ -854,7 +868,7 @@ class ClusterTask(Task):
         walltime = self.get_attr('walltimeused')
         return walltime
 
-    def set_walltime(self,walltime):
+    def set_walltime(self, walltime):
         """
         Set the value of walltime used for an assessor
 
@@ -863,7 +877,7 @@ class ClusterTask(Task):
         :return: None
 
         """
-        self.set_attr('walltimeused',walltime)
+        self.set_attr('walltimeused', walltime)
 
     def get_jobnode(self):
         """
@@ -908,8 +922,8 @@ class ClusterTask(Task):
 
         if old_status == JOB_RUNNING:
             new_status = self.check_running()
-        elif old_status == READY_TO_UPLOAD:
-            new_status = self.complete_task()
+            if new_status == READY_TO_UPLOAD:
+                new_status = self.complete_task()
         elif old_status in [COMPLETE, JOB_FAILED, NEED_TO_RUN, 
             NEED_INPUTS, READY_TO_UPLOAD, UPLOADING, NO_DATA]:
             pass
@@ -1130,6 +1144,24 @@ class ClusterTask(Task):
         """
         label = self.assessor_label
         return os.path.join(self.diskq, OUTLOG_DIRNAME, label+'.txt')
+    
+    def upload_pbs_dir(self):
+        """
+        Method to return the path of dir for the PBS
+
+        :return: A string that is the directory path for the PBS dir
+        """
+        label = self.assessor_label
+        return os.path.join(self.upload_dir, label, PBS_DIRNAME)
+    
+    def upload_outlog_dir(self):
+        """
+        Method to return the path of outlog file for the job
+
+        :return: A string that is the absolute path to the OUTLOG file.
+        """
+        label = self.assessor_label
+        return os.path.join(self.upload_dir, label, OUTLOG_DIRNAME)
 
     def check_running(self):
         """
@@ -1184,9 +1216,7 @@ class ClusterTask(Task):
     def set_attr(self, name, value):
         attr_path = self.attr_path(name)
         attr_dir = os.path.dirname(attr_path)
-        if not os.path.isdir(attr_dir):
-            os.mkdir(attr_dir)
-
+        mkdirp(attr_dir)
         with open(self.attr_path(name), 'w') as f:
             f.write(str(value) + '\n')
 
@@ -1195,8 +1225,40 @@ class ClusterTask(Task):
 
     def complete_task(self):
         self.check_job_usage()
-        open(os.path.join(RESULTS_DIR, self.assessor_label, READY_TO_COMPLETE + '.txt'), 'w').close()
+        
+        # Copy batch file, note we don't move so dax_upload knows the task origin
+        src = self.batch_path()
+        dst = self.upload_pbs_dir()
+        mkdirp(dst)
+        LOGGER.debug('copying batch file from '+src+' to '+dst)
+        shutil.copy(src, dst)
+        
+        # Move output file
+        src = self.outlog_path()
+        dst = self.upload_outlog_dir()
+        mkdirp(dst)
+        LOGGER.debug('moving outlog file from '+src+' to '+dst)
+        shutil.move(src, dst)
+        
+        # Touch file for dax_upload to check
+        create_flag(os.path.join(RESULTS_DIR, self.assessor_label, READY_TO_COMPLETE + '.txt'))
+        
         return COMPLETE
+    
+    def delete_attr(self, attr):
+        os.remove(self.attr_path(attr))
+        
+    def delete_batch(self):
+        # Delete batch file
+        os.remove(self.batch_path())
+    
+    def delete(self):
+        # Delete attributes
+        attr_list = ['jobid', 'jobnode', 'procstatus', 'walltimeused', 'memused', 'jobstartdate']
+        for attr in attr_list:
+            self.delete_attr(attr)
+            
+        self.delete_batch()
 
 class XnatTask(Task):
     """ Class Task to generate/manage the assessor with the cluster """
