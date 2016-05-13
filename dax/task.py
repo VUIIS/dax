@@ -1468,6 +1468,5 @@ class XnatTask(Task):
             elif has_inputs == -1:
                 raise NoDataException(qcstatus)
             else:
-                sess_task.set_qcstatus(qcstatus)
                 raise NeedInputsException(qcstatus)
     
