@@ -1432,13 +1432,13 @@ def is_bad_qa(qcstatus):
     Check to see if the QA status of an assessor is bad (aka unusable)
 
     :param qcstatus: String of the QC status of the assessor
-    :return: True if bad, False if not bad
+    :return: -1 if bad, 1 if not bad, 0 if still in progress (NOTE: doesn't follow boolean logic)
 
     """
-    if qcstatus in [task.JOB_PENDING, task.NEEDS_QA, task.REPROC]:
+    if qcstatus in [task.JOB_PENDING, task.NEEDS_QA, task.REPROC, task.FAILED_NEEDS_REPROC]:
         return 0
     for qc in task.BAD_QA_STATUS:
-        if qc in qcstatus.split(' ')[0].lower():
+        if qc.lower() in qcstatus.split(' ')[0].lower():
             return -1
     return 1
 
