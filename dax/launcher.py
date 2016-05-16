@@ -42,6 +42,22 @@ DISKQ_BATCH_DIR = os.path.join(DISKQ_DIR, 'BATCH')
 DISKQ_OUTLOG_DIR = os.path.join(DISKQ_DIR, 'OUTLOG')
 DISKQ_INPUTS_DIR = os.path.join(DISKQ_DIR, 'INPUTS')
 
+def str_to_timedelta(delta_str):
+    if len(delta_str) <= 1:
+        raise ValueError('invalid timedelta string value')
+    
+    val = int(delta_str[:-1])
+    if delta_str.endswith('s'):
+        return timedelta(seconds=val)
+    elif delta_str.endswith('m'):
+        return timedelta(minutes=val)
+    elif delta_str.endswith('h'):
+        return timedelta(hours=val)
+    elif delta_str.endswith('d'):
+        return timedelta(days=val)
+    else:
+        raise ValueError('invalid timedelta string value')
+    
 def check_dir(dir_path):
     try:
         os.makedirs(dir_path)
@@ -55,7 +71,8 @@ class Launcher(object):
                  queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR,
                  xnat_user=None, xnat_pass=None, xnat_host=None,
                  job_email=None, job_email_options='bae', max_age=DEFAULT_MAX_AGE, 
-                 launcher_type=DEFAULT_LAUNCHER_TYPE):
+                 launcher_type=DEFAULT_LAUNCHER_TYPE,
+                 use_lastupdate=False):
         """
         Entry point for the Launcher class
 
@@ -81,6 +98,7 @@ class Launcher(object):
         self.job_email_options = job_email_options
         self.max_age = max_age
         self.launcher_type = launcher_type
+        self.use_lastupdate = use_lastupdate
 
         # Creating Folders for flagfile/pbs/outlog in RESULTS_DIR
         if launcher_type in ['diskq-xnat', 'diskq-cluster', 'diskq-combined']:
@@ -304,7 +322,7 @@ class Launcher(object):
                assr_info['qcstatus'] in task.OPEN_QA_LIST
 
     ################## BUILD Main Method ##################
-    def build(self, lockfile_prefix, project_local, sessions_local):
+    def build(self, lockfile_prefix, project_local, sessions_local, mod_delta=None):
         """
         Main method to build the tasks and the sessions
 
@@ -321,7 +339,7 @@ class Launcher(object):
 
         LOGGER.info('-------------- Build --------------\n')
         LOGGER.info('launcher_type = '+self.launcher_type)
-
+        LOGGER.info('mod delta='+str(mod_delta))
 
         flagfile = os.path.join(FLAG_DIR, lockfile_prefix + '_' + BUILD_SUFFIX)
         project_list = self.init_script(flagfile, project_local, type_update=1, start_end=1)
@@ -341,12 +359,12 @@ class Launcher(object):
             # Build projects
             for project_id in project_list:
                 LOGGER.info('===== PROJECT:'+project_id+' =====')
-                self.build_project(xnat, project_id, lockfile_prefix, sessions_local)
+                self.build_project(xnat, project_id, lockfile_prefix, sessions_local, mod_delta=mod_delta)
 
         finally:
             self.finish_script(xnat, flagfile, project_list, 1, 2, project_local)
 
-    def build_project(self, xnat, project_id, lockfile_prefix, sessions_local):
+    def build_project(self, xnat, project_id, lockfile_prefix, sessions_local, mod_delta=None):
         """
         Build the project
 
@@ -356,19 +374,24 @@ class Launcher(object):
         :param sessions_local: list of sessions to launch tasks
         :return: None
         """
+        
         #Modules prerun
         LOGGER.info('  *Modules Prerun')
         if sessions_local:
             self.module_prerun(project_id, 'manual_update')
         else:
             self.module_prerun(project_id, lockfile_prefix)
+            
+        # TODO: make a project settings to store use_lastupdate, processors, modules, etc
 
         # Get lists of modules/processors per scan/exp for this project
         exp_mods, scan_mods = modules.modules_by_type(self.project_modules_dict[project_id])
         exp_procs, scan_procs = processors.processors_by_type(self.project_process_dict[project_id])
-        #proj_settings = self.proj_settings_dict[project_id]
-        #use_lastupdate = proj_settings.use_lastupdate
-        use_lastupdate = False
+
+        if mod_delta:
+            lastmod_delta = str_to_timedelta(mod_delta)
+        else:
+            lastmod_delta = None
 
         # Check for new processors
         has_new = self.has_new_processors(xnat, project_id, exp_procs, scan_procs)
@@ -378,7 +401,7 @@ class Launcher(object):
 
         # Update each session from the list:
         for sess_info in sessions:
-            if use_lastupdate and not has_new and not sessions_local:
+            if self.use_lastupdate and not has_new and not sessions_local:
                 last_mod = datetime.strptime(sess_info['last_modified'][0:19], UPDATE_FORMAT)
                 now_date = datetime.today()
                 last_up = self.get_lastupdated(sess_info)
@@ -389,15 +412,26 @@ class Launcher(object):
                     mess_str = mess.format(sess=sess_info['label'], mod=str(last_mod), up=str(last_up))
                     LOGGER.info(mess_str)
                     continue
-
+                
+            elif lastmod_delta:
+                last_mod = datetime.strptime(sess_info['last_modified'][0:19], UPDATE_FORMAT)
+                now_date = datetime.today()
+                if now_date > last_mod + lastmod_delta:
+                    mess = """+Session:{sess}:skipping not modified within delta, last_mod={mod}"""
+                    mess_str = mess.format(sess=sess_info['label'], mod=str(last_mod))
+                    LOGGER.info(mess_str)
+                    continue
+                else:
+                    print('lastmod='+str(last_mod))
+                    
             mess = """  +Session:{sess}: building..."""
             LOGGER.info(mess.format(sess=sess_info['label']))
 
-            if use_lastupdate:
+            if self.use_lastupdate:
                 update_start_time = datetime.now()
 
             self.build_session(xnat, sess_info, exp_procs, scan_procs, exp_mods, scan_mods)
-            if use_lastupdate:
+            if self.use_lastupdate:
                 self.set_session_lastupdated(xnat, sess_info, update_start_time)
 
         if not sessions_local or sessions_local.lower() == 'all':

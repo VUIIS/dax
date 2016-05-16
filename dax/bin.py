@@ -61,7 +61,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None, wri
     settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions, writeonly, pbsdir)
     logger.info('finished update, End Time: '+str(datetime.now()))
 
-def build(settings_path, logfile, debug, projects=None, sessions=None):
+def build(settings_path, logfile, debug, projects=None, sessions=None, mod_delta=None):
     """
     Method that is responsible for running all modules and putting assessors
      into the database
@@ -86,7 +86,7 @@ def build(settings_path, logfile, debug, projects=None, sessions=None):
 
     # Run the updates
     logger.info('running build, Start Time:'+str(datetime.now()))
-    settings.myLauncher.build(lockfile_prefix, projects, sessions)
+    settings.myLauncher.build(lockfile_prefix, projects, sessions, mod_delta=mod_delta)
     logger.info('finished build, End Time: '+str(datetime.now()))
 
 def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
