@@ -837,13 +837,21 @@ def init_profile():
     :return: None
     """
     # link the file in the bashrc or profile
-    bash_profile_path = os.path.join(os.path.expanduser('~'),
-                                     '.bash_profile')
-    # Add the line in bash_profile
-    if os.path.exists(bash_profile_path):
-        if 'source ~/.xnat_profile' not in open(bash_profile_path).read():
-            with open(bash_profile_path, "a") as b_profile:
-                b_profile.write(BASH_PROFILE_XNAT)
+    profile = os.path.join(os.path.expanduser('~'), '.bash_profile')
+
+    if os.path.exists(os.path.join(os.path.expanduser('~'), '.bash_profile')):
+        profile = os.path.join(os.path.expanduser('~'), '.bash_profile')
+    elif os.path.exists(os.path.join(os.path.expanduser('~'), '.bashrc')):
+        profile = os.path.join(os.path.expanduser('~'), '.bashrc')
+    elif os.path.exists(os.path.join(os.path.expanduser('~'), '.profile')):
+        profile = os.path.join(os.path.expanduser('~'), '.profile')
+    else:
+        raise Exception("could not find your profile file. Please set up XNAT_HOST, \
+XNAT_USER, and XNAT_PASS environment variables manually and rerun dax_setup.")
+    # Add the line to the profile
+    if 'source ~/.xnat_profile' not in open(profile).read():
+        with open(profile, "a") as f_profile:
+            f_profile.write(BASH_PROFILE_XNAT)
 
 if __name__ == '__main__':
     print '########## DAX_SETUP ##########'
