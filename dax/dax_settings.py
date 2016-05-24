@@ -16,6 +16,7 @@ class DAX_Settings(object):
             sys.stderr.write('ERROR: file %s not found\n' % ini_settings_file)
             sys.stderr.write('Please run dax_setup\n')
             #sys.exit(1)
+            ini_settings_file = os.path.abspath('dax_settings.ini')
 
         self.ini_settings_file = ini_settings_file
         self.config_parser = ConfigParser.ConfigParser(allow_no_value=True)
