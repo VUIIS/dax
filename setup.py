@@ -8,6 +8,7 @@ Packaging for dax
 
 import os
 from setuptools import setup, find_packages
+import shutil
 
 def get_version():
     basedir = os.path.dirname(__file__)
@@ -43,7 +44,6 @@ if __name__ == '__main__':
                    'bin/dax_tools/dax_upload',
                    'bin/dax_tools/run_spider',
                    'bin/dax_tools/dax_setup',
-                   'bin/dax_tools/dax_test',
                    'bin/dax_tools/GenerateModuleTemplate',
                    'bin/dax_tools/GenerateProcessorTemplate',
                    'bin/dax_tools/GenerateSpiderTemplate',
@@ -91,3 +91,7 @@ if __name__ == '__main__':
                        "Topic :: Scientific/Engineering :: Information Analysis",
                        ],
           )
+
+    #Address a sphinx issue
+    shutil.copy('dax/dax_settings.ini',
+                os.path.join(os.path.expanduser('~'), '.dax_settings.ini'))
