@@ -71,6 +71,7 @@ root_job_dir={root_job_dir}
 queue_limit={queue_limit}
 results_dir={results_dir}
 max_age={max_age}
+launcher_type={launcher_type}
 
 ; Information used to connect to REDCap databases if DAX_manager is used.
 [redcap]

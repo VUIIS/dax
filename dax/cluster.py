@@ -292,6 +292,27 @@ class PBS:   #The script file generator class
 
         return jobid.strip()
 
+def submit_job(filename):
+    """
+    Submit the file to the cluster
+    :return: jobid
+    """
+    try:
+        cmd = CMD_SUBMIT + ' ' + filename
+        proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = proc.communicate()
+        if output:
+            LOGGER.info(output)
+        if error:
+            LOGGER.error(error)
+        # output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        jobid = get_specific_str(output, PREFIX_JOBID, SUFFIX_JOBID)
+    except CalledProcessError as err:
+        LOGGER.error(err)
+        jobid = '0'
+
+    return jobid.strip()
+
 class ClusterLaunchException(Exception):
     """Custom exception raised when launch on the grid failed"""
     def __init__(self):
