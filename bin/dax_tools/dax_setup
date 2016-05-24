@@ -71,6 +71,7 @@ root_job_dir={root_job_dir}
 queue_limit={queue_limit}
 results_dir={results_dir}
 max_age={max_age}
+launcher_type={launcher_type}
 
 ; Information used to connect to REDCap databases if DAX_manager is used.
 [redcap]
@@ -597,6 +598,28 @@ copied to for upload.", default, is_path=True)
         value = self._prompt("Please max days before re-running dax_build \
 on a session.", '7')
         self._set('max_age', value)
+        
+    def _get_launcher_type(self):
+        """
+        Prompt the user to choose a launcher type
+        
+        :return: None
+        """
+        value2type = {'1':'xnatq-combined',
+                      '2':'diskq-combined',
+                      '3':'diskq-xnat',
+                      '4':'diskq-cluster'}
+        
+        msg = "Which launcher type do you want to use? ["
+        for v,t in value2type.iteritems():
+            msg += v+'.'+t+' '
+        
+        msg = msg[:-1]+"]"
+        value = '0'
+        while value not in ['1', '2', '3', '4']:
+            value = self._prompt(msg, '1')
+
+        self._set('launcher_type', value2type[value])
 
     # redcap section
     def _get_api_url(self):
@@ -709,6 +732,7 @@ file from DAX? [yes/no] ")
             self._get_queue_limit()
             self._get_results_dir()
             self._get_max_age()
+            self._get_launcher_type()
 
         if cluster_type == '1':
             cluster_dict = DEFAULT_SGE_DICT
@@ -822,6 +846,7 @@ cluster use.\n         Wiki: https://github.com/VUIIS/dax/wiki/DAX-Set-up"""
                 self._get_queue_limit()
                 self._get_results_dir()
                 self._get_max_age()
+                self._get_launcher_type()
             print '\n  REDCAP :'
             self._get_api_url()
             self._get_api_key_dax()
