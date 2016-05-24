@@ -23,6 +23,10 @@ def readme():
         return f.read()
 
 if __name__ == '__main__':
+    #Address a sphinx issue
+    shutil.copy('dax/dax_settings.ini',
+                os.path.join(os.path.expanduser('~'), '.dax_settings.ini'))
+
     setup(name='dax',
           version=get_version(),
           description='Distributed Automation for XNAT',
@@ -92,6 +96,3 @@ if __name__ == '__main__':
                        ],
           )
 
-    #Address a sphinx issue
-    shutil.copy('dax/dax_settings.ini',
-                os.path.join(os.path.expanduser('~'), '.dax_settings.ini'))
