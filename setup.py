@@ -24,8 +24,9 @@ def readme():
 
 if __name__ == '__main__':
     #Address a sphinx issue
-    shutil.copy('dax/dax_settings.ini',
-                os.path.join(os.path.expanduser('~'), '.dax_settings.ini'))
+    if not os.path.exists(os.path.join(os.path.expanduser('~'), '.dax_settings.ini')):
+        shutil.copy('dax/dax_settings.ini',
+                    os.path.join(os.path.expanduser('~'), '.dax_settings.ini'))
 
     setup(name='dax',
           version=get_version(),
