@@ -8,6 +8,7 @@ Packaging for dax
 
 import os
 from setuptools import setup, find_packages
+import shutil
 
 def get_version():
     basedir = os.path.dirname(__file__)
@@ -22,6 +23,11 @@ def readme():
         return f.read()
 
 if __name__ == '__main__':
+    #Address a sphinx issue
+    if not os.path.exists(os.path.join(os.path.expanduser('~'), '.dax_settings.ini')):
+        shutil.copy('dax/dax_settings.ini',
+                    os.path.join(os.path.expanduser('~'), '.dax_settings.ini'))
+
     setup(name='dax',
           version=get_version(),
           description='Distributed Automation for XNAT',
@@ -91,3 +97,4 @@ if __name__ == '__main__':
                        "Topic :: Scientific/Engineering :: Information Analysis",
                        ],
           )
+

@@ -1,42 +1,45 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
-    Title: GenerateProcessorTemplate
-    Author: Benjamin Yvernault
-    contact: b.yvernault@ucl.ac.uk
-    Purpose:
-        Generate your processor.py following the template for processor describe in this file.
-"""
+"""Generator for Processor templates.
 
-__author__ = 'Benjamin Yvernault'
-__email__ = 'b.yvernault@ucl.ac.uk'
-__purpose__ = "Generate your processor.py following the template for processor describe in this file."
-__version__ = '1.0.0'
-__modifications__ = '24 August 2015 - Original write'
+Title: GenerateProcessorTemplate
+Author: Benjamin Yvernault
+contact: b.yvernault@ucl.ac.uk
+Purpose: Generate your processor.py following the template for processor
+         described in this file.
+"""
 
 import os
 import re
 from datetime import datetime
 
-DEFAULT_TEMPLATE = """'''
-    Author:         {author}
-    contact:        {email_addr}
-    Processor name: Processor_{name}
-    Creation date:  {now}
-    Purpose:        {purpose}
-'''
+__author__ = 'Benjamin Yvernault'
+__email__ = 'b.yvernault@ucl.ac.uk'
+__purpose__ = "Generate your processor.py following the template for processor\
+described in this file."
+__version__ = '1.0.0'
+__modifications__ = '24 August 2015 - Original write'
 
-__author__ = "{author}"
-__email__ = "{email_addr}"
-__purpose__ = "{purpose}"
-__processor_name__ = "Processor_{name}"
-__modifications__ = "{now} - Original write"
+DEFAULT_TEMPLATE = '''"""Processor associated to Spider_{name}.
+
+Author:         {author}
+contact:        {email_addr}
+Processor name: Processor_{name}
+Creation date:  {now}
+Purpose:        {purpose}
+"""
 
 # Python packages import
 import os
 import logging
 from dax import XnatUtils, ScanProcessor, SessionProcessor
+
+__author__ = "{author}"
+__email__ = "{email_addr}"
+__purpose__ = "{purpose}"
+__processor_name__ = "Processor_{name}"
+__modifications__ = """{now} - Original write"""
 
 # set-up logger for printing statements
 LOGGER = logging.getLogger('dax')
@@ -46,18 +49,24 @@ LOGGER = logging.getLogger('dax')
 DEFAULT_SPIDER_PATH = os.path.join(SPIDER_PATH, 'Spider_{name}_v1_0_0.py')
 DEFAULT_WALLTIME = '01:00:00'
 DEFAULT_MEM = 2048
-"""
+'''
 
-SCAN_LEVEL_TEMPLATE = DEFAULT_TEMPLATE+"""
+SCAN_LEVEL_TEMPLATE = DEFAULT_TEMPLATE + '''
 DEFAULT_SCAN_TYPES = [] # ADD SCAN TYPES
 
 # Format for the spider command line
-SPIDER_FORMAT = '''python {{spider}} -p {{proj}} -s {{subj}} -e {{sess}} -c {{scan}} \
--d {{dir}} --suffix "{{suffix_proc}}"'''
+SPIDER_FORMAT = """python {{spider}} \\
+-p {{proj}} \\
+-s {{subj}} \\
+-e {{sess}} \\
+-c {{scan}} \\
+-d {{dir}} \\
+--suffix "{{suffix_proc}}"
+"""
+
 
 class Processor_{name}(ScanProcessor):
-    '''
-    Processor class for {name} that runs on a scan
+    """Processor class for {name} that runs on a scan.
 
     :param spider_path: spider path on the system
     :param version: version of the spider
@@ -66,31 +75,38 @@ class Processor_{name}(ScanProcessor):
     :param scan_types: scan types on XNAT that the spider should run on
 
     #
-    # ADD MORE PARAMETERS AS NEEDED HERE
+    # ADD MORE PARAMETERS AS NEEDED HERE AND IN __INIT__
     #
 
     :param suffix: suffix to the spider
-    '''
+    """
+
     def __init__(self, spider_path=DEFAULT_SPIDER_PATH, version=None,
                  walltime=DEFAULT_WALLTIME, mem_mb=DEFAULT_MEM,
                  scan_types=DEFAULT_SCAN_TYPES, suffix_proc=''):
-        super(Processor_{name}, self).__init__(scan_types, walltime, mem_mb, spider_path,
-                                               version, suffix_proc=suffix_proc)
+        """Entry point for Processor_{name} Class."""
+        super(Processor_{name},
+              self).__init__(scan_types, walltime, mem_mb, spider_path,
+                             version, suffix_proc=suffix_proc)
         #
         # ADD MORE PARAMETERS AS NEEDED HERE LIKE self.param = param
         #
 
     def has_inputs(self, cscan):
-        '''
-        function overridden from base class
-        By definition, status = 0 if still NEED_INPUTS, -1 if NO_DATA, 1 if NEED_TO_RUN
-                       qcstatus needs a value only when -1 or 0.
-        You can set qcstatus to a short string that explain why it's no ready to run.
-            e.g: No NIFTI
+        """Method overridden from base class.
 
-        :param cscan: object cscan define in dax.XnatUtils (see XnatUtils in dax for information)
+        By definition:
+            status = 0  -> NEED_INPUTS,
+            status = 1  -> NEED_TO_RUN
+            status = -1 -> NO_DATA
+            qcstatus needs a value only when -1 or 0.
+        You need to set qcstatus to a short string that explain
+        why it's no ready to run. e.g: No NIFTI
+
+        :param cscan: object cscan define in dax.XnatUtils
+                      (see XnatUtils in dax for information)
         :return: status, qcstatus
-        '''
+        """
 
         #
         # CODE TO CHECK IF THE PROCESS HAS THE INPUTS NEEDED FROM XNAT
@@ -112,13 +128,12 @@ class Processor_{name}(ScanProcessor):
         return status, qcstatus
 
     def get_cmds(self, assessor, jobdir):
-        '''
-        function to generate the spider command for cluster job
+        """Method to generate the spider command for cluster job.
 
         :param assessor: pyxnat assessor object
         :param jobdir: jobdir where the job's output will be generated
         :return: command to execute the spider in the job script
-        '''
+        """
         proj_label = assessor.parent().parent().parent().label()
         subj_label = assessor.parent().parent().label()
         sess_label = assessor.parent().label()
@@ -126,7 +141,8 @@ class Processor_{name}(ScanProcessor):
         scan_label = assr_label.split('-x-')[3]
 
         #
-        # ADD CUSTOM PARAMETERS TO THE SPIDER TEMPLATE (don't forgot the SPIDER_FORMAT (top))
+        # ADD CUSTOM PARAMETERS TO THE SPIDER TEMPLATE \
+(don't forgot the SPIDER_FORMAT (top))
         #
 
         cmd = SPIDER_FORMAT.format(spider=self.spider_path,
@@ -138,46 +154,58 @@ class Processor_{name}(ScanProcessor):
                                    suffix_proc=self.suffix_proc)
 
         return [cmd]
+'''
+
+SESSION_LEVEL_TEMPLATE = DEFAULT_TEMPLATE + '''
+# Format for the spider command line
+SPIDER_FORMAT = """python {{spider}} \\
+-p {{proj}} \\
+-s {{subj}} \\
+-e {{sess}} \\
+-d {{dir}} \\
+--suffix "{{suffix_proc}}"
 """
 
-SESSION_LEVEL_TEMPLATE = DEFAULT_TEMPLATE+"""
-# Format for the spider command line
-SPIDER_FORMAT = '''python {{spider}} -p {{proj}} -s {{subj}} -e {{sess}} \
--d {{dir}} --suffix "{{suffix_proc}}"'''
 
 class Processor_{name}(SessionProcessor):
-    '''
-    Processor class for {name} that runs on a session
+    """Processor class for {name} that runs on a session.
 
     :param spider_path: spider path on the system
     :param version: version of the spider
     :param walltime: walltime required by the spider
     :param mem_mb: memory in Mb required by the spider
     #
-    # ADD MORE PARAMETERS AS NEEDED HERE
+    # ADD MORE PARAMETERS AS NEEDED HERE AND IN THE __INIT__
     #
     :param suffix: suffix to the spider
-    '''
+    """
+
     def __init__(self, spider_path=DEFAULT_SPIDER_PATH, version=None,
                  walltime=DEFAULT_WALLTIME, mem_mb=DEFAULT_MEM,
                  suffix_proc=''):
-        super(Processor_{name}, self).__init__(walltime, mem_mb, spider_path, version,
-                                               suffix_proc=suffix_proc)
+        """Entry point for Processor_{name} Class."""
+        super(Processor_{name},
+              self).__init__(walltime, mem_mb, spider_path, version,
+                             suffix_proc=suffix_proc)
         #
         # ADD MORE PARAMETERS AS NEEDED HERE LIKE self.param = param
         #
 
     def has_inputs(self, csess):
-        '''
-        function overridden from base class
-        By definition, status = 0 if still NEED_INPUTS, -1 if NO_DATA, 1 if NEED_TO_RUN
-                       qcstatus needs a value only when -1 or 0.
-        You can set qcstatus to a short string that explain why it's no ready to run.
-            e.g: No NIFTI
+        """Method overridden from base class.
 
-        :param csess: object csess define in dax.XnatUtils (see XnatUtils in dax for information)
+        By definition:
+            status = 0  -> NEED_INPUTS,
+            status = 1  -> NEED_TO_RUN
+            status = -1 -> NO_DATA
+            qcstatus needs a value only when -1 or 0.
+        You need to set qcstatus to a short string that explain
+        why it's no ready to run. e.g: No NIFTI
+
+        :param csess: object csess define in dax.XnatUtils
+                      (see XnatUtils in dax for information)
         :return: status, qcstatus
-        '''
+        """
 
         #
         # CODE TO CHECK IF THE PROCESS HAS THE INPUTS NEEDED FROM XNAT
@@ -189,19 +217,19 @@ class Processor_{name}(SessionProcessor):
         return status, qcstatus
 
     def get_cmds(self, assessor, jobdir):
-        '''
-        function to generate the spider command for cluster job
+        """Method to generate the spider command for cluster job.
 
         :param assessor: pyxnat assessor object
         :param jobdir: jobdir where the job's output will be generated
         :return: command to execute the spider in the job script
-        '''
+        """
         proj_label = assessor.parent().parent().parent().label()
         subj_label = assessor.parent().parent().label()
         sess_label = assessor.parent().label()
 
         #
-        # ADD CUSTOM PARAMETERS TO THE SPIDER TEMPLATE (don't forgot the SPIDER_FORMAT (top))
+        # ADD CUSTOM PARAMETERS TO THE SPIDER TEMPLATE \
+(don't forgot the SPIDER_FORMAT (top))
         #
 
         cmd = SPIDER_FORMAT.format(spider=self.spider_path,
@@ -211,11 +239,11 @@ class Processor_{name}(SessionProcessor):
                                    dir=jobdir)
 
         return [cmd]
-"""
+'''
+
 
 def write_processor(templates):
-    """
-    Write the Processor.py with the proper template
+    """Write the Processor.py with the proper template.
 
     :param processor_fpath: path where the processor script will be saved
     :param templates: template to use (scan or session)
@@ -230,28 +258,34 @@ def write_processor(templates):
     f_obj.writelines(processor_code)
     f_obj.close()
 
+
 def parse_args():
-    """
-    Method to parse arguments base on ArgumentParser
+    """Method to parse arguments base on ArgumentParser.
 
     :return: parser object parsed
     """
     from argparse import ArgumentParser
-    usage = "Generate a processor.py file from the template for dax in a new file."
-    argp = ArgumentParser(prog='GenerateProcessorTemplate', description=usage)
-    argp.add_argument('-n', dest='name', help='Name for Processor. E.G: fMRIQA.', required=True)
-    argp.add_argument('-a', dest='author', help='Author name.', required=True)
-    argp.add_argument('-e', dest='email', help='Author email address.', required=True)
-    argp.add_argument('-p', dest='purpose', help='Processor purpose.', required=True)
-    argp.add_argument('--onScan', dest='on_scan', action='store_true', help='Use Scan type Spider.')
-    argp.add_argument('-d', dest='directory',
-                      help='Directory where the processor file will be generated. Default: current directory.', default=None)
+    argp = ArgumentParser(prog='GenerateProcessorTemplate',
+                          description=__purpose__)
+    argp.add_argument('-n', dest='name', required=True,
+                      help='Name for Processor. E.G: fMRIQA.')
+    argp.add_argument('-a', dest='author', required=True, help='Author name.')
+    argp.add_argument('-e', dest='email', required=True,
+                      help='Author email address.')
+    argp.add_argument('-p', dest='purpose', required=True,
+                      help='Processor purpose.')
+    argp.add_argument('--onScan', dest='on_scan', action='store_true',
+                      help='Use Scan type Spider.')
+    argp.add_argument('-d', dest='directory', default=None,
+                      help='Directory where the processor file will be \
+generated. Default: current directory.')
     return argp.parse_args()
+
 
 if __name__ == '__main__':
     ARGS = parse_args()
 
-    ## Get a proper name from the input
+    # Get a proper name from the input
     # remove .py if present at the end of the file
     if ARGS.name.endswith('.py'):
         ARGS.name = ARGS.name[:-3]
@@ -270,8 +304,10 @@ if __name__ == '__main__':
     else:
         PROCESSOR_FPATH = os.path.join(os.getcwd(), PROCESSOR_NAME)
     if ARGS.on_scan:
-        print "Generating file %s for scan processor %s ..." % (PROCESSOR_FPATH, ARGS.name)
+        print "Generating file %s for scan processor %s ..." % \
+              (PROCESSOR_FPATH, ARGS.name)
         write_processor(SCAN_LEVEL_TEMPLATE)
     else:
-        print "Generating file %s for session processor %s ..." % (PROCESSOR_FPATH, ARGS.name)
+        print "Generating file %s for session processor %s ..." % \
+              (PROCESSOR_FPATH, ARGS.name)
         write_processor(SESSION_LEVEL_TEMPLATE)

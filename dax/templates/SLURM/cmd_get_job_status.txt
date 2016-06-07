@@ -1,1 +1,1 @@
-slurm_load_jobs error: Invalid job id specified
+squeue -j ${jobid} --noheader | awk {'print $5'}

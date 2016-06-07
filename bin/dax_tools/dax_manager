@@ -27,7 +27,7 @@ DAX_SETTINGS = DAX_Settings()
 ADMIN_EMAIL = DAX_SETTINGS.get_admin_email()
 RESULTS_DIR = DAX_SETTINGS.get_results_dir()
 DEFAULT_GATEWAY = DAX_SETTINGS.get_gateway()
-REDCAP_VAR = DAX_SETTINGS.get_redcap_config()
+REDCAP_VAR = DAX_SETTINGS.get_dax_manager_data_dictionary()
 API_URL = DAX_SETTINGS.get_api_url()
 API_KEY_DAX = DAX_SETTINGS.get_api_key_dax()
 SMTP_FROM = DAX_SETTINGS.get_smtp_from()
@@ -1061,9 +1061,9 @@ if __name__ == '__main__':
     # Arguments:
     PARGS = parse_args()
     if PARGS.email:
-        EMAIL_LIST = PARGS.email.split(',')
+        elist = PARGS.email.split(',')
     else:
-        EMAIL_LIST = list()
+        elist = list()
     API_KEY = PARGS.key
     if not API_KEY and not PARGS.settings and API_KEY_DAX:
         API_KEY = API_KEY_DAX
@@ -1080,7 +1080,7 @@ if __name__ == '__main__':
     else:
         LOGGER = dax.log.setup_info_logger('manager', PARGS.logfile)
 
-    DAX_LOGS_DIR = PARGS.daxlogsdir
+    dax_logs_dir = PARGS.daxlogsdir
     DAX_LOGS_DIRS_DICT = dict()
     EMAIL_DICT = dict()
     LOGGER.info('Time at the beginning of the DAX Manager: '+ str(datetime.now()))
