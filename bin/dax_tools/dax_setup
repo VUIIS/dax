@@ -5,10 +5,13 @@
 
 import os
 import sys
+import stat
 import glob
 import socket
 import getpass
 import readline
+import ConfigParser
+from collections import OrderedDict
 
 
 def complete(text, state):
@@ -38,90 +41,165 @@ export XNAT_USER="{user}"
 export XNAT_PASS="{pwd}"
 """
 
-DAX_SETTINGS_TEMPLATE = """; High level admin information. E.g. email address
-[admin]
-user_home={user_home}
-admin_email={admin_email}
-smtp_host={smtp_host}
-smtp_from={smtp_from}
-smtp_pass={smtp_pass}
-xsitype_include={xsitype_include}
+ADMIN_DEFAULTS = OrderedDict([
+                  ('user_home', os.path.expanduser('~')),
+                  ('admin_email', ''),
+                  ('smtp_host', ''),
+                  ('smtp_from', ''),
+                  ('smtp_pass', ''),
+                  ('xsitype_include', 'proc:genProcData')])
 
-; Deep information about the cluster. This should include commands that \
-are grid-specific to get job id, walltime usage etc. Additionally, there \
-are several templates that needed to be specified. See readthedocs for a \
-description.
-[cluster]
-cmd_submit={cmd_submit}
-prefix_jobid={prefix_jobid}
-suffix_jobid={suffix_jobid}
-cmd_count_nb_jobs={cmd_count_nb_jobs}
-cmd_get_job_status={cmd_get_job_status}
-queue_status={queue_status}
-running_status={running_status}
-complete_status={complete_status}
-cmd_get_job_memory={cmd_get_job_memory}
-cmd_get_job_walltime={cmd_get_job_walltime}
-cmd_get_job_node={cmd_get_job_node}
-job_extension_file={job_extension_file}
-job_template={job_template}
-email_opts={email_opts}
-gateway={gateway}
-root_job_dir={root_job_dir}
-queue_limit={queue_limit}
-results_dir={results_dir}
-max_age={max_age}
+CLUSTER_DEFAULTS = OrderedDict([
+                    ('cmd_submit', 'qsub'),
+                    ('prefix_jobid', ''),
+                    ('suffix_jobid', ''),
+                    ('cmd_count_nb_jobs', ''),
+                    ('cmd_get_job_status', ''),
+                    ('queue_status', ''),
+                    ('running_status', ''),
+                    ('complete_status', ''),
+                    ('cmd_get_job_memory', ''),
+                    ('cmd_get_job_walltime', ''),
+                    ('cmd_get_job_node', ''),
+                    ('job_extension_file', '.pbs'),
+                    ('job_template', ''),
+                    ('email_opts', 'a'),
+                    ('gateway', socket.gethostname()),
+                    ('root_job_dir', '/tmp'),
+                    ('queue_limit', '400'),
+                    ('results_dir', os.path.join(os.path.expanduser('~'),
+                                                 'RESULTS_XNAT_SPIDER')),
+                    ('max_age', '14')])
 
-; Information used to connect to REDCap databases if DAX_manager is used.
-[redcap]
-api_url={api_url}
-api_key_dax={api_key_dax}
+CODE_PATH_DEFAULTS = OrderedDict([
+                      ('processors_path', ''),
+                      ('spiders_path', ''),
+                      ('modules_path', '')])
 
-; Keeping this outside of redcap so we dont have to add a prefix to \
-all the variables.
-[dax_manager]
-project={dm_project}
-settingsfile={dm_settingsfile}
-masimatlab={dm_masimatlab}
-tmp={dm_tmp}
-logsdir={dm_logsdir}
-user={dm_user}
-gateway={dm_gateway}
-email={dm_email}
-queue={dm_queue}
-priority={dm_priority}
-email_opts={dm_email_opts}
-dax_build_start_date={dm_dax_build_start_date}
-dax_build_end_date={dm_dax_build_end_date}
-dax_build_pid={dm_dax_build_pid}
-dax_update_tasks_start_date={dm_dax_update_tasks_start_date}
-dax_update_tasks_end_date={dm_dax_update_tasks_end_date}
-dax_update_tasks_pid={dm_dax_update_tasks_pid}
-dax_launch_start_date={dm_dax_launch_start_date}
-dax_launch_end_date={dm_dax_launch_end_date}
-dax_launch_pid={dm_dax_launch_pid}
-max_age={dm_max_age}
-admin_email={dm_admin_email}
+DAX_MANAGER_DEFAULTS = OrderedDict([
+    ('api_url', ''),
+    ('api_key_dax', ''),
+    ('project', 'dax_project'),
+    ('settingsfile', 'dax_settings_full_path'),
+    ('masimatlab', 'dax_masimatlab'),
+    ('tmp', 'dax_tmp_directory'),
+    ('logsdir', 'dax_logs_path'),
+    ('user', 'dax_cluster_user'),
+    ('gateway', 'dax_gateway'),
+    ('email', 'dax_cluster_email'),
+    ('queue', 'dax_queue_limit'),
+    ('priority', 'dax_proj_order'),
+    ('email_opts', 'dax_job_email_options'),
+    ('dax_build_start_date', 'dax_build_start_date'),
+    ('dax_build_end_date', 'dax_build_end_date'),
+    ('dax_build_pid', 'dax_build_pid'),
+    ('dax_update_tasks_start_date', 'dax_update_tasks_start_date'),
+    ('dax_update_tasks_end_date', 'dax_update_tasks_end_date'),
+    ('dax_update_tasks_pid', 'dax_update_tasks_pid'),
+    ('dax_launch_start_date', 'dax_launch_start_date'),
+    ('dax_launch_end_date', 'dax_launch_end_date'),
+    ('dax_launch_pid', 'dax_launch_pid'),
+    ('max_age', 'dax_max_age'),
+    ('admin_email', 'dax_email_address')])
+
+DEFAULTS = {'admin': ADMIN_DEFAULTS,
+            'cluster': CLUSTER_DEFAULTS,
+            'code_path': CODE_PATH_DEFAULTS,
+            'dax_manager': DAX_MANAGER_DEFAULTS}
+
+INI_HEADER = """;dax_settings.ini contains all the variables to set dax on your system.
+;It contains 4 sections define by [].
+
+;The first one is [admin] defining the High level admin information.
+; E.g. email address. xsitype_include needs to define the datatypes for DAX
+; (Default: proc:genProcData).
+
+;The second is [cluster] for deep information about the cluster.
+; This should include commands that are grid-specific to get job id,
+; walltime usage etc. Additionally, there are several templates that
+; needed to be specified. See readthedocs for a description.
+
+;The third one is [code_path] for Python script extension information.
+; To import in dax all the spiders, processors and modules from those folders.
+; You don't have to set a path if you don't want to give those paths.
+
+;The fourth and last one is [dax_manager] that defines the REDCap
+; infrastructure (options). Dax_manager uses REDCap to automatically generate
+; settings for project. This section will help you set the API for your redcap
+; project and all the variable on REDCap. If you don't know anything about it
+; Leave all attributes to defaults value.
+
 """
 
-DEFAULT_TOOLS_SETUP = {
-    'user_home': os.path.expanduser('~'),
-    'admin_email': '',
-    'smtp_host': '',
-    'smtp_from': '',
-    'smtp_pass': '',
-    'xsitype_include': 'proc:genProcData',
-    'gateway': '',
-    'root_job_dir': '/tmp',
-    'queue_limit': '600',
-    'results_dir': '~/RESULTS_XNAT_SPIDER',
-    'max_age': '14',
-    'api_url': '',
-    'api_key_dax': ''}
-
-DEFAULT_FILE_FIELDS = ['cmd_get_job_memory', 'cmd_get_job_node',
-                       'cmd_count_nb_jobs', 'cmd_get_job_status',
-                       'cmd_get_job_walltime', 'job_template']
+# Sentence to write when message prompt for user
+OPTIONS_DESCRIPTION = {
+           'user_home': {'msg': 'Please enter your home directory: ',
+                         'is_path': True},
+           'admin_email': {'msg': 'Please enter email address for admin. \
+All emails will get sent here: ', 'is_path': False},
+           'smtp_from': {'msg': 'Please enter an email address where emails \
+should be sent from: ', 'is_path': False},
+           'smtp_host': {'msg': 'Please enter the SMTP host associated to your \
+email address: ', 'is_path': False},
+           'smtp_pass': {'msg': 'Please enter the password associated to your \
+email address: ', 'is_path': False, 'confidential': True},
+           'xsitype_include': {'msg': 'Please enter the xsitypes you would like DAX \
+to access in your XNAT instance: ', 'is_path': False},
+           'cmd_submit': {'msg': 'What command is used to submit your batch file? \
+[e.g., qsub, sbatch]: ', 'is_path': False},
+           'prefix_jobid': {'msg': 'Please enter a string to print before the \
+job id after submission: ', 'is_path': False},
+           'suffix_jobid': {'msg': 'Please enter a string to print after the \
+job id after submission: ', 'is_path': False},
+           'cmd_count_nb_jobs': {'msg': 'Please enter the full path to text file \
+containing the command used to count the number of jobs in the queue: ',
+                                 'is_path': True},
+           'cmd_get_job_status': {'msg': 'Please enter the full path to text file \
+containing the command used to check the running status of a job: ',
+                                  'is_path': True},
+           'queue_status': {'msg': 'Please enter the string the job scheduler would \
+use to indicate that a job is "in the queue": ', 'is_path': False},
+           'running_status': {'msg': 'Please enter the string the job scheduler would \
+use to indicate that a job is "running": ', 'is_path': False},
+           'complete_status': {'msg': 'Please enter the string the job scheduler would \
+use to indicate that a job is "complete": ', 'is_path': False},
+           'cmd_get_job_memory': {'msg': 'Please enter the full path to the text file \
+containing the command used to see how much memory a job used: ',
+                                  'is_path': True},
+           'cmd_get_job_walltime': {'msg': 'Please enter the full path to the text file \
+containing the command used to see how much walltime a job used: ',
+                                    'is_path': True},
+           'cmd_get_job_node': {'msg': 'Please enter the full path to the text file \
+containing the command used to see which node a job used: ',
+                                'is_path': True},
+           'job_extension_file': {'msg': 'Please enter an extension for the job \
+batch file: ', 'is_path': False},
+           'job_template': {'msg': 'Please enter the full path to the text file \
+containing the template used to generate the batch script: ',
+                            'is_path': True},
+           'email_opts': {'msg': 'Please provide the options for the email \
+notification for a job as defined by your grid scheduler: ', 'is_path': False},
+           'gateway': {'msg': 'Please enter the hostname of the server \
+to run dax on: ', 'is_path': False},
+           'root_job_dir': {'msg': 'Please enter where the data should be stored \
+on the node: ', 'is_path': True},
+           'queue_limit': {'msg': 'Please enter the maximum number of jobs \
+that should run at once: ', 'is_path': False},
+           'results_dir': {'msg': 'Please enter directory where data will get \
+copied to for upload: ', 'is_path': True},
+           'max_age': {'msg': 'Please enter max days before re-running dax_build \
+on a session: ', 'is_path': False},
+           'api_url': {'msg': 'Please enter your REDCap API URL: ',
+                       'is_path': False},
+           'api_key_dax': {'msg': 'Please enter the key to connect to the \
+DAX Manager REDCap database: ', 'is_path': False},
+           'spiders_path': {'msg': 'Please enter Folder path where you store \
+your spiders: ', 'is_path': True},
+           'processors_path': {'msg': 'Please enter Folder path where you store \
+your processors: ', 'is_path': True},
+           'modules_path': {'msg': 'Please enter Folder path where you store \
+your modules: ', 'is_path': True},
+           }
 
 SGE_TEMPLATE = """#!/bin/bash
 #$ -S /bin/sh
@@ -257,437 +335,98 @@ class DAX_Setup_Handler(object):
 
     def __init__(self):
         """Entry Point for DAX_Setup_Handler class."""
-        self._set_xnat_credentials()
-        dax_settings_file = os.path.join(os.path.expanduser('~'),
-                                         '.dax_settings.ini')
-        if os.path.isfile(dax_settings_file):
-            sys.stdout.write('~/.dax_settings.ini exists. Exiting\n')
-            sys.exit(1)
+        # Set the settings_file
+        self.settings_file = os.path.join(os.path.expanduser('~'),
+                                          '.dax_settings.ini')
 
-        self.settings_file = dax_settings_file
+        # ConfigParser
+        self.config_parser = ConfigParser.SafeConfigParser(allow_no_value=True)
 
-        # This will map the key value pairs in the string template
-        self.settings_dict = dict()
+        # Set the configParser from init file or default value
+        if os.path.isfile(self.settings_file):
+            try:
+                self.config_parser.read(self.settings_file)
+            except ConfigParser.MissingSectionHeaderError as MSHE:
+                self._print_error_and_exit('Missing header bracket detected. \
+Please check your ini file.\n', MSHE)
+        else:  # set to default
+            for section in sorted(DEFAULTS.keys()):
+                self.config_parser.add_section(section)
+                for option in DEFAULTS[section].iterkeys():
+                    self.config_parser.set(section, option,
+                                           DEFAULTS[section][option])
 
-        # If using DAX Manager, users can use defaults
-        self.use_redcap_defaults = False
+    def exists(self):
+        """Check if ini file exists.
 
-        # type of setup for dax: tools for xnat_tools/Freesurfer_tools
-        #                        cluster for full dax package tools
-        self.dax_setup_type = 'cluster'
+        :return: True if exists, False otherwise
+        """
+        return os.path.isfile(self.settings_file)
 
-    def _prompt(self, message, default=None, is_path=False):
-        """Method to prompt a user for an input for each key in the template.
+    def config(self):
+        """Config the configParser for each section and ask user for value.
 
-        :param message: A string that prompts the user for input
-        :param default: Default value for value (if desired)
-        :param is_path: if the value needs to be a path
+        Caller for all of the _get* methods.
+        :return: True if using default settings, False otherwise
+        """
+        # For each section ask the user if he wants to edit it:
+        print 'Starting to config the dax_settings.ini file:'
+        for section in self.config_parser.sections():
+            sys.stdout.write('  - Section: %s\n' % section)
+            modify = prompt_user_yes_no('    Do you want to set/modify \
+the section [%s] in the settings file?' % section)
+            if modify:
+                self.config_section(section)
+
+    def config_section(self, section):
+        """Configure the section.
+
+        :param section: name of the section
+        :return: None
+        """
+        msg = "Do you want to use specific templates settings from DAX?"
+        if section == 'cluster' and prompt_user_yes_no(msg):
+            self._set_cluster_default()
+        else:
+            for option in self.config_parser.options(section):
+                value = self._prompt(section, option)
+                self.config_parser.set(section, option, value)
+
+    def write(self):
+        """Write the all of the config options to the ~/.dax_settings.ini file.
+
+        :return: None
+        """
+        with open(self.settings_file, 'w+') as ini_f:
+            ini_f.write(INI_HEADER)
+            self.config_parser.write(ini_f)
+
+    def _prompt(self, section, option):
+        """Method to prompt a user for an input for the option in the template.
+
+        :param option: option name
         :return: String of the input
         """
-        stdin = ''
-        if default:
-            stdin = raw_input("%s Default <%s> \
-[press Enter to use default]: " % (message, default))
-            if len(stdin.lower()) == 0:
-                stdin = default
-        else:
-            stdin = raw_input(message)
-
-        if is_path and stdin:
-            if stdin.startswith('~/'):
-                stdin = os.path.join(os.path.expanduser('~'), stdin[2:])
+        if option in OPTIONS_DESCRIPTION.keys():
+            if 'confidential' in OPTIONS_DESCRIPTION[option].keys():
+                msg = OPTIONS_DESCRIPTION[option]['msg']
+                stdin = getpass.getpass(prompt=msg)
             else:
-                stdin = os.path.abspath(stdin)
-            if not os.path.exists(stdin):
-                print "Path <%s> does not exists." % stdin
-                stdin = self._prompt(message, default, is_path)
+                stdin = raw_input(OPTIONS_DESCRIPTION[option]['msg'])
+            if OPTIONS_DESCRIPTION[option]['is_path'] and stdin:
+                if stdin.startswith('~/'):
+                    stdin = os.path.join(os.path.expanduser('~'), stdin[2:])
+                else:
+                    stdin = os.path.abspath(stdin)
+                if not os.path.exists(stdin):
+                    print "Path <%s> does not exists." % stdin
+                    stdin = self._prompt(section, option)
+        else:
+            stdin = raw_input('Please enter %s: ' % option)
+        if not stdin:
+            stdin = DEFAULTS[section][option]
+
         return stdin
-
-    def _set(self, key, value):
-        """Update the dictionary with the key/value pair for the template.
-
-        :param key: String key name in the template
-        :param value: String value associated with the key
-        :return: None
-        """
-        self.settings_dict.__setitem__(key, value)
-
-    def _set_null(self, key):
-        """Update the dictionary with the value of '' for the key.
-
-        :param key: String key name in the template
-        :return: None
-        """
-        self.settings_dict.__setitem__(key, '')
-
-    def _get_user_home(self):
-        """Get the default user home directory.
-
-        If the user wants a different one, prompt for it.
-
-        :return: None
-        """
-        default = os.path.expanduser('~')
-        value = self._prompt("Please enter your home directory.",
-                             default, is_path=True)
-        self._set('user_home', value)
-
-    def _get_admin_email(self):
-        """Prompt the user for the admin email address.
-
-        :return: None
-        """
-        value = self._prompt("Please enter email address for admin. \
-All emails will get sent here : ")
-        self._set('admin_email', value)
-
-    def _get_smtp_from(self):
-        """Prompt the user email address where emails should come from.
-
-        :return: String of the smtp_from value, None if emtpy
-        """
-        value = self._prompt("Please enter an email address where emails \
-should be sent from : ")
-        self._set('smtp_from', value)
-
-    def _get_smtp_host(self):
-        """Prompt the user for the smtp_host if smtp_from is not null.
-
-        :return: None
-        """
-        if self.settings_dict['smtp_from'] != '':
-            value = self._prompt("Please enter the SMTP host associated with \
-email address %s : " % self.settings_dict['smtp_from'])
-            self._set('smtp_host', value)
-        else:
-            self._set_null('smtp_host')
-
-    def _get_smtp_pass(self):
-        """Prompt the user for the password.
-
-        The password us associated with the email if smtp_from is set.
-        :return: None
-        """
-        if self.settings_dict['smtp_from'] != '':
-            value = getpass.getpass("Please enter the password associated with \
-email address %s : " % self.settings_dict['smtp_from'])
-            self._set('smtp_pass', value)
-        else:
-            self._set_null('smtp_pass')
-
-    def _get_xsitype_include(self):
-        """Prompt the user for the xsitypes for DAX to access in the project.
-
-        :return: None
-        """
-        value = self._prompt("Please enter the xsitypes you would like DAX \
-to access in your XNAT instance : ")
-        self._set('xsitype_include', value)
-
-    # Begin cluster section
-    def _get_cmd_submit(self):
-        """Prompt the user for the command to submit a job to the grid.
-
-        :return: None
-        """
-        value = self._prompt("What command is used to submit your batch file? \
-[e.g., qsub, sbatch] : ")
-        self._set('cmd_submit', value)
-
-    def _get_prefix_jobid(self):
-        """Prompt the user for a string.
-
-        The string represents the prefix in the string prompt by the cluster
-         before the Job ID after submitting a job.
-
-        :return: None
-        """
-        value = self._prompt("Please enter a string to print before the \
-job id after submission.", 'Submitted batch job')
-        self._set('prefix_jobid', value)
-
-    def _get_suffix_jobid(self):
-        """Prompt the user for the suffix of the job submission string.
-
-        :return: None
-        """
-        value = self._prompt("Please enter a string to print after the \
-job id after submission.", '\\n')
-        self._set('suffix_jobid', value)
-
-    def _get_cmd_count_nb_jobs(self):
-        """Prompt the user for the path.
-
-        The path given correspond to where the template file is for the
-         command to count the number of jobs.
-
-        :return: None
-        """
-        value = self._prompt("Please enter the full path to text file \
-containing the command used to count the number of jobs in the queue : ",
-                             is_path=True)
-        self._set('cmd_count_nb_jobs', value)
-
-    def _get_cmd_get_job_status(self):
-        """Prompt the user for the path.
-
-        The path given correspond to where the tempalte file is for the
-         command to get the status of a job by job id.
-
-        :return: None
-        """
-        value = self._prompt("Please enter the full path to text file \
-containing the command used to check the running status of a job : ",
-                             is_path=True)
-        self._set('cmd_get_job_status', value)
-
-    def _get_queue_status(self):
-        """Prompt the user for the string.
-
-        The string indicates the queueing status of a job on the cluster.
-         (Complete/C etc).
-        """
-        value = self._prompt("Please enter the string the job scheduler would \
-use to indicate that a job is 'in the queue' : ")
-        self._set('queue_status', value)
-
-    def _get_running_status(self):
-        """Prompt the user for the string.
-
-        The string indicates the running status of a job on the cluster.
-         (Running/R etc).
-
-        :return: None
-        """
-        value = self._prompt("Please enter the string the job scheduler would \
-use to indicate that a job is 'running' : ")
-        self._set('running_status', value)
-
-    def _get_complete_status(self):
-        """Prompt the user for the string.
-
-        The string indicates the complete status of a job on the cluster.
-         (Complete/C etc).
-
-        :return: None
-        """
-        value = self._prompt("Please enter the string the job scheduler would \
-use to indicate that a job is 'complete' : ")
-        self._set('complete_status', value)
-
-    def _get_cmd_get_job_memory(self):
-        """Prompt the user for the full path.
-
-        The path given correspond to the file containing the command
-         used to see how much memory a job used.
-
-        :return: None
-        """
-        value = self._prompt("Please enter the full path to the text file \
-containing the command used to see how much memory a job used : ",
-                             is_path=True)
-        self._set('cmd_get_job_memory', value)
-
-    def _get_cmd_get_job_walltime(self):
-        """Prompt the user for the full path.
-
-        The path given correspond to the file containing the command
-         used to see how much walltime a job used.
-
-        :return: None
-
-        """
-        value = self._prompt("Please enter the full path to the text file \
-containing the command used to see how much walltime a job used : ",
-                             is_path=True)
-        self._set('cmd_get_job_walltime', value)
-
-    def _get_cmd_get_job_node(self):
-        """Prompt the user for the full path.
-
-        The path given correspond to the file containing the command
-         used to see what node a job used.
-
-        :return: None
-        """
-        value = self._prompt("Please enter the full path to the text file \
-containing the command used to see which node a job used : ", is_path=True)
-        self._set('cmd_get_job_node', value)
-
-    def _get_job_extension_file(self):
-        """Prompt the user for a job file extension (.pbs, .slurm etc).
-
-        :return: None
-        """
-        value = self._prompt("Please enter an extension for the job \
-batch file.", '.pbs')
-        self._set('job_extension_file', value)
-
-    def _get_job_template(self):
-        """Prompt the user for the full path.
-
-        The path given correspond to the file containing the template
-         used to generate the batch file.
-
-        :return: None
-        """
-        value = self._prompt("Please enter the full path to the text file \
-containing the template used to generate the batch script : ", is_path=True)
-        self._set('job_template', value)
-
-    def _get_email_opts(self):
-        """Prompt the user for when they want to be notified about a job.
-
-        :return: None
-        """
-        value = self._prompt("Please provide the options for the email \
-notification for a job as defined by your grid scheduler : ")
-        self._set('email_opts', value)
-
-    def _get_gateway(self):
-        """Prompt the user for the hostname of the server to run on.
-
-        :return: None
-        """
-        default = socket.gethostname()
-        value = self._prompt("Please enter the hostname of the server \
-to run dax on.", default)
-        self._set('gateway', value)
-
-    def _get_root_job_dir(self):
-        """Prompt the user for the directory.
-
-        The directory represents the folder where the data should be stored
-         on the node.
-
-        :return: None
-        """
-        value = self._prompt("Please enter where the data should be stored \
-on the node.", '/tmp', is_path=True)
-        self._set('root_job_dir', value)
-
-    def _get_queue_limit(self):
-        """Prompt the user for the maximum number of jobs that should run at a time.
-
-        :return: None
-        """
-        value = self._prompt("Please enter the maximum number of jobs \
-that should run at once.", '600')
-        self._set('queue_limit', value)
-
-    def _get_results_dir(self):
-        """Prompt the user where the data should get uploaded to when done.
-
-        :return: None
-        """
-        default = os.path.join(self.settings_dict['user_home'],
-                               'RESULTS_XNAT_SPIDER')
-        value = self._prompt("Please enter directory where data will get \
-copied to for upload.", default, is_path=True)
-        self._set('results_dir', value)
-
-    def _get_max_age(self):
-        """Prompt the user for the number of days.
-
-        Dax will ignore the session that are already built. It will rerun any
-         sessions that pass the maximun age chosen. Default: 7days.
-
-        :return: None
-        """
-        value = self._prompt("Please max days before re-running dax_build \
-on a session.", '7')
-        self._set('max_age', value)
-
-    # redcap section
-    def _get_api_url(self):
-        """Prompt user for the REDCap API URL.
-
-        :return: None
-
-        """
-        value = self._prompt("Please enter your REDCap API URL : ")
-        self._set('api_url', value)
-
-    def _get_api_key_dax(self):
-        """Prompt the user to enter an API key to connect to REDCap for DAX Manager.
-
-        :return: None
-
-        """
-        value = self._prompt("Please enter the key to connect to the \
-DAX Manager REDCap database : ")
-        self._set('api_key_dax', value)
-
-    def _get_dax_manager_dict(self):
-        """Set the variables for DAX_manager to be defaults.
-
-        :return: None
-        """
-        if self.settings_dict['api_key_dax'] != '':
-            print '\n  DAX_MANAGER set using Vanderbilt default REDCap fields. \
-Edit .dax_settings.ini to change the fields name.'
-            self._set('dm_project', 'dax_project')
-            self._set('dm_settingsfile', 'dax_settings_full_path')
-            self._set('dm_masimatlab', 'dax_masimatlab')
-            self._set('dm_tmp', 'dax_tmp_directory')
-            self._set('dm_logsdir', 'dax_logs_path')
-            self._set('dm_user', 'dax_cluster_user')
-            self._set('dm_gateway', 'dax_gateway')
-            self._set('dm_email', 'dax_cluster_email')
-            self._set('dm_queue', 'dax_queue_limit')
-            self._set('dm_priority', 'dax_proj_order')
-            self._set('dm_email_opts', 'dax_job_email_options')
-            self._set('dm_dax_build_start_date', 'dax_build_start_date')
-            self._set('dm_dax_build_end_date', 'dax_build_end_date')
-            self._set('dm_dax_build_pid', 'dax_build_pid')
-            self._set('dm_dax_update_tasks_start_date',
-                      'dax_update_tasks_start_date')
-            self._set('dm_dax_update_tasks_end_date',
-                      'dax_update_tasks_end_date')
-            self._set('dm_dax_update_tasks_pid', 'dax_update_tasks_pid')
-            self._set('dm_dax_launch_start_date', 'dax_launch_start_date')
-            self._set('dm_dax_launch_end_date', 'dax_launch_end_date')
-            self._set('dm_dax_launch_pid', 'dax_launch_pid')
-            self._set('dm_max_age', 'dax_max_age')
-            self._set('dm_admin_email', 'dax_email_address')
-        else:
-            print 'Warning: REDCap not used. Setting the dax_manager to null.'
-            self._set_null('dm_project')
-            self._set_null('dm_settingsfile')
-            self._set_null('dm_masimatlab')
-            self._set_null('dm_tmp')
-            self._set_null('dm_logsdir')
-            self._set_null('dm_user')
-            self._set_null('dm_gateway')
-            self._set_null('dm_email')
-            self._set_null('dm_queue')
-            self._set_null('dm_priority')
-            self._set_null('dm_email_opts')
-            self._set_null('dm_dax_build_start_date')
-            self._set_null('dm_dax_build_end_date')
-            self._set_null('dm_dax_build_pid')
-            self._set_null('dm_dax_update_tasks_start_date')
-            self._set_null('dm_dax_update_tasks_end_date')
-            self._set_null('dm_dax_update_tasks_pid')
-            self._set_null('dm_dax_launch_start_date')
-            self._set_null('dm_dax_launch_end_date')
-            self._set_null('dm_dax_launch_pid')
-            self._set_null('dm_max_age')
-            self._set_null('dm_admin_email')
-
-    def _use_cluster_default(self):
-        """Ask the user if they want to use default settings for cluster section.
-
-        :return: True if using default, False otherwise
-        """
-        value = ''
-        while value.lower() not in ['yes', 'no', 'n', 'y']:
-            value = self._prompt("Do you want to download default templates \
-file from DAX? [yes/no] ")
-        if value in ['yes', 'y']:
-            return True
-        else:
-            return False
 
     def _set_cluster_default(self, ctype=False):
         """Use the default cluster settings from the cluster type selected.
@@ -695,20 +434,17 @@ file from DAX? [yes/no] ")
         :param ctype: True if set to default
         :return: None
         """
-        if ctype:
-            cluster_type = '1'
-        else:
-            cluster_type = '0'
-            while cluster_type not in ['1', '2', '3']:
-                cluster_type = self._prompt("Which cluster are you using? \
-        [1.SGE 2.SLURM 3.MOAB] ")
-            print 'Warning: You can edit the cluster templates files at any \
-        time in ~/.dax_templates/'
-            self._get_gateway()
-            self._get_root_job_dir()
-            self._get_queue_limit()
-            self._get_results_dir()
-            self._get_max_age()
+        cluster_type = '0'
+        while cluster_type not in ['1', '2', '3']:
+            cluster_type = raw_input("Which cluster are you using? \
+[1.SGE 2.SLURM 3.MOAB] ")
+        sys.stdout.write('Warning: You can edit the cluster templates files at any \
+time in ~/.dax_templates/\n')
+
+        for option in ['gateway', 'root_job_dir', 'queue_limit', 'results_dir',
+                       'max_age']:
+            value = self._prompt('cluster', option)
+            self.config_parser.set('cluster', option, value)
 
         if cluster_type == '1':
             cluster_dict = DEFAULT_SGE_DICT
@@ -718,116 +454,45 @@ file from DAX? [yes/no] ")
             cluster_dict = DEFAULT_MOAB_DICT
 
         # Copy the files from the template:
-        templates_path = os.path.join(self.settings_dict['user_home'],
+        templates_path = os.path.join(self.config_parser.get('admin',
+                                                             'user_home'),
                                       '.dax_templates')
         if not os.path.exists(templates_path):
             os.makedirs(templates_path)
-        for field, value in cluster_dict.items():
-            if field in DEFAULT_FILE_FIELDS:
-                with open(os.path.join(templates_path,
-                          field+'.txt'), 'w') as fid:
+        for option, value in cluster_dict.items():
+            if option in OPTIONS_DESCRIPTION and \
+               OPTIONS_DESCRIPTION[option]['is_path']:
+                file_path = os.path.join(templates_path, option+'.txt')
+                with open(file_path, 'w') as fid:
                     fid.writelines(value)
-                self._set(field, os.path.join(templates_path, field+'.txt'))
+                self.config_parser.set('cluster', option, file_path)
             else:
-                self._set(field, value)
+                self.config_parser.set('cluster', option, value)
 
-    def _set_xnat_credentials(self):
-        """Ask User for xnat credentials and store it on the node.
 
-        :return: None
-        """
-        xnat_profile = os.path.join(os.path.expanduser('~'), '.xnat_profile')
-        if not os.path.isfile(xnat_profile):
-            print 'Setting XNAT credentials:'
-            host = self._prompt("Please enter your XNAT host: ")
-            user = self._prompt("Please enter your XNAT username: ")
-            pwd = getpass.getpass(prompt='Please enter your XNAT password: ')
-            with open(xnat_profile, 'w') as fid:
-                fid.writelines(XNAT_PROFILE_TEMPLATE.format(host=host,
-                                                            user=user,
-                                                            pwd=pwd))
-            print 'Please run the ~/.xnat_profile to set up the credentials.'
-            # add .xnat_profile to your profile file:
-            init_profile()
+def set_xnat_credentials():
+    """Ask User for xnat credentials and store it locally.
 
-    def _set_dax_setup_type(self):
-        """Ask the user if they want to use tools dax_setup_type for dax.
-
-        :return:  None
-        """
-        value = ''
-        while value.lower() not in ['yes', 'no', 'n', 'y']:
-            value = self._prompt("Do you want to select default settings \
-adapted for Xnat_tools/Freesurfer_tools use only? [yes/no]")
-        if value in ['yes', 'y']:
-            self.dax_setup_type = 'tools'
-
-    def _set_tools_setup(self):
-        """Set the values from the default tools setup to the dax_settings.ini.
-
-        :return: None
-        """
-        print """Warning: Not recommended if you want to use dax_tools.\n\
-         Read the wiki for more information on dax_setup and setting dax for \
-cluster use.\n         Wiki: https://github.com/VUIIS/dax/wiki/DAX-Set-up"""
-        for field, value in DEFAULT_TOOLS_SETUP.items():
-            self._set(field, value)
-        self._set_cluster_default(ctype='SGE')
-        self._get_dax_manager_dict()
-
-    def write(self):
-        """Write the all of the config options to the ~/.dax_settings.ini file.
-
-        :return: None
-        """
-        with open(self.settings_file, 'w') as fid:
-            fid.writelines(DAX_SETTINGS_TEMPLATE.format(**self.settings_dict))
-
-    def config(self):
-        """Caller for all of the _get* methods.
-
-        :return: True if using default settings, False otherwise
-        """
-        self._set_dax_setup_type()
-        if self.dax_setup_type == 'cluster':
-            print 'Starting to config the dax_settings.ini file:'
-            print '\n  ADMIN :'
-            self._get_user_home()
-            self._get_admin_email()
-            self._get_smtp_from()
-            self._get_smtp_host()
-            self._get_smtp_pass()
-            self._get_xsitype_include()
-            print '\n  CLUSTER :'
-            use_default = self._use_cluster_default()
-            if use_default:
-                self._set_cluster_default()
-            else:
-                self._get_cmd_submit()
-                self._get_prefix_jobid()
-                self._get_suffix_jobid()
-                self._get_cmd_count_nb_jobs()
-                self._get_cmd_get_job_status()
-                self._get_queue_status()
-                self._get_running_status()
-                self._get_complete_status()
-                self._get_cmd_get_job_memory()
-                self._get_cmd_get_job_walltime()
-                self._get_cmd_get_job_node()
-                self._get_job_extension_file()
-                self._get_job_template()
-                self._get_email_opts()
-                self._get_gateway()
-                self._get_root_job_dir()
-                self._get_queue_limit()
-                self._get_results_dir()
-                self._get_max_age()
-            print '\n  REDCAP :'
-            self._get_api_url()
-            self._get_api_key_dax()
-            self._get_dax_manager_dict()
-        else:
-            self._set_tools_setup()
+    :return: None
+    """
+    xnat_profile = os.path.join(os.path.expanduser('~'), '.xnat_profile')
+    if not os.path.isfile(xnat_profile) \
+       and not os.environ['XNAT_HOST'] \
+       and not os.environ['XNAT_USER'] \
+       and not os.environ['XNAT_PASS']:
+        print 'Setting XNAT credentials:'
+        host = raw_input("Please enter your XNAT host: ")
+        user = raw_input("Please enter your XNAT username: ")
+        pwd = getpass.getpass(prompt='Please enter your XNAT password: ')
+        with open(xnat_profile, 'w') as fid:
+            fid.writelines(XNAT_PROFILE_TEMPLATE.format(host=host,
+                                                        user=user,
+                                                        pwd=pwd))
+        # Changing mod of the file:
+        os.chmod(xnat_profile, stat.S_IRWXU)
+        print 'Please run the ~/.xnat_profile to set up the credentials.'
+        # add .xnat_profile to your profile file:
+        init_profile()
 
 
 def init_profile():
@@ -853,11 +518,35 @@ XNAT_USER, and XNAT_PASS environment variables manually and rerun dax_setup.")
         with open(profile, "a") as f_profile:
             f_profile.write(BASH_PROFILE_XNAT)
 
+
+def prompt_user_yes_no(question):
+    """Prompt the user for a question with answer Y/N.
+
+    :return: True if yes, False if no, ask again if any other answer
+    """
+    value = ''
+    while value.lower() not in ['yes', 'no', 'n', 'y']:
+        value = raw_input("%s [yes/no] " % question)
+    if value.lower() in ['yes', 'y']:
+        return True
+    else:
+        return False
+
 if __name__ == '__main__':
     print '########## DAX_SETUP ##########'
     print 'Script to setup the ~/.dax_settings.ini files \
 for your dax installation.\n'
+    # Set xnat credentials if needed
+    set_xnat_credentials()
+
+    # Set the settings for dax
     DSH = DAX_Setup_Handler()
+
+    if DSH.exists():
+        sys.stdout.write('Settings file ~/.dax_settings.ini found.\n')
+        if not prompt_user_yes_no('Do you want to edit it?'):
+            print '########## END ##########'
+            sys.exit()
 
     DSH.config()
     DSH.write()

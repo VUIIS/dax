@@ -97,9 +97,9 @@ class InterfaceTemp(Interface):
      cache to it and then blow it away on the Interface.disconnect call()
      NOTE: This is deprecated in pyxnat 1.0.0.0
     """
-    def __init__(self, xnat_host, xnat_user, xnat_pass, temp_dir=None):
-        """
-        Entry point for the InterfaceTemp class
+    def __init__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
+                 temp_dir=None):
+        """Entry point for the InterfaceTemp class.
 
         :param xnat_host: XNAT Host url
         :param xnat_user: XNAT User ID
@@ -108,16 +108,53 @@ class InterfaceTemp(Interface):
         :return: None
 
         """
+        self.host = xnat_host
+        self.user = xnat_user
+        self.pwd = xnat_pass
+        if not xnat_user:
+            self.user = os.environ['XNAT_USER']
+        if not xnat_pass:
+            self.pwd = os.environ['XNAT_PASS']
+        if not xnat_host:
+            self.host = os.environ['XNAT_HOST']
         if not temp_dir:
             temp_dir = tempfile.mkdtemp()
         if not os.path.exists(temp_dir):
             os.mkdir(temp_dir)
         self.temp_dir = temp_dir
-        super(InterfaceTemp, self).__init__(server=xnat_host, user=xnat_user, password=xnat_pass, cachedir=temp_dir)
+        super(InterfaceTemp, self).__init__(server=self.host,
+                                            user=self.user,
+                                            password=self.pwd,
+                                            cachedir=self.temp_dir)
+
+    def __enter__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
+                  temp_dir=None):
+        """Enter method for with statement."""
+        self.host = xnat_host
+        self.user = xnat_user
+        self.pwd = xnat_pass
+        if not xnat_user:
+            self.user = os.environ['XNAT_USER']
+        if not xnat_pass:
+            self.pwd = os.environ['XNAT_PASS']
+        if not xnat_host:
+            self.host = os.environ['XNAT_HOST']
+        if not temp_dir:
+            temp_dir = tempfile.mkdtemp()
+        if not os.path.exists(temp_dir):
+            os.mkdir(temp_dir)
+        self.temp_dir = temp_dir
+        super(InterfaceTemp, self).__init__(server=self.host,
+                                            user=self.user,
+                                            password=self.pwd,
+                                            cachedir=self.temp_dir)
+
+    def __exit__(self, type, value, traceback):
+        """Exit method for with statement."""
+        self.disconnect()
 
     def disconnect(self):
-        """
-        Disconnect the JSESSION and blow away the cache
+        """Disconnect the JSESSION and blow away the cache.
 
         :return: None
         """

@@ -7,10 +7,14 @@ project on XNAT and which pipelines to run on those projects.
 """
 
 import dax
+import sys
+from dax import DAX_Settings
+
+DAX_SETTINGS = DAX_Settings()
+
 
 def parse_args():
-    """
-    Method to parse arguments base on ArgumentParser
+    """Method to parse arguments base on ArgumentParser.
 
     :return: parser object parsed
     """
@@ -25,5 +29,10 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    
-    dax.bin.build(args.settings_path, args.logfile, args.debug, args.project, args.sessions)
+
+    if DAX_SETTINGS.is_cluster_valid():
+        dax.bin.build(args.settings_path, args.logfile, args.debug,
+                      args.project, args.sessions)
+    else:
+        sys.stdout.write('Please edit your settings via dax_setup for the \
+cluster section\n.')
