@@ -54,6 +54,8 @@ class DAX_Settings(object):
 
         if self.exists():
             self.__read__()
+        else:
+            sys.stdout.write('Warning: No settings.ini file found.')
 
     def exists(self):
         """Check if ini file exists.
@@ -71,8 +73,8 @@ class DAX_Settings(object):
         try:
             self.config_parser.read(self.ini_settings_file)
         except ConfigParser.MissingSectionHeaderError as MSHE:
-            self._print_error_and_exit('Missing header bracket detected. '
-                                       'Please check your file.\n', MSHE)
+            self._print_error_as_warning('Missing header bracket detected. '
+                                         'Please check your file.\n', MSHE)
 
     def is_cluster_valid(self):
         """Check cluster section.
@@ -164,11 +166,12 @@ class DAX_Settings(object):
         try:
             value = self.config_parser.get(header, key)
         except ConfigParser.NoOptionError as NOE:
-            self._print_error_and_exit('No option %s found in header %s'
-                                       % (key, header), NOE)
+            self._print_error_as_warning('No option %s found in header %s'
+                                         % (key, header), NOE)
         except ConfigParser.NoSectionError as NSE:
-            self._print_error_and_exit('No header %s found in config file %s'
-                                       % (header, self.ini_settings_file), NSE)
+            self._print_error_as_warning('No header %s found in config file %s'
+                                         % (header, self.ini_settings_file),
+                                         NSE)
 
         if value == '':
             value = None
@@ -224,7 +227,7 @@ class DAX_Settings(object):
         opts = self.config_parser.options('dax_manager')
         return self.iterate_options('dax_manager', opts)
 
-    def _print_error_and_exit(self, simple_message, exception):
+    def _print_error_as_warning(self, simple_message, exception):
         """Print an error and exit out of DAX settings.
 
         Allow the user to print a (hopefully) simpler error message
@@ -234,11 +237,10 @@ class DAX_Settings(object):
         :param exception: The Exception object that was raised
         :return: None
         """
-        sys.stderr.write('ERROR: %s %s\n' % (self.ini_settings_file,
-                                             simple_message))
-        sys.stderr.write('Caught exception %s with message:\n %s'
-                         % (exception.__class__, exception.message))
-        sys.exit(1)
+        sys.stdout.write('Warning: %s %s\n' % (self.ini_settings_file,
+                                               simple_message))
+        # sys.stdout.write('Caught exception %s with message:\n %s'
+        #                 % (exception.__class__, exception.message))
 
     # Begin public getters for all values
     #  -- ADMIN section
