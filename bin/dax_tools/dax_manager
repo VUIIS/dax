@@ -513,7 +513,7 @@ def generate_settings(redcap_project, settings_info):
             email_text += '-----------------------------------------'\
                          +'-----------------------------------------\n'
 
-    if email_text != EMAIL_HEADER:
+    if email_text != EMAIL_HEADER.format(gateway=gateway, user=user):
         subject = 'Dax_manager ADMIN: updates running for 2/7days '
         if ADMIN_EMAIL:
             send_email(email_text, ADMIN_EMAIL, subject)
