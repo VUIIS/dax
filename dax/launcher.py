@@ -585,7 +585,7 @@ class Launcher(object):
                     proc_assr = assr
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
-                if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
+                if proc_assr == None or proc_assr.info()['procstatus'] in [task.NEED_INPUTS, task.NEED_TO_RUN]:
                     # TODO: get session object directly
                     scan = XnatUtils.get_full_object(xnat, scan_info)
                     assessor = scan.parent().assessor(assr_name)
