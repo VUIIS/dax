@@ -261,6 +261,39 @@ class Spider(object):
         self.spider_handler.done()
         self.spider_handler.clean(self.jobdir)
         self.print_end()
+        
+    def check_executable(self, executable, name):
+        """Method to check the executable.
+
+        :param executable: executable path
+        :param name: name of Executable
+        :return: Complete path to the executable
+        """
+        if executable == name:
+            # Check the output of which:
+            pwhich = sb.Popen(['which', executable],
+                              stdout=sb.PIPE,
+                              stderr=sb.PIPE)
+            results, _ = pwhich.communicate()
+            if not results or results.startswith('/usr/bin/which: no'):
+                raise Exception("Executable '%s' not found on your computer."
+                                % (name))
+        else:
+            executable = os.path.abspath(executable)
+            if executable.endswith(name):
+                pass
+            elif os.path.isdir(executable):
+                executable = os.path.join(executable, name)
+            if not os.path.exists(executable):
+                raise Exception("Executable '%s' not found" % (executable))
+
+        pversion = sb.Popen([executable, '--version'],
+                            stdout=sb.PIPE,
+                            stderr=sb.PIPE)
+        nve_version, _ = pversion.communicate()
+        self.time_writer('%s version: %s' %
+                         (name, nve_version.strip()))
+        return executable
 
 
     def pre_run(self):
