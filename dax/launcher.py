@@ -1006,3 +1006,13 @@ def sess_was_modified(xnat, sess_info, build_start_time):
     last_mod = get_sess_lastmod(xnat, sess_info)
     return (last_mod > build_start_time)
 
+def log_updating_status(procname, assessor_label):
+    """
+    Print as debug the status updating string
+    :param procname: process name
+    :param assessors_label: assessor label
+    :return: None
+    """
+    mess = """* Processor:{proc}: updating status: {label}"""
+    mess_str = mess.format(proc=procname, label=assessor_label)
+    LOGGER.debug(mess_str)
