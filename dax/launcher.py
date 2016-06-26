@@ -524,7 +524,7 @@ class Launcher(object):
             else:
                 if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
                     sess_task = sess_proc.get_task(xnat, csess, RESULTS_DIR)
-                    self.log_updating_status(sess_proc.name, sess_task.assessor_label)
+                    log_updating_status(sess_proc.name, sess_task.assessor_label)
                     has_inputs, qcstatus = sess_proc.has_inputs(csess)
                     if has_inputs == 1:
                         sess_task.set_status(task.NEED_TO_RUN)
@@ -603,7 +603,7 @@ class Launcher(object):
             else:
                 if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
                     scan_task = scan_proc.get_task(xnat, cscan, RESULTS_DIR)
-                    self.log_updating_status(scan_proc.name, scan_task.assessor_label)
+                    log_updating_status(scan_proc.name, scan_task.assessor_label)
                     has_inputs, qcstatus = scan_proc.has_inputs(cscan)
                     if has_inputs == 1:
                         scan_task.set_status(task.NEED_TO_RUN)
