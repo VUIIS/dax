@@ -138,6 +138,8 @@ def get_job_mem_used(jobid, diff_days):
     cmd = CMD_GET_JOB_MEMORY.safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        if output.startswith('sacct: error'):
+            raise CalledProcessError(output)
         if output:
             mem = output.strip()
 
