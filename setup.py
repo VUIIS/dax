@@ -39,7 +39,7 @@ if __name__ == '__main__':
           package_data={},
           test_suite='nose.collector',
           tests_require=['nose'],
-          install_requires=['pycap','lxml','pyxnat', 'httplib2'],
+          install_requires=['pycap','lxml','pyxnat', 'httplib2', 'matplotlib', 'numpy', 'nibabel'],
           zip_safe=True,
           scripts=[
                    'bin/dax_tools/dax_manager', 
