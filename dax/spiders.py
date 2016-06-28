@@ -392,9 +392,9 @@ class Spider(object):
         """
         self.time_writer('Time at the end of the Spider: '+ str(datetime.now()))
 
-    def plot_images_figure(self, pdf_path, page_index, nii_images, title,
-                           image_labels, slices=None, cmap='gray',
-                           vmins=None, vmaxs=None):
+    def plot_images_page(self, pdf_path, page_index, nii_images, title,
+                         image_labels, slices=None, cmap='gray',
+                         vmins=None, vmaxs=None):
         """Plot list of images (3D-4D) on a figure (PDF page).
 
         plot_images_figure will create one pdf page with only images.
@@ -521,6 +521,99 @@ Using default.")
         fig.savefig(pdf_path, transparent=True, orientation='portrait',
                     dpi=100)
         plt.close(fig)
+        return pdf_path
+        
+    def plot_stats_page(self, pdf_path, page_index, stats_dict, title,
+                        tables_number=3, columns_header=['Header', 'Value'],
+                        limit_size_text_column1=30,
+                        limit_size_text_column2=10):
+        """Generate pdf report of stats information from a csv/txt.
+
+        plot_stats_page generate a pdf page displaying a dictionary
+        of stats given to the function. Column 1 represents the key
+        or header and the column 2 represents the value associated.
+        You can rename the two column by using the args column1/2.
+        There are three columns than can have 50 values max.
+
+        :param pdf_path: path to the pdf to save this figure to
+        :param page_index: page index for PDF
+        :param stats_dict: python dictionary of key=value to display
+        :param title: Title for the report page
+        :param tables_number: number of columns to display (def:3)
+        :param columns_header: list of header for the column
+            default: header, value
+        :param limit_size_text_column1: limit of text display in column 1
+        :param limit_size_text_column2: limit of text display in column 2
+        :return: pdf path created
+        """
+        self.time_writer('INFO: generating pdf page %d with stats.'
+                         % page_index)
+        cell_text = list()
+        for key, value in stats_dict.items():
+            txt = smaller_str(key.strip().replace('"', ''),
+                              size=limit_size_text_column1)
+            val = smaller_str(str(value),
+                              size=limit_size_text_column2)
+            cell_text.append([txt, "%s" % val])
+
+        # Make the table
+        fig = plt.figure(page_index, figsize=(7.5, 10))
+        nb_stats = len(stats_dict.keys())
+        for i in range(tables_number):
+            ax = fig.add_subplot(1, tables_number, i+1)
+            ax.xaxis.set_visible(False)
+            ax.yaxis.set_visible(False)
+            ax.axis('off')
+            the_table = ax.table(
+                    cellText=cell_text[nb_stats/3*i:nb_stats/3*(i+1)],
+                    colColours=[(0.8, 0.4, 0.4), (1.0, 1.0, 0.4)],
+                    colLabels=columns_header,
+                    colWidths=[0.8, 0.32],
+                    loc='center',
+                    rowLoc='left',
+                    colLoc='left',
+                    cellLoc='left')
+
+            the_table.auto_set_font_size(False)
+            the_table.set_fontsize(6)
+
+        # Set footer and title
+        date = datetime.now()
+        plt.figtext(0.5, 0.985, '-- %s PDF report --' % title,
+                    horizontalalignment='center', fontsize=12)
+        plt.figtext(0.5, 0.02, 'Date: %s -- page %d' % (str(date), page_index),
+                    horizontalalignment='center', fontsize=8)
+        plt.show()
+        fig.savefig(pdf_path, transparent=True, orientation='portrait',
+                    dpi=300)
+        plt.close(fig)
+        return pdf_path
+        
+    def merge_pdf_pages(self, pdf_pages, pdf_final):
+        """Concatenate all pdf pages in the list into a final pdf.
+
+        You can provide a list of pdf path or give a dictionary
+        with each page specify by a number:
+          pdf_pages = {'1': pdf_page1, '2': pdf_page2}
+
+        :param pdf_pages: python list or dictionary of pdf page path
+        :param pdf_final: final PDF path
+        :return: pdf path created
+        """
+        self.time_writer('INFO: Concatenate all pdfs pages.')
+        pages = ''
+        if isinstance(pdf_pages, dict):
+            for order, page in sorted(pdf_pages):
+                pages += '%s %s ' % (pages, page)
+        elif isinstance(pdf_pages, list):
+            pages = ' '.join(pdf_pages)
+        else:
+            raise Exception('Wrong type for pdf_pages (list or dict).')
+        cmd = 'gs -q -sPAPERSIZE=letter -dNOPAUSE -dBATCH \
+    -sDEVICE=pdfwrite -sOutputFile=%s %s' % (pdf_final, pages)
+        self.time_writer('INFO:saving final PDF: %s ' % cmd)
+        self.run_system_cmd(cmd)
+        return pdf_final
 
     @staticmethod
     def run_system_cmd(cmd):
@@ -777,6 +870,22 @@ def get_scan_argparser(name, description):
     ap = get_default_argparser(name, description)
     ap.add_argument('-c', dest='scan_label', help='Scan label', required=True)
     return ap
+
+def smaller_str(str_option, size=10, end=False):
+    """Method to shorten a string into a smaller size.
+
+    :param str_option: string to shorten
+    :param size: size of the string to keep (default: 10 characters)
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
+    if len(str_option) > size:
+        if end:
+            return '...%s' % (str_option[-size:])
+        else:
+            return '%s...' % (str_option[:size])
+    else:
+        return str_option
 
 def is_good_version(version):
     """
