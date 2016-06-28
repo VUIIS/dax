@@ -295,7 +295,6 @@ class Spider(object):
                          (name, nve_version.strip()))
         return executable
 
-
     def pre_run(self):
         """
         Pre-Run method to download and organise inputs for the pipeline
