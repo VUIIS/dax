@@ -392,6 +392,136 @@ class Spider(object):
         """
         self.time_writer('Time at the end of the Spider: '+ str(datetime.now()))
 
+    def plot_images_figure(self, pdf_path, page_index, nii_images, title,
+                           image_labels, slices=None, cmap='gray',
+                           vmins=None, vmaxs=None):
+        """Plot list of images (3D-4D) on a figure (PDF page).
+
+        plot_images_figure will create one pdf page with only images.
+        Each image corresponds to one line with by default axial/sag/cor view
+        of the mid slice. If you use slices, it will show different slices of
+        the axial plan view. You can specify the cmap and the vmins/vmaxs if
+        needed by using a dictionary with the index of each line (0, 1, ...).
+
+        :param pdf_path: path to the pdf to save this figure to
+        :param page_index: page index for PDF
+        :param nii_images: python list of nifty images
+        :param title: Title for the report page
+        :param image_labels: list of titles for each images
+            one per image in nii_images
+        :param slices: dictionary of list of slices to display
+            if None, display axial, coronal, sagital
+        :param cmap: cmap to use to display images or dict
+            of cmaps for each images with the indices as key
+        :param vmins: define vmin for display (dict)
+        :param vmaxs: define vmax for display (dict)
+        :return: pdf path created
+
+        E.g for two images:
+        images = [imag1, image2]
+        slices = {'0':[50, 80, 100, 130],
+                  '1':[150, 180, 200, 220]}
+        labels = {'0': 'Label 1',
+                  '1': 'Label 2'}
+        cmaps = {'0':'hot',
+                 '1': 'gray'}
+        vmins = {'0':10,
+                 '1':20}
+        vmaxs = {'0':100,
+                 '1':150}
+        """
+        self.time_writer('INFO: generating pdf page %d with images.'
+                         % page_index)
+        fig = plt.figure(page_index, figsize=(7.5, 10))
+        # Titles:
+        if not isinstance(cmap, dict):
+            default_cmap = cmap
+            cmap = {}
+        else:
+            default_cmap = 'gray'
+        if not isinstance(vmins, dict):
+            self.time_writer("Warning: vmins wasn't a dictionary. \
+Using default.")
+            vmins = {}
+        if not isinstance(vmins, dict):
+            self.time_writer("Warning: vmaxs wasnt' a dictionary. \
+Using default.")
+            vmaxs = {}
+        if isinstance(nii_images, str):
+            nii_images = [nii_images]
+        number_im = len(nii_images)
+        for index, image in enumerate(nii_images):
+            # Open niftis with nibabel
+            f_img = nib.load(image)
+            data = f_img.get_data()
+            if len(data.shape) == 4:
+                data = data[:, :, :, data.shape[3]/2]
+            default_slices = [data.shape[2]/4, data.shape[2]/2,
+                              3*data.shape[2]/4]
+            default_label = 'Line %s' % index
+
+            if slices:
+                if not isinstance(slices, dict):
+                    self.time_writer("Warning: slices wasn't a dictionary. \
+Using default.")
+                    slices = {}
+                self.time_writer('INFO: showing different slices.')
+                li_slices = slices.get(str(index), default_slices)
+                slices_number = len(li_slices)
+                for slice_ind, slice_value in enumerate(li_slices):
+                    ind = slices_number*index+slice_ind+1
+                    ax = fig.add_subplot(number_im, slices_number, ind)
+                    data_z_rot = np.rot90(data[:, :, slice_value])
+                    ax.imshow(data_z_rot,
+                              cmap=cmap.get(str(index), default_cmap),
+                              vmin=vmins.get(str(index), None),
+                              vmax=vmaxs.get(str(index), None))
+                    ax.set_title('Slice %d' % slice_value, fontsize=7)
+                    ax.set_xticks([])
+                    ax.set_yticks([])
+                    if slice_ind == 0:
+                        ax.set_ylabel(image_labels.get(str(index),
+                                      default_label), fontsize=9)
+            else:
+                self.time_writer('INFO: display different plan view \
+(ax/sag/cor) of the mid slice.')
+                ax = fig.add_subplot(number_im, 3, 3*index+1)
+                data_z_rot = np.rot90(data[:, :, data.shape[2]/2])
+                ax.imshow(data_z_rot, cmap=cmap.get(str(index), default_cmap),
+                          vmin=vmins.get(str(index), None),
+                          vmax=vmaxs.get(str(index), None))
+                ax.set_title('Axial', fontsize=7)
+                ax.set_ylabel(image_labels.get(str(index), default_label),
+                              fontsize=9)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                ax = fig.add_subplot(number_im, 3, 3*index+2)
+                data_y_rot = np.rot90(data[:, data.shape[1]/2, :])
+                ax.imshow(data_y_rot, cmap=cmap.get(str(index), default_cmap),
+                          vmin=vmins.get(str(index), None),
+                          vmax=vmaxs.get(str(index), None))
+                ax.set_title('Coronal', fontsize=7)
+                ax.set_axis_off()
+                ax = fig.add_subplot(number_im, 3, 3*index+3)
+                data_x_rot = np.rot90(data[data.shape[0]/2, :, :])
+                ax.imshow(data_x_rot, cmap=cmap.get(str(index), default_cmap),
+                          vmin=vmins.get(str(index), None),
+                          vmax=vmaxs.get(str(index), None))
+                ax.set_title('Sagittal', fontsize=7)
+                ax.set_axis_off()
+
+        fig.tight_layout()
+        date = datetime.now()
+        # Titles page
+        plt.figtext(0.5, 0.985, '-- %s PDF report --' % title,
+                    horizontalalignment='center', fontsize=12)
+        plt.figtext(0.5, 0.02, 'Date: %s -- page %d' % (str(date), page_index),
+                    horizontalalignment='center', fontsize=8)
+        plt.show()
+        fig.savefig(pdf_path, transparent=True, orientation='portrait',
+                    dpi=100)
+        plt.close(fig)
+
     @staticmethod
     def run_system_cmd(cmd):
         """
