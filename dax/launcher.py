@@ -187,7 +187,12 @@ class Launcher(object):
                 mes_format = """  +Launching job:{label}, currently {count} jobs in cluster queue"""
                 LOGGER.info(mes_format.format(label=cur_task.assessor_label,
                                               count=str(cur_job_count)))
-            success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options, self.xnat_host, writeonly, pbsdir)
+            try:
+                success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options, self.xnat_host, writeonly, pbsdir)
+            except Exception as E:
+                LOGGER.critical('Caught exception launching job %s' % cur_task.assessor_label)
+                LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
+                success = False
             if not success:
                 LOGGER.error('ERROR:failed to launch job')
                 raise cluster.ClusterLaunchException
@@ -232,7 +237,11 @@ class Launcher(object):
             LOGGER.info('Updating tasks...')
             for cur_task in task_list:
                 LOGGER.info('     Updating task:'+cur_task.assessor_label)
-                cur_task.update_status()
+                try:
+                    cur_task.update_status()
+                except Exception as E:
+                    LOGGER.critical('Caught exception updating assessor %s' % cur_task.assessor_label)
+                    LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
 
         finally:
             self.finish_script(xnat, flagfile, project_list, 2, 2, project_local)
@@ -281,7 +290,11 @@ class Launcher(object):
             # Build projects
             for project_id in project_list:
                 LOGGER.info('===== PROJECT:'+project_id+' =====')
-                self.build_project(xnat, project_id, lockfile_prefix, sessions_local)
+                try:
+                    self.build_project(xnat, project_id, lockfile_prefix, sessions_local)
+                except Exception as E:
+                    LOGGER.critical('Caught exception building project  %s' % project_id)
+                    LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
 
         finally:
             self.finish_script(xnat, flagfile, project_list, 1, 2, project_local)
@@ -335,15 +348,27 @@ class Launcher(object):
                     # NOTE: we keep the starting time of the update
                     # and will check if something change during the update
                     update_start_time = datetime.now()
-                    self.build_session(xnat, sess_info, exp_procs, scan_procs, exp_mods, scan_mods)
-                    got_updated = self.set_session_lastupdated(xnat, sess_info, update_start_time)
+                    try:
+                        self.build_session(xnat, sess_info, exp_procs, scan_procs, exp_mods, scan_mods)
+                    except Exception as E:
+                        LOGGER.critical('Caught exception building sessions %s' % sess_info['session_label'])
+                        LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
+                    try:
+                        got_updated = self.set_session_lastupdated(xnat, sess_info, update_start_time)
+                    except Exception as E:
+                        LOGGER.critical('Caught exception setting session timestamp %s' % sess_info['session_label'])
+                        LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
                     update_run_count = update_run_count+1
                     LOGGER.debug('\n')
 
         if not sessions_local or sessions_local.lower() == 'all':
             # Modules after run
             LOGGER.debug('*Modules Afterrun')
-            self.module_afterrun(xnat, project_id)
+            try:
+                self.module_afterrun(xnat, project_id)
+            except Exception as E:
+                LOGGER.critical('Caught exception after running modules %s')
+                LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
 
     def build_session(self, xnat, sess_info, sess_proc_list,
                       scan_proc_list, sess_mod_list, scan_mod_list):
@@ -373,14 +398,23 @@ class Launcher(object):
                 if sess_obj == None:
                     sess_obj = XnatUtils.get_full_object(xnat, session_info)
 
-                sess_mod.run(session_info, sess_obj)
+                try:
+                    sess_mod.run(session_info, sess_obj)
+                except Exception as E:
+                    LOGGER.critical('Caught exception building session module %s' % session_info['session_label'])
+                    LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
 
         # Scans
         LOGGER.debug('== Build modules/processors for scans in session ==')
         if scan_proc_list or scan_mod_list:
             for cscan in csess.scans():
                 LOGGER.debug('+SCAN: '+cscan.info()['scan_id'])
-                self.build_scan(xnat, cscan, scan_proc_list, scan_mod_list)
+
+                try:
+                    self.build_scan(xnat, cscan, scan_proc_list, scan_mod_list)
+                except Exception as E:
+                    LOGGER.critical('Caught exception building scan in session %s' % sess_info['session_label'])
+                    LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
 
         # Processors
         LOGGER.debug('== Build processors for session ==')
@@ -400,14 +434,20 @@ class Launcher(object):
                     sess_task = sess_proc.get_task(xnat, csess, RESULTS_DIR)
                     self.log_updating_status(sess_proc.name, sess_task.assessor_label)
                     has_inputs, qcstatus = sess_proc.has_inputs(csess)
-                    if has_inputs == 1:
-                        sess_task.set_status(task.NEED_TO_RUN)
-                        sess_task.set_qcstatus(task.JOB_PENDING)
-                    elif has_inputs == -1:
-                        sess_task.set_status(task.NO_DATA)
-                        sess_task.set_qcstatus(qcstatus)
-                    else:
-                        sess_task.set_qcstatus(qcstatus)
+                    try:
+                        if has_inputs == 1:
+                            sess_task.set_status(task.NEED_TO_RUN)
+                            sess_task.set_qcstatus(task.JOB_PENDING)
+                        elif has_inputs == -1:
+                            sess_task.set_status(task.NO_DATA)
+                            sess_task.set_qcstatus(qcstatus)
+                        else:
+                            sess_task.set_qcstatus(qcstatus)
+                    except Exception as E:
+                        LOGGER.critical('Caught exception building session %s '
+                                        'while setting assessor status' %
+                                        sess_info['session_label'])
+                        LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
                 else:
                     # Other statuses handled by dax_update_tasks
                     pass
@@ -445,7 +485,11 @@ class Launcher(object):
                 if scan_obj == None:
                     scan_obj = XnatUtils.get_full_object(xnat, scan_info)
 
-                scan_mod.run(scan_info, scan_obj)
+                try:
+                    scan_mod.run(scan_info, scan_obj)
+                except Exception as E:
+                    LOGGER.critical('Caught exception building session scan module in session %s' % scan_info['session_label'])
+                    LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
 
         # Processors
         for scan_proc in scan_proc_list:
@@ -463,14 +507,18 @@ class Launcher(object):
                     scan_task = scan_proc.get_task(xnat, cscan, RESULTS_DIR)
                     self.log_updating_status(scan_proc.name, scan_task.assessor_label)
                     has_inputs, qcstatus = scan_proc.has_inputs(cscan)
-                    if has_inputs == 1:
-                        scan_task.set_status(task.NEED_TO_RUN)
-                        scan_task.set_qcstatus(task.JOB_PENDING)
-                    elif has_inputs == -1:
-                        scan_task.set_status(task.NO_DATA)
-                        scan_task.set_qcstatus(qcstatus)
-                    else:
-                        scan_task.set_qcstatus(qcstatus)
+                    try:
+                        if has_inputs == 1:
+                            scan_task.set_status(task.NEED_TO_RUN)
+                            scan_task.set_qcstatus(task.JOB_PENDING)
+                        elif has_inputs == -1:
+                            scan_task.set_status(task.NO_DATA)
+                            scan_task.set_qcstatus(qcstatus)
+                        else:
+                            scan_task.set_qcstatus(qcstatus)
+                    except Exception as E:
+                        LOGGER.critical('Caught exception building sessions  %s' % scan_info['session_label'])
+                        LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
                 else:
                     # Other statuses handled by dax_update_open_tasks
                     pass
@@ -485,7 +533,11 @@ class Launcher(object):
         :return: None
         """
         for mod in self.project_modules_dict[project_id]:
-            mod.prerun(settings_filename)
+            try:
+                mod.prerun(settings_filename)
+            except Exception as E:
+                LOGGER.critical('Caught exception in module prerun for project %s' % project_id)
+                LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
         LOGGER.debug('\n')
 
     def module_afterrun(self, xnat, project_id):
@@ -497,7 +549,11 @@ class Launcher(object):
         :return: None
         """
         for mod in self.project_modules_dict[project_id]:
-            mod.afterrun(xnat, project_id)
+            try:
+                mod.afterrun(xnat, project_id)
+            except Exception as E:
+                LOGGER.critical('Caught exception in module prerun for project %s' % project_id)
+                LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
         LOGGER.debug('\n')
 
     ################## Generic Methods ##################
@@ -785,7 +841,11 @@ The project is not part of the settings."""
             # We set update to one minute into the future
             # since setting update field will change last modified time
             LOGGER.debug('setting last_updated for:'+sess_info['label']+' to '+update_str)
-            sess_obj.attrs.set(xsi_type+'/original', UPDATE_PREFIX+update_str)
+            try:
+                sess_obj.attrs.set(xsi_type+'/original', UPDATE_PREFIX+update_str)
+            except Exception as E:
+                LOGGER.critical('Caught exception setting update timestamp for session %s' % sess_info['session_label'])
+                LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
             return True
 
     @staticmethod
