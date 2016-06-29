@@ -1856,7 +1856,7 @@ def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False, fn
 
     """
     if os.path.isfile(filepath): #Check existence of the file
-        if removeall and resource_obj.exists: #Remove previous resource to upload the new one
+        if removeall and resource_obj.exists(): #Remove previous resource to upload the new one
             resource_obj.delete()
         filepath = check_image_format(filepath)
         if fname:
@@ -1914,7 +1914,7 @@ def upload_files_to_obj(filepaths, resource_obj, remove=False, removeall=False):
     :return: True if upload was OK, False otherwise
 
     """
-    if removeall and resource_obj.exists: #Remove previous resource to upload the new one
+    if removeall and resource_obj.exists(): #Remove previous resource to upload the new one
         resource_obj.delete()
     status = list()
     for filepath in filepaths:
@@ -1966,10 +1966,10 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False, 
         print """ERROR: upload_folder in XnatUtils: directory {directory} does not exist.""".format(directory=directory)
         return False
 
-    if resource_obj.exists:
+    if resource_obj.exists():
         if removeall:
             resource_obj.delete()
-        if not remove: #check if any files already exists on XNAT, if yes return FALSE
+        elif not remove: #check if any files already exists on XNAT, if yes return FALSE
             for fpath in get_files_in_folder(directory):
                 if resource_obj.file(fpath).exists():
                     print """ERROR: upload_folder_to_obj in XnatUtils: file {file} already found on XNAT. No upload. Use remove/removeall.""".format(file=fpath)
