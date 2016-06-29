@@ -261,7 +261,39 @@ class Spider(object):
         self.spider_handler.done()
         self.spider_handler.clean(self.jobdir)
         self.print_end()
+        
+    def check_executable(self, executable, name):
+        """Method to check the executable.
 
+        :param executable: executable path
+        :param name: name of Executable
+        :return: Complete path to the executable
+        """
+        if executable == name:
+            # Check the output of which:
+            pwhich = sb.Popen(['which', executable],
+                              stdout=sb.PIPE,
+                              stderr=sb.PIPE)
+            results, _ = pwhich.communicate()
+            if not results or results.startswith('/usr/bin/which: no'):
+                raise Exception("Executable '%s' not found on your computer."
+                                % (name))
+        else:
+            executable = os.path.abspath(executable)
+            if executable.endswith(name):
+                pass
+            elif os.path.isdir(executable):
+                executable = os.path.join(executable, name)
+            if not os.path.exists(executable):
+                raise Exception("Executable '%s' not found" % (executable))
+
+        pversion = sb.Popen([executable, '--version'],
+                            stdout=sb.PIPE,
+                            stderr=sb.PIPE)
+        nve_version, _ = pversion.communicate()
+        self.time_writer('%s version: %s' %
+                         (name, nve_version.strip()))
+        return executable
 
     def pre_run(self):
         """
@@ -358,6 +390,229 @@ class Spider(object):
         :return: None
         """
         self.time_writer('Time at the end of the Spider: '+ str(datetime.now()))
+
+    def plot_images_page(self, pdf_path, page_index, nii_images, title,
+                         image_labels, slices=None, cmap='gray',
+                         vmins=None, vmaxs=None):
+        """Plot list of images (3D-4D) on a figure (PDF page).
+
+        plot_images_figure will create one pdf page with only images.
+        Each image corresponds to one line with by default axial/sag/cor view
+        of the mid slice. If you use slices, it will show different slices of
+        the axial plan view. You can specify the cmap and the vmins/vmaxs if
+        needed by using a dictionary with the index of each line (0, 1, ...).
+
+        :param pdf_path: path to the pdf to save this figure to
+        :param page_index: page index for PDF
+        :param nii_images: python list of nifty images
+        :param title: Title for the report page
+        :param image_labels: list of titles for each images
+            one per image in nii_images
+        :param slices: dictionary of list of slices to display
+            if None, display axial, coronal, sagital
+        :param cmap: cmap to use to display images or dict
+            of cmaps for each images with the indices as key
+        :param vmins: define vmin for display (dict)
+        :param vmaxs: define vmax for display (dict)
+        :return: pdf path created
+
+        E.g for two images:
+        images = [imag1, image2]
+        slices = {'0':[50, 80, 100, 130],
+                  '1':[150, 180, 200, 220]}
+        labels = {'0': 'Label 1',
+                  '1': 'Label 2'}
+        cmaps = {'0':'hot',
+                 '1': 'gray'}
+        vmins = {'0':10,
+                 '1':20}
+        vmaxs = {'0':100,
+                 '1':150}
+        """
+        self.time_writer('INFO: generating pdf page %d with images.'
+                         % page_index)
+        fig = plt.figure(page_index, figsize=(7.5, 10))
+        # Titles:
+        if not isinstance(cmap, dict):
+            default_cmap = cmap
+            cmap = {}
+        else:
+            default_cmap = 'gray'
+        if not isinstance(vmins, dict):
+            self.time_writer("Warning: vmins wasn't a dictionary. \
+Using default.")
+            vmins = {}
+        if not isinstance(vmins, dict):
+            self.time_writer("Warning: vmaxs wasnt' a dictionary. \
+Using default.")
+            vmaxs = {}
+        if isinstance(nii_images, str):
+            nii_images = [nii_images]
+        number_im = len(nii_images)
+        for index, image in enumerate(nii_images):
+            # Open niftis with nibabel
+            f_img = nib.load(image)
+            data = f_img.get_data()
+            if len(data.shape) == 4:
+                data = data[:, :, :, data.shape[3]/2]
+            default_slices = [data.shape[2]/4, data.shape[2]/2,
+                              3*data.shape[2]/4]
+            default_label = 'Line %s' % index
+
+            if slices:
+                if not isinstance(slices, dict):
+                    self.time_writer("Warning: slices wasn't a dictionary. \
+Using default.")
+                    slices = {}
+                self.time_writer('INFO: showing different slices.')
+                li_slices = slices.get(str(index), default_slices)
+                slices_number = len(li_slices)
+                for slice_ind, slice_value in enumerate(li_slices):
+                    ind = slices_number*index+slice_ind+1
+                    ax = fig.add_subplot(number_im, slices_number, ind)
+                    data_z_rot = np.rot90(data[:, :, slice_value])
+                    ax.imshow(data_z_rot,
+                              cmap=cmap.get(str(index), default_cmap),
+                              vmin=vmins.get(str(index), None),
+                              vmax=vmaxs.get(str(index), None))
+                    ax.set_title('Slice %d' % slice_value, fontsize=7)
+                    ax.set_xticks([])
+                    ax.set_yticks([])
+                    if slice_ind == 0:
+                        ax.set_ylabel(image_labels.get(str(index),
+                                      default_label), fontsize=9)
+            else:
+                self.time_writer('INFO: display different plan view \
+(ax/sag/cor) of the mid slice.')
+                ax = fig.add_subplot(number_im, 3, 3*index+1)
+                data_z_rot = np.rot90(data[:, :, data.shape[2]/2])
+                ax.imshow(data_z_rot, cmap=cmap.get(str(index), default_cmap),
+                          vmin=vmins.get(str(index), None),
+                          vmax=vmaxs.get(str(index), None))
+                ax.set_title('Axial', fontsize=7)
+                ax.set_ylabel(image_labels.get(str(index), default_label),
+                              fontsize=9)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                ax = fig.add_subplot(number_im, 3, 3*index+2)
+                data_y_rot = np.rot90(data[:, data.shape[1]/2, :])
+                ax.imshow(data_y_rot, cmap=cmap.get(str(index), default_cmap),
+                          vmin=vmins.get(str(index), None),
+                          vmax=vmaxs.get(str(index), None))
+                ax.set_title('Coronal', fontsize=7)
+                ax.set_axis_off()
+                ax = fig.add_subplot(number_im, 3, 3*index+3)
+                data_x_rot = np.rot90(data[data.shape[0]/2, :, :])
+                ax.imshow(data_x_rot, cmap=cmap.get(str(index), default_cmap),
+                          vmin=vmins.get(str(index), None),
+                          vmax=vmaxs.get(str(index), None))
+                ax.set_title('Sagittal', fontsize=7)
+                ax.set_axis_off()
+
+        fig.tight_layout()
+        date = datetime.now()
+        # Titles page
+        plt.figtext(0.5, 0.985, '-- %s PDF report --' % title,
+                    horizontalalignment='center', fontsize=12)
+        plt.figtext(0.5, 0.02, 'Date: %s -- page %d' % (str(date), page_index),
+                    horizontalalignment='center', fontsize=8)
+        plt.show()
+        fig.savefig(pdf_path, transparent=True, orientation='portrait',
+                    dpi=100)
+        plt.close(fig)
+        return pdf_path
+        
+    def plot_stats_page(self, pdf_path, page_index, stats_dict, title,
+                        tables_number=3, columns_header=['Header', 'Value'],
+                        limit_size_text_column1=30,
+                        limit_size_text_column2=10):
+        """Generate pdf report of stats information from a csv/txt.
+
+        plot_stats_page generate a pdf page displaying a dictionary
+        of stats given to the function. Column 1 represents the key
+        or header and the column 2 represents the value associated.
+        You can rename the two column by using the args column1/2.
+        There are three columns than can have 50 values max.
+
+        :param pdf_path: path to the pdf to save this figure to
+        :param page_index: page index for PDF
+        :param stats_dict: python dictionary of key=value to display
+        :param title: Title for the report page
+        :param tables_number: number of columns to display (def:3)
+        :param columns_header: list of header for the column
+            default: header, value
+        :param limit_size_text_column1: limit of text display in column 1
+        :param limit_size_text_column2: limit of text display in column 2
+        :return: pdf path created
+        """
+        self.time_writer('INFO: generating pdf page %d with stats.'
+                         % page_index)
+        cell_text = list()
+        for key, value in stats_dict.items():
+            txt = smaller_str(key.strip().replace('"', ''),
+                              size=limit_size_text_column1)
+            val = smaller_str(str(value),
+                              size=limit_size_text_column2)
+            cell_text.append([txt, "%s" % val])
+
+        # Make the table
+        fig = plt.figure(page_index, figsize=(7.5, 10))
+        nb_stats = len(stats_dict.keys())
+        for i in range(tables_number):
+            ax = fig.add_subplot(1, tables_number, i+1)
+            ax.xaxis.set_visible(False)
+            ax.yaxis.set_visible(False)
+            ax.axis('off')
+            the_table = ax.table(
+                    cellText=cell_text[nb_stats/3*i:nb_stats/3*(i+1)],
+                    colColours=[(0.8, 0.4, 0.4), (1.0, 1.0, 0.4)],
+                    colLabels=columns_header,
+                    colWidths=[0.8, 0.32],
+                    loc='center',
+                    rowLoc='left',
+                    colLoc='left',
+                    cellLoc='left')
+
+            the_table.auto_set_font_size(False)
+            the_table.set_fontsize(6)
+
+        # Set footer and title
+        date = datetime.now()
+        plt.figtext(0.5, 0.985, '-- %s PDF report --' % title,
+                    horizontalalignment='center', fontsize=12)
+        plt.figtext(0.5, 0.02, 'Date: %s -- page %d' % (str(date), page_index),
+                    horizontalalignment='center', fontsize=8)
+        plt.show()
+        fig.savefig(pdf_path, transparent=True, orientation='portrait',
+                    dpi=300)
+        plt.close(fig)
+        return pdf_path
+        
+    def merge_pdf_pages(self, pdf_pages, pdf_final):
+        """Concatenate all pdf pages in the list into a final pdf.
+
+        You can provide a list of pdf path or give a dictionary
+        with each page specify by a number:
+          pdf_pages = {'1': pdf_page1, '2': pdf_page2}
+
+        :param pdf_pages: python list or dictionary of pdf page path
+        :param pdf_final: final PDF path
+        :return: pdf path created
+        """
+        self.time_writer('INFO: Concatenate all pdfs pages.')
+        pages = ''
+        if isinstance(pdf_pages, dict):
+            for order, page in sorted(pdf_pages):
+                pages += '%s %s ' % (pages, page)
+        elif isinstance(pdf_pages, list):
+            pages = ' '.join(pdf_pages)
+        else:
+            raise Exception('Wrong type for pdf_pages (list or dict).')
+        cmd = 'gs -q -sPAPERSIZE=letter -dNOPAUSE -dBATCH \
+    -sDEVICE=pdfwrite -sOutputFile=%s %s' % (pdf_final, pages)
+        self.time_writer('INFO:saving final PDF: %s ' % cmd)
+        self.run_system_cmd(cmd)
+        return pdf_final
 
     @staticmethod
     def run_system_cmd(cmd):
@@ -614,6 +869,22 @@ def get_scan_argparser(name, description):
     ap = get_default_argparser(name, description)
     ap.add_argument('-c', dest='scan_label', help='Scan label', required=True)
     return ap
+
+def smaller_str(str_option, size=10, end=False):
+    """Method to shorten a string into a smaller size.
+
+    :param str_option: string to shorten
+    :param size: size of the string to keep (default: 10 characters)
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
+    if len(str_option) > size:
+        if end:
+            return '...%s' % (str_option[-size:])
+        else:
+            return '%s...' % (str_option[:size])
+    else:
+        return str_option
 
 def is_good_version(version):
     """

@@ -14,7 +14,7 @@ from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
 API_URL = DAX_SETTINGS.get_api_url()
 API_KEY_DAX = DAX_SETTINGS.get_api_key_dax()
-REDCAP_VAR = DAX_SETTINGS.get_dax_manager_data_dictionary()
+REDCAP_VAR = DAX_SETTINGS.get_dax_manager_config()
 
 def set_logger(logfile, debug):
     """
