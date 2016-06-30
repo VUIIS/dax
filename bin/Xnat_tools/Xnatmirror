@@ -594,7 +594,7 @@ def parse_args():
             '--duser', dest='destuser', default=None,
             help='Destination user for XNAT. Default: using $DEST_XNAT_USER.')
     parser.add_argument(
-            '--continu', dest='continu', default=False,
+            '--continu', dest='continu', action='store_true', default=False,
             help='Continue the mirror from the last subject uploaded. \
 Warning: you need to keep the same folder than the previous Xnatmirror call.')
     parser.add_argument(
