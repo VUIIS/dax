@@ -20,6 +20,7 @@ import sys
 import time
 import getpass
 import collections
+import subprocess as sb
 from dax import XnatUtils
 from datetime import datetime
 
