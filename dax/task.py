@@ -1433,7 +1433,7 @@ class XnatTask(Task):
             LOGGER.info('writing:' + batch_file)
             batch.write()
 
-            new_proc_status = JOB_BUILT
+            new_proc_status = JOB_RUNNING
             new_qc_status = JOB_PENDING
         except NeedInputsException as e:
             new_proc_status = NEED_INPUTS
