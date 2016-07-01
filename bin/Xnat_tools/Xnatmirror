@@ -456,7 +456,7 @@ def copy_session(src_sess, dst_sess, sess_cache_dir):
         copy_scan(src_scan, dst_scan, scan_cache_dir)
 
     # Process each assessor of session
-    if SKIPPING_PROC_DATA:
+    if not SKIPPING_PROC_DATA:
         for src_assr in src_sess.assessors():
             assr_label = src_assr.label()
             print('INFO:Processing assessor:%s:...' % assr_label)
