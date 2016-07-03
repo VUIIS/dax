@@ -1,4 +1,4 @@
-TRACULA_v1_0_1
+TRACULA_v1_1_0
 ==============
 
 * **What does it do?**

@@ -1,5 +1,5 @@
-TRACULA_v1_0_1
-==============
+Multi_Atlas_ADNI
+================
 
 * **What does it do?**
 

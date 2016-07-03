@@ -1,5 +1,5 @@
-TRACULA_v1_0_1
-==============
+MAGM_Normalize_ADNI
+===================
 
 * **What does it do?**
 

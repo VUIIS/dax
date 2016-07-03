@@ -1,5 +1,5 @@
-TRACULA_v1_0_1
-==============
+Subcortical_Segmentation_v1_0_0
+===============================
 
 * **What does it do?**
 

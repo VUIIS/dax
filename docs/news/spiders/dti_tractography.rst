@@ -1,5 +1,5 @@
-TRACULA_v1_0_1
-==============
+dti_tractography
+================
 
 * **What does it do?**
 

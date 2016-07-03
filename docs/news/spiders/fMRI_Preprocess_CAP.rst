@@ -1,5 +1,5 @@
-TRACULA_v1_0_1
-==============
+fMRI_Preprocess_CAP
+===================
 
 * **What does it do?**
 

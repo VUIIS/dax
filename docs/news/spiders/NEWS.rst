@@ -1,6 +1,10 @@
-Spider Release News
-===================
-.. toctree::
-   :maxdepth: 1
+NEWS
+====
 
-   fMRIQA_v1_0_0
+* **What does it do?**
+
+* **Requirements**
+
+* **Resources** *
+
+* **References**

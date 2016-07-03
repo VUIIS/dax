@@ -1,5 +1,5 @@
-TRACULA_v1_0_1
-==============
+example_scan
+============
 
 * **What does it do?**
 

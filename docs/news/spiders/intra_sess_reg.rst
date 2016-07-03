@@ -1,4 +1,4 @@
-TRACULA_v1_0_1
+intra_sess_reg
 ==============
 
 * **What does it do?**

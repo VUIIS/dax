@@ -1,5 +1,5 @@
-TRACULA_v1_0_1
-==============
+White_Matter_Stamper
+====================
 
 * **What does it do?**
 

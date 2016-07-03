@@ -1,5 +1,5 @@
-TRACULA_v1_0_1
-==============
+MultiShotDTIRecon_v1.0.0
+========================
 
 * **What does it do?**
 

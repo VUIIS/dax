@@ -1,5 +1,5 @@
-TRACULA_v1_0_1
-==============
+MGC_LGN_Tractography_v2_0_0
+===========================
 
 * **What does it do?**
 
