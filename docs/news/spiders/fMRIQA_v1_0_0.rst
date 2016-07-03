@@ -6,11 +6,11 @@ Performs QA on fMRI data and gives a suggestion as to whether or not the data is
 A time series of motion is shown as well as an SNR image of the medial slice and a histogram of all SNR.
 
 * **Requirements**
-fMRI scan (resting state or task based) in NIfTI format
-SPM8 or newer
-Matlab R2013a or newer
+| fMRI scan (resting state or task based) in NIfTI format
+| SPM8 or newer
+| Matlab R2013a or newer
 
-* **Resources** *
+* **Resources**
 | OUTLOG - STDOUT and STDERR from the process on the grid
 | PBS - The DRMAA compliant batch script to run the job
 | PDF - The output PDF file for determining QA status
