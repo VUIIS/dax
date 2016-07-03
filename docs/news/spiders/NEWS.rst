@@ -1,5 +1,5 @@
-+Spider Release News
-====================
+Spider Release News
+===================
   .. toctree::
      :maxdepth: 1
 
