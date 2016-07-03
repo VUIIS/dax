@@ -6,5 +6,9 @@ dtiQA_Amico_Multi
 * **Requirements**
 
 * **Resources** *
+| OUTLOG - STDOUT and STDERR from the process on the grid
+| PBS - The DRMAA compliant batch script to run the job
+| PDF - The output PDF file for determining QA status
+| SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
 
 * **References**
