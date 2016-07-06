@@ -2177,7 +2177,7 @@ def run_matlab(matlab_script, verbose=False):
     os.system(cmd)
     print """Matlab script: {script} done""".format(script=matlab_script)
 
-def run_matlab_by_vesrsion(matlab_script, verbose=False, matlab_bin=None):
+def run_matlab_by_version(matlab_script, verbose=False, matlab_bin=None):
     """
     Call MATLAB with -nodesktop -nosplash and -singlecompthread.
 
