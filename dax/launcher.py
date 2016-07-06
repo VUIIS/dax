@@ -18,10 +18,6 @@ import bin
 from task import Task
 from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
-RESULTS_DIR = DAX_SETTINGS.get_results_dir()
-DEFAULT_ROOT_JOB_DIR = DAX_SETTINGS.get_root_job_dir()
-DEFAULT_QUEUE_LIMIT = DAX_SETTINGS.get_queue_limit()
-DEFAULT_MAX_AGE = DAX_SETTINGS.get_max_age()
 
 UPDATE_PREFIX = 'updated--'
 UPDATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -35,9 +31,9 @@ LOGGER = logging.getLogger('dax')
 class Launcher(object):
     """ Launcher object to manage a list of projects from a settings file """
     def __init__(self, project_process_dict, project_modules_dict, priority_project=None,
-                 queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR,
+                 queue_limit=DAX_SETTINGS.get_queue_limit(), root_job_dir=DAX_SETTINGS.get_root_job_dir(),
                  xnat_user=None, xnat_pass=None, xnat_host=None,
-                 job_email=None, job_email_options='bae', max_age=DEFAULT_MAX_AGE):
+                 job_email=None, job_email_options='bae', max_age=DAX_SETTINGS.get_max_age()):
         """
         Entry point for the Launcher class
 
@@ -63,15 +59,15 @@ class Launcher(object):
         self.job_email_options = job_email_options
         self.max_age = max_age
 
-        #Creating Folders for flagfile/pbs/outlog in RESULTS_DIR
-        if not os.path.exists(RESULTS_DIR):
-            os.mkdir(RESULTS_DIR)
-        if not os.path.exists(os.path.join(RESULTS_DIR, 'PBS')):
-            os.mkdir(os.path.join(RESULTS_DIR, 'PBS'))
-        if not os.path.exists(os.path.join(RESULTS_DIR, 'OUTLOG')):
-            os.mkdir(os.path.join(RESULTS_DIR, 'OUTLOG'))
-        if not os.path.exists(os.path.join(RESULTS_DIR, 'FlagFiles')):
-            os.mkdir(os.path.join(RESULTS_DIR, 'FlagFiles'))
+        #Creating Folders for flagfile/pbs/outlog in  DAX_SETTINGS.get_results_dir()
+        if not os.path.exists( DAX_SETTINGS.get_results_dir()):
+            os.mkdir( DAX_SETTINGS.get_results_dir())
+        if not os.path.exists(os.path.join( DAX_SETTINGS.get_results_dir(), 'PBS')):
+            os.mkdir(os.path.join( DAX_SETTINGS.get_results_dir(), 'PBS'))
+        if not os.path.exists(os.path.join( DAX_SETTINGS.get_results_dir(), 'OUTLOG')):
+            os.mkdir(os.path.join( DAX_SETTINGS.get_results_dir(), 'OUTLOG'))
+        if not os.path.exists(os.path.join( DAX_SETTINGS.get_results_dir(), 'FlagFiles')):
+            os.mkdir(os.path.join( DAX_SETTINGS.get_results_dir(), 'FlagFiles'))
 
         # Add empty lists for projects in one list but not the other
         for proj in self.project_process_dict.keys():
@@ -118,7 +114,7 @@ class Launcher(object):
         """
         LOGGER.info('-------------- Launch Tasks --------------\n')
 
-        flagfile = os.path.join(RESULTS_DIR, 'FlagFiles', lockfile_prefix+'_'+LAUNCH_SUFFIX)
+        flagfile = os.path.join( DAX_SETTINGS.get_results_dir(), 'FlagFiles', lockfile_prefix+'_'+LAUNCH_SUFFIX)
         project_list = self.init_script(flagfile, project_local, type_update=3, start_end=1)
 
         try:
@@ -211,7 +207,7 @@ class Launcher(object):
         """
         LOGGER.info('-------------- Update Tasks --------------\n')
 
-        flagfile = os.path.join(RESULTS_DIR, 'FlagFiles', lockfile_prefix+'_'+UPDATE_SUFFIX)
+        flagfile = os.path.join( DAX_SETTINGS.get_results_dir(), 'FlagFiles', lockfile_prefix+'_'+UPDATE_SUFFIX)
         project_list = self.init_script(flagfile, project_local, type_update=2, start_end=1)
 
         try:
@@ -263,7 +259,7 @@ class Launcher(object):
         """
         LOGGER.info('-------------- Build --------------\n')
 
-        flagfile = os.path.join(RESULTS_DIR, 'FlagFiles', lockfile_prefix+'_'+BUILD_SUFFIX)
+        flagfile = os.path.join( DAX_SETTINGS.get_results_dir(), 'FlagFiles', lockfile_prefix+'_'+BUILD_SUFFIX)
         project_list = self.init_script(flagfile, project_local, type_update=1, start_end=1)
 
         try:
@@ -397,7 +393,7 @@ class Launcher(object):
 
                 if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
                     # Create it if it doesn't exist
-                    sess_task = sess_proc.get_task(xnat, csess, RESULTS_DIR)
+                    sess_task = sess_proc.get_task(xnat, csess,  DAX_SETTINGS.get_results_dir())
                     self.log_updating_status(sess_proc.name, sess_task.assessor_label)
                     has_inputs, qcstatus = sess_proc.has_inputs(csess)
                     if has_inputs == 1:
@@ -460,7 +456,7 @@ class Launcher(object):
 
                 # Create it if it doesn't exist
                 if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    scan_task = scan_proc.get_task(xnat, cscan, RESULTS_DIR)
+                    scan_task = scan_proc.get_task(xnat, cscan,  DAX_SETTINGS.get_results_dir())
                     self.log_updating_status(scan_proc.name, scan_task.assessor_label)
                     has_inputs, qcstatus = scan_proc.has_inputs(cscan)
                     if has_inputs == 1:
@@ -686,7 +682,7 @@ The project is not part of the settings."""
         else:
             # Get a new task with the matched processor
             assr = XnatUtils.get_full_object(xnat, assr_info)
-            cur_task = Task(task_proc, assr, RESULTS_DIR)
+            cur_task = Task(task_proc, assr,  DAX_SETTINGS.get_results_dir())
             return cur_task
 
     @staticmethod
