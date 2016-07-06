@@ -8,9 +8,6 @@ from datetime import datetime
 from email.mime.text import MIMEText
 from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
-SMTP_HOST = DAX_SETTINGS.get_smtp_host()
-SMTP_FROM = DAX_SETTINGS.get_smtp_from()
-SMTP_PASS = DAX_SETTINGS.get_smtp_pass()
 #Logger for logs
 LOGGER = logging.getLogger('dax')
 
@@ -135,7 +132,7 @@ class Module(object):
         :param subject: subject to set for the email. Default: **ERROR/WARNING for modname**
         :return: None
         """
-        if SMTP_HOST and SMTP_FROM and SMTP_PASS and self.email:
+        if DAX_SETTINGS.get_smtp_host() and DAX_SETTINGS.get_smtp_from() and DAX_SETTINGS.get_smtp_pass() and self.email:
             # Create the container (outer) email message.
             msg = MIMEText(self.text_report)
             if not subject:
@@ -143,13 +140,13 @@ class Module(object):
             msg['Subject'] = subject
             # me == the sender's email address
             # family = the list of all recipients' email addresses
-            msg['From'] = SMTP_FROM
+            msg['From'] = DAX_SETTINGS.get_smtp_from()
             msg['To'] = ",".join(self.email)
             # Send the email via our own SMTP server.
-            smtp = smtplib.SMTP(SMTP_HOST)
+            smtp = smtplib.SMTP(DAX_SETTINGS.get_smtp_host())
             smtp.starttls()
-            smtp.login(SMTP_FROM, SMTP_PASS)
-            smtp.sendmail(SMTP_FROM, self.email, msg.as_string())
+            smtp.login(DAX_SETTINGS.get_smtp_from(), DAX_SETTINGS.get_smtp_pass())
+            smtp.sendmail(DAX_SETTINGS.get_smtp_from(), self.email, msg.as_string())
             smtp.quit()
 
 class ScanModule(Module):
