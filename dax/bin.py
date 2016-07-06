@@ -12,9 +12,6 @@ import log
 import XnatUtils
 from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
-API_URL = DAX_SETTINGS.get_api_url()
-API_KEY_DAX = DAX_SETTINGS.get_api_key_dax()
-REDCAP_VAR = DAX_SETTINGS.get_dax_manager_config()
 
 def set_logger(logfile, debug):
     """
@@ -147,18 +144,18 @@ def upload_update_date_redcap(project_list, type_update, start_end):
 
     """
     logger = logging.getLogger('dax')
-    if API_URL and API_KEY_DAX and REDCAP_VAR:
+    if DAX_SETTINGS.get_api_url() and DAX_SETTINGS.get_api_key_dax() and DAX_SETTINGS.get_dax_manager_config():
         redcap_project = None
         try:
-            redcap_project = redcap.Project(API_URL, API_KEY_DAX)
+            redcap_project = redcap.Project(DAX_SETTINGS.get_api_url(), DAX_SETTINGS.get_api_key_dax())
         except:
-            logger.warn('Could not access redcap. Either wrong API_URL/API_KEY or redcap down.')
+            logger.warn('Could not access redcap. Either wrong DAX_SETTINGS.get_api_url()/API_KEY or redcap down.')
 
         if redcap_project:
             data = list()
             for project in project_list:
                 to_upload = dict()
-                to_upload[REDCAP_VAR['project']] = project
+                to_upload[DAX_SETTINGS.get_dax_manager_config()['project']] = project
                 if type_update == 1:
                     to_upload = set_variables_dax_manager(to_upload, 'dax_build', start_end)
                 elif type_update == 2:
@@ -179,11 +176,11 @@ def set_variables_dax_manager(record_data, field_prefix, start_end):
 
     """
     if start_end == 1:
-        key = REDCAP_VAR[field_prefix+'_start_date']
+        key = DAX_SETTINGS.get_dax_manager_config()[field_prefix+'_start_date']
         record_data[key] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-        record_data[REDCAP_VAR[field_prefix+'_end_date']] = 'In Process'
-        record_data[REDCAP_VAR[field_prefix+'_pid']] = str(os.getpid())
+        record_data[DAX_SETTINGS.get_dax_manager_config()[field_prefix+'_end_date']] = 'In Process'
+        record_data[DAX_SETTINGS.get_dax_manager_config()[field_prefix+'_pid']] = str(os.getpid())
     elif start_end == 2:
-        key = REDCAP_VAR[field_prefix+'_end_date']
+        key = DAX_SETTINGS.get_dax_manager_config()[field_prefix+'_end_date']
         record_data[key] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
     return record_data
