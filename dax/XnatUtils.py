@@ -35,8 +35,6 @@ from datetime import datetime
 import task
 from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
-RESULTS_DIR = DAX_SETTINGS.get_results_dir()
-XSITYPE_INCLUDE = DAX_SETTINGS.get_xsitype_include()
 
 import xml.etree.cElementTree as ET
 
@@ -307,7 +305,7 @@ class SpiderProcessHandler:
         self.assr_handler = AssessorHandler(assessor_label)
 
         #Create the upload directory
-        self.directory = os.path.join(RESULTS_DIR, assessor_label)
+        self.directory = os.path.join( DAX_SETTINGS.get_results_dir(), assessor_label)
         #if the folder already exists : remove it
         if not os.path.exists(self.directory):
             os.mkdir(self.directory)
@@ -1248,7 +1246,7 @@ def has_dax_datatypes(intf):
     :return: True if it does, False otherwise
     """
     xnat_datatypes = intf.inspect.datatypes()
-    for dax_datatype in XSITYPE_INCLUDE:
+    for dax_datatype in DAX_SETTINGS.get_xsitype_include():
         if dax_datatype not in xnat_datatypes:
             return False
     return True
