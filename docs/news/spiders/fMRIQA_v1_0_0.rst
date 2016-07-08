@@ -16,6 +16,7 @@ A time series of motion is shown as well as an SNR image of the medial slice and
 | PDF - The output PDF file for determining QA status
 | STATS - Contains stats about the data including snr, drift, fluctuation, rdc, percent of the standard deviation, max translation and rotation. The name of the spider that ran and the version of the spider.
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
-
+| STATS
+| MATLAB
 * **References**
 None

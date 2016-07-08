@@ -11,10 +11,10 @@ dtiQA_v4_0_0
 | PDF - The output PDF file for determining QA status
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
 | STATS -
-| FA -
-| AD -
-| RD -
-| MD -
+| FA - Fractional anisotropy 3D NIfTI volume
+| AD - Axial diffusivity 3D NIfTI volume
+| RD - Radial diffusivity 3D NIfTI volume
+| MD - Mean diffusivity 3D NIfTI volume
 | V1 -
 | mask -
 | tensor -

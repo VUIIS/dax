@@ -14,5 +14,6 @@ Extension of fMRIQA v2_0_0 which allows for removal of phase data which may be a
 | PBS - The DRMAA compliant batch script to run the job
 | PDF - The output PDF file for determining QA status
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
-
+| STATS
+| MATLAB
 * **References**

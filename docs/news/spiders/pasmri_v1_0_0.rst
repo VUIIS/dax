@@ -5,10 +5,13 @@ pasmri_v1_0_0
 
 * **Requirements**
 
-* **Resources** *
+* **Resources**
 | OUTLOG - STDOUT and STDERR from the process on the grid
 | PBS - The DRMAA compliant batch script to run the job
 | PDF - The output PDF file for determining QA status
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
+| pasmri -
+| NII -
+| MATLAB -
 
 * **References**

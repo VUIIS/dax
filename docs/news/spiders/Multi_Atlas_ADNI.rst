@@ -18,5 +18,11 @@ You should most likely not need to run this but rather use Multi_Atlas or Multi_
 | PDF - The output PDF file for determining QA status
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
 | VOL_TXT - A text file containing ROI volumes in subject space.
+| MNI
+| MNI_SEG
+| SEG
+| VOL_TXT
+| OUT_ZIP
+| MATLAB
 
 * **References**

@@ -10,5 +10,10 @@ nonrigid_reg_to_ATLAS
 | PBS - The DRMAA compliant batch script to run the job
 | PDF - The output PDF file for determining QA status
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
+| ANTS_INV_WARP -
+| ANTS_WARP -
+| ANTS AFFINE -
+| NIFTY_REG_AFFINE
+| MATLAB -
 
 * **References**

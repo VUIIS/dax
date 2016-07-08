@@ -10,5 +10,6 @@ ON_MR_segmentation
 | PBS - The DRMAA compliant batch script to run the job
 | PDF - The output PDF file for determining QA status
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
-
+| NLSS -
+| NIFTI -
 * **References**
