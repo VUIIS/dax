@@ -15,6 +15,7 @@ MultiShotDTIRecon_v1.0.0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3045 | damons | 2015-07-17 16:32:18 -0500 (Fri, 17 Jul 2015) | 1 line
 	someone broke dtiqa 2.0.0 with the wrong variable for masimatlab. this fixes it
 

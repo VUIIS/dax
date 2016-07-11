@@ -43,6 +43,7 @@ NDW_VBM_v1_0_0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3362 | damons | 2015-09-14 12:49:10 -0500 (Mon, 14 Sep 2015) | 1 line
 	missed a path join
 r3361 | damons | 2015-09-14 12:12:47 -0500 (Mon, 14 Sep 2015) | 1 line

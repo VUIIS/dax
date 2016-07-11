@@ -25,6 +25,7 @@ dtiQA_v3_1_3
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3457 | damons | 2015-10-05 10:51:37 -0500 (Mon, 05 Oct 2015) | 1 line
 	New spider to fix issue with bvals !=0
 

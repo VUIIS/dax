@@ -15,6 +15,7 @@ fMRI_Connectivity_PreProcess_Scan_v2_0_0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r4275 | damons | 2016-02-16 14:35:52 -0600 (Tue, 16 Feb 2016) | 1 line
 	reverted changes back and fixed the issue in spider process handler
 r4273 | damons | 2016-02-16 14:24:36 -0600 (Tue, 16 Feb 2016) | 1 line

@@ -11,6 +11,7 @@ This is a template file of how to write a "scan" spider.
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r2954 | bdb | 2015-07-06 10:07:54 -0500 (Mon, 06 Jul 2015) | 1 line
 	Add suffix_proc option for dax 0.3.1
 r2746 | yben | 2015-05-27 10:03:27 -0500 (Wed, 27 May 2015) | 2 lines

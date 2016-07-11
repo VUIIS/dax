@@ -15,6 +15,7 @@ fMRI_Connectivity_PreProcess_Scan_v1_0_0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3888 | damons | 2015-11-19 11:01:36 -0600 (Thu, 19 Nov 2015) | 1 line
 	repushing this bug fix because someone blew it away
 r3710 | damons | 2015-10-29 13:31:09 -0500 (Thu, 29 Oct 2015) | 1 line

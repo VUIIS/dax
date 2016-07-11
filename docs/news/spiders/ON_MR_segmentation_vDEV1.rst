@@ -18,6 +18,7 @@ ON_MR_segmentation_vDEV1
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3143 | robharrigan | 2015-08-07 08:06:40 -0500 (Fri, 07 Aug 2015) | 1 line
 	fixed finding of image (no longer assumes downsampling)
 r2960 | bdb | 2015-07-06 10:34:37 -0500 (Mon, 06 Jul 2015) | 1 line

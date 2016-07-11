@@ -15,6 +15,7 @@ fMRI_Connectivity_Process_Scan_v1_0_0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3710 | damons | 2015-10-29 13:31:09 -0500 (Thu, 29 Oct 2015) | 1 line
 	toast the directory if it runs on the same node twice
 r3708 | damons | 2015-10-29 13:02:21 -0500 (Thu, 29 Oct 2015) | 1 line

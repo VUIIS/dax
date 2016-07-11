@@ -15,6 +15,7 @@ fMRI_Connectivity_Process_Scan_v2_0_0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r4032 | damons | 2015-12-17 12:26:54 -0600 (Thu, 17 Dec 2015) | 1 line
 	this file doesnt get to svn for some reason. trying a different way
 

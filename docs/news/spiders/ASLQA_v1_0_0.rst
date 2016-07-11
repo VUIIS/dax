@@ -18,6 +18,7 @@ ASLQA_v1_0_0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3216 | bdb | 2015-08-24 13:11:58 -0500 (Mon, 24 Aug 2015) | 1 line
 	New spider for ASLQA
 

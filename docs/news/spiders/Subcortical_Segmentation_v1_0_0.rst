@@ -16,6 +16,7 @@ Subcortical_Segmentation_v1_0_0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
  
 **Current Contact Person**
 <date> <name> <email / URL> 

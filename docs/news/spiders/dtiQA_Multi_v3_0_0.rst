@@ -15,6 +15,7 @@ dtiQA_Multi_v3_0_0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r4039 | damons | 2015-12-17 14:55:45 -0600 (Thu, 17 Dec 2015) | 1 line
 	bug fix for scan spider
 r3667 | damons | 2015-10-27 10:52:37 -0500 (Tue, 27 Oct 2015) | 1 line

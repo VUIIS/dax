@@ -17,6 +17,7 @@ SpleenSeg_Localized_v1_0_1
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r4032 | damons | 2015-12-17 12:26:54 -0600 (Thu, 17 Dec 2015) | 1 line
 	this file doesnt get to svn for some reason. trying a different way
 r3453 | angice | 2015-10-02 23:38:09 -0500 (Fri, 02 Oct 2015) | 1 line

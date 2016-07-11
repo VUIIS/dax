@@ -17,6 +17,7 @@ ASLQA_Rest_v1_0_2
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3220 | bdb | 2015-08-24 13:49:33 -0500 (Mon, 24 Aug 2015) | 1 line
 	Fix bug with suffix
 r2978 | bdb | 2015-07-06 14:20:08 -0500 (Mon, 06 Jul 2015) | 1 line

@@ -15,6 +15,7 @@ Cerebellum_Segmentation_v1_0_0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3847 | plassaaj | 2015-11-16 16:56:30 -0600 (Mon, 16 Nov 2015) | 1 line
 	Updates
 

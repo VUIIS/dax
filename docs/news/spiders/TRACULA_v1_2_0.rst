@@ -18,6 +18,7 @@ TRACULA_v1_2_0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r4016 | bdb | 2015-12-10 15:58:43 -0600 (Thu, 10 Dec 2015) | 1 line
 	Implement workflow for editing ctl pts
 

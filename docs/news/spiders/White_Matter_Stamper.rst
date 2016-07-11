@@ -20,6 +20,7 @@ White_Matter_Stamper
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r2960 | bdb | 2015-07-06 10:34:37 -0500 (Mon, 06 Jul 2015) | 1 line
 	Add suffix_proc option for dax 0.3.1, also change vX.X.X to vX_X_X
 r2682 | yben | 2015-05-13 10:58:49 -0500 (Wed, 13 May 2015) | 1 line

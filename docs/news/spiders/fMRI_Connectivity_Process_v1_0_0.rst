@@ -16,6 +16,7 @@ fMRI_Connectivity_Process_v1_0_0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3068 | damons | 2015-07-23 17:02:55 -0500 (Thu, 23 Jul 2015) | 1 line
 	Oops. this is going to be a session spider. not a scan spider
 r3067 | damons | 2015-07-23 17:01:23 -0500 (Thu, 23 Jul 2015) | 1 line

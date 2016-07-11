@@ -18,6 +18,7 @@ ASLQA_v1_0_1
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3238 | bdb | 2015-08-26 11:30:50 -0500 (Wed, 26 Aug 2015) | 1 line
 	Set FSL path, fix thumbnail issues
 

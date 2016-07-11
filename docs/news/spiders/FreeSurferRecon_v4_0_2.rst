@@ -19,6 +19,7 @@ FreeSurferRecon_v4_0_2
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3040 | damons | 2015-07-16 11:13:38 -0500 (Thu, 16 Jul 2015) | 2 lines
 	add in checks for the symlinks befoer killing a link that should (but may no longer) exist
 r2976 | bdb | 2015-07-06 14:16:11 -0500 (Mon, 06 Jul 2015) | 1 line

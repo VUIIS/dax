@@ -15,6 +15,7 @@ fMRI_Connectivity_PreProcess_v1_0_0
 
 * **Version History**
 <revision> <name> <date> <lines changed>
+
 r3484 | damons | 2015-10-13 17:30:47 -0500 (Tue, 13 Oct 2015) | 1 line
 	bug fix for the wrong TR
 r3377 | damons | 2015-09-17 11:49:08 -0500 (Thu, 17 Sep 2015) | 1 line
