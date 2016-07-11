@@ -2,7 +2,8 @@ MaCRUISEplus_v0_0_0
 ===================
 
 * **What does it do?**
-
+This is a testing version of MaCRUISE
+Please refer to and use MaCRUISEplus_v1_0_0
 * **Requirements**
 
 * **Resources** *
