@@ -2,6 +2,7 @@ MaCRUISE_v1_0_0
 ===============
 
 * **What does it do?**
+Please refer to and use MaCRUISE_v2_0_1
 
 * **Requirements**
 
