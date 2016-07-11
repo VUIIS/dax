@@ -42,7 +42,16 @@ NDW_VBM_v1_0_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r3362 | damons | 2015-09-14 12:49:10 -0500 (Mon, 14 Sep 2015) | 1 line
+	missed a path join
+r3361 | damons | 2015-09-14 12:12:47 -0500 (Mon, 14 Sep 2015) | 1 line
+	missed a path join
+r3355 | damons | 2015-09-14 11:30:18 -0500 (Mon, 14 Sep 2015) | 1 line
+	new spider for NW
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	

@@ -18,7 +18,12 @@ FreeSurferRecon_v4_0_3
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r2976 | bdb | 2015-07-06 14:16:11 -0500 (Mon, 06 Jul 2015) | 1 line
+	Add suffix_proc option for dax 0.3.1, also change vX.X.X to vX_X_X
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	

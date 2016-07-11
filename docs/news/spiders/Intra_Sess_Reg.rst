@@ -14,7 +14,12 @@ Intra_Sess_Reg
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r3846 | plassaaj | 2015-11-16 16:56:15 -0600 (Mon, 16 Nov 2015) | 1 line
+	Updates
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	

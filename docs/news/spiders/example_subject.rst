@@ -11,7 +11,12 @@ This is a template file of how to write a "subject" spider.
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+v
+r3614 | damons | 2015-10-22 14:28:21 -0500 (Thu, 22 Oct 2015) | 1 line
+	toy example for subject spider
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	

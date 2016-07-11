@@ -18,7 +18,12 @@ FreeSurferRecon_v4_0_5
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+v
+r3049 | bdb | 2015-07-20 11:13:22 -0500 (Mon, 20 Jul 2015) | 1 line
+	Fix setting of proc version
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	

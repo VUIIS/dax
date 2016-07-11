@@ -18,7 +18,14 @@ FreeSurferRecon_v4_0_4
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r2983 | bdb | 2015-07-08 09:15:41 -0500 (Wed, 08 Jul 2015) | 1 line
+	Fix bug when using multiple T1s
+r2976 | bdb | 2015-07-06 14:16:11 -0500 (Mon, 06 Jul 2015) | 1 line
+	Add suffix_proc option for dax 0.3.1, also change vX.X.X to vX_X_X
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	

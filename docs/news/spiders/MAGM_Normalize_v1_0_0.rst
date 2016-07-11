@@ -22,7 +22,11 @@ MAGM_Normalize_v1_0_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r3737 | damons | 2015-11-02 17:58:18 -0600 (Mon, 02 Nov 2015) | 1 line
+	new spider for MORGAN study
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	

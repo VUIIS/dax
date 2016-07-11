@@ -14,7 +14,13 @@ JHU_Cerebellum_v1_0_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r3846 | plassaaj | 2015-11-16 16:56:15 -0600 (Mon, 16 Nov 2015) | 1 line
+	Updates
+r2978 | bdb | 2015-07-06 14:20:08 -0500 (Mon, 06 Jul 2015) | 1 line
+	Add suffix_proc option for dax 0.3.1, also change vX.X.X to vX_X_X
+
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+

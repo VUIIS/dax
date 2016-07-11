@@ -18,7 +18,16 @@ FreeSurferSingle_v1_0_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r3134 | masispider | 2015-08-05 08:59:05 -0500 (Wed, 05 Aug 2015) | 1 line
+	update to zhen spider
+r3020 | plassaaj | 2015-07-13 13:18:03 -0500 (Mon, 13 Jul 2015) | 1 line
+	fixed string issue
+r3019 | plassaaj | 2015-07-13 12:23:22 -0500 (Mon, 13 Jul 2015) | 1 line
+	Added Single FreeSurfer Spider
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	
