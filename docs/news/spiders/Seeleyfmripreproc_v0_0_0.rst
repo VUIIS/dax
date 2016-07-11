@@ -2,6 +2,7 @@ Seeleyfmripreproc_v0_0_0
 ========================
 
 * **What does it do?**
+Test version, please refer to and use Seeleyfmripreproc_v1_0_0
 
 * **Requirements**
 
