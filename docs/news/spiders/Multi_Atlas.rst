@@ -16,4 +16,11 @@ Multi_Atlas
 | VOL_TXT
 | OUT_ZIP
 | MATLAB
+
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

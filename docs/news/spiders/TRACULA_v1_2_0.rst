@@ -15,3 +15,9 @@ TRACULA_v1_2_0
 | MATLAB
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

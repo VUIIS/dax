@@ -17,3 +17,9 @@ White_Matter_Stamper
 | STATS -
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

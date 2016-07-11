@@ -13,3 +13,9 @@ AbOrganSeg_Whole_v2_0_0
 | result - A NIfTI file containing the final segmentation results
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

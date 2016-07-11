@@ -14,4 +14,11 @@ FreeSurferRecon_v4_0_3
 | SNAPSHOTS
 | ANAT_QA
 | XML
+
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

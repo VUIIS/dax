@@ -14,3 +14,9 @@ intra_sess_reg
 | Outputs
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

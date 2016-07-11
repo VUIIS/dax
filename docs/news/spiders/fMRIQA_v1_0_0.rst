@@ -18,5 +18,12 @@ A time series of motion is shown as well as an SNR image of the medial slice and
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
 | STATS
 | MATLAB
+
 * **References**
 None
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

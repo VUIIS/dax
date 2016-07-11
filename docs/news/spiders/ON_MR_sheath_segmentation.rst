@@ -14,3 +14,9 @@ ON_MR_sheath_segmentation
 | MATLAB -
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

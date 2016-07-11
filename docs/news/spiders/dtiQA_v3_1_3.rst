@@ -22,3 +22,9 @@ dtiQA_v3_1_3
 | TBSS -
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

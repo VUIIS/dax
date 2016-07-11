@@ -11,4 +11,11 @@ LesionTOADS
 | PDF - The output PDF file for determining QA status
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
 | DATA -
+
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

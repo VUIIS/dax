@@ -16,4 +16,11 @@ Extension of fMRIQA v2_0_0 which allows for removal of phase data which may be a
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
 | STATS
 | MATLAB
+
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

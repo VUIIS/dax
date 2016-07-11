@@ -170,3 +170,8 @@ Spider Release News
      labelFusion
      nonrigid_reg_to_ATLAS
      pasmri_v1_0_0
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

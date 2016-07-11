@@ -27,3 +27,9 @@ Amico_VBM_Warp_v1_0_0
 | WFA
 | MATLAB - Folder containing the batch script that was run in MATLAB
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

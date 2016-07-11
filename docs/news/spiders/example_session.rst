@@ -9,3 +9,9 @@ This is a template file of how to write a "session" spider.
 * **Resources** *
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

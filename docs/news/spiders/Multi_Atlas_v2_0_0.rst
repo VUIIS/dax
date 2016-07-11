@@ -17,4 +17,11 @@ Multi_Atlas_v2_0_0
 | MNI_SEG
 | MNI
 | MATLAB
+
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

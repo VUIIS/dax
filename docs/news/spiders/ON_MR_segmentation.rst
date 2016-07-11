@@ -12,4 +12,11 @@ ON_MR_segmentation
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
 | NLSS -
 | NIFTI -
+
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

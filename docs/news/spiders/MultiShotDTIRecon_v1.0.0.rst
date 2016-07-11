@@ -12,3 +12,9 @@ MultiShotDTIRecon_v1.0.0
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

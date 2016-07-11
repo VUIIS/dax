@@ -5,7 +5,7 @@ ON_MR_segmentation_vDEV1
 
 * **Requirements**
 
-* **Resources** *
+* **Resources**
 | OUTLOG - STDOUT and STDERR from the process on the grid
 | PBS - The DRMAA compliant batch script to run the job
 | PDF - The output PDF file for determining QA status
@@ -15,3 +15,9 @@ ON_MR_segmentation_vDEV1
 | MATLAB -
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

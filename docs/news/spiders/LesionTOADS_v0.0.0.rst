@@ -13,3 +13,9 @@ LesionTOADS_v0.0.0
 | DATA -
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

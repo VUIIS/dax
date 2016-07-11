@@ -26,3 +26,9 @@ You should most likely not need to run this but rather use Multi_Atlas or Multi_
 | MATLAB
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

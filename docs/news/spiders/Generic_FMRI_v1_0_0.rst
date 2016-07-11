@@ -19,4 +19,11 @@ Generic_FMRI_v1_0_0
 | REALIGN_PARAMS
 | MATLAB
 | SPM_DIR
+
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

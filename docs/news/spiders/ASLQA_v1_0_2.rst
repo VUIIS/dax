@@ -15,3 +15,9 @@ ASLQA_v1_0_2
 | STATS -
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 

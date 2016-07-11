@@ -15,3 +15,9 @@ ASHS_v1_1_0
 | STATS -
 
 * **References**
+
+* **Version History**
+<date> <name> <brief description of change>
+ 
+**Current Contact Person**
+<date> <name> <email / URL> 
