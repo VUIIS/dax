@@ -17,7 +17,12 @@ NIRSQA_v1_0_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
+<revision> <name> <date> <lines changed>
+r3699 | damons | 2015-10-29 10:18:00 -0500 (Thu, 29 Oct 2015) | 1 line
+	nirs qa spider for baxter
+
  
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	

@@ -18,7 +18,7 @@ ON_MR_sheath_segmentation_v2_0_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
+<revision> <name> <date> <lines changed>
  
 **Current Contact Person**
 <date> <name> <email / URL> 
