@@ -17,7 +17,14 @@ TRACULA_v1_1_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r3039 | bdb | 2015-07-16 11:06:55 -0500 (Thu, 16 Jul 2015) | 1 line
+	Fix bug with suffix
+r2963 | bdb | 2015-07-06 10:39:44 -0500 (Mon, 06 Jul 2015) | 1 line
+	Add suffix_proc option for dax 0.3.1, also change vX.X.X to vX_X_X
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	

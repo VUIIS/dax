@@ -17,7 +17,12 @@ TRACULA_v1_2_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r4016 | bdb | 2015-12-10 15:58:43 -0600 (Thu, 10 Dec 2015) | 1 line
+	Implement workflow for editing ctl pts
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	
