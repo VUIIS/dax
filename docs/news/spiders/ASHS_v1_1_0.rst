@@ -17,7 +17,12 @@ ASHS_v1_1_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r3321 | bdb | 2015-09-10 09:54:21 -0500 (Thu, 10 Sep 2015) | 1 line
+	Improved PDF
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	

@@ -17,7 +17,14 @@ ASLQA_v1_0_2
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r3249 | bdb | 2015-08-28 09:17:10 -0500 (Fri, 28 Aug 2015) | 1 line
+	Fix PDF naming
+r3242 | bdb | 2015-08-26 22:01:15 -0500 (Wed, 26 Aug 2015) | 1 line
+	Remove testing code and other cleanup
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	

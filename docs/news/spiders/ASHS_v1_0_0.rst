@@ -12,10 +12,17 @@ ASHS_v1_0_0
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
 | DATA -
 | SCRIPT -
+
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r2954 | bdb | 2015-07-06 10:07:54 -0500 (Mon, 06 Jul 2015) | 1 line
+	Add suffix_proc option for dax 0.3.1
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+	
+
+	
+	

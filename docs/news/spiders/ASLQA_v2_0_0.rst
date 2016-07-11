@@ -17,7 +17,13 @@ ASLQA_v2_0_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r3949 | bdb | 2015-12-01 12:41:32 -0600 (Tue, 01 Dec 2015) | 1 line
+	New version of ASLQA, registers M0 to ASL
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+	
+
+	
+	

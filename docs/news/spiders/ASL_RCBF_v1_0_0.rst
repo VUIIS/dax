@@ -17,7 +17,13 @@ ASL_RCBF_v1_0_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r3445 | bdb | 2015-09-29 15:05:31 -0500 (Tue, 29 Sep 2015) | 1 line
+	Initial version for ASL CBF by FreeSurfer ROI
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+	
+
+	
+	

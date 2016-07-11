@@ -17,7 +17,12 @@ ASLQA_v1_0_4
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r3446 | bdb | 2015-09-29 15:11:27 -0500 (Tue, 29 Sep 2015) | 1 line
+	Slight mod to motion correction
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	
