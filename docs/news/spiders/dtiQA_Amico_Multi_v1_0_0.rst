@@ -14,7 +14,12 @@ dtiQA_Amico_Multi_v1_0_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r3994 | damons | 2015-12-07 14:27:51 -0600 (Mon, 07 Dec 2015) | 1 line
+	switch to new naming convention
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	

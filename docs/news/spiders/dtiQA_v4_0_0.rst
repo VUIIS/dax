@@ -24,7 +24,7 @@ dtiQA_v4_0_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
+<revision> <name> <date> <lines changed>
  
 **Current Contact Person**
 <date> <name> <email / URL> 

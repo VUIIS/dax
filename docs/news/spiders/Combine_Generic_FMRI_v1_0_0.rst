@@ -17,7 +17,12 @@ Combine_Generic_FMRI_v1_0_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
- 
+<revision> <name> <date> <lines changed>
+r4111 | masispider | 2016-01-18 19:25:21 -0600 (Mon, 18 Jan 2016) | 1 line
+	use correct versioning
+
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+	
+	
