@@ -2,6 +2,7 @@ MaCRUISE_v2_0_1
 ===============
 
 * **What does it do?**
+Conduct consistent cortical surface reconstruction and multi-atlas brain segmentation
 
 * **Requirements**
 
