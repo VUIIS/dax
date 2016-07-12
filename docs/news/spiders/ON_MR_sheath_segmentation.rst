@@ -2,18 +2,24 @@ ON_MR_sheath_segmentation
 =========================
 
 * **What does it do?**
+Estimates the radius of the optic nerve and surrounding subarachnoid cerebrospinal fluid at each slice which contains optic nerve labels.
 
 * **Requirements**
+| NLSS resource from a version of ON_MR_segmentation
+| masimatlab utils
+| Trained random forest from matlab's TreeBagger to transform parameter space to radius space
+| ANTS registration (used for resampling)
 
 * **Resources** *
 | OUTLOG - STDOUT and STDERR from the process on the grid
 | PBS - The DRMAA compliant batch script to run the job
 | PDF - The output PDF file for determining QA status
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
-| RADII -
-| MATLAB -
+| RADII - Contains the measured radii for each slice and the centroids
+| MATLAB - Matlab script used to run the estimation
 
 * **References**
+Harrigan, Robert L., et al. "Disambiguating the optic nerve from the surrounding cerebrospinal fluid: Application to MS‐related atrophy." Magnetic resonance in medicine 75.1 (2016): 414-422.
 
 * **Version History**
 <revision> <name> <date> <lines changed>
@@ -93,6 +99,8 @@ r1758 | robharrigan | 2014-05-28 11:09:17 -0500 (Wed, 28 May 2014) | 1 line
 
 **Current Contact Person**
 <date> <name> <email / URL> 
+
+July 2016 Robert L Harrigan `email <mailto:Rob.L.Harrigan@vanderbilt.edu>`_ / `MASI <https://masi.vuse.vanderbilt.edu/index.php/MASI:Rob_Harrigan>`_
 
 	
 	
