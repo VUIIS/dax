@@ -5,13 +5,13 @@ ON_MR_segmentation_v2_0_0
 More flexible version of ON_MR_segmentation which utilizes an atlas definition file to allow for multiple atlases to be used to segment a single project. Each scan type is assigned an atlas directory which is used for multi-atlas segmentation on a cropped region. Cropping is done through a rigid multi-atlas segmentation of the eye globes and padding. 
 
 * **Requirements**
- * masimatlab utilities
- * ANTS registration
- * niftyreg 
- * fsl v5.0
- * mipav v7.0+
- * JIST
- * PICSL MALF jointfusion
+| masimatlab utilities
+| ANTS registration
+| niftyreg 
+| fsl v5.0
+| mipav v7.0+
+| JIST
+| PICSL MALF jointfusion
 
 * **Resources**
 | OUTLOG - STDOUT and STDERR from the process on the grid
@@ -52,6 +52,6 @@ r4080 | robharrigan | 2016-01-12 16:47:35 -0600 (Tue, 12 Jan 2016) | 1 line
 
 **Current Contact Person**
 <date> <name> <email / URL> 
-July 2016 Robert L Harrigan Rob.L.Harrigan@vanderbilt.edu [MASI](https://masi.vuse.vanderbilt.edu/index.php/MASI:Rob_Harrigan)
-	
+
+July 2016 Robert L Harrigan `email <mailto:Rob.L.Harrigan@vanderbilt.edu>`_ / `MASI <https://masi.vuse.vanderbilt.edu/index.php/MASI:Rob_Harrigan>`_	
 	
