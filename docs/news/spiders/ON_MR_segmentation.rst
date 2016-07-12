@@ -3,8 +3,13 @@ ON_MR_segmentation
 
 * **What does it do?**
 Segments the eyes, optic nerve and optic chiasm of a research vista scan using multi-atlas segmentation. 
+
 * **Requirements**
-The atlases and all required tools must be available. 
+masimatlab utilities
+ANTS registration
+mipav v7.0+
+JIST
+
 * **Resources** *
 | OUTLOG - STDOUT and STDERR from the process on the grid
 | PBS - The DRMAA compliant batch script to run the job
