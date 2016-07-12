@@ -88,6 +88,7 @@ r1162 | yben | 2013-12-06 15:52:30 -0600 (Fri, 06 Dec 2013) | 1 line
 
 **Current Contact Person**
 <date> <name> <email / URL> 
-July 2016 Robert L Harrigan Rob.L.Harrigan@vanderbilt.edu [MASI](https://masi.vuse.vanderbilt.edu/index.php/MASI:Rob_Harrigan)
+
+July 2016 Robert L Harrigan Rob.L.Harrigan@vanderbilt.edu [MASI] (https://masi.vuse.vanderbilt.edu/index.php/MASI:Rob_Harrigan)
 	
 	
