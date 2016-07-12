@@ -5,10 +5,10 @@ ON_MR_segmentation
 Segments the eyes, optic nerve and optic chiasm of a research vista scan using multi-atlas segmentation. 
 
 * **Requirements**
-masimatlab utilities
-ANTS registration
-mipav v7.0+
-JIST
+ * masimatlab utilities
+ * ANTS registration
+ * mipav v7.0+
+ * JIST
 
 * **Resources** *
 | OUTLOG - STDOUT and STDERR from the process on the grid
