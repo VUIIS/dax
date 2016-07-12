@@ -2,19 +2,19 @@ ON_MR_segmentation
 ==================
 
 * **What does it do?**
-
+Segments the eyes, optic nerve and optic chiasm of a research vista scan using multi-atlas segmentation. 
 * **Requirements**
-
+The atlases and all required tools must be available. 
 * **Resources** *
 | OUTLOG - STDOUT and STDERR from the process on the grid
 | PBS - The DRMAA compliant batch script to run the job
 | PDF - The output PDF file for determining QA status
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
-| NLSS -
-| NIFTI -
+| NLSS - The final segmentation result (label file)
+| MATLAB - The MATLAB script which performed the segmentation
 
 * **References**
-
+Asman, Andrew J., et al. "Robust non-local multi-atlas segmentation of the optic nerve." SPIE Medical Imaging. International Society for Optics and Photonics, 2013.
 * **Version History**
 <revision> <name> <date> <lines changed>
 
