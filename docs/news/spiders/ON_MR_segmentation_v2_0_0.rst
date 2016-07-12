@@ -18,11 +18,11 @@ More flexible version of ON_MR_segmentation which utilizes an atlas definition f
 | PBS - The DRMAA compliant batch script to run the job
 | PDF - The output PDF file for determining QA status
 | SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
-| JLF -
-| NLSS -
-| targets -
-| non_rigid_registration -
-| MATLAB -
+| JLF - The joint label fusion label result
+| NLSS - The NLSS label fusion result
+| targets - The cropped image and a mat file with cropping bounds
+| non_rigid_registration - The warp and affine transformation outputs from ANTS
+| MATLAB - The matlab script used to run the segmentation
 
 * **References**
 
@@ -52,6 +52,6 @@ r4080 | robharrigan | 2016-01-12 16:47:35 -0600 (Tue, 12 Jan 2016) | 1 line
 
 **Current Contact Person**
 <date> <name> <email / URL> 
-
+July 2016 Robert L Harrigan Rob.L.Harrigan@vanderbilt.edu [MASI](https://masi.vuse.vanderbilt.edu/index.php/MASI:Rob_Harrigan)
 	
 	
