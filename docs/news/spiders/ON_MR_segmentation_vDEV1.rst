@@ -5,10 +5,10 @@ ON_MR_segmentation_vDEV1
 Segments the eyes, optic nerve and optic chiasm of a research vista scan using multi-atlas segmentation at a downsampled size of 256x256 in plane resolution. 
 
 * **Requirements**
-* masimatlab utilities
-* ANTS registration
-* mipav v7.0+
-* JIST
+  * masimatlab utilities
+  * ANTS registration
+  * mipav v7.0+
+  * JIST
 
 * **Resources**
 | OUTLOG - STDOUT and STDERR from the process on the grid
