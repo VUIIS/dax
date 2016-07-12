@@ -72,6 +72,6 @@ r1448 | robharrigan | 2014-02-07 15:11:16 -0600 (Fri, 07 Feb 2014) | 1 line
 
 **Current Contact Person**
 <date> <name> <email / URL> 
-July 2016 Robert L Harrigan Rob.L.Harrigan@vanderbilt.edu `MASI <https://masi.vuse.vanderbilt.edu/index.php/MASI:Rob_Harrigan>`_
+July 2016 Robert L Harrigan ` email <mailto:Rob.L.Harrigan@vanderbilt.edu>`_ / `MASI <https://masi.vuse.vanderbilt.edu/index.php/MASI:Rob_Harrigan>`_
 	
 	
