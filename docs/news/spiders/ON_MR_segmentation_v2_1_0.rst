@@ -7,13 +7,13 @@ More flexible version of ON_MR_segmentation which utilizes an atlas definition f
 v2.1 update allows for rerunning of assessors without repeating registrations. The spider checks for the NON_RIGID_REGISTRATION and CROPPED_TARGETS resources and if they are available, uses them. The process will rewarp all of the atlas labels. This is useful for rerunning segmentations with new label sets. Note that a full rerun is possible by deleting all current resources and restarting the process. 
 
 * **Requirements**
- * masimatlab utilities
- * ANTS registration
- * niftyreg 
- * fsl v5.0
- * mipav v7.0+
- * JIST
- * PICSL MALF jointfusion
+| masimatlab utilities
+| ANTS registration
+| niftyreg 
+| fsl v5.0
+| mipav v7.0+
+| JIST
+| PICSL MALF jointfusion
 
 * **Resources**
 | OUTLOG - STDOUT and STDERR from the process on the grid
@@ -34,4 +34,5 @@ v2.1 update allows for rerunning of assessors without repeating registrations. T
  
 **Current Contact Person**
 <date> <name> <email / URL> 
-July 2016 Robert L Harrigan Rob.L.Harrigan@vanderbilt.edu [MASI](https://masi.vuse.vanderbilt.edu/index.php/MASI:Rob_Harrigan)
+
+July 2016 Robert L Harrigan `email <mailto:Rob.L.Harrigan@vanderbilt.edu>`_ / `MASI <https://masi.vuse.vanderbilt.edu/index.php/MASI:Rob_Harrigan>`_
