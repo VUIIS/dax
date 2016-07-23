@@ -27,7 +27,7 @@ DAX_SETTINGS = DAX_Settings()
 ADMIN_EMAIL = DAX_SETTINGS.get_admin_email()
 RESULTS_DIR = DAX_SETTINGS.get_results_dir()
 DEFAULT_GATEWAY = DAX_SETTINGS.get_gateway()
-REDCAP_VAR = DAX_SETTINGS.get_dax_manager_data_dictionary()
+REDCAP_VAR = DAX_SETTINGS.get_dax_manager_config()
 API_URL = DAX_SETTINGS.get_api_url()
 API_KEY_DAX = DAX_SETTINGS.get_api_key_dax()
 SMTP_FROM = DAX_SETTINGS.get_smtp_from()
@@ -1058,6 +1058,10 @@ def parse_args():
     return argp.parse_args()
 
 if __name__ == '__main__':
+    if not DAX_SETTINGS.is_dax_manager_valid():
+        sys.stdout.write('Please edit your settings via dax_setup for the \
+[dax_manager] section\n')
+        sys.exit()
     # Arguments:
     PARGS = parse_args()
     if PARGS.email:

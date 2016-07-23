@@ -744,16 +744,24 @@ def download_specific_assessor():
         assessor_dict = dict(zip(['project_id', 'subject_label', 'session_label', 'ID'],
                                  OPTIONS.selectionAssessor.split('-x-')[0:3]))
         assessor_dict['label'] = OPTIONS.selectionAssessor
+        assessor_dict['subject_id'] = 'proc:genProcData'
         assessor_obj = XnatUtils.select_assessor(XNAT, assessor_dict['label'])
-        if assessor_obj.exists():
+        if not assessor_obj.exists():
+            LOGGER.info('  ->WARNING: No processor with the label given.')
+        else:
             if 'FS' == OPTIONS.selectionAssessor.split('-x-')[-1]:
+                assessor_dict['xsiType'] = 'fs:fsData'
                 jobstatus = assessor_obj.attrs.get('fs:fsData/procstatus')
             else:
+                assessor_dict['xsiType'] = 'proc:genProcData'
                 jobstatus = assessor_obj.attrs.get('proc:genProcData/procstatus')
             if not status or (status and jobstatus in status):
                 assessor_path = os.path.join(DIRECTORY, assessor_dict['label'])
-                download_assessor(assessor_path, assessor_dict, assessors_resources,
-                                  None, last_dl_date=None)
+                out_reslist = get_resources_list(assessor_dict, assessors_resources)
+                for rname in out_reslist:
+                    download_resource(assessor_path, assessor_obj.out_resource(rname),
+                                      rname, None, OPTIONS.oneDir, assessor_dict['label']+'-x-'+rname,
+                                      last_dl_date=None)
     else:
         LOGGER.info('WARNING: selected assessor found but no resource specified')
 
@@ -1020,6 +1028,7 @@ if __name__ == '__main__':
             XNAT = XnatUtils.get_interface(host=OPTIONS.host, user=OPTIONS.username, pwd=PWD)
             ############## SPECIFIC DOWNLOAD ###############
             if OPTIONS.selectionScan or OPTIONS.selectionAssessor:
+                CSVWRITER = None
                 if OPTIONS.selectionScan: download_specific_scan()
                 if OPTIONS.selectionAssessor: download_specific_assessor()
             else:
