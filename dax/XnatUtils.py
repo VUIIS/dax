@@ -2177,6 +2177,29 @@ def run_matlab(matlab_script, verbose=False):
     os.system(cmd)
     print """Matlab script: {script} done""".format(script=matlab_script)
 
+def run_matlab_by_version(matlab_script, verbose=False, matlab_bin=None):
+    """
+    Call MATLAB with -nodesktop -nosplash and -singlecompthread.
+
+    :param matlab_script: Full path to the .m file to run
+    :param verbose: True to print all MATLAB output to terminal, False to
+     suppress.
+    :return: None
+
+    """
+    print """Matlab script: {script} running ...""".format(script=matlab_script)
+    # with xvfb-run: xvfb-run  -e {err} -f {auth} -a --server-args="-screen 0 1600x1280x24 -ac -extension GLX"
+    if not matlab_bin:
+        cmd = """matlab -singleCompThread -nodesktop -nosplash < {script}""".format(script=matlab_script)
+    else:
+        cmd = """{matlab} -singleCompThread -nodesktop -nosplash < {script}""".format(script=matlab_script,
+                                                                                      matlab=matlab_bin)
+    if not verbose:
+        matlabdir = os.path.dirname(matlab_script)
+        prefix = os.path.basename(matlab_script).split('.')[0]
+        cmd = cmd+' > '+os.path.join(matlabdir, prefix+'_outlog.log')
+    os.system(cmd)
+    print """Matlab script: {script} done""".format(script=matlab_script)
 def run_subprocess(args):
     """
     Runs a subprocess call
