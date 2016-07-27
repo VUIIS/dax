@@ -150,6 +150,8 @@ class DAX_Settings(object):
                 return False
         else:
             return False
+            
+        return True
 
     def get(self, header, key):
         """Public getter for any key.
