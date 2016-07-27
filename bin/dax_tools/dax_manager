@@ -79,7 +79,7 @@ proj_proc = ${PROJ_PROC}
 p_order = ${PROJ_ORDER}
 
 #Launch jobs:
-myLauncher = Launcher(proj_proc, proj_mod, priority_project=p_order, job_email=email, job_email_options="${EMAIL_OPTS}", queue_limit=${QUEUE_LIMIT}, max_age=${MAX_AGE}, skip_lastupdate=${SKIP_LASTUPDATE})
+myLauncher = Launcher(proj_proc, proj_mod, priority_project=p_order, job_email=email, job_email_options="${EMAIL_OPTS}", queue_limit=${QUEUE_LIMIT}, max_age=${MAX_AGE}, skip_lastupdate="${SKIP_LASTUPDATE}")
 """)
 
 EMAIL_HEADER = """Long updates running on <{gateway}> for the user <{user}>:
