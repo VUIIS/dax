@@ -518,7 +518,7 @@ def generate_settings(redcap_project, settings_info):
         if proj_list:
             email_text += '\t'+header+' -->  '+' , '.join(proj_list)+'\n'
             email_text += '-----------------------------------------'
-            email_text +='-----------------------------------------\n'
+            email_text += '-----------------------------------------\n'
 
     if ADMIN_EMAIL and email_text:
         email_text = EMAIL_HEADER.format(gateway=gateway, user=user) + email_text
