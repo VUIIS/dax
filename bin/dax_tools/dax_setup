@@ -71,7 +71,7 @@ CLUSTER_DEFAULTS = OrderedDict([
                                                  'RESULTS_XNAT_SPIDER')),
                     ('max_age', '14'),
                     ('launcher_type', 'xnatq-combined'),
-                    ('skip_lastupdate', ''])
+                    ('skip_lastupdate', '')])
 
 CODE_PATH_DEFAULTS = OrderedDict([
                       ('processors_path', ''),
