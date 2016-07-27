@@ -513,17 +513,17 @@ def generate_settings(redcap_project, settings_info):
                 settings_dict[psettings.filepath] = psettings
     LOGGER.info('\n')
 
-    email_text = EMAIL_HEADER.format(gateway=gateway, user=user)
+    email_text = ''
     for header, proj_list in UPDATE_EMAIL_DICT.items():
         if proj_list:
             email_text += '\t'+header+' -->  '+' , '.join(proj_list)+'\n'
-            email_text += '-----------------------------------------'\
-                         +'-----------------------------------------\n'
+            email_text += '-----------------------------------------'
+            email_text +='-----------------------------------------\n'
 
-    if email_text != EMAIL_HEADER.format(gateway=gateway, user=user):
+    if ADMIN_EMAIL and email_text:
+        email_text = EMAIL_HEADER.format(gateway=gateway, user=user) + email_text
         subject = 'Dax_manager ADMIN: updates running for 2/7days '
-        if ADMIN_EMAIL:
-            send_email(email_text, ADMIN_EMAIL, subject)
+        send_email(email_text, ADMIN_EMAIL, subject)
 
     return settings_dict
 
