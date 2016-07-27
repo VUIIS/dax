@@ -35,6 +35,7 @@ SMTP_HOST = DAX_SETTINGS.get_smtp_host()
 SMTP_PASS = DAX_SETTINGS.get_smtp_pass()
 DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
 DEFAULT_MAX_AGE = DAX_SETTINGS.get_max_age()
+SKIP_LASTUPDATE = DAX_SETTINGS.get_skip_lastupdate()
 
 ######### Variables ##########
 #Information on gateway/user
@@ -78,7 +79,7 @@ proj_proc = ${PROJ_PROC}
 p_order = ${PROJ_ORDER}
 
 #Launch jobs:
-myLauncher = Launcher(proj_proc, proj_mod, priority_project=p_order, job_email=email, job_email_options="${EMAIL_OPTS}", queue_limit=${QUEUE_LIMIT}, max_age=${MAX_AGE})
+myLauncher = Launcher(proj_proc, proj_mod, priority_project=p_order, job_email=email, job_email_options="${EMAIL_OPTS}", queue_limit=${QUEUE_LIMIT}, max_age=${MAX_AGE}, skip_lastupdate=${SKIP_LASTUPDATE})
 """)
 
 EMAIL_HEADER = """Long updates running on <{gateway}> for the user <{user}>:
@@ -97,7 +98,8 @@ class Settings_File:
     """ Class to generate settings file """
     def __init__(self, filepath, tmpdir='/tmp/', email=None,
                  email_opts=DEFAULT_EMAIL_OPTS, dax_logs_path='/tmp/',
-                 queue_limit=200, max_age=DEFAULT_MAX_AGE, admin_email=ADMIN_EMAIL):
+                 queue_limit=200, max_age=DEFAULT_MAX_AGE, admin_email=ADMIN_EMAIL, 
+                 skip_lastupdate=SKIP_LASTUPDATE):
         """
         Entry point for the filter_variable class
 
@@ -148,6 +150,11 @@ class Settings_File:
             self.max_age = DEFAULT_MAX_AGE
         else:
             self.max_age = max_age
+        
+        if not skip_lastupdate:
+            self.skip_lastupdate = SKIP_LASTUPDATE
+        else:
+            self.skip_lastupdate = skip_lastupdate
 
     def add_mod_str(self, project, mod_str):
         """
@@ -444,7 +451,8 @@ def generate_settings(redcap_project, settings_info):
                                       dax_logs_path=project_settings[REDCAP_VAR['logsdir']],
                                       queue_limit=project_settings[REDCAP_VAR['queue']],
                                       max_age=project_settings[REDCAP_VAR['max_age']],
-                                      admin_email=project_settings[REDCAP_VAR['admin_email']])
+                                      admin_email=project_settings[REDCAP_VAR['admin_email']]
+                                      skip_lastupdate=project_settings[REDCAP_VAR['skip_lastupdate']])
 
             #Look for modules
             for mod_name in modules_list:
@@ -786,7 +794,8 @@ def write_settings(settings):
                          'MOD':settings.mod_str,
                          'PROC':settings.proc_str,
                          'PROJ_MOD':settings.get_pm_dict(),
-                         'PROJ_PROC':settings.get_pp_dict()}
+                         'PROJ_PROC':settings.get_pp_dict(),
+                         'SKIP_LASTUPDATE':settings.skip_lastupdate}
 
         with open(settings.filepath, 'w') as f:
             f.write(SETTINGS_TEMPLATE.safe_substitute(**settings_data))

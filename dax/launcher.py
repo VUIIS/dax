@@ -72,7 +72,7 @@ class Launcher(object):
                  xnat_user=None, xnat_pass=None, xnat_host=None,
                  job_email=None, job_email_options='bae', max_age=DEFAULT_MAX_AGE, 
                  launcher_type=DEFAULT_LAUNCHER_TYPE,
-                 use_lastupdate=True):
+                 skip_lastupdate=None):
 
         """
         Entry point for the Launcher class
@@ -99,7 +99,7 @@ class Launcher(object):
         self.job_email_options = job_email_options
         self.max_age = max_age
         self.launcher_type = launcher_type
-        self.use_lastupdate = use_lastupdate
+        self.skip_lastupdate = skip_lastupdate
 
         # Creating Folders for flagfile/pbs/outlog in RESULTS_DIR
         if launcher_type in ['diskq-xnat', 'diskq-cluster', 'diskq-combined']:
@@ -393,7 +393,7 @@ class Launcher(object):
         else:
             self.module_prerun(project_id, lockfile_prefix)
             
-        # TODO: make a project settings to store use_lastupdate, processors, modules, etc
+        # TODO: make a project settings to store skip_lastupdate, processors, modules, etc
 
         # Get lists of modules/processors per scan/exp for this project
         exp_mods, scan_mods = modules.modules_by_type(self.project_modules_dict[project_id])
@@ -412,7 +412,7 @@ class Launcher(object):
 
         # Update each session from the list:
         for sess_info in sessions:
-            if self.use_lastupdate and not has_new and not sessions_local:
+            if not self.skip_lastupdate and not has_new and not sessions_local:
                 last_mod = datetime.strptime(sess_info['last_modified'][0:19], UPDATE_FORMAT)
                 now_date = datetime.today()
                 last_up = self.get_lastupdated(sess_info)
@@ -438,7 +438,7 @@ class Launcher(object):
             mess = """  +Session:{sess}: building..."""
             LOGGER.info(mess.format(sess=sess_info['label']))
 
-            if self.use_lastupdate:
+            if not self.skip_lastupdate:
                 update_start_time = datetime.now()
 
             try:
@@ -448,7 +448,7 @@ class Launcher(object):
                 LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
             
             try:
-                if self.use_lastupdate:
+                if not self.skip_lastupdate:
                     self.set_session_lastupdated(xnat, sess_info, update_start_time)
             except Exception as E:
                 LOGGER.critical('Caught exception setting session timestamp %s' % sess_info['session_label'])
