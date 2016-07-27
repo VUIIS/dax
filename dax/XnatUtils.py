@@ -2909,7 +2909,7 @@ def gunzip_file(file_zipped):
     
 
 def find_files(directory, ext):
-    """Return the files in subdirectories witht the right extension.
+    """Return the files in subdirectories with the right extension.
 
     :param directory: directory where the data are located
     :param ext: extension to look for
