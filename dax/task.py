@@ -46,6 +46,7 @@ OPEN_QA_LIST = [RERUN, REPROC]
 BAD_QA_STATUS = [FAILED, BAD, POOR, DONOTRUN]
 
 # Other Constants
+RESULTS_DIR = DAX_SETTINGS.get_results_dir()
 DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
 JOB_EXTENSION_FILE = DAX_SETTINGS.get_job_extension_file()
 DEFAULT_PBS_DIR = os.path.join(DAX_SETTINGS.get_results_dir(), 'PBS')
