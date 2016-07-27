@@ -451,7 +451,7 @@ def generate_settings(redcap_project, settings_info):
                                       dax_logs_path=project_settings[REDCAP_VAR['logsdir']],
                                       queue_limit=project_settings[REDCAP_VAR['queue']],
                                       max_age=project_settings[REDCAP_VAR['max_age']],
-                                      admin_email=project_settings[REDCAP_VAR['admin_email']]
+                                      admin_email=project_settings[REDCAP_VAR['admin_email']],
                                       skip_lastupdate=project_settings[REDCAP_VAR['skip_lastupdate']])
 
             #Look for modules
