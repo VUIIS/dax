@@ -499,6 +499,13 @@ class DAX_Settings(object):
         :return: int of the max_age value, None if empty
         """
         return int(self.get('cluster', 'max_age'))
+        
+    def get_skip_lastupdate(self):
+        """Get the skip_lastupdate value from the cluster section.
+
+        :return: skip_lastupdate value
+        """
+        return self.get('cluster', 'skip_lastupdate')
     
     def get_launcher_type(self):
         """
