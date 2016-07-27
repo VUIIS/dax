@@ -99,7 +99,10 @@ class Launcher(object):
         self.job_email_options = job_email_options
         self.max_age = max_age
         self.launcher_type = launcher_type
-        self.skip_lastupdate = skip_lastupdate
+        if not skip_lastupdate or not skip_lastupdate.lower().startswith('y'):
+            self.skip_lastupdate = False
+        else:
+            self.skip_lastupdate =True
 
         # Creating Folders for flagfile/pbs/outlog in RESULTS_DIR
         if launcher_type in ['diskq-xnat', 'diskq-cluster', 'diskq-combined']:
