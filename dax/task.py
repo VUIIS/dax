@@ -9,9 +9,6 @@ from cluster import PBS
 
 from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
-RESULTS_DIR = DAX_SETTINGS.get_results_dir()
-DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
-JOB_EXTENSION_FILE = DAX_SETTINGS.get_job_extension_file()
 
 #Logger to print logs
 LOGGER = logging.getLogger('dax')
@@ -47,9 +44,9 @@ OPEN_QA_LIST = [RERUN, REPROC]
 BAD_QA_STATUS = [FAILED, BAD, POOR, DONOTRUN]
 
 # Other Constants
-DEFAULT_PBS_DIR = os.path.join(RESULTS_DIR, 'PBS')
-DEFAULT_OUT_DIR = os.path.join(RESULTS_DIR, 'OUTLOG')
-DEFAULT_TRASH_DIR = os.path.join(RESULTS_DIR, 'TRASH')
+DEFAULT_PBS_DIR = os.path.join(DAX_SETTINGS.get_results_dir(), 'PBS')
+DEFAULT_OUT_DIR = os.path.join(DAX_SETTINGS.get_results_dir(), 'OUTLOG')
+DEFAULT_TRASH_DIR = os.path.join(DAX_SETTINGS.get_results_dir(), 'TRASH')
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
 OLD_RESOURCE = 'OLD'
 EDITS_RESOURCE = 'EDITS'
@@ -389,7 +386,7 @@ class Task(object):
 
         return jobstatus
 
-    def launch(self, jobdir, job_email=None, job_email_options=DEFAULT_EMAIL_OPTS, xnat_host=None, writeonly=False, pbsdir=None):
+    def launch(self, jobdir, job_email=None, job_email_options=DAX_SETTINGS.get_email_opts(), xnat_host=None, writeonly=False, pbsdir=None):
         """
         Method to launch a job on the grid
 
@@ -650,11 +647,11 @@ class Task(object):
         """
         if writeonly:
             if pbsdir and os.path.isdir(pbsdir):
-                return os.path.join(pbsdir, self.assessor_label+JOB_EXTENSION_FILE)
+                return os.path.join(pbsdir, self.assessor_label+DAX_SETTINGS.get_job_extension_file())
             else:
-                return os.path.join(DEFAULT_TRASH_DIR, self.assessor_label+JOB_EXTENSION_FILE)
+                return os.path.join(DEFAULT_TRASH_DIR, self.assessor_label+DAX_SETTINGS.get_job_extension_file())
         else:
-            return os.path.join(DEFAULT_PBS_DIR, self.assessor_label+JOB_EXTENSION_FILE)
+            return os.path.join(DEFAULT_PBS_DIR, self.assessor_label+DAX_SETTINGS.get_job_extension_file())
 
     def outlog_path(self):
         """

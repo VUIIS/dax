@@ -16,19 +16,6 @@ from datetime import datetime
 from subprocess import CalledProcessError
 from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
-DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
-JOB_TEMPLATE = DAX_SETTINGS.get_job_template()
-CMD_SUBMIT = DAX_SETTINGS.get_cmd_submit()
-CMD_COUNT_NB_JOBS = DAX_SETTINGS.get_cmd_count_nb_jobs()
-CMD_GET_JOB_STATUS = DAX_SETTINGS.get_cmd_get_job_status()
-CMD_GET_JOB_WALLTIME = DAX_SETTINGS.get_cmd_get_job_walltime()
-CMD_GET_JOB_MEMORY = DAX_SETTINGS.get_cmd_get_job_memory()
-CMD_GET_JOB_NODE = DAX_SETTINGS.get_cmd_get_job_node()
-RUNNING_STATUS = DAX_SETTINGS.get_running_status()
-QUEUE_STATUS = DAX_SETTINGS.get_queue_status()
-COMPLETE_STATUS = DAX_SETTINGS.get_complete_status()
-PREFIX_JOBID = DAX_SETTINGS.get_prefix_jobid()
-SUFFIX_JOBID = DAX_SETTINGS.get_suffix_jobid()
 MAX_TRACE_DAYS = 30
 
 #Logger to print logs
@@ -55,7 +42,7 @@ def count_jobs():
 
     :return: number of jobs in the queue
     """
-    cmd = CMD_COUNT_NB_JOBS
+    cmd = DAX_SETTINGS.get_cmd_count_nb_jobs()
     output = subprocess.check_output(cmd, shell=True)
     error = c_output(output)
     while error:
@@ -76,15 +63,15 @@ def job_status(jobid):
     :return: job status
 
     """
-    cmd = CMD_GET_JOB_STATUS.safe_substitute({'jobid':jobid})
+    cmd = DAX_SETTINGS.get_cmd_get_job_status().safe_substitute({'jobid':jobid})
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
         output = output.strip()
-        if output == RUNNING_STATUS:
+        if output == DAX_SETTINGS.get_running_status():
             return 'R'
-        elif output == QUEUE_STATUS:
+        elif output == DAX_SETTINGS.get_queue_status():
             return 'Q'
-        elif output == COMPLETE_STATUS or len(output) == 0:
+        elif output == DAX_SETTINGS.get_complete_status() or len(output) == 0:
             return 'C'
         else:
             return None
@@ -135,7 +122,7 @@ def get_job_mem_used(jobid, diff_days):
     if not jobid:
         return mem
 
-    cmd = CMD_GET_JOB_MEMORY.safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
+    cmd = DAX_SETTINGS.get_cmd_get_job_memory().safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
         if output:
@@ -159,7 +146,7 @@ def get_job_walltime_used(jobid, diff_days):
     if not jobid:
         return walltime
 
-    cmd = CMD_GET_JOB_WALLTIME.safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
+    cmd = DAX_SETTINGS.get_cmd_get_job_walltime().safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
         if output:
@@ -186,7 +173,7 @@ def get_job_node(jobid, diff_days):
     if not jobid:
         return jobnode
 
-    cmd = CMD_GET_JOB_NODE.safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
+    cmd = DAX_SETTINGS.get_cmd_get_job_node().safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
         if output:
@@ -219,7 +206,7 @@ def get_specific_str(big_str, prefix, suffix):
 class PBS:   #The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
     def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
-                 ppn=1, email=None, email_options=DEFAULT_EMAIL_OPTS, xnat_host=None):
+                 ppn=1, email=None, email_options=DAX_SETTINGS.get_email_opts(), xnat_host=None):
         """
         Entry point for the PBS class
 
@@ -268,7 +255,7 @@ class PBS:   #The script file generator class
                     'job_cmds':'\n'.join(self.cmds),
                     'xnat_host':self.xnat_host}
         with open(self.filename, 'w') as f_obj:
-            f_obj.write(JOB_TEMPLATE.safe_substitute(job_data))
+            f_obj.write(DAX_SETTINGS.get_job_template().safe_substitute(job_data))
 
     def submit(self):
         """
@@ -277,7 +264,7 @@ class PBS:   #The script file generator class
         :return: None
         """
         try:
-            cmd = CMD_SUBMIT +' '+ self.filename
+            cmd = DAX_SETTINGS.get_cmd_submit() +' '+ self.filename
             proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = proc.communicate()
             if output:
@@ -285,7 +272,7 @@ class PBS:   #The script file generator class
             if error:
                 LOGGER.error(error)
             #output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-            jobid = get_specific_str(output, PREFIX_JOBID, SUFFIX_JOBID)
+            jobid = get_specific_str(output, DAX_SETTINGS.get_prefix_jobid(), DAX_SETTINGS.get_suffix_jobid())
         except CalledProcessError as err:
             LOGGER.error(err)
             jobid = '0'
