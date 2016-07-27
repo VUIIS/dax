@@ -70,7 +70,7 @@ CLUSTER_DEFAULTS = OrderedDict([
                     ('results_dir', os.path.join(os.path.expanduser('~'),
                                                  'RESULTS_XNAT_SPIDER')),
                     ('max_age', '14'),
-                    ('launcher_type', 'xnatq-combined')]
+                    ('launcher_type', 'xnatq-combined')])
 
 CODE_PATH_DEFAULTS = OrderedDict([
                       ('processors_path', ''),
