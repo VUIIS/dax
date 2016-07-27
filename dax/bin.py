@@ -14,7 +14,7 @@ from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
 API_URL = DAX_SETTINGS.get_api_url()
 API_KEY_DAX = DAX_SETTINGS.get_api_key_dax()
-REDCAP_VAR = DAX_SETTINGS.get_dax_manager_data_dictionary()
+REDCAP_VAR = DAX_SETTINGS.get_dax_manager_config()
 
 def set_logger(logfile, debug):
     """
@@ -58,7 +58,11 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None, wri
 
     # Run the updates
     logger.info('running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions, writeonly, pbsdir)
+    try:
+        settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions, writeonly, pbsdir)
+    except Exception as e:
+        logger.critical('Caught exception launching jobs in bin.launch_jobs')
+        logger.critical('Exception Class %s with message %s' % (e.__class__, e.message))
     logger.info('finished update, End Time: '+str(datetime.now()))
 
 def build(settings_path, logfile, debug, projects=None, sessions=None, mod_delta=None):
@@ -86,7 +90,12 @@ def build(settings_path, logfile, debug, projects=None, sessions=None, mod_delta
 
     # Run the updates
     logger.info('running build, Start Time:'+str(datetime.now()))
-    settings.myLauncher.build(lockfile_prefix, projects, sessions, mod_delta=mod_delta)
+    try:
+        settings.myLauncher.build(lockfile_prefix, projects, sessions, mod_delta=mod_delta)
+    except Exception as e:
+        logger.critical('Caught exception building Project in bin.build')
+        logger.critical('Exception Class %s with message %s' % (e.__class__, e.message))      
+    
     logger.info('finished build, End Time: '+str(datetime.now()))
 
 def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
@@ -113,7 +122,12 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
 
     # Run the update
     logger.info('updating open tasks, Start Time:'+str(datetime.now()))
-    settings.myLauncher.update_tasks(lockfile_prefix, projects, sessions)
+    try:
+        settings.myLauncher.update_tasks(lockfile_prefix, projects, sessions)
+    except Exception as e:
+        logger.critical('Caught exception updating tasks in bin.update_tasks')
+        logger.critical('Exception Class %s with message %s' % (e.__class__, e.message))
+
     logger.info('finished open tasks, End Time: '+str(datetime.now()))
 
 def pi_from_project(project):

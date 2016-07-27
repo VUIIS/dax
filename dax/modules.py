@@ -111,7 +111,7 @@ class Module(object):
                 self.directory = os.path.join(self.directory, fname)
 
                 if not os.path.exists(self.directory):
-                    os.mkdir(self.directory)
+                    os.makedirs(self.directory)
                 else:
                     self.clean_directory()
 
