@@ -149,7 +149,7 @@ def upload_update_date_redcap(project_list, type_update, start_end):
         try:
             redcap_project = redcap.Project(DAX_SETTINGS.get_api_url(), DAX_SETTINGS.get_api_key_dax())
         except:
-            logger.warn('Could not access redcap. Either wrong DAX_SETTINGS.get_api_url()/API_KEY or redcap down.')
+            logger.warn('Could not access redcap. Either wrong DAX_SETTINGS. API_URL/API_KEY or redcap down.')
 
         if redcap_project:
             data = list()

@@ -59,7 +59,7 @@ class Launcher(object):
         self.job_email_options = job_email_options
         self.max_age = max_age
 
-        #Creating Folders for flagfile/pbs/outlog in  DAX_SETTINGS.get_results_dir()
+        #Creating Folders for flagfile/pbs/outlog in  DAX_SETTINGS.RESULTS_DIR
         if not os.path.exists( DAX_SETTINGS.get_results_dir()):
             os.mkdir( DAX_SETTINGS.get_results_dir())
         if not os.path.exists(os.path.join( DAX_SETTINGS.get_results_dir(), 'PBS')):
