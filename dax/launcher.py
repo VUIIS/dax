@@ -68,11 +68,12 @@ def check_dir(dir_path):
 class Launcher(object):
     """ Launcher object to manage a list of projects from a settings file """
     def __init__(self, project_process_dict, project_modules_dict, priority_project=None,
-                 queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR,
+                 queue_limit=DAX_SETTINGS.get_queue_limit(), root_job_dir=DAX_SETTINGS.get_root_job_dir(),
                  xnat_user=None, xnat_pass=None, xnat_host=None,
                  job_email=None, job_email_options='bae', max_age=DEFAULT_MAX_AGE, 
                  launcher_type=DEFAULT_LAUNCHER_TYPE,
                  use_lastupdate=True):
+
         """
         Entry point for the Launcher class
 
@@ -165,6 +166,7 @@ class Launcher(object):
 
         xnat = None
         flagfile = os.path.join(FLAG_DIR, lockfile_prefix + '_' + LAUNCH_SUFFIX)
+
         project_list = self.init_script(flagfile, project_local, type_update=3, start_end=1)
 
         try:
@@ -893,7 +895,7 @@ The project is not part of the settings."""
         else:
             # Get a new task with the matched processor
             assr = XnatUtils.get_full_object(xnat, assr_info)
-            cur_task = Task(task_proc, assr, RESULTS_DIR)
+            cur_task = Task(task_proc, assr,  DAX_SETTINGS.get_results_dir())
             return cur_task
 
     @staticmethod
