@@ -49,9 +49,9 @@ BAD_QA_STATUS = [FAILED, BAD, POOR, DONOTRUN]
 RESULTS_DIR = DAX_SETTINGS.get_results_dir()
 DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
 JOB_EXTENSION_FILE = DAX_SETTINGS.get_job_extension_file()
-DEFAULT_PBS_DIR = os.path.join(DAX_SETTINGS.get_results_dir(), 'PBS')
-DEFAULT_OUT_DIR = os.path.join(DAX_SETTINGS.get_results_dir(), 'OUTLOG')
-DEFAULT_TRASH_DIR = os.path.join(DAX_SETTINGS.get_results_dir(), 'TRASH')
+
+
+
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
 OLD_RESOURCE = 'OLD'
 EDITS_RESOURCE = 'EDITS'
@@ -676,9 +676,9 @@ class Task(object):
             if pbsdir and os.path.isdir(pbsdir):
                 return os.path.join(pbsdir, self.assessor_label+DAX_SETTINGS.get_job_extension_file())
             else:
-                return os.path.join(DEFAULT_TRASH_DIR, self.assessor_label+DAX_SETTINGS.get_job_extension_file())
+                return os.path.join(os.path.join(DAX_SETTINGS.get_results_dir(), 'TRASH'), self.assessor_label+DAX_SETTINGS.get_job_extension_file())
         else:
-            return os.path.join(DEFAULT_PBS_DIR, self.assessor_label+DAX_SETTINGS.get_job_extension_file())
+            return os.path.join(os.path.join(DAX_SETTINGS.get_results_dir(), 'PBS'), self.assessor_label+DAX_SETTINGS.get_job_extension_file())
 
     def outlog_path(self):
         """
