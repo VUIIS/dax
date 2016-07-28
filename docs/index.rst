@@ -13,3 +13,4 @@ Contents:
    contributors
    how_to_contribute
    faq
+   news/spiders/NEWS
