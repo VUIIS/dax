@@ -62,7 +62,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None, wri
         logger.critical('Exception Class %s with message %s' % (e.__class__, e.message))
     logger.info('finished update, End Time: '+str(datetime.now()))
 
-def build(settings_path, logfile, debug, projects=None, sessions=None):
+def build(settings_path, logfile, debug, projects=None, sessions=None, mod_delta=None):
     """
     Method that is responsible for running all modules and putting assessors
      into the database
@@ -70,8 +70,8 @@ def build(settings_path, logfile, debug, projects=None, sessions=None):
     :param settings_path: Path to the project settings file
     :param logfile: Full file of the file used to log to
     :param debug: Should debug mode be used
-    :param projects: Project(s) that need to be launched
-    :param sessions: Session(s) that need to be updated
+    :param projects: Project(s) that need to be built
+    :param sessions: Session(s) that need to be built
     :return: None
 
     """
@@ -86,14 +86,14 @@ def build(settings_path, logfile, debug, projects=None, sessions=None):
     lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
 
     # Run the updates
-    logger.info('running update, Start Time:'+str(datetime.now()))
+    logger.info('running build, Start Time:'+str(datetime.now()))
     try:
-        settings.myLauncher.build(lockfile_prefix, projects, sessions)
+        settings.myLauncher.build(lockfile_prefix, projects, sessions, mod_delta=mod_delta)
     except Exception as e:
         logger.critical('Caught exception building Project in bin.build')
-        logger.critical('Exception Class %s with message %s' % (e.__class__, e.message))
-
-    logger.info('finished update, End Time: '+str(datetime.now()))
+        logger.critical('Exception Class %s with message %s' % (e.__class__, e.message))      
+    
+    logger.info('finished build, End Time: '+str(datetime.now()))
 
 def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
     """

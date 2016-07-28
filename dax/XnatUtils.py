@@ -2394,6 +2394,16 @@ class CachedImageSession():
         self.sess_element = ET.fromstring(xml_str)
         self.project = proj
         self.subject = subj
+        self.xnat = xnat # cache for later usage
+        self.session = sess
+
+    def reload(self):
+        proj = self.project
+        subj = self.subject
+        sess = self.session
+        sess_uri = '/project/' + proj + '/subject/' + subj + '/experiment/' + sess
+        xml_str = self.xnat.select(sess_uri).get()
+        self.sess_element = ET.fromstring(xml_str)
 
     def label(self):
         """
@@ -2518,6 +2528,15 @@ class CachedImageSession():
 
         """
         return [res.info() for res in self.resources()]
+
+    def full_object(self):
+        """
+        Return a the full pyxnat Session object of this sessions
+
+        :return: pyxnat Session object
+
+        """
+        return get_full_object(self.xnat, self.info())
 
 class CachedImageScan():
     """
