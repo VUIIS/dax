@@ -18,11 +18,6 @@ import bin
 from task import Task, ClusterTask, XnatTask
 from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
-RESULTS_DIR = DAX_SETTINGS.get_results_dir()
-DEFAULT_ROOT_JOB_DIR = DAX_SETTINGS.get_root_job_dir()
-DEFAULT_QUEUE_LIMIT = DAX_SETTINGS.get_queue_limit()
-DEFAULT_MAX_AGE = DAX_SETTINGS.get_max_age()
-DEFAULT_LAUNCHER_TYPE = DAX_SETTINGS.get_launcher_type()
 
 UPDATE_PREFIX = 'updated--'
 UPDATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -33,19 +28,10 @@ LAUNCH_SUFFIX = 'LAUNCHER_RUNNING.txt'
 #Logger to print logs
 LOGGER = logging.getLogger('dax')
 
-FLAG_DIR = os.path.join(RESULTS_DIR, 'FlagFiles')
-OUTLOG_DIR = os.path.join(RESULTS_DIR, 'OUTLOG')
-BATCH_DIR = os.path.join(RESULTS_DIR, 'PBS')
-
-DISKQ_DIR = os.path.join(RESULTS_DIR, 'DISKQ')
-DISKQ_BATCH_DIR = os.path.join(DISKQ_DIR, 'BATCH')
-DISKQ_OUTLOG_DIR = os.path.join(DISKQ_DIR, 'OUTLOG')
-DISKQ_INPUTS_DIR = os.path.join(DISKQ_DIR, 'INPUTS')
-
 def str_to_timedelta(delta_str):
     if len(delta_str) <= 1:
         raise ValueError('invalid timedelta string value')
-    
+
     val = int(delta_str[:-1])
     if delta_str.endswith('s'):
         return timedelta(seconds=val)
@@ -57,7 +43,7 @@ def str_to_timedelta(delta_str):
         return timedelta(days=val)
     else:
         raise ValueError('invalid timedelta string value')
-    
+
 def check_dir(dir_path):
     try:
         os.makedirs(dir_path)
@@ -70,8 +56,8 @@ class Launcher(object):
     def __init__(self, project_process_dict, project_modules_dict, priority_project=None,
                  queue_limit=DAX_SETTINGS.get_queue_limit(), root_job_dir=DAX_SETTINGS.get_root_job_dir(),
                  xnat_user=None, xnat_pass=None, xnat_host=None,
-                 job_email=None, job_email_options='bae', max_age=DEFAULT_MAX_AGE, 
-                 launcher_type=DEFAULT_LAUNCHER_TYPE,
+                 job_email=None, job_email_options='bae', max_age=DAX_SETTINGS.get_max_age(),
+                 launcher_type=DAX_SETTINGS.get_launcher_type(),
                  skip_lastupdate=None):
 
         """
@@ -106,16 +92,16 @@ class Launcher(object):
 
         # Creating Folders for flagfile/pbs/outlog in RESULTS_DIR
         if launcher_type in ['diskq-xnat', 'diskq-cluster', 'diskq-combined']:
-            check_dir(DISKQ_DIR)
-            check_dir(DISKQ_INPUTS_DIR)
-            check_dir(DISKQ_OUTLOG_DIR)
-            check_dir(DISKQ_BATCH_DIR)
-            check_dir(FLAG_DIR)
+            check_dir(os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'))
+            check_dir(os.path.join(os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'), 'INPUTS'))
+            check_dir(os.path.join(os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'), 'OUTLOG'))
+            check_dir(os.path.join(os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'), 'BATCH'))
+            check_dir(os.path.join(DAX_SETTINGS.get_results_dir(), 'FlagFiles'))
         else:
-            check_dir(RESULTS_DIR)
-            check_dir(FLAG_DIR)
-            check_dir(OUTLOG_DIR)
-            check_dir(BATCH_DIR)
+            check_dir(DAX_SETTINGS.get_results_dir())
+            check_dir(os.path.join(DAX_SETTINGS.get_results_dir(), 'FlagFiles'))
+            check_dir(os.path.join(DAX_SETTINGS.get_results_dir(), 'OUTLOG'))
+            check_dir(os.path.join(DAX_SETTINGS.get_results_dir(), 'PBS'))
 
         # Add empty lists for projects in one list but not the other
         for proj in self.project_process_dict.keys():
@@ -168,13 +154,13 @@ class Launcher(object):
         LOGGER.info('launcher_type = '+self.launcher_type)
 
         xnat = None
-        flagfile = os.path.join(FLAG_DIR, lockfile_prefix + '_' + LAUNCH_SUFFIX)
+        flagfile = os.path.join(os.path.join(DAX_SETTINGS.get_results_dir(), 'FlagFiles'), lockfile_prefix + '_' + LAUNCH_SUFFIX)
 
         project_list = self.init_script(flagfile, project_local, type_update=3, start_end=1)
 
         try:
             if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
-                LOGGER.info('Loading task queue from:' + DISKQ_DIR)
+                LOGGER.info('Loading task queue from:' + os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'))
                 task_list = load_task_queue(status=task.NEED_TO_RUN)
 
                 LOGGER.info(str(len(task_list)) + ' tasks that need to be launched found')
@@ -284,12 +270,12 @@ class Launcher(object):
         LOGGER.info('launcher_type = '+self.launcher_type)
 
         xnat = None
-        flagfile = os.path.join(FLAG_DIR, lockfile_prefix + '_' + UPDATE_SUFFIX)
+        flagfile = os.path.join(os.path.join(DAX_SETTINGS.get_results_dir(), 'FlagFiles'), lockfile_prefix + '_' + UPDATE_SUFFIX)
         project_list = self.init_script(flagfile, project_local, type_update=2, start_end=1)
 
         try:
             if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
-                LOGGER.info('Loading task queue from:' + DISKQ_DIR)
+                LOGGER.info('Loading task queue from:' + os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'))
                 task_list = load_task_queue()
 
                 LOGGER.info(str(len(task_list)) + ' tasks found.')
@@ -351,7 +337,7 @@ class Launcher(object):
         LOGGER.info('launcher_type = '+self.launcher_type)
         LOGGER.info('mod delta='+str(mod_delta))
 
-        flagfile = os.path.join(FLAG_DIR, lockfile_prefix + '_' + BUILD_SUFFIX)
+        flagfile = os.path.join(os.path.join(DAX_SETTINGS.get_results_dir(), 'FlagFiles'), lockfile_prefix + '_' + BUILD_SUFFIX)
         project_list = self.init_script(flagfile, project_local, type_update=1, start_end=1)
 
         try:
@@ -537,7 +523,7 @@ class Launcher(object):
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
                 if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
                     assessor = csess.full_object().assessor(assr_name)
-                    xtask = XnatTask(sess_proc, assessor, RESULTS_DIR, DISKQ_DIR)
+                    xtask = XnatTask(sess_proc, assessor, DAX_SETTINGS.get_results_dir(), os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'))
                     LOGGER.debug('building task:' + assr_name)
                     (proc_status, qc_status) = xtask.build_task(
                         csess,
@@ -550,7 +536,7 @@ class Launcher(object):
                     LOGGER.debug('skipping, already built:' + assr_name)
             else:
                 if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    sess_task = sess_proc.get_task(xnat, csess, RESULTS_DIR)
+                    sess_task = sess_proc.get_task(xnat, csess, DAX_SETTINGS.get_results_dir())
                     log_updating_status(sess_proc.name, sess_task.assessor_label)
                     has_inputs, qcstatus = sess_proc.has_inputs(csess)
                     try:
@@ -625,7 +611,7 @@ class Launcher(object):
                     # TODO: get session object directly
                     scan = XnatUtils.get_full_object(xnat, scan_info)
                     assessor = scan.parent().assessor(assr_name)
-                    xtask = XnatTask(scan_proc, assessor, RESULTS_DIR, DISKQ_DIR)
+                    xtask = XnatTask(scan_proc, assessor, DAX_SETTINGS.get_results_dir(), os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'))
                     LOGGER.debug('building task:' + assr_name)
                     (proc_status, qc_status) = xtask.build_task(
                         cscan,
@@ -638,7 +624,7 @@ class Launcher(object):
                     LOGGER.debug('skipping, already built:' + assr_name)
             else:
                 if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    scan_task = scan_proc.get_task(xnat, cscan, RESULTS_DIR)
+                    scan_task = scan_proc.get_task(xnat, cscan, DAX_SETTINGS.get_results_dir())
                     log_updating_status(scan_proc.name, scan_task.assessor_label)
                     has_inputs, qcstatus = scan_proc.has_inputs(cscan)
                     try:
@@ -1032,11 +1018,11 @@ The project is not part of the settings."""
 def load_task_queue(status=None):
     task_list = list()
 
-    for t in os.listdir(DISKQ_BATCH_DIR):
+    for t in os.listdir(os.path.join(os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'), 'BATCH')):
         # task_path = os.path.join(BATCH_DIR, t)
 
         LOGGER.debug('loading:' + t)
-        task = ClusterTask(os.path.splitext(t)[0], RESULTS_DIR, DISKQ_DIR)
+        task = ClusterTask(os.path.splitext(t)[0], DAX_SETTINGS.get_results_dir(), DISKQ_DIR)
         LOGGER.debug('status = ' + task.get_status())
 
         # TODO:filter based on project, subject, session, type
