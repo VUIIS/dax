@@ -287,7 +287,7 @@ def submit_job(filename):
     :return: jobid
     """
     try:
-        cmd = CMD_SUBMIT + ' ' + filename
+        cmd = DAX_SETTINGS.get_cmd_submit() + ' ' + filename
         proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = proc.communicate()
         if output:
