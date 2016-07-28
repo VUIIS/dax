@@ -56,7 +56,7 @@ class Launcher(object):
     def __init__(self, project_process_dict, project_modules_dict, priority_project=None,
                  queue_limit=DAX_SETTINGS.get_queue_limit(), root_job_dir=DAX_SETTINGS.get_root_job_dir(),
                  xnat_user=None, xnat_pass=None, xnat_host=None,
-                 job_email=None, job_email_options='bae', max_age=DAX_SETTINGS.get_max_age(),
+                 job_email=None, job_email_options='bae', max_age=7,
                  launcher_type=DAX_SETTINGS.get_launcher_type(),
                  skip_lastupdate=None):
 
@@ -83,7 +83,7 @@ class Launcher(object):
         self.priority_project = priority_project
         self.job_email = job_email
         self.job_email_options = job_email_options
-        self.max_age = max_age
+        self.max_age = DAX_SETTINGS.get_max_age()
         self.launcher_type = launcher_type
         if not skip_lastupdate or not skip_lastupdate.lower().startswith('y'):
             self.skip_lastupdate = False
