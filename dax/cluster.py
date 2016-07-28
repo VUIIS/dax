@@ -295,7 +295,7 @@ def submit_job(filename):
         if error:
             LOGGER.error(error)
         # output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-        jobid = get_specific_str(output, PREFIX_JOBID, SUFFIX_JOBID)
+        jobid = get_specific_str(output, DAX_SETTINGS.get_prefix_jobid(), DAX_SETTINGS.get_suffix_jobid())
     except CalledProcessError as err:
         LOGGER.error(err)
         jobid = '0'
