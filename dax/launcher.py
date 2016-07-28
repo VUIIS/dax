@@ -1017,12 +1017,14 @@ The project is not part of the settings."""
 
 def load_task_queue(status=None):
     task_list = list()
+    diskq_dir = os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ')
+    results_dir = DAX_SETTINGS.get_results_dir()
 
-    for t in os.listdir(os.path.join(os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'), 'BATCH')):
+    for t in os.listdir(os.path.join(diskq_dir, 'BATCH')):
         # task_path = os.path.join(BATCH_DIR, t)
 
         LOGGER.debug('loading:' + t)
-        task = ClusterTask(os.path.splitext(t)[0], DAX_SETTINGS.get_results_dir(), DISKQ_DIR)
+        task = ClusterTask(os.path.splitext(t)[0], results_dir, diskq_dir)
         LOGGER.debug('status = ' + task.get_status())
 
         # TODO:filter based on project, subject, session, type
