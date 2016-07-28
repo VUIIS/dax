@@ -35,6 +35,7 @@ SMTP_HOST = DAX_SETTINGS.get_smtp_host()
 SMTP_PASS = DAX_SETTINGS.get_smtp_pass()
 DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
 DEFAULT_MAX_AGE = DAX_SETTINGS.get_max_age()
+SKIP_LASTUPDATE = DAX_SETTINGS.get_skip_lastupdate()
 
 ######### Variables ##########
 #Information on gateway/user
@@ -78,7 +79,7 @@ proj_proc = ${PROJ_PROC}
 p_order = ${PROJ_ORDER}
 
 #Launch jobs:
-myLauncher = Launcher(proj_proc, proj_mod, priority_project=p_order, job_email=email, job_email_options="${EMAIL_OPTS}", queue_limit=${QUEUE_LIMIT}, max_age=${MAX_AGE})
+myLauncher = Launcher(proj_proc, proj_mod, priority_project=p_order, job_email=email, job_email_options="${EMAIL_OPTS}", queue_limit=${QUEUE_LIMIT}, max_age=${MAX_AGE}, skip_lastupdate="${SKIP_LASTUPDATE}")
 """)
 
 EMAIL_HEADER = """Long updates running on <{gateway}> for the user <{user}>:
@@ -97,7 +98,8 @@ class Settings_File:
     """ Class to generate settings file """
     def __init__(self, filepath, tmpdir='/tmp/', email=None,
                  email_opts=DEFAULT_EMAIL_OPTS, dax_logs_path='/tmp/',
-                 queue_limit=200, max_age=DEFAULT_MAX_AGE, admin_email=ADMIN_EMAIL):
+                 queue_limit=200, max_age=DEFAULT_MAX_AGE, admin_email=ADMIN_EMAIL, 
+                 skip_lastupdate=SKIP_LASTUPDATE):
         """
         Entry point for the filter_variable class
 
@@ -148,6 +150,11 @@ class Settings_File:
             self.max_age = DEFAULT_MAX_AGE
         else:
             self.max_age = max_age
+        
+        if not skip_lastupdate:
+            self.skip_lastupdate = SKIP_LASTUPDATE
+        else:
+            self.skip_lastupdate = skip_lastupdate
 
     def add_mod_str(self, project, mod_str):
         """
@@ -506,17 +513,17 @@ def generate_settings(redcap_project, settings_info):
                 settings_dict[psettings.filepath] = psettings
     LOGGER.info('\n')
 
-    email_text = EMAIL_HEADER.format(gateway=gateway, user=user)
+    email_text = ''
     for header, proj_list in UPDATE_EMAIL_DICT.items():
         if proj_list:
             email_text += '\t'+header+' -->  '+' , '.join(proj_list)+'\n'
-            email_text += '-----------------------------------------'\
-                         +'-----------------------------------------\n'
+            email_text += '-----------------------------------------'
+            email_text += '-----------------------------------------\n'
 
-    if email_text != EMAIL_HEADER:
+    if ADMIN_EMAIL and email_text:
+        email_text = EMAIL_HEADER.format(gateway=gateway, user=user) + email_text
         subject = 'Dax_manager ADMIN: updates running for 2/7days '
-        if ADMIN_EMAIL:
-            send_email(email_text, ADMIN_EMAIL, subject)
+        send_email(email_text, ADMIN_EMAIL, subject)
 
     return settings_dict
 
@@ -786,7 +793,8 @@ def write_settings(settings):
                          'MOD':settings.mod_str,
                          'PROC':settings.proc_str,
                          'PROJ_MOD':settings.get_pm_dict(),
-                         'PROJ_PROC':settings.get_pp_dict()}
+                         'PROJ_PROC':settings.get_pp_dict(),
+                         'SKIP_LASTUPDATE':settings.skip_lastupdate}
 
         with open(settings.filepath, 'w') as f:
             f.write(SETTINGS_TEMPLATE.safe_substitute(**settings_data))

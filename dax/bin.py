@@ -12,9 +12,6 @@ import log
 import XnatUtils
 from dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
-API_URL = DAX_SETTINGS.get_api_url()
-API_KEY_DAX = DAX_SETTINGS.get_api_key_dax()
-REDCAP_VAR = DAX_SETTINGS.get_dax_manager_config()
 
 def set_logger(logfile, debug):
     """
@@ -58,10 +55,14 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None, wri
 
     # Run the updates
     logger.info('running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions, writeonly, pbsdir)
+    try:
+        settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions, writeonly, pbsdir)
+    except Exception as e:
+        logger.critical('Caught exception launching jobs in bin.launch_jobs')
+        logger.critical('Exception Class %s with message %s' % (e.__class__, e.message))
     logger.info('finished update, End Time: '+str(datetime.now()))
 
-def build(settings_path, logfile, debug, projects=None, sessions=None):
+def build(settings_path, logfile, debug, projects=None, sessions=None, mod_delta=None):
     """
     Method that is responsible for running all modules and putting assessors
      into the database
@@ -69,8 +70,8 @@ def build(settings_path, logfile, debug, projects=None, sessions=None):
     :param settings_path: Path to the project settings file
     :param logfile: Full file of the file used to log to
     :param debug: Should debug mode be used
-    :param projects: Project(s) that need to be launched
-    :param sessions: Session(s) that need to be updated
+    :param projects: Project(s) that need to be built
+    :param sessions: Session(s) that need to be built
     :return: None
 
     """
@@ -85,9 +86,14 @@ def build(settings_path, logfile, debug, projects=None, sessions=None):
     lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
 
     # Run the updates
-    logger.info('running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.build(lockfile_prefix, projects, sessions)
-    logger.info('finished update, End Time: '+str(datetime.now()))
+    logger.info('running build, Start Time:'+str(datetime.now()))
+    try:
+        settings.myLauncher.build(lockfile_prefix, projects, sessions, mod_delta=mod_delta)
+    except Exception as e:
+        logger.critical('Caught exception building Project in bin.build')
+        logger.critical('Exception Class %s with message %s' % (e.__class__, e.message))      
+    
+    logger.info('finished build, End Time: '+str(datetime.now()))
 
 def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
     """
@@ -113,7 +119,12 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
 
     # Run the update
     logger.info('updating open tasks, Start Time:'+str(datetime.now()))
-    settings.myLauncher.update_tasks(lockfile_prefix, projects, sessions)
+    try:
+        settings.myLauncher.update_tasks(lockfile_prefix, projects, sessions)
+    except Exception as e:
+        logger.critical('Caught exception updating tasks in bin.update_tasks')
+        logger.critical('Exception Class %s with message %s' % (e.__class__, e.message))
+
     logger.info('finished open tasks, End Time: '+str(datetime.now()))
 
 def pi_from_project(project):
@@ -147,18 +158,18 @@ def upload_update_date_redcap(project_list, type_update, start_end):
 
     """
     logger = logging.getLogger('dax')
-    if API_URL and API_KEY_DAX and REDCAP_VAR:
+    if DAX_SETTINGS.get_api_url() and DAX_SETTINGS.get_api_key_dax() and DAX_SETTINGS.get_dax_manager_config():
         redcap_project = None
         try:
-            redcap_project = redcap.Project(API_URL, API_KEY_DAX)
+            redcap_project = redcap.Project(DAX_SETTINGS.get_api_url(), DAX_SETTINGS.get_api_key_dax())
         except:
-            logger.warn('Could not access redcap. Either wrong API_URL/API_KEY or redcap down.')
+            logger.warn('Could not access redcap. Either wrong DAX_SETTINGS. API_URL/API_KEY or redcap down.')
 
         if redcap_project:
             data = list()
             for project in project_list:
                 to_upload = dict()
-                to_upload[REDCAP_VAR['project']] = project
+                to_upload[DAX_SETTINGS.get_dax_manager_config()['project']] = project
                 if type_update == 1:
                     to_upload = set_variables_dax_manager(to_upload, 'dax_build', start_end)
                 elif type_update == 2:
@@ -179,11 +190,11 @@ def set_variables_dax_manager(record_data, field_prefix, start_end):
 
     """
     if start_end == 1:
-        key = REDCAP_VAR[field_prefix+'_start_date']
+        key = DAX_SETTINGS.get_dax_manager_config()[field_prefix+'_start_date']
         record_data[key] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-        record_data[REDCAP_VAR[field_prefix+'_end_date']] = 'In Process'
-        record_data[REDCAP_VAR[field_prefix+'_pid']] = str(os.getpid())
+        record_data[DAX_SETTINGS.get_dax_manager_config()[field_prefix+'_end_date']] = 'In Process'
+        record_data[DAX_SETTINGS.get_dax_manager_config()[field_prefix+'_pid']] = str(os.getpid())
     elif start_end == 2:
-        key = REDCAP_VAR[field_prefix+'_end_date']
+        key = DAX_SETTINGS.get_dax_manager_config()[field_prefix+'_end_date']
         record_data[key] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
     return record_data

@@ -69,7 +69,9 @@ CLUSTER_DEFAULTS = OrderedDict([
                     ('queue_limit', '400'),
                     ('results_dir', os.path.join(os.path.expanduser('~'),
                                                  'RESULTS_XNAT_SPIDER')),
-                    ('max_age', '14')])
+                    ('max_age', '14'),
+                    ('launcher_type', 'xnatq-combined'),
+                    ('skip_lastupdate', '')])
 
 CODE_PATH_DEFAULTS = OrderedDict([
                       ('processors_path', ''),
@@ -100,6 +102,7 @@ DAX_MANAGER_DEFAULTS = OrderedDict([
     ('dax_launch_end_date', 'dax_launch_end_date'),
     ('dax_launch_pid', 'dax_launch_pid'),
     ('max_age', 'dax_max_age'),
+    ('skip_lastupdate', 'dax_skip_lastupdate'),
     ('admin_email', 'dax_email_address')])
 
 DEFAULTS = {'admin': ADMIN_DEFAULTS,
@@ -189,6 +192,8 @@ that should run at once: ', 'is_path': False},
 copied to for upload: ', 'is_path': True},
            'max_age': {'msg': 'Please enter max days before re-running dax_build \
 on a session: ', 'is_path': False},
+           'launcher_type': {'msg': 'Please enter launcher type: ', 'is_path': False},
+           'skip_lastupdate': {'msg': 'Do you want to skip last update?: ', 'is_path': False},
            'api_url': {'msg': 'Please enter your REDCap API URL: ',
                        'is_path': False},
            'api_key_dax': {'msg': 'Please enter the key to connect to the \
@@ -442,7 +447,7 @@ the section [%s] in the settings file?' % section)
 time in ~/.dax_templates/\n')
 
         for option in ['gateway', 'root_job_dir', 'queue_limit', 'results_dir',
-                       'max_age']:
+                       'max_age','launcher_type', 'skip_lastupdate']:
             value = self._prompt('cluster', option)
             self.config_parser.set('cluster', option, value)
 

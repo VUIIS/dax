@@ -150,6 +150,7 @@ class DAX_Settings(object):
                 return False
         else:
             return False
+            
         return True
 
     def get(self, header, key):
@@ -500,6 +501,22 @@ class DAX_Settings(object):
         :return: int of the max_age value, None if empty
         """
         return int(self.get('cluster', 'max_age'))
+        
+    def get_skip_lastupdate(self):
+        """Get the skip_lastupdate value from the cluster section.
+
+        :return: skip_lastupdate value
+        """
+        return self.get('cluster', 'skip_lastupdate')
+    
+    def get_launcher_type(self):
+        """
+        Get the launcher type from the cluster
+
+        :return: String of the launcher type: xnatq-combined, diskq-xnat, diskq-cluster
+
+        """
+        return self.get('cluster', 'launcher_type')
 
     def get_api_url(self):
         """Get the api_url value from the dax_manager section.

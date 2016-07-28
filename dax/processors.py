@@ -127,6 +127,15 @@ class Processor(object):
         """
         raise NotImplementedError()
 
+    def build_cmds(self, cobj, dir):
+
+        """
+        Build the commands that will go in the PBS/SLURM script
+        :raises: NotImplementedError if not overridden from base class.
+        :return: None
+        """
+        raise NotImplementedError()
+
 class ScanProcessor(Processor):
     """ Scan Processor class for processor on a scan on XNAT """
     def __init__(self, scan_types, walltime_str, memreq_mb, spider_path, version=None, ppn=1, suffix_proc=''):
