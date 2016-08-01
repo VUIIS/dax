@@ -20,9 +20,12 @@ import sys
 import time
 import getpass
 import collections
+import numpy as np
+import nibabel as nib
 import subprocess as sb
 from dax import XnatUtils
 from datetime import datetime
+import matplotlib.pyplot as plt
 from stat import S_IXUSR, ST_MODE
 from shutil import copyfile
 from shutil import copytree
