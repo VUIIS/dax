@@ -452,7 +452,7 @@ class Spider(object):
             self.time_writer("Warning: vmins wasn't a dictionary. \
 Using default.")
             vmins = {}
-        if not isinstance(vmins, dict):
+        if not isinstance(vmaxs, dict):
             self.time_writer("Warning: vmaxs wasnt' a dictionary. \
 Using default.")
             vmaxs = {}
