@@ -461,12 +461,18 @@ Using default.")
         if isinstance(nii_images, str):
             nii_images = [nii_images]
         number_im = len(nii_images)
+        
+        if slices:
+            self.time_writer('INFO: showing different slices.')
+        else:
+            self.time_writer('INFO: display different plan view \
+(ax/sag/cor) of the mid slice.')
         for index, image in enumerate(nii_images):
             # Open niftis with nibabel
             f_img = nib.load(image)
             data = f_img.get_data()
-            if len(data.shape) == 4:
-                if volume_ind:
+            if len(data.shape) > 3:
+                if isinstance(volume_ind, int):
                     data = data[:, :, :, volume_ind]
                 else:
                     data = data[:, :, :, data.shape[3]/2]
@@ -479,7 +485,6 @@ Using default.")
                     self.time_writer("Warning: slices wasn't a dictionary. \
 Using default.")
                     slices = {}
-                self.time_writer('INFO: showing different slices.')
                 li_slices = slices.get(str(index), default_slices)
                 slices_number = len(li_slices)
                 for slice_ind, slice_value in enumerate(li_slices):
@@ -497,8 +502,6 @@ Using default.")
                         ax.set_ylabel(image_labels.get(str(index),
                                       default_label), fontsize=9)
             else:
-                self.time_writer('INFO: display different plan view \
-(ax/sag/cor) of the mid slice.')
                 ax = fig.add_subplot(number_im, 3, 3*index+1)
                 data_z_rot = np.rot90(data[:, :, data.shape[2]/2])
                 ax.imshow(data_z_rot, cmap=cmap.get(str(index), default_cmap),
