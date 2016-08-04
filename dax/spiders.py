@@ -403,7 +403,7 @@ class Spider(object):
 
     def plot_images_page(self, pdf_path, page_index, nii_images, title,
                          image_labels, slices=None, cmap='gray',
-                         vmins=None, vmaxs=None):
+                         vmins=None, vmaxs=None, volume_ind=None):
         """Plot list of images (3D-4D) on a figure (PDF page).
 
         plot_images_figure will create one pdf page with only images.
@@ -424,6 +424,8 @@ class Spider(object):
             of cmaps for each images with the indices as key
         :param vmins: define vmin for display (dict)
         :param vmaxs: define vmax for display (dict)
+        :param volume_ind: if slices specified and 4D image given,
+                           select volume
         :return: pdf path created
 
         E.g for two images:
@@ -464,7 +466,10 @@ Using default.")
             f_img = nib.load(image)
             data = f_img.get_data()
             if len(data.shape) == 4:
-                data = data[:, :, :, data.shape[3]/2]
+                if volume_ind:
+                    data = data[:, :, :, volume_ind]
+                else:
+                    data = data[:, :, :, data.shape[3]/2]
             default_slices = [data.shape[2]/4, data.shape[2]/2,
                               3*data.shape[2]/4]
             default_label = 'Line %s' % index
