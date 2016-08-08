@@ -96,6 +96,4 @@ r1119 | plassaaj | 2013-12-02 12:23:43 -0600 (Mon, 02 Dec 2013) | 1 line
 
 **Current Contact Person**
 <date> <name> <email / URL> 
-
-	
-	
+August 2016 Andrew Plassard `email <mailto:Andrew.J.Plassard@vanderbilt.edu>`_ / `MASI <https://masi.vuse.vanderbilt.edu/index.php/MASI:Andrew_Plassard>`_
