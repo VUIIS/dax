@@ -440,7 +440,7 @@ def upload_assessor(xnat, assessor_dict):
         if is_diskq_assessor(assessor_dict['label']): # was this run using the DISKQ option
             # Read attributes
             ctask = ClusterTask(assessor_dict['label'], RESULTS_DIR, DISKQ_DIR)
-            
+
             # Set on XNAT
             assessor_obj.attrs.mset({
                 xsitype + '/procstatus': ctask.get_status(),
@@ -451,14 +451,14 @@ def upload_assessor(xnat, assessor_dict):
                 xsitype + '/walltimeused': ctask.get_walltime(),
                 xsitype + '/jobstartdate': ctask.get_jobstartdate()
             })
-            
+
             # Delete the task from diskq
             ctask.delete()
         elif os.path.exists(os.path.join(assessor_dict['path'], _READY_FLAG_FILE)):
             assessor_obj.attrs.set(xsitype + '/procstatus', READY_TO_COMPLETE)
         else:
             assessor_obj.attrs.set(xsitype+'/procstatus', JOB_FAILED)
-            
+
         #Remove the folder
         shutil.rmtree(assessor_dict['path'])
 
@@ -484,17 +484,12 @@ def upload_resource(assessor_obj, resource, resource_path):
         elif len(rfiles_list) > 1 or os.path.isdir(rfiles_list[0]):
             XnatUtils.upload_folder_to_obj(resource_path, assessor_obj.out_resource(resource),
                                            resource, removeall=True)
-        #One or two file, let just upload them:
+        # One or two file, let just upload them:
         else:
             fpath = os.path.join(resource_path, rfiles_list[0])
-            if rfiles_list[0].lower().endswith('.zip'):
-                if assessor_obj.out_resource(resource).exists():
-                    assessor_obj.out_resource(resource).delete()
-                assessor_obj.out_resource(resource).put_zip(fpath, overwrite=True, extract=True)
-            else:
-                XnatUtils.upload_file_to_obj(fpath,
-                                             assessor_obj.out_resource(resource),
-                                             removeall=True)
+            XnatUtils.upload_file_to_obj(fpath,
+                                         assessor_obj.out_resource(resource),
+                                         removeall=True)
 
 def upload_snapshots(assessor_obj, resource_path):
     """
