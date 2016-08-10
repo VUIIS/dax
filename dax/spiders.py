@@ -403,7 +403,7 @@ class Spider(object):
 
     def plot_images_page(self, pdf_path, page_index, nii_images, title,
                          image_labels, slices=None, cmap='gray',
-                         vmins=None, vmaxs=None):
+                         vmins=None, vmaxs=None, volume_ind=None):
         """Plot list of images (3D-4D) on a figure (PDF page).
 
         plot_images_figure will create one pdf page with only images.
@@ -424,6 +424,8 @@ class Spider(object):
             of cmaps for each images with the indices as key
         :param vmins: define vmin for display (dict)
         :param vmaxs: define vmax for display (dict)
+        :param volume_ind: if slices specified and 4D image given,
+                           select volume
         :return: pdf path created
 
         E.g for two images:
@@ -459,12 +461,21 @@ Using default.")
         if isinstance(nii_images, str):
             nii_images = [nii_images]
         number_im = len(nii_images)
+        
+        if slices:
+            self.time_writer('INFO: showing different slices.')
+        else:
+            self.time_writer('INFO: display different plan view \
+(ax/sag/cor) of the mid slice.')
         for index, image in enumerate(nii_images):
             # Open niftis with nibabel
             f_img = nib.load(image)
             data = f_img.get_data()
-            if len(data.shape) == 4:
-                data = data[:, :, :, data.shape[3]/2]
+            if len(data.shape) > 3:
+                if isinstance(volume_ind, int):
+                    data = data[:, :, :, volume_ind]
+                else:
+                    data = data[:, :, :, data.shape[3]/2]
             default_slices = [data.shape[2]/4, data.shape[2]/2,
                               3*data.shape[2]/4]
             default_label = 'Line %s' % index
@@ -474,7 +485,6 @@ Using default.")
                     self.time_writer("Warning: slices wasn't a dictionary. \
 Using default.")
                     slices = {}
-                self.time_writer('INFO: showing different slices.')
                 li_slices = slices.get(str(index), default_slices)
                 slices_number = len(li_slices)
                 for slice_ind, slice_value in enumerate(li_slices):
@@ -492,8 +502,6 @@ Using default.")
                         ax.set_ylabel(image_labels.get(str(index),
                                       default_label), fontsize=9)
             else:
-                self.time_writer('INFO: display different plan view \
-(ax/sag/cor) of the mid slice.')
                 ax = fig.add_subplot(number_im, 3, 3*index+1)
                 data_z_rot = np.rot90(data[:, :, data.shape[2]/2])
                 ax.imshow(data_z_rot, cmap=cmap.get(str(index), default_cmap),
