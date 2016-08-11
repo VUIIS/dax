@@ -493,7 +493,11 @@ class DAX_Settings(object):
 
         :return: String of the results_dir value, None if empty
         """
-        return self.get('cluster', 'results_dir')
+        resultsdir = self.get('cluster', 'results_dir')
+        if resultsdir.startswith('~'):
+            return os.path.expanduser('~') + resultsdir[1:]
+        else:
+            return resultsdir
 
     def get_max_age(self):
         """Get the max_age value from the cluster section.
