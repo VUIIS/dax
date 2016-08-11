@@ -495,7 +495,7 @@ class DAX_Settings(object):
         """
         resultsdir = self.get('cluster', 'results_dir')
         if resultsdir.startswith('~'):
-            return os.path.expanduser('~') + resultsdir[1:]
+            return os.path.join(os.path.expanduser('~'),resultsdir[2:])
         else:
             return resultsdir
 
