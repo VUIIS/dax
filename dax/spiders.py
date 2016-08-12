@@ -621,7 +621,7 @@ Using default.")
         pages = ''
         if isinstance(pdf_pages, dict):
             for key in sorted(pdf_pages.iterkeys()):
-                pages += '%s %s ' % (pages, pdf_pages[key])
+                pages = '%s %s ' % (pages, pdf_pages[key])
         elif isinstance(pdf_pages, list):
             pages = ' '.join(pdf_pages)
         else:
