@@ -521,9 +521,13 @@ class Launcher(object):
                     break
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
-                if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS:
+                if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS or proc_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
                     assessor = csess.full_object().assessor(assr_name)
                     xtask = XnatTask(sess_proc, assessor, DAX_SETTINGS.get_results_dir(), os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'))
+                    
+                    if proc_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
+                        xtask.update_status()
+                    
                     LOGGER.debug('building task:' + assr_name)
                     (proc_status, qc_status) = xtask.build_task(
                         csess,
@@ -607,11 +611,15 @@ class Launcher(object):
                     proc_assr = assr
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
-                if proc_assr == None or proc_assr.info()['procstatus'] in [task.NEED_INPUTS, task.NEED_TO_RUN]:
+                if proc_assr == None or proc_assr.info()['procstatus'] in [task.NEED_INPUTS, task.NEED_TO_RUN] or proc_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
                     # TODO: get session object directly
                     scan = XnatUtils.get_full_object(xnat, scan_info)
                     assessor = scan.parent().assessor(assr_name)
                     xtask = XnatTask(scan_proc, assessor, DAX_SETTINGS.get_results_dir(), os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'))
+                    
+                    if proc_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
+                        xtask.update_status()
+                        
                     LOGGER.debug('building task:' + assr_name)
                     (proc_status, qc_status) = xtask.build_task(
                         cscan,
