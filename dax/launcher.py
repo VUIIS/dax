@@ -525,7 +525,7 @@ class Launcher(object):
                     assessor = csess.full_object().assessor(assr_name)
                     xtask = XnatTask(sess_proc, assessor, DAX_SETTINGS.get_results_dir(), os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'))
                     
-                    if proc_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
+                    if proc_assr != None and proc_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
                         xtask.update_status()
                     
                     LOGGER.debug('building task:' + assr_name)
@@ -617,7 +617,7 @@ class Launcher(object):
                     assessor = scan.parent().assessor(assr_name)
                     xtask = XnatTask(scan_proc, assessor, DAX_SETTINGS.get_results_dir(), os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'))
                     
-                    if proc_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
+                    if proc_assr != None and proc_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
                         xtask.update_status()
                         
                     LOGGER.debug('building task:' + assr_name)
