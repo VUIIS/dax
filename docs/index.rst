@@ -4,7 +4,7 @@ Welcome to DAX's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 3
    
    dax_installation
    dax_xnat_dataypes_install
