@@ -8,11 +8,11 @@ Segments spinal cord MR images using multi atlas algorithms.
 08-15-2016  Ben Yvernault  b.yvernault@ucl.ac.uk
 
 * **Software Requirements**
-**MATLAB
-**ANTS
-**Java
-**mipav
-**JIST
+    * MATLAB
+    * ANTS
+    * Java
+    * mipav
+    * JIST
 
 * **Data Requirements**
 Scans, Processers, Accessors that are input.

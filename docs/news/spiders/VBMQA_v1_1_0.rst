@@ -8,7 +8,9 @@ VBMQA is an SPM8 plugin that normalizes T1 images to a template space and segmen
 08-15-2016  Ben Yvernault  b.yvernault@ucl.ac.uk
 
 * **Software Requirements**
-MATLAB and SPM8 need to be installed.
+    * MATLAB
+    * SPM8
+    * VBM8
 
 * **Data Requirements**
 Scans, Processers, Accessors that are input.
