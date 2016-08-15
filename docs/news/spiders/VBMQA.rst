@@ -2,8 +2,16 @@ VBMQA
 =====
 
 * **What does it do?**
+VBMQA is an SPM8 plugin that normalizes T1 images to a template space and segments them into gray matter (GM), white matter (WM), and cerebrospinal fluid (CSF).
 
-* **Requirements**
+**Current Contact Person**
+08-15-2016  Ben Yvernault  b.yvernault@ucl.ac.uk
+
+* **Software Requirements**
+MATLAB and SPM8 need to be installed.
+
+* **Data Requirements**
+Scans, Processers, Accessors that are input.
 
 * **Resources**
 | OUTLOG - STDOUT and STDERR from the process on the grid
@@ -16,6 +24,7 @@ VBMQA
 | VBM_RESULTS -
 
 * **References**
+http://dbm.neuro.uni-jena.de/vbm8/VBM8-Manual.pdf
 
 * **Version History**
 <revision> <name> <date> <lines changed>
@@ -46,7 +55,4 @@ r1056 | yben | 2013-11-15 15:32:28 -0600 (Fri, 15 Nov 2013) | 1 line
 	Fixing the fix to go from Spider.py to XnatUtils
 r1049 | masispider | 2013-11-15 13:35:55 -0600 (Fri, 15 Nov 2013) | 1 line
 	Organizing the folder in a better way with the cci package comming out soon. One folder for the processors, one for the modules and one for the spider working with the new way
-
-**Current Contact Person**
-<date> <name> <email / URL> 
 
