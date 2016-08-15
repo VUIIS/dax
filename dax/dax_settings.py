@@ -494,6 +494,8 @@ class DAX_Settings(object):
         :return: String of the results_dir value, None if empty
         """
         resultsdir = self.get('cluster', 'results_dir')
+        if resultsdir is None:
+            resultsdir = '/tmp'
         if resultsdir.startswith('~'):
             return os.path.join(os.path.expanduser('~'),resultsdir[2:])
         else:
