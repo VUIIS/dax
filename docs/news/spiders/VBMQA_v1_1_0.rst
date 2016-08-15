@@ -13,7 +13,7 @@ VBMQA is an SPM8 plugin that normalizes T1 images to a template space and segmen
     * VBM8
 
 * **Data Requirements**
-Scans, Processers, Accessors that are input.
+Scans, Processors, Accessors that are input.
 
 * **Offline Compliance**
 This spider is NOT offline compliant because it uses XnatUtils.download_Scan and

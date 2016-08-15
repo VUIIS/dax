@@ -13,7 +13,11 @@ Runs SPM fMRI Preprocess from ZALD grp on GONOGO sequences.
     * VBM8
 
 * **Data Requirements**
-Scans, Processers, Accessors that are input.
+Scans, Processors, Accessors that are input.
+
+* **Offline Compliance**
+This spider is NOT offline compliant because it uses XnatUtils.download_biggest_resources
+and does not accept an '--offline' flag.
 
 * **Resources**
 | OUTLOG - STDOUT and STDERR from the process on the grid
