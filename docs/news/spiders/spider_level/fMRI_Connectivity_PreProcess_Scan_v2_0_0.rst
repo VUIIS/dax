@@ -45,19 +45,19 @@ Data
 
 * Filtering parameter file ``parameter_files/parameters_connectivity_preprocessing_v2.csv``. Contains parameters (with default values)::
 
-    FD_threshold,0.5	"FD threshold to identify bad volumes"
-    DVARS_threshold,5	"DVARS threshold to identify bad volumes"
+    FD_threshold,0.5	"FD threshold to identify bad volumes (no effect unless scrub_flag=1)"
+    DVARS_threshold,5	"DVARS threshold to identify bad volumes (no effect unless scrub_flag=1)"
     bandpasslo_hz,0.01	"Low frequency cutoff for bandpass filter"
     bandpasshi_hz,0.1	"High freq cutoff for bandpass filter"
     n_mot_PCs,6		"Number of PCs of motion parameters to use as confounds (6 to use all)"
-    n_motderiv_PCs,6	"Number of PCS of motion derivatives to use as confounds (6 to use all)"
-    n_wmcsf_PCs,6	"Number of PCS from the eroded white matter/CSF ROI to use as confounds"
+    n_motderiv_PCs,6	"Number of PCs of motion derivatives to use as confounds (6 to use all)"
+    n_wmcsf_PCs,6	"Number of PCs from the eroded white matter/CSF ROI to use as confounds"
     gm_flag,0		"Set 1 to include mean gray matter signal as a confound"
     scrub_flag,0	"Set 1 to include delta function regressors for bad volumes in confounds"
 
-* Gray matter ROI definition file 'parameter_files/rois_allGM.csv' lists multiatlas ROIs that are included in gray matter.
+* Gray matter ROI definition file ``parameter_files/rois_allGM.csv`` lists multiatlas ROIs that are included in gray matter.
 
-* White matter / CSF ROI definition file 'parameter_files/rois_WMCSF.csv' lists multiatlas ROIs that are included in white matter / CSF.
+* White matter / CSF ROI definition file ``parameter_files/rois_WMCSF.csv`` lists multiatlas ROIs that are included in white matter / CSF.
 
 
 
@@ -93,27 +93,27 @@ References
 
 .. _`Behzadi 2007`:
 
-Behzadi Y, Restom K, Liau J, Liu TT. A component based noise correction method (CompCor) for BOLD and perfusion based fMRI. Neuroimage. 2007 Aug 1;37(1):90-101. Epub 2007 May 3. PubMed PMID: 17560126; PubMed Central PMCID: PMC2214855.
+Behzadi Y, Restom K, Liau J, Liu TT. A component based noise correction method (CompCor) for BOLD and perfusion based fMRI. Neuroimage. 2007 Aug 1;37(1):90-101. Epub 2007 May 3. PubMed PMID: 17560126; PubMed Central PMCID: PMC2214855. http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2214855/
 
 .. _`Fox 2009`:
 
-Fox MD, Zhang D, Snyder AZ, Raichle ME. The global signal and observed anticorrelated resting state brain networks. J Neurophysiol. 2009 Jun;101(6):3270-83. doi: 10.1152/jn.90777.2008. Epub 2009 Apr 1. PubMed PMID: 19339462; PubMed Central PMCID: PMC2694109.
+Fox MD, Zhang D, Snyder AZ, Raichle ME. The global signal and observed anticorrelated resting state brain networks. J Neurophysiol. 2009 Jun;101(6):3270-83. doi: 10.1152/jn.90777.2008. Epub 2009 Apr 1. PubMed PMID: 19339462; PubMed Central PMCID: PMC2694109. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2694109/
 
 .. _`Hallquist 2013`:
 
-Hallquist MN, Hwang K, Luna B. The nuisance of nuisance regression: spectral misspecification in a common approach to resting-state fMRI preprocessing reintroduces noise and obscures functional connectivity. Neuroimage. 2013 Nov 15;82:208-25. doi: 10.1016/j.neuroimage.2013.05.116. Epub 2013 Jun 6. PubMed PMID: 23747457; PubMed Central PMCID: PMC3759585.
+Hallquist MN, Hwang K, Luna B. The nuisance of nuisance regression: spectral misspecification in a common approach to resting-state fMRI preprocessing reintroduces noise and obscures functional connectivity. Neuroimage. 2013 Nov 15;82:208-25. doi: 10.1016/j.neuroimage.2013.05.116. Epub 2013 Jun 6. PubMed PMID: 23747457; PubMed Central PMCID: PMC3759585. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3759585/
 
 .. _`Murphy 2009`:
 
-Murphy K, Birn RM, Handwerker DA, Jones TB, Bandettini PA. The impact of global signal regression on resting state correlations: are anti-correlated networks introduced? Neuroimage. 2009 Feb 1;44(3):893-905. doi: 10.1016/j.neuroimage.2008.09.036. Epub 2008 Oct 11. PubMed PMID: 18976716; PubMed Central PMCID: PMC2750906.
+Murphy K, Birn RM, Handwerker DA, Jones TB, Bandettini PA. The impact of global signal regression on resting state correlations: are anti-correlated networks introduced? Neuroimage. 2009 Feb 1;44(3):893-905. doi: 10.1016/j.neuroimage.2008.09.036. Epub 2008 Oct 11. PubMed PMID: 18976716; PubMed Central PMCID: PMC2750906. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2750906/
 
 .. _`Muschelli 2014`:
 
-Muschelli J, Nebel MB, Caffo BS, Barber AD, Pekar JJ, Mostofsky SH. Reduction of motion-related artifacts in resting state fMRI using aCompCor. Neuroimage. 2014 Aug 1;96:22-35. doi: 10.1016/j.neuroimage.2014.03.028. Epub 2014 Mar 18. PubMed PMID: 24657780; PubMed Central PMCID: PMC4043948.
+Muschelli J, Nebel MB, Caffo BS, Barber AD, Pekar JJ, Mostofsky SH. Reduction of motion-related artifacts in resting state fMRI using aCompCor. Neuroimage. 2014 Aug 1;96:22-35. doi: 10.1016/j.neuroimage.2014.03.028. Epub 2014 Mar 18. PubMed PMID: 24657780; PubMed Central PMCID: PMC4043948. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4043948/
 
 .. _`Power 2012`:
 
-Power JD, Barnes KA, Snyder AZ, Schlaggar BL, Petersen SE. Spurious but systematic correlations in functional connectivity MRI networks arise from subject motion. Neuroimage. 2012 Feb 1;59(3):2142-54. doi: 10.1016/j.neuroimage.2011.10.018. Epub 2011 Oct 14. Erratum in: Neuroimage. 2012 Nov 1;63(2):999. PubMed PMID: 22019881; PubMed Central PMCID: PMC3254728. http://www.ncbi.nlm.nih.gov/pmc/articles/pmid/22019881/
+Power JD, Barnes KA, Snyder AZ, Schlaggar BL, Petersen SE. Spurious but systematic correlations in functional connectivity MRI networks arise from subject motion. Neuroimage. 2012 Feb 1;59(3):2142-54. doi: 10.1016/j.neuroimage.2011.10.018. Epub 2011 Oct 14. Erratum in: Neuroimage. 2012 Nov 1;63(2):999. PubMed PMID: 22019881; PubMed Central PMCID: PMC3254728. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3254728/
 
 
 
