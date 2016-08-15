@@ -1,10 +1,12 @@
-ON_MR_sheath_segmentation_v2_0_0
+ON_MR_sheath_segmentation_v2_0_1
 ================================
 
 * **What does it do?**
 Estimates the radius of the optic nerve and surrounding subarachnoid cerebrospinal fluid at each slice which contains optic nerve labels.
 
 v2.0: Iteratively estimates the radius at each slice. Each iteration smooths each parameter with a B-spline. Outliers are reinitialized with the B-spline. The tolerance for outliers and error huberization are iteratively decreased until a smooth solution is converged to. Also now fits a cubic to the centroids to minimize errors from the MAS intialization. 
+
+v2.0.1: Added offline mode allowing for running without XNAT
 
 * **Data Requirements**
 | Heavily T2-weighted 0.6mm isotropic research optic nerve scan
