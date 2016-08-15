@@ -2,6 +2,8 @@ fMRI_Connectivity_PreProcess_Scan
 =================================
 Overview:
 
+Preprocesses a single functional MRI image series in preparation for functional connectivity analysis.
+
 Versions:
 
 .. toctree::
