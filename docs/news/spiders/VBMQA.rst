@@ -4,7 +4,7 @@ VBMQA
 * **What does it do?**
 VBMQA is an SPM8 plugin that normalizes T1 images to a template space and segments them into gray matter (GM), white matter (WM), and cerebrospinal fluid (CSF).
 
-**Current Contact Person**
+* **Current Contact Person**
 08-15-2016  Ben Yvernault  b.yvernault@ucl.ac.uk
 
 * **Software Requirements**
