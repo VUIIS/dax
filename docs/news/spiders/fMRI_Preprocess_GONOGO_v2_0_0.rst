@@ -2,10 +2,20 @@ fMRI_Preprocess_GONOGO_v2_0_0
 =============================
 
 * **What does it do?**
+Runs SPM fMRI Preprocess from ZALD grp on GONOGO sequences.
 
-* **Requirements**
+* **Current Contact Person**
+08-15-2016  Ben Yvernault  b.yvernault@ucl.ac.uk
 
-* **Resources** *
+* **Software Requirements**
+    * MATLAB
+    * SPM8
+    * VBM8
+
+* **Data Requirements**
+Scans, Processers, Accessors that are input.
+
+* **Resources**
 | OUTLOG - STDOUT and STDERR from the process on the grid
 | PBS - The DRMAA compliant batch script to run the job
 | PDF - The output PDF file for determining QA status
@@ -18,7 +28,12 @@ fMRI_Preprocess_GONOGO_v2_0_0
 * **References**
 
 * **Version History**
-<date> <name> <brief description of change>
+
+<revision> <name> <date> <lines changed>
+r4436 | masispider | 2016-03-27 13:01:49 -0500 (Sun, 27 Mar 2016) | 1 line
+    fixed preprocess GONOGO spider
+r4434 | masispider | 2016-03-27 12:45:39 -0500 (Sun, 27 Mar 2016) | 1 line
+    fixed gonogo preprocess 2
+r4433 | masispider | 2016-03-27 12:25:08 -0500 (Sun, 27 Mar 2016) | 1 line
+    added fMRI preprocess GONGO v2 spider
  
-**Current Contact Person**
-<date> <name> <email / URL> 

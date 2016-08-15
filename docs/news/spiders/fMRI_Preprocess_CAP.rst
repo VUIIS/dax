@@ -2,10 +2,20 @@ fMRI_Preprocess_CAP
 ===================
 
 * **What does it do?**
+Runs SPM fMRI Preprocess from ZALD grp on CAP sequences.
 
-* **Requirements**
+* **Current Contact Person**
+08-15-2016  Ben Yvernault  b.yvernault@ucl.ac.uk
 
-* **Resources** *
+* **Software Requirements**
+    * MATLAB
+    * SPM8
+    * VBM8
+
+* **Data Requirements**
+Scans, Processers, Accessors that are input.
+
+* **Resources**
 | OUTLOG - STDOUT and STDERR from the process on the grid
 | PBS - The DRMAA compliant batch script to run the job
 | PDF - The output PDF file for determining QA status
@@ -29,8 +39,3 @@ r2655 | yben | 2015-05-11 09:02:40 -0500 (Mon, 11 May 2015) | 1 line
 r2006 | yben | 2014-10-31 09:48:02 -0500 (Fri, 31 Oct 2014) | 1 line
 	Adding Spider fMRI Preprocess for cap/gonogo/mid sequences for ZALD. Adding processor as well.
 
-**Current Contact Person**
-<date> <name> <email / URL> 
-
-	
-	

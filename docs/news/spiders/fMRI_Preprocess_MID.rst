@@ -2,10 +2,20 @@ fMRI_Preprocess_MID
 ===================
 
 * **What does it do?**
+Runs SPM fMRI Preprocess from ZALD grp on MID sequences.
 
-* **Requirements**
+* **Current Contact Person**
+08-15-2016  Ben Yvernault  b.yvernault@ucl.ac.uk
 
-* **Resources** *
+* **Software Requirements**
+    * MATLAB
+    * SPM8
+    * VBM8
+
+* **Data Requirements**
+Scans, Processers, Accessors that are input.
+
+* **Resources**
 | OUTLOG - STDOUT and STDERR from the process on the grid
 | PBS - The DRMAA compliant batch script to run the job
 | PDF - The output PDF file for determining QA status
@@ -19,8 +29,8 @@ fMRI_Preprocess_MID
 * **References**
 
 * **Version History**
-<revision> <name> <date> <lines changed>
 
+<revision> <name> <date> <lines changed>
 r3059 | parvatp | 2015-07-22 11:37:09 -0500 (Wed, 22 Jul 2015) | 1 line
 	someone broke this spider. fixing the download scan part
 r2960 | bdb | 2015-07-06 10:34:37 -0500 (Mon, 06 Jul 2015) | 1 line
@@ -30,7 +40,3 @@ r2655 | yben | 2015-05-11 09:02:40 -0500 (Mon, 11 May 2015) | 1 line
 r2006 | yben | 2014-10-31 09:48:02 -0500 (Fri, 31 Oct 2014) | 1 line
 	Adding Spider fMRI Preprocess for cap/gonogo/mid sequences for ZALD. Adding processor as well.
 
-
-
-**Current Contact Person**
-<date> <name> <email / URL> 
