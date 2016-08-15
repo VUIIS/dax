@@ -67,7 +67,6 @@ Spider Release News
    NDW_VBM <NDW_VBM>
    NDW_WM <NDW_WM>
    NDW_wm_edat <NDW_wm_edat>
-   NEWS <NEWS>
    NIRSQA <NIRSQA>
    nonrigid_reg_to_ATLAS <nonrigid_reg_to_ATLAS>
    ON_CT_segmentation <ON_CT_segmentation>
