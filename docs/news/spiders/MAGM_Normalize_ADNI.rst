@@ -1,28 +1,10 @@
 MAGM_Normalize_ADNI
 ===================
+Overview:
 
-* **What does it do?**
+Versions:
 
-* **Requirements**
+.. toctree::
+   :maxdepth: 5
 
-* **Resources** *
-| OUTLOG - STDOUT and STDERR from the process on the grid
-| PBS - The DRMAA compliant batch script to run the job
-| PDF - The output PDF file for determining QA status
-| SNAPSHOTS - Thumbnail of the first page of the PDF resource for viewing on XNAT
-| MATLAB -
-| WSEG -
-| WANAT -
-| DEF_FWD_SN -
-| NORM_GM
-| GM -
-| DEF_INV
-| DEF_FWD
-
-* **References**
-
-* **Version History**
-<date> <name> <brief description of change>
- 
-**Current Contact Person**
-<date> <name> <email / URL> 
+   spider_level/MAGM_Normalize_ADNI_v1_0_0
