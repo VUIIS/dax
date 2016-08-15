@@ -2,8 +2,20 @@ SCFusion_v1_0_1
 ===============
 
 * **What does it do?**
+Segments spinal cord MR images using multi atlas algorithms.
 
-* **Requirements**
+* **Current Contact Person**
+08-15-2016  Ben Yvernault  b.yvernault@ucl.ac.uk
+
+* **Software Requirements**
+**MATLAB
+**ANTS
+**Java
+**mipav
+**JIST
+
+* **Data Requirements**
+Scans, Processers, Accessors that are input.
 
 * **Resources**
 | OUTLOG - STDOUT and STDERR from the process on the grid
@@ -25,8 +37,3 @@ SCFusion_v1_0_1
 r2978 | bdb | 2015-07-06 14:20:08 -0500 (Mon, 06 Jul 2015) | 1 line
 	Add suffix_proc option for dax 0.3.1, also change vX.X.X to vX_X_X
 
-**Current Contact Person**
-<date> <name> <email / URL> 
-
-	
-	
