@@ -1,177 +1,96 @@
 Spider Release News
 ===================
-  .. toctree::
-     :maxdepth: 1
+.. toctree::
+   :maxdepth: 2
 
-     ASHS_v1_0_0
-     ASHS_v1_0_1
-     ASHS_v1_1_0
-     ASLQA_Rest_v1_0_0
-     ASLQA_Rest_v1_0_1
-     ASLQA_Rest_v1_0_2
-     ASLQA_Task_v1_0_0
-     ASLQA_v1_0_0
-     ASLQA_v1_0_1
-     ASLQA_v1_0_2
-     ASLQA_v1_0_3
-     ASLQA_v1_0_4
-     ASLQA_v2_0_0
-     ASLQA_v2_1_0
-     ASL_RCBF_v0_0_0
-     ASL_RCBF_v1_0_0
-     ASL_vDEV0
-     AbOrganSeg_Localized_v1_0_0
-     AbOrganSeg_Localized_v1_0_1
-     AbOrganSeg_Localized_v2_0_0
-     AbOrganSeg_Whole_v1_0_0
-     AbOrganSeg_Whole_v2_0_0
-     Amico_VBM_Warp_v1_0_0
-     Bedpost_v0_0_0
-     Bedpost_v1_0_0
-     Cerebellum_Segmentation_v1_0_0
-     Cerebellum_Segmentation_v2_0_0
-     Combine_Generic_FMRI_v1_0_0
-     DOT_v1_0_0
-     FSL_First
-     FreeSurferRecon_v4_0_0
-     FreeSurferRecon_v4_0_1
-     FreeSurferRecon_v4_0_2
-     FreeSurferRecon_v4_0_3
-     FreeSurferRecon_v4_0_4
-     FreeSurferRecon_v4_0_5
-     FreeSurferSingle_v1_0_0
-     Generic_FMRI_v1_0_0
-     Intra_Sess_Reg
-     JHU_Cerebellum_Zhen_v1_0_0
-     JHU_Cerebellum_v1_0_0
-     LST_v1_0_0
-     LST_v1_0_1
-     LST_v1_0_2
-     LST_vDEV0
-     LesionTOADS
-     LesionTOADS_v0.0.0
-     Long_Registration_v1_0_0
-     MAGM_Normalize_ADNI
-     MAGM_Normalize_v1_0_0
-     MGC_Exp_Tractography_v1_0_0
-     MGC_LGN_Tractography
-     MGC_LGN_Tractography_v1_0_0
-     MGC_LGN_Tractography_v2_0_0
-     MGC_LGN_Tractography_v3_0_0
-     MGC_Probmaps_Warp_v1_0_0
-     MGC_Probmaps_v1_0_0
-     MGC_Tractography_Warp_v1_0_0
-     MGC_Tractography_v1_0_0
-     MGC_VD_Tractography_PreProcessing_v1_0_0
-     MRA_vDEV0
-     MaCRUISE_v0_0_0
-     MaCRUISE_v1_0_0
-     MaCRUISE_v1_0_1
-     MaCRUISE_v2_0_0
-     MaCRUISE_v2_0_1
-     MaCRUISEplus_v0_0_0
-     MaCRUISEplus_v1_0_0
-     MultiShotDTIRecon_v1.0.0
-     Multi_Atlas
-     Multi_Atlas_ADNI
-     Multi_Atlas_v2_0_0
-     NDW_VBM_v1_0_0
-     NDW_WM_v1_0_0
-     NIRSQA_v1_0_0
-     ON_CT_segmentation
-     ON_CT_segmentation_v2_0_0
-     ON_CT_segmentation_v3_0_0
-     ON_MR_segmentation
-     ON_MR_segmentation_MM_v1_0_0
-     ON_MR_segmentation_v2_0_0
-     ON_MR_segmentation_v2_1_0
-     ON_MR_segmentation_vDEV1
-     ON_MR_sheath_segmentation
-     ON_MR_sheath_segmentation_v2_0_0
-     Probtrackx2_v0_0_0
-     Probtrackx2_v1_0_0
-     Probtrackx2_v2_0_0
-     Qball_v1_0_0
-     SCFusion_v0_0_0
-     SCFusion_v1_0_0
-     SCFusion_v1_0_1
-     SCFusion_v3_0_0
-     SD_v1_0_0
-     SUIT_Cerebellum_Segmentation_v1_0_0
-     SUIT_v1_0_0
-     SWI_vDEV0
-     Seeleyfmripreproc_v0_0_0
-     Seeleyfmripreproc_v1_0_0
-     SpleenSeg_Localized_v1_0_0
-     SpleenSeg_Localized_v1_0_1
-     SpleenSeg_Localized_v2_0_0
-     Subcortical_Segmentation_v1_0_0
-     Sy_Words_v1_0_0
-     TBSS_pre
-     TRACULA_v1_0_0
-     TRACULA_v1_0_1
-     TRACULA_v1_0_2
-     TRACULA_v1_1_0
-     TRACULA_v1_2_0
-     Temporal_Lobe_v1_0_0
-     Temporal_Lobe_v2_0_0
-     VBMQA
-     VBMQA_v1_1_0
-     VEASL_vDEV0
-     White_Matter_Stamper
-     dtiQA_Amico_Multi
-     dtiQA_Amico_Multi_v1_0_0
-     dtiQA_Multi
-     dtiQA_Multi_v3_0_0
-     dtiQA_Multi_v4_0_0
-     dtiQA_Noddi_Multi
-     dtiQA_v2_0_0
-     dtiQA_v2_0_1
-     dtiQA_v2_1_0
-     dtiQA_v2_1_1
-     dtiQA_v3_0_0
-     dtiQA_v3_0_1
-     dtiQA_v3_1_0
-     dtiQA_v3_1_1
-     dtiQA_v3_1_2
-     dtiQA_v3_1_3
-     dtiQA_v4_0_0
-     dti_tractography
-     example_scan
-     example_session
-     example_subject
-     fMRIQA
-     fMRIQA_v1_0_0
-     fMRIQA_v2_0_0
-     fMRIQA_v2_0_1
-     fMRI_Connectivity_PreProcess_Scan_v1_0_0
-     fMRI_Connectivity_PreProcess_Scan_v2_0_0
-     fMRI_Connectivity_PreProcess_v1_0_0
-     fMRI_Connectivity_Process_Scan_v1_0_0
-     fMRI_Connectivity_Process_Scan_v2_0_0
-     fMRI_Connectivity_Process_Scan_v3_0_0
-     fMRI_Connectivity_Process_v1_0_0
-     fMRI_Connectivity_Unified_process_v1_0_0
-     fMRI_FirstLevel_CAP
-     fMRI_FirstLevel_CAP_v2_0_0
-     fMRI_FirstLevel_GONOGO
-     fMRI_FirstLevel_GONOGO_v2_0_0
-     fMRI_FirstLevel_MID
-     fMRI_FirstLevel_MID_v2_0_0
-     fMRI_Preprocess
-     fMRI_Preprocess_CAP
-     fMRI_Preprocess_CAP_v2_0_0
-     fMRI_Preprocess_GONOGO
-     fMRI_Preprocess_GONOGO_v2_0_0
-     fMRI_Preprocess_MID
-     fMRI_Preprocess_MID_v2_0_0
-     intra_sess_reg
-     intra_sess_reg_OLD
-     labelFusion
-     nonrigid_reg_to_ATLAS
-     pasmri_v1_0_0
-* **Version History**
-<date> <name> <brief description of change>
- 
-**Current Contact Person**
-<date> <name> <email / URL> 
+   AbOrganSeg_Localized <AbOrganSeg_Localized>
+   AbOrganSeg_Whole <AbOrganSeg_Whole>
+   Amico_VBM_Warp <Amico_VBM_Warp>
+   ASHS <ASHS>
+   ASL <ASL>
+   ASL_RCBF <ASL_RCBF>
+   ASLQA <ASLQA>
+   ASLQA_Rest <ASLQA_Rest>
+   ASLQA_Task <ASLQA_Task>
+   AUTOSEG_LEG <AUTOSEG_LEG>
+   Bedpost <Bedpost>
+   Cerebellum_Segmentation <Cerebellum_Segmentation>
+   Combine_Generic_FMRI <Combine_Generic_FMRI>
+   DOT <DOT>
+   dtiQA <dtiQA>
+   dtiQA_Amico_Multi <dtiQA_Amico_Multi>
+   dtiQA_Multi <dtiQA_Multi>
+   dtiQA_Noddi_Multi <dtiQA_Noddi_Multi>
+   example_scan <example_scan>
+   example_session <example_session>
+   example_subject <example_subject>
+   fMRI_Connectivity_PreProcess <fMRI_Connectivity_PreProcess>
+   fMRI_Connectivity_PreProcess_Scan <fMRI_Connectivity_PreProcess_Scan>
+   fMRI_Connectivity_Process <fMRI_Connectivity_Process>
+   fMRI_Connectivity_Process_Scan <fMRI_Connectivity_Process_Scan>
+   fMRI_Connectivity_Unified_process <fMRI_Connectivity_Unified_process>
+   fMRI_FirstLevel_CAP <fMRI_FirstLevel_CAP>
+   fMRI_FirstLevel_GONOGO <fMRI_FirstLevel_GONOGO>
+   fMRI_FirstLevel_MID <fMRI_FirstLevel_MID>
+   fMRI_Preprocess <fMRI_Preprocess>
+   fMRI_Preprocess_CAP <fMRI_Preprocess_CAP>
+   fMRI_Preprocess_GONOGO <fMRI_Preprocess_GONOGO>
+   fMRI_Preprocess_MID <fMRI_Preprocess_MID>
+   fMRIQA <fMRIQA>
+   FreeSurferRecon <FreeSurferRecon>
+   FreeSurferSingle <FreeSurferSingle>
+   FSL_First <FSL_First>
+   Generic_FMRI <Generic_FMRI>
+   intra_sess_reg <intra_sess_reg>
+   intra_sess_reg_OLD <intra_sess_reg_OLD>
+   JHU_Cerebellum <JHU_Cerebellum>
+   JHU_Cerebellum_Zhen <JHU_Cerebellum_Zhen>
+   labelFusion <labelFusion>
+   LesionTOADS <LesionTOADS>
+   Long_Registration <Long_Registration>
+   LST <LST>
+   MaCRUISE <MaCRUISE>
+   MaCRUISEplus <MaCRUISEplus>
+   MAGM_Normalize <MAGM_Normalize>
+   MAGM_Normalize_ADNI <MAGM_Normalize_ADNI>
+   MGC_Exp_Tractography <MGC_Exp_Tractography>
+   MGC_LGN_Tractography <MGC_LGN_Tractography>
+   MGC_Probmaps <MGC_Probmaps>
+   MGC_Probmaps_Warp <MGC_Probmaps_Warp>
+   MGC_Tractography <MGC_Tractography>
+   MGC_Tractography_Warp <MGC_Tractography_Warp>
+   MGC_VD_Tractography_PreProcessing <MGC_VD_Tractography_PreProcessing>
+   MRA <MRA>
+   Multi_Atlas <Multi_Atlas>
+   Multi_Atlas_ADNI <Multi_Atlas_ADNI>
+   MultiShotDTIRecon <MultiShotDTIRecon>
+   NDW_VBM <NDW_VBM>
+   NDW_WM <NDW_WM>
+   NDW_wm_edat <NDW_wm_edat>
+   NEWS <NEWS>
+   NIRSQA <NIRSQA>
+   nonrigid_reg_to_ATLAS <nonrigid_reg_to_ATLAS>
+   ON_CT_segmentation <ON_CT_segmentation>
+   ON_MR_segmentation <ON_MR_segmentation>
+   ON_MR_segmentation_MM <ON_MR_segmentation_MM>
+   ON_MR_sheath_segmentation <ON_MR_sheath_segmentation>
+   pasmri <pasmri>
+   Probtrackx2 <Probtrackx2>
+   Probtrackx2_RAS <Probtrackx2_RAS>
+   Qball <Qball>
+   SCFusion <SCFusion>
+   SD <SD>
+   Seeleyfmripreproc <Seeleyfmripreproc>
+   spider_level <spider_level>
+   SpleenSeg_Localized <SpleenSeg_Localized>
+   Subcortical_Segmentation <Subcortical_Segmentation>
+   SUIT <SUIT>
+   SUIT_Cerebellum_Segmentation <SUIT_Cerebellum_Segmentation>
+   SWI <SWI>
+   Sy_Words <Sy_Words>
+   TBSS_pre <TBSS_pre>
+   Temporal_Lobe <Temporal_Lobe>
+   TRACULA <TRACULA>
+   VBMQA <VBMQA>
+   VEASL <VEASL>
+   White_Matter_Stamper <White_Matter_Stamper>

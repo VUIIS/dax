@@ -1,22 +1,10 @@
-example_subject
-===============
+example_subject.py
+==================
+Overview:
 
-* **What does it do?**
-This is a template file of how to write a "subject" spider.
+Versions:
 
-* **Requirements**
+.. toctree::
+   :maxdepth: 5
 
-* **Resources** *
-
-* **References**
-
-* **Version History**
-v
-r3614 | damons | 2015-10-22 14:28:21 -0500 (Thu, 22 Oct 2015) | 1 line
-	toy example for subject spider
-
-**Current Contact Person**
-<date> <name> <email / URL> 
-
-	
-	
+   spider_level/example_subject
