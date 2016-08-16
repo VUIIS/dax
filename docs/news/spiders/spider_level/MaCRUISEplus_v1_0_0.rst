@@ -4,7 +4,10 @@ MaCRUISEplus_v1_0_0
 * **What does it do?**
 Conduct consistent multi-atlas brain segmentation and cortical surface reconstruction
 
-* **Requirements**
+* **Data Requirements**
+T1, Flair and Multi-atlas Segmentation.
+
+* **Software Requirements**
 Software: MIPAV, JIST, CRUISE, JAVA, MATLAB
 Atlas: BrainCOLOR
 
