@@ -27,6 +27,7 @@ Atlas: BrainCOLOR
 | Thickness - Cortical thickness
 | SegRefine - Final segmentation files refined by CCSE
 
+
 * **References**
 Yuankai Huo, Andrew J Plassard, Aaron Carass, Susan M Resnick, Dzung L Pham, Jerry L Prince, Bennett A Landman "Consistent Cortical Reconstruction and Multi-atlas Brain Segmentation" NeuroImage, 2016.
 
