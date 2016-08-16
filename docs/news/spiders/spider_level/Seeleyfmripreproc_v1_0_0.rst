@@ -4,8 +4,11 @@ Seeleyfmripreproc_v1_0_0
 * **What does it do?**
 Conduct fMRI preprocessing using Seeley pipeline  
 
-* **Requirements**
-Software: MATLAB, FSL, SPM
+* **Data Requirements**
+T1 and resting fMRI MR images
+
+* **Software Requirements**
+MATLAB, FSL, SPM
 
 * **Resources** *
 | OUTLOG - STDOUT and STDERR from the process on the grid
