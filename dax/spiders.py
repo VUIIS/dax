@@ -895,9 +895,11 @@ class AutoSpider(Spider):
         os.mkdir(self.script_dir)
 
         if self.template.startswith('#PYTHON'):
-            self.run_python(self.template, 'example.py')
+            self.run_python(self.template, 'script.py')
         elif self.template.startswith('%MATLAB'):
-            self.run_matlab(self.template, 'example.m')
+            self.run_matlab(self.template, 'script.m')
+        else:
+            self.run_shell(self.template, 'script.sh')
 
     def finish(self):
         print('DEBUG:finish()')
