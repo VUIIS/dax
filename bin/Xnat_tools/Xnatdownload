@@ -229,10 +229,12 @@ def extract_information():
             last_dl_date = None # We don't update the one downloaded already
     return scans_list, asses_list, last_dl_date, old_rows
 
+
 def filter_subj_sess(obj_list):
     """Method to filter the objects by subjects/sessions specified by user.
 
-    :param obj_list: list of xnat objects dictionaries to download (scans or assessors)
+    :param obj_list: list of xnat objects dictionaries to download
+                     (scans or assessors)
     :return: filtered list of objects
     """
     obj_list_subj = list()
@@ -245,27 +247,35 @@ def filter_subj_sess(obj_list):
     if sessions == 'all':
         sessions = None
     if subjects and sessions:
-        obj_list_sess = XnatUtils.filter_list_dicts_regex(obj_list,
-                                                          'subject_label',
-                                                          subjects)
-        obj_list_sess = XnatUtils.filter_list_dicts_regex(obj_list_sess,
-                                                          'session_label',
-                                                          sessions)
+        obj_list_sess = XnatUtils.filter_list_dicts_regex(
+                                obj_list,
+                                'subject_label',
+                                subjects,
+                                full_regex=OPTIONS.full_regex)
+        obj_list_sess = XnatUtils.filter_list_dicts_regex(
+                                obj_list_sess,
+                                'session_label',
+                                sessions,
+                                full_regex=OPTIONS.full_regex)
     elif subjects and not sessions:
-        obj_list_subj = XnatUtils.filter_list_dicts_regex(obj_list,
-                                                          'subject_label',
-                                                          subjects)
+        obj_list_subj = XnatUtils.filter_list_dicts_regex(
+                                obj_list,
+                                'subject_label',
+                                subjects,
+                                full_regex=OPTIONS.full_regex)
     elif sessions and not subjects:
-        obj_list_sess = XnatUtils.filter_list_dicts_regex(obj_list_sess,
-                                                          'session_label',
-                                                          sessions)
+        obj_list_sess = XnatUtils.filter_list_dicts_regex(
+                                obj_list_sess,
+                                'session_label',
+                                sessions,
+                                full_regex=OPTIONS.full_regex)
     else:
         obj_list_subj = obj_list
     return obj_list_subj + obj_list_sess
 
+
 def filter_scans(scans_list):
-    """
-    Method to filter the list of scans from XNAT with the options specified by the user
+    """Method to filter the list of scans from XNAT with the options.
 
     :param scans_list: list of scans dictionaries to download
     :return: filtered list of objects
@@ -277,27 +287,32 @@ def filter_scans(scans_list):
     if not OPTIONS.csvfile and not scan_types and not without:
         return list()
     if scan_types and scan_types != 'all':
-        scans_list = XnatUtils.filter_list_dicts_regex(scans_list,
-                                                       'type',
-                                                       scan_types)
+        scans_list = XnatUtils.filter_list_dicts_regex(
+                            scans_list,
+                            'type',
+                            scan_types,
+                            full_regex=OPTIONS.full_regex)
     if without:
-        scans_list = XnatUtils.filter_list_dicts_regex(scans_list,
-                                                       'type',
-                                                       without,
-                                                       nor=True)
+        scans_list = XnatUtils.filter_list_dicts_regex(
+                            scans_list,
+                            'type',
+                            without,
+                            nor=True,
+                            full_regex=OPTIONS.full_regex)
     if qualities and qualities != 'all':
-        scans_list = XnatUtils.filter_list_dicts_regex(scans_list,
-                                                       'quality',
-                                                       qualities)
+        scans_list = XnatUtils.filter_list_dicts_regex(
+                        scans_list,
+                        'quality',
+                        qualities,
+                        full_regex=OPTIONS.full_regex)
     if without == 'all':
         return list()
     return scans_list
 
-def filter_assessors(asses_list):
-    """
-    Method to filter the list of assessors from XNAT with the options specified by the user
 
-    :param OPTIONS: dictionary of inputs arguments from ArgumentParser.parse_args()
+def filter_assessors(asses_list):
+    """Method to filter the list of assessors from XNAT with the options.
+
     :param asses_list: list of assessors dictionaries to download
     :return: filtered list of objects
     """
@@ -309,22 +324,30 @@ def filter_assessors(asses_list):
     if not OPTIONS.csvfile and not proc_types and not without: ## if not csvfile and proctypes and without or not set, then we don't download anything
         return list()
     if proc_types and proc_types != 'all':
-        asses_list = XnatUtils.filter_list_dicts_regex(asses_list,
-                                                       'proctype',
-                                                       proc_types)
+        asses_list = XnatUtils.filter_list_dicts_regex(
+                            asses_list,
+                            'proctype',
+                            proc_types,
+                            full_regex=OPTIONS.full_regex)
     if without:
-        asses_list = XnatUtils.filter_list_dicts_regex(asses_list,
-                                                       'proctype',
-                                                       without,
-                                                       nor=True)
+        asses_list = XnatUtils.filter_list_dicts_regex(
+                            asses_list,
+                            'proctype',
+                            without,
+                            nor=True,
+                            full_regex=OPTIONS.full_regex)
     if status and status != 'all':
-        asses_list = XnatUtils.filter_list_dicts_regex(asses_list,
-                                                       'procstatus',
-                                                       status)
+        asses_list = XnatUtils.filter_list_dicts_regex(
+                            asses_list,
+                            'procstatus',
+                            status,
+                            full_regex=OPTIONS.full_regex)
     if qcstatus and qcstatus != 'all':
-        asses_list = XnatUtils.filter_list_dicts_regex(asses_list,
-                                                       'qcstatus',
-                                                       qcstatus)
+        asses_list = XnatUtils.filter_list_dicts_regex(
+                            asses_list,
+                            'qcstatus',
+                            qcstatus,
+                            full_regex=OPTIONS.full_regex)
     if without == 'all':
         return list()
     return asses_list
@@ -1006,6 +1029,9 @@ def parse_args():
     #update
     argp.add_argument("--update", dest="update", action="store_true",
                       help="Update the files from XNAT that have been downloaded with the newest version if there is one (not working yet).")
+    #Output
+    argp.add_argument("--fullRegex", dest="full_regex", action='store_true',
+                      help="Use full regex for filtering data.")
     #Output
     argp.add_argument("-o", "--output", dest="outputfile", default=None,
                       help="Write the display in a file giving to this OPTIONS.")

@@ -28,6 +28,7 @@ import gzip
 import dicom
 import shutil
 import random
+import fnmatch
 import zipfile
 import tempfile
 import dicom.UID
@@ -2141,19 +2142,23 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail):
     assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(original)).put(original, original.split('.')[1].upper(), 'ORIGINAL', overwrite=True)
     return True
 
-def filter_list_dicts_regex(list_dicts, key, expressions, nor=False):
+
+def filter_list_dicts_regex(list_dicts, key, expressions, nor=False,
+                            full_regex=False):
     """Filter the list of dictionary from XnatUtils.list_* using the regex.
 
     :param list_dicts: list of dictionaries to filter
     :param key: key from dictionary to filter using regex
     :param expressions: list of regex expressions to use (OR)
-    :param nor: keep if neither regex.match works for the expressions
+    :param full_regex: use full regex
     :return: list of items from the list_dicts that match the regex
     """
     flist = list()
     if nor:
         flist = list_dicts
     for exp in expressions:
+        if not full_regex:
+            exp = fnmatch.translate(exp)
         regex = re.compile(exp)
         if nor:
             flist = [d for d in flist if not regex.match(d[key])]
@@ -2161,6 +2166,7 @@ def filter_list_dicts_regex(list_dicts, key, expressions, nor=False):
             flist.extend([d for d in list_dicts
                           if regex.match(d[key])])
     return flist
+
 
 def clean_directory(directory):
     """
@@ -2983,7 +2989,7 @@ def gunzip_file(file_zipped):
     gzdata = gzfile.read()
     gzfile.close()
     open(file_zipped[:-3],'w').write(gzdata)
-    
+
 
 def find_files(directory, ext):
     """Return the files in subdirectories with the right extension.
@@ -3040,8 +3046,8 @@ def unzip_list(zip_path, directory):
             myzip.extract(member, path)
             li_files.append(path)
     return li_files
-    
-    
+
+
 def read_csv(csv_file, header=None, delimiter=','):
     """Read CSV file (.csv files).
 
@@ -3150,7 +3156,7 @@ def find_dicom_in_folder(folder, recursively=True):
         elif os.path.isdir(ffpath) and recursively:
             dicom_list.extend(find_dicom_in_folder(ffpath, recursively=True))
     return dicom_list
-    
+
 
 def write_dicom(pixel_array, filename, ds_copy, ds_ori, volume_number,
                 series_number, sop_id):
