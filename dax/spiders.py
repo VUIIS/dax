@@ -808,6 +808,7 @@ class AutoSpider(Spider):
                 self.copy_list.append(p[0])
 
         self.src_inputs = vars(args)
+        self.src_inputs['temp_dir'] = self.jobdir # reset in case it changed in parent init
         self.input_dir = os.path.join(self.jobdir, 'INPUT')
         self.script_dir = os.path.join(self.jobdir, 'SCRIPT')
         self.run_inputs = {}
