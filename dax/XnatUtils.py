@@ -528,14 +528,16 @@ class SpiderProcessHandler:
             self.print_msg('INFO: Job ready to be upload, error: '+ str(self.error))
             #make the flag folder
             open(os.path.join(self.directory, task.READY_TO_UPLOAD+'.txt'), 'w').close()
-            #set status to ReadyToUpload
-            self.set_assessor_status(task.READY_TO_UPLOAD)
+            if DAX_SETTINGS.get_launcher_type() == 'xnatq-combined':
+                #set status on XNAT to ReadyToUpload
+                self.set_assessor_status(task.READY_TO_UPLOAD)
         else:
             self.print_msg('INFO: Job failed, check the outlogs, error: '+ str(self.error))
             #make the flag folder
             open(os.path.join(self.directory, task.JOB_FAILED+'.txt'), 'w').close()
-            #set status to JOB_FAILED
-            self.set_assessor_status(task.JOB_FAILED)
+            if DAX_SETTINGS.get_launcher_type() == 'xnatq-combined':
+                  #set status on XNAT to JOB_FAILED
+                  self.set_assessor_status(task.JOB_FAILED)
 
     def clean(self, directory):
         """
