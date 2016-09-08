@@ -1305,17 +1305,18 @@ def is_cscan_usable(cscan):
     """
     return cscan.info()['quality'] == "usable"
 
-def is_cscan_good_type(cscan, types_list):
+def is_cscan_good_type(cscan, types_list, full_regex=False):
     """
     Check to see if the CachedImageScan type is of type(s) specificed by user.
 
     :param cassr: CachedImageScan object from XnatUtils
     :param types_list: List of scan types (regex on)
+    :param full_regex: use full regex expression
     :return: True if type is in the list, False if not.
 
     """
     for exp in types_list:
-        regex = re.compile(exp)
+        regex = extract_exp(exp, full_regex)
         if regex.match(cscan.info()['type']):
             return True
     return False
@@ -1330,17 +1331,18 @@ def is_scan_unusable(scan_obj):
     """
     return scan_obj.attrs.get('xnat:imageScanData/quality') == "unusable"
 
-def is_scan_good_type(scan_obj, types_list):
+def is_scan_good_type(scan_obj, types_list, full_regex=False):
     """
     Check to see if a scan is of good type.
 
     :param scan_obj: Scan EObject from Interface.select()
     :param types_list: List of scan types
+    :param full_regex: use full regex expression
     :return: True if scan is in type list, False if not.
 
     """
     for exp in types_list:
-        regex = re.compile(exp)
+        regex = extract_exp(exp, full_regex)
         if regex.match(scan_obj.attrs.get('xnat:imageScanData/type')):
             return True
     return False
@@ -1429,18 +1431,19 @@ def is_assessor_same_scan_unusable(cscan, proctype):
     else:
         return is_bad_qa(assr_list[0]['qcstatus'])
 
-def is_cassessor_good_type(cassr, types_list):
+def is_cassessor_good_type(cassr, types_list, full_regex=False):
     """
     Check to see if the CachedImageAssessor proctype is of type(s) specificed by user.
 
     :param cassr: CachedImageAssessor object from XnatUtils
     :param types_list: List of proctypes
+    :param full_regex: use full regex expression
     :return: True if proctype is in the list, False if not.
 
     """
     assr_info = cassr.info()
     for exp in types_list:
-        regex = re.compile(exp)
+        regex = extract_exp(exp, full_regex)
         if regex.match(assr_info.info()['proctype']):
             return True
     return False
@@ -1457,19 +1460,20 @@ def is_cassessor_usable(cassr):
     assr_info = cassr.info()
     return is_bad_qa(assr_info['qcstatus'])
 
-def is_assessor_good_type(assessor_obj, types_list):
+def is_assessor_good_type(assessor_obj, types_list, full_regex=False):
     """
     Check to see if an assessor is of good type.
 
     :param assessor_obj: Assessor EObject from Interface.select()
     :param types_list: List of proctypes
+    :param full_regex: use full regex expression
     :return: True if assessor is in proctypes list, False if not.
 
     """
     atype = assessor_obj.attrs.get('xsiType')
     proctype = assessor_obj.attrs.get(atype+'/proctype')
     for exp in types_list:
-        regex = re.compile(exp)
+        regex = extract_exp(exp, full_regex)
         if regex.match(proctype):
             return True
     return False
@@ -2157,15 +2161,25 @@ def filter_list_dicts_regex(list_dicts, key, expressions, nor=False,
     if nor:
         flist = list_dicts
     for exp in expressions:
-        if not full_regex:
-            exp = fnmatch.translate(exp)
-        regex = re.compile(exp)
+        regex = extract_exp(exp, full_regex)
         if nor:
             flist = [d for d in flist if not regex.match(d[key])]
         else:
             flist.extend([d for d in list_dicts
                           if regex.match(d[key])])
     return flist
+
+
+def extract_exp(expression, full_regex=False):
+    """Extract the experession with or without full_regex.
+
+    :param expression: string to filter
+    :param full_regex: using full regex
+    :return: regex Object from re package
+    """
+    if not full_regex:
+        exp = fnmatch.translate(expression)
+    return re.compile(exp)
 
 
 def clean_directory(directory):
