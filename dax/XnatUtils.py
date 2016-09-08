@@ -1444,7 +1444,7 @@ def is_cassessor_good_type(cassr, types_list, full_regex=False):
     assr_info = cassr.info()
     for exp in types_list:
         regex = extract_exp(exp, full_regex)
-        if regex.match(assr_info.info()['proctype']):
+        if regex.match(assr_info['proctype']):
             return True
     return False
 
@@ -1457,8 +1457,7 @@ def is_cassessor_usable(cassr):
      1 if OK.
 
     """
-    assr_info = cassr.info()
-    return is_bad_qa(assr_info['qcstatus'])
+    return is_bad_qa(cassr.info()['qcstatus'])
 
 def is_assessor_good_type(assessor_obj, types_list, full_regex=False):
     """
