@@ -141,16 +141,33 @@ def filter_assessors(assessors_list):
     sessions = get_option_list(OPTIONS.sessions)
     proc_types = get_option_list(OPTIONS.proctypes)
     if subjects and subjects != 'all':
-        assessors_list = filter(lambda x: x['subject_label'] in subjects, assessors_list)
+        assessors_list = XnatUtils.filter_list_dicts_regex(
+                                assessors_list,
+                                'subject_label',
+                                subjects,
+                                full_regex=OPTIONS.full_regex)
     if sessions and sessions != 'all':
-        assessors_list = filter(lambda x: x['session_label'] in sessions, assessors_list)
+        assessors_list = XnatUtils.filter_list_dicts_regex(
+                                assessors_list,
+                                'session_label',
+                                sessions,
+                                full_regex=OPTIONS.full_regex)
     if proc_types and proc_types != 'all':
-        assessors_list = filter(lambda x: x['proctype'] in proc_types, assessors_list)
+        assessors_list = XnatUtils.filter_list_dicts_regex(
+                                assessors_list,
+                                'proctype',
+                                proc_types,
+                                full_regex=OPTIONS.full_regex)
     if OPTIONS.formerstatus and OPTIONS.formerstatus != 'all':
         if OPTIONS.qcstatus:
-            assessors_list = filter(lambda x: x['qcstatus'] in OPTIONS.formerstatus, assessors_list)
+            field_name = 'qcstatus'
         else:
-            assessors_list = filter(lambda x: x['procstatus'] in OPTIONS.formerstatus, assessors_list)
+            field_name = 'procstatus'
+        assessors_list = XnatUtils.filter_list_dicts_regex(
+                                assessors_list,
+                                field_name,
+                                OPTIONS.formerstatus,
+                                full_regex=OPTIONS.full_regex)
     return assessors_list
 
 def delete_resource(assessor_obj, resource_label):
@@ -250,7 +267,11 @@ def set_need_inputs_proctype(assessor_dict):
     list_ni_assessors = XnatUtils.list_assessors(XNAT, assessor_dict['project_id'],
                                                  assessor_dict['subject_label'],
                                                  assessor_dict['session_label'])
-    list_ni_assessors = filter(lambda x: x['proctype'] in OPTIONS.needinputs, list_ni_assessors)
+    list_ni_assessors = XnatUtils.filter_list_dicts_regex(
+                            list_ni_assessors,
+                            'proctype',
+                            OPTIONS.needinputs,
+                            full_regex=OPTIONS.full_regex)
     for a_linked_dict in list_ni_assessors:
         assessor_obj = XnatUtils.select_assessor(XNAT, a_linked_dict['label'])
         if assessor_obj.exists():
@@ -453,6 +474,8 @@ def parse_args():
                       help="Change the quality control status on XNAT.")
     argp.add_argument("--printstatus",dest="printstatus",action="store_true",
                       help="Print status used by DAX to manage assessors.")
+    argp.add_argument("--fullRegex", dest="full_regex", action='store_true',
+                      help="Use full regex for filtering data.")
     return argp
 
 ########################################## MAIN FUNCTION ##########################################
