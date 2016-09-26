@@ -180,7 +180,7 @@ PET_SCAN_ATTRS = [
     'xnat:imageScanData/scanner/manufacturer',
     'xnat:imageScanData/scanner/model',
     'xnat:petScanData/parameters/orientation',
-    'xnat:petScanData/parameters/scanTime',
+    'xnat:petScanData/parameters/startTime',
     'xnat:petScanData/parameters/originalFileName',
     'xnat:petScanData/parameters/systemType',
     'xnat:petScanData/parameters/fileType',
@@ -747,7 +747,7 @@ SKIPPING_PROC_DATA = False
 # TODO: confirm datatypes and variables exist on destination XNAT
 if not XnatUtils.has_dax_datatypes(dst_xnat):
     print('Warning: dax datatypes has not been found on the Destination XNAT \
-(%s) to be able to upload processed data (assessors).' % logs_info['desthost'])
+(%s) to be able to upload processed data (assessors).' % logs_info['DEST_XNAT_HOST'])
     question = 'Do you want to continue and skip the processed data?'
     value = ''
     while value.lower() not in ['yes', 'no', 'n', 'y']:
