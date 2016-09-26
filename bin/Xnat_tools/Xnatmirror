@@ -284,6 +284,8 @@ def copy_attributes(src_obj, dest_obj):
         copy_attrs(src_obj, dest_obj, PET_SCAN_ATTRS)
     elif src_type == 'xnat:ctScanData':
         copy_attrs(src_obj, dest_obj, CT_SCAN_ATTRS)
+    elif src_type == 'xnat:scScanData':
+        copy_attrs(src_obj, dest_obj, SC_SCAN_ATTRS)
     elif src_type == 'proc:genProcData':
         copy_attrs(src_obj, dest_obj, PROC_ATTRS)
     else:
