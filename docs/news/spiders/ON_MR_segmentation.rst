@@ -12,6 +12,7 @@ Segments the eyes, optic nerve and optic chiasm of a research vista scan using m
    spider_level/ON_MR_segmentation_v2_0_0
    spider_level/ON_MR_segmentation_v2_1_0
    spider_level/ON_MR_segmentation_v2_1_1
+   spider_level/ON_MR_segmentation_v2_2_0
 
 **Current Contact Person**
 July 2016 Robert L Harrigan `email <mailto:Rob.L.Harrigan@vanderbilt.edu>`_ / `MASI <https://masi.vuse.vanderbilt.edu/index.php/MASI:Rob_Harrigan>`_

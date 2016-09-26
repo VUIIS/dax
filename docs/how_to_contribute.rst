@@ -1,7 +1,7 @@
 How To Contribute
 =================
 
-We encourage all collaborations! However, we follow a pull-request work flow to help faciliate a simplified code-review process.
+We encourage all collaborations! However, we follow a pull-request work flow to help facilitate a simplified code-review process.
 Note that this is not the fork-pull workflow. If you would like to contribute, we kindly request that any of your work be done in
 a branch. Rules for branching and merging are outlined below:
 
