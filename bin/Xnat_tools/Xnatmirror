@@ -89,6 +89,7 @@ MR_SCAN_ATTRS = [
     'xnat:imageScanData/series_description',
     'xnat:imageScanData/documentation',
     'xnat:imageScanData/frames',
+    'xnat:imageScanData/startTime',
     'xnat:imageScanData/scanner/manufacturer',
     'xnat:imageScanData/scanner/model',
     'xnat:mrScanData/parameters/flip',
