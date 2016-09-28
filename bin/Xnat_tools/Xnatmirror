@@ -490,6 +490,8 @@ def copy_scan(src_scan, dst_scan, scan_cache_dir):
 
     scan_type = src_scan.datatype()
     if not dst_scan.exists():
+        if scan_type == '':
+            scan_type = 'xnat:otherDicomScanData'
         dst_scan.create(scans=scan_type)
         copy_attributes(src_scan, dst_scan)
     elif CHECK_ATTRS:
