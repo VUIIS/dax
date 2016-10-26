@@ -992,7 +992,10 @@ class AutoSpider(Spider):
 
             print('DEBUG:downloading from XNAT:'+src+' to '+dst)
             result =  self.download_xnat_file(src, dst)
-            return result
+            if result:
+                return dst
+            else:
+                return None
 
         elif '/resources/' in src:
             # Handle resource
