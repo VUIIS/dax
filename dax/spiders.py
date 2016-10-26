@@ -778,7 +778,7 @@ class SessionSpider(Spider):
         raise NotImplementedError()
 
 class AutoSpider(Spider):
-    def __init__(self, name, params, outputs, template, datatype='session'):
+    def __init__(self, name, params, outputs, template, datatype='session', version=None):
         self.name = name
         self.params = params
         self.outputs = outputs
@@ -794,7 +794,10 @@ class AutoSpider(Spider):
         print(args)
 
         # Initialize spider with the args
-        super(AutoSpider, self).__init__(name,
+        full_name = name
+        if version:
+            full_name += '_v'+version
+        super(AutoSpider, self).__init__(full_name,
             args.temp_dir, args.proj_label, args.subj_label, args.sess_label,
             xnat_host=args.host, xnat_user=args.user, xnat_pass=None,
             suffix=args.suffix, skip_finish=args.skipfinish)
