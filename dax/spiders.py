@@ -25,11 +25,18 @@ import nibabel as nib
 import subprocess as sb
 from dax import XnatUtils
 from datetime import datetime
+from scipy.misc import imresize
 import matplotlib.pyplot as plt
 from stat import S_IXUSR, ST_MODE
 from shutil import copyfile
 from shutil import copytree
 from string import Template
+
+
+fslswap_val = {0: 'x',
+               1: 'y',
+               2: 'z'}
+
 
 class Spider(object):
     """ Base class for spider """
@@ -271,7 +278,7 @@ class Spider(object):
         self.spider_handler.done()
         self.spider_handler.clean(self.jobdir)
         self.print_end()
-        
+
     def check_executable(self, executable, name):
         """Method to check the executable.
 
@@ -403,7 +410,8 @@ class Spider(object):
 
     def plot_images_page(self, pdf_path, page_index, nii_images, title,
                          image_labels, slices=None, cmap='gray',
-                         vmins=None, vmaxs=None, volume_ind=None):
+                         vmins=None, vmaxs=None, volume_ind=None,
+                         orient='sag'):
         """Plot list of images (3D-4D) on a figure (PDF page).
 
         plot_images_figure will create one pdf page with only images.
@@ -426,6 +434,7 @@ class Spider(object):
         :param vmaxs: define vmax for display (dict)
         :param volume_ind: if slices specified and 4D image given,
                            select volume
+        :param orient: 'ax' or 'cor' or 'sag', default: 'sag'
         :return: pdf path created
 
         E.g for two images:
@@ -441,6 +450,7 @@ class Spider(object):
         vmaxs = {'0':100,
                  '1':150}
         """
+        plt.ioff()
         self.time_writer('INFO: generating pdf page %d with images.'
                          % page_index)
         fig = plt.figure(page_index, figsize=(7.5, 10))
@@ -461,7 +471,7 @@ Using default.")
         if isinstance(nii_images, str):
             nii_images = [nii_images]
         number_im = len(nii_images)
-        
+
         if slices:
             self.time_writer('INFO: showing different slices.')
         else:
@@ -469,8 +479,40 @@ Using default.")
 (ax/sag/cor) of the mid slice.')
         for index, image in enumerate(nii_images):
             # Open niftis with nibabel
-            f_img = nib.load(image)
-            data = f_img.get_data()
+            f_img_ori = nib.load(image)
+            # Reorient for display with python if fslswapdim exists:
+            if True in [os.path.isfile(os.path.join(path, 'fslswapdim')) and
+                        os.access(os.path.join(path, 'fslswapdim'), os.X_OK)
+                        for path in os.environ["PATH"].split(os.pathsep)]:
+                if image.endswith('.nii.gz'):
+                    ext = '.nii.gz'
+                else:
+                    ext = '.nii'
+                image_name = ('%s_reorient%s'
+                              % (os.path.basename(image).split('.')[0], ext))
+                image_reorient = os.path.join(os.path.dirname(image),
+                                              image_name)
+                qform = f_img_ori.header.get_qform()
+                v = np.argmax(np.absolute(qform[0:3, 0:3]), axis=0)
+                neg = {0: '', 1: '', 2: ''}
+                if qform[v[0]][0] < 0:
+                    neg[0] = '-'
+                if qform[v[1]][1] < 0:
+                    neg[1] = '-'
+                if qform[v[2]][2] < 0:
+                    neg[2] = '-'
+                args = '%s%s %s%s %s%s' % (neg[np.where(v == 0)[0][0]],
+                                           fslswap_val[np.where(v == 0)[0][0]],
+                                           neg[np.where(v == 1)[0][0]],
+                                           fslswap_val[np.where(v == 1)[0][0]],
+                                           neg[np.where(v == 2)[0][0]],
+                                           fslswap_val[np.where(v == 2)[0][0]])
+                cmd = 'fslswapdim %s %s %s' % (image, args, image_reorient)
+                os.system(cmd)
+
+                data = nib.load(image_reorient).get_data()
+            else:
+                data = f_img_ori.get_data()
             if len(data.shape) > 3:
                 if isinstance(volume_ind, int):
                     data = data[:, :, :, volume_ind]
@@ -490,8 +532,13 @@ Using default.")
                 for slice_ind, slice_value in enumerate(li_slices):
                     ind = slices_number*index+slice_ind+1
                     ax = fig.add_subplot(number_im, slices_number, ind)
-                    data_z_rot = np.rot90(data[:, :, slice_value])
-                    ax.imshow(data_z_rot,
+                    if orient == 'cor':
+                        dslice = data[:, data.shape[1]/2, :]
+                    elif orient == 'ax':
+                        dslice = data[:, :, data.shape[2]/2]
+                    else:
+                        dslice = data[data.shape[0]/2, :, :]
+                    ax.imshow(np.rot90(np.transpose(dslice), 2),
                               cmap=cmap.get(str(index), default_cmap),
                               vmin=vmins.get(str(index), None),
                               vmax=vmaxs.get(str(index), None))
@@ -502,9 +549,25 @@ Using default.")
                         ax.set_ylabel(image_labels.get(str(index),
                                       default_label), fontsize=9)
             else:
+                # Fix Orientation:
+                dslice = []
+                dslice_z = data[:, :, data.shape[2]/2]
+                if dslice_z.shape[0] != dslice_z.shape[1]:
+                    dslice_z = imresize(dslice_z, (max(dslice_z.shape),
+                                                   max(dslice_z.shape)))
+                dslice_y = data[:, data.shape[1]/2, :]
+                if dslice_y.shape[0] != dslice_y.shape[1]:
+                    dslice_y = imresize(dslice_y, (max(dslice_y.shape),
+                                                   max(dslice_y.shape)))
+                dslice_x = data[data.shape[0]/2, :, :]
+                if dslice_x.shape[0] != dslice_x.shape[1]:
+                    dslice_x = imresize(dslice_x, (max(dslice_x.shape),
+                                                   max(dslice_x.shape)))
+
+                dslice = [dslice_z, dslice_y, dslice_x]
                 ax = fig.add_subplot(number_im, 3, 3*index+1)
-                data_z_rot = np.rot90(data[:, :, data.shape[2]/2])
-                ax.imshow(data_z_rot, cmap=cmap.get(str(index), default_cmap),
+                ax.imshow(np.rot90(np.transpose(dslice[0]), 2),
+                          cmap=cmap.get(str(index), default_cmap),
                           vmin=vmins.get(str(index), None),
                           vmax=vmaxs.get(str(index), None))
                 ax.set_title('Axial', fontsize=7)
@@ -513,15 +576,15 @@ Using default.")
                 ax.set_xticks([])
                 ax.set_yticks([])
                 ax = fig.add_subplot(number_im, 3, 3*index+2)
-                data_y_rot = np.rot90(data[:, data.shape[1]/2, :])
-                ax.imshow(data_y_rot, cmap=cmap.get(str(index), default_cmap),
+                ax.imshow(np.rot90(np.transpose(dslice[1]), 2),
+                          cmap=cmap.get(str(index), default_cmap),
                           vmin=vmins.get(str(index), None),
                           vmax=vmaxs.get(str(index), None))
                 ax.set_title('Coronal', fontsize=7)
                 ax.set_axis_off()
                 ax = fig.add_subplot(number_im, 3, 3*index+3)
-                data_x_rot = np.rot90(data[data.shape[0]/2, :, :])
-                ax.imshow(data_x_rot, cmap=cmap.get(str(index), default_cmap),
+                ax.imshow(np.rot90(np.transpose(dslice[2]), 2),
+                          cmap=cmap.get(str(index), default_cmap),
                           vmin=vmins.get(str(index), None),
                           vmax=vmaxs.get(str(index), None))
                 ax.set_title('Sagittal', fontsize=7)
@@ -534,12 +597,11 @@ Using default.")
                     horizontalalignment='center', fontsize=12)
         plt.figtext(0.5, 0.02, 'Date: %s -- page %d' % (str(date), page_index),
                     horizontalalignment='center', fontsize=8)
-        plt.show()
         fig.savefig(pdf_path, transparent=True, orientation='portrait',
                     dpi=100)
         plt.close(fig)
         return pdf_path
-        
+
     def plot_stats_page(self, pdf_path, page_index, stats_dict, title,
                         tables_number=3, columns_header=['Header', 'Value'],
                         limit_size_text_column1=30,
@@ -563,6 +625,7 @@ Using default.")
         :param limit_size_text_column2: limit of text display in column 2
         :return: pdf path created
         """
+        plt.ioff()
         self.time_writer('INFO: generating pdf page %d with stats.'
                          % page_index)
         cell_text = list()
@@ -600,12 +663,11 @@ Using default.")
                     horizontalalignment='center', fontsize=12)
         plt.figtext(0.5, 0.02, 'Date: %s -- page %d' % (str(date), page_index),
                     horizontalalignment='center', fontsize=8)
-        plt.show()
         fig.savefig(pdf_path, transparent=True, orientation='portrait',
                     dpi=300)
         plt.close(fig)
         return pdf_path
-        
+
     def merge_pdf_pages(self, pdf_pages, pdf_final):
         """Concatenate all pdf pages in the list into a final pdf.
 
@@ -791,7 +853,6 @@ class AutoSpider(Spider):
 
         # Now parse commandline arguments
         args = parser.parse_args()
-        print(args)
 
         # Initialize spider with the args
         super(AutoSpider, self).__init__(name,
