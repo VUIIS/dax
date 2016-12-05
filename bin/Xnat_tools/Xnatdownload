@@ -211,18 +211,18 @@ def extract_information():
         if not projects_list:
             LOGGER.info('ERROR: You do not have access to the projects ID given as a parameter or it does not exist on XNAT.')
             sys.exit()
-        #list of scans and assessors for the all the project cat together.
+        # list of scans and assessors for the all the project cat together.
         for project in projects_list:
             if OPTIONS.scantype: scans_list.extend(XnatUtils.list_project_scans(XNAT, project))
             if OPTIONS.assessortype: asses_list.extend(XnatUtils.list_project_assessors(XNAT, project))
-        #Read previous report
+        # Read previous report
         scans_dl_dict, asses_dl_dict, last_dl_date, old_rows = read_report()
         if OPTIONS.overwrite:
             last_dl_date = None
         elif OPTIONS.update:
             pass
         else:
-            #filter by former download:
+            # filter by former download:
             LOGGER.info('filtering scans and assessors from previous download.')
             scans_list = filter(lambda x: need_download(x, scans_dl_dict, get_option_list(OPTIONS.resourcesS)), scans_list)
             asses_list = filter(lambda x: need_download(x, asses_dl_dict, get_option_list(OPTIONS.resourcesA)), asses_list)
@@ -237,8 +237,6 @@ def filter_subj_sess(obj_list):
                      (scans or assessors)
     :return: filtered list of objects
     """
-    obj_list_subj = list()
-    obj_list_sess = list()
     # Variables:
     subjects = get_option_list(OPTIONS.subject)
     if subjects == 'all':
@@ -246,32 +244,22 @@ def filter_subj_sess(obj_list):
     sessions = get_option_list(OPTIONS.session)
     if sessions == 'all':
         sessions = None
-    if subjects and sessions:
-        obj_list_sess = XnatUtils.filter_list_dicts_regex(
-                                obj_list,
+    obj_list_filtered = obj_list
+    if subjects:
+        print 'Filtering the subjects...'
+        obj_list_filtered = XnatUtils.filter_list_dicts_regex(
+                                obj_list_filtered,
                                 'subject_label',
                                 subjects,
                                 full_regex=OPTIONS.full_regex)
-        obj_list_sess = XnatUtils.filter_list_dicts_regex(
-                                obj_list_sess,
+    if sessions:
+        print 'Filtering the sessions...'
+        obj_list_filtered = XnatUtils.filter_list_dicts_regex(
+                                obj_list_filtered,
                                 'session_label',
                                 sessions,
                                 full_regex=OPTIONS.full_regex)
-    elif subjects and not sessions:
-        obj_list_subj = XnatUtils.filter_list_dicts_regex(
-                                obj_list,
-                                'subject_label',
-                                subjects,
-                                full_regex=OPTIONS.full_regex)
-    elif sessions and not subjects:
-        obj_list_sess = XnatUtils.filter_list_dicts_regex(
-                                obj_list_sess,
-                                'session_label',
-                                sessions,
-                                full_regex=OPTIONS.full_regex)
-    else:
-        obj_list_subj = obj_list
-    return obj_list_subj + obj_list_sess
+    return obj_list_filtered
 
 
 def filter_scans(scans_list):
