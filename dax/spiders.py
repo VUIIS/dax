@@ -508,8 +508,12 @@ Using default.")
                                            neg[np.where(v == 2)[0][0]],
                                            fslswap_val[np.where(v == 2)[0][0]])
                 cmd = 'fslswapdim %s %s %s' % (image, args, image_reorient)
+                self.time_writer('INFO: command: %s' % cmd)
                 os.system(cmd)
 
+                if not os.path.exists(image_reorient) and \
+                   image_reorient.endswith('.nii'):
+                    image_reorient = '%s.gz' % image_reorient
                 data = nib.load(image_reorient).get_data()
             else:
                 data = f_img_ori.get_data()
@@ -521,7 +525,6 @@ Using default.")
             default_slices = [data.shape[2]/4, data.shape[2]/2,
                               3*data.shape[2]/4]
             default_label = 'Line %s' % index
-
             if slices:
                 if not isinstance(slices, dict):
                     self.time_writer("Warning: slices wasn't a dictionary. \
@@ -545,6 +548,7 @@ Using default.")
                     ax.set_title('Slice %d' % slice_value, fontsize=7)
                     ax.set_xticks([])
                     ax.set_yticks([])
+                    ax.set_axis_off()
                     if slice_ind == 0:
                         ax.set_ylabel(image_labels.get(str(index),
                                       default_label), fontsize=9)
