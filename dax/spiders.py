@@ -481,6 +481,7 @@ Using default.")
         for index, image in enumerate(nii_images):
             # Open niftis with nibabel
             f_img_ori = nib.load(image)
+            image_reorient = ''
             # Reorient for display with python if fslswapdim exists:
             if True in [os.path.isfile(os.path.join(path, 'fslswapdim')) and
                         os.access(os.path.join(path, 'fslswapdim'), os.X_OK)
@@ -595,6 +596,8 @@ Using default.")
                 ax.set_title('Sagittal', fontsize=7)
                 ax.set_axis_off()
 
+            if os.path.exists(image_reorient):
+                os.remove(image_reorient)  # remove reorient image.
         fig.tight_layout()
         date = datetime.now()
         # Titles page
