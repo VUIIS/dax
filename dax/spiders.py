@@ -147,23 +147,24 @@ class Spider(object):
         return pyxnat object
 
         """
-        tmp_dict = collections.OrderedDict([('project', self.xnat_project),
-                                            ('subject', self.xnat_subject),
-                                            ('experiment', self.xnat_session)])
-        #try on scan
-        tmp_dict_scan = tmp_dict
+        tmp_dict = collections.OrderedDict(
+                [('project', self.xnat_project),
+                 ('subject', self.xnat_subject),
+                 ('experiment', self.xnat_session)])
+        # try on scan
+        tmp_dict_scan = tmp_dict.copy()
         tmp_dict_scan['scan'] = obj_label
         tmp_dict_scan['resource'] = resource
         xnat_obj = intf.select(self.select_str(tmp_dict_scan))
-        if xnat_obj:
+        if xnat_obj.exists():
             return xnat_obj
         else:
-            #else try assessor
-            tmp_dict_assessor = tmp_dict
+            # else try assessor
+            tmp_dict_assessor = tmp_dict.copy()
             tmp_dict_assessor['assessor'] = obj_label
             tmp_dict_assessor['out/resource'] = resource
             xnat_obj = intf.select(self.select_str(tmp_dict_assessor))
-            if xnat_obj:
+            if xnat_obj.exists():
                 return xnat_obj
             else:
                 err = "No XNAT Object found with the following values: "
