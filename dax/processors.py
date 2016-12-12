@@ -216,7 +216,11 @@ class ScanProcessor(Processor):
         if self.scan_types == 'all':
             return True
         else:
-            return scan_dict['scan_type'] in self.scan_types
+            for exp in self.scan_types:
+                regex = re.compile(exp)
+                if regex.match(scan_dict['scan_type']):
+                    return True
+            return False
 
 class SessionProcessor(Processor):
     """ Session Processor class for processor on a session on XNAT """
