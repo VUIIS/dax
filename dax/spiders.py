@@ -804,6 +804,11 @@ class AutoSpider(Spider):
 
         if datatype == 'scan':
             self.xnat_scan = args.scan_label
+        
+        if args.matlab_bin:
+            self.matlab_bin = args.matlab_bin
+        else:
+            self.matlab_bin = 'matlab'
 
         # Make a list of parameters that need to be copied to our input directory
         for p in params:
@@ -943,7 +948,7 @@ class AutoSpider(Spider):
             f.write(template.substitute(self.run_inputs))
 
         # Run the script
-        XnatUtils.run_matlab(filepath, verbose=True)
+        XnatUtils.run_matlab(filepath, verbose=True, matlab_bin=self.matlab_bin)
 
     def run_shell(self, sh_template, filename):
         filepath = os.path.join(self.script_dir, filename)
