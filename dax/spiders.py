@@ -805,10 +805,8 @@ class AutoSpider(Spider):
         if datatype == 'scan':
             self.xnat_scan = args.scan_label
         
-        if args.matlab_bin:
-            self.matlab_bin = args.matlab_bin
-        else:
-            self.matlab_bin = 'matlab'
+        # Set matlab_bin from args or default to just matlab
+        getattr(args, 'matlab_bin', 'matlab')
 
         # Make a list of parameters that need to be copied to our input directory
         for p in params:
