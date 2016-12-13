@@ -574,7 +574,7 @@ for resource %s : %s"
 
     def plot_images_page(self, pdf_path, page_index, nii_images, title,
                          image_labels, slices=None, cmap='gray',
-                         vmins=None, vmaxs=None, volume_ind=None):
+                         vmins=None, vmaxs=None, volume_ind=None, orient='ax'):
         """Plot list of images (3D-4D) on a figure (PDF page).
 
         See function at the end of the file.
@@ -582,7 +582,7 @@ for resource %s : %s"
         return plot_images(
             pdf_path=pdf_path, page_index=page_index, nii_images=nii_images,
             title=title, image_labels=image_labels, slices=slices, cmap=cmap,
-            vmins=vmins, vmaxs=vmaxs, volume_ind=volume_ind,
+            vmins=vmins, vmaxs=vmaxs, volume_ind=volume_ind, orient=orient,
             time_writer=self.time_writer)
 
     def plot_stats_page(self, pdf_path, page_index, stats_dict, title,
