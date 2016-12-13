@@ -37,6 +37,21 @@ for spiders."
 __version__ = '1.0.0'
 __modifications__ = '26 August 2015 - Original write'
 
+UNICODE_SPIDER = """
+Spider information:
+  -- General --
+    path:    {path}
+    jobdir:  {jobdir}
+    suffix:  {suffix}
+  -- XNAT --
+    host:    {host}
+    user:    {user}
+    project: {project}
+    subject: {subject}
+    session: {session}
+{extra}
+"""
+
 
 class Spider(object):
     """ Base class for spider """
@@ -70,9 +85,9 @@ class Spider(object):
         self.xnat_subject = xnat_subject
         self.xnat_session = xnat_session
         # Xnat connection settings:
-        self.host = self.get_default_value("host", "XNAT_HOST", xnat_host)
-        self.user = self.get_default_value("user", "XNAT_USER", xnat_user)
-        self.pwd = self.get_pwd(xnat_pass, xnat_user)
+        self.host = get_default_value("host", "XNAT_HOST", xnat_host)
+        self.user = get_default_value("user", "XNAT_USER", xnat_user)
+        self.pwd = get_pwd(xnat_host, xnat_user, xnat_pass)
         # Suffix
         if not suffix:
             self.suffix = ""
@@ -88,7 +103,7 @@ class Spider(object):
             if self.suffix[0] != '_':
                 self.suffix = '_'+self.suffix
         # print time writer:
-        self.time_writer = TimedWriter()
+        self.time_writer = TimedWriter(use_date=True)
         # Export the variable:
         os.environ['XNAT_HOST'] = self.host
         os.environ['XNAT_USER'] = self.user
@@ -99,56 +114,47 @@ class Spider(object):
         self.inputs = None
         # data:
         self.data = list()
+        # cmd arguments:
+        self.cmd_args = list()
 
-    def get_default_value(self, variable, env_name, value):
-        """
-        Return the default value for the variable if arg not NULL else
-         env variables defined by the args
+    def __unicode__(self):
+        """ Unicode for spiders."""
+        extra = '  -- Extra --\n'
+        # if inputs
+        if self.inputs:
+            unicode_inputs = '    Inputs:\n'
+            for in_dict in self.inputs:
+                v = ("type: %s - label: %s - res: %s"
+                     % (in_dict.get('type'), in_dict.get('label'),
+                        in_dict.get('resource')))
+                unicode_inputs = '%s        %s\n' % (unicode_inputs, v)
+            extra += unicode_inputs
+        # if data downloaded
+        if self.data:
+            unicode_data = '    Data:\n'
+            for in_dict in self.data:
+                v = ("label: %s - files: %s "
+                     % (in_dict.get('label'), in_dict.get('files')))
+                unicode_data = '%s        %s\n' % (unicode_data, v)
+            extra += unicode_data
+        return UNICODE_SPIDER.format(
+                path=self.spider_path,
+                jobdir=self.jobdir,
+                suffix=self.suffix,
+                host=self.host,
+                user=self.user,
+                project=self.xnat_project,
+                subject=self.xnat_subject,
+                session=self.xnat_session,
+                extra=extra,
+                )
 
-        :param variable: variable name
-        :param env_name: name of the environment variable
-        :param value:    value given by the user
-        :return: default value
-
-        """
-        if value:
-            return value
-        else:
-            if env_name in os.environ and os.environ[env_name] != "":
-                return os.environ[env_name]
-            else:
-                err = """%s not set by user.
-To set it choose one of this solution:
-    Set the option --%s in the spider class
-    Set the environment variable %s
-"""
-                raise ValueError(err % (env_name, variable, env_name))
-
-    def get_pwd(self, pwd, user):
-        """
-        Return the password from env or ask user if the user was set
-
-        :param pwd: password
-        :param user: user
-        :return: default value
-
-        """
-        if pwd:
-            return pwd
-        else:
-            if user:
-                msg = "Enter the password for user '%s' on your XNAT -- %s :"
-                return getpass.getpass(prompt=msg % (user, self.host))
-            else:
-                if "XNAT_PASS" in os.environ and os.environ["XNAT_PASS"] != "":
-                    return os.environ["XNAT_PASS"]
-                else:
-                    err = "XNAT_PASS not set by user."
-                    err += "\n\t   Set the environment variable XNAT_PASS"
-                    raise ValueError(err)
+    def __str__(self):
+        return unicode(self).encode('utf-8')
 
     @staticmethod
     def get_data_dict(otype, label, resource, directory, scan=None):
+        """Create a data_dict for self.inputs from user need."""
         return {'type': otype,
                 'label': label,
                 'resource': resource,
@@ -442,7 +448,8 @@ for resource %s : %s"
                               stdout=sb.PIPE,
                               stderr=sb.PIPE)
             results, _ = pwhich.communicate()
-            if not results or results.startswith('/usr/bin/which: no'):
+            if not results or results.startswith('/usr/bin/which: no') or \
+               results == '':
                 raise Exception("Executable '%s' not found on your computer."
                                 % (name))
         else:
@@ -547,7 +554,7 @@ for resource %s : %s"
         :return: None
         """
         self.time_writer("-- Arguments given to the spider --")
-        for info, value in vars(argument_parse).items():
+        for info, value in sorted(vars(argument_parse).items()):
             self.time_writer("%s : %s" % (info, value))
         self.time_writer("-----------------------------------")
 
@@ -596,6 +603,50 @@ for resource %s : %s"
         """
         return merge_pdfs(pdf_pages, pdf_final, self.time_writer)
 
+    def run_cmd_args(self, matlab=False, matlab_template=None,
+                     suffix=""):
+        """
+        Run a command line via os.system() with arguments set in self.cmd_args
+
+        cmd_args is a dictionary:
+            exe: path to executable to run
+            args: list of arguments to pass (list of dicitonaries):
+                position: int to specify the order of parameters
+                opt: options to set (-i for example) or value in template
+                value: value of the argument
+        :param matlab: matlab script
+        :param matlab_template: template string for matlab script
+        :param suffix: suffix for matlab script name
+        :return: None
+        """
+        if not self.cmd_args:
+            raise Exception("self.cmd_args not defined.")
+        if 'exe' not in self.cmd_args.keys():
+            raise Exception("self.cmd_args doesn't have a key 'exe'.")
+        if 'args' not in self.cmd_args.keys():
+            raise Exception("self.cmd_args doesn't have a key 'args'.")
+        if matlab:
+            if not matlab_template:
+                raise Exception("string template for matlab not set.")
+            mat_args = dict()
+            for arg in self.cmd_args['args']:
+                mat_args[arg['opt']] == arg['value']
+            mat_lines = matlab_template.format(mat_args)
+            name = 'run_matlab_cmd.m'
+            mat_name = 'run_matlab_cmd_%s.m' % suffix if suffix else name
+            matlab_script = os.path.join(self.jobsdir, mat_name)
+            with open(matlab_script, "w") as f:
+                f.writelines(mat_lines)
+            self.time_writer("Running matlab script: %s" % matlab_script)
+            XnatUtils.run_matlab(matlab_script, verbose=True)
+        else:
+            cmd = self.cmd_args['exe']
+            for arg in sorted(self.cmd_args['args'],
+                              key=lambda k: int(k['position'])):
+                cmd += "%s %s " % (arg['opt'], arg['value'])
+            self.time_writer("Running command: %s" % cmd)
+            self.run_system_cmd(cmd)
+
     @staticmethod
     def run_system_cmd(cmd):
         """
@@ -643,6 +694,11 @@ class ScanSpider(Spider):
             xnat_host, xnat_user, xnat_pass,
             suffix, subdir)
         self.xnat_scan = xnat_scan
+
+    def __unicode__(self):
+        """ Unicode for spiders."""
+        unicode_base = super(ScanSpider, self).__unicode__()
+        return unicode_base + '\n    scan:    %s' % self.xnat_scan
 
     def define_spider_process_handler(self):
         """
@@ -1064,7 +1120,7 @@ class TimedWriter(object):
 
         Written by Andrew Plassard (Vanderbilt)
     '''
-    def __init__(self, name=None):
+    def __init__(self, name=None, use_date=False):
         """
         Entry point of TimedWriter class
 
@@ -1074,6 +1130,7 @@ class TimedWriter(object):
         """
         self.start_time = time.localtime()
         self.name = name
+        self.use_date = use_date
 
     def print_stderr_message(self, text):
         """
@@ -1097,13 +1154,17 @@ class TimedWriter(object):
         msg = ""
         if self.name:
             msg = "[%s]" % self.name
-        time_now = time.localtime()
-        time_diff = time.mktime(time_now)-time.mktime(self.start_time)
-        (days, res) = divmod(time_diff, 86400)
-        (hours, res) = divmod(res, 3600)
-        (mins, secs) = divmod(res, 60)
-        msg = ("%s[%dd %02dh %02dm %02ds] %s"
-               % (msg, days, hours, mins, secs, text))
+        if self.use_date:
+            now = datetime.now()
+            msg = "%s[%s] %s" % (msg, now.strftime("%Y-%m-%d %H:%M:%S"), text)
+        else:
+            time_now = time.localtime()
+            time_diff = time.mktime(time_now)-time.mktime(self.start_time)
+            (days, res) = divmod(time_diff, 86400)
+            (hours, res) = divmod(res, 3600)
+            (mins, secs) = divmod(res, 60)
+            msg = ("%s[%dd %02dh %02dm %02ds] %s"
+                   % (msg, days, hours, mins, secs, text))
         print >> pipe, msg
 
     def __call__(self, text, pipe=sys.stdout):
@@ -1119,6 +1180,56 @@ class TimedWriter(object):
 
 
 # Functions
+def get_default_value(variable, env_name, value):
+    """
+    Return the default value for the variable if arg not NULL else
+     env variables defined by the args
+
+    :param variable: variable name
+    :param env_name: name of the environment variable
+    :param value:    value given by the user
+    :return: default value
+
+    """
+    if value:
+        return value
+    else:
+        if env_name in os.environ and os.environ[env_name] != "":
+            return os.environ[env_name]
+        else:
+            err = """%s not set by user.
+To set it choose one of this solution:
+Set the option --%s in the spider class
+Set the environment variable %s
+"""
+            raise ValueError(err % (env_name, variable, env_name))
+
+
+def get_pwd(host, user, pwd):
+    """
+    Return the password from env or ask user if the user was set
+
+    :param host: xnat host
+    :param user: xnat user
+    :param pwd: password
+    :return: default value
+
+    """
+    if pwd:
+        return pwd
+    else:
+        if user:
+            msg = "Enter the password for user '%s' on your XNAT -- %s :"
+            return getpass.getpass(prompt=msg % (user, host))
+        else:
+            if "XNAT_PASS" in os.environ and os.environ["XNAT_PASS"] != "":
+                return os.environ["XNAT_PASS"]
+            else:
+                err = "XNAT_PASS not set by user."
+                err += "\n\t   Set the environment variable XNAT_PASS"
+                raise ValueError(err)
+
+
 def get_default_argparser(name, description):
     """
     Return default argparser arguments for all Spider
