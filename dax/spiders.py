@@ -596,7 +596,7 @@ for resource %s : %s"
             limit_size_text_column2=limit_size_text_column2,
             time_writer=self.time_writer)
 
-    def merge_pdf(self, pdf_pages, pdf_final):
+    def merge_pdf_pages(self, pdf_pages, pdf_final):
         """Concatenate all pdf pages in the list into a final pdf.
 
         See function at the end of the file.
