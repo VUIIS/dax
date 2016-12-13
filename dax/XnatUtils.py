@@ -1480,7 +1480,7 @@ def is_bad_qa(qcstatus):
     :return: -1 if bad, 1 if not bad, 0 if still in progress (NOTE: doesn't follow boolean logic)
 
     """
-    if qcstatus in [task.JOB_PENDING, task.NEEDS_QA, task.REPROC, task.FAILED_NEEDS_REPROC]:
+    if qcstatus in [task.JOB_PENDING, task.NEEDS_QA, task.REPROC, task.RERUN, task.FAILED_NEEDS_REPROC]:
         return 0
     for qc in task.BAD_QA_STATUS:
         if qc.lower() in qcstatus.split(' ')[0].lower():
