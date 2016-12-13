@@ -19,7 +19,7 @@ import numpy as np
 import os
 import re
 from scipy.misc import imresize
-from shutil import copyfile, copytree, copy, rmtree
+from shutil import copyfile, copytree
 from stat import S_IXUSR, ST_MODE
 from string import Template
 import subprocess as sb
@@ -115,7 +115,7 @@ class Spider(object):
         # Inputs:
         self.inputs = None
         # data:
-        self.data = list()
+        self.data = dict()
         # cmd arguments:
         self.cmd_args = list()
 
@@ -134,9 +134,11 @@ class Spider(object):
         # if data downloaded
         if self.data:
             unicode_data = '    Data:\n'
-            for in_dict in self.data:
-                v = ("label: %s - files: %s "
-                     % (in_dict.get('label'), in_dict.get('files')))
+            for label, li_inputs in self.data.items():
+                v = "label: %s\n" % label
+                for res_name, files in li_inputs.items():
+                    v = ("%s\t  - resource: %s - files: %s\n"
+                         % (v, res_name, files))
                 unicode_data = '%s        %s\n' % (unicode_data, v)
             extra += unicode_data
         scan_str = '\n    scan:%s' % self.xnat_scan if self.xnat_scan else ''
@@ -209,7 +211,7 @@ class Spider(object):
         keys:
             'type': 'scan' or 'assessor' or 'subject' or 'project' or 'session'
             'label': label on XNAT (not needed for session/subject/project)
-            'resource': name of resource to download
+            'resource': name of resource to download or list of resources
             'dir': directory to download files into (optional)
           - for assessor only if not giving the label but just proctype
             'scan': id of the scan for the assessor (if None, sessionAssessor)
@@ -234,44 +236,37 @@ self.inputs not define in your spider.')
             if not isinstance(data_dict, dict):
                 raise Exception('ERROR: data in self.inputs is not a dict: %s'
                                 % data_dict)
-            if 'dir' in data_dict.keys():
-                data_folder = os.path.join(input_dir, data_dict['dir'])
+            if isinstance(data_dict['resource'], list):
+                resources = data_dict['resource']
             else:
-                data_folder = os.path.join(input_dir, data_dict['label'])
-            self.time_writer(' downloading %s for %s into %s'
-                             % (data_dict['resource'], data_dict['label'],
-                                data_folder))
-            if not os.path.isdir(data_folder):
-                os.makedirs(data_folder)
-            xnat_dict = self.get_xnat_dict(data_dict)
-            res_str = self.select_str(xnat_dict)
-            resource_obj = xnat.select(res_str)
-            resource_obj.get(data_folder, extract=True)
-            resource_dir = os.path.join(data_folder, resource_obj.label())
-            # Move files to the data_folder
-            for src in os.listdir(resource_dir):
-                src_path = os.path.join(resource_dir, src)
-                if os.path.isdir(src_path):
-                    copytree(src_path, data_folder)
-                elif os.path.isfile(src_path):
-                    copy(src_path, data_folder)
-            rmtree(resource_dir)
-            # Get all the files downloaded
-            list_files = list()
-            for root, _, filenames in os.walk(data_folder):
-                list_files.extend([os.path.join(root, filename)
-                                   for filename in filenames])
-            item = [d for d in self.data if d['label'] == data_dict['label']]
-            if item:
-                item[0]['files'] = list(set(list_files+item[0]['files']))
+                resources = [data_dict['resource']]
+            list_inputs = dict()
+            for res in resources:
+                if 'dir' in data_dict.keys():
+                    data_folder = os.path.join(input_dir, data_dict['dir'])
+                else:
+                    data_folder = os.path.join(input_dir, data_dict['label'])
+                self.time_writer(' downloading %s for %s into %s'
+                                 % (res, data_dict['label'], data_folder))
+                if not os.path.isdir(data_folder):
+                    os.makedirs(data_folder)
+                xnat_dict = self.get_xnat_dict(data_dict, res)
+                res_str = self.select_str(xnat_dict)
+                resource_obj = xnat.select(res_str)
+                resource_obj.get(data_folder, extract=True)
+                resource_dir = os.path.join(data_folder, resource_obj.label())
+                list_files = list()
+                for root, _, filenames in os.walk(resource_dir):
+                    list_files.extend([os.path.join(root, filename)
+                                       for filename in filenames])
+                list_inputs[res] = list_files
+            if data_dict['label'] in self.data.keys():
+                self.data[data_dict['label']].update(list_inputs)
             else:
-                self.data.append({
-                    'label': data_dict['label'],
-                    'files': list_files
-                })
+                self.data[data_dict['label']] = list_inputs
         xnat.disconnect()
 
-    def get_xnat_dict(self, data_dict):
+    def get_xnat_dict(self, data_dict, resource):
         """Return a OrderedDict dictionary with XNAT information.
 
         keys:
@@ -313,9 +308,9 @@ self.inputs not define in your spider.')
                 xdict['assessor'] = self.get_assessor_label(label, scan_id)
 
         if data_dict == 'assessor':
-            xdict['out/resource'] = data_dict.get('resource', None)
+            xdict['out/resource'] = resource
         else:
-            xdict['resource'] = data_dict.get('resource', None)
+            xdict['resource'] = resource
         return xdict
 
     def get_assessor_label(self, label, scan):
