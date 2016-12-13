@@ -40,6 +40,7 @@ __modifications__ = '26 August 2015 - Original write'
 UNICODE_SPIDER = """
 Spider information:
   -- General --
+    type:    {type}
     path:    {path}
     jobdir:  {jobdir}
     suffix:  {suffix}
@@ -48,7 +49,7 @@ Spider information:
     user:    {user}
     project: {project}
     subject: {subject}
-    session: {session}
+    session: {session}{scan}
 {extra}
 """
 
@@ -84,6 +85,7 @@ class Spider(object):
         self.xnat_project = xnat_project
         self.xnat_subject = xnat_subject
         self.xnat_session = xnat_session
+        self.xnat_scan = None
         # Xnat connection settings:
         self.host = get_default_value("host", "XNAT_HOST", xnat_host)
         self.user = get_default_value("user", "XNAT_USER", xnat_user)
@@ -137,7 +139,9 @@ class Spider(object):
                      % (in_dict.get('label'), in_dict.get('files')))
                 unicode_data = '%s        %s\n' % (unicode_data, v)
             extra += unicode_data
+        scan_str = '\n    scan:%s' % self.xnat_scan if self.xnat_scan else ''
         return UNICODE_SPIDER.format(
+                type='Scan' if self.xnat_scan else 'Session',
                 path=self.spider_path,
                 jobdir=self.jobdir,
                 suffix=self.suffix,
@@ -146,6 +150,7 @@ class Spider(object):
                 project=self.xnat_project,
                 subject=self.xnat_subject,
                 session=self.xnat_session,
+                scan=scan_str,
                 extra=extra,
                 )
 
@@ -694,11 +699,6 @@ class ScanSpider(Spider):
             xnat_host, xnat_user, xnat_pass,
             suffix, subdir)
         self.xnat_scan = xnat_scan
-
-    def __unicode__(self):
-        """ Unicode for spiders."""
-        unicode_base = super(ScanSpider, self).__unicode__()
-        return unicode_base + '\n    scan:    %s' % self.xnat_scan
 
     def define_spider_process_handler(self):
         """
