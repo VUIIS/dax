@@ -29,7 +29,8 @@ def set_logger(logfile, debug):
         logger = log.setup_info_logger('dax', logfile)
     return logger
 
-def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None, writeonly=False, pbsdir=None):
+def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
+                writeonly=False, pbsdir=None, local=False):
     """
     Method to launch jobs on the grid
 
@@ -40,6 +41,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None, wri
     :param sessions: Session(s) that need to be updated
     :param writeonly:  write the job files without submitting them
     :param pbsdir: folder to store the pbs file
+    :param local: run the job locally on the computer (serial mode)
     :return: None
 
     """
@@ -56,7 +58,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None, wri
     # Run the updates
     logger.info('running update, Start Time:'+str(datetime.now()))
     try:
-        settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions, writeonly, pbsdir)
+        settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions, writeonly, pbsdir, local=local)
     except Exception as e:
         logger.critical('Caught exception launching jobs in bin.launch_jobs')
         logger.critical('Exception Class %s with message %s' % (e.__class__, e.message))
@@ -91,8 +93,8 @@ def build(settings_path, logfile, debug, projects=None, sessions=None, mod_delta
         settings.myLauncher.build(lockfile_prefix, projects, sessions, mod_delta=mod_delta)
     except Exception as e:
         logger.critical('Caught exception building Project in bin.build')
-        logger.critical('Exception Class %s with message %s' % (e.__class__, e.message))      
-    
+        logger.critical('Exception Class %s with message %s' % (e.__class__, e.message))
+
     logger.info('finished build, End Time: '+str(datetime.now()))
 
 def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
