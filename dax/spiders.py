@@ -13,6 +13,7 @@ import csv
 import getpass
 from dax import XnatUtils
 from datetime import datetime
+from scipy.misc import imresize
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
@@ -52,6 +53,12 @@ Spider information:
     session: {session}{scan}
 {extra}
 """
+
+
+
+fslswap_val = {0: 'x',
+               1: 'y',
+               2: 'z'}
 
 
 class Spider(object):
@@ -177,23 +184,24 @@ class Spider(object):
         return pyxnat object
 
         """
-        tmp_dict = collections.OrderedDict([('project', self.xnat_project),
-                                            ('subject', self.xnat_subject),
-                                            ('experiment', self.xnat_session)])
-        # Check the scan
+        tmp_dict = collections.OrderedDict(
+                [('project', self.xnat_project),
+                 ('subject', self.xnat_subject),
+                 ('experiment', self.xnat_session)])
+        # try on scan
         tmp_dict_scan = tmp_dict.copy()
         tmp_dict_scan['scan'] = obj_label
         tmp_dict_scan['resource'] = resource
         xnat_obj = intf.select(self.select_str(tmp_dict_scan))
-        if xnat_obj:
+        if xnat_obj.exists():
             return xnat_obj
         else:
-            # Otherwise check the assessor
+            # else try assessor
             tmp_dict_assessor = tmp_dict.copy()
             tmp_dict_assessor['assessor'] = obj_label
             tmp_dict_assessor['out/resource'] = resource
             xnat_obj = intf.select(self.select_str(tmp_dict_assessor))
-            if xnat_obj:
+            if xnat_obj.exists():
                 return xnat_obj
             else:
                 # Error: not on XNAT
@@ -820,7 +828,6 @@ class AutoSpider(Spider):
 
         # Now parse commandline arguments
         args = parser.parse_args()
-        print(args)
 
         # Initialize spider with the args
         super(AutoSpider, self).__init__(
