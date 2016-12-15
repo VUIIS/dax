@@ -453,8 +453,15 @@ class Task(object):
                 raise cluster.ClusterLaunchException
             else:
                 self.set_launch(jobid)
-                if (force_no_qsub or not cluster.command_found(DAX_SETTINGS.get_cmd_submit())) and job_failed:
-                    self.set_status(JOB_FAILED)
+                if (force_no_qsub or not cluster.command_found(DAX_SETTINGS.get_cmd_submit())):
+                    if job_failed:
+                        LOGGER.info('             * changing status to %s'
+                                    % JOB_FAILED)
+                        self.set_status(JOB_FAILED)
+                    else:
+                        LOGGER.info('             * changing status to %s'
+                                    % READY_TO_UPLOAD)
+                        # Status already set in the spider
                 return True
 
     def check_date(self):
