@@ -179,6 +179,13 @@ def get_job_node(jobid, diff_days):
     if not jobid:
         return jobnode
 
+    if jobid == 'no_qsub':
+        cmd = 'uname -a'
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        if output and len(output.strip().split(' ')) > 1:
+            jobnode = output.strip().split(' ')[1]
+        return jobnode
+
     cmd = DAX_SETTINGS.get_cmd_get_job_node().safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
@@ -305,15 +312,14 @@ def submit_job(filename, outlog=None, force_no_qsub=False):
             jobid = '0'
     else:
         cmd = 'sh %s' % (filename)
-        if outlog:
-            cmd = '%s >> %s' % (cmd, outlog)
-        os.system(cmd)
         proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
         output, error = proc.communicate()
         if outlog:
             with open(outlog, 'w') as log_obj:
                 for line in output:
+                    log_obj.write(line)
+                for line in error:
                     log_obj.write(line)
         if error:
             # Set the status to JOB_FAILED
