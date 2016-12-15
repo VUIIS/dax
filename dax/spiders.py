@@ -13,7 +13,6 @@ import csv
 import getpass
 from dax import XnatUtils
 from datetime import datetime
-from scipy.misc import imresize
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
@@ -27,16 +26,6 @@ import subprocess as sb
 import sys
 import time
 
-FSLSWAP_VAL = {0: 'x',
-               1: 'y',
-               2: 'z'}
-
-__author__ = 'Benjamin Yvernault'
-__email__ = 'b.yvernault@ucl.ac.uk'
-__purpose__ = "Spider base class, Scan and Session spider class, and Utils \
-for spiders."
-__version__ = '1.0.0'
-__modifications__ = '26 August 2015 - Original write'
 
 UNICODE_SPIDER = """
 Spider information:
@@ -54,9 +43,7 @@ Spider information:
 {extra}
 """
 
-
-
-fslswap_val = {0: 'x',
+FSLSWAP_VAL = {0: 'x',
                1: 'y',
                2: 'z'}
 
@@ -230,6 +217,7 @@ class Spider(object):
 
         set self.data, a python list of the data downloaded.
         """
+        self.time_writer('-------- download_inputs --------')
         if not self.inputs:
             raise Exception('ERROR using download_inputs(): \
 self.inputs not define in your spider.')
@@ -273,6 +261,7 @@ self.inputs not define in your spider.')
             else:
                 self.data[data_dict['label']] = list_inputs
         xnat.disconnect()
+        self.time_writer('-----------------------------------')
 
     def get_xnat_dict(self, data_dict, resource):
         """Return a OrderedDict dictionary with XNAT information.
@@ -443,7 +432,7 @@ for resource %s : %s"
         self.spider_handler.clean(self.jobdir)
         self.print_end()
 
-    def check_executable(self, executable, name):
+    def check_executable(self, executable, name, version_opt='--version'):
         """Method to check the executable.
 
         :param executable: executable path
@@ -451,31 +440,37 @@ for resource %s : %s"
         :return: Complete path to the executable
         """
         if executable == name:
-            # Check the output of which:
-            pwhich = sb.Popen(['which', executable],
-                              stdout=sb.PIPE,
-                              stderr=sb.PIPE)
-            results, _ = pwhich.communicate()
-            if not results or results.startswith('/usr/bin/which: no') or \
-               results == '':
+            if not XnatUtils.executable_exists(executable):
                 raise Exception("Executable '%s' not found on your computer."
                                 % (name))
         else:
             executable = os.path.abspath(executable)
-            if executable.endswith(name):
-                pass
-            elif os.path.isdir(executable):
-                executable = os.path.join(executable, name)
-            if not os.path.exists(executable):
+            if not executable.endswith(name):
+                if os.path.isdir(executable):
+                    executable = os.path.join(executable, name)
+                else:
+                    msg = "Error for executable path '%s': Wrong name."
+                    raise Exception(msg % (executable))
+            if not os.path.isfile(executable):
                 raise Exception("Executable '%s' not found" % (executable))
 
-        pversion = sb.Popen([executable, '--version'],
+        self.get_exe_version(executable, version_opt)
+        return executable
+
+    def get_exe_version(self, executable, version_opt='--version'):
+        """Method to check the executable.
+
+        :param executable: executable to run
+        :param version_opt: options to get the version of the executable
+        :return: version
+        """
+        pversion = sb.Popen([executable, version_opt],
                             stdout=sb.PIPE,
                             stderr=sb.PIPE)
         nve_version, _ = pversion.communicate()
-        self.time_writer('%s version: %s' %
-                         (name, nve_version.strip()))
-        return executable
+        self.time_writer('Executable <%s> version: %s' %
+                         (executable, nve_version.strip()))
+        return nve_version
 
     def pre_run(self):
         """
@@ -611,49 +606,88 @@ for resource %s : %s"
         """
         return merge_pdfs(pdf_pages, pdf_final, self.time_writer)
 
-    def run_cmd_args(self, matlab=False, matlab_template=None,
-                     suffix=""):
+    def run_cmd_args(self):
         """
         Run a command line via os.system() with arguments set in self.cmd_args
 
         cmd_args is a dictionary:
-            exe: path to executable to run
-            args: list of arguments to pass (list of dicitonaries):
-                position: int to specify the order of parameters
-                opt: options to set (-i for example) or value in template
-                value: value of the argument
-        :param matlab: matlab script
-        :param matlab_template: template string for matlab script
-        :param suffix: suffix for matlab script name
+            exe: executable to use (matlab, python, sh)
+            template: string defining the command line with argument
+            args: dictionary with:
+                    key = argument
+                    value = value to set
+            filename: name for the file if written into a file (optional)
         :return: None
         """
+        self.time_writer('-------- run_cmd_args --------')
+        # Check cmd_args set by user:
         if not self.cmd_args:
             raise Exception("self.cmd_args not defined.")
         if 'exe' not in self.cmd_args.keys():
             raise Exception("self.cmd_args doesn't have a key 'exe'.")
+        elif not XnatUtils.executable_exists(self.cmd_args['exe']):
+            raise Exception("Executable not found: %s." % self.cmd_args['exe'])
+        if 'template' not in self.cmd_args.keys():
+            raise Exception("self.cmd_args doesn't have a key 'template'.")
         if 'args' not in self.cmd_args.keys():
             raise Exception("self.cmd_args doesn't have a key 'args'.")
-        if matlab:
-            if not matlab_template:
-                raise Exception("string template for matlab not set.")
-            mat_args = dict()
-            for arg in self.cmd_args['args']:
-                mat_args[arg['opt']] == arg['value']
-            mat_lines = matlab_template.format(mat_args)
-            name = 'run_matlab_cmd.m'
-            mat_name = 'run_matlab_cmd_%s.m' % suffix if suffix else name
-            matlab_script = os.path.join(self.jobsdir, mat_name)
-            with open(matlab_script, "w") as f:
-                f.writelines(mat_lines)
-            self.time_writer("Running matlab script: %s" % matlab_script)
-            XnatUtils.run_matlab(matlab_script, verbose=True)
+
+        # Add options to matlab if it's not present in the exe
+        cmd = ''
+        template = Template(self.cmd_args['template'])
+        exe = self.cmd_args['exe']
+        if exe.lower() == 'matlab':
+            exe = 'matlab -singleCompThread -nodesktop -nosplash < '
+            # add file to run the matlab command if not set
+            if 'filename' not in self.cmd_args.keys():
+                self.cmd_args['filename'] = os.path.join(
+                        self.jobsdir, 'run_%s_matlab.m' % self.xnat_session)
+
+        # Write the template in file and call the executable on the file
+        if 'filename' in self.cmd_args.keys():
+            if not os.path.exists(os.path.dirname(self.cmd_args['filename'])):
+                raise Exception("Folder for %s does not exist."
+                                % os.path.dirname(self.cmd_args['filename']))
+            with open(self.cmd_args['filename'], 'w') as f:
+                f.write(template.substitute(self.cmd_args['args']))
+            cmd = '%s %s' % (exe, self.cmd_args['filename'])
         else:
-            cmd = self.cmd_args['exe']
-            for arg in sorted(self.cmd_args['args'],
-                              key=lambda k: int(k['position'])):
-                cmd += "%s %s " % (arg['opt'], arg['value'])
-            self.time_writer("Running command: %s" % cmd)
-            self.run_system_cmd(cmd)
+            # Run the template directly with the exe:
+            #  check if exe not already present in template
+            if not self.cmd_args['template'].startswith(exe):
+                cmd = exe
+            cmd = '%s %s' % (cmd, template.substitute(self.cmd_args['args']))
+
+        self.time_writer("Running command: %s" % cmd)
+        self.execute_cmd(cmd)
+        self.time_writer('-----------------------------------')
+
+    def execute_cmd(self, cmd):
+        """
+        Execute a command and print in time the output using subprocess
+
+        :param cmd: command to run
+        :return: None
+        """
+        process = sb.Popen(cmd, shell=True, stdout=sb.PIPE, stderr=sb.STDOUT)
+
+        # Poll process for new output until finished
+        while True:
+            nextline = process.stdout.readline()
+            if nextline == '' and process.poll() is not None:
+                break
+            # sys.stdout.write(nextline)
+            # sys.stdout.flush()
+            self.time_writer(nextline.strip())
+
+        output, error = process.communicate()
+
+        if process.returncode:
+            if error:
+                msg = 'Command define by cmd_args failed. See error:\n %s'
+                raise Exception(msg % error)
+            else:
+                raise Exception('Check output for errors.')
 
     @staticmethod
     def run_system_cmd(cmd):
