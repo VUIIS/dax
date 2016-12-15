@@ -445,13 +445,16 @@ class Task(object):
             LOGGER.info(mes_format.format(path=pbsfile))
             return True
         else:
-            jobid = pbs.submit(outlog=outlog, force_no_qsub=force_no_qsub)
+            jobid, job_failed = pbs.submit(outlog=outlog,
+                                           force_no_qsub=force_no_qsub)
 
             if jobid == '' or jobid == '0':
                 LOGGER.error('failed to launch job on cluster')
                 raise cluster.ClusterLaunchException
             else:
                 self.set_launch(jobid)
+                if (force_no_qsub or not cluster.command_found(DAX_SETTINGS.get_cmd_submit())) and job_failed:
+                    self.set_status(JOB_FAILED)
                 return True
 
     def check_date(self):
@@ -976,7 +979,7 @@ class ClusterTask(Task):
 
         return jobstatus
 
-    def launch(self):
+    def launch(self, force_no_qsub=False):
         """
         Method to launch a job on the grid
 
@@ -986,13 +989,17 @@ class ClusterTask(Task):
 
         """
         batch_path = self.batch_path()
-        jobid = cluster.submit_job(batch_path)
+        outlog = self.outlog_path()
+        jobid, job_failed = cluster.submit_job(batch_path, outlog=outlog,
+                                               force_no_qsub=force_no_qsub)
 
         if jobid == '' or jobid == '0':
             LOGGER.error('failed to launch job on cluster')
             raise cluster.ClusterLaunchException
         else:
             self.set_launch(jobid)
+            if (force_no_qsub or not cluster.command_found(DAX_SETTINGS.get_cmd_submit())) and job_failed:
+                self.set_status(JOB_FAILED)
             return True
 
     def check_date(self):

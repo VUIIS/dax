@@ -285,8 +285,9 @@ class PBS:   #The script file generator class
 def submit_job(filename, outlog=None, force_no_qsub=False):
     """
     Submit the file to the cluster
-    :return: jobid
+    :return: jobid and error if the job failed when running locally
     """
+    failed = False
     submit_cmd = DAX_SETTINGS.get_cmd_submit()
     if command_found(cmd=submit_cmd) and not force_no_qsub:
         try:
@@ -307,9 +308,19 @@ def submit_job(filename, outlog=None, force_no_qsub=False):
         if outlog:
             cmd = '%s >> %s' % (cmd, outlog)
         os.system(cmd)
+        proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        output, error = proc.communicate()
+        if outlog:
+            with open(outlog, 'w') as log_obj:
+                for line in output:
+                    log_obj.write(line)
+        if error:
+            # Set the status to JOB_FAILED
+            failed = True
         jobid = 'no_qsub'
 
-    return jobid.strip()
+    return jobid.strip(), failed
 
 class ClusterLaunchException(Exception):
     """Custom exception raised when launch on the grid failed"""
