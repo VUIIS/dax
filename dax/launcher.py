@@ -134,7 +134,7 @@ class Launcher(object):
 
     ################## LAUNCH Main Method ##################
     def launch_jobs(self, lockfile_prefix, project_local, sessions_local,
-                    writeonly=False, pbsdir=None, local=False):
+                    writeonly=False, pbsdir=None, force_no_qsub=False):
         """
         Main Method to launch the tasks
 
@@ -144,6 +144,7 @@ class Launcher(object):
          associated to the project locally
         :param writeonly: write the job files without submitting them
         :param pbsdir: folder to store the pbs file
+        :param force_no_qsub: run the job locally on the computer (serial mode)
         :return: None
 
         """
@@ -165,7 +166,7 @@ class Launcher(object):
                 task_list = load_task_queue(status=task.NEED_TO_RUN)
 
                 LOGGER.info(str(len(task_list)) + ' tasks that need to be launched found')
-                self.launch_tasks(task_list, local=local)
+                self.launch_tasks(task_list, force_no_qsub=force_no_qsub)
             else:
                 LOGGER.info('Connecting to XNAT at ' + self.xnat_host)
                 xnat = XnatUtils.get_interface(self.xnat_host, self.xnat_user, self.xnat_pass)
@@ -182,7 +183,8 @@ class Launcher(object):
                 LOGGER.info(str(len(task_list))+' tasks that need to be launched found')
 
                 # Launch the task that need to be launch
-                self.launch_tasks(task_list, writeonly, pbsdir, local=local)
+                self.launch_tasks(task_list, writeonly, pbsdir,
+                                  force_no_qsub=force_no_qsub)
         finally:
             self.finish_script(xnat, flagfile, project_list, 3, 2, project_local)
 
@@ -197,45 +199,18 @@ class Launcher(object):
         return assr_info['procstatus'] == task.NEED_TO_RUN
 
     def launch_tasks(self, task_list, writeonly=False, pbsdir=None,
-                     local=False):
+                     force_no_qsub=False):
         """
         Launch tasks from the passed list until the queue is full or the list is empty
 
         :param task_list: list of task to launch
         :param writeonly: write the job files without submitting them
         :param pbsdir: folder to store the pbs file
+        :param force_no_qsub: run the job locally on the computer (serial mode)
         :return: None
         """
-        if local:
-            LOGGER.info('Running job locally on your computer.')
-            while len(task_list) > 0:
-                cur_task = task_list.pop()
-
-                if writeonly:
-                    mes_format = """  +Writing PBS file for job: %s"""
-                    LOGGER.info(mes_format % cur_task.assessor_label)
-                else:
-                    mes_format = """  +Launching job: %s"""
-                    LOGGER.info(mes_format % cur_task.assessor_label)
-
-                try:
-                    if self.launcher_type in ['diskq-cluster',
-                                              'diskq-combined']:
-                        success = cur_task.launch(local=local)
-                    else:
-                        success = cur_task.launch(self.root_job_dir,
-                                                  self.job_email,
-                                                  self.job_email_options,
-                                                  self.xnat_host,
-                                                  writeonly, pbsdir,
-                                                  local=local)
-                except Exception as E:
-                    LOGGER.critical('Caught exception running job %s'
-                                    % cur_task.assessor_label)
-                    LOGGER.critical('Exception class %s caught with message %s'
-                                    % (E.__class__, E.message))
-                    success = False
-
+        if force_no_qsub:
+            LOGGER.info('No qsub - Running job locally on your computer.')
         else:
             # Check number of jobs on cluster
             cur_job_count = cluster.count_jobs()
@@ -243,56 +218,58 @@ class Launcher(object):
                 LOGGER.error('cannot get count of jobs from cluster')
                 return
 
-            LOGGER.info(str(cur_job_count)+' jobs currently in queue')
+            if cluster.command_found(cmd=DAX_SETTINGS.get_cmd_submit()):
+                LOGGER.info(str(cur_job_count)+' jobs currently in queue')
 
-            # Launch until we reach cluster limit or no jobs left to launch
-            while (cur_job_count < self.queue_limit or writeonly) and len(task_list) > 0:
-                cur_task = task_list.pop()
+        # Launch until we reach cluster limit or no jobs left to launch
+        while (cur_job_count < self.queue_limit or writeonly) and len(task_list) > 0:
+            cur_task = task_list.pop()
 
-                # Confirm task is still ready to run
-                # I don't think that we need to make this get here.
-                # We've already filtered the assessors as need to run.
-                # if cur_task.get_status() != task.NEED_TO_RUN:
-                #     continue
+            # Confirm task is still ready to run
+            # I don't think that we need to make this get here.
+            # We've already filtered the assessors as need to run.
+            # if cur_task.get_status() != task.NEED_TO_RUN:
+            #     continue
 
-                if writeonly:
-                    mes_format = """  +Writing PBS file for job:{label}, \
+            if writeonly:
+                mes_format = """  +Writing PBS file for job:{label}, \
 currently {count} jobs in cluster queue"""
-                    LOGGER.info(mes_format.format(
-                            label=cur_task.assessor_label,
-                            count=str(cur_job_count)))
-                else:
-                    mes_format = """  +Launching job:{label}, currently \
+                LOGGER.info(mes_format.format(
+                        label=cur_task.assessor_label,
+                        count=str(cur_job_count)))
+            else:
+                mes_format = """  +Launching job:{label}, currently \
 {count} jobs in cluster queue"""
-                    LOGGER.info(mes_format.format(
-                            label=cur_task.assessor_label,
-                            count=str(cur_job_count)))
+                LOGGER.info(mes_format.format(
+                        label=cur_task.assessor_label,
+                        count=str(cur_job_count)))
 
-                try:
-                    if self.launcher_type in ['diskq-cluster',
-                                              'diskq-combined']:
-                        success = cur_task.launch()
-                    else:
-                        success = cur_task.launch(self.root_job_dir,
-                                                  self.job_email,
-                                                  self.job_email_options,
-                                                  self.xnat_host,
-                                                  writeonly, pbsdir)
-                except Exception as E:
-                    LOGGER.critical('Caught exception launching job %s'
-                                    % cur_task.assessor_label)
-                    LOGGER.critical('Exception class %s caught with message %s'
-                                    % (E.__class__, E.message))
-                    success = False
+            try:
+                if self.launcher_type in ['diskq-cluster',
+                                          'diskq-combined']:
+                    success = cur_task.launch(force_no_qsub=force_no_qsub)
+                else:
+                    success = cur_task.launch(self.root_job_dir,
+                                              self.job_email,
+                                              self.job_email_options,
+                                              self.xnat_host,
+                                              writeonly, pbsdir,
+                                              force_no_qsub=force_no_qsub)
+            except Exception as E:
+                LOGGER.critical('Caught exception launching job %s'
+                                % cur_task.assessor_label)
+                LOGGER.critical('Exception class %s caught with message %s'
+                                % (E.__class__, E.message))
+                success = False
 
-                if not success:
-                    LOGGER.error('ERROR:failed to launch job')
-                    raise cluster.ClusterLaunchException
+            if not success:
+                LOGGER.error('ERROR:failed to launch job')
+                raise cluster.ClusterLaunchException
 
-                cur_job_count = cluster.count_jobs()
-                if cur_job_count == -1:
-                    LOGGER.error('ERROR:cannot get count of jobs from cluster')
-                    raise cluster.ClusterCountJobsException
+            cur_job_count = cluster.count_jobs()
+            if cur_job_count == -1:
+                LOGGER.error('ERROR:cannot get count of jobs from cluster')
+                raise cluster.ClusterCountJobsException
 
     ################## UPDATE Main Method ##################
     def update_tasks(self, lockfile_prefix, project_local, sessions_local):

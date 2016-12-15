@@ -340,11 +340,11 @@ class Task(object):
 
         if old_status == COMPLETE or old_status == JOB_FAILED:
             if qcstatus == REPROC:
-                LOGGER.info('   * qcstatus=REPROC, running reproc_processing...')
+                LOGGER.info('             * qcstatus=REPROC, running reproc_processing...')
                 self.reproc_processing()
                 new_status = NEED_TO_RUN
             elif qcstatus == RERUN:
-                LOGGER.info('   * qcstatus=RERUN, running undo_processing...')
+                LOGGER.info('             * qcstatus=RERUN, running undo_processing...')
                 self.undo_processing()
                 new_status = NEED_TO_RUN
             else:
@@ -371,10 +371,10 @@ class Task(object):
         elif old_status == NO_DATA:
             pass
         else:
-            LOGGER.warn('   * unknown status for '+self.assessor_label+': '+old_status)
+            LOGGER.warn('             * unknown status for '+self.assessor_label+': '+old_status)
 
         if new_status != old_status:
-            LOGGER.info('   * changing status from '+old_status+' to '+new_status)
+            LOGGER.info('             * changing status from '+old_status+' to '+new_status)
 
             # Update QC Status
             if new_status == COMPLETE:
@@ -413,7 +413,8 @@ class Task(object):
 
     def launch(self, jobdir, job_email=None,
                job_email_options=DAX_SETTINGS.get_email_opts(),
-               xnat_host=None, writeonly=False, pbsdir=None, local=False):
+               xnat_host=None, writeonly=False, pbsdir=None,
+               force_no_qsub=False):
         """
         Method to launch a job on the grid
 
@@ -424,7 +425,7 @@ class Task(object):
         :param xnat_host: set the XNAT_HOST in the PBS job
         :param writeonly: write the job files without submitting them
         :param pbsdir: folder to store the pbs file
-        :param local: run the job locally on the computer (serial mode)
+        :param force_no_qsub: run the job locally on the computer (serial mode)
         :raises: cluster.ClusterLaunchException if the jobid is 0 or empty
          as returned by pbs.submit() method
         :return: True if the job failed
@@ -444,19 +445,14 @@ class Task(object):
             LOGGER.info(mes_format.format(path=pbsfile))
             return True
         else:
-            if local:
-                cmd = 'sh %s >> %s' % (pbsfile, outlog)
-                os.system(cmd)
-                return True
-            else:
-                jobid = pbs.submit()
+            jobid = pbs.submit(outlog=outlog, force_no_qsub=force_no_qsub)
 
-                if jobid == '' or jobid == '0':
-                    LOGGER.error('failed to launch job on cluster')
-                    raise cluster.ClusterLaunchException
-                else:
-                    self.set_launch(jobid)
-                    return True
+            if jobid == '' or jobid == '0':
+                LOGGER.error('failed to launch job on cluster')
+                raise cluster.ClusterLaunchException
+            else:
+                self.set_launch(jobid)
+                return True
 
     def check_date(self):
         """
@@ -946,10 +942,10 @@ class ClusterTask(Task):
             NEED_INPUTS, READY_TO_UPLOAD, UPLOADING, NO_DATA]:
             pass
         else:
-            LOGGER.warn('   * unknown status for ' + self.assessor_label + ': ' + old_status)
+            LOGGER.warn('             * unknown status for ' + self.assessor_label + ': ' + old_status)
 
         if new_status != old_status:
-            LOGGER.info('   * changing status from ' + old_status + ' to ' + new_status)
+            LOGGER.info('             * changing status from ' + old_status + ' to ' + new_status)
             self.set_status(new_status)
 
         return new_status
@@ -1341,11 +1337,11 @@ class XnatTask(Task):
 
         if old_status == COMPLETE or old_status == JOB_FAILED:
             if qcstatus == REPROC:
-                LOGGER.info('   * qcstatus=REPROC, running reproc_processing...')
+                LOGGER.info('             * qcstatus=REPROC, running reproc_processing...')
                 self.reproc_processing()
                 new_status = NEED_TO_RUN
             elif qcstatus == RERUN:
-                LOGGER.info('   * qcstatus=RERUN, running undo_processing...')
+                LOGGER.info('             * qcstatus=RERUN, running undo_processing...')
                 self.undo_processing()
                 new_status = NEED_TO_RUN
             else:
@@ -1354,10 +1350,10 @@ class XnatTask(Task):
             READY_TO_UPLOAD, UPLOADING,NO_DATA, JOB_BUILT]:
             pass
         else:
-            LOGGER.warn('   * unknown status for ' + self.assessor_label+': '+old_status)
+            LOGGER.warn('             * unknown status for ' + self.assessor_label+': '+old_status)
 
         if new_status != old_status:
-            LOGGER.info('   * changing status from '+old_status+' to '+new_status)
+            LOGGER.info('             * changing status from '+old_status+' to '+new_status)
             self.set_status(new_status)
 
         return new_status

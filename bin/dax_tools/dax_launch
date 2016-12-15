@@ -34,7 +34,7 @@ label from XNAT to run dax_launch on locally.', default=None)
 PBS when using --writeonly. Default: RESULTS_DIR/TRASH.', default=None)
     ap.add_argument('--nodebug', dest='debug', action='store_false',
                     help='Avoid printing DEBUG information.')
-    ap.add_argument('--local', dest='local', action='store_true',
+    ap.add_argument('--no_qsub', dest='no_qsub', action='store_true',
                     help='Run the jobs locally on your computer in serial.')
     return ap.parse_args()
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     if DAX_SETTINGS.is_cluster_valid():
         dax.bin.launch_jobs(args.settings_path, args.logfile, args.debug,
                             args.project, args.sessions, args.writeonly,
-                            args.pbsfolder, args.local)
+                            args.pbsfolder, args.no_qsub)
     else:
         sys.stdout.write('Please edit your settings via dax_setup for the \
 cluster section\n.')

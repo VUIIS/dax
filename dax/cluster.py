@@ -42,18 +42,22 @@ def count_jobs():
 
     :return: number of jobs in the queue
     """
-    cmd = DAX_SETTINGS.get_cmd_count_nb_jobs()
-    output = subprocess.check_output(cmd, shell=True)
-    error = c_output(output)
-    while error:
-        LOGGER.info('     try again to access number of jobs in 2 seconds.')
-        time.sleep(2)
+    if command_found(cmd=DAX_SETTINGS.get_cmd_submit()):
+        cmd = DAX_SETTINGS.get_cmd_count_nb_jobs()
         output = subprocess.check_output(cmd, shell=True)
         error = c_output(output)
-    if int(output) < 0:
-        return 0
+        while error:
+            LOGGER.info('    try again to access number of jobs in 2 seconds.')
+            time.sleep(2)
+            output = subprocess.check_output(cmd, shell=True)
+            error = c_output(output)
+        if int(output) < 0:
+            return 0
+        else:
+            return int(output)
     else:
-        return int(output)
+        LOGGER.info(' Running locally. No queue with jobs.')
+        return 0
 
 def job_status(jobid):
     """
@@ -205,6 +209,16 @@ def get_specific_str(big_str, prefix, suffix):
     else:
         return ''
 
+
+def command_found(cmd='qsub'):
+    """ Return True if the command was found."""
+    if True in [os.path.isfile(os.path.join(path, cmd)) and
+                os.access(os.path.join(path, cmd), os.X_OK)
+                for path in os.environ["PATH"].split(os.pathsep)]:
+        return True
+    return False
+
+
 class PBS:   #The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
     def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
@@ -259,46 +273,41 @@ class PBS:   #The script file generator class
         with open(self.filename, 'w') as f_obj:
             f_obj.write(DAX_SETTINGS.get_job_template().safe_substitute(job_data))
 
-    def submit(self):
+    def submit(self, outlog=None, force_no_qsub=False):
         """
         Submit the file to the cluster
 
         :return: None
         """
-        try:
-            cmd = DAX_SETTINGS.get_cmd_submit() +' '+ self.filename
-            proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            output, error = proc.communicate()
-            if output:
-                LOGGER.info('    '+output)
-            if error:
-                LOGGER.error(error)
-            #output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-            jobid = get_specific_str(output, DAX_SETTINGS.get_prefix_jobid(), DAX_SETTINGS.get_suffix_jobid())
-        except CalledProcessError as err:
-            LOGGER.error(err)
-            jobid = '0'
+        return submit_job(self.filename, outlog=outlog,
+                          force_no_qsub=force_no_qsub)
 
-        return jobid.strip()
-
-def submit_job(filename):
+def submit_job(filename, outlog=None, force_no_qsub=False):
     """
     Submit the file to the cluster
     :return: jobid
     """
-    try:
-        cmd = DAX_SETTINGS.get_cmd_submit() + ' ' + filename
-        proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output, error = proc.communicate()
-        if output:
-            LOGGER.info(output)
-        if error:
-            LOGGER.error(error)
-        # output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-        jobid = get_specific_str(output, DAX_SETTINGS.get_prefix_jobid(), DAX_SETTINGS.get_suffix_jobid())
-    except CalledProcessError as err:
-        LOGGER.error(err)
-        jobid = '0'
+    submit_cmd = DAX_SETTINGS.get_cmd_submit()
+    if command_found(cmd=submit_cmd) and not force_no_qsub:
+        try:
+            cmd = '%s %s' % (submit_cmd, filename)
+            proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output, error = proc.communicate()
+            if output:
+                LOGGER.info(output)
+            if error:
+                LOGGER.error(error)
+            # output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+            jobid = get_specific_str(output, DAX_SETTINGS.get_prefix_jobid(), DAX_SETTINGS.get_suffix_jobid())
+        except CalledProcessError as err:
+            LOGGER.error(err)
+            jobid = '0'
+    else:
+        cmd = 'sh %s' % (filename)
+        if outlog:
+            cmd = '%s >> %s' % (cmd, outlog)
+        os.system(cmd)
+        jobid = 'no_qsub'
 
     return jobid.strip()
 
