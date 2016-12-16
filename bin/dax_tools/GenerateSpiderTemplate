@@ -132,14 +132,15 @@ class Spider_{name}(ScanSpider):
         """Method running the process for the spider on the inputs data."""
         # Run command define by self.cmd_args
         matlab_template = """
-addpath({{mpath}});
-function_to_call('{{input1}}', '{{input2}}', {{input3}});"""
+addpath('$mpath');
+function_to_call('$input1', '$input2', $input3);"""
         self.cmd_args = {{
             'exe': 'matlab',
             'template': matlab_template,
             'args': {{'input1': self.data['0002']['NIFTI'],
                      'input2': self.data['0003']['NIFTI'],
-                     'input3': 10
+                     'input3': 10,
+                     'mpath': '/path',
                      }}
         }}
         self.run_cmd_args()
@@ -269,14 +270,15 @@ class Spider_{name}(SessionSpider):
         """Method running the process for the spider on the inputs data."""
         # Run command define by self.cmd_args
         matlab_template = """
-addpath({{mpath}});
-function_to_call('{{input1}}', '{{input2}}', {{input3}});"""
+addpath('$mpath');
+function_to_call('$input1', '$input2', $input3);"""
         self.cmd_args = {{
             'exe': 'matlab',
             'template': matlab_template,
             'args': {{'input1': self.data['0002']['NIFTI'],
                      'input2': self.data['0003']['NIFTI'],
-                     'input3': 10
+                     'input3': 10,
+                     'mpath': '/path',
                      }}
         }}
         self.run_cmd_args()
