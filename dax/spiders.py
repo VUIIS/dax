@@ -68,6 +68,7 @@ class Spider(object):
         :param suffix: suffix to the assessor creation
         :param subdir: create a subdir Temp in the jobdir if the directory
                        isn't empty.
+        :param skip_finish: skip the finish function
         """
         # Spider path:
         self.spider_path = spider_path
@@ -641,7 +642,7 @@ for resource %s : %s"
             # add file to run the matlab command if not set
             if 'filename' not in self.cmd_args.keys():
                 self.cmd_args['filename'] = os.path.join(
-                        self.jobsdir, 'run_%s_matlab.m' % self.xnat_session)
+                        self.jobdir, 'run_%s_matlab.m' % self.xnat_session)
 
         # Write the template in file and call the executable on the file
         if 'filename' in self.cmd_args.keys():
@@ -723,7 +724,7 @@ class ScanSpider(Spider):
     def __init__(self, spider_path, jobdir,
                  xnat_project, xnat_subject, xnat_session, xnat_scan,
                  xnat_host=None, xnat_user=None, xnat_pass=None,
-                 suffix="", subdir=True):
+                 suffix="", subdir=True, skip_finish=False):
         """
         Entry point for Derived class for Spider on Scan level
 
@@ -734,7 +735,7 @@ class ScanSpider(Spider):
             spider_path, jobdir,
             xnat_project, xnat_subject, xnat_session,
             xnat_host, xnat_user, xnat_pass,
-            suffix, subdir)
+            suffix, subdir, skip_finish)
         self.xnat_scan = xnat_scan
 
     def define_spider_process_handler(self):
@@ -790,7 +791,7 @@ class SessionSpider(Spider):
     def __init__(self, spider_path, jobdir,
                  xnat_project, xnat_subject, xnat_session,
                  xnat_host=None, xnat_user=None, xnat_pass=None,
-                 suffix="", subdir=True):
+                 suffix="", subdir=True, skip_finish=False):
         """
         Entry point for Derived class for Spider on Session level
 
@@ -799,7 +800,7 @@ class SessionSpider(Spider):
         super(SessionSpider, self).__init__(
             spider_path, jobdir,
             xnat_project, xnat_subject, xnat_session,
-            xnat_host, xnat_user, xnat_pass, suffix, subdir)
+            xnat_host, xnat_user, xnat_pass, suffix, subdir, skip_finish)
 
     def define_spider_process_handler(self):
         """
@@ -1292,7 +1293,11 @@ def get_default_argparser(name, description):
         '--user', dest='user', default=None,
         help='Set XNAT User. Default: using env variable XNAT_USER')
     ap.add_argument(
-        '--skipfinish', action='store_true',
+        '--no_subdir',  action='store_false', dest='subdir',
+        help="Do not create a subdir Temp in the jobdir if the directory \
+isn't empty.")
+    ap.add_argument(
+        '--skipfinish', action='store_true', dest='skip_finish',
         help='Skip the finish step, so do not move files to upload queue')
     return ap
 
