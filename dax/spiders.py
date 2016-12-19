@@ -838,7 +838,10 @@ class AutoSpider(Spider):
 
         # Add input params to arguments
         for p in self.params:
-            parser.add_argument('--'+p[0], dest=p[0], help=p[2], required=True)
+            _required = True
+            if len(p) >= 4 and p[3].lower().startswith('f'):
+                _required = False
+            parser.add_argument('--'+p[0], dest=p[0], help=p[2], required=_required)
 
         return parser
 
