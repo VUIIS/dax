@@ -14,6 +14,7 @@ __purpose__ = "Spider base class, Scan and Session spider class, and Utils for s
 __version__ = '1.0.0'
 __modifications__ = '26 August 2015 - Original write'
 
+import glob
 import os
 import re
 import sys
@@ -930,20 +931,30 @@ class AutoSpider(Spider):
         # Add each output
         if self.outputs:
             for _output in self.outputs:
-                _path = os.path.join(self.jobdir, _output[0])
+                #_path = os.path.join(self.jobdir, _output[0])
                 _type = _output[1]
                 _res = _output[2]
-
-                if _type == 'FILE':
-                    if _res == 'PDF':
-                        self.spider_handler.add_pdf(_path)
+                _path_list = glob.glob(os.path.join(self.jobdir, _output[0]))
+                
+                if _res == 'PDF':
+                    if _type != 'FILE':
+                        print('ERROR:illegal type for PDF:'+_type)
+                    elif len(_path_list) > 1:
+                        print('ERROR:multiple PDFs found')
+                    elif len(_path_list) == 0:
+                        print('ERROR: no PDF found')
                     else:
+                        self.spider_handler.add_pdf(_path_list[0])
+                elif _type == 'FILE':
+                    for _path in _path_list:
                         self.spider_handler.add_file(_path, _res)
                 elif _type == 'DIR':
-                    self.spider_handler.add_folder(_path, _res)
+                    for _path in _path_list:
+                        self.spider_handler.add_folder(_path, _res)
                 else:
                     print('ERROR:unknown type:'+_type)
         else:
+            # Output not specified so upload everything in the job dir
             for _output in os.listdir(self.jobdir):
                 _path = os.path.join(self.jobdir, _output)
                 _res = os.path.basename(_output)
