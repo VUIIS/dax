@@ -807,14 +807,25 @@ class AutoSpider(Spider):
         
         # Set matlab_bin from args or default to just matlab
         self.matlab_bin = getattr(args, 'matlab_bin', 'matlab')
-
-        # Make a list of parameters that need to be copied to our input directory
-        for p in params:
-            if p[1] == 'FILE' or p[1] == 'DIR':
-                self.copy_list.append(p[0])
-
+        
+        # Get commandline inputs
         self.src_inputs = vars(args)
-        self.src_inputs['temp_dir'] = self.jobdir # reset in case it changed in parent init
+
+        # Make a list of params that need to be copied to input directory
+        for p in params:
+            # Check input type
+            if p[1] not in ['FILE', 'DIR']:
+                continue
+                
+            # Check for optional arguments that are not set
+            if len(p) >= 4 and \
+                p[3].lower().startswith('f') and \
+                not self.src_inputs[p[0]]:
+                    continue
+                
+            self.copy_list.append(p[0])
+
+        self.src_inputs['temp_dir'] = self.jobdir # reset b/c it could have changed in parent init
         self.input_dir = os.path.join(self.jobdir, 'INPUT')
         self.script_dir = os.path.join(self.jobdir, 'SCRIPT')
         self.run_inputs = {}
