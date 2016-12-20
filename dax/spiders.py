@@ -1297,7 +1297,7 @@ def get_default_argparser(name, description):
         help="Do not create a subdir Temp in the jobdir if the directory \
 isn't empty.")
     ap.add_argument(
-        '--skipfinish', action='store_true', dest='skip_finish',
+        '--skipfinish', action='store_true', dest='skipfinish',
         help='Skip the finish step, so do not move files to upload queue')
     return ap
 
