@@ -47,7 +47,8 @@ if __name__ == '__main__':
                             'numpy',
                             'nibabel',
                             'pydicom',
-                            'xlrd'],
+                            'xlrd',
+                            'pillow',],
           zip_safe=True,
           scripts=[
                    'bin/dax_tools/dax_manager', 

@@ -42,18 +42,22 @@ def count_jobs():
 
     :return: number of jobs in the queue
     """
-    cmd = DAX_SETTINGS.get_cmd_count_nb_jobs()
-    output = subprocess.check_output(cmd, shell=True)
-    error = c_output(output)
-    while error:
-        LOGGER.info('     try again to access number of jobs in 2 seconds.')
-        time.sleep(2)
+    if command_found(cmd=DAX_SETTINGS.get_cmd_submit()):
+        cmd = DAX_SETTINGS.get_cmd_count_nb_jobs()
         output = subprocess.check_output(cmd, shell=True)
         error = c_output(output)
-    if int(output) < 0:
-        return 0
+        while error:
+            LOGGER.info('    try again to access number of jobs in 2 seconds.')
+            time.sleep(2)
+            output = subprocess.check_output(cmd, shell=True)
+            error = c_output(output)
+        if int(output) < 0:
+            return 0
+        else:
+            return int(output)
     else:
-        return int(output)
+        LOGGER.info(' Running locally. No queue with jobs.')
+        return 0
 
 def job_status(jobid):
     """
@@ -175,6 +179,13 @@ def get_job_node(jobid, diff_days):
     if not jobid:
         return jobnode
 
+    if jobid == 'no_qsub':
+        cmd = 'uname -a'
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        if output and len(output.strip().split(' ')) > 1:
+            jobnode = output.strip().split(' ')[1]
+        return jobnode
+
     cmd = DAX_SETTINGS.get_cmd_get_job_node().safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
@@ -204,6 +215,16 @@ def get_specific_str(big_str, prefix, suffix):
         return specific_str
     else:
         return ''
+
+
+def command_found(cmd='qsub'):
+    """ Return True if the command was found."""
+    if True in [os.path.isfile(os.path.join(path, cmd)) and
+                os.access(os.path.join(path, cmd), os.X_OK)
+                for path in os.environ["PATH"].split(os.pathsep)]:
+        return True
+    return False
+
 
 class PBS:   #The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
@@ -259,48 +280,53 @@ class PBS:   #The script file generator class
         with open(self.filename, 'w') as f_obj:
             f_obj.write(DAX_SETTINGS.get_job_template().safe_substitute(job_data))
 
-    def submit(self):
+    def submit(self, outlog=None, force_no_qsub=False):
         """
         Submit the file to the cluster
 
         :return: None
         """
+        return submit_job(self.filename, outlog=outlog,
+                          force_no_qsub=force_no_qsub)
+
+def submit_job(filename, outlog=None, force_no_qsub=False):
+    """
+    Submit the file to the cluster
+    :return: jobid and error if the job failed when running locally
+    """
+    failed = False
+    submit_cmd = DAX_SETTINGS.get_cmd_submit()
+    if command_found(cmd=submit_cmd) and not force_no_qsub:
         try:
-            cmd = DAX_SETTINGS.get_cmd_submit() +' '+ self.filename
+            cmd = '%s %s' % (submit_cmd, filename)
             proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = proc.communicate()
             if output:
-                LOGGER.info('    '+output)
+                LOGGER.info(output)
             if error:
                 LOGGER.error(error)
-            #output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+            # output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
             jobid = get_specific_str(output, DAX_SETTINGS.get_prefix_jobid(), DAX_SETTINGS.get_suffix_jobid())
         except CalledProcessError as err:
             LOGGER.error(err)
             jobid = '0'
-
-        return jobid.strip()
-
-def submit_job(filename):
-    """
-    Submit the file to the cluster
-    :return: jobid
-    """
-    try:
-        cmd = DAX_SETTINGS.get_cmd_submit() + ' ' + filename
-        proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    else:
+        cmd = 'sh %s' % (filename)
+        proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
         output, error = proc.communicate()
-        if output:
-            LOGGER.info(output)
+        if outlog:
+            with open(outlog, 'w') as log_obj:
+                for line in output:
+                    log_obj.write(line)
+                for line in error:
+                    log_obj.write(line)
         if error:
-            LOGGER.error(error)
-        # output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-        jobid = get_specific_str(output, DAX_SETTINGS.get_prefix_jobid(), DAX_SETTINGS.get_suffix_jobid())
-    except CalledProcessError as err:
-        LOGGER.error(err)
-        jobid = '0'
+            # Set the status to JOB_FAILED
+            failed = True
+        jobid = 'no_qsub'
 
-    return jobid.strip()
+    return jobid.strip(), failed
 
 class ClusterLaunchException(Exception):
     """Custom exception raised when launch on the grid failed"""

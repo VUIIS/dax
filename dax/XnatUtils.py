@@ -28,6 +28,7 @@ import gzip
 import dicom
 import shutil
 import random
+import fnmatch
 import zipfile
 import tempfile
 import dicom.UID
@@ -1306,16 +1307,21 @@ def is_cscan_usable(cscan):
     """
     return cscan.info()['quality'] == "usable"
 
-def is_cscan_good_type(cscan, types_list):
+def is_cscan_good_type(cscan, types_list, full_regex=False):
     """
     Check to see if the CachedImageScan type is of type(s) specificed by user.
 
     :param cassr: CachedImageScan object from XnatUtils
-    :param types_list: List of scan types
+    :param types_list: List of scan types (regex on)
+    :param full_regex: use full regex expression
     :return: True if type is in the list, False if not.
 
     """
-    return cscan.info()['type'] in types_list
+    for exp in types_list:
+        regex = extract_exp(exp, full_regex)
+        if regex.match(cscan.info()['type']):
+            return True
+    return False
 
 def is_scan_unusable(scan_obj):
     """
@@ -1327,16 +1333,21 @@ def is_scan_unusable(scan_obj):
     """
     return scan_obj.attrs.get('xnat:imageScanData/quality') == "unusable"
 
-def is_scan_good_type(scan_obj, types_list):
+def is_scan_good_type(scan_obj, types_list, full_regex=False):
     """
     Check to see if a scan is of good type.
 
     :param scan_obj: Scan EObject from Interface.select()
     :param types_list: List of scan types
+    :param full_regex: use full regex expression
     :return: True if scan is in type list, False if not.
 
     """
-    return scan_obj.attrs.get('xnat:imageScanData/type') in types_list
+    for exp in types_list:
+        regex = extract_exp(exp, full_regex)
+        if regex.match(scan_obj.attrs.get('xnat:imageScanData/type')):
+            return True
+    return False
 
 def has_resource(cobj, resource_label):
     """
@@ -1422,17 +1433,22 @@ def is_assessor_same_scan_unusable(cscan, proctype):
     else:
         return is_bad_qa(assr_list[0]['qcstatus'])
 
-def is_cassessor_good_type(cassr, types_list):
+def is_cassessor_good_type(cassr, types_list, full_regex=False):
     """
     Check to see if the CachedImageAssessor proctype is of type(s) specificed by user.
 
     :param cassr: CachedImageAssessor object from XnatUtils
     :param types_list: List of proctypes
+    :param full_regex: use full regex expression
     :return: True if proctype is in the list, False if not.
 
     """
     assr_info = cassr.info()
-    return assr_info['proctype'] in types_list
+    for exp in types_list:
+        regex = extract_exp(exp, full_regex)
+        if regex.match(assr_info['proctype']):
+            return True
+    return False
 
 def is_cassessor_usable(cassr):
     """
@@ -1443,21 +1459,25 @@ def is_cassessor_usable(cassr):
      1 if OK.
 
     """
-    assr_info = cassr.info()
-    return is_bad_qa(assr_info['qcstatus'])
+    return is_bad_qa(cassr.info()['qcstatus'])
 
-def is_assessor_good_type(assessor_obj, types_list):
+def is_assessor_good_type(assessor_obj, types_list, full_regex=False):
     """
     Check to see if an assessor is of good type.
 
     :param assessor_obj: Assessor EObject from Interface.select()
     :param types_list: List of proctypes
+    :param full_regex: use full regex expression
     :return: True if assessor is in proctypes list, False if not.
 
     """
     atype = assessor_obj.attrs.get('xsiType')
     proctype = assessor_obj.attrs.get(atype+'/proctype')
-    return proctype in types_list
+    for exp in types_list:
+        regex = extract_exp(exp, full_regex)
+        if regex.match(proctype):
+            return True
+    return False
 
 def is_assessor_usable(assessor_obj):
     """
@@ -1509,7 +1529,7 @@ def get_good_scans(session_obj, scantypes):
     Get usable scans from a session.
 
     :param session_obj: Pyxnat session EObject
-    :param scantypes: List of scanttypes to filter for
+    :param scantypes: List of scanttypes (regex) to filter for
     :return: List of python scan EObjects that fit the scantypes and that are
      usable
 
@@ -2127,6 +2147,42 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail):
     assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(original)).put(original, original.split('.')[1].upper(), 'ORIGINAL', overwrite=True)
     return True
 
+
+def filter_list_dicts_regex(list_dicts, key, expressions, nor=False,
+                            full_regex=False):
+    """Filter the list of dictionary from XnatUtils.list_* using the regex.
+
+    :param list_dicts: list of dictionaries to filter
+    :param key: key from dictionary to filter using regex
+    :param expressions: list of regex expressions to use (OR)
+    :param full_regex: use full regex
+    :return: list of items from the list_dicts that match the regex
+    """
+    flist = list()
+    if nor:
+        flist = list_dicts
+    for exp in expressions:
+        regex = extract_exp(exp, full_regex)
+        if nor:
+            flist = [d for d in flist if not regex.match(d[key])]
+        else:
+            flist.extend([d for d in list_dicts
+                          if regex.match(d[key])])
+    return flist
+
+
+def extract_exp(expression, full_regex=False):
+    """Extract the experession with or without full_regex.
+
+    :param expression: string to filter
+    :param full_regex: using full regex
+    :return: regex Object from re package
+    """
+    if not full_regex:
+        exp = fnmatch.translate(expression)
+    return re.compile(exp)
+
+
 def clean_directory(directory):
     """
     Remove a directory tree or file
@@ -2281,6 +2337,21 @@ def get_files_in_folder(folder, label=''):
             label = os.path.join(label, fpath)
             f_list.extend(get_files_in_folder(ffpath, label))
     return f_list
+
+def executable_exists(executable):
+    """ Return True if the executable exists.
+
+    If the full path is given, check that it's an executable.
+    Else check in PATH for the file.
+    """
+    if '/' in executable and os.path.isfile(executable):
+        return os.access(os.path.abspath(executable), os.X_OK)
+    else:
+        if True in [os.path.isfile(os.path.join(path, executable)) and
+                    os.access(os.path.join(path, executable), os.X_OK)
+                    for path in os.environ["PATH"].split(os.pathsep)]:
+            return True
+    return False
 
 def check_image_format(fpath):
     """
@@ -2948,7 +3019,7 @@ def gunzip_file(file_zipped):
     gzdata = gzfile.read()
     gzfile.close()
     open(file_zipped[:-3],'w').write(gzdata)
-    
+
 
 def find_files(directory, ext):
     """Return the files in subdirectories with the right extension.
@@ -3005,8 +3076,8 @@ def unzip_list(zip_path, directory):
             myzip.extract(member, path)
             li_files.append(path)
     return li_files
-    
-    
+
+
 def read_csv(csv_file, header=None, delimiter=','):
     """Read CSV file (.csv files).
 
@@ -3115,7 +3186,293 @@ def find_dicom_in_folder(folder, recursively=True):
         elif os.path.isdir(ffpath) and recursively:
             dicom_list.extend(find_dicom_in_folder(ffpath, recursively=True))
     return dicom_list
-    
+
+
+def write_dicom(pixel_array, filename, ds_copy, ds_ori, volume_number,
+                series_number, sop_id):
+    """Write data in dicom file and copy the header from different dicoms.
+
+    :param pixel_array: data to write in a dicom
+    :param filename: file name for the dicom
+    :param ds_copy: pydicom object of the dicom to copy info from
+    :param ds_ori: pydicom object of the dicom where the array comes from
+    :param volume_number: numero of volume being processed
+    :param series_number: number of the series being written
+    :param sop_id: SOPID for the dicom
+    :return: None
+    """
+    # Set to zero negatives values in the image:
+    pixel_array[pixel_array < 0] = 0
+
+    # Set the DICOM dataset
+    file_meta = Dataset()
+    file_meta.MediaStorageSOPClassUID = 'Secondary Capture Image Storage'
+    file_meta.MediaStorageSOPInstanceUID = ds_ori.SOPInstanceUID
+    file_meta.ImplementationClassUID = ds_ori.SOPClassUID
+    ds = FileDataset(filename, {}, file_meta=file_meta, preamble="\0"*128)
+
+    # Copy the tag from the original DICOM
+    for tag, value in ds_ori.items():
+        if tag != ds_ori.data_element("PixelData").tag:
+            ds[tag] = value
+
+    # Other tags to set
+    ds.SeriesNumber = series_number
+    ds.SeriesDescription = ds_ori.SeriesDescription + ' fromNifti'
+    sop_uid = sop_id + str(datetime.datetime.now()).replace('-', '')\
+                                                   .replace(':', '')\
+                                                   .replace('.', '')\
+                                                   .replace(' ', '')
+    ds.SOPInstanceUID = sop_uid[:-1]
+    ds.ProtocolName = ds_ori.ProtocolName
+    ds.InstanceNumber = volume_number+1
+
+    # Copy from T2 the orientation tags:
+    ds.PatientPosition = ds_copy.PatientPosition
+    ds[0x18, 0x50] = ds_copy[0x18, 0x50]  # Slice Thicknes
+    ds[0x18, 0x88] = ds_copy[0x18, 0x88]  # Spacing Between Slices
+    ds[0x18, 0x1312] = ds_copy[0x18, 0x1312]  # In-plane Phase Encoding
+    ds[0x20, 0x32] = ds_copy[0x20, 0x32]  # Image Position
+    ds[0x20, 0x37] = ds_copy[0x20, 0x37]  # Image Orientation
+    ds[0x20, 0x1041] = ds_copy[0x20, 0x1041]  # Slice Location
+    ds[0x28, 0x10] = ds_copy[0x28, 0x10]  # rows
+    ds[0x28, 0x11] = ds_copy[0x28, 0x11]  # columns
+    ds[0x28, 0x30] = ds_copy[0x28, 0x30]  # Pixel spacing
+
+    # Set the Image pixel array
+    if pixel_array.dtype != np.uint16:
+        pixel_array = pixel_array.astype(np.uint16)
+    ds.PixelData = pixel_array.tostring()
+
+    # Save the image
+    ds.save_as(filename)
+
+
+def convert_nifti_2_dicoms(nifti_path, dicom_targets, dicom_source,
+                           output_folder, label=None):
+    """Convert 4D niftis into DICOM files (2D dicoms).
+
+    :param nifti_path: path to the nifti file
+    :param dicom_target: list of dicom files from the target
+     for the registration for header info
+    :param dicom_source: one dicom file from the source
+     for the registration for header info
+    :param output_folder: folder where the DICOM files will be saved
+    :param label: name for the output dicom files
+    :return: None
+    """
+    if not os.path.isfile(nifti_path):
+        raise Exception("NIFTI File %s not found." % nifti_path)
+    # Load image from NIFTI
+    f_img = nib.load(nifti_path)
+    f_img_data = f_img.get_data()
+
+    # Load dicom headers
+    if not os.path.isfile(dicom_source):
+        raise Exception("DICOM File %s not found ." % dicom_source)
+    adc_dcm_obj = dicom.read_file(dicom_source)
+
+    # Make output_folder:
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Series Number and SOP UID
+    ti = time.time()
+    series_number = 86532 + int(str(ti)[2:4]) + int(str(ti)[4:6])
+    sop_id = adc_dcm_obj.SOPInstanceUID.split('.')
+    sop_id = '.'.join(sop_id[:-1])+'.'
+
+    # Sort the DICOM T2 to create the ADC registered DICOMs
+    dcm_obj_sorted = dict()
+    for dcm_file in dicom_targets:
+        # Load dicom headers
+        if not os.path.isfile(dcm_file):
+            raise Exception("DICOM File %s not found." % dcm_file)
+        t2_dcm_obj = dicom.read_file(dcm_file)
+        dcm_obj_sorted[t2_dcm_obj.InstanceNumber] = t2_dcm_obj
+
+    for vol_i in range(f_img_data.shape[2]):
+        if f_img_data.shape[2] > 100:
+            filename = os.path.join(output_folder, '%s_%03d.dcm' % (label,
+                                                                    vol_i+1))
+        elif f_img_data.shape[2] > 10:
+            filename = os.path.join(output_folder, '%s_%02d.dcm' % (label,
+                                                                    vol_i+1))
+
+        else:
+            filename = os.path.join(output_folder, '%s_%d.dcm' % (label,
+                                                                  vol_i+1))
+
+        write_dicom(np.rot90(f_img_data[:, :, vol_i]), filename,
+                    dcm_obj_sorted[vol_i+1], adc_dcm_obj, vol_i,
+                    series_number, sop_id)
+
+def find_files(directory, ext):
+    """Return the files in subdirectories with the right extension.
+
+    :param directory: directory where the data are located
+    :param ext: extension to look for
+    :return: python list of files
+    """
+    li_files = list()
+    for root, _, filenames in os.walk(directory):
+        li_files.extend([os.path.join(root, f) for f in filenames
+                         if f.lower().endswith(ext.lower())])
+    return li_files
+
+
+def zip_list(li_files, zip_path, subdir=False):
+    """Zip all the files in the list into a zip file.
+
+    :param li_files: python list of files for the zip
+    :param zip_path: zip path
+    :param subdir: copy the subdirectories as well. Default: False.
+    """
+    if not zip_path.lower().endswith('.zip'):
+        zip_path = '%s.zip' % zip_path
+    with zipfile.ZipFile(zip_path, 'w') as myzip:
+        for fi in li_files:
+            if subdir:
+                myzip.write(fi, compress_type=zipfile.ZIP_DEFLATED)
+            else:
+                myzip.write(fi, arcname=os.path.basename(fi),
+                            compress_type=zipfile.ZIP_DEFLATED)
+
+
+def unzip_list(zip_path, directory):
+    """Unzip all the files from the zip file and give the list of files.
+
+    :param zip_path: zip path
+    :param directory: directory where to extract the data
+    :return: python list of files
+    """
+    li_files = list()
+    if not os.path.exists(directory):
+        raise Exception('Folder %s does not exist.')
+    with zipfile.ZipFile(zip_path, 'r') as myzip:
+        for member in myzip.infolist():
+            path = directory
+            words = member.filename.split('/')
+            for word in words[:-1]:
+                drive, word = os.path.splitdrive(word)
+                head, word = os.path.split(word)
+                if word in (os.curdir, os.pardir, ''):
+                    continue
+                path = os.path.join(path, word)
+            myzip.extract(member, path)
+            li_files.append(path)
+    return li_files
+
+
+def read_csv(csv_file, header=None, delimiter=','):
+    """Read CSV file (.csv files).
+
+    :param csv_file: path to the csv file
+    :param header: list of label for the header, if None, use first line
+    :param delimiter: delimiter for the csv, default comma
+    :return: list of rows
+    """
+    if not os.path.isfile(csv_file):
+        raise Exception('File not found: %s' % csv_file)
+    if not csv_file.endswith('.csv'):
+        raise Exception('File format unknown. Need .csv: %s' % csv_file)
+    # Read csv
+    csv_info = list()
+    with open(csv_file, 'rb') as f:
+        reader = csv.reader(f, delimiter=delimiter)
+        if not header:
+            header = next(reader)
+        for row in reader:
+            if row == header:
+                continue
+            csv_info.append(dict(zip(header, row)))
+    return csv_info
+
+
+def read_excel(excel_file, header_indexes=None):
+    """Read Excel spreadsheet (.xlsx files).
+
+    :param excel_file: path to the Excel file
+    :param header_indexes: dictionary with sheet name and header position
+                           or use first value
+    :return: dictionary of the sheet with the data
+    """
+    if not os.path.isfile(excel_file):
+        raise Exception('File not found: %s' % excel_file)
+    if not excel_file.endswith('.xlsx'):
+        raise Exception('File format unknown. Need .xlsx: %s' % excel_file)
+    # Read the xlsx file:
+    book = xlrd.open_workbook(excel_file)
+    excel_sheets = dict()
+    for sht in book.sheets():
+        sheet_info = list()
+        if header_indexes:
+            header = sht.row_values(int(header_indexes[sht.name]))
+            start = int(header_indexes[sht.name])
+        else:
+            header = sht.row_values(0)
+            start = 0
+        for row_index in range(start+1, sht.nrows):
+            row = list()
+            for col_index in range(sht.ncols):
+                value = sht.cell(rowx=row_index, colx=col_index).value
+                row.append(value)
+            sheet_info.append(dict(zip(header, row)))
+        excel_sheets[sht.name] = sheet_info
+
+    return excel_sheets
+
+####################### DICOM Utils ######################################################
+def is_dicom(fpath):
+    """Check if the file is a DICOM medical data.
+
+    :param fpath: path of the file
+    :return boolean: true if it's a DICOM, false otherwise
+    """
+    if not os.path.isfile(fpath):
+        raise Exception('File not found: %s' % fpath)
+    file_call = '''file {fpath}'''.format(fpath=fpath)
+    output = subprocess.check_output(file_call.split())
+    if 'dicom' in output.split(':')[1].lower():
+        return True
+
+    return False
+
+
+def order_dicoms(folder):
+    """Order the dicoms in a folder by the Slice Location.
+
+    :param folder: path to the folder
+    :return: dictionary of the files with the key is the slice location
+    """
+    if not os.path.isdir(folder):
+        raise Exception('Folder not found: %s' % folder)
+    dcm_files = dict()
+    for dc in glob.glob(os.path.join(folder, '*.dcm')):
+        dst = dicom.read_file(dc)
+        dcm_files[float(dst.SliceLocation)] = dc
+    return collections.OrderedDict(sorted(dcm_files.items()))
+
+
+def find_dicom_in_folder(folder, recursively=True):
+    """Find a dicom file in folder.
+
+    :param folder: path to folder to search
+    :param recursively: search sub folder
+    :return: list of dicoms
+    """
+    dicom_list = list()
+    if not os.path.isdir(folder):
+        raise Exception('Folder not found: %s' % folder)
+    for ffname in os.listdir(folder):
+        ffpath = os.path.join(folder, ffname)
+        if os.path.isfile(ffpath):
+            if is_dicom(ffpath):
+                dicom_list.append(ffpath)
+        elif os.path.isdir(ffpath) and recursively:
+            dicom_list.extend(find_dicom_in_folder(ffpath, recursively=True))
+    return dicom_list
+
 
 def write_dicom(pixel_array, filename, ds_copy, ds_ori, volume_number,
                 series_number, sop_id):
