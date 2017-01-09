@@ -67,9 +67,9 @@ def mkdirp(path):
     except OSError as exc:
         if exc.errno == errno.EEXIST:
             pass
-        else: 
+        else:
             raise
-        
+
 def create_flag(flag_path):
     open(flag_path, 'w').close()
 
@@ -93,10 +93,10 @@ class Task(object):
         # Create assessor if needed
         if not assessor.exists():
             if self.atype == 'fs:fsdata':
-                assessor.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})       
+                assessor.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
             else:
                 assessor.create(assessors=self.atype)
-            
+
             self.set_createdate_today()
             atype = self.atype.lower()
             if atype == 'proc:genprocdata':
@@ -340,11 +340,11 @@ class Task(object):
 
         if old_status == COMPLETE or old_status == JOB_FAILED:
             if qcstatus == REPROC:
-                LOGGER.info('   * qcstatus=REPROC, running reproc_processing...')
+                LOGGER.info('             * qcstatus=REPROC, running reproc_processing...')
                 self.reproc_processing()
                 new_status = NEED_TO_RUN
             elif qcstatus == RERUN:
-                LOGGER.info('   * qcstatus=RERUN, running undo_processing...')
+                LOGGER.info('             * qcstatus=RERUN, running undo_processing...')
                 self.undo_processing()
                 new_status = NEED_TO_RUN
             else:
@@ -371,10 +371,10 @@ class Task(object):
         elif old_status == NO_DATA:
             pass
         else:
-            LOGGER.warn('   * unknown status for '+self.assessor_label+': '+old_status)
+            LOGGER.warn('             * unknown status for '+self.assessor_label+': '+old_status)
 
         if new_status != old_status:
-            LOGGER.info('   * changing status from '+old_status+' to '+new_status)
+            LOGGER.info('             * changing status from '+old_status+' to '+new_status)
 
             # Update QC Status
             if new_status == COMPLETE:
@@ -411,17 +411,21 @@ class Task(object):
 
         return jobstatus
 
-    def launch(self, jobdir, job_email=None, job_email_options=DAX_SETTINGS.get_email_opts(), xnat_host=None, writeonly=False, pbsdir=None):
+    def launch(self, jobdir, job_email=None,
+               job_email_options=DAX_SETTINGS.get_email_opts(),
+               xnat_host=None, writeonly=False, pbsdir=None,
+               force_no_qsub=False):
         """
         Method to launch a job on the grid
 
-        :param jobdir: absolute path to where the data will be stored on the node
+        :param jobdir: absolute path where the data will be stored on the node
         :param job_email: who to email if the job fails
         :param job_email_options: grid-specific job email options (e.g.,
          fails, starts, exits etc)
         :param xnat_host: set the XNAT_HOST in the PBS job
         :param writeonly: write the job files without submitting them
         :param pbsdir: folder to store the pbs file
+        :param force_no_qsub: run the job locally on the computer (serial mode)
         :raises: cluster.ClusterLaunchException if the jobid is 0 or empty
          as returned by pbs.submit() method
         :return: True if the job failed
@@ -432,21 +436,32 @@ class Task(object):
         outlog = self.outlog_path()
         outlog_dir = os.path.dirname(outlog)
         mkdirp(outlog_dir)
-        pbs = PBS(pbsfile, outlog, cmds, self.processor.walltime_str, self.processor.memreq_mb,
-                  self.processor.ppn, job_email, job_email_options, xnat_host)
+        pbs = PBS(pbsfile, outlog, cmds, self.processor.walltime_str,
+                  self.processor.memreq_mb, self.processor.ppn, job_email,
+                  job_email_options, xnat_host)
         pbs.write()
         if writeonly:
             mes_format = """   filepath: {path}"""
             LOGGER.info(mes_format.format(path=pbsfile))
             return True
         else:
-            jobid = pbs.submit()
+            jobid, job_failed = pbs.submit(outlog=outlog,
+                                           force_no_qsub=force_no_qsub)
 
             if jobid == '' or jobid == '0':
                 LOGGER.error('failed to launch job on cluster')
                 raise cluster.ClusterLaunchException
             else:
                 self.set_launch(jobid)
+                if (force_no_qsub or not cluster.command_found(DAX_SETTINGS.get_cmd_submit())):
+                    if job_failed:
+                        LOGGER.info('             * changing status to %s'
+                                    % JOB_FAILED)
+                        self.set_status(JOB_FAILED)
+                    else:
+                        LOGGER.info('             * changing status to %s'
+                                    % READY_TO_UPLOAD)
+                        # Status already set in the spider
                 return True
 
     def check_date(self):
@@ -933,14 +948,14 @@ class ClusterTask(Task):
             else:
                 # still running
                 pass
-        elif old_status in [COMPLETE, JOB_FAILED, NEED_TO_RUN, 
+        elif old_status in [COMPLETE, JOB_FAILED, NEED_TO_RUN,
             NEED_INPUTS, READY_TO_UPLOAD, UPLOADING, NO_DATA]:
             pass
         else:
-            LOGGER.warn('   * unknown status for ' + self.assessor_label + ': ' + old_status)
+            LOGGER.warn('             * unknown status for ' + self.assessor_label + ': ' + old_status)
 
         if new_status != old_status:
-            LOGGER.info('   * changing status from ' + old_status + ' to ' + new_status)
+            LOGGER.info('             * changing status from ' + old_status + ' to ' + new_status)
             self.set_status(new_status)
 
         return new_status
@@ -971,7 +986,7 @@ class ClusterTask(Task):
 
         return jobstatus
 
-    def launch(self):
+    def launch(self, force_no_qsub=False):
         """
         Method to launch a job on the grid
 
@@ -981,13 +996,17 @@ class ClusterTask(Task):
 
         """
         batch_path = self.batch_path()
-        jobid = cluster.submit_job(batch_path)
+        outlog = self.outlog_path()
+        jobid, job_failed = cluster.submit_job(batch_path, outlog=outlog,
+                                               force_no_qsub=force_no_qsub)
 
         if jobid == '' or jobid == '0':
             LOGGER.error('failed to launch job on cluster')
             raise cluster.ClusterLaunchException
         else:
             self.set_launch(jobid)
+            if (force_no_qsub or not cluster.command_found(DAX_SETTINGS.get_cmd_submit())) and job_failed:
+                self.set_status(JOB_FAILED)
             return True
 
     def check_date(self):
@@ -1153,7 +1172,7 @@ class ClusterTask(Task):
         """
         label = self.assessor_label
         return os.path.join(self.diskq, OUTLOG_DIRNAME, label+'.txt')
-    
+
     def upload_pbs_dir(self):
         """
         Method to return the path of dir for the PBS
@@ -1162,7 +1181,7 @@ class ClusterTask(Task):
         """
         label = self.assessor_label
         return os.path.join(self.upload_dir, label, PBS_DIRNAME)
-    
+
     def upload_outlog_dir(self):
         """
         Method to return the path of outlog file for the job
@@ -1234,64 +1253,64 @@ class ClusterTask(Task):
 
     def complete_task(self):
         self.check_job_usage()
-        
+
         # Copy batch file, note we don't move so dax_upload knows the task origin
         src = self.batch_path()
         dst = self.upload_pbs_dir()
         mkdirp(dst)
         LOGGER.debug('copying batch file from '+src+' to '+dst)
         shutil.copy(src, dst)
-        
+
         # Move output file
         src = self.outlog_path()
         dst = self.upload_outlog_dir()
         mkdirp(dst)
         LOGGER.debug('moving outlog file from '+src+' to '+dst)
         shutil.move(src, dst)
-        
+
         # Touch file for dax_upload to check
         create_flag(os.path.join(RESULTS_DIR, self.assessor_label, READY_TO_COMPLETE + '.txt'))
-        
+
         return COMPLETE
-    
+
     def fail_task(self):
         self.check_job_usage()
-        
+
         # Copy batch file, note we don't move so dax_upload knows the task origin
         src = self.batch_path()
         dst = self.upload_pbs_dir()
         mkdirp(dst)
         LOGGER.debug('copying batch file from '+src+' to '+dst)
         shutil.copy(src, dst)
-        
+
         # Move output file
         src = self.outlog_path()
         dst = self.upload_outlog_dir()
         mkdirp(dst)
         LOGGER.debug('moving outlog file from '+src+' to '+dst)
         shutil.move(src, dst)
-        
+
         # Touch file for dax_upload that job failed
         create_flag(os.path.join(RESULTS_DIR, self.assessor_label, JOB_FAILED + '.txt'))
-        
+
         # Touch file for dax_upload to check
         create_flag(os.path.join(RESULTS_DIR, self.assessor_label, READY_TO_COMPLETE + '.txt'))
-        
+
         return JOB_FAILED
-    
+
     def delete_attr(self, attr):
         os.remove(self.attr_path(attr))
-        
+
     def delete_batch(self):
         # Delete batch file
         os.remove(self.batch_path())
-    
+
     def delete(self):
         # Delete attributes
         attr_list = ['jobid', 'jobnode', 'procstatus', 'walltimeused', 'memused', 'jobstartdate']
         for attr in attr_list:
             self.delete_attr(attr)
-            
+
         self.delete_batch()
 
 class XnatTask(Task):
@@ -1332,11 +1351,11 @@ class XnatTask(Task):
 
         if old_status == COMPLETE or old_status == JOB_FAILED:
             if qcstatus == REPROC:
-                LOGGER.info('   * qcstatus=REPROC, running reproc_processing...')
+                LOGGER.info('             * qcstatus=REPROC, running reproc_processing...')
                 self.reproc_processing()
                 new_status = NEED_TO_RUN
             elif qcstatus == RERUN:
-                LOGGER.info('   * qcstatus=RERUN, running undo_processing...')
+                LOGGER.info('             * qcstatus=RERUN, running undo_processing...')
                 self.undo_processing()
                 new_status = NEED_TO_RUN
             else:
@@ -1345,10 +1364,10 @@ class XnatTask(Task):
             READY_TO_UPLOAD, UPLOADING,NO_DATA, JOB_BUILT]:
             pass
         else:
-            LOGGER.warn('   * unknown status for ' + self.assessor_label+': '+old_status)
+            LOGGER.warn('             * unknown status for ' + self.assessor_label+': '+old_status)
 
         if new_status != old_status:
-            LOGGER.info('   * changing status from '+old_status+' to '+new_status)
+            LOGGER.info('             * changing status from '+old_status+' to '+new_status)
             self.set_status(new_status)
 
         return new_status
@@ -1457,7 +1476,7 @@ class XnatTask(Task):
          args.
 
         """
-        
+
         try:
             return self.processor.build_cmds(cobj, os.path.join(jobdir, self.assessor_label))
         except NotImplementedError:
@@ -1469,4 +1488,3 @@ class XnatTask(Task):
                 raise NoDataException(qcstatus)
             else:
                 raise NeedInputsException(qcstatus)
-    

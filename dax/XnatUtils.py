@@ -2338,6 +2338,21 @@ def get_files_in_folder(folder, label=''):
             f_list.extend(get_files_in_folder(ffpath, label))
     return f_list
 
+def executable_exists(executable):
+    """ Return True if the executable exists.
+
+    If the full path is given, check that it's an executable.
+    Else check in PATH for the file.
+    """
+    if '/' in executable and os.path.isfile(executable):
+        return os.access(os.path.abspath(executable), os.X_OK)
+    else:
+        if True in [os.path.isfile(os.path.join(path, executable)) and
+                    os.access(os.path.join(path, executable), os.X_OK)
+                    for path in os.environ["PATH"].split(os.pathsep)]:
+            return True
+    return False
+
 def check_image_format(fpath):
     """
     Check to see if a NIfTI file or REC file are uncompress and runs gzip via

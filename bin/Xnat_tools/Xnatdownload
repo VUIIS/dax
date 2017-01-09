@@ -719,7 +719,8 @@ def dl_files(res_obj, directory):
         res_obj.file(res_fname).get(os.path.join(output_dir, res_fname))
         if os.path.join(directory, res_fname)[-3:] == 'zip':
             fpath = os.path.join(output_dir, res_fname)
-            os.system('unzip -o -d %s %s > /dev/null' % (directory, fpath))
+            cmd = 'unzip -o -d "%s" "%s" > /dev/null' % (output_dir, fpath)
+            os.system(cmd)
             os.remove(fpath)
 
 #for only one file

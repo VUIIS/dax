@@ -133,7 +133,8 @@ class Launcher(object):
             sys.exit(1)
 
     ################## LAUNCH Main Method ##################
-    def launch_jobs(self, lockfile_prefix, project_local, sessions_local, writeonly=False, pbsdir=None):
+    def launch_jobs(self, lockfile_prefix, project_local, sessions_local,
+                    writeonly=False, pbsdir=None, force_no_qsub=False):
         """
         Main Method to launch the tasks
 
@@ -143,6 +144,7 @@ class Launcher(object):
          associated to the project locally
         :param writeonly: write the job files without submitting them
         :param pbsdir: folder to store the pbs file
+        :param force_no_qsub: run the job locally on the computer (serial mode)
         :return: None
 
         """
@@ -164,7 +166,7 @@ class Launcher(object):
                 task_list = load_task_queue(status=task.NEED_TO_RUN)
 
                 LOGGER.info(str(len(task_list)) + ' tasks that need to be launched found')
-                self.launch_tasks(task_list)
+                self.launch_tasks(task_list, force_no_qsub=force_no_qsub)
             else:
                 LOGGER.info('Connecting to XNAT at ' + self.xnat_host)
                 xnat = XnatUtils.get_interface(self.xnat_host, self.xnat_user, self.xnat_pass)
@@ -181,7 +183,8 @@ class Launcher(object):
                 LOGGER.info(str(len(task_list))+' tasks that need to be launched found')
 
                 # Launch the task that need to be launch
-                self.launch_tasks(task_list, writeonly, pbsdir)
+                self.launch_tasks(task_list, writeonly, pbsdir,
+                                  force_no_qsub=force_no_qsub)
         finally:
             self.finish_script(xnat, flagfile, project_list, 3, 2, project_local)
 
@@ -195,50 +198,68 @@ class Launcher(object):
         """
         return assr_info['procstatus'] == task.NEED_TO_RUN
 
-    def launch_tasks(self, task_list, writeonly=False, pbsdir=None):
+    def launch_tasks(self, task_list, writeonly=False, pbsdir=None,
+                     force_no_qsub=False):
         """
         Launch tasks from the passed list until the queue is full or the list is empty
 
         :param task_list: list of task to launch
         :param writeonly: write the job files without submitting them
         :param pbsdir: folder to store the pbs file
+        :param force_no_qsub: run the job locally on the computer (serial mode)
         :return: None
         """
-        # Check number of jobs on cluster
-        cur_job_count = cluster.count_jobs()
-        if cur_job_count == -1:
-            LOGGER.error('cannot get count of jobs from cluster')
-            return
+        if force_no_qsub:
+            LOGGER.info('No qsub - Running job locally on your computer.')
+        else:
+            # Check number of jobs on cluster
+            cur_job_count = cluster.count_jobs()
+            if cur_job_count == -1:
+                LOGGER.error('cannot get count of jobs from cluster')
+                return
 
-        LOGGER.info(str(cur_job_count)+' jobs currently in queue')
+            if cluster.command_found(cmd=DAX_SETTINGS.get_cmd_submit()):
+                LOGGER.info(str(cur_job_count)+' jobs currently in queue')
 
         # Launch until we reach cluster limit or no jobs left to launch
         while (cur_job_count < self.queue_limit or writeonly) and len(task_list) > 0:
             cur_task = task_list.pop()
 
             # Confirm task is still ready to run
-            # I don't think that we need to make this get here. We've already
-            # filtered the assessors as need to run.
+            # I don't think that we need to make this get here.
+            # We've already filtered the assessors as need to run.
             # if cur_task.get_status() != task.NEED_TO_RUN:
             #     continue
 
             if writeonly:
-                mes_format = """  +Writing PBS file for job:{label}, currently {count} jobs in cluster queue"""
-                LOGGER.info(mes_format.format(label=cur_task.assessor_label,
-                                              count=str(cur_job_count)))
+                mes_format = """  +Writing PBS file for job:{label}, \
+currently {count} jobs in cluster queue"""
+                LOGGER.info(mes_format.format(
+                        label=cur_task.assessor_label,
+                        count=str(cur_job_count)))
             else:
-                mes_format = """  +Launching job:{label}, currently {count} jobs in cluster queue"""
-                LOGGER.info(mes_format.format(label=cur_task.assessor_label,
-                                              count=str(cur_job_count)))
+                mes_format = """  +Launching job:{label}, currently \
+{count} jobs in cluster queue"""
+                LOGGER.info(mes_format.format(
+                        label=cur_task.assessor_label,
+                        count=str(cur_job_count)))
 
             try:
-                if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
-                    success = cur_task.launch()
+                if self.launcher_type in ['diskq-cluster',
+                                          'diskq-combined']:
+                    success = cur_task.launch(force_no_qsub=force_no_qsub)
                 else:
-                    success = cur_task.launch(self.root_job_dir, self.job_email, self.job_email_options, self.xnat_host, writeonly, pbsdir)
+                    success = cur_task.launch(self.root_job_dir,
+                                              self.job_email,
+                                              self.job_email_options,
+                                              self.xnat_host,
+                                              writeonly, pbsdir,
+                                              force_no_qsub=force_no_qsub)
             except Exception as E:
-                LOGGER.critical('Caught exception launching job %s' % cur_task.assessor_label)
-                LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
+                LOGGER.critical('Caught exception launching job %s'
+                                % cur_task.assessor_label)
+                LOGGER.critical('Exception class %s caught with message %s'
+                                % (E.__class__, E.message))
                 success = False
 
             if not success:
@@ -374,14 +395,14 @@ class Launcher(object):
         :param sessions_local: list of sessions to launch tasks
         :return: None
         """
-        
+
         #Modules prerun
         LOGGER.info('  *Modules Prerun')
         if sessions_local:
             self.module_prerun(project_id, 'manual_update')
         else:
             self.module_prerun(project_id, lockfile_prefix)
-            
+
         # TODO: make a project settings to store skip_lastupdate, processors, modules, etc
 
         # Get lists of modules/processors per scan/exp for this project
@@ -412,7 +433,7 @@ class Launcher(object):
                     mess_str = mess.format(sess=sess_info['label'], mod=str(last_mod), up=str(last_up))
                     LOGGER.info(mess_str)
                     continue
-                
+
             elif lastmod_delta:
                 last_mod = datetime.strptime(sess_info['last_modified'][0:19], UPDATE_FORMAT)
                 now_date = datetime.today()
@@ -423,7 +444,7 @@ class Launcher(object):
                     continue
                 else:
                     print('lastmod='+str(last_mod))
-                    
+
             mess = """  +Session:{sess}: building..."""
             LOGGER.info(mess.format(sess=sess_info['label']))
 
@@ -435,7 +456,7 @@ class Launcher(object):
             except Exception as E:
                 LOGGER.critical('Caught exception building sessions %s' % sess_info['session_label'])
                 LOGGER.critical('Exception class %s caught with message %s' %(E.__class__, E.message))
-            
+
             try:
                 if not self.skip_lastupdate:
                     self.set_session_lastupdated(xnat, sess_info, update_start_time)
@@ -524,10 +545,10 @@ class Launcher(object):
                 if proc_assr == None or proc_assr.info()['procstatus'] == task.NEED_INPUTS or proc_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
                     assessor = csess.full_object().assessor(assr_name)
                     xtask = XnatTask(sess_proc, assessor, DAX_SETTINGS.get_results_dir(), os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'))
-                    
+
                     if proc_assr != None and proc_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
                         xtask.update_status()
-                    
+
                     LOGGER.debug('building task:' + assr_name)
                     (proc_status, qc_status) = xtask.build_task(
                         csess,
@@ -616,10 +637,10 @@ class Launcher(object):
                     scan = XnatUtils.get_full_object(xnat, scan_info)
                     assessor = scan.parent().assessor(assr_name)
                     xtask = XnatTask(scan_proc, assessor, DAX_SETTINGS.get_results_dir(), os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ'))
-                    
+
                     if proc_assr != None and proc_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
                         xtask.update_status()
-                        
+
                     LOGGER.debug('building task:' + assr_name)
                     (proc_status, qc_status) = xtask.build_task(
                         cscan,
@@ -664,7 +685,7 @@ class Launcher(object):
                 if scan_obj == None:
                     scan_obj = XnatUtils.get_full_object(xnat, scan_info)
 
-                
+
                 try:
                     scan_mod.run(scan_info, scan_obj)
                 except Exception as E:
@@ -760,7 +781,7 @@ The project is not part of the settings."""
             self.unlock_flagfile(flagfile)
             #Set the date on REDCAP for update ending
             bin.upload_update_date_redcap(project_list, type_update, start_end)
-            
+
         if xnat:
             xnat.disconnect()
             LOGGER.info('Connection to XNAT closed')
