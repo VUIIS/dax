@@ -11,6 +11,7 @@
 import collections
 import csv
 import getpass
+import glob
 from dax import XnatUtils
 from datetime import datetime
 import matplotlib.pyplot as plt
@@ -850,12 +851,13 @@ class SessionSpider(Spider):
 
 
 class AutoSpider(Spider):
-    def __init__(self, name, params, outputs, template, datatype='session'):
+    def __init__(self, name, params, outputs, template, datatype='session', version=None, extension=None):
         self.name = name
         self.params = params
         self.outputs = outputs
         self.template = template
         self.datatype = datatype
+        self.extension = extension
         self.copy_list = []
 
         # Make the parser
@@ -865,8 +867,10 @@ class AutoSpider(Spider):
         args = parser.parse_args()
 
         # Initialize spider with the args
-        super(AutoSpider, self).__init__(
-            name,
+        full_name = name
+        if version:
+            full_name += '_v'+version
+        super(AutoSpider, self).__init__(full_name,
             args.temp_dir, args.proj_label, args.subj_label, args.sess_label,
             xnat_host=args.host, xnat_user=args.user, xnat_pass=None,
             suffix=args.suffix, skip_finish=args.skipfinish)
@@ -874,15 +878,27 @@ class AutoSpider(Spider):
         if datatype == 'scan':
             self.xnat_scan = args.scan_label
 
-        # Make a list of parameters that need to be copied to our input
-        # directory
-        for p in params:
-            if p[1] == 'FILE' or p[1] == 'DIR':
-                self.copy_list.append(p[0])
+        # Set matlab_bin from args or default to just matlab
+        self.matlab_bin = getattr(args, 'matlab_bin', 'matlab')
 
+        # Get commandline inputs
         self.src_inputs = vars(args)
-        # reset in case it changed in parent init
-        self.src_inputs['temp_dir'] = self.jobdir
+
+        # Make a list of params that need to be copied to input directory
+        for p in params:
+            # Check input type
+            if p[1] not in ['FILE', 'DIR']:
+                continue
+
+            # Check for optional arguments that are not set
+            if len(p) >= 4 and \
+                p[3].lower().startswith('f') and \
+                not self.src_inputs[p[0]]:
+                    continue
+
+            self.copy_list.append(p[0])
+
+        self.src_inputs['temp_dir'] = self.jobdir # reset b/c it could have changed in parent init
         self.input_dir = os.path.join(self.jobdir, 'INPUT')
         self.script_dir = os.path.join(self.jobdir, 'SCRIPT')
         self.run_inputs = {}
@@ -895,7 +911,10 @@ class AutoSpider(Spider):
 
         # Add input params to arguments
         for p in self.params:
-            parser.add_argument('--'+p[0], dest=p[0], help=p[2], required=True)
+            _required = True
+            if len(p) >= 4 and p[3].lower().startswith('f'):
+                _required = False
+            parser.add_argument('--'+p[0], dest=p[0], help=p[2], required=_required)
 
         return parser
 
@@ -969,12 +988,23 @@ class AutoSpider(Spider):
         print('DEBUG:run()')
         os.mkdir(self.script_dir)
 
-        if self.template.startswith('#PYTHON'):
-            self.run_python(self.template, 'script.py')
-        elif self.template.startswith('%MATLAB'):
-            self.run_matlab(self.template, 'script.m')
+        if self.extension:
+            if self.extension == 'py':
+                self.run_python(self.template, 'script.py')
+            elif self.extension == 'm':
+                self.run_matlab(self.template, 'script.m')
+            elif self.extension == 'sh':
+                self.run_shell(self.template, 'script.sh')
+            else:
+                raise Exception('Extension Unknown for executable: %s'
+                                % self.extension)
         else:
-            self.run_shell(self.template, 'script.sh')
+            if self.template.startswith('#PYTHON'):
+                self.run_python(self.template, 'script.py')
+            elif self.template.startswith('%MATLAB'):
+                self.run_matlab(self.template, 'script.m')
+            else:
+                self.run_shell(self.template, 'script.sh')
 
     def finish(self):
         print('DEBUG:finish()')
@@ -984,20 +1014,30 @@ class AutoSpider(Spider):
         # Add each output
         if self.outputs:
             for _output in self.outputs:
-                _path = os.path.join(self.jobdir, _output[0])
+                #_path = os.path.join(self.jobdir, _output[0])
                 _type = _output[1]
                 _res = _output[2]
+                _path_list = glob.glob(os.path.join(self.jobdir, _output[0]))
 
-                if _type == 'FILE':
-                    if _res == 'PDF':
-                        self.spider_handler.add_pdf(_path)
+                if _res == 'PDF':
+                    if _type != 'FILE':
+                        print('ERROR:illegal type for PDF:'+_type)
+                    elif len(_path_list) > 1:
+                        print('ERROR:multiple PDFs found')
+                    elif len(_path_list) == 0:
+                        print('ERROR: no PDF found')
                     else:
+                        self.spider_handler.add_pdf(_path_list[0])
+                elif _type == 'FILE':
+                    for _path in _path_list:
                         self.spider_handler.add_file(_path, _res)
                 elif _type == 'DIR':
-                    self.spider_handler.add_folder(_path, _res)
+                    for _path in _path_list:
+                        self.spider_handler.add_folder(_path, _res)
                 else:
                     print('ERROR:unknown type:'+_type)
         else:
+            # Output not specified so upload everything in the job dir
             for _output in os.listdir(self.jobdir):
                 _path = os.path.join(self.jobdir, _output)
                 _res = os.path.basename(_output)
@@ -1014,7 +1054,7 @@ class AutoSpider(Spider):
             f.write(template.substitute(self.run_inputs))
 
         # Run the script
-        XnatUtils.run_matlab(filepath, verbose=True)
+        XnatUtils.run_matlab(filepath, verbose=True, matlab_bin=self.matlab_bin)
 
     def run_shell(self, sh_template, filename):
         filepath = os.path.join(self.script_dir, filename)
@@ -1062,8 +1102,11 @@ class AutoSpider(Spider):
             dst = os.path.join(dst_dir, _file)
 
             print('DEBUG:downloading from XNAT:'+src+' to '+dst)
-            result = self.download_xnat_file(src, dst)
-            return result
+            result =  self.download_xnat_file(src, dst)
+            if result:
+                return dst
+            else:
+                return None
 
         elif '/resources/' in src:
             # Handle resource

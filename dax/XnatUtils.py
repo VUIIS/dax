@@ -1500,7 +1500,7 @@ def is_bad_qa(qcstatus):
     :return: -1 if bad, 1 if not bad, 0 if still in progress (NOTE: doesn't follow boolean logic)
 
     """
-    if qcstatus in [task.JOB_PENDING, task.NEEDS_QA, task.REPROC, task.FAILED_NEEDS_REPROC]:
+    if qcstatus in [task.JOB_PENDING, task.NEEDS_QA, task.REPROC, task.RERUN, task.FAILED_NEEDS_REPROC]:
         return 0
     for qc in task.BAD_QA_STATUS:
         if qc.lower() in qcstatus.split(' ')[0].lower():
@@ -2221,7 +2221,7 @@ def ungzip_nii(directory):
     for fpath in glob.glob(os.path.join(directory, '*.nii.gz')):
         os.system('gzip -d '+fpath)
 
-def run_matlab(matlab_script, verbose=False):
+def run_matlab(matlab_script, verbose=False, matlab_bin='matlab'):
     """
     Call MATLAB with -nodesktop -nosplash and -singlecompthread.
 
@@ -2233,7 +2233,7 @@ def run_matlab(matlab_script, verbose=False):
     """
     print """Matlab script: {script} running ...""".format(script=matlab_script)
     # with xvfb-run: xvfb-run  -e {err} -f {auth} -a --server-args="-screen 0 1600x1280x24 -ac -extension GLX"
-    cmd = """matlab -singleCompThread -nodesktop -nosplash < {script}""".format(script=matlab_script)
+    cmd = """{matlab} -singleCompThread -nodesktop -nosplash < {script}""".format(script=matlab_script, matlab=matlab_bin)
     if not verbose:
         matlabdir = os.path.dirname(matlab_script)
         prefix = os.path.basename(matlab_script).split('.')[0]
