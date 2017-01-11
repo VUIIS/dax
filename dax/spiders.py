@@ -11,6 +11,7 @@
 import collections
 import csv
 import getpass
+import glob
 from dax import XnatUtils
 from datetime import datetime
 import matplotlib.pyplot as plt
