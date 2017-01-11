@@ -851,12 +851,13 @@ class SessionSpider(Spider):
 
 
 class AutoSpider(Spider):
-    def __init__(self, name, params, outputs, template, datatype='session', version=None):
+    def __init__(self, name, params, outputs, template, datatype='session', version=None, extension=None):
         self.name = name
         self.params = params
         self.outputs = outputs
         self.template = template
         self.datatype = datatype
+        self.extension = extension
         self.copy_list = []
 
         # Make the parser
@@ -876,10 +877,10 @@ class AutoSpider(Spider):
 
         if datatype == 'scan':
             self.xnat_scan = args.scan_label
-        
+
         # Set matlab_bin from args or default to just matlab
         self.matlab_bin = getattr(args, 'matlab_bin', 'matlab')
-        
+
         # Get commandline inputs
         self.src_inputs = vars(args)
 
@@ -888,13 +889,13 @@ class AutoSpider(Spider):
             # Check input type
             if p[1] not in ['FILE', 'DIR']:
                 continue
-                
+
             # Check for optional arguments that are not set
             if len(p) >= 4 and \
                 p[3].lower().startswith('f') and \
                 not self.src_inputs[p[0]]:
                     continue
-                
+
             self.copy_list.append(p[0])
 
         self.src_inputs['temp_dir'] = self.jobdir # reset b/c it could have changed in parent init
@@ -987,12 +988,23 @@ class AutoSpider(Spider):
         print('DEBUG:run()')
         os.mkdir(self.script_dir)
 
-        if self.template.startswith('#PYTHON'):
-            self.run_python(self.template, 'script.py')
-        elif self.template.startswith('%MATLAB'):
-            self.run_matlab(self.template, 'script.m')
+        if self.extension:
+            if self.extension == 'py':
+                self.run_python(self.template, 'script.py')
+            elif self.extension == 'm':
+                self.run_matlab(self.template, 'script.m')
+            elif self.extension == 'sh':
+                self.run_shell(self.template, 'script.sh')
+            else:
+                raise Exception('Extension Unknown for executable: %s'
+                                % self.extension)
         else:
-            self.run_shell(self.template, 'script.sh')
+            if self.template.startswith('#PYTHON'):
+                self.run_python(self.template, 'script.py')
+            elif self.template.startswith('%MATLAB'):
+                self.run_matlab(self.template, 'script.m')
+            else:
+                self.run_shell(self.template, 'script.sh')
 
     def finish(self):
         print('DEBUG:finish()')
@@ -1006,7 +1018,7 @@ class AutoSpider(Spider):
                 _type = _output[1]
                 _res = _output[2]
                 _path_list = glob.glob(os.path.join(self.jobdir, _output[0]))
-                
+
                 if _res == 'PDF':
                     if _type != 'FILE':
                         print('ERROR:illegal type for PDF:'+_type)

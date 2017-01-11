@@ -27,7 +27,8 @@ if __name__ == '__main__':
         outputs,
         code,
         datatype='{datatype}',
-        version=version
+        version=version,
+        extension=extension,
     )
 
     spider.go()
