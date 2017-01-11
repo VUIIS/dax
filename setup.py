@@ -10,6 +10,7 @@ import os
 from setuptools import setup, find_packages
 import shutil
 
+
 def get_version():
     basedir = os.path.dirname(__file__)
     with open(os.path.join(basedir, 'dax/version.py')) as f:
@@ -18,13 +19,16 @@ def get_version():
         return VERSION
     raise RuntimeError("No version found")
 
+
 def readme():
     with open('README.rst.example') as f:
         return f.read()
 
+
 if __name__ == '__main__':
-    #Address a sphinx issue
-    if not os.path.exists(os.path.join(os.path.expanduser('~'), '.dax_settings.ini')):
+    # Address a sphinx issue
+    if not os.path.exists(os.path.join(os.path.expanduser('~'),
+                                       '.dax_settings.ini')):
         shutil.copy('dax/dax_settings.ini',
                     os.path.join(os.path.expanduser('~'), '.dax_settings.ini'))
 
@@ -48,13 +52,13 @@ if __name__ == '__main__':
                             'nibabel',
                             'pydicom',
                             'xlrd',
-                            'pillow',],
+                            'pillow'],
           zip_safe=True,
           scripts=[
-                   'bin/dax_tools/dax_manager', 
+                   'bin/dax_tools/dax_manager',
                    'bin/dax_tools/dax_build',
                    'bin/dax_tools/dax_launch',
-                   'bin/dax_tools/dax_update_tasks', 
+                   'bin/dax_tools/dax_update_tasks',
                    'bin/dax_tools/dax_upload',
                    'bin/dax_tools/run_spider',
                    'bin/dax_tools/dax_setup',
@@ -63,6 +67,8 @@ if __name__ == '__main__':
                    'bin/dax_tools/GenerateProcessorTemplate',
                    'bin/dax_tools/GenerateSpiderTemplate',
                    'bin/dax_tools/GenerateSettingsTemplate',
+                   'bin/dax_tools/GenerateAutoSpider',
+                   'bin/dax_tools/InitAutoSpider',
                    'bin/freesurfer_tools/fsupload',
                    'bin/freesurfer_tools/fsdownload',
                    'bin/freesurfer_tools/fsview',
@@ -82,29 +88,27 @@ if __name__ == '__main__':
                    'bin/Xnat_tools/XnatCheckLogin',
                    'bin/Xnat_tools/XnatSwitchProcessStatus',
                    'bin/Xnat_tools/XnatRandomSessionList',
-                   'bin/Xnat_tools/Xnatupload',
-                    'bin/dax_tools/GenerateAutoSpider'
+                   'bin/Xnat_tools/Xnatupload'
                    ],
           classifiers=[
-                       # As from http://pypi.python.org/pypi?%3Aaction=list_classifiers
-                       # "Development Status :: 1 - Planning",
-                       # "Development Status :: 2 - Pre-Alpha",
-                       "Development Status :: 3 - Alpha",
-                       # "Development Status :: 4 - Beta",
-                       # "Development Status :: 5 - Production/Stable",
-                       # "Development Status :: 6 - Mature",
-                       # "Development Status :: 7 - Inactive",
-                       "Environment :: Console",
-                       "Intended Audience :: Science/Research",
-                       "Operating System :: MacOS :: MacOS X",
-                       "Operating System :: POSIX",
-                       "Operating System :: POSIX :: Linux",
-                       "Operating System :: Unix",
-                       "Programming Language :: Python :: 2.6",
-                       "Programming Language :: Python :: 2.7",
-                       "Programming Language :: Python :: 2 :: Only",
-                       "Topic :: Scientific/Engineering",
-                       "Topic :: Scientific/Engineering :: Information Analysis",
-                       ],
+               # As from http://pypi.python.org/pypi?%3Aaction=list_classifiers
+               # "Development Status :: 1 - Planning",
+               # "Development Status :: 2 - Pre-Alpha",
+               "Development Status :: 3 - Alpha",
+               # "Development Status :: 4 - Beta",
+               # "Development Status :: 5 - Production/Stable",
+               # "Development Status :: 6 - Mature",
+               # "Development Status :: 7 - Inactive",
+               "Environment :: Console",
+               "Intended Audience :: Science/Research",
+               "Operating System :: MacOS :: MacOS X",
+               "Operating System :: POSIX",
+               "Operating System :: POSIX :: Linux",
+               "Operating System :: Unix",
+               "Programming Language :: Python :: 2.6",
+               "Programming Language :: Python :: 2.7",
+               "Programming Language :: Python :: 2 :: Only",
+               "Topic :: Scientific/Engineering",
+               "Topic :: Scientific/Engineering :: Information Analysis",
+               ],
           )
-

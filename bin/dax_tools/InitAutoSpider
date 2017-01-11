@@ -56,7 +56,11 @@ def get_code_fname(exe_lang):
 if __name__ == '__main__':
     ARGS = parse_args()
     # TODO: error-checking on the files
+
+    # Get directory - if name of spider at the end remove it.
     directory = os.path.abspath(ARGS.directory)
+    if os.path.basename(directory) == ARGS.name:
+        directory = os.path.dirname(directory)
 
     # Check spider name
     if ARGS.name.endswith('.py') or "spider" in ARGS.name.lower() or \
@@ -71,14 +75,14 @@ Must be X.Y.Z. See http://semver.org."
         raise ValueError(err)
 
     # Check directory:
-    basedir = os.path.dirname(directory)
-    if not os.path.isdir(basedir):
-        err = "Base directory does not exist: %s." % basedir
+    if not os.path.isdir(directory):
+        err = "Directory does not exist: %s." % directory
         raise ValueError(err)
     else:
-        spider_path = os.path.join(directory, 'v%s' % ARGS.version)
+        spider_path = os.path.join(directory, ARGS.name, 'v%s' % ARGS.version)
         if os.path.isdir(spider_path):
-            print 'AutoSpider Folder already existing: %s.' % spider_path
+            print ('Warning: AutoSpider Folder already found: %s. exit.'
+                   % spider_path)
             sys.exit()
         else:
             os.makedirs(spider_path)
@@ -101,3 +105,4 @@ Must be X.Y.Z. See http://semver.org."
     open(os.path.join(spider_path, INPUTS_FNAME), 'a').close()
     open(os.path.join(spider_path, OUTPUTS_FNAME), 'a').close()
     open(os.path.join(spider_path, code_fname), 'a').close()
+    print 'Folder %s ready.' % spider_path
