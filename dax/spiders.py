@@ -661,35 +661,8 @@ for resource %s : %s"
             cmd = '%s %s' % (cmd, template.substitute(self.cmd_args['args']))
 
         self.time_writer("Running command: %s" % cmd)
-        self.execute_cmd(cmd)
+        execute_cmd(cmd, time_writer=self.time_writer)
         self.time_writer('-----------------------------------')
-
-    def execute_cmd(self, cmd):
-        """
-        Execute a command and print in time the output using subprocess
-
-        :param cmd: command to run
-        :return: None
-        """
-        process = sb.Popen(cmd, shell=True, stdout=sb.PIPE, stderr=sb.STDOUT)
-
-        # Poll process for new output until finished
-        while True:
-            nextline = process.stdout.readline()
-            if nextline == '' and process.poll() is not None:
-                break
-            # sys.stdout.write(nextline)
-            # sys.stdout.flush()
-            self.time_writer(nextline.strip())
-
-        output, error = process.communicate()
-
-        if process.returncode:
-            if error:
-                msg = 'Command define by cmd_args failed. See error:\n %s'
-                raise Exception(msg % error)
-            else:
-                raise Exception('Check output for errors.')
 
     @staticmethod
     def run_system_cmd(cmd):
@@ -850,14 +823,23 @@ class SessionSpider(Spider):
         raise NotImplementedError()
 
 
+SCRIPT_NAME = {
+    'python': '.py',
+    'matlab': '.m',
+    'ruby': '.rb',
+    'bash': '.sh'
+}
+
+
 class AutoSpider(Spider):
-    def __init__(self, name, params, outputs, template, datatype='session', version=None, extension=None):
+    def __init__(self, name, params, outputs, template, datatype='session',
+                 version=None, exe_lang=None):
         self.name = name
         self.params = params
         self.outputs = outputs
         self.template = template
         self.datatype = datatype
-        self.extension = extension
+        self.exe_lang = exe_lang
         self.copy_list = []
 
         # Make the parser
@@ -988,23 +970,29 @@ class AutoSpider(Spider):
         print('DEBUG:run()')
         os.mkdir(self.script_dir)
 
-        if self.extension:
-            if self.extension == 'py':
-                self.run_python(self.template, 'script.py')
-            elif self.extension == 'm':
-                self.run_matlab(self.template, 'script.m')
-            elif self.extension == 'sh':
-                self.run_shell(self.template, 'script.sh')
-            else:
-                raise Exception('Extension Unknown for executable: %s'
-                                % self.extension)
-        else:
+        # Get filepath and template
+        filename = 'script%s' % SCRIPT_NAME[self.exe_lang]
+        filepath = os.path.join(self.script_dir, filename)
+        template = Template(self.template)
+
+        # Write the script
+        with open(filepath, 'w') as f:
+            f.write(template.substitute(self.run_inputs))
+
+        if not self.exe_lang:
             if self.template.startswith('#PYTHON'):
-                self.run_python(self.template, 'script.py')
+                self.exe_lang = 'python'
             elif self.template.startswith('%MATLAB'):
-                self.run_matlab(self.template, 'script.m')
+                self.exe_lang = 'matlab'
+            elif self.template.startswith('#RUBY'):
+                self.exe_lang = 'ruby'
+            elif self.template.startswith('#BASH'):
+                self.exe_lang = 'bash'
             else:
-                self.run_shell(self.template, 'script.sh')
+                raise Exception('Template Unknown. Please add #BASH/\
+#PYTHON/#RUBY/#MATLAB at the beginning of the call file and rerun \
+GeneratorAutoSpider.')
+        execute_cmd(self.exe_lang, filepath, self.time_writer)
 
     def finish(self):
         print('DEBUG:finish()')
@@ -1014,7 +1002,7 @@ class AutoSpider(Spider):
         # Add each output
         if self.outputs:
             for _output in self.outputs:
-                #_path = os.path.join(self.jobdir, _output[0])
+                # _path = os.path.join(self.jobdir, _output[0])
                 _type = _output[1]
                 _res = _output[2]
                 _path_list = glob.glob(os.path.join(self.jobdir, _output[0]))
@@ -1432,6 +1420,57 @@ def use_time_writer(time_writer, msg):
         print msg
     else:
         time_writer(msg)
+
+
+def run_cmd(exe_lang, fpath, time_writer=None):
+    """
+    Run a command line via os.system() with arguments set in self.cmd_args
+
+    :param exe_lang: executable language (bash, python, ruby, matlab)
+    :param fpath: file to run
+    :param time_writer: time writer to display time for each line print
+    :return: None
+    """
+    use_time_writer(time_writer, '-------- Run Command --------')
+
+    if exe_lang == 'matlab':
+        exe = 'matlab -singleCompThread -nodesktop -nosplash <'
+    else:
+        os.chmod(fpath, os.stat(fpath)[ST_MODE] | S_IXUSR)
+        exe = exe_lang
+    cmd = '%s %s' % (exe, fpath)
+
+    use_time_writer(time_writer, "Running command: %s" % cmd)
+    execute_cmd(cmd)
+    use_time_writer(time_writer, '-----------------------------------')
+
+
+def execute_cmd(cmd, time_writer=None):
+    """
+    Execute a command and print in time the output using subprocess
+
+    :param cmd: command to run
+    :return: None
+    """
+    process = sb.Popen(cmd, shell=True, stdout=sb.PIPE, stderr=sb.STDOUT)
+
+    # Poll process for new output until finished
+    while True:
+        nextline = process.stdout.readline()
+        if nextline == '' and process.poll() is not None:
+            break
+        # sys.stdout.write(nextline)
+        # sys.stdout.flush()
+        use_time_writer(time_writer, nextline.strip())
+
+    output, error = process.communicate()
+
+    if process.returncode:
+        if error:
+            msg = 'Command define by cmd_args failed. See error:\n %s'
+            raise Exception(msg % error)
+        else:
+            raise Exception('Check output for errors.')
 
 
 # PDF Generator for spiders:
