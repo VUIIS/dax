@@ -12,7 +12,7 @@ name = '{name}'
 
 version = '{version}'
 
-extension = '{extension}'
+exe_lang = '{exe_lang}'
 
 inputs = {inputs}
 
@@ -61,6 +61,23 @@ def parse_args():
     return parser.parse_args()
 
 
+def get_exe_language(code_file):
+    """Return the exe language that will be use to run the code_str."""
+    extension = code_file.split('.')[-1]
+    if extension == 'py':
+        return 'python'
+    elif extension == 'm':
+        return 'matlab'
+    elif extension == 'sh':
+        return 'bash'
+    elif extension == 'rb':
+        return 'ruby'
+    else:
+        print "Warning: file %s don't have any known extension \
+(.py/.m/.sh/.rb)" % code_file
+        return None
+
+
 if __name__ == '__main__':
     ARGS = parse_args()
     inputs_file = ARGS.inputs_file
@@ -101,8 +118,10 @@ Must be X.Y.Z. See http://semver.org."
 
     outputs_str = outputs_str[:-1]+'\n]'
 
+    # Get executable language:
+    exe_lang = get_exe_language(code_file)
+
     # Load the code template
-    extension = code_file.split('.')[-1]
     code_str = spiders.load_template(code_file)
     code_str = code_str.replace('"""', "'''")
 
@@ -115,7 +134,7 @@ Must be X.Y.Z. See http://semver.org."
         code=code_str,
         datatype=ARGS.type,
         version=ARGS.version,
-        extension=extension)
+        exe_lang=exe_lang)
 
     # Write the file
     with open(spider_file, 'w') as f:

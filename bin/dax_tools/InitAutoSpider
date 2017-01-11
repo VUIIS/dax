@@ -1,0 +1,103 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import os
+import re
+import sys
+from dax import spiders
+
+
+__usage__ = "Start a folder for a new Spider using AutoSpider template."
+TEST_FNAME = "test.sh"
+INPUTS_FNAME = "inputs.csv"
+OUTPUTS_FNAME = "outputs.csv"
+GENSPIDER_FNAME = "genspider.sh"
+TEST_TEMPLATE = "python {spider} --options ..."
+GENERATE_TEMPLATE = "GenerateAutoSpider -n {name} -v {version} -i inputs.csv \
+-o outputs.csv -c {script} -d . -t {datatype}"
+
+
+def parse_args():
+    """
+    Method to parse arguments base on ArgumentParser
+    :return: parser object parsed
+    """
+    from argparse import ArgumentParser
+    parser = ArgumentParser(prog='InitAutoSpider', description=__usage__)
+    parser.add_argument('-n', dest='name', required=True,
+                        help='Name for Spider. e.g. fMRIQA')
+    parser.add_argument('-v', dest='version', required=True,
+                        help='Spider version, format: X.Y.Z, e.g. 1.0.0')
+    parser.add_argument('-d', dest='directory', default=None,
+                        help="Directory where the folder will be created.")
+    parser.add_argument('-t', dest='type', default='session',
+                        choices=['session', 'scan'],
+                        help='Type of Spider: session, scan')
+    parser.add_argument('-e', dest='exe', default='bash',
+                        choices=['bash', 'python', 'matlab', 'ruby'],
+                        help='Type of programming language for executable.')
+    return parser.parse_args()
+
+
+def get_code_fname(exe_lang):
+    """Return the extension for the call file."""
+    if exe_lang == 'python':
+        return 'call.py'
+    elif exe_lang == 'matlab':
+        return 'call.m'
+    elif exe_lang == 'ruby':
+        return 'call.rb'
+    elif exe_lang == 'bash':
+        return 'call.sh'
+    else:
+        return 'call.sh'
+
+
+if __name__ == '__main__':
+    ARGS = parse_args()
+    # TODO: error-checking on the files
+    directory = os.path.abspath(ARGS.directory)
+
+    # Check spider name
+    if ARGS.name.endswith('.py') or "spider" in ARGS.name.lower() or \
+       not re.compile('^\w+$').match(ARGS.name):
+        err = "Invalid spider name"
+        raise ValueError(err)
+
+    # Check version
+    if not spiders.is_good_version(ARGS.version):
+        err = "Invalid format for version. \
+Must be X.Y.Z. See http://semver.org."
+        raise ValueError(err)
+
+    # Check directory:
+    basedir = os.path.dirname(directory)
+    if not os.path.isdir(basedir):
+        err = "Base directory does not exist: %s." % basedir
+        raise ValueError(err)
+    else:
+        spider_path = os.path.join(directory, 'v%s' % ARGS.version)
+        if os.path.isdir(spider_path):
+            print 'AutoSpider Folder already existing: %s.' % spider_path
+            sys.exit()
+        else:
+            os.makedirs(spider_path)
+
+    # Generate file
+    code_fname = get_code_fname(ARGS.exe)
+    spider_file = 'Spider_'+ARGS.name+'_v'+ARGS.version.replace('.', '_')+'.py'
+    generate_str = GENERATE_TEMPLATE.format(
+        name=ARGS.name,
+        datatype=ARGS.type,
+        version=ARGS.version,
+        script=code_fname)
+    test_str = TEST_TEMPLATE.format(spider=spider_file)
+
+    # Write the files
+    with open(os.path.join(spider_path, GENSPIDER_FNAME), 'w') as f:
+        f.write(generate_str)
+    with open(os.path.join(spider_path, TEST_FNAME), 'w') as f:
+        f.write(test_str)
+    open(os.path.join(spider_path, INPUTS_FNAME), 'a').close()
+    open(os.path.join(spider_path, OUTPUTS_FNAME), 'a').close()
+    open(os.path.join(spider_path, code_fname), 'a').close()
