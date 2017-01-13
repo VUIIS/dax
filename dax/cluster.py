@@ -328,10 +328,12 @@ def submit_job(filename, outlog=None, force_no_qsub=False):
 
     return jobid.strip(), failed
 
+
 class ClusterLaunchException(Exception):
     """Custom exception raised when launch on the grid failed"""
     def __init__(self):
         Exception.__init__(self, 'ERROR: Failed to launch job on the grid.')
+
 
 class ClusterCountJobsException(Exception):
     """Custom exception raised when attempting to get the number of
@@ -339,6 +341,7 @@ class ClusterCountJobsException(Exception):
     def __init__(self):
         Exception.__init__(self, 'ERROR: Failed to fetch number of '
                                  'jobs from the grid.')
+
 
 class ClusterJobIDException(Exception):
     """Custom exception raised when attempting to get the job id failed"""
