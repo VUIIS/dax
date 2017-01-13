@@ -168,23 +168,25 @@ class InterfaceTemp(Interface):
         self._exec('/data/JSESSION', method='DELETE')
         shutil.rmtree(self.temp_dir)
 
+
 class AssessorHandler:
     """
-    Class to intelligently deal with the Assessor labels and to hopefully make the splitting of the strings easier.
+    Class to intelligently deal with the Assessor labels.
+    Make the splitting of the strings easier.
     """
     def __init__(self, label):
         """
-        The purpose of this method is to split an assessor label and parse out its associated pieces
+        The purpose of this method is to split an assessor label and
+        parse out its associated pieces
 
         :param label: An assessor label of the form
          ProjectID-x-Subject_label-x-SessionLabel-x-ScanId-x-proctype or
          ProjectID-x-Subject_label-x-SessionLabel-x-proctype
         :return: None
-
         """
         self.assessor_label = label
         self.is_session_assessor = False
-        self.is_scan_assessor=False
+        self.is_scan_assessor = False
         if len(re.findall('-x-', label)) == 3:
             self.project_id, self.subject_label, self.session_label, self.proctype = label.split('-x-')
             self.scan_id = None
@@ -201,7 +203,7 @@ class AssessorHandler:
 
         :return: True if valid, False if not valid
         """
-        return self.assessor_label != None
+        return self.assessor_label is not None
 
     def get_project_id(self):
         """
@@ -256,18 +258,32 @@ class AssessorHandler:
         :return: The pyxnat EObject of the assessor
 
         """
-        string_obj = '''/project/{project}/subject/{subject}/experiment/{session}/assessor/{label}'''.format(project=self.project_id, subject=self.subject_label, session=self.session_label, label=self.assessor_label)
+        tp = '/project/%s/subject/%s/experiment/%s/assessor/%S'
+        string_obj = tp % (self.project_id, self.subject_label,
+                           self.session_label, self.assessor_label)
         return intf.select(string_obj)
 
-class SpiderProcessHandler:
-    """
-    Class to handle the uploading of results from a spider to the upload directory
-    """
-    def __init__(self, script_name, suffix, project, subject, experiment, scan=None, time_writer=None):
-        """
-        Entry point to the SpiderProcessHandler Class
 
-        :param script_name: Basename of the Spider (full path works as well, it will be removed)
+class SpiderProcessHandler:
+    """Class to handle the uploading of results for a spider."""
+    def __init__(self, script_name, suffix, project=None, subject=None,
+                 experiment=None, scan=None, alabel=None,
+                 assessor_handler=None, time_writer=None):
+        """
+        Entry point to the SpiderProcessHandler Class.
+        You can generate a SpiderProcessHandler by giving:
+            project / subject / session and or scan
+
+            or
+
+            assessor label via label
+
+            or
+
+            AssessorHandler via assessor_handler
+
+        :param script_name: Basename of the Spider
+                            (full path works as well, it will be removed)
         :param suffix: Processor suffix
         :param project: Project on XNAT
         :param subject: Subject on XNAT
@@ -277,7 +293,7 @@ class SpiderProcessHandler:
         :return: None
 
         """
-        #Variables:
+        # Variables:
         self.error = 0
         self.has_pdf = 0
         self.time_writer = time_writer
@@ -291,44 +307,59 @@ class SpiderProcessHandler:
 
         # get the processname from spider
         if len(re.split("/*_v[0-9]/*", script_name)) > 1:
-            self.version = script_name.split('_v')[-1].replace('_','.')
-            proctype = re.split("/*_v[0-9]/*", script_name)[0]+'_v'+self.version.split('.')[0]
+            self.version = script_name.split('_v')[-1].replace('_', '.')
+            proctype = re.split(
+                "/*_v[0-9]/*", script_name)[0]+'_v'+self.version.split('.')[0]
         else:
             self.version = '1.0.0'
             proctype = script_name
 
         if suffix:
-            if suffix[0] !='_':
+            if suffix[0] != '_':
                 suffix = '_'+suffix
-
             suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
             if suffix[-1] == '_':
                 suffix = suffix[:-1]
             proctype = proctype + suffix
 
-        #Create the assessor handler
-        if not scan:
-            assessor_label = project+'-x-'+subject+'-x-'+experiment+'-x-'+proctype
+        # Create the assessor handler
+        if assessor_handler:
+            self.assr_handler = assessor_handler
         else:
-            assessor_label = project+'-x-'+subject+'-x-'+experiment+'-x-'+scan+'-x-'+proctype
-        self.assr_handler = AssessorHandler(assessor_label)
+            if alabel:
+                assessor_label = alabel
+            else:
+                xnat_info = [project, subject, experiment]
+                if scan:
+                    xnat_info.append(scan)
+                xnat_info.append(proctype)
+                if None in xnat_info:
+                    err = 'A label is not defined for SpiderProcessHandler: %s'
+                    raise Exception(err % str(xnat_info))
+                assessor_label = '-x-'.join(xnat_info)
+            self.assr_handler = AssessorHandler(assessor_label)
+        if not self.assr_handler.is_valid:
+            err = 'SpiderProcessHandler: assessor handler not valid. \
+Wrong label.'
+            raise Exception(err)
 
-        #Create the upload directory
-        self.directory = os.path.join( DAX_SETTINGS.get_results_dir(), assessor_label)
-        #if the folder already exists : remove it
+        # Create the upload directory
+        self.directory = os.path.join(DAX_SETTINGS.get_results_dir(),
+                                      assessor_label)
+        # if the folder already exists : remove it
         if not os.path.exists(self.directory):
             os.mkdir(self.directory)
         else:
-            #Remove files in directories
+            # Remove files in directories
             clean_directory(self.directory)
 
         self.print_msg("INFO: Handling results ...")
-        self.print_msg('''-Creating folder {folder} for {label}'''.format(folder=self.directory,
-                                                                          label=assessor_label))
+        self.print_msg('-Creating folder %s for %s'
+                       % (self.directory, assessor_label))
 
     def print_msg(self, msg):
         """
-        Prints a message using TimedWriter object if defined otherwise default print
+        Prints a message using TimedWriter or print
 
         :param msg: Message to print
         :return: None
@@ -371,7 +402,7 @@ class SpiderProcessHandler:
         """
         if not os.path.isfile(fpath.strip()):
             self.error = 1
-            self.print_err('''file {file} does not exists.'''.format(file=fpath))
+            self.print_err('file %s does not exists.' % fpath)
             return False
         else:
             return True
@@ -386,7 +417,7 @@ class SpiderProcessHandler:
         """
         if not os.path.isdir(fpath.strip()):
             self.error = 1
-            self.print_err('''folder {folder} does not exists.'''.format(folder=fpath))
+            self.print_err('folder %s does not exists.' % fpath)
             return False
         else:
             return True
@@ -401,7 +432,7 @@ class SpiderProcessHandler:
         :return: None
 
         """
-        self.print_msg('''  -Copying {label}: {src} to {dest}'''.format(label=label, src=src, dest=dest))
+        self.print_msg('  -Copying %s: %s to %s' % (label, src, dest))
 
     def add_pdf(self, filepath):
         """
