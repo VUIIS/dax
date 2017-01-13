@@ -1103,14 +1103,12 @@ GeneratorAutoSpider.')
             copyfile(src, dst)
         else:
             raise AutoSpiderValueError('input does not exist: %s' % src)
-            dst = None
 
         return dst
 
     def download_xnat_file(self, src, dst):
         """Download XNAT specific file."""
         result = None
-
         try:
             xnat = XnatUtils.get_interface(self.host, self.user, self.pwd)
             try:
@@ -1118,9 +1116,9 @@ GeneratorAutoSpider.')
                 res = xnat.select(_res)
                 result = res.file(_file).get(dst)
             except:
-                raise AutoSpiderValueError('downloading from XNAT.')
+                raise AutoSpiderException('downloading from XNAT.')
         except:
-            self.time_writer('FAILED to get XNAT connection.')
+            raise AutoSpiderException('FAILED to get XNAT connection.')
         finally:
             xnat.disconnect()
 
@@ -1129,7 +1127,6 @@ GeneratorAutoSpider.')
     def download_xnat_resource(self, src, dst):
         """Download XNAT complete resource."""
         result = None
-
         try:
             xnat = XnatUtils.get_interface(self.host, self.user, self.pwd)
             try:
@@ -1137,9 +1134,9 @@ GeneratorAutoSpider.')
                 res.get(dst, extract=True)
                 result = dst
             except:
-                self.time_writer('ERROR: downloading from XNAT')
+                raise AutoSpiderException('downloading from XNAT.')
         except:
-            self.time_writer('ERROR: FAILED to get XNAT connection.')
+            raise AutoSpiderException('FAILED to get XNAT connection.')
         finally:
             xnat.disconnect()
 
@@ -1793,6 +1790,10 @@ class SpiderException(Exception):
 
 
 class SpiderTypeError(TypeError):
+    pass
+
+
+class AutoSpiderException(Exception):
     pass
 
 
