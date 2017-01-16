@@ -18,41 +18,41 @@ SpiderProcessHandler to handle results at the end of any spider
 7) Old download functions still used in some spiders
 """
 
-import re
-import os
-import sys
-import csv
-import xlrd
-import glob
-import gzip
-import dicom
-import shutil
-import random
-import fnmatch
-import zipfile
-import tempfile
-import dicom.UID
-import subprocess
 import collections
-import numpy as np
-import nibabel as nib
-from lxml import etree
-from pyxnat import Interface
+import csv
 from datetime import datetime
 from dicom.dataset import Dataset, FileDataset
-
+import dicom
+import dicom.UID
+import fnmatch
+import glob
+import gzip
+from lxml import etree
+import nibabel as nib
+import numpy as np
+from pyxnat import Interface
+from pyxnat.core.errors import DatabaseError
+import os
+import random
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import xlrd
+import xml.etree.cElementTree as ET
+import zipfile
 import task
 from dax_settings import DAX_Settings
+
+
 DAX_SETTINGS = DAX_Settings()
+NS = {'xnat': 'http://nrg.wustl.edu/xnat',
+      'proc': 'http://nrg.wustl.edu/proc',
+      'fs': 'http://nrg.wustl.edu/fs',
+      'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
 
-import xml.etree.cElementTree as ET
-
-NS = {'xnat' : 'http://nrg.wustl.edu/xnat',
-      'proc' : 'http://nrg.wustl.edu/proc',
-      'fs'   : 'http://nrg.wustl.edu/fs',
-      'xsi'  : 'http://www.w3.org/2001/XMLSchema-instance'}
-
-### VARIABLE ###
 # Assessor datatypes
 DEFAULT_FS_DATATYPE = 'fs:fsData'
 DEFAULT_DATATYPE = 'proc:genProcData'
@@ -95,9 +95,10 @@ ASSESSOR_PR_POST_URI = '''?columns=ID,label,URI,xsiType,project,xnat:imagesessio
 ASSESSOR_FS_PROJ_POST_URI = '''?project={project}&xsiType={fstype}&columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,subject_label,xnat:imagesessiondata/id,xnat:imagesessiondata/label,URI,{fstype}/procstatus,{fstype}/validation/status,{fstype}/procversion,{fstype}/jobstartdate,{fstype}/memused,{fstype}/walltimeused,{fstype}/jobid,{fstype}/jobnode,{fstype}/out/file/label'''
 ASSESSOR_PR_PROJ_POST_URI = '''?project={project}&xsiType={pstype}&columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,{pstype}/procstatus,{pstype}/proctype,{pstype}/validation/status,{pstype}/procversion,{pstype}/jobstartdate,{pstype}/memused,{pstype}/walltimeused,{pstype}/jobid,{pstype}/jobnode,{pstype}/out/file/label'''
 
-####################################################################################
-#                                    1) CLASS                                      #
-####################################################################################
+
+###############################################################################
+#                                    1) CLASS                                 #
+###############################################################################
 class InterfaceTemp(Interface):
     """
     Extends the pyxnat.Interface class to make a temporary directory, write the
@@ -129,10 +130,8 @@ class InterfaceTemp(Interface):
         if not os.path.exists(temp_dir):
             os.mkdir(temp_dir)
         self.temp_dir = temp_dir
-        super(InterfaceTemp, self).__init__(server=self.host,
-                                            user=self.user,
-                                            password=self.pwd,
-                                            cachedir=self.temp_dir)
+        self.connect()
+        self.authenticate()
 
     def __enter__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
                   temp_dir=None):
@@ -151,14 +150,19 @@ class InterfaceTemp(Interface):
         if not os.path.exists(temp_dir):
             os.mkdir(temp_dir)
         self.temp_dir = temp_dir
-        super(InterfaceTemp, self).__init__(server=self.host,
-                                            user=self.user,
-                                            password=self.pwd,
-                                            cachedir=self.temp_dir)
+        self.connect()
+        self.authenticate()
 
     def __exit__(self, type, value, traceback):
         """Exit method for with statement."""
         self.disconnect()
+
+    def connect(self):
+        """Connect to XNAT."""
+        super(InterfaceTemp, self).__init__(server=self.host,
+                                            user=self.user,
+                                            password=self.pwd,
+                                            cachedir=self.temp_dir)
 
     def disconnect(self):
         """Disconnect the JSESSION and blow away the cache.
@@ -167,6 +171,40 @@ class InterfaceTemp(Interface):
         """
         self._exec('/data/JSESSION', method='DELETE')
         shutil.rmtree(self.temp_dir)
+
+    def authenticate(self):
+        """Check the authentification.
+
+        Try to Disconnect the JSESSION and connect again.
+        Raise XnatAuthentificationError if it failes.
+
+        :return: True or False
+        """
+        try:
+            self._exec('/data/JSESSION', method='DELETE')
+            # Reconnect the JSession for XNAT
+            self.connect()
+            return True
+        except DatabaseError as e:
+            print e
+            raise XnatAuthentificationError(self.host, self.user)
+
+
+class XnatAuthentificationError(Exception):
+    """Custom exception raised when xnat connection failed."""
+    def __init__(self, host=None, user=None):
+        msg = 'ERROR: XNAT Authentification failed. Check logins.'
+        if host:
+            msg = '%s. Host: %s' % (msg, host)
+            if user:
+                msg = '%s / User: %s' % (msg, user)
+        Exception.__init__(self, msg)
+
+
+class XnatUtilsError(Exception):
+    """XnatUtils exception."""
+    def __init__(self, message):
+        Exception.__init__(self, 'Error in XnatUtils: %s' % message)
 
 
 class AssessorHandler:
@@ -509,10 +547,10 @@ Wrong label.'
                 self.print_copying_statement(res, folderpath, dest)
             # Directories are the same
             except shutil.Error as excep:
-                self.print_err('Directory not copied. Error: %s' % excep)
+                raise XnatUtilsError('Directory not copied. Error: %s' % excep)
             # Any error saying that the directory doesn't exist
             except OSError as excep:
-                self.print_err('Directory not copied. Error: %s' % excep)
+                raise XnatUtilsError('Directory not copied. Error: %s' % excep)
 
     def set_assessor_status(self, status):
         """
@@ -530,7 +568,7 @@ Wrong label.'
                 former_status = assessor.attrs.get(DEFAULT_FS_DATATYPE+'/procstatus')
             else:
                 former_status = assessor.attrs.get(DEFAULT_DATATYPE+'/procstatus')
-            if assessor.exists() and former_status == task.JOB_RUNNING :
+            if assessor.exists() and former_status == task.JOB_RUNNING:
                 if self.assr_handler.get_proctype() == 'FS':
                     assessor.attrs.set(DEFAULT_FS_DATATYPE+'/procstatus', status)
                     self.print_msg('  -status set for FreeSurfer to '+str(status))
@@ -541,7 +579,8 @@ Wrong label.'
             # fail to access XNAT -- let dax_upload set the status
             pass
         finally:
-            if 'xnat' in locals() or xnat != None: xnat.disconnect()
+            if 'xnat' in locals() or xnat is not None:
+                xnat.disconnect()
 
     def done(self):
         """
@@ -581,9 +620,10 @@ Wrong label.'
             #Remove the data
             shutil.rmtree(directory)
 
-####################################################################################
-#                     2) Query XNAT and Access XNAT obj                            #
-####################################################################################
+
+###############################################################################
+#                     2) Query XNAT and Access XNAT obj                       #
+###############################################################################
 def get_interface(host=None, user=None, pwd=None):
     """
     Opens a connection to XNAT using XNAT_USER, XNAT_PASS, and XNAT_HOST from
@@ -595,14 +635,15 @@ def get_interface(host=None, user=None, pwd=None):
     :return: InterfaceTemp object which extends functionaly of pyxnat.Interface
 
     """
-    if user == None:
+    if user is None:
         user = os.environ['XNAT_USER']
-    if pwd == None:
+    if pwd is None:
         pwd = os.environ['XNAT_PASS']
-    if host == None:
+    if host is None:
         host = os.environ['XNAT_HOST']
     # Don't sys.exit, let callers catch KeyErrors
     return InterfaceTemp(host, user, pwd)
+
 
 def list_projects(intf):
     """
@@ -615,6 +656,7 @@ def list_projects(intf):
     projects_list = intf._get_json(PROJECTS_URI)
     return projects_list
 
+
 def list_project_resources(intf, projectid):
     """
     Gets a list of all of the project resources for the project ID you want.
@@ -626,6 +668,7 @@ def list_project_resources(intf, projectid):
     post_uri = P_RESOURCES_URI.format(project=projectid)
     resource_list = intf._get_json(post_uri)
     return resource_list
+
 
 def list_subjects(intf, projectid=None):
     """
@@ -659,6 +702,7 @@ def list_subjects(intf, projectid=None):
 
     return sorted(subject_list, key=lambda k: k['subject_label'])
 
+
 def list_subject_resources(intf, projectid, subjectid):
     """
     Gets a list of all of the resources for a subject for a project
@@ -673,6 +717,7 @@ def list_subject_resources(intf, projectid, subjectid):
     post_uri = SU_RESOURCES_URI.format(project=projectid, subject=subjectid)
     resource_list = intf._get_json(post_uri)
     return resource_list
+
 
 def list_sessions(intf, projectid=None, subjectid=None):
     """
@@ -746,6 +791,7 @@ def list_sessions(intf, projectid=None, subjectid=None):
     # Return list sorted by label
     return sorted(full_sess_list, key=lambda k: k['session_label'])
 
+
 def list_session_resources(intf, projectid, subjectid, sessionid):
     """
     Gets a list of all of the resources for a session associated to a subject/project
@@ -761,6 +807,7 @@ def list_session_resources(intf, projectid, subjectid, sessionid):
     post_uri = SE_RESOURCES_URI.format(project=projectid, subject=subjectid, session=sessionid)
     resource_list = intf._get_json(post_uri)
     return resource_list
+
 
 def list_scans(intf, projectid, subjectid, sessionid):
     """
@@ -804,6 +851,7 @@ def list_scans(intf, projectid, subjectid, sessionid):
             new_list.append(snew)
 
     return sorted(new_list, key=lambda k: k['label'])
+
 
 def list_project_scans(intf, projectid, include_shared=True):
     """
@@ -907,6 +955,7 @@ def list_project_scans(intf, projectid, include_shared=True):
 
     return sorted(scans_dict.values(), key=lambda k: k['scan_label'])
 
+
 def list_scan_resources(intf, projectid, subjectid, sessionid, scanid):
     """
     Gets a list of all of the resources for a scan associated to a session/subject/project
@@ -925,6 +974,7 @@ def list_scan_resources(intf, projectid, subjectid, sessionid, scanid):
                                        scan=scanid)
     resource_list = intf._get_json(post_uri)
     return resource_list
+
 
 def list_assessors(intf, projectid, subjectid, sessionid):
     """
@@ -994,6 +1044,7 @@ def list_assessors(intf, projectid, subjectid, sessionid):
             new_list.append(anew)
 
     return sorted(new_list, key=lambda k: k['label'])
+
 
 def list_project_assessors(intf, projectid):
     """
@@ -1110,7 +1161,9 @@ def list_project_assessors(intf, projectid):
 
     return sorted(assessors_dict.values(), key=lambda k: k['label'])
 
-def list_assessor_out_resources(intf, projectid, subjectid, sessionid, assessorid):
+
+def list_assessor_out_resources(intf, projectid, subjectid, sessionid,
+                                assessorid):
     """
     Gets a list of all of the resources for an assessor associated to a session/subject/project
      requested by the user
@@ -1133,6 +1186,7 @@ def list_assessor_out_resources(intf, projectid, subjectid, sessionid, assessori
                                       assessor=assessorid)
     resource_list = intf._get_json(post_uri)
     return resource_list
+
 
 def get_resource_lastdate_modified(intf, resource_obj):
     """
@@ -1169,6 +1223,7 @@ def get_resource_lastdate_modified(intf, resource_obj):
         res_date = ('{:%Y%m%d%H%M%S}'.format(datetime.now()))
     return res_date
 
+
 def select_assessor(intf, assessor_label):
     """
     Select assessor from his label
@@ -1178,6 +1233,7 @@ def select_assessor(intf, assessor_label):
     """
     labels = assessor_label.split('-x-')
     return intf.select('/project/'+labels[0]+'/subject/'+labels[1]+'/experiment/'+labels[2]+'/assessor/'+assessor_label)
+
 
 def get_full_object(intf, obj_dict):
     """
@@ -1217,6 +1273,7 @@ def get_full_object(intf, obj_dict):
     else:
         return intf.select('/project/')  #Return non existing object: obj.exists() -> False
 
+
 def get_assessor(xnat, projid, subjid, sessid, assrid):
     """
     Run Interface.select down to the assessor level
@@ -1232,7 +1289,9 @@ def get_assessor(xnat, projid, subjid, sessid, assrid):
     assessor = xnat.select('/projects/'+projid+'/subjects/'+subjid+'/experiments/'+sessid+'/assessors/'+assrid)
     return assessor
 
-def select_obj(intf, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None):
+
+def select_obj(intf, project_id=None, subject_id=None, session_id=None,
+               scan_id=None, assessor_id=None, resource=None):
     """
     Based on inputs, run Interface.select() down the URI tree
 
@@ -1263,6 +1322,7 @@ def select_obj(intf, project_id=None, subject_id=None, session_id=None, scan_id=
             select_str += '''/{key}/{label}'''.format(key=key, label=value)
     return intf.select(select_str)
 
+
 def generate_assessor_handler(project, subject, session, proctype, scan=None):
     """
     Generate an assessorHandler object corresponding to the labels in the parameters
@@ -1280,6 +1340,7 @@ def generate_assessor_handler(project, subject, session, proctype, scan=None):
         assessor_label = '-x-'.join([project, subject, session, proctype])
     return AssessorHandler(assessor_label)
 
+
 def has_dax_datatypes(intf):
     """
     Check if Xnat instance has the datatypes for DAX
@@ -1293,6 +1354,7 @@ def has_dax_datatypes(intf):
             return False
     return True
 
+
 def has_fs_datatypes(intf):
     """
     Check if Xnat instance has the fs:fsData types installed
@@ -1303,6 +1365,7 @@ def has_fs_datatypes(intf):
     if DEFAULT_FS_DATATYPE not in intf.inspect.datatypes():
         return False
     return True
+
 
 def has_genproc_datatypes(intf):
     """
@@ -1315,9 +1378,10 @@ def has_genproc_datatypes(intf):
         return False
     return True
 
-####################################################################################
-#                     Functions to access/check object                             #
-####################################################################################
+
+###############################################################################
+#                     Functions to access/check object                        #
+###############################################################################
 def is_cscan_unusable(cscan):
     """
     Check to see if a CachedImageScan is unusable
@@ -1327,6 +1391,7 @@ def is_cscan_unusable(cscan):
 
     """
     return cscan.info()['quality'] == "unusable"
+
 
 def is_cscan_usable(cscan):
     """
@@ -1354,6 +1419,7 @@ def is_cscan_good_type(cscan, types_list, full_regex=False):
             return True
     return False
 
+
 def is_scan_unusable(scan_obj):
     """
     Check to see if a scan is usable
@@ -1363,6 +1429,7 @@ def is_scan_unusable(scan_obj):
 
     """
     return scan_obj.attrs.get('xnat:imageScanData/quality') == "unusable"
+
 
 def is_scan_good_type(scan_obj, types_list, full_regex=False):
     """
@@ -1380,6 +1447,7 @@ def is_scan_good_type(scan_obj, types_list, full_regex=False):
             return True
     return False
 
+
 def has_resource(cobj, resource_label):
     """
     Check to see if a CachedImageObject has a specified resource
@@ -1393,6 +1461,7 @@ def has_resource(cobj, resource_label):
     if len(res_list) > 0 and res_list[0]['file_count'] > 0:
         return True
     return False
+
 
 def get_cassr_on_same_session(cobj, proctype, is_scan_proc=False):
     """
@@ -1416,6 +1485,7 @@ def get_cassr_on_same_session(cobj, proctype, is_scan_proc=False):
     elif isinstance(cobj, CachedImageSession):
         cassr_list = [cassr for cassr in cobj.assessors() if cassr.info()['proctype'] == proctype]
     return cassr_list
+
 
 def is_assessor_on_same_session_usable(cobj, proctype, is_scan_proc=False):
     """
@@ -1445,6 +1515,7 @@ def is_assessor_on_same_session_usable(cobj, proctype, is_scan_proc=False):
             return 0
     return 0
 
+
 def is_assessor_same_scan_unusable(cscan, proctype):
     """
     Deprecated method to check to see if the assessor matching the user passed scan and proctype has
@@ -1464,6 +1535,7 @@ def is_assessor_same_scan_unusable(cscan, proctype):
     else:
         return is_bad_qa(assr_list[0]['qcstatus'])
 
+
 def is_cassessor_good_type(cassr, types_list, full_regex=False):
     """
     Check to see if the CachedImageAssessor proctype is of type(s) specificed by user.
@@ -1481,6 +1553,7 @@ def is_cassessor_good_type(cassr, types_list, full_regex=False):
             return True
     return False
 
+
 def is_cassessor_usable(cassr):
     """
     Check to see if the CachedImageAssessor is usable
@@ -1491,6 +1564,7 @@ def is_cassessor_usable(cassr):
 
     """
     return is_bad_qa(cassr.info()['qcstatus'])
+
 
 def is_assessor_good_type(assessor_obj, types_list, full_regex=False):
     """
@@ -1510,6 +1584,7 @@ def is_assessor_good_type(assessor_obj, types_list, full_regex=False):
             return True
     return False
 
+
 def is_assessor_usable(assessor_obj):
     """
     Check to see if the assessor is usable
@@ -1522,6 +1597,7 @@ def is_assessor_usable(assessor_obj):
     atype = assessor_obj.attrs.get('xsiType')
     qcstatus = assessor_obj.attrs.get(atype+'/validation/status')
     return is_bad_qa(qcstatus)
+
 
 def is_bad_qa(qcstatus):
     """
@@ -1537,6 +1613,7 @@ def is_bad_qa(qcstatus):
         if qc.lower() in qcstatus.split(' ')[0].lower():
             return -1
     return 1
+
 
 def get_good_cscans(csess, scantypes):
     """
@@ -1555,6 +1632,7 @@ def get_good_cscans(csess, scantypes):
             cscans_list.append(cscan)
     return cscans_list
 
+
 def get_good_scans(session_obj, scantypes):
     """
     Get usable scans from a session.
@@ -1570,6 +1648,7 @@ def get_good_scans(session_obj, scantypes):
         if is_scan_good_type(scan_obj, scantypes) and not is_scan_unusable(scan_obj):
             scans.append(scan_obj)
     return scans
+
 
 def get_good_cassr(csess, proctypes):
     """
@@ -1589,6 +1668,7 @@ def get_good_cassr(csess, proctypes):
             cassr_list.append(cassr)
     return cassr_list
 
+
 def get_good_assr(session_obj, proctypes):
     """
     Get all the assessors in the session and filter out the ones
@@ -1607,9 +1687,10 @@ def get_good_assr(session_obj, proctypes):
             assessors.append(assessor_obj)
     return assessors
 
-####################################################################################
-#                     Download/Upload resources from XNAT                          #
-####################################################################################
+
+###############################################################################
+#                     Download/Upload resources from XNAT                     #
+###############################################################################
 def check_dl_inputs(directory, xnat_obj, function_name):
     """
     Method to check and see if the directory for download exists and that the
@@ -1629,6 +1710,7 @@ def check_dl_inputs(directory, xnat_obj, function_name):
         return False
     return True
 
+
 def islist(argument, argname):
     """
     Check to see if the input argument is a list. If it's a string, convert it
@@ -1647,6 +1729,7 @@ def islist(argument, argname):
         print """ERROR: download_scantypes in XnatUtils: wrong format for {name}.""".format(name=argname)
         argument = list()
     return argument
+
 
 def download_file_from_obj(directory, resource_obj, fname=None):
     """
@@ -1672,7 +1755,9 @@ def download_file_from_obj(directory, resource_obj, fname=None):
     else:
         return download_biggest_file_from_obj(directory, resource_obj)
 
-def download_file(directory, resource, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, fname=None):
+
+def download_file(directory, resource, project_id=None, subject_id=None,
+                  session_id=None, scan_id=None, assessor_id=None, fname=None):
     """
     Download a file from an arbitrarily defined pyxnat EObject at any
      hierarchy of the URI tree
@@ -1694,6 +1779,7 @@ def download_file(directory, resource, project_id=None, subject_id=None, session
     xnat.disconnect()
     return fpath
 
+
 def download_files_from_obj(directory, resource_obj):
     """
     Download ALL of the files from a Pyxnat EObject
@@ -1714,6 +1800,7 @@ def download_files_from_obj(directory, resource_obj):
         fpaths.extend([os.path.join(root, filename) for filename in filenames])
 
     return fpaths
+
 
 def download_files(directory, resource, project_id=None, subject_id=None,
                    session_id=None, scan_id=None, assessor_id=None):
@@ -1737,6 +1824,7 @@ def download_files(directory, resource, project_id=None, subject_id=None,
     fpaths = download_files_from_obj(directory, resource_obj)
     xnat.disconnect()
     return fpaths
+
 
 def download_biggest_file_from_obj(directory, resource_obj):
     """
@@ -1770,6 +1858,7 @@ def download_biggest_file_from_obj(directory, resource_obj):
     else:
         return None
 
+
 def download_biggest_file(directory, resource, project_id=None,
                           subject_id=None, session_id=None,
                           scan_id=None, assessor_id=None):
@@ -1792,6 +1881,7 @@ def download_biggest_file(directory, resource, project_id=None,
     fpath = download_biggest_file_from_obj(directory, resource_obj)
     xnat.disconnect()
     return fpath
+
 
 def download_from_obj(directory, xnat_obj, resources, all_files=False):
     """
@@ -1836,7 +1926,9 @@ def download_from_obj(directory, xnat_obj, resources, all_files=False):
             fpaths.append(fpath)
     return fpaths
 
-def download(directory, resources, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, all_files=False):
+
+def download(directory, resources, project_id=None, subject_id=None,
+             session_id=None, scan_id=None, assessor_id=None, all_files=False):
     """
     General downloader from arbitrary URI based on inputs.
 
@@ -1858,7 +1950,9 @@ def download(directory, resources, project_id=None, subject_id=None, session_id=
     xnat.disconnect()
     return fpaths
 
-def download_scan_types(directory, project_id, subject_id, session_id, scantypes, resources, all_files=False):
+
+def download_scan_types(directory, project_id, subject_id, session_id,
+                        scantypes, resources, all_files=False):
     """
     Downloads resources from a scan given a scan type, rather than a scan ID
 
@@ -1884,7 +1978,10 @@ def download_scan_types(directory, project_id, subject_id, session_id, scantypes
     xnat.disconnect()
     return fpaths
 
-def download_scan_seriesdescriptions(directory, project_id, subject_id, session_id, seriesdescriptions, resources, all_files=False):
+
+def download_scan_seriesdescriptions(directory, project_id, subject_id,
+                                     session_id, seriesdescriptions, resources,
+                                     all_files=False):
     """
     Downloads resources from a scan given a series type, rather than a scan ID
 
@@ -1912,7 +2009,9 @@ def download_scan_seriesdescriptions(directory, project_id, subject_id, session_
     xnat.disconnect()
     return fpaths
 
-def download_assessor_proctypes(directory, project_id, subject_id, session_id, proctypes, resources, all_files=False):
+
+def download_assessor_proctypes(directory, project_id, subject_id, session_id,
+                                proctypes, resources, all_files=False):
     """
     Download resources from an assessor based on a list of proctypes
 
@@ -1939,7 +2038,9 @@ def download_assessor_proctypes(directory, project_id, subject_id, session_id, p
     xnat.disconnect()
     return fpaths
 
-def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False, fname=None):
+
+def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False,
+                       fname=None):
     """
     Upload a file to a pyxnat EObject
 
@@ -1973,7 +2074,10 @@ def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False, fn
         print """ERROR: upload_file_to_obj in XnatUtils: file {file} doesn't exist.""".format(file=filepath)
         return False
 
-def upload_file(filepath, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False, fname=None):
+
+def upload_file(filepath, project_id=None, subject_id=None, session_id=None,
+                scan_id=None, assessor_id=None, resource=None, remove=False,
+                removeall=False, fname=None):
     """
     Upload a file to an arbitrary URI on XNAT
 
@@ -1999,7 +2103,9 @@ def upload_file(filepath, project_id=None, subject_id=None, session_id=None, sca
         xnat.disconnect()
     return status
 
-def upload_files_to_obj(filepaths, resource_obj, remove=False, removeall=False):
+
+def upload_files_to_obj(filepaths, resource_obj, remove=False,
+                        removeall=False):
     """
     Upload a list of files to a resource on XNAT
 
@@ -2017,7 +2123,10 @@ def upload_files_to_obj(filepaths, resource_obj, remove=False, removeall=False):
         status.append(upload_file_to_obj(filepath, resource_obj, remove=remove, removeall=False))
     return status
 
-def upload_files(filepaths, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False):
+
+def upload_files(filepaths, project_id=None, subject_id=None, session_id=None,
+                 scan_id=None, assessor_id=None, resource=None, remove=False,
+                 removeall=False):
     """
     Upload files to an arbitrary URI in XNAT
 
@@ -2044,7 +2153,9 @@ def upload_files(filepaths, project_id=None, subject_id=None, session_id=None, s
         xnat.disconnect()
     return status
 
-def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False, removeall=False):
+
+def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False,
+                         removeall=False):
     """
     Upload all of the files in a folder based on the pyxnat EObject passed
 
@@ -2082,7 +2193,10 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False, 
     os.chdir(initdir)
     return True
 
-def upload_folder(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, resource=None, remove=False, removeall=False):
+
+def upload_folder(directory, project_id=None, subject_id=None, session_id=None,
+                  scan_id=None, assessor_id=None, resource=None, remove=False,
+                  removeall=False):
     """
     Upload a folder to some URI in XNAT based on the inputs
 
@@ -2107,6 +2221,7 @@ def upload_folder(directory, project_id=None, subject_id=None, session_id=None, 
         status = upload_folder_to_obj(directory, resource_obj, resource, remove, removeall)
         xnat.disconnect()
     return status
+
 
 def copy_resource_from_obj(directory, xnat_obj, old_res, new_res):
     """
@@ -2135,7 +2250,9 @@ def copy_resource_from_obj(directory, xnat_obj, old_res, new_res):
     clean_directory(directory)
     return status
 
-def copy_resource(directory, project_id=None, subject_id=None, session_id=None, scan_id=None, assessor_id=None, old_res=None, new_res=None):
+
+def copy_resource(directory, project_id=None, subject_id=None, session_id=None,
+                  scan_id=None, assessor_id=None, old_res=None, new_res=None):
     """
     Copy a resource from an old location to a new location,
 
@@ -2159,6 +2276,7 @@ def copy_resource(directory, project_id=None, subject_id=None, session_id=None, 
         status = copy_resource_from_obj(directory, xnat_obj, old_res, new_res)
         xnat.disconnect()
     return status
+
 
 def upload_assessor_snapshots(assessor_obj, original, thumbnail):
     """
@@ -2230,6 +2348,7 @@ def clean_directory(directory):
         else:
             os.remove(fpath)
 
+
 def gzip_nii(directory):
     """
     Gzip all the NIfTI files in a directory via system call.
@@ -2241,6 +2360,7 @@ def gzip_nii(directory):
     for fpath in glob.glob(os.path.join(directory, '*.nii')):
         os.system('gzip '+fpath)
 
+
 def ungzip_nii(directory):
     """
     Gunzip all of the NIfTI files in a directory via system call.
@@ -2251,6 +2371,7 @@ def ungzip_nii(directory):
     """
     for fpath in glob.glob(os.path.join(directory, '*.nii.gz')):
         os.system('gzip -d '+fpath)
+
 
 def run_matlab(matlab_script, verbose=False, matlab_bin='matlab'):
     """
@@ -2271,6 +2392,7 @@ def run_matlab(matlab_script, verbose=False, matlab_bin='matlab'):
         cmd = cmd+' > '+os.path.join(matlabdir, prefix+'_outlog.log')
     os.system(cmd)
     print """Matlab script: {script} done""".format(script=matlab_script)
+
 
 def run_matlab_by_version(matlab_script, verbose=False, matlab_bin=None):
     """
@@ -2295,6 +2417,8 @@ def run_matlab_by_version(matlab_script, verbose=False, matlab_bin=None):
         cmd = cmd+' > '+os.path.join(matlabdir, prefix+'_outlog.log')
     os.system(cmd)
     print """Matlab script: {script} done""".format(script=matlab_script)
+
+
 def run_subprocess(args):
     """
     Runs a subprocess call
@@ -2306,6 +2430,7 @@ def run_subprocess(args):
     process = subprocess.Popen(args,stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
     return stdout, stderr
+
 
 def makedir(directory, prefix='TempDir', subdir=True):
     """
@@ -2328,6 +2453,7 @@ def makedir(directory, prefix='TempDir', subdir=True):
                 clean_directory(directory)
     return directory
 
+
 def print_args(options):
     """
     Given a dictionary of arguments for the spider, print the key/value pairs.
@@ -2343,6 +2469,7 @@ def print_args(options):
         else:
             print info, ": Not set. The process might fail without this argument."
     print "---------------------------------"
+
 
 def get_files_in_folder(folder, label=''):
     """
@@ -2369,6 +2496,7 @@ def get_files_in_folder(folder, label=''):
             f_list.extend(get_files_in_folder(ffpath, label))
     return f_list
 
+
 def executable_exists(executable):
     """ Return True if the executable exists.
 
@@ -2384,6 +2512,7 @@ def executable_exists(executable):
             return True
     return False
 
+
 def check_image_format(fpath):
     """
     Check to see if a NIfTI file or REC file are uncompress and runs gzip via
@@ -2397,6 +2526,7 @@ def check_image_format(fpath):
         os.system('gzip '+fpath)
         fpath = fpath+'.gz'
     return fpath
+
 
 def upload_list_records_redcap(redcap_project, data):
     """
@@ -2426,6 +2556,7 @@ def upload_list_records_redcap(redcap_project, data):
         except:
             print 'ERROR: upload_list_records_redcap in XnatUtils: connection to REDCap interupted.'
 
+
 def get_input_list(input_val, default_val):
     """
     Method to get a list from a comma separated string.
@@ -2441,6 +2572,7 @@ def get_input_list(input_val, default_val):
         return input_val.split(',')
     else:
         return default_val
+
 
 def get_input_str(input_val, default_val):
     """
@@ -2459,6 +2591,7 @@ def get_input_str(input_val, default_val):
     else:
         return default_val
 
+
 def get_random_sessions(xnat, project_id, num_sessions):
     """
     Get a random list of session labels from an XNAT project
@@ -2475,9 +2608,10 @@ def get_random_sessions(xnat, project_id, num_sessions):
         num_sessions = int(num_sessions*len(session_labels))
     return ','.join(random.sample(session_labels, num_sessions))
 
-####################################################################################
-#                                5) Cached Class                                   #
-####################################################################################
+
+###############################################################################
+#                                5) Cached Class                              #
+###############################################################################
 class CachedImageSession():
     """
     Class to cache the XML information for a session on XNAT
@@ -2642,6 +2776,7 @@ class CachedImageSession():
         """
         return get_full_object(self.xnat, self.info())
 
+
 class CachedImageScan():
     """
     Class to cache the XML information for a scan on XNAT
@@ -2760,6 +2895,7 @@ class CachedImageScan():
         :return: List of dictionaries of infor for each CachedResource.
         """
         return [res.info() for res in self.resources()]
+
 
 class CachedImageAssessor():
     """
@@ -2942,6 +3078,7 @@ class CachedImageAssessor():
         """
         return self.get_out_resources()
 
+
 class CachedResource():
     """
     Class to cache resource XML info on XNAT
@@ -3019,7 +3156,8 @@ class CachedResource():
 
         return res_info
 
-####################### File Utils ######################################################
+
+####################### File Utils #######################
 def gzip_file(file_not_zipped):
     """
     Method to gzip a file using the gzip python package
@@ -3038,6 +3176,7 @@ def gzip_file(file_not_zipped):
     os.remove(file_not_zipped)
     return file_out
 
+
 def gunzip_file(file_zipped):
     """
     Gunzips a file using the gzip python package
@@ -3049,7 +3188,7 @@ def gunzip_file(file_zipped):
     gzfile = gzip.GzipFile(file_zipped)
     gzdata = gzfile.read()
     gzfile.close()
-    open(file_zipped[:-3],'w').write(gzdata)
+    open(file_zipped[:-3], 'w').write(gzdata)
 
 
 def find_files(directory, ext):
@@ -3093,7 +3232,7 @@ def unzip_list(zip_path, directory):
     """
     li_files = list()
     if not os.path.exists(directory):
-        raise Exception('Folder %s does not exist.')
+        raise XnatUtilsError('Folder %s does not exist.' % directory)
     with zipfile.ZipFile(zip_path, 'r') as myzip:
         for member in myzip.infolist():
             path = directory
@@ -3118,9 +3257,9 @@ def read_csv(csv_file, header=None, delimiter=','):
     :return: list of rows
     """
     if not os.path.isfile(csv_file):
-        raise Exception('File not found: %s' % csv_file)
+        raise XnatUtilsError('File not found: %s' % csv_file)
     if not csv_file.endswith('.csv'):
-        raise Exception('File format unknown. Need .csv: %s' % csv_file)
+        raise XnatUtilsError('File format unknown. Need .csv: %s' % csv_file)
     # Read csv
     csv_info = list()
     with open(csv_file, 'rb') as f:
@@ -3143,9 +3282,10 @@ def read_excel(excel_file, header_indexes=None):
     :return: dictionary of the sheet with the data
     """
     if not os.path.isfile(excel_file):
-        raise Exception('File not found: %s' % excel_file)
+        raise XnatUtilsError('File not found: %s' % excel_file)
     if not excel_file.endswith('.xlsx'):
-        raise Exception('File format unknown. Need .xlsx: %s' % excel_file)
+        raise XnatUtilsError('File format unknown. Need .xlsx: %s'
+                             % excel_file)
     # Read the xlsx file:
     book = xlrd.open_workbook(excel_file)
     excel_sheets = dict()
@@ -3167,7 +3307,8 @@ def read_excel(excel_file, header_indexes=None):
 
     return excel_sheets
 
-####################### DICOM Utils ######################################################
+
+####################### DICOM Utils #######################
 def is_dicom(fpath):
     """Check if the file is a DICOM medical data.
 
@@ -3175,7 +3316,7 @@ def is_dicom(fpath):
     :return boolean: true if it's a DICOM, false otherwise
     """
     if not os.path.isfile(fpath):
-        raise Exception('File not found: %s' % fpath)
+        raise XnatUtilsError('File not found: %s' % fpath)
     file_call = '''file {fpath}'''.format(fpath=fpath)
     output = subprocess.check_output(file_call.split())
     if 'dicom' in output.split(':')[1].lower():
@@ -3191,7 +3332,7 @@ def order_dicoms(folder):
     :return: dictionary of the files with the key is the slice location
     """
     if not os.path.isdir(folder):
-        raise Exception('Folder not found: %s' % folder)
+        raise XnatUtilsError('Folder not found: %s' % folder)
     dcm_files = dict()
     for dc in glob.glob(os.path.join(folder, '*.dcm')):
         dst = dicom.read_file(dc)
@@ -3208,7 +3349,7 @@ def find_dicom_in_folder(folder, recursively=True):
     """
     dicom_list = list()
     if not os.path.isdir(folder):
-        raise Exception('Folder not found: %s' % folder)
+        raise XnatUtilsError('Folder not found: %s' % folder)
     for ffname in os.listdir(folder):
         ffpath = os.path.join(folder, ffname)
         if os.path.isfile(ffpath):
@@ -3293,14 +3434,14 @@ def convert_nifti_2_dicoms(nifti_path, dicom_targets, dicom_source,
     :return: None
     """
     if not os.path.isfile(nifti_path):
-        raise Exception("NIFTI File %s not found." % nifti_path)
+        raise XnatUtilsError("NIFTI File %s not found." % nifti_path)
     # Load image from NIFTI
     f_img = nib.load(nifti_path)
     f_img_data = f_img.get_data()
 
     # Load dicom headers
     if not os.path.isfile(dicom_source):
-        raise Exception("DICOM File %s not found ." % dicom_source)
+        raise XnatUtilsError("DICOM File %s not found ." % dicom_source)
     adc_dcm_obj = dicom.read_file(dicom_source)
 
     # Make output_folder:
@@ -3318,7 +3459,7 @@ def convert_nifti_2_dicoms(nifti_path, dicom_targets, dicom_source,
     for dcm_file in dicom_targets:
         # Load dicom headers
         if not os.path.isfile(dcm_file):
-            raise Exception("DICOM File %s not found." % dcm_file)
+            raise XnatUtilsError("DICOM File %s not found." % dcm_file)
         t2_dcm_obj = dicom.read_file(dcm_file)
         dcm_obj_sorted[t2_dcm_obj.InstanceNumber] = t2_dcm_obj
 
@@ -3338,293 +3479,8 @@ def convert_nifti_2_dicoms(nifti_path, dicom_targets, dicom_source,
                     dcm_obj_sorted[vol_i+1], adc_dcm_obj, vol_i,
                     series_number, sop_id)
 
-def find_files(directory, ext):
-    """Return the files in subdirectories with the right extension.
 
-    :param directory: directory where the data are located
-    :param ext: extension to look for
-    :return: python list of files
-    """
-    li_files = list()
-    for root, _, filenames in os.walk(directory):
-        li_files.extend([os.path.join(root, f) for f in filenames
-                         if f.lower().endswith(ext.lower())])
-    return li_files
-
-
-def zip_list(li_files, zip_path, subdir=False):
-    """Zip all the files in the list into a zip file.
-
-    :param li_files: python list of files for the zip
-    :param zip_path: zip path
-    :param subdir: copy the subdirectories as well. Default: False.
-    """
-    if not zip_path.lower().endswith('.zip'):
-        zip_path = '%s.zip' % zip_path
-    with zipfile.ZipFile(zip_path, 'w') as myzip:
-        for fi in li_files:
-            if subdir:
-                myzip.write(fi, compress_type=zipfile.ZIP_DEFLATED)
-            else:
-                myzip.write(fi, arcname=os.path.basename(fi),
-                            compress_type=zipfile.ZIP_DEFLATED)
-
-
-def unzip_list(zip_path, directory):
-    """Unzip all the files from the zip file and give the list of files.
-
-    :param zip_path: zip path
-    :param directory: directory where to extract the data
-    :return: python list of files
-    """
-    li_files = list()
-    if not os.path.exists(directory):
-        raise Exception('Folder %s does not exist.')
-    with zipfile.ZipFile(zip_path, 'r') as myzip:
-        for member in myzip.infolist():
-            path = directory
-            words = member.filename.split('/')
-            for word in words[:-1]:
-                drive, word = os.path.splitdrive(word)
-                head, word = os.path.split(word)
-                if word in (os.curdir, os.pardir, ''):
-                    continue
-                path = os.path.join(path, word)
-            myzip.extract(member, path)
-            li_files.append(path)
-    return li_files
-
-
-def read_csv(csv_file, header=None, delimiter=','):
-    """Read CSV file (.csv files).
-
-    :param csv_file: path to the csv file
-    :param header: list of label for the header, if None, use first line
-    :param delimiter: delimiter for the csv, default comma
-    :return: list of rows
-    """
-    if not os.path.isfile(csv_file):
-        raise Exception('File not found: %s' % csv_file)
-    if not csv_file.endswith('.csv'):
-        raise Exception('File format unknown. Need .csv: %s' % csv_file)
-    # Read csv
-    csv_info = list()
-    with open(csv_file, 'rb') as f:
-        reader = csv.reader(f, delimiter=delimiter)
-        if not header:
-            header = next(reader)
-        for row in reader:
-            if row == header:
-                continue
-            csv_info.append(dict(zip(header, row)))
-    return csv_info
-
-
-def read_excel(excel_file, header_indexes=None):
-    """Read Excel spreadsheet (.xlsx files).
-
-    :param excel_file: path to the Excel file
-    :param header_indexes: dictionary with sheet name and header position
-                           or use first value
-    :return: dictionary of the sheet with the data
-    """
-    if not os.path.isfile(excel_file):
-        raise Exception('File not found: %s' % excel_file)
-    if not excel_file.endswith('.xlsx'):
-        raise Exception('File format unknown. Need .xlsx: %s' % excel_file)
-    # Read the xlsx file:
-    book = xlrd.open_workbook(excel_file)
-    excel_sheets = dict()
-    for sht in book.sheets():
-        sheet_info = list()
-        if header_indexes:
-            header = sht.row_values(int(header_indexes[sht.name]))
-            start = int(header_indexes[sht.name])
-        else:
-            header = sht.row_values(0)
-            start = 0
-        for row_index in range(start+1, sht.nrows):
-            row = list()
-            for col_index in range(sht.ncols):
-                value = sht.cell(rowx=row_index, colx=col_index).value
-                row.append(value)
-            sheet_info.append(dict(zip(header, row)))
-        excel_sheets[sht.name] = sheet_info
-
-    return excel_sheets
-
-####################### DICOM Utils ######################################################
-def is_dicom(fpath):
-    """Check if the file is a DICOM medical data.
-
-    :param fpath: path of the file
-    :return boolean: true if it's a DICOM, false otherwise
-    """
-    if not os.path.isfile(fpath):
-        raise Exception('File not found: %s' % fpath)
-    file_call = '''file {fpath}'''.format(fpath=fpath)
-    output = subprocess.check_output(file_call.split())
-    if 'dicom' in output.split(':')[1].lower():
-        return True
-
-    return False
-
-
-def order_dicoms(folder):
-    """Order the dicoms in a folder by the Slice Location.
-
-    :param folder: path to the folder
-    :return: dictionary of the files with the key is the slice location
-    """
-    if not os.path.isdir(folder):
-        raise Exception('Folder not found: %s' % folder)
-    dcm_files = dict()
-    for dc in glob.glob(os.path.join(folder, '*.dcm')):
-        dst = dicom.read_file(dc)
-        dcm_files[float(dst.SliceLocation)] = dc
-    return collections.OrderedDict(sorted(dcm_files.items()))
-
-
-def find_dicom_in_folder(folder, recursively=True):
-    """Find a dicom file in folder.
-
-    :param folder: path to folder to search
-    :param recursively: search sub folder
-    :return: list of dicoms
-    """
-    dicom_list = list()
-    if not os.path.isdir(folder):
-        raise Exception('Folder not found: %s' % folder)
-    for ffname in os.listdir(folder):
-        ffpath = os.path.join(folder, ffname)
-        if os.path.isfile(ffpath):
-            if is_dicom(ffpath):
-                dicom_list.append(ffpath)
-        elif os.path.isdir(ffpath) and recursively:
-            dicom_list.extend(find_dicom_in_folder(ffpath, recursively=True))
-    return dicom_list
-
-
-def write_dicom(pixel_array, filename, ds_copy, ds_ori, volume_number,
-                series_number, sop_id):
-    """Write data in dicom file and copy the header from different dicoms.
-
-    :param pixel_array: data to write in a dicom
-    :param filename: file name for the dicom
-    :param ds_copy: pydicom object of the dicom to copy info from
-    :param ds_ori: pydicom object of the dicom where the array comes from
-    :param volume_number: numero of volume being processed
-    :param series_number: number of the series being written
-    :param sop_id: SOPID for the dicom
-    :return: None
-    """
-    # Set to zero negatives values in the image:
-    pixel_array[pixel_array < 0] = 0
-
-    # Set the DICOM dataset
-    file_meta = Dataset()
-    file_meta.MediaStorageSOPClassUID = 'Secondary Capture Image Storage'
-    file_meta.MediaStorageSOPInstanceUID = ds_ori.SOPInstanceUID
-    file_meta.ImplementationClassUID = ds_ori.SOPClassUID
-    ds = FileDataset(filename, {}, file_meta=file_meta, preamble="\0"*128)
-
-    # Copy the tag from the original DICOM
-    for tag, value in ds_ori.items():
-        if tag != ds_ori.data_element("PixelData").tag:
-            ds[tag] = value
-
-    # Other tags to set
-    ds.SeriesNumber = series_number
-    ds.SeriesDescription = ds_ori.SeriesDescription + ' fromNifti'
-    sop_uid = sop_id + str(datetime.datetime.now()).replace('-', '')\
-                                                   .replace(':', '')\
-                                                   .replace('.', '')\
-                                                   .replace(' ', '')
-    ds.SOPInstanceUID = sop_uid[:-1]
-    ds.ProtocolName = ds_ori.ProtocolName
-    ds.InstanceNumber = volume_number+1
-
-    # Copy from T2 the orientation tags:
-    ds.PatientPosition = ds_copy.PatientPosition
-    ds[0x18, 0x50] = ds_copy[0x18, 0x50]  # Slice Thicknes
-    ds[0x18, 0x88] = ds_copy[0x18, 0x88]  # Spacing Between Slices
-    ds[0x18, 0x1312] = ds_copy[0x18, 0x1312]  # In-plane Phase Encoding
-    ds[0x20, 0x32] = ds_copy[0x20, 0x32]  # Image Position
-    ds[0x20, 0x37] = ds_copy[0x20, 0x37]  # Image Orientation
-    ds[0x20, 0x1041] = ds_copy[0x20, 0x1041]  # Slice Location
-    ds[0x28, 0x10] = ds_copy[0x28, 0x10]  # rows
-    ds[0x28, 0x11] = ds_copy[0x28, 0x11]  # columns
-    ds[0x28, 0x30] = ds_copy[0x28, 0x30]  # Pixel spacing
-
-    # Set the Image pixel array
-    if pixel_array.dtype != np.uint16:
-        pixel_array = pixel_array.astype(np.uint16)
-    ds.PixelData = pixel_array.tostring()
-
-    # Save the image
-    ds.save_as(filename)
-
-
-def convert_nifti_2_dicoms(nifti_path, dicom_targets, dicom_source,
-                           output_folder, label=None):
-    """Convert 4D niftis into DICOM files (2D dicoms).
-
-    :param nifti_path: path to the nifti file
-    :param dicom_target: list of dicom files from the target
-     for the registration for header info
-    :param dicom_source: one dicom file from the source
-     for the registration for header info
-    :param output_folder: folder where the DICOM files will be saved
-    :param label: name for the output dicom files
-    :return: None
-    """
-    if not os.path.isfile(nifti_path):
-        raise Exception("NIFTI File %s not found." % nifti_path)
-    # Load image from NIFTI
-    f_img = nib.load(nifti_path)
-    f_img_data = f_img.get_data()
-
-    # Load dicom headers
-    if not os.path.isfile(dicom_source):
-        raise Exception("DICOM File %s not found ." % dicom_source)
-    adc_dcm_obj = dicom.read_file(dicom_source)
-
-    # Make output_folder:
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-
-    # Series Number and SOP UID
-    ti = time.time()
-    series_number = 86532 + int(str(ti)[2:4]) + int(str(ti)[4:6])
-    sop_id = adc_dcm_obj.SOPInstanceUID.split('.')
-    sop_id = '.'.join(sop_id[:-1])+'.'
-
-    # Sort the DICOM T2 to create the ADC registered DICOMs
-    dcm_obj_sorted = dict()
-    for dcm_file in dicom_targets:
-        # Load dicom headers
-        if not os.path.isfile(dcm_file):
-            raise Exception("DICOM File %s not found." % dcm_file)
-        t2_dcm_obj = dicom.read_file(dcm_file)
-        dcm_obj_sorted[t2_dcm_obj.InstanceNumber] = t2_dcm_obj
-
-    for vol_i in range(f_img_data.shape[2]):
-        if f_img_data.shape[2] > 100:
-            filename = os.path.join(output_folder, '%s_%03d.dcm' % (label,
-                                                                    vol_i+1))
-        elif f_img_data.shape[2] > 10:
-            filename = os.path.join(output_folder, '%s_%02d.dcm' % (label,
-                                                                    vol_i+1))
-
-        else:
-            filename = os.path.join(output_folder, '%s_%d.dcm' % (label,
-                                                                  vol_i+1))
-
-        write_dicom(np.rot90(f_img_data[:, :, vol_i]), filename,
-                    dcm_obj_sorted[vol_i+1], adc_dcm_obj, vol_i,
-                    series_number, sop_id)
-
-####################### DEPRECATED Methods still in used in different Spiders ##########################
+############ DEPRECATED Methods still in used in different Spiders ############
 # It will need to be removed when the spiders are updated
 def list_experiments(intf, projectid=None, subjectid=None):
     """
@@ -3638,9 +3494,9 @@ def list_experiments(intf, projectid=None, subjectid=None):
     """
     if projectid and subjectid:
         post_uri = SESSIONS_URI.format(project=projectid, subject=subjectid)
-    elif projectid == None and subjectid == None:
+    elif projectid is None and subjectid is None:
         post_uri = ALL_SESS_URI
-    elif projectid and subjectid == None:
+    elif projectid and subjectid is None:
         post_uri = ALL_SESS_PROJ_URI.format(project=projectid)
     else:
         return None
@@ -3650,7 +3506,8 @@ def list_experiments(intf, projectid=None, subjectid=None):
 
     for exp in experiment_list:
         if projectid:
-            # Override the project returned to be the one we queried and add others for convenience
+            # Override the project returned to be the one we queried
+            # and add others for convenience
             exp['project'] = projectid
 
         exp['subject_id'] = exp['subject_ID']
@@ -3660,6 +3517,7 @@ def list_experiments(intf, projectid=None, subjectid=None):
         exp['project_label'] = exp['project']
 
     return sorted(experiment_list, key=lambda k: k['session_label'])
+
 
 def list_experiment_resources(intf, projectid, subjectid, experimentid):
     """
@@ -3672,11 +3530,14 @@ def list_experiment_resources(intf, projectid, subjectid, experimentid):
     :param subjectid: ID/label of a session to get resources for
     :return: List of resources for the session
     """
-    post_uri = SE_RESOURCES_URI.format(project=projectid, subject=subjectid, session=experimentid)
+    post_uri = SE_RESOURCES_URI.format(project=projectid, subject=subjectid,
+                                       session=experimentid)
     resource_list = intf._get_json(post_uri)
     return resource_list
 
-def download_Scan(Outputdirectory,projectName,subject,experiment,scan,resource_list,all_resources=0):
+
+def download_Scan(Outputdirectory, projectName, subject, experiment, scan,
+                  resource_list, all_resources=0):
     """
     Deprecated method to download resources from a scan given a scan ID
 
@@ -3690,34 +3551,36 @@ def download_Scan(Outputdirectory,projectName,subject,experiment,scan,resource_l
     :return: None
 
     """
-    print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + '/'+ scan
+    print'Download resources from ' + projectName + '/' + subject+ '/' + experiment + '/'+ scan
 
-    #Check input for subjects_exps_list :
+    # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
         pass
     elif isinstance(resource_list, str):
-        resource_list=[resource_list]
+        resource_list = [resource_list]
     else:
         print "INPUTS ERROR: Check the format of the list of resources in the download_Scan function. Not a list.\n"
         sys.exit()
 
     try:
         xnat = get_interface()
-        SCAN=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan)
+        SCAN = xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan)
         if SCAN.exists():
-            if SCAN.attrs.get('quality')!='unusable':
-                dl_good_resources_scan(SCAN,resource_list,Outputdirectory,all_resources)
+            if SCAN.attrs.get('quality') != 'unusable':
+                dl_good_resources_scan(SCAN, resource_list, Outputdirectory, all_resources)
             else:
                 print 'DOWNLOAD WARNING: Scan unusable!'
         else:
-            print 'DOWNLOAD ERROR: '+ projectName + '/' + subject+ '/'+ experiment + '/'+scan+' does not correspond to a Project/Subject/experiment/scan on Xnat.'
+            print 'DOWNLOAD ERROR: ' + projectName + '/' + subject+ '/' + experiment + '/'+scan+' does not correspond to a Project/Subject/experiment/scan on Xnat.'
 
     finally:
         xnat.disconnect()
     print '===================================================================\n'
 
-## from a list of scantype given, Download the resources
-def download_ScanType(Outputdirectory,projectName,subject,experiment,List_scantype,resource_list,all_resources=0):
+
+# from a list of scantype given, Download the resources
+def download_ScanType(Outputdirectory, projectName, subject, experiment,
+                      List_scantype, resource_list, all_resources=0):
     """
     Deprecated method to download resources from a scan given a series description, rather than a scan ID
 
@@ -3732,35 +3595,33 @@ def download_ScanType(Outputdirectory,projectName,subject,experiment,List_scanty
 
     """
 
-    print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + ' and the scan types like ',
+    print'Download resources from ' + projectName + '/' + subject+ '/' + experiment + ' and the scan types like ',
     print List_scantype
 
-    #Check input for subjects_exps_list :
+    # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
         pass
     elif isinstance(resource_list, str):
-        resource_list=[resource_list]
+        resource_list = [resource_list]
     else:
-        print "INPUTS ERROR: Check the format of the list of resources in the download_ScanType function. Not a list.\n"
-        sys.exit()
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of resources in the download_ScanType function. Not a list.")
 
-    #check list of SD:
+    # check list of SD:
     if isinstance(List_scantype, list):
         pass
     elif isinstance(List_scantype, str):
-        List_scantype=[List_scantype]
+        List_scantype = [List_scantype]
     else:
-        print "INPUTS ERROR: Check the format of the list of series_description in the download_ScanType function. Not a list.\n"
-        sys.exit()
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of series_description in the download_ScanType function. Not a list.")
 
     try:
         xnat = get_interface()
 
         for scan in list_scans(xnat, projectName, subject, experiment):
             if scan['type'] in List_scantype:
-                if scan['quality']!='unusable':
-                    SCAN=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan['ID'])
-                    dl_good_resources_scan(SCAN,resource_list,Outputdirectory,all_resources)
+                if scan['quality'] != 'unusable':
+                    SCAN = xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan['ID'])
+                    dl_good_resources_scan(SCAN, resource_list, Outputdirectory, all_resources)
                 else:
                     print 'DOWNLOAD WARNING: Scan unusable!'
 
@@ -3768,7 +3629,10 @@ def download_ScanType(Outputdirectory,projectName,subject,experiment,List_scanty
         xnat.disconnect()
     print '===================================================================\n'
 
-def download_ScanSeriesDescription(Outputdirectory,projectName,subject,experiment,List_scanSD,resource_list,all_resources=0):
+
+def download_ScanSeriesDescription(Outputdirectory, projectName, subject,
+                                   experiment, List_scanSD, resource_list,
+                                   all_resources=0):
     """
     Deprecated method to download resources from a scan given a series description, rather than a scan ID
 
@@ -3783,36 +3647,34 @@ def download_ScanSeriesDescription(Outputdirectory,projectName,subject,experimen
 
     """
 
-    print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + ' and the list of series description ',
+    print'Download resources from ' + projectName + '/' + subject+ '/' + experiment + ' and the list of series description ',
     print List_scanSD
 
-    #Check input for subjects_exps_list :
+    # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
         pass
     elif isinstance(resource_list, str):
-        resource_list=[resource_list]
+        resource_list = [resource_list]
     else:
-        print "INPUTS ERROR: Check the format of the list of resources in the download_ScanSeriesDescription function. Not a list.\n"
-        sys.exit()
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of resources in the download_ScanSeriesDescription function. Not a list.")
 
-    #check list of SD:
+    # check list of SD:
     if isinstance(List_scanSD, list):
         pass
     elif isinstance(List_scanSD, str):
-        List_scanSD=[List_scanSD]
+        List_scanSD = [List_scanSD]
     else:
-        print "INPUTS ERROR: Check the format of the list of series_description in the download_ScanSeriesDescription function. Not a list.\n"
-        sys.exit()
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of series_description in the download_ScanSeriesDescription function. Not a list.")
 
     try:
         xnat = get_interface()
 
         for scan in list_scans(xnat, projectName, subject, experiment):
-            SCAN=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan['ID'])
+            SCAN = xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan['ID'])
 
             if SCAN.attrs.get('series_description') in List_scanSD:
-                if scan['quality']!='unusable':
-                    dl_good_resources_scan(SCAN,resource_list,Outputdirectory,all_resources)
+                if scan['quality'] != 'unusable':
+                    dl_good_resources_scan(SCAN, resource_list, Outputdirectory, all_resources)
                 else:
                     print 'DOWNLOAD WARNING: Scan unusable!'
 
@@ -3820,7 +3682,9 @@ def download_ScanSeriesDescription(Outputdirectory,projectName,subject,experimen
         xnat.disconnect()
     print '===================================================================\n'
 
-def download_Assessor(Outputdirectory,assessor_label,resource_list,all_resources=0):
+
+def download_Assessor(Outputdirectory, assessor_label, resource_list,
+                      all_resources=0):
     """
     Deprecated method to download resources from a specific assessor.
 
@@ -3832,29 +3696,30 @@ def download_Assessor(Outputdirectory,assessor_label,resource_list,all_resources
 
     """
 
-    print'Download resources from process '+ assessor_label
+    print'Download resources from process ' + assessor_label
 
-    #Check input for subjects_exps_list :
+    # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
         pass
     elif isinstance(resource_list, str):
-        resource_list=[resource_list]
+        resource_list = [resource_list]
     else:
-        print "INPUTS ERROR: Check the format of the list of resources in the download_Assessor function. Not a list.\n"
-        sys.exit()
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of resources in the download_Assessor function. Not a list.")
 
     try:
         xnat = get_interface()
-        labels=assessor_label.split('-x-')
-        ASSESSOR=xnat.select('/project/'+labels[0]+'/subjects/'+labels[1]+'/experiments/'+labels[2]+'/assessors/'+assessor_label)
-        dl_good_resources_assessor(ASSESSOR,resource_list,Outputdirectory,all_resources)
+        labels = assessor_label.split('-x-')
+        ASSESSOR = xnat.select('/project/'+labels[0]+'/subjects/'+labels[1]+'/experiments/'+labels[2]+'/assessors/'+assessor_label)
+        dl_good_resources_assessor(ASSESSOR, resource_list, Outputdirectory, all_resources)
 
     finally:
         xnat.disconnect()
     print '===================================================================\n'
 
-## from an assessor type, download the resources :
-def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_process_type,resource_list,all_resources=0):
+
+# from an assessor type, download the resources :
+def download_AssessorType(Outputdirectory, projectName, subject, experiment,
+                          List_process_type, resource_list, all_resources=0):
     """
     Deprecated method to download an assessor by the proctype.
      Can download a resource, or all resources
@@ -3870,28 +3735,26 @@ def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_pr
 
     """
 
-    print'Download resources from '+ projectName + '/' + subject+ '/'+ experiment + ' and the process ',
+    print'Download resources from ' + projectName + '/' + subject+ '/' + experiment + ' and the process ',
     print List_process_type
 
-    #Check input for subjects_exps_list :
+    # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
         pass
     elif isinstance(resource_list, str):
-        resource_list=[resource_list]
+        resource_list = [resource_list]
     else:
-        print "INPUTS ERROR: Check the format of the list of resources in the download_AssessorType function. Not a list.\n"
-        sys.exit()
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of resources in the download_AssessorType function. Not a list.")
 
-    #Check input for subjects_exps_list :
+    # Check input for subjects_exps_list :
     if isinstance(List_process_type, list):
         pass
     elif isinstance(List_process_type, str):
-        List_process_type=[List_process_type]
+        List_process_type = [List_process_type]
     else:
-        print "INPUTS ERROR: Check the format of the list of process type in the download_AssessorType function. Not a list.\n"
-        sys.exit()
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of process type in the download_AssessorType function. Not a list.")
 
-    #if FreeSurfer in the list, change it to FS
+    # if FreeSurfer in the list, change it to FS
     List_process_type = [process_type.replace('FreeSurfer', 'FS') for process_type in List_process_type]
 
     try:
@@ -3899,16 +3762,17 @@ def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_pr
 
         for assessor in list_assessors(xnat, projectName, subject, experiment):
             for proc_type in List_process_type:
-                if proc_type==assessor['label'].split('-x-')[-1]:
-                    ASSESSOR=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor['label'])
-                    dl_good_resources_assessor(ASSESSOR,resource_list,Outputdirectory,all_resources)
+                if proc_type == assessor['label'].split('-x-')[-1]:
+                    ASSESSOR = xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor['label'])
+                    dl_good_resources_assessor(ASSESSOR, resource_list, Outputdirectory, all_resources)
 
     finally:
         xnat.disconnect()
     print '===================================================================\n'
 
 
-def dl_good_resources_scan(Scan,resource_list,Outputdirectory,all_resources):
+def dl_good_resources_scan(Scan, resource_list, Outputdirectory,
+                           all_resources):
     """
     Deprecated method to download "good" resources from a scan
 
@@ -3921,24 +3785,26 @@ def dl_good_resources_scan(Scan,resource_list,Outputdirectory,all_resources):
 
     """
     for Resource in resource_list:
-        resourceOK=0
+        resourceOK = 0
         if Scan.resource(Resource).exists():
-            resourceOK=1
+            resourceOK = 1
         elif Scan.resource(Resource.upper()).exists():
-            Resource=Resource.upper()
-            resourceOK=1
+            Resource = Resource.upper()
+            resourceOK = 1
         elif Scan.resource(Resource.lower()).exists():
-            Resource=Resource.lower()
-            resourceOK=1
+            Resource = Resource.lower()
+            resourceOK = 1
 
         if resourceOK and all_resources:
-            download_all_resources(Scan.resource(Resource),Outputdirectory)
+            download_all_resources(Scan.resource(Resource), Outputdirectory)
         elif resourceOK and not all_resources:
-            dl,_=download_biggest_resources(Scan.resource(Resource),Outputdirectory)
+            dl, _ = download_biggest_resources(Scan.resource(Resource), Outputdirectory)
             if not dl:
                 print 'ERROR: Download failed, the size of file for the resource is zero.'
 
-def dl_good_resources_assessor(Assessor,resource_list,Outputdirectory,all_resources):
+
+def dl_good_resources_assessor(Assessor, resource_list, Outputdirectory,
+                               all_resources):
     """
     Deprecated method to download all "good" resources from an assessor
 
@@ -3950,24 +3816,25 @@ def dl_good_resources_assessor(Assessor,resource_list,Outputdirectory,all_resour
 
     """
     for Resource in resource_list:
-        resourceOK=0
+        resourceOK = 0
         if Assessor.out_resource(Resource).exists():
-            resourceOK=1
+            resourceOK = 1
         elif Assessor.out_resource(Resource.upper()).exists():
-            Resource=Resource.upper()
-            resourceOK=1
+            Resource = Resource.upper()
+            resourceOK = 1
         elif Assessor.out_resource(Resource.lower()).exists():
-            Resource=Resource.lower()
-            resourceOK=1
+            Resource = Resource.lower()
+            resourceOK = 1
 
         if resourceOK and all_resources:
-            download_all_resources(Assessor.out_resource(Resource),Outputdirectory)
+            download_all_resources(Assessor.out_resource(Resource), Outputdirectory)
         elif resourceOK and not all_resources:
-            dl,_=download_biggest_resources(Assessor.out_resource(Resource),Outputdirectory)
+            dl, _ = download_biggest_resources(Assessor.out_resource(Resource), Outputdirectory)
             if not dl:
                 print 'ERROR: Download failed, the size of file for the resource is zero.'
 
-def download_biggest_resources(Resource,directory,filename='0'):
+
+def download_biggest_resources(Resource, directory, filename='0'):
     """
     Deprecated method to download the biggest file from a resource
 
@@ -3979,28 +3846,29 @@ def download_biggest_resources(Resource,directory,filename='0'):
 
     """
     if os.path.exists(directory):
-        number=0
-        Bigger_file_size=0
-        for index,fname in enumerate(Resource.files().get()[:]):
-            size=int(Resource.file(fname).size())
-            if Bigger_file_size<size:
-                Bigger_file_size=size
-                number=index
+        number = 0
+        Bigger_file_size = 0
+        for index, fname in enumerate(Resource.files().get()[:]):
+            size = int(Resource.file(fname).size())
+            if Bigger_file_size < size:
+                Bigger_file_size = size
+                number = index
 
-        if Bigger_file_size==0:
-            return 0,'nan'
+        if Bigger_file_size == 0:
+            return 0, 'nan'
         else:
             Input_res_label_fname = Resource.files().get()[number]
-            if filename=='0':
-                DLFileName = os.path.join(directory,Input_res_label_fname)
+            if filename == '0':
+                DLFileName = os.path.join(directory, Input_res_label_fname)
             else:
-                DLFileName = os.path.join(directory,filename)
+                DLFileName = os.path.join(directory, filename)
             Resource.file(Input_res_label_fname).get(DLFileName)
-            return 1,str(DLFileName)
+            return 1, str(DLFileName)
     else:
         print'ERROR download_biggest_resources in XnatUtils: Folder '+directory+' does not exist.'
 
-def download_all_resources(Resource,directory):
+
+def download_all_resources(Resource, directory):
     """
     Deprecated method from a pyxnat EObject, download all of the files in it
 
@@ -4010,30 +3878,31 @@ def download_all_resources(Resource,directory):
 
     """
     if os.path.exists(directory):
-        #if more than one file:
-        if len(Resource.files().get())>1:
-            #create a dir with the resourcename:
-            Outputdir=os.path.join(directory,Resource.label())
+        # if more than one file:
+        if len(Resource.files().get()) > 1:
+            # create a dir with the resourcename:
+            Outputdir = os.path.join(directory, Resource.label())
             if not os.path.exists(Outputdir):
                 os.mkdir(Outputdir)
             print '   ->Downloading all resources for '+Resource.label()+' as a zip'
-            Resource.get(Outputdir,extract=False) #not sure the extract True is working
+            Resource.get(Outputdir, extract=False) # not sure the extract True is working
             print '   ->Unzipping ...'
-            os.system('unzip -d '+Outputdir+' '+os.path.join(Outputdir,Resource.label()+'.zip')+' > /dev/null')
-        #if only one, if using download all resources, download it and unzip it if it's a zip
+            os.system('unzip -d '+Outputdir+' '+os.path.join(Outputdir, Resource.label()+'.zip')+' > /dev/null')
+        # if only one, if using download all resources, download it and unzip it if it's a zip
         else:
             print '   ->Downloading resource for '+Resource.label()
             Input_res_label_fname = Resource.files().get()[0]
-            Resource.file(Input_res_label_fname).get(os.path.join(directory,Input_res_label_fname))
-            if os.path.join(directory,Input_res_label_fname)[-3:]=='zip':
+            Resource.file(Input_res_label_fname).get(os.path.join(directory, Input_res_label_fname))
+            if os.path.join(directory, Input_res_label_fname)[-3:] == 'zip':
                 print '   -> Unzipping ...'
-                os.system('unzip -d '+directory+' '+os.path.join(directory,Input_res_label_fname)+' > /dev/null')
+                os.system('unzip -d '+directory+' '+os.path.join(directory, Input_res_label_fname)+' > /dev/null')
     else:
         print'ERROR download_all_resources in XnatUtils: Folder '+directory+' does not exist.'
 
-def upload_all_resources(Resource,directory):
+
+def upload_all_resources(Resource, directory):
     """
-    Deprecated method to upload all of the files in a directory to a resource on XNAT
+    Deprecated method to upload all of the files in a directory to a resource
 
     :param Resource: pyxnat EObject of the resource to put the files
     :param directory: Directory to scrape for files to upload to the resource
@@ -4043,46 +3912,53 @@ def upload_all_resources(Resource,directory):
     if os.path.exists(directory):
         if not Resource.exists():
             Resource.create()
-        #for each files in this folderl, Upload files in the resource :
-        Resource_files_list=os.listdir(directory)
-        #for each folder=resource in the assessor directory, more than 2 files, use the zip from XNAT
-        if len(Resource_files_list)>2:
-            upload_zip(directory,Resource)
-        #One or two file, let just upload them:
+        # for each files in this folderl, Upload files in the resource :
+        Resource_files_list = os.listdir(directory)
+        # for each folder=resource in the assessor directory
+        # more than 2 files, use the zip from XNAT
+        if len(Resource_files_list) > 2:
+            upload_zip(directory, Resource)
+        # One or two file, let just upload them:
         else:
             for filename in Resource_files_list:
-                #if it's a folder, zip it and upload it
+                # if it's a folder, zip it and upload it
                 if os.path.isdir(filename):
-                    upload_zip(filename, directory+'/'+filename)
+                    upload_zip(filename, os.path.join(directory, filename))
                 elif filename.lower().endswith('.zip'):
-                    Resource.put_zip(directory+'/'+filename, overwrite=True, extract=True)
+                    Resource.put_zip(os.path.join(directory, filename),
+                                     overwrite=True, extract=True)
                 else:
-                    #upload the file
-                    Resource.file(filename).put(directory+'/'+filename, overwrite=True)
+                    # upload the file
+                    Resource.file(filename).put(
+                            os.path.join(directory, filename), overwrite=True)
     else:
         print'ERROR upload_all_resources in XnatUtils: Folder '+directory+' does not exist.'
 
+
 def upload_zip(Resource, directory):
     """
-    Deprecated method to upload a folder to XNAT as a zip file and then unzips when put. The
-     label of the resource will be the folder name
+    Deprecated method to upload a folder to XNAT as a zip file and then unzips
+      when put. The label of the resource will be the folder name
 
     :param Resource: pyxnat EObject of the resource to upload to
     :param directory: Full path to the directory to upload
     :return: None
 
     """
-    filenameZip=Resource.label()+'.zip'
-    initDir=os.getcwd()
-    #Zip all the files in the directory
+    filenameZip = Resource.label()+'.zip'
+    initDir = os.getcwd()
+    # Zip all the files in the directory
     os.chdir(directory)
     os.system('zip -r '+filenameZip+' *')
-    #upload
-    Resource.put_zip(directory+'/'+filenameZip, overwrite=True, extract=True)
-    #return to the initial directory:
+    # upload
+    Resource.put_zip(os.path.join(directory, filenameZip), overwrite=True,
+                     extract=True)
+    # return to the initial directory:
     os.chdir(initDir)
 
-def download_resource_assessor(directory,xnat,project,subject,experiment,assessor_label,resources_list,quiet):
+
+def download_resource_assessor(directory, xnat, project, subject, experiment,
+                               assessor_label, resources_list, quiet):
     """
     Deprecated method to download resource(s) from an assessor.
 
@@ -4101,45 +3977,45 @@ def download_resource_assessor(directory,xnat,project,subject,experiment,assesso
     if not quiet:
         print '    +Process: '+assessor_label
 
-    assessor=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label)
+    assessor = xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label)
     if not assessor.exists():
         print '      !!WARNING: No assessor with the ID selected.'
         return
 
     if 'fMRIQA' in assessor_label:
-        labels=assessor_label.split('-x-')
-        SCAN=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+labels[3])
-        SD=SCAN.attrs.get('series_description')
-        SD=SD.replace('/','_')
-        SD=SD.replace(" ", "")
+        labels = assessor_label.split('-x-')
+        SCAN = xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+labels[3])
+        SD = SCAN.attrs.get('series_description')
+        SD = SD.replace('/', '_')
+        SD = SD.replace(" ", "")
 
-        if SD!='':
-            directory=directory+'-x-'+SD
+        if SD != '':
+            directory = directory+'-x-'+SD
 
     if not os.path.exists(directory):
         os.mkdir(directory)
 
-    #all resources
-    if resources_list[0]=='all':
+    # all resources
+    if resources_list[0] == 'all':
         post_uri_resource = A_RESOURCES_URI.format(project=project, subject=subject, session=experiment, assessor=assessor_label)
         resources_list = xnat._get_json(post_uri_resource)
         for resource in resources_list:
-            Resource=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource['label'])
+            Resource = xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource['label'])
             if Resource.exists():
                 if not quiet:
                     print '      *download resource '+resource['label']
 
-                assessor_real_type=assessor_label.split('-x-')[-1]
+                assessor_real_type = assessor_label.split('-x-')[-1]
                 if 'FS' in assessor_real_type:
-                    #make a directory for each of the resource
-                    Res_path=directory+'/'+resource['label']
+                    # make a directory for each of the resource
+                    Res_path = os.path.join(directory, resource['label'])
                     if not os.path.exists(Res_path):
                         os.mkdir(Res_path)
                     Resource.get(Res_path, extract=False)
                 else:
                     if len(Resource.files().get()) > 0:
-                        #make a directory for each of the resource
-                        Res_path=directory+'/'+resource['label']
+                        # make a directory for each of the resource
+                        Res_path = os.path.join(directory, resource['label'])
                         if not os.path.exists(Res_path):
                             os.mkdir(Res_path)
 
@@ -4150,26 +4026,26 @@ def download_resource_assessor(directory,xnat,project,subject,experiment,assesso
                     else:
                         print "\t    *ERROR : The size of the resource is 0."
 
-    #resources in the options
+    # resources in the options
     else:
         for resource in resources_list:
-            Resource=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource)
+            Resource = xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource)
             if Resource.exists():
                 if not quiet:
                     print '      *download resource '+resource
 
-                assessor_real_type=assessor_label.split('-x-')[-1]
+                assessor_real_type = assessor_label.split('-x-')[-1]
                 if 'FS' in assessor_real_type:
-                    #make a directory for each of the resource
-                    Res_path=directory+'/'+resource
+                    # make a directory for each of the resource
+                    Res_path = os.path.join(directory, resource)
                     if not os.path.exists(Res_path):
                         os.mkdir(Res_path)
 
                     Resource.get(Res_path, extract=False)
                 else:
                     if len(Resource.files().get()) > 0:
-                        #make a directory for each of the resource
-                        Res_path=directory+'/'+resource
+                        # make a directory for each of the resource
+                        Res_path = os.path.join(directory, resource)
                         if not os.path.exists(Res_path):
                             os.mkdir(Res_path)
 
@@ -4184,30 +4060,32 @@ def download_resource_assessor(directory,xnat,project,subject,experiment,assesso
     print'\n'
 
 
-def Upload_folder_to_resource(resourceObj,directory):
+def Upload_folder_to_resource(resourceObj, directory):
     """
-    Deprecated method to upload a folder to XNAT as a zip file and then unzips when put. The
-     label of the resource will be the folder name
+    Deprecated method to upload a folder to XNAT as a zip file and then unzips
+     when put. The label of the resource will be the folder name
 
     :param resourceObj: pyxnat EObject of the resource to upload to
     :param directory: Full path to the directory to upload
     :return: None
 
     """
-    filenameZip=resourceObj.label()+'.zip'
-    initDir=os.getcwd()
-    #Zip all the files in the directory
+    filenameZip = resourceObj.label()+'.zip'
+    initDir = os.getcwd()
+    # Zip all the files in the directory
     os.chdir(directory)
     os.system('zip -r '+filenameZip+' *')
-    #upload
-    resourceObj.put_zip(directory+'/'+filenameZip, overwrite=True, extract=True)
-    #return to the initial directory:
+    # upload
+    resourceObj.put_zip(os.paht.join(directory, filenameZip), overwrite=True,
+                        extract=True)
+    # return to the initial directory:
     os.chdir(initDir)
 
-def Download_resource_to_folder(Resource,directory):
+
+def Download_resource_to_folder(Resource, directory):
     """
-    Deprecated method to download all of the files in an XNAT resource to a directory named
-     with basename == resource label
+    Deprecated method to download all of the files for a resource to a
+     directory with basename == resource label
 
     :param Resource: pyxnat EObject of the resource to download files from
     :param directory: The directory to download the data to.
@@ -4215,7 +4093,7 @@ def Download_resource_to_folder(Resource,directory):
     :return: None
 
     """
-    Res_path=os.path.join(directory,Resource.label())
+    Res_path = os.path.join(directory, Resource.label())
     if os.path.exists(Res_path):
         os.remove(Res_path)
-    Resource.get(directory,extract=True)
+    Resource.get(directory, extract=True)
