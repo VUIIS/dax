@@ -833,11 +833,23 @@ SCRIPT_NAME = {
     'ruby': '.rb',
     'bash': '.sh'
 }
+UNICODE_AUTOSPIDER = """AutoSpider information:
+  -- General --
+    Name:    {name}
+    jobdir:  {jobdir}
+    suffix:  {suffix}
+  -- XNAT --
+    host:    {host}
+    user:    {user}
+    assessor: {assessor}
+  -- Inputs --
+{inputs}
+"""
 
 
 # AutoSpider should not be used by the USER. Use InitAutoSpider &
 # GenerateAutoSpider to generate the files needed for a new spider
-class AutoSpider(Spider):
+class AutoSpider(object):
     """ Class for Autospider """
     def __init__(self, name, params, outputs, template, version=None,
                  exe_lang=None):
@@ -872,17 +884,10 @@ class AutoSpider(Spider):
         # directory for temporary files + create it
         self.jobdir = XnatUtils.makedir(os.path.abspath(args.temp_dir),
                                         subdir=args.subdir)
-        # Assessor:
-        self.ahandler = XnatUtils.AssessorHandler(args.assessor_label)
-        # to copy results at the end
-        self.spider_handler = XnatUtils.SpiderProcessHandler(
-                self.spider_name, self.suffix,
-                assessor_handler=self.ahandler,
-                time_writer=self.time_writer)
         # Xnat connection settings:
-        self.host = get_default_value("host", "XNAT_HOST", args.xnat_host)
-        self.user = get_default_value("user", "XNAT_USER", args.xnat_user)
-        self.pwd = get_pwd(args.xnat_host, args.xnat_user)
+        self.host = get_default_value("host", "XNAT_HOST", args.host)
+        self.user = get_default_value("user", "XNAT_USER", args.user)
+        self.pwd = get_pwd(args.host, args.user)
         # Suffix
         if not args.suffix:
             self.suffix = ""
@@ -904,7 +909,7 @@ class AutoSpider(Spider):
         os.environ['XNAT_USER'] = self.user
         os.environ['XNAT_PASS'] = self.pwd
         # run the finish or not
-        self.skip_finish = args.skip_finish
+        self.skip_finish = args.skipfinish
 
         # Set matlab_bin from args or default to just matlab
         self.matlab_bin = getattr(args, 'matlab_bin', 'matlab')
@@ -931,6 +936,29 @@ class AutoSpider(Spider):
         self.script_dir = os.path.join(self.jobdir, 'SCRIPT')
         self.run_inputs = {}
 
+        # Assessor:
+        self.ahandler = XnatUtils.AssessorHandler(args.assessor_label)
+
+    def __unicode__(self):
+        """ Unicode for AutoSpiders."""
+        unicode_inputs = list()
+        for key, value in self.src_inputs.items():
+            if key not in ['assessor_label', 'temp_dir', 'suffix']:
+                unicode_inputs.append("    %s: %s" % (key, value))
+        return UNICODE_AUTOSPIDER.format(
+                name=self.spider_name,
+                jobdir=self.jobdir,
+                suffix='None' if not self.suffix else self.suffix,
+                host=self.host,
+                user=self.user,
+                assessor=self.ahandler.assessor_label,
+                inputs='\n'.join(unicode_inputs),
+                )
+
+    def __str__(self):
+        """ Unicode for AutoSpiders."""
+        return unicode(self).encode('utf-8')
+
     def get_argparser(self):
         """Get argparser for the AutoSpider."""
         parser = get_auto_argparser(self.name, 'Run '+self.name)
@@ -944,6 +972,7 @@ class AutoSpider(Spider):
         return parser
 
     def copy_inputs(self):
+        """ Copy the inputs data for AutoSpider."""
         self.run_inputs = self.src_inputs
 
         os.mkdir(self.input_dir)
@@ -968,6 +997,9 @@ class AutoSpider(Spider):
 
     def go(self):
         """Main method for AutoSpider."""
+        for line in self.__unicode__().split('\n'):
+            self.time_writer(line)
+
         self.pre_run()
 
         self.run()
@@ -1008,14 +1040,21 @@ class AutoSpider(Spider):
                 raise AutoSpiderValueError('Template Unknown. Please add #BASH/\
 #PYTHON/#RUBY/#MATLAB at the beginning of the call file and rerun \
 GeneratorAutoSpider.')
-        self.succeeded = run_cmd(self.exe_lang, filepath, self.time_writer,
-                                 self.matlab_bin)
+        self.succeeded = run_cmd(self.exe_lang, filepath,
+                                 time_writer=self.time_writer,
+                                 matlab_bin=self.matlab_bin)
 
     def finish(self):
         """finish method to copy the results."""
         if not self.succeeded:
             self.time_writer('AutoSpider finish(): run() failed. Exit.')
             return
+
+        # to copy results at the end
+        self.spider_handler = XnatUtils.SpiderProcessHandler(
+                self.spider_name, self.suffix,
+                assessor_handler=self.ahandler,
+                time_writer=self.time_writer)
 
         self.time_writer('AutoSpider finish(): Copying outputs...')
 
@@ -1145,6 +1184,20 @@ GeneratorAutoSpider.')
     def is_xnat_uri(self, uri):
         """Check if uri is xnat or local."""
         return uri.startswith('xnat:/')
+
+    def print_args(self, argument_parse):
+        """
+        print arguments given to the Spider
+
+        :param argument_parse: argument parser
+        :return: None
+        """
+        self.time_writer("-- Arguments given to the AutoSpider --")
+        self.time_writer("Argument : Value ")
+        self.time_writer("-----------------------------------")
+        for info, value in sorted(vars(argument_parse).items()):
+            self.time_writer("%s : %s" % (info, value))
+        self.time_writer("-----------------------------------")
 
 
 # class to display time
@@ -1344,6 +1397,8 @@ def get_auto_argparser(name, description):
     ap = ArgumentParser(prog=name, description=description)
     ap.add_argument('-d', dest='temp_dir', help='Temporary Directory',
                     required=True)
+    ap.add_argument('-a', '--assessor', dest='assessor_label', required=True,
+                    help='XNAT Assessor label.')
     ap.add_argument('--suffix', dest='suffix', default=None,
                     help='assessor suffix. default: None')
     ap.add_argument(
@@ -1353,7 +1408,7 @@ def get_auto_argparser(name, description):
         '--user', dest='user', default=None,
         help='Set XNAT User. Default: using env variable XNAT_USER')
     ap.add_argument(
-        '--no_subdir',  action='store_false', dest='subdir',
+        '--no_subdir', action='store_false', dest='subdir',
         help="Do not create a subdir Temp in the jobdir if the directory \
 isn't empty.")
     ap.add_argument(
@@ -1404,7 +1459,6 @@ def load_inputs(inputs_file):
     """Load Inputs for AutoSpider."""
     with open(inputs_file, 'Ur') as f:
         data = list(tuple(rec) for rec in csv.reader(f, delimiter=','))
-
     return data
 
 
@@ -1412,7 +1466,6 @@ def load_outputs(outputs_file):
     """Load Outputs for AutoSpider."""
     with open(outputs_file, 'Ur') as f:
         data = list(tuple(rec) for rec in csv.reader(f, delimiter=','))
-
     return data
 
 
@@ -1420,7 +1473,6 @@ def load_template(template_file):
     """Load template for AutoSpider."""
     with open(template_file, "r") as f:
         data = f.read()
-
     return data
 
 
@@ -1451,7 +1503,7 @@ def run_cmd(exe_lang, fpath, time_writer=None, matlab_bin='matlab'):
     cmd = '%s %s' % (exe, fpath)
 
     use_time_writer(time_writer, "Running command: %s" % cmd)
-    result = execute_cmd(cmd)
+    result = execute_cmd(cmd, time_writer=time_writer)
     use_time_writer(time_writer, '-----------------------------------')
     return result
 
@@ -1467,7 +1519,7 @@ def execute_cmd(cmd, time_writer=None):
 
     # Poll process for new output until finished
     while True:
-        nextline = process.stdout.readline().strip()
+        nextline = process.stdout.readline().rstrip()
         if nextline == '' and process.poll() is not None:
             break
         use_time_writer(time_writer, nextline)
@@ -1782,10 +1834,6 @@ def merge_pdfs(pdf_pages, pdf_final, time_writer=None):
 
 # Exceptions:
 class SpiderValueError(ValueError):
-    pass
-
-
-class SpiderException(Exception):
     pass
 
 

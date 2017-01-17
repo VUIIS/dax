@@ -26,9 +26,8 @@ if __name__ == '__main__':
         inputs,
         outputs,
         code,
-        datatype='{datatype}',
         version=version,
-        extension=extension,
+        exe_lang=exe_lang,
     )
 
     spider.go()
@@ -55,9 +54,6 @@ def parse_args():
                         help='Path to code template file')
     parser.add_argument('-d', dest='directory', default=None,
                         help="Directory where spider file will be written")
-    parser.add_argument('-t', dest='type', default='session',
-                        choices=['session', 'scan'],
-                        help='Type of Spider: session, scan')
     return parser.parse_args()
 
 
@@ -132,7 +128,6 @@ Must be X.Y.Z. See http://semver.org."
         inputs=inputs_str,
         outputs=outputs_str,
         code=code_str,
-        datatype=ARGS.type,
         version=ARGS.version,
         exe_lang=exe_lang)
 
