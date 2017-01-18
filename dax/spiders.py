@@ -1662,11 +1662,11 @@ dictionary. Using default.")
                 ind = slices_number*index+slice_ind+1
                 ax = fig.add_subplot(number_im, slices_number, ind)
                 if orient == 'cor':
-                    dslice = data[:, data.shape[1]/2, :]
+                    dslice = data[:, slice_value, :]
                 elif orient == 'ax':
-                    dslice = data[:, :, data.shape[2]/2]
+                    dslice = data[:, :, slice_value]
                 else:
-                    dslice = data[data.shape[0]/2, :, :]
+                    dslice = data[slice_value, :, :]
                 ax.imshow(np.rot90(np.transpose(dslice), 2),
                           cmap=cmap.get(str(index), default_cmap),
                           vmin=vmins.get(str(index), None),
