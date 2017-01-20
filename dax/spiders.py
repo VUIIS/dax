@@ -1826,7 +1826,7 @@ def merge_pdfs(pdf_pages, pdf_final, time_writer=None):
     else:
         raise TypeError('Wrong type for pdf_pages (list or dict).')
     cmd = 'gs -q -sPAPERSIZE=letter -dNOPAUSE -dBATCH \
--sDEVICE=pdfwrite -sOutputFile=%s %s' % (pdf_final, pages)
+-sDEVICE=pdfwrite -dPDFSETTINGS=/prepress -sOutputFile=%s %s' % (pdf_final, pages)
     use_time_writer(time_writer, 'INFO:saving final PDF: %s ' % cmd)
     os.system(cmd)
     return pdf_final
