@@ -1,4 +1,5 @@
-""" Task object to generate / manage assessors and cluster """
+""" Task object to generate / manage assessors and cluster."""
+
 import os
 import shutil
 import errno
@@ -8,40 +9,67 @@ from datetime import date
 
 import cluster
 from cluster import PBS
-
+from dax.errors import NeedInputsException, NoDataException
+from XnatUtils import DEFAULT_DATATYPE, DEFAULT_FS_DATATYPE
 from dax_settings import DAX_Settings
+
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__all__ = ['Task', 'ClusterTask', 'XnatTask']
 DAX_SETTINGS = DAX_Settings()
-
-#Logger to print logs
+# Logger to print logs
 LOGGER = logging.getLogger('dax')
-
 # Job Statuses
-NO_DATA = 'NO_DATA'         # assessor that doesn't have data to run (for session assessor): E.G: dtiqa multi but no dti present.
-NEED_TO_RUN = 'NEED_TO_RUN' # assessor that is ready to be launch on the cluster (ACCRE). All the input data for the process to run are there.
-NEED_INPUTS = 'NEED_INPUTS' # assessor where input data are missing from a scan, multiple scans or other assessor.
-JOB_RUNNING = 'JOB_RUNNING' # the job has been submitted on the cluster and is running right now.
-JOB_FAILED = 'JOB_FAILED' # the job failed on the cluster.
-READY_TO_UPLOAD = 'READY_TO_UPLOAD' # Job done, waiting for the Spider to upload the results
-UPLOADING = 'UPLOADING' # in the process of uploading the resources on XNAT.
-COMPLETE = 'COMPLETE' # the assessors contains all the files. The upload and the job are done.
-READY_TO_COMPLETE = 'READY_TO_COMPLETE' # the job finished and upload is complete
+# assessor that doesn't have data to run (for session assessor)
+# E.G: dtiqa multi but no dti present.
+NO_DATA = 'NO_DATA'
+# assessor that is ready to be launch on the cluster.
+# All the input data for the process to run are there.
+NEED_TO_RUN = 'NEED_TO_RUN'
+# assessor where input data are missing from a scan,
+# multiple scans or other assessor.
+NEED_INPUTS = 'NEED_INPUTS'
+# the job has been submitted on the cluster and is running right now.
+JOB_RUNNING = 'JOB_RUNNING'
+# the job failed on the cluster.
+JOB_FAILED = 'JOB_FAILED'
+# Job done, waiting for the Spider to upload the results
+READY_TO_UPLOAD = 'READY_TO_UPLOAD'
+# in the process of uploading the resources on XNAT.
+UPLOADING = 'UPLOADING'
+# the assessors contains all the files. The upload and the job are done.
+COMPLETE = 'COMPLETE'
+# the job finished and upload is complete
+READY_TO_COMPLETE = 'READY_TO_COMPLETE'
 DOES_NOT_EXIST = 'DOES_NOT_EXIST'
-OPEN_STATUS_LIST = [NEED_TO_RUN, UPLOADING, JOB_RUNNING, READY_TO_COMPLETE, JOB_FAILED]
+OPEN_STATUS_LIST = [NEED_TO_RUN, UPLOADING, JOB_RUNNING, READY_TO_COMPLETE,
+                    JOB_FAILED]
 JOB_BUILT = 'JOB_BUILT'
 
 # QC Statuses
-JOB_PENDING = 'Job Pending' # job is still running, not ready for QA yet
-NEEDS_QA = 'Needs QA' # job ready to be QA
-GOOD = 'Good'  # QC status set by the Image Analyst after looking at the results.
-PASSED_QA = 'Passed' # QC status set by the Image Analyst after looking at the results.
-FAILED = 'Failed' # QC status set by the Image Analyst after looking at the results.
-BAD = 'Bad' # QC status set by the Image Analyst after looking at the results.
-POOR = 'Poor' # QC status set by the Image Analyst after looking at the results.
-RERUN = 'Rerun' # will cause spider to delete results and rerun the processing
-REPROC = 'Reproc' # will cause spider to zip the current results and put in OLD, and then processing
-DONOTRUN = 'Do Not Run' # Do not run this assessor anymore
-FAILED_NEEDS_REPROC = 'Failed-needs reprocessing' # FS
-PASSED_EDITED_QA = 'Passed with edits' # FS
+# job is still running, not ready for QA yet
+JOB_PENDING = 'Job Pending'
+# job ready to be QA
+NEEDS_QA = 'Needs QA'
+# QC status set by the Image Analyst after looking at the results.
+GOOD = 'Good'
+# QC status set by the Image Analyst after looking at the results.
+PASSED_QA = 'Passed'
+# QC status set by the Image Analyst after looking at the results.
+FAILED = 'Failed'
+# QC status set by the Image Analyst after looking at the results.
+BAD = 'Bad'
+# QC status set by the Image Analyst after looking at the results.
+POOR = 'Poor'
+# will cause spider to delete results and rerun the processing
+RERUN = 'Rerun'
+# will cause spider to zip the current results and put in OLD,
+# and then processing
+REPROC = 'Reproc'
+# Do not run this assessor anymore
+DONOTRUN = 'Do Not Run'
+FAILED_NEEDS_REPROC = 'Failed-needs reprocessing'  # FS
+PASSED_EDITED_QA = 'Passed with edits'  # FS
 OPEN_QA_LIST = [RERUN, REPROC]
 BAD_QA_STATUS = [FAILED, BAD, POOR, DONOTRUN]
 
@@ -49,9 +77,6 @@ BAD_QA_STATUS = [FAILED, BAD, POOR, DONOTRUN]
 RESULTS_DIR = DAX_SETTINGS.get_results_dir()
 DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
 JOB_EXTENSION_FILE = DAX_SETTINGS.get_job_extension_file()
-
-
-
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
 OLD_RESOURCE = 'OLD'
 EDITS_RESOURCE = 'EDITS'
@@ -60,6 +85,7 @@ INPUTS_DIRNAME = 'INPUTS'
 BATCH_DIRNAME = 'BATCH'
 OUTLOG_DIRNAME = 'OUTLOG'
 PBS_DIRNAME = 'PBS'
+
 
 def mkdirp(path):
     try:
@@ -70,8 +96,10 @@ def mkdirp(path):
         else:
             raise
 
+
 def create_flag(flag_path):
     open(flag_path, 'w').close()
+
 
 class Task(object):
     """ Class Task to generate/manage the assessor with the cluster """
@@ -81,7 +109,7 @@ class Task(object):
 
         :param processor: processor used
         :param assessor: assessor dict ?
-        :param upload_dir: upload directory to copy data to after the job finishes.
+        :param upload_dir: upload directory to copy data after job finished.
         :return: None
 
         """
@@ -92,16 +120,18 @@ class Task(object):
 
         # Create assessor if needed
         if not assessor.exists():
-            if self.atype == 'fs:fsdata':
-                assessor.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
+            if self.atype == DEFAULT_DATATYPE.lower():
+                kwargs = {'%s/fsversion' % DEFAULT_DATATYPE.lower(): '0'}
+                assessor.create(assessors=DEFAULT_DATATYPE.lower(), **kwargs)
             else:
                 assessor.create(assessors=self.atype)
 
             self.set_createdate_today()
             atype = self.atype.lower()
-            if atype == 'proc:genprocdata':
-                assessor.attrs.mset({atype +'/proctype':self.get_processor_name(),
-                atype+'/procversion':self.get_processor_version()})
+            if atype == DEFAULT_DATATYPE.lower():
+                assessor.attrs.mset(
+                    {'%s/proctype' % atype: self.get_processor_name(),
+                     '%s//procversion' % atype: self.get_processor_version()})
 
             self.set_proc_and_qc_status(NEED_INPUTS, JOB_PENDING)
 
@@ -149,9 +179,17 @@ class Task(object):
 
         """
         atype = self.atype
-        [memused, walltime, jobid, jobnode, jobstartdate] = self.assessor.attrs.mget(
-            [atype+'/memused', atype+'/walltimeused', atype+'/jobid', atype+'/jobnode', atype+'/jobstartdate'])
-        return [memused.strip(), walltime.strip(), jobid.strip(), jobnode.strip(), jobstartdate.strip()]
+        mgets = self.assessor.attrs.mget(
+                        [atype+'/memused',
+                         atype+'/walltimeused',
+                         atype+'/jobid',
+                         atype+'/jobnode',
+                         atype+'/jobstartdate'])
+        return [mgets[0].strip(),
+                mgets[1].strip(),
+                mgets[2].strip(),
+                mgets[3].strip(),
+                mgets[4].strip()]
 
     def check_job_usage(self):
         """
@@ -162,7 +200,7 @@ class Task(object):
         :return: None
 
         """
-        [memused, walltime, jobid, jobnode, jobstartdate] = self.get_job_usage()
+        [memused, walltime, jobid, jobnode, jobstrdate] = self.get_job_usage()
 
         if walltime:
             if memused and jobnode:
@@ -175,14 +213,14 @@ class Task(object):
             return
 
         # We can't get info from cluster if job too old
-        if not cluster.is_traceable_date(jobstartdate):
+        if not cluster.is_traceable_date(jobstrdate):
             self.set_walltime('NotFound')
             self.set_memused('NotFound')
             self.set_jobnode('NotFound')
             return
 
         # Get usage with tracejob
-        jobinfo = cluster.tracejob_info(jobid, jobstartdate)
+        jobinfo = cluster.tracejob_info(jobid, jobstrdate)
         if jobinfo['mem_used'].strip():
             self.set_memused(jobinfo['mem_used'])
         else:
@@ -294,7 +332,8 @@ class Task(object):
         curtime = time.strftime("%Y%m%d-%H%M%S")
         local_dir = self.assessor_label+'_'+curtime
         local_zip = local_dir+'.zip'
-        xml_filename = os.path.join(self.upload_dir, local_dir, self.assessor_label+'.xml')
+        xml_filename = os.path.join(self.upload_dir, local_dir,
+                                    '%s.xml' % self.assessor_label)
 
         # Make the temp dir
         mkdirp(os.path.join(self.upload_dir, local_dir))
@@ -303,10 +342,12 @@ class Task(object):
         out_resource_list = self.assessor.out_resources()
         for out_resource in out_resource_list:
             olabel = out_resource.label()
-            if olabel not in REPROC_RES_SKIP_LIST and len(out_resource.files().get()) > 0:
-                LOGGER.info('   Downloading:'+olabel)
+            if olabel not in REPROC_RES_SKIP_LIST and \
+               len(out_resource.files().get()) > 0:
+                LOGGER.info('   Downloading: %s' % olabel)
                 out_res = self.assessor.out_resource(olabel)
-                out_res.get(os.path.join(self.upload_dir, local_dir), extract=True)
+                out_res.get(os.path.join(self.upload_dir, local_dir),
+                            extract=True)
 
         # Download xml of assessor
         xml = self.assessor.get()
@@ -315,12 +356,15 @@ class Task(object):
         f.close()
 
         # Zip it all up
-        cmd = 'cd '+self.upload_dir + ' && zip -qr '+local_zip+' '+local_dir+'/'
-        LOGGER.debug('running cmd:'+cmd)
+        cmd = 'cd %s && zip -qr %s %s/' % (self.upload_dir, local_zip,
+                                           local_dir)
+        LOGGER.debug('running cmd: %s' % cmd)
         os.system(cmd)
 
         # Upload it to Archive
-        self.assessor.out_resource(OLD_RESOURCE).file(local_zip).put(os.path.join(self.upload_dir, local_zip))
+        self.assessor.out_resource(OLD_RESOURCE)\
+                     .file(local_zip)\
+                     .put(os.path.join(self.upload_dir, local_zip))
 
         # Run undo
         self.undo_processing()
@@ -340,15 +384,17 @@ class Task(object):
 
         if old_status == COMPLETE or old_status == JOB_FAILED:
             if qcstatus == REPROC:
-                LOGGER.info('             * qcstatus=REPROC, running reproc_processing...')
+                LOGGER.info('             * qcstatus=REPROC, running \
+reproc_processing...')
                 self.reproc_processing()
                 new_status = NEED_TO_RUN
             elif qcstatus == RERUN:
-                LOGGER.info('             * qcstatus=RERUN, running undo_processing...')
+                LOGGER.info('             * qcstatus=RERUN, running \
+undo_processing...')
                 self.undo_processing()
                 new_status = NEED_TO_RUN
             else:
-                #self.check_date()
+                # self.check_date()
                 pass
         elif old_status == NEED_TO_RUN:
             # TODO: anything, not yet???
@@ -363,7 +409,7 @@ class Task(object):
             new_status = self.check_running(jobid)
         elif old_status == READY_TO_UPLOAD:
             # TODO: let upload spider handle it???
-            #self.check_date()
+            # self.check_date()
             pass
         elif old_status == UPLOADING:
             # TODO: can we see if it's really uploading???
@@ -371,10 +417,12 @@ class Task(object):
         elif old_status == NO_DATA:
             pass
         else:
-            LOGGER.warn('             * unknown status for '+self.assessor_label+': '+old_status)
+            LOGGER.warn('             * unknown status for %s: %s'
+                        % (self.assessor_label, old_status))
 
         if new_status != old_status:
-            LOGGER.info('             * changing status from '+old_status+' to '+new_status)
+            LOGGER.info('             * changing status from %s to %s'
+                        % (old_status, new_status))
 
             # Update QC Status
             if new_status == COMPLETE:
@@ -394,7 +442,7 @@ class Task(object):
         jobid = self.assessor.attrs.get(self.atype+'/jobid').strip()
         return jobid
 
-    def get_job_status(self,jobid=None):
+    def get_job_status(self, jobid=None):
         """
         Get the status of a job given its jobid as assigned by the scheduler
 
@@ -403,7 +451,7 @@ class Task(object):
 
         """
         jobstatus = 'UNKNOWN'
-        if jobid == None:
+        if jobid is None:
             jobid = self.get_jobid()
 
         if jobid != '' and jobid != '0':
@@ -453,7 +501,8 @@ class Task(object):
                 raise cluster.ClusterLaunchException
             else:
                 self.set_launch(jobid)
-                if (force_no_qsub or not cluster.command_found(DAX_SETTINGS.get_cmd_submit())):
+                if force_no_qsub or \
+                   not cluster.command_found(DAX_SETTINGS.get_cmd_submit()):
                     if job_failed:
                         LOGGER.info('             * changing status to %s'
                                     % JOB_FAILED)
@@ -552,12 +601,14 @@ class Task(object):
         """
         if not self.assessor.exists():
             xnat_status = DOES_NOT_EXIST
-        elif self.atype == 'proc:genprocdata':
-            xnat_status = self.assessor.attrs.get('proc:genProcData/procstatus')
-        elif self.atype == 'fs:fsdata':
-            xnat_status = self.assessor.attrs.get('fs:fsdata/procstatus')
+        elif self.atype == DEFAULT_DATATYPE.lower():
+            xnat_status = self.assessor.attrs.get(
+                            '%s/procstatus' % DEFAULT_DATATYPE.lower())
+        elif self.atype == DEFAULT_FS_DATATYPE.lower():
+            xnat_status = self.assessor.attrs.get(
+                            '%s/procstatus' % DEFAULT_FS_DATATYPE.lower())
         else:
-            xnat_status = 'UNKNOWN_xsiType:'+self.atype
+            xnat_status = 'UNKNOWN_xsiType: %s' % self.atype
         return xnat_status
 
     def get_statuses(self):
@@ -572,12 +623,14 @@ class Task(object):
             xnat_status = DOES_NOT_EXIST
             qcstatus = DOES_NOT_EXIST
             jobid = ''
-        elif atype == 'proc:genprocdata' or atype == 'fs:fsdata':
+        elif atype in [DEFAULT_DATATYPE.lower(), DEFAULT_FS_DATATYPE.lower()]:
             xnat_status, qcstatus, jobid = self.assessor.attrs.mget(
-                [atype+'/procstatus', atype+'/validation/status', atype+'/jobid'])
+                                                [atype+'/procstatus',
+                                                 atype+'/validation/status',
+                                                 atype+'/jobid'])
         else:
-            xnat_status = 'UNKNOWN_xsiType:'+atype
-            qcstatus = 'UNKNOWN_xsiType:'+atype
+            xnat_status = 'UNKNOWN_xsiType: %s' % atype
+            qcstatus = 'UNKNOWN_xsiType: %s' % atype
             jobid = ''
 
         return xnat_status, qcstatus, jobid
@@ -621,11 +674,12 @@ class Task(object):
         :return: None
 
         """
-        self.assessor.attrs.mset({self.atype+'/validation/status': qcstatus,
-                                  self.atype+'/validation/validated_by':'NULL',
-                                  self.atype+'/validation/date':'NULL',
-                                  self.atype+'/validation/notes':'NULL',
-                                  self.atype+'/validation/method':'NULL'})
+        self.assessor.attrs.mset(
+                {self.atype+'/validation/status': qcstatus,
+                 self.atype+'/validation/validated_by': 'NULL',
+                 self.atype+'/validation/date': 'NULL',
+                 self.atype+'/validation/notes': 'NULL',
+                 self.atype+'/validation/method': 'NULL'})
 
     def set_proc_and_qc_status(self, procstatus, qcstatus):
         """
@@ -636,8 +690,8 @@ class Task(object):
         :return: None
 
         """
-        self.assessor.attrs.mset({self.atype+'/procstatus':procstatus,
-                                  self.atype+'/validation/status':qcstatus})
+        self.assessor.attrs.mset({self.atype+'/procstatus': procstatus,
+                                  self.atype+'/validation/status': qcstatus})
 
     def set_jobid(self, jobid):
         """
@@ -661,9 +715,9 @@ class Task(object):
         today_str = str(date.today())
         atype = self.atype.lower()
         self.assessor.attrs.mset({
-            atype+'/jobstartdate':today_str,
-            atype+'/jobid':jobid,
-            atype+'/procstatus':JOB_RUNNING})
+                atype+'/jobstartdate': today_str,
+                atype+'/jobid': jobid,
+                atype+'/procstatus': JOB_RUNNING})
 
     def commands(self, jobdir):
         """
@@ -675,7 +729,8 @@ class Task(object):
          args.
 
         """
-        return self.processor.get_cmds(self.assessor, os.path.join(jobdir, self.assessor_label))
+        return self.processor.get_cmds(
+                   self.assessor, os.path.join(jobdir, self.assessor_label))
 
     def pbs_path(self, writeonly=False, pbsdir=None):
         """
@@ -687,13 +742,16 @@ class Task(object):
          be submitted to the scheduler for execution.
 
         """
+        res_dir = os.path.join(DAX_SETTINGS.get_results_dir())
+        j_ext = DAX_SETTINGS.get_job_extension_file()
+        filename = '%s%s' % (self.assessor_label, j_ext)
         if writeonly:
             if pbsdir and os.path.isdir(pbsdir):
-                return os.path.join(pbsdir, self.assessor_label+DAX_SETTINGS.get_job_extension_file())
+                return os.path.join(pbsdir, filename)
             else:
-                return os.path.join(os.path.join(DAX_SETTINGS.get_results_dir(), 'TRASH'), self.assessor_label+DAX_SETTINGS.get_job_extension_file())
+                return os.path.join(os.path.join(res_dir, 'TRASH'), filename)
         else:
-            return os.path.join(os.path.join(DAX_SETTINGS.get_results_dir(), 'PBS'), self.assessor_label+DAX_SETTINGS.get_job_extension_file())
+            return os.path.join(os.path.join(res_dir, 'PBS'), filename)
 
     def outlog_path(self):
         """
@@ -712,7 +770,8 @@ class Task(object):
         :return: True if the file exists. False if the file does not exist.
 
         """
-        flagfile = os.path.join(self.upload_dir, self.assessor_label, READY_TO_UPLOAD_FLAG_FILENAME)
+        flagfile = os.path.join(self.upload_dir, self.assessor_label,
+                                READY_TO_UPLOAD_FLAG_FILENAME)
         return os.path.isfile(flagfile)
 
     def check_running(self, jobid=None):
@@ -732,25 +791,13 @@ class Task(object):
             # Still running
             return JOB_RUNNING
         elif not self.ready_flag_exists():
-            # Check for a flag file created upon completion, if it's not there then the job failed
+            # Check for a flag file created upon completion,
+            # if it's not there then the job failed
             return JOB_FAILED
         else:
             # Let Upload Spider handle the upload
             return JOB_RUNNING
 
-class NeedInputsException(Exception):
-    def __init__(self,value):
-        self.value=value
-
-    def __str__(self):
-        return repr(self.value)
-
-class NoDataException(Exception):
-    def __init__(self,value):
-        self.value=value
-
-    def __str__(self):
-        return repr(self.value)
 
 class ClusterTask(Task):
     """ Class Task to generate/manage the assessor with the cluster """
@@ -803,7 +850,8 @@ class ClusterTask(Task):
          of the process, the node the process ran on, and when it started
          from the scheduler.
 
-        :return: List of strings. Memory used, walltime used, jobid, node used, and start date
+        :return: List of strings. Memory used, walltime used, jobid, node used,
+                 and start date
 
         """
         memused = self.get_attr('memused')
@@ -823,7 +871,7 @@ class ClusterTask(Task):
         :return: None
 
         """
-        [memused, walltime, jobid, jobnode, jobstartdate] = self.get_job_usage()
+        [memused, walltime, jobid, jobnode, jobstrdate] = self.get_job_usage()
 
         if walltime:
             if memused and jobnode:
@@ -836,14 +884,14 @@ class ClusterTask(Task):
             return
 
         # We can't get info from cluster if job too old
-        if not cluster.is_traceable_date(jobstartdate):
+        if not cluster.is_traceable_date(jobstrdate):
             self.set_walltime('NotFound')
             self.set_memused('NotFound')
             self.set_jobnode('NotFound')
             return
 
         # Get usage with tracejob
-        jobinfo = cluster.tracejob_info(jobid, jobstartdate)
+        jobinfo = cluster.tracejob_info(jobid, jobstrdate)
         if jobinfo['mem_used'].strip():
             self.set_memused(jobinfo['mem_used'])
         else:
@@ -867,7 +915,7 @@ class ClusterTask(Task):
         memused = self.get_attr('memused')
         return memused
 
-    def set_memused(self,memused):
+    def set_memused(self, memused):
         """
         Set the amount of memory used for a process
 
@@ -908,7 +956,7 @@ class ClusterTask(Task):
         jobnode = self.get_attr('jobnode')
         return jobnode
 
-    def set_jobnode(self,jobnode):
+    def set_jobnode(self, jobnode):
         """
         Set the value of the the node that the process ran on on the grid
 
@@ -916,10 +964,10 @@ class ClusterTask(Task):
         :return: None
 
         """
-        self.set_attr('jobnode',jobnode)
+        self.set_attr('jobnode', jobnode)
 
     def undo_processing(self):
-       raise NotImplementedError()
+        raise NotImplementedError()
 
     def reproc_processing(self):
         """
@@ -949,13 +997,15 @@ class ClusterTask(Task):
                 # still running
                 pass
         elif old_status in [COMPLETE, JOB_FAILED, NEED_TO_RUN,
-            NEED_INPUTS, READY_TO_UPLOAD, UPLOADING, NO_DATA]:
+                            NEED_INPUTS, READY_TO_UPLOAD, UPLOADING, NO_DATA]:
             pass
         else:
-            LOGGER.warn('             * unknown status for ' + self.assessor_label + ': ' + old_status)
+            LOGGER.warn('             * unknown status for %s: %s'
+                        % (self.assessor_label, old_status))
 
         if new_status != old_status:
-            LOGGER.info('             * changing status from ' + old_status + ' to ' + new_status)
+            LOGGER.info('             * changing status from %s to %s'
+                        % (old_status, new_status))
             self.set_status(new_status)
 
         return new_status
@@ -1005,13 +1055,15 @@ class ClusterTask(Task):
             raise cluster.ClusterLaunchException
         else:
             self.set_launch(jobid)
-            if (force_no_qsub or not cluster.command_found(DAX_SETTINGS.get_cmd_submit())) and job_failed:
+            cmd = DAX_SETTINGS.get_cmd_submit()
+            if (force_no_qsub or not cluster.command_found(cmd)) and \
+               job_failed:
                 self.set_status(JOB_FAILED)
             return True
 
     def check_date(self):
         """
-        Sets the job created date if the assessor was not made through dax_build
+        Sets the job created date if the assessor was not made via dax_build
         """
         raise NotImplementedError()
 
@@ -1024,7 +1076,7 @@ class ClusterTask(Task):
         """
         return self.get_attr('jobstartdate')
 
-    def set_jobstartdate(self,date_str):
+    def set_jobstartdate(self, date_str):
         """
         Set the date that the job started on the grid based on user passed
          value
@@ -1046,7 +1098,7 @@ class ClusterTask(Task):
         """
         raise NotImplementedError()
 
-    def set_createdate(self,date_str):
+    def set_createdate(self, date_str):
         """
         Set the date of the assessor creation to user passed value
 
@@ -1116,7 +1168,6 @@ class ClusterTask(Task):
         """
         raise NotImplementedError()
 
-
     def set_jobid(self, jobid):
         """
         Set the job ID of the assessor
@@ -1162,7 +1213,8 @@ class ClusterTask(Task):
 
         """
         label = self.assessor_label
-        return os.path.join(self.diskq, BATCH_DIRNAME, label + JOB_EXTENSION_FILE)
+        return os.path.join(self.diskq, BATCH_DIRNAME,
+                            '%s%s' % (label, JOB_EXTENSION_FILE))
 
     def outlog_path(self):
         """
@@ -1205,7 +1257,7 @@ class ClusterTask(Task):
         if self.ready_flag_exists():
             return READY_TO_UPLOAD
 
-         # Check status on cluster
+        # Check status on cluster
         jobstatus = self.get_job_status()
 
         if not jobstatus or jobstatus == 'R' or jobstatus == 'Q':
@@ -1254,7 +1306,8 @@ class ClusterTask(Task):
     def complete_task(self):
         self.check_job_usage()
 
-        # Copy batch file, note we don't move so dax_upload knows the task origin
+        # Copy batch file, note we don't move so dax_upload knows the
+        # task origin
         src = self.batch_path()
         dst = self.upload_pbs_dir()
         mkdirp(dst)
@@ -1269,14 +1322,16 @@ class ClusterTask(Task):
         shutil.move(src, dst)
 
         # Touch file for dax_upload to check
-        create_flag(os.path.join(RESULTS_DIR, self.assessor_label, READY_TO_COMPLETE + '.txt'))
+        create_flag(os.path.join(RESULTS_DIR, self.assessor_label,
+                    '%s.txt' % READY_TO_COMPLETE))
 
         return COMPLETE
 
     def fail_task(self):
         self.check_job_usage()
 
-        # Copy batch file, note we don't move so dax_upload knows the task origin
+        # Copy batch file, note we don't move so dax_upload knows the
+        # task origin
         src = self.batch_path()
         dst = self.upload_pbs_dir()
         mkdirp(dst)
@@ -1291,10 +1346,12 @@ class ClusterTask(Task):
         shutil.move(src, dst)
 
         # Touch file for dax_upload that job failed
-        create_flag(os.path.join(RESULTS_DIR, self.assessor_label, JOB_FAILED + '.txt'))
+        create_flag(os.path.join(RESULTS_DIR, self.assessor_label,
+                    '%s.txt' % JOB_FAILED))
 
         # Touch file for dax_upload to check
-        create_flag(os.path.join(RESULTS_DIR, self.assessor_label, READY_TO_COMPLETE + '.txt'))
+        create_flag(os.path.join(RESULTS_DIR, self.assessor_label,
+                    '%s.txt' % READY_TO_COMPLETE))
 
         return JOB_FAILED
 
@@ -1307,11 +1364,13 @@ class ClusterTask(Task):
 
     def delete(self):
         # Delete attributes
-        attr_list = ['jobid', 'jobnode', 'procstatus', 'walltimeused', 'memused', 'jobstartdate']
+        attr_list = ['jobid', 'jobnode', 'procstatus', 'walltimeused',
+                     'memused', 'jobstartdate']
         for attr in attr_list:
             self.delete_attr(attr)
 
         self.delete_batch()
+
 
 class XnatTask(Task):
     """ Class Task to generate/manage the assessor with the cluster """
@@ -1321,11 +1380,11 @@ class XnatTask(Task):
 
         :param processor: processor used
         :param assessor: assessor dict ?
-        :param upload_dir: upload directory to copy data to after the job finishes.
+        :param upload_dir: upload directory to copy data when job finished.
         :return: None
 
         """
-        super(XnatTask,self).__init__(processor, assessor, upload_dir)
+        super(XnatTask, self).__init__(processor, assessor, upload_dir)
         self.diskq = diskq
 
     def check_job_usage(self):
@@ -1351,23 +1410,28 @@ class XnatTask(Task):
 
         if old_status == COMPLETE or old_status == JOB_FAILED:
             if qcstatus == REPROC:
-                LOGGER.info('             * qcstatus=REPROC, running reproc_processing...')
+                LOGGER.info('             * qcstatus=REPROC, running \
+reproc_processing...')
                 self.reproc_processing()
                 new_status = NEED_TO_RUN
             elif qcstatus == RERUN:
-                LOGGER.info('             * qcstatus=RERUN, running undo_processing...')
+                LOGGER.info('             * qcstatus=RERUN, running \
+undo_processing...')
                 self.undo_processing()
                 new_status = NEED_TO_RUN
             else:
                 pass
-        elif old_status in [NEED_TO_RUN, READY_TO_COMPLETE, NEED_INPUTS, JOB_RUNNING,
-            READY_TO_UPLOAD, UPLOADING,NO_DATA, JOB_BUILT]:
+        elif old_status in [NEED_TO_RUN, READY_TO_COMPLETE, NEED_INPUTS,
+                            JOB_RUNNING, READY_TO_UPLOAD, UPLOADING, NO_DATA,
+                            JOB_BUILT]:
             pass
         else:
-            LOGGER.warn('             * unknown status for ' + self.assessor_label+': '+old_status)
+            LOGGER.warn('             * unknown status for %s: %s'
+                        % (self.assessor_label, old_status))
 
         if new_status != old_status:
-            LOGGER.info('             * changing status from '+old_status+' to '+new_status)
+            LOGGER.info('             * changing status from %s to %s'
+                        % (old_status, new_status))
             self.set_status(new_status)
 
         return new_status
@@ -1401,7 +1465,8 @@ class XnatTask(Task):
 
         """
         label = self.assessor_label
-        return os.path.join(self.diskq, BATCH_DIRNAME, label+JOB_EXTENSION_FILE)
+        return os.path.join(self.diskq, BATCH_DIRNAME,
+                            label+JOB_EXTENSION_FILE)
 
     def outlog_path(self):
         """
@@ -1410,7 +1475,7 @@ class XnatTask(Task):
         :return: A string that is the absolute path to the OUTLOG file.
         """
         label = self.assessor_label
-        return os.path.join(self.diskq, OUTLOG_DIRNAME,label+'.txt')
+        return os.path.join(self.diskq, OUTLOG_DIRNAME, label+'.txt')
 
     def check_running(self):
         """
@@ -1424,31 +1489,27 @@ class XnatTask(Task):
         """
         raise NotImplementedError()
 
-    def build_task(self,
-        csess,
-        jobdir,
-        job_email=None,
-        job_email_options=DEFAULT_EMAIL_OPTS,
-        xnat_host=None):
+    def build_task(self, csess, jobdir, job_email=None,
+                   job_email_options=DEFAULT_EMAIL_OPTS,
+                   xnat_host=None):
         """
         Method to build a job
         """
-
-        (old_proc_status,old_qc_status,_) = self.get_statuses()
+        (old_proc_status, old_qc_status, _) = self.get_statuses()
 
         try:
             cmds = self.build_commands(csess, jobdir)
             batch_file = self.batch_path()
             outlog = self.outlog_path()
             batch = PBS(batch_file,
-                      outlog,
-                      cmds,
-                      self.processor.walltime_str,
-                      self.processor.memreq_mb,
-                      self.processor.ppn,
-                      job_email,
-                      job_email_options,
-                      xnat_host)
+                        outlog,
+                        cmds,
+                        self.processor.walltime_str,
+                        self.processor.memreq_mb,
+                        self.processor.ppn,
+                        job_email,
+                        job_email_options,
+                        xnat_host)
             LOGGER.info('writing:' + batch_file)
             batch.write()
 
@@ -1461,10 +1522,11 @@ class XnatTask(Task):
             new_proc_status = NO_DATA
             new_qc_status = e.value
 
-        if new_proc_status != old_proc_status or new_qc_status != old_qc_status:
+        if new_proc_status != old_proc_status or \
+           new_qc_status != old_qc_status:
             self.set_proc_and_qc_status(new_proc_status, new_qc_status)
 
-        return (new_proc_status,new_qc_status)
+        return (new_proc_status, new_qc_status)
 
     def build_commands(self, cobj, jobdir):
         """
@@ -1476,14 +1538,14 @@ class XnatTask(Task):
          args.
 
         """
-
+        assr_dir = os.path.join(jobdir, self.assessor_label)
         try:
-            return self.processor.build_cmds(cobj, os.path.join(jobdir, self.assessor_label))
+            return self.processor.build_cmds(cobj, assr_dir)
         except NotImplementedError:
             # Handle older processors without build_cmds()
             has_inputs, qcstatus = self.processor.has_inputs(cobj)
             if has_inputs == 1:
-                return self.processor.get_cmds(self.assessor, os.path.join(jobdir, self.assessor_label))
+                return self.processor.get_cmds(self.assessor, assr_dir)
             elif has_inputs == -1:
                 raise NoDataException(qcstatus)
             else:

@@ -87,3 +87,20 @@ class ClusterJobIDException(DaxError):
     """Custom exception raised when attempting to get the job id failed"""
     def __init__(self):
         Exception.__init__(self, 'ERROR: Failed to get job id.')
+
+
+# Task:
+class NeedInputsException(DaxError):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+
+class NoDataException(DaxError):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)

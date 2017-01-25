@@ -53,7 +53,7 @@ from dax_settings import DAX_Settings, DAX_Netrc
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ["InterfaceTemp", "AssessorHandler", "SpiderProcessHandler",
            "CachedImageSession", "CachedImageScan", "CachedImageAssessor",
-           "CachedResource"]
+           "CachedResource", "DEFAULT_DATATYPE", "DEFAULT_FS_DATATYPE"]
 DAX_SETTINGS = DAX_Settings()
 NS = {'xnat': 'http://nrg.wustl.edu/xnat',
       'proc': 'http://nrg.wustl.edu/proc',

@@ -70,9 +70,11 @@ def job_status(jobid):
     :return: job status
 
     """
-    cmd = DAX_SETTINGS.get_cmd_get_job_status().safe_substitute({'jobid':jobid})
+    cmd = DAX_SETTINGS.get_cmd_get_job_status()\
+                      .safe_substitute({'jobid': jobid})
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
+                                         shell=True)
         output = output.strip()
         if output == DAX_SETTINGS.get_running_status():
             return 'R'
@@ -132,9 +134,12 @@ def get_job_mem_used(jobid, diff_days):
     if not jobid:
         return mem
 
-    cmd = DAX_SETTINGS.get_cmd_get_job_memory().safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
+    cmd = DAX_SETTINGS.get_cmd_get_job_memory()\
+                      .safe_substitute({'numberofdays': diff_days,
+                                        'jobid': jobid})
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
+                                         shell=True)
         if output.startswith('sacct: error'):
             raise CalledProcessError(output)
         if output:
@@ -159,9 +164,12 @@ def get_job_walltime_used(jobid, diff_days):
     if not jobid:
         return walltime
 
-    cmd = DAX_SETTINGS.get_cmd_get_job_walltime().safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
+    cmd = DAX_SETTINGS.get_cmd_get_job_walltime()\
+                      .safe_substitute({'numberofdays': diff_days,
+                                        'jobid': jobid})
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
+                                         shell=True)
         if output:
             walltime = output.strip()
 
@@ -189,14 +197,18 @@ def get_job_node(jobid, diff_days):
 
     if jobid == 'no_qsub':
         cmd = 'uname -a'
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
+                                         shell=True)
         if output and len(output.strip().split(' ')) > 1:
             jobnode = output.strip().split(' ')[1]
         return jobnode
 
-    cmd = DAX_SETTINGS.get_cmd_get_job_node().safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
+    cmd = DAX_SETTINGS.get_cmd_get_job_node()\
+                      .safe_substitute({'numberofdays': diff_days,
+                                        'jobid': jobid})
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
+                                         shell=True)
         if output:
             jobnode = output.strip()
 
@@ -213,7 +225,7 @@ def get_specific_str(big_str, prefix, suffix):
     :param big_str: string to reduce
     :param prefix: prefix to remove
     :param suffix: suffix to remove
-    :return: string reduced, return empty string if prefix and suffix not present
+    :return: string reduced, return empty string if prefix/suffix not present
     """
     specific_str = big_str
     if prefix and len(specific_str.split(prefix)) > 1:
@@ -238,7 +250,8 @@ def command_found(cmd='qsub'):
 class PBS:   # The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
     def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
-                 ppn=1, email=None, email_options=DAX_SETTINGS.get_email_opts(), xnat_host=None):
+                 ppn=1, email=None,
+                 email_options=DAX_SETTINGS.get_email_opts(), xnat_host=None):
         """
         Entry point for the PBS class
 
@@ -287,7 +300,8 @@ class PBS:   # The script file generator class
                     'job_cmds': '\n'.join(self.cmds),
                     'xnat_host': self.xnat_host}
         with open(self.filename, 'w') as f_obj:
-            f_obj.write(DAX_SETTINGS.get_job_template().safe_substitute(job_data))
+            f_obj.write(DAX_SETTINGS.get_job_template()
+                                    .safe_substitute(job_data))
 
     def submit(self, outlog=None, force_no_qsub=False):
         """
@@ -309,14 +323,15 @@ def submit_job(filename, outlog=None, force_no_qsub=False):
     if command_found(cmd=submit_cmd) and not force_no_qsub:
         try:
             cmd = '%s %s' % (submit_cmd, filename)
-            proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
             output, error = proc.communicate()
             if output:
                 LOGGER.info(output)
             if error:
                 LOGGER.error(error)
-            # output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-            jobid = get_specific_str(output, DAX_SETTINGS.get_prefix_jobid(), DAX_SETTINGS.get_suffix_jobid())
+            jobid = get_specific_str(output, DAX_SETTINGS.get_prefix_jobid(),
+                                     DAX_SETTINGS.get_suffix_jobid())
         except CalledProcessError as err:
             LOGGER.error(err)
             jobid = '0'
