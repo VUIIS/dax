@@ -1,12 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """ cluster.py
 
 Cluster functionality
 """
-
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 
 import os
 import time
@@ -15,11 +13,14 @@ import subprocess
 from datetime import datetime
 from subprocess import CalledProcessError
 from dax_settings import DAX_Settings
+
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 DAX_SETTINGS = DAX_Settings()
 MAX_TRACE_DAYS = 30
-
-#Logger to print logs
+# Logger to print logs
 LOGGER = logging.getLogger('dax')
+
 
 def c_output(output):
     """
@@ -35,6 +36,7 @@ def c_output(output):
         error = True
         LOGGER.error(err)
     return error
+
 
 def count_jobs():
     """
@@ -59,6 +61,7 @@ def count_jobs():
         LOGGER.info(' Running locally. No queue with jobs.')
         return 0
 
+
 def job_status(jobid):
     """
     Get the status for a job on the cluster
@@ -82,6 +85,7 @@ def job_status(jobid):
     except CalledProcessError:
         return None
 
+
 def is_traceable_date(jobdate):
     """
     Check if the job is traceable on the cluster
@@ -95,6 +99,7 @@ def is_traceable_date(jobdate):
         return diff_days <= MAX_TRACE_DAYS
     except ValueError:
         return False
+
 
 def tracejob_info(jobid, jobdate):
     """
@@ -112,6 +117,7 @@ def tracejob_info(jobid, jobdate):
     jobinfo['jobnode'] = get_job_node(jobid, diff_days)
 
     return jobinfo
+
 
 def get_job_mem_used(jobid, diff_days):
     """
@@ -139,6 +145,7 @@ def get_job_mem_used(jobid, diff_days):
 
     return mem
 
+
 def get_job_walltime_used(jobid, diff_days):
     """
     Get the walltime used for the task from cluster
@@ -165,6 +172,7 @@ def get_job_walltime_used(jobid, diff_days):
         walltime = 'NotFound'
 
     return walltime
+
 
 def get_job_node(jobid, diff_days):
     """
@@ -197,6 +205,7 @@ def get_job_node(jobid, diff_days):
 
     return jobnode
 
+
 def get_specific_str(big_str, prefix, suffix):
     """
     Extract a specific length out of a string
@@ -226,7 +235,7 @@ def command_found(cmd='qsub'):
     return False
 
 
-class PBS:   #The script file generator class
+class PBS:   # The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
     def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
                  ppn=1, email=None, email_options=DAX_SETTINGS.get_email_opts(), xnat_host=None):
@@ -263,20 +272,20 @@ class PBS:   #The script file generator class
 
         :return: None
         """
-        #pbs_dir
+        # pbs_dir
         job_dir = os.path.dirname(self.filename)
         if not os.path.exists(job_dir):
             os.makedirs(job_dir)
         # Write the Bedpost script (default value)
-        job_data = {'job_email':self.email,
-                    'job_email_options':self.email_options,
-                    'job_ppn':str(self.ppn),
-                    'job_walltime':str(self.walltime_str),
-                    'job_memory':str(self.mem_mb),
-                    'job_output_file':self.outfile,
-                    'job_output_file_options':'oe',
-                    'job_cmds':'\n'.join(self.cmds),
-                    'xnat_host':self.xnat_host}
+        job_data = {'job_email': self.email,
+                    'job_email_options': self.email_options,
+                    'job_ppn': str(self.ppn),
+                    'job_walltime': str(self.walltime_str),
+                    'job_memory': str(self.mem_mb),
+                    'job_output_file': self.outfile,
+                    'job_output_file_options': 'oe',
+                    'job_cmds': '\n'.join(self.cmds),
+                    'xnat_host': self.xnat_host}
         with open(self.filename, 'w') as f_obj:
             f_obj.write(DAX_SETTINGS.get_job_template().safe_substitute(job_data))
 
@@ -288,6 +297,7 @@ class PBS:   #The script file generator class
         """
         return submit_job(self.filename, outlog=outlog,
                           force_no_qsub=force_no_qsub)
+
 
 def submit_job(filename, outlog=None, force_no_qsub=False):
     """
@@ -327,20 +337,3 @@ def submit_job(filename, outlog=None, force_no_qsub=False):
         jobid = 'no_qsub'
 
     return jobid.strip(), failed
-
-class ClusterLaunchException(Exception):
-    """Custom exception raised when launch on the grid failed"""
-    def __init__(self):
-        Exception.__init__(self, 'ERROR: Failed to launch job on the grid.')
-
-class ClusterCountJobsException(Exception):
-    """Custom exception raised when attempting to get the number of
-    jobs fails"""
-    def __init__(self):
-        Exception.__init__(self, 'ERROR: Failed to fetch number of '
-                                 'jobs from the grid.')
-
-class ClusterJobIDException(Exception):
-    """Custom exception raised when attempting to get the job id failed"""
-    def __init__(self):
-        Exception.__init__(self, 'ERROR: Failed to get job id.')
