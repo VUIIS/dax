@@ -12,6 +12,7 @@ import getpass
 import readline
 import ConfigParser
 from collections import OrderedDict
+from dax.errors import DaxSetupError
 
 
 def complete(text, state):
@@ -23,23 +24,15 @@ readline.set_completer_delims(' \t\n;')
 readline.parse_and_bind("tab: complete")
 readline.set_completer(complete)
 
-BASH_PROFILE_XNAT = """
-# Call for .xnat_profile files containing xnat logins:
-if [ -f ~/.xnat_profile ]; then
-    . ~/.xnat_profile
-fi
+XNAT_NETRC_FILE = ".xnatnetrc"
+NETRC_TEMPLATE = """machine {host}
+        login {user}
+        password {pwd}
+"""
+BASH_PROFILE_XNAT = """# Xnat Host for default dax executables:
+{export_cmd}
 """
 
-XNAT_PROFILE_TEMPLATE = """###### XNAT PROFILE FILE ######
-# File running every time you open a new terminal (called by .bash_profile)
-# created by dax_setup to setup your credentials as environment variables.
-# Xnat host:
-export XNAT_HOST="{host}"
-# Xnat username
-export XNAT_USER="{user}"
-# Xnat password
-export XNAT_PASS="{pwd}"
-"""
 
 ADMIN_DEFAULTS = OrderedDict([
                   ('user_home', os.path.expanduser('~')),
@@ -192,8 +185,10 @@ that should run at once: ', 'is_path': False},
 copied to for upload: ', 'is_path': True},
            'max_age': {'msg': 'Please enter max days before re-running dax_build \
 on a session: ', 'is_path': False},
-           'launcher_type': {'msg': 'Please enter launcher type: ', 'is_path': False},
-           'skip_lastupdate': {'msg': 'Do you want to skip last update?: ', 'is_path': False},
+           'launcher_type': {'msg': 'Please enter launcher type: ',
+                             'is_path': False},
+           'skip_lastupdate': {'msg': 'Do you want to skip last update?: ',
+                               'is_path': False},
            'api_url': {'msg': 'Please enter your REDCap API URL: ',
                        'is_path': False},
            'api_key_dax': {'msg': 'Please enter the key to connect to the \
@@ -398,13 +393,14 @@ the section [%s] in the settings file?' % section)
                 self.config_parser.set(section, option, value)
 
     def write(self):
-        """Write the all of the config options to the ~/.dax_settings.ini file.
+        """Write config options to the ~/.dax_settings.ini file.
 
         :return: None
         """
         with open(self.settings_file, 'w+') as ini_f:
             ini_f.write(INI_HEADER)
             self.config_parser.write(ini_f)
+        os.chmod(self.settings_file, stat.S_IWUSR | stat.S_IRUSR)
 
     def _prompt(self, section, option):
         """Method to prompt a user for an input for the option in the template.
@@ -447,7 +443,7 @@ the section [%s] in the settings file?' % section)
 time in ~/.dax_templates/\n')
 
         for option in ['gateway', 'root_job_dir', 'queue_limit', 'results_dir',
-                       'max_age','launcher_type', 'skip_lastupdate']:
+                       'max_age', 'launcher_type', 'skip_lastupdate']:
             value = self._prompt('cluster', option)
             self.config_parser.set('cluster', option, value)
 
@@ -475,35 +471,59 @@ time in ~/.dax_templates/\n')
                 self.config_parser.set('cluster', option, value)
 
 
-def set_xnat_credentials():
-    """Ask User for xnat credentials and store it locally.
+def test_connection_xnat(host, user, pwd):
+    """
+    Method to check connection to XNAT using host, user, pwd.
+
+    :param host: Host for XNAT
+    :param user: User for XNAT
+    :param pwd: Password for XNAT
+    :return: True if succeeded, False otherwise.
+    """
+    from pyxnat.core.errors import DatabaseError
+    from pyxnat import Interface
+    xnat = Interface(host, user, pwd)
+    try:
+        # try deleting SESSION connection
+        xnat._exec('/data/JSESSION', method='DELETE')
+        print ' --> Good login.\n'
+        return True
+    except DatabaseError:
+        print ' --> error: Wrong login.\n'
+        return False
+
+
+def set_xnat_netrc():
+    """Ask User for xnat credentials and store it in xnatnetrc file.
 
     :return: None
     """
-    xnat_profile = os.path.join(os.path.expanduser('~'), '.xnat_profile')
-    if not os.path.isfile(xnat_profile) \
-       and not os.environ['XNAT_HOST'] \
-       and not os.environ['XNAT_USER'] \
-       and not os.environ['XNAT_PASS']:
-        print 'Setting XNAT credentials:'
-        host = raw_input("Please enter your XNAT host: ")
-        user = raw_input("Please enter your XNAT username: ")
-        pwd = getpass.getpass(prompt='Please enter your XNAT password: ')
-        with open(xnat_profile, 'w') as fid:
-            fid.writelines(XNAT_PROFILE_TEMPLATE.format(host=host,
-                                                        user=user,
-                                                        pwd=pwd))
+    netrc_file = os.path.join(os.path.expanduser('~'), '.xnatnetrc')
+    if os.path.isfile(netrc_file):
+        print 'XNAT NETRC file ~/.xnatnetrc found.'
+    else:
+        print 'Warning: xnatnetrc file not found. Creating it:'
+        connection = False
+        while not connection:
+            host = raw_input("Please enter your XNAT host: ")
+            user = raw_input("Please enter your XNAT username: ")
+            pwd = getpass.getpass(prompt='Please enter your XNAT password: ')
+            connection = test_connection_xnat(host, user, pwd)
+        if connection:
+            with open(netrc_file, 'w') as fid:
+                fid.writelines(NETRC_TEMPLATE.format(host=host, user=user,
+                                                     pwd=pwd))
         # Changing mod of the file:
-        os.chmod(xnat_profile, stat.S_IRWXU)
-        print 'Please run the ~/.xnat_profile to set up the credentials.'
-        # add .xnat_profile to your profile file:
-        init_profile()
+        os.chmod(netrc_file, stat.S_IWUSR | stat.S_IRUSR)
+
+        # add XNAT_HOST to your profile file:
+        init_profile(host)
 
 
-def init_profile():
+def init_profile(host):
     """Function to init your profile file to call xnat_profile.
 
-    :param profile_path: path to your profile file
+    :param host: Host of XNAT to add to your profile
     :return: None
     """
     # link the file in the bashrc or profile
@@ -516,12 +536,12 @@ def init_profile():
     elif os.path.exists(os.path.join(os.path.expanduser('~'), '.profile')):
         profile = os.path.join(os.path.expanduser('~'), '.profile')
     else:
-        raise Exception("could not find your profile file. Please set up XNAT_HOST, \
-XNAT_USER, and XNAT_PASS environment variables manually and rerun dax_setup.")
+        raise DaxSetupError("could not find your profile file.")
     # Add the line to the profile
-    if 'source ~/.xnat_profile' not in open(profile).read():
+    line_to_add = 'export XNAT_HOST=%s' % host
+    if 'XNAT_HOST' not in open(profile).read():
         with open(profile, "a") as f_profile:
-            f_profile.write(BASH_PROFILE_XNAT)
+            f_profile.write(BASH_PROFILE_XNAT.format(export_cmd=line_to_add))
 
 
 def prompt_user_yes_no(question):
@@ -537,18 +557,19 @@ def prompt_user_yes_no(question):
     else:
         return False
 
+
 if __name__ == '__main__':
     print '########## DAX_SETUP ##########'
     print 'Script to setup the ~/.dax_settings.ini files \
 for your dax installation.\n'
     # Set xnat credentials if needed
-    set_xnat_credentials()
+    set_xnat_netrc()
 
     # Set the settings for dax
     DSH = DAX_Setup_Handler()
 
     if DSH.exists():
-        sys.stdout.write('Settings file ~/.dax_settings.ini found.\n')
+        print 'Settings file ~/.dax_settings.ini found.\n'
         if not prompt_user_yes_no('Do you want to edit it?'):
             print '########## END ##########'
             sys.exit()
