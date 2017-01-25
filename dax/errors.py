@@ -37,6 +37,13 @@ class DaxNetrcError(netrc.NetrcParseError):
     """Basic exception for errors related to dax raised by dax."""
 
 
+# Launcher errors:
+class DaxLauncherError(DaxError):
+    """Custom exception raised with dax launcher."""
+    def __init__(self, message):
+        Exception.__init__(self, 'Error with Launcher: %s' % message)
+
+
 # XnatUtils errors
 class XnatAuthentificationError(DaxXnatError):
     """Custom exception raised when xnat connection failed."""
