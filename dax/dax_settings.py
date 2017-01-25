@@ -8,7 +8,7 @@ import ConfigParser
 from string import Template
 from importlib import import_module
 from collections import OrderedDict
-from dax.erros import DaxNetrcError
+from dax.errors import DaxNetrcError
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'

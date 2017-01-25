@@ -185,7 +185,7 @@ class InterfaceTemp(Interface):
             self.user, self.pwd = netrc_obj.get_login(self.host)
         else:
             if not self.pwd:
-                msg = 'Please provide XNAT host <%s> password for user <%s>'
+                msg = 'Please provide password for host and user <%s>: '
                 self.pwd = raw_input(msg % (self.host, self.user))
 
         if not temp_dir:
