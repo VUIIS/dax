@@ -12,6 +12,7 @@ import getpass
 import readline
 import ConfigParser
 from collections import OrderedDict
+from dax import XNAT_NETRC_FILE, NETRC_TEMPLATE
 from dax.errors import DaxSetupError
 
 
@@ -24,11 +25,6 @@ readline.set_completer_delims(' \t\n;')
 readline.parse_and_bind("tab: complete")
 readline.set_completer(complete)
 
-XNAT_NETRC_FILE = ".xnatnetrc"
-NETRC_TEMPLATE = """machine {host}
-        login {user}
-        password {pwd}
-"""
 BASH_PROFILE_XNAT = """# Xnat Host for default dax executables:
 {export_cmd}
 """
@@ -498,8 +494,7 @@ def set_xnat_netrc():
 
     :return: None
     """
-    netrc_file = os.path.join(os.path.expanduser('~'), '.xnatnetrc')
-    if os.path.isfile(netrc_file):
+    if os.path.isfile(XNAT_NETRC_FILE):
         print 'XNAT NETRC file ~/.xnatnetrc found.'
     else:
         print 'Warning: xnatnetrc file not found. Creating it:'
@@ -510,11 +505,11 @@ def set_xnat_netrc():
             pwd = getpass.getpass(prompt='Please enter your XNAT password: ')
             connection = test_connection_xnat(host, user, pwd)
         if connection:
-            with open(netrc_file, 'w') as fid:
+            with open(XNAT_NETRC_FILE, 'w') as fid:
                 fid.writelines(NETRC_TEMPLATE.format(host=host, user=user,
                                                      pwd=pwd))
         # Changing mod of the file:
-        os.chmod(netrc_file, stat.S_IWUSR | stat.S_IRUSR)
+        os.chmod(XNAT_NETRC_FILE, stat.S_IWUSR | stat.S_IRUSR)
 
         # add XNAT_HOST to your profile file:
         init_profile(host)

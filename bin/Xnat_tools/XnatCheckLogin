@@ -14,15 +14,12 @@ import stat
 import netrc
 import getpass
 from pyxnat import Interface
+from dax import XNAT_NETRC_FILE, NETRC_TEMPLATE
 from pyxnat.core.errors import DatabaseError
+
 
 __exe__ = 'XnatCheckLogin'
 __purpose__ = "Set and Check the logins for XNAT."
-XNAT_NETRC_FILE = os.path.join(os.path.expanduser('~'), '.xnatnetrc')
-NETRC_TEMPLATE = """machine {host}
-        login {user}
-        password {pwd}
-"""
 BASH_PROFILE_XNAT = """# Xnat Host for default dax executables:
 {export_cmd}
 """
