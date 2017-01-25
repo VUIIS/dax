@@ -30,6 +30,7 @@ import fnmatch
 import glob
 import gzip
 from lxml import etree
+import netrc
 import nibabel as nib
 import numpy as np
 from pyxnat import Interface
@@ -45,9 +46,9 @@ import xlrd
 import xml.etree.cElementTree as ET
 import zipfile
 import task
-from dax.errors import (XnatUtilsError, XnatAccessError,
+from dax.errors import (XnatUtilsError, XnatAccessError, DaxXnatError,
                         XnatAuthentificationError)
-from dax_settings import DAX_Settings
+from dax_settings import DAX_Settings, XNAT_NETRC_FILE
 
 
 DAX_SETTINGS = DAX_Settings()
@@ -155,6 +156,8 @@ class InterfaceTemp(Interface):
     Extends the pyxnat.Interface class to make a temporary directory, write the
      cache to it and then blow it away on the Interface.disconnect call()
      NOTE: This is deprecated in pyxnat 1.0.0.0
+
+    Using netrc to get username password if not given.
     """
     def __init__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
                  temp_dir=None):
@@ -167,42 +170,41 @@ class InterfaceTemp(Interface):
         :return: None
 
         """
+        # Host
         self.host = xnat_host
         self.user = xnat_user
         self.pwd = xnat_pass
-        if not xnat_user:
-            self.user = os.environ['XNAT_USER']
-        if not xnat_pass:
-            self.pwd = os.environ['XNAT_PASS']
         if not xnat_host:
             self.host = os.environ['XNAT_HOST']
+        # User:
+        if not self.user:
+            if not os.path.isfile(XNAT_NETRC_FILE):
+                raise DaxXnatError('No ~/.xnatnetrc file found. Please run \
+dax_setup or XnatCheckLogin.')
+            netrc_obj = netrc.netrc(XNAT_NETRC_FILE)
+            netrc_info = netrc_obj.authenticators(self.host)
+            if not netrc_info:
+                raise DaxXnatError('Host <%s> not found in ~/.xnatnetrc file. \
+Please run dax_setup or XnatCheckLogin.' % self.host)
+            else:
+                self.user = netrc_info[0]
+                self.pwd = netrc_info[2]
+        else:
+            if not self.pwd:
+                msg = 'Please provide XNAT host <%s> password for user <%s>'
+                self.pwd = raw_input(msg % (self.host, self.user))
+
         if not temp_dir:
             temp_dir = tempfile.mkdtemp()
         if not os.path.exists(temp_dir):
             os.mkdir(temp_dir)
         self.temp_dir = temp_dir
-        self.connect()
         self.authenticate()
 
     def __enter__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
                   temp_dir=None):
         """Enter method for with statement."""
-        self.host = xnat_host
-        self.user = xnat_user
-        self.pwd = xnat_pass
-        if not xnat_user:
-            self.user = os.environ['XNAT_USER']
-        if not xnat_pass:
-            self.pwd = os.environ['XNAT_PASS']
-        if not xnat_host:
-            self.host = os.environ['XNAT_HOST']
-        if not temp_dir:
-            temp_dir = tempfile.mkdtemp()
-        if not os.path.exists(temp_dir):
-            os.mkdir(temp_dir)
-        self.temp_dir = temp_dir
-        self.connect()
-        self.authenticate()
+        self.__init__(xnat_host, xnat_user, xnat_pass, temp_dir)
 
     def __exit__(self, type, value, traceback):
         """Exit method for with statement."""
@@ -224,13 +226,14 @@ class InterfaceTemp(Interface):
         shutil.rmtree(self.temp_dir)
 
     def authenticate(self):
-        """Check the authentification.
+        """Authenticate to XNAT.
 
-        Try to Disconnect the JSESSION and connect again.
+        Connect to XNAT and try to Disconnect the JSESSION before reconnecting.
         Raise XnatAuthentificationError if it failes.
 
         :return: True or False
         """
+        self.connect()
         try:
             self._exec('/data/JSESSION', method='DELETE')
             # Reconnect the JSession for XNAT
@@ -672,8 +675,7 @@ Wrong label.'
 ###############################################################################
 def get_interface(host=None, user=None, pwd=None):
     """
-    Opens a connection to XNAT using XNAT_USER, XNAT_PASS, and XNAT_HOST from
-     env if host/user/pwd are None.
+    Opens a connection to XNAT.
 
     :param host: URL to connect to XNAT
     :param user: XNAT username
@@ -681,13 +683,6 @@ def get_interface(host=None, user=None, pwd=None):
     :return: InterfaceTemp object which extends functionaly of pyxnat.Interface
 
     """
-    if user is None:
-        user = os.environ['XNAT_USER']
-    if pwd is None:
-        pwd = os.environ['XNAT_PASS']
-    if host is None:
-        host = os.environ['XNAT_HOST']
-    # Don't sys.exit, let callers catch KeyErrors
     return InterfaceTemp(host, user, pwd)
 
 
