@@ -10,14 +10,14 @@ Edited on January 25, 2017
 
 import os
 import sys
-import stat
 import netrc
 import getpass
 from pyxnat import Interface
-from dax import XNAT_NETRC_FILE, NETRC_TEMPLATE
+from dax import DAX_Netrc
 from pyxnat.core.errors import DatabaseError
 
 
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __exe__ = 'XnatCheckLogin'
 __purpose__ = "Set and Check the logins for XNAT."
 BASH_PROFILE_XNAT = """# Xnat Host for default dax executables:
@@ -47,7 +47,7 @@ def test_connection_xnat(host, user, pwd):
         return False
 
 
-def add_host(host):
+def add_host(dax_netrc, host):
     """
     Method to add host to netrc file if not already there.
 
@@ -62,31 +62,12 @@ def add_host(host):
         print 'Checking XNAT logins for host: <%s>' % host
         connection = test_connection_xnat(host, user, pwd)
 
-    with open(XNAT_NETRC_FILE, "a") as f_netrc:
-        lines = NETRC_TEMPLATE.format(host=host, user=user, pwd=pwd)
-        f_netrc.writelines(lines)
-    # Changing mod of the file:
-    os.chmod(XNAT_NETRC_FILE, stat.S_IWUSR | stat.S_IRUSR)
+    dax_netrc.add_host(host, user, pwd)
     print 'Login saved.'
-
-
-def get_xnat_netrc_obj():
-    """Load netrc file object.
-
-    :return: netrc
-    """
-    if not os.path.isfile(XNAT_NETRC_FILE):
-        print 'Warning: No XNAT netrc file found. Setting it...'
-        host = raw_input("Please enter your XNAT host: ")
-        add_host(host)
-
-        # add XNAT_HOST to your profile file:
-        qst = 'Do you want to use host <%s> as default?'
-        yes = prompt_user_yes_no(qst)
-        if yes:
-            add_to_profile(host)
-
-    return netrc.netrc(XNAT_NETRC_FILE)
+    qst = 'Do you want to use host <%s> as default host on your computer?'
+    yes = prompt_user_yes_no(qst)
+    if yes:
+        add_to_profile(host)
 
 
 def add_to_profile(host):
@@ -124,14 +105,29 @@ def check_settings(netrc_obj, host):
     :param host: Xnat Host URL
     :return: None
     """
+    no_host_saved = False
+    host_unknown = False
     if not host:
-        host = None
+        yes = prompt_user_yes_no('Do you want to see the xnat host saved?')
+        if yes:
+            print 'XNAT Hosts stored:'
+            if not netrc_obj.is_empty():
+                for host in netrc_obj.hosts.keys():
+                    print '  - %s' % host
+            else:
+                no_host_saved = True
+                print '  No Host found.'
+
         while not host:
-            host = raw_input("Please enter the XNAT host you want to check: ")
+            msg = "Please enter the XNAT host you want to check/add: "
+            host = raw_input(msg)
             if not host:
                 print 'You need to provide a value.'
-    netrc_info = netrc_obj.authenticators(host)
-    if not netrc_info:
+
+    if no_host_saved or not netrc.has_host(host):
+        host_unknown = True
+
+    if host_unknown:
         print 'Warning: no information stored for host <%s>.' % host
         qst = 'Do you want to save XNAT host <%s> information?'
         yes = prompt_user_yes_no(qst % host)
@@ -140,8 +136,9 @@ def check_settings(netrc_obj, host):
         else:
             return
     else:
-        print 'Host <%s> logins found. Checking login information ...' % host
-        test_connection_xnat(host, netrc_info[0], netrc_info[2])
+        print 'Logins found for <%s>. Checking connection ...' % host
+        user, pwd = netrc_obj.get_host(host)
+        test_connection_xnat(host, user, pwd)
 
 
 def parse_args():
@@ -174,12 +171,6 @@ if __name__ == '__main__':
     args = parse_args()
     print '==================================================================='
     print 'Checking your settings for XNAT in xnatnetrc file:'
-    netrc_obj = get_xnat_netrc_obj()
-    if not args.host:
-        yes = prompt_user_yes_no('Do you want to see the xnat host saved?')
-        if yes:
-            print 'XNAT Hosts stored:'
-            for host in netrc_obj.hosts.keys():
-                print '  - %s' % host
+    netrc_obj = DAX_Netrc()
     check_settings(netrc_obj, args.host)
     print '==================================================================='

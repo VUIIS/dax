@@ -12,7 +12,7 @@ import getpass
 import readline
 import ConfigParser
 from collections import OrderedDict
-from dax import XNAT_NETRC_FILE, NETRC_TEMPLATE
+from dax import DAX_Netrc
 from dax.errors import DaxSetupError
 
 
@@ -494,10 +494,9 @@ def set_xnat_netrc():
 
     :return: None
     """
-    if os.path.isfile(XNAT_NETRC_FILE):
-        print 'XNAT NETRC file ~/.xnatnetrc found.'
-    else:
-        print 'Warning: xnatnetrc file not found. Creating it:'
+    netrc_obj = DAX_Netrc()
+    if netrc_obj.is_empty():
+        print 'Warning: daxnetrc is empty. Setting XNAT login:'
         connection = False
         while not connection:
             host = raw_input("Please enter your XNAT host: ")
@@ -505,12 +504,7 @@ def set_xnat_netrc():
             pwd = getpass.getpass(prompt='Please enter your XNAT password: ')
             connection = test_connection_xnat(host, user, pwd)
         if connection:
-            with open(XNAT_NETRC_FILE, 'w') as fid:
-                fid.writelines(NETRC_TEMPLATE.format(host=host, user=user,
-                                                     pwd=pwd))
-        # Changing mod of the file:
-        os.chmod(XNAT_NETRC_FILE, stat.S_IWUSR | stat.S_IRUSR)
-
+            netrc_obj.add_host(host, user, pwd)
         # add XNAT_HOST to your profile file:
         init_profile(host)
 

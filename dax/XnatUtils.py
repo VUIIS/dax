@@ -30,7 +30,6 @@ import fnmatch
 import glob
 import gzip
 from lxml import etree
-import netrc
 import nibabel as nib
 import numpy as np
 from pyxnat import Interface
@@ -46,11 +45,15 @@ import xlrd
 import xml.etree.cElementTree as ET
 import zipfile
 import task
-from dax.errors import (XnatUtilsError, XnatAccessError, DaxXnatError,
+from dax.errors import (XnatUtilsError, XnatAccessError,
                         XnatAuthentificationError)
-from dax_settings import DAX_Settings, XNAT_NETRC_FILE
+from dax_settings import DAX_Settings, DAX_Netrc
 
 
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__all__ = ["InterfaceTemp", "AssessorHandler", "SpiderProcessHandler",
+           "CachedImageSession", "CachedImageScan", "CachedImageAssessor",
+           "CachedResource"]
 DAX_SETTINGS = DAX_Settings()
 NS = {'xnat': 'http://nrg.wustl.edu/xnat',
       'proc': 'http://nrg.wustl.edu/proc',
@@ -178,17 +181,8 @@ class InterfaceTemp(Interface):
             self.host = os.environ['XNAT_HOST']
         # User:
         if not self.user:
-            if not os.path.isfile(XNAT_NETRC_FILE):
-                raise DaxXnatError('No ~/.xnatnetrc file found. Please run \
-dax_setup or XnatCheckLogin.')
-            netrc_obj = netrc.netrc(XNAT_NETRC_FILE)
-            netrc_info = netrc_obj.authenticators(self.host)
-            if not netrc_info:
-                raise DaxXnatError('Host <%s> not found in ~/.xnatnetrc file. \
-Please run dax_setup or XnatCheckLogin.' % self.host)
-            else:
-                self.user = netrc_info[0]
-                self.pwd = netrc_info[2]
+            netrc_obj = DAX_Netrc()
+            self.user, self.pwd = netrc_obj.get_login(self.host)
         else:
             if not self.pwd:
                 msg = 'Please provide XNAT host <%s> password for user <%s>'

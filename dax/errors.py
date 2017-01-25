@@ -6,7 +6,13 @@
 Method related to errors and Custom Exceptions.
 """
 
+import netrc
+
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__all__ = ['DaxError', 'DaxXnatError', 'DaxSetupError', 'DaxNetrcError',
+           'XnatAuthentificationError', 'XnatUtilsError', 'XnatAccessError',
+           'ClusterLaunchException', 'ClusterCountJobsException',
+           'ClusterJobIDException']
 
 
 # DAX error:
@@ -24,6 +30,11 @@ class DaxSetupError(DaxError, ValueError):
     """DaxSetup exception."""
     def __init__(self, message):
         Exception.__init__(self, 'Error in dax_setup: %s' % message)
+
+
+# Dax netrc errors
+class DaxNetrcError(netrc.NetrcParseError):
+    """Basic exception for errors related to dax raised by dax."""
 
 
 # XnatUtils errors
