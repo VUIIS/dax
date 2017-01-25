@@ -7,6 +7,11 @@ from string import Template
 from importlib import import_module
 from collections import OrderedDict
 
+NETRC_TEMPLATE = """machine {host}
+        login {user}
+        password {pwd}
+"""
+XNAT_NETRC_FILE = os.path.join(os.path.expanduser('~'), '.xnatnetrc')
 DEFAULT_TEMPLATE = Template("""echo """)
 FILES_OPTIONS = ['cmd_count_nb_jobs', 'cmd_get_job_status',
                  'cmd_get_job_memory', 'cmd_get_job_walltime',
