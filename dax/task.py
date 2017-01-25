@@ -10,8 +10,7 @@ from datetime import date
 import cluster
 from cluster import PBS
 from dax.errors import NeedInputsException, NoDataException
-from XnatUtils import DEFAULT_DATATYPE, DEFAULT_FS_DATATYPE
-from dax_settings import DAX_Settings
+from dax_settings import DAX_Settings, DEFAULT_DATATYPE, DEFAULT_FS_DATATYPE
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'

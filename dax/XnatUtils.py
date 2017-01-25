@@ -47,22 +47,19 @@ import zipfile
 import task
 from dax.errors import (XnatUtilsError, XnatAccessError,
                         XnatAuthentificationError)
-from dax_settings import DAX_Settings, DAX_Netrc
+from dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
+                          DEFAULT_FS_DATATYPE)
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ["InterfaceTemp", "AssessorHandler", "SpiderProcessHandler",
            "CachedImageSession", "CachedImageScan", "CachedImageAssessor",
-           "CachedResource", "DEFAULT_DATATYPE", "DEFAULT_FS_DATATYPE"]
+           "CachedResource"]
 DAX_SETTINGS = DAX_Settings()
 NS = {'xnat': 'http://nrg.wustl.edu/xnat',
       'proc': 'http://nrg.wustl.edu/proc',
       'fs': 'http://nrg.wustl.edu/fs',
       'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
-
-# Assessor datatypes
-DEFAULT_FS_DATATYPE = 'fs:fsData'
-DEFAULT_DATATYPE = 'proc:genProcData'
 
 # Select XNAT Path
 P_XPATH = '/project/{project}'

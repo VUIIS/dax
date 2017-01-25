@@ -3,7 +3,7 @@
 import os
 import sys
 import stat
-import netrc
+from netrc import netrc
 import ConfigParser
 from string import Template
 from importlib import import_module
@@ -12,11 +12,16 @@ from dax.errors import DaxNetrcError
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
-__all__ = ["DAX_Netrc", "DAX_Settings"]
+__all__ = ["DAX_Netrc", "DAX_Settings", "DEFAULT_DATATYPE",
+           "DEFAULT_FS_DATATYPE"]
+
 DEFAULT_TEMPLATE = Template("""echo """)
 FILES_OPTIONS = ['cmd_count_nb_jobs', 'cmd_get_job_status',
                  'cmd_get_job_memory', 'cmd_get_job_walltime',
                  'cmd_get_job_node', 'job_template']
+# Assessor datatypes
+DEFAULT_FS_DATATYPE = 'fs:fsData'
+DEFAULT_DATATYPE = 'proc:genProcData'
 DAX_MANAGER_DEFAULTS = OrderedDict([
     ('api_url', ''),
     ('api_key_dax', ''),
