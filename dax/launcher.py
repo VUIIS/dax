@@ -121,7 +121,8 @@ class Launcher(object):
             if proj not in self.project_process_dict:
                 self.project_process_dict[proj] = list()
 
-        if not xnat_host:
+        self.xnat_host = xnat_host
+        if not self.xnat_host:
             self.xnat_host = os.environ['XNAT_HOST']
         # User:
         if not xnat_user:
