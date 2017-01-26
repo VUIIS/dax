@@ -3,7 +3,7 @@
 import os
 import sys
 import stat
-from netrc import netrc
+import netrc
 import ConfigParser
 from string import Template
 from importlib import import_module
@@ -49,17 +49,17 @@ DAX_MANAGER_DEFAULTS = OrderedDict([
     ('admin_email', 'dax_email_address')])
 
 
-class DAX_Netrc(netrc):
+class DAX_Netrc(object):
     """Class for DAX NETRC file containing the information about XNAT logins.
     """
     def __init__(self):
         self.netrc_file = os.path.join(os.path.expanduser('~'), '.daxnetrc')
-        if not os.path.isfile(self.netrc_file):
-            open(self.netrc_file, 'r').close()
+        if not os.path.exists(self.netrc_file):
+            open(self.netrc_file, 'a').close()
             # Setting mode for the file:
             os.chmod(self.netrc_file, stat.S_IWUSR | stat.S_IRUSR)
         self.is_secured()
-        super(DAX_Netrc, self).__init__(file=self.netrc_file)
+        self.netrc_obj = netrc.netrc(self.netrc_file)
 
     def is_secured(self):
         """ Check if file is secure."""
@@ -73,11 +73,11 @@ write access.'
 
     def is_empty(self):
         """ Return True if no host stored."""
-        return len(self.hosts.keys()) == 0
+        return len(self.netrc_obj.hosts.keys()) == 0
 
     def has_host(self, host):
         """ Return True if host present."""
-        return host in self.hosts.keys()
+        return host in self.netrc_obj.hosts.keys()
 
     def add_host(self, host, user, pwd):
         """ Adding host to daxnetrc file."""
@@ -89,9 +89,13 @@ write access.'
             lines = netrc_template.format(host=host, user=user, pwd=pwd)
             f_netrc.writelines(lines)
 
+    def get_hosts(self):
+        """ Rerutn list of hosts from netrc file."""
+        return self.netrc_obj.hosts.keys()
+
     def get_login(self, host):
         """ Getting login for an host from daxnetrc file."""
-        netrc_info = self.authenticators(host)
+        netrc_info = self.netrc_obj.authenticators(host)
         if not netrc_info:
             raise DaxNetrcError('Host <%s> not found in %s file. \
 Please run dax_setup or XnatCheckLogin to add host.' % (self.netrc_file, host))

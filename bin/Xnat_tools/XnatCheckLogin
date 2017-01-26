@@ -97,11 +97,11 @@ to your environment variables manually."
 Please edit it.'
 
 
-def check_settings(netrc_obj, host):
+def check_settings(dax_netrc, host):
     """
     Method to check the settings for host in xnatnetrc
 
-    :param netrc_obj: netrc object for xnatnetrc
+    :param dax_netrc: netrc object for xnatnetrc
     :param host: Xnat Host URL
     :return: None
     """
@@ -111,8 +111,8 @@ def check_settings(netrc_obj, host):
         yes = prompt_user_yes_no('Do you want to see the xnat host saved?')
         if yes:
             print 'XNAT Hosts stored:'
-            if not netrc_obj.is_empty():
-                for host in netrc_obj.hosts.keys():
+            if not dax_netrc.is_empty():
+                for host in dax_netrc.get_hosts():
                     print '  - %s' % host
             else:
                 no_host_saved = True
@@ -129,15 +129,15 @@ def check_settings(netrc_obj, host):
 
     if host_unknown:
         print 'Warning: no information stored for host <%s>.' % host
-        qst = 'Do you want to save XNAT host <%s> information?'
+        qst = 'Do you want to save XNAT host <%s> information?' % host
         yes = prompt_user_yes_no(qst % host)
         if yes:
-            add_host(host)
+            add_host(dax_netrc, host)
         else:
             return
     else:
         print 'Logins found for <%s>. Checking connection ...' % host
-        user, pwd = netrc_obj.get_host(host)
+        user, pwd = dax_netrc.get_host(host)
         test_connection_xnat(host, user, pwd)
 
 
@@ -171,6 +171,6 @@ if __name__ == '__main__':
     args = parse_args()
     print '==================================================================='
     print 'Checking your settings for XNAT in xnatnetrc file:'
-    netrc_obj = DAX_Netrc()
-    check_settings(netrc_obj, args.host)
+    dax_netrc = DAX_Netrc()
+    check_settings(dax_netrc, args.host)
     print '==================================================================='
