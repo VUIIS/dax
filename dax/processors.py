@@ -40,7 +40,7 @@ class Processor(object):
             self.suffix_proc = '_'+suffix_proc
         else:
             self.suffix_proc = suffix_proc
-        self.suffix = re.sub('[^a-zA-Z0-9]', '_', self.suffix)
+        self.suffix_proc = re.sub('[^a-zA-Z0-9]', '_', self.suffix_proc)
         self.name = None
         self.spider_path = spider_path
         self.ppn = ppn
