@@ -127,12 +127,17 @@ class Launcher(object):
         # User:
         if not xnat_user:
             netrc_obj = DAX_Netrc()
-            self.xnat_user, self.xnat_pwd = netrc_obj.get_login(self.xnat_host)
+            user, password = netrc_obj.get_login(self.xnat_host)
+            self.xnat_user = user
+            self.xnat_pass = password
         else:
+            self.xnat_user = xnat_user
             if not xnat_pass:
                 msg = 'Please provide password for host and user <%s>: '
-                self.xnat_pwd = raw_input(msg % (self.xnat_host,
-                                                 self.xnat_user))
+                self.xnat_pass = raw_input(msg % (self.xnat_host,
+                                                  self.xnat_user))
+            else:
+                self.xnat_pass = xnat_pass
 
     # LAUNCH Main Method
     def launch_jobs(self, lockfile_prefix, project_local, sessions_local,
