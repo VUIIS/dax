@@ -126,7 +126,7 @@ class Launcher(object):
         # User:
         if not xnat_user:
             netrc_obj = DAX_Netrc()
-            self.xnat_user, self.xnat_pwd = netrc_obj.get_login(self.host)
+            self.xnat_user, self.xnat_pwd = netrc_obj.get_login(self.xnat_host)
         else:
             if not xnat_pass:
                 msg = 'Please provide password for host and user <%s>: '
