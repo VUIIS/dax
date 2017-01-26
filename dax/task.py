@@ -658,7 +658,7 @@ undo_processing...')
 
         if not self.assessor.exists():
             qcstatus = DOES_NOT_EXIST
-        elif atype == 'proc:genprocdata' or atype == 'fs:fsdata':
+        elif atype in [DEFAULT_DATATYPE.lower(), DEFAULT_FS_DATATYPE.lower()]:
             qcstatus = self.assessor.attrs.get(atype+'/validation/status')
         else:
             qcstatus = 'UNKNOWN_xsiType:'+atype
