@@ -94,7 +94,7 @@ class Module(object):
         # add the suffix if one to the directory:
         if suffix:
             if suffix not in self.directory:
-                self.directory = self.directory.rstrip('/')+'_'+suffix
+                self.directory = '%s_%s' % (self.directory.rstrip('/'), suffix)
 
         # Check if the directory exists
         if not os.path.exists(self.directory):
@@ -293,6 +293,6 @@ def modules_by_type(mod_list):
         elif issubclass(mod.__class__, SessionModule):
             sess_mod_list.append(mod)
         else:
-            LOGGER.warn('unknown module type:'+mod)
+            LOGGER.warn('unknown module type: %s' % mod)
 
     return sess_mod_list, scan_mod_list

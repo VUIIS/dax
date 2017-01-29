@@ -178,12 +178,13 @@ class Task(object):
 
         """
         atype = self.atype
-        mgets = self.assessor.attrs.mget(
-                        [atype+'/memused',
-                         atype+'/walltimeused',
-                         atype+'/jobid',
-                         atype+'/jobnode',
-                         atype+'/jobstartdate'])
+        mgets = self.assessor.attrs.mget([
+                         '%s/memused' % atype,
+                         '%s/walltimeused' % atype,
+                         '%s/jobid' % atype,
+                         '%s/jobnode' % atype,
+                         '%s/jobstartdate' % atype
+        ])
         return [mgets[0].strip(),
                 mgets[1].strip(),
                 mgets[2].strip(),
@@ -240,7 +241,7 @@ class Task(object):
         :return: String of how much memory was used
 
         """
-        memused = self.assessor.attrs.get(self.atype+'/memused')
+        memused = self.assessor.attrs.get('%s/memused' % self.atype)
         return memused.strip()
 
     def set_memused(self, memused):
@@ -251,7 +252,7 @@ class Task(object):
         :return: None
 
         """
-        self.assessor.attrs.set(self.atype+'/memused', memused)
+        self.assessor.attrs.set('%s/memused' % self.atype, memused)
 
     def get_walltime(self):
         """
@@ -260,7 +261,7 @@ class Task(object):
         :return: String of how much walltime was used for a process
 
         """
-        walltime = self.assessor.attrs.get(self.atype+'/walltimeused')
+        walltime = self.assessor.attrs.get('%s/walltimeused' % self.atype)
         return walltime.strip()
 
     def set_walltime(self, walltime):
@@ -272,7 +273,7 @@ class Task(object):
         :return: None
 
         """
-        self.assessor.attrs.set(self.atype+'/walltimeused', walltime)
+        self.assessor.attrs.set('%s/walltimeused' % self.atype, walltime)
 
     def get_jobnode(self):
         """
@@ -281,7 +282,7 @@ class Task(object):
         :return: String identifying the node that a job ran on
 
         """
-        jobnode = self.assessor.attrs.get(self.atype+'/jobnode')
+        jobnode = self.assessor.attrs.get('%s/jobnode' % self.atype)
         return jobnode.strip()
 
     def set_jobnode(self, jobnode):
@@ -292,7 +293,7 @@ class Task(object):
         :return: None
 
         """
-        self.assessor.attrs.set(self.atype+'/jobnode', jobnode)
+        self.assessor.attrs.set('%s/jobnode' % self.atype, jobnode)
 
     def undo_processing(self):
         """
@@ -315,7 +316,7 @@ class Task(object):
         out_resource_list = self.assessor.out_resources()
         for out_resource in out_resource_list:
             if out_resource.label() not in REPROC_RES_SKIP_LIST:
-                LOGGER.info('   Removing '+out_resource.label())
+                LOGGER.info('   Removing %s' % out_resource.label())
                 try:
                     out_resource.delete()
                 except DatabaseError:
@@ -329,8 +330,8 @@ class Task(object):
 
         """
         curtime = time.strftime("%Y%m%d-%H%M%S")
-        local_dir = self.assessor_label+'_'+curtime
-        local_zip = local_dir+'.zip'
+        local_dir = '%s_%s' % (self.assessor_label, curtime)
+        local_zip = '%s.zip' % local_dir
         xml_filename = os.path.join(self.upload_dir, local_dir,
                                     '%s.xml' % self.assessor_label)
 
@@ -350,9 +351,8 @@ class Task(object):
 
         # Download xml of assessor
         xml = self.assessor.get()
-        f = open(xml_filename, 'w')
-        f.write(xml+'\n')
-        f.close()
+        with open(xml_filename, 'w') as f_xml:
+            f_xml.write('%s\n' % xml)
 
         # Zip it all up
         cmd = 'cd %s && zip -qr %s %s/' % (self.upload_dir, local_zip,
@@ -438,7 +438,7 @@ undo_processing...')
         :return: string of the jobid
 
         """
-        jobid = self.assessor.attrs.get(self.atype+'/jobid').strip()
+        jobid = self.assessor.attrs.get('%s/jobid' % self.atype).strip()
         return jobid
 
     def get_job_status(self, jobid=None):
@@ -534,7 +534,7 @@ undo_processing...')
         :return: String of the date that the job started in "%Y-%m-%d" format
 
         """
-        return self.assessor.attrs.get(self.atype+'/jobstartdate')
+        return self.assessor.attrs.get('%s/jobstartdate' % self.atype)
 
     def set_jobstartdate_today(self):
         """
@@ -556,7 +556,7 @@ undo_processing...')
         :return: None
 
         """
-        self.assessor.attrs.set(self.atype.lower()+'/jobstartdate', date_str)
+        self.assessor.attrs.set('%s/jobstartdate' % self.atype, date_str)
 
     def get_createdate(self):
         """
@@ -566,7 +566,7 @@ undo_processing...')
          format
 
         """
-        return self.assessor.attrs.get(self.atype+'/date')
+        return self.assessor.attrs.get('%s/date' % self.atype)
 
     def set_createdate(self, date_str):
         """
@@ -576,7 +576,7 @@ undo_processing...')
         :return: String of today's date in "%Y-%m-%d" format
 
         """
-        self.assessor.attrs.set(self.atype+'/date', date_str)
+        self.assessor.attrs.set('%s/date' % self.atype, date_str)
         return date_str
 
     def set_createdate_today(self):
@@ -600,12 +600,10 @@ undo_processing...')
         """
         if not self.assessor.exists():
             xnat_status = DOES_NOT_EXIST
-        elif self.atype == DEFAULT_DATATYPE.lower():
-            xnat_status = self.assessor.attrs.get(
-                            '%s/procstatus' % DEFAULT_DATATYPE.lower())
-        elif self.atype == DEFAULT_FS_DATATYPE.lower():
-            xnat_status = self.assessor.attrs.get(
-                            '%s/procstatus' % DEFAULT_FS_DATATYPE.lower())
+        elif self.atype.lower() in [DEFAULT_DATATYPE.lower(),
+                                    DEFAULT_FS_DATATYPE.lower()]:
+            xnat_status = self.assessor.attrs.get('%s/procstatus'
+                                                  % self.atype.lower())
         else:
             xnat_status = 'UNKNOWN_xsiType: %s' % self.atype
         return xnat_status
@@ -617,19 +615,20 @@ undo_processing...')
         :return: Serially ordered strings of the assessor procstatus,
          qcstatus, then jobid.
         """
-        atype = self.atype
         if not self.assessor.exists():
             xnat_status = DOES_NOT_EXIST
             qcstatus = DOES_NOT_EXIST
             jobid = ''
-        elif atype in [DEFAULT_DATATYPE.lower(), DEFAULT_FS_DATATYPE.lower()]:
-            xnat_status, qcstatus, jobid = self.assessor.attrs.mget(
-                                                [atype+'/procstatus',
-                                                 atype+'/validation/status',
-                                                 atype+'/jobid'])
+        elif self.atype.lower() in [DEFAULT_DATATYPE.lower(),
+                                    DEFAULT_FS_DATATYPE.lower()]:
+            xnat_status, qcstatus, jobid = self.assessor.attrs.mget([
+                '%s/procstatus' % self.atype,
+                '%s/validation/status' % self.atype,
+                '%s/jobid' % self.atype
+            ])
         else:
-            xnat_status = 'UNKNOWN_xsiType: %s' % atype
-            qcstatus = 'UNKNOWN_xsiType: %s' % atype
+            xnat_status = 'UNKNOWN_xsiType: %s' % self.atype
+            qcstatus = 'UNKNOWN_xsiType: %s' % self.atype
             jobid = ''
 
         return xnat_status, qcstatus, jobid
@@ -642,7 +641,7 @@ undo_processing...')
         :return: None
 
         """
-        self.assessor.attrs.set(self.atype+'/procstatus', status)
+        self.assessor.attrs.set('%s/procstatus' % self.atype, status)
 
     def get_qcstatus(self):
         """
@@ -654,14 +653,15 @@ undo_processing...')
          assessor as stored on XNAT.
         """
         qcstatus = ''
-        atype = self.atype
 
         if not self.assessor.exists():
             qcstatus = DOES_NOT_EXIST
-        elif atype in [DEFAULT_DATATYPE.lower(), DEFAULT_FS_DATATYPE.lower()]:
-            qcstatus = self.assessor.attrs.get(atype+'/validation/status')
+        elif self.atype.lower() in [DEFAULT_DATATYPE.lower(),
+                                    DEFAULT_FS_DATATYPE.lower()]:
+            qcstatus = self.assessor.attrs.get('%s/validation/status'
+                                               % self.atype)
         else:
-            qcstatus = 'UNKNOWN_xsiType:'+atype
+            qcstatus = 'UNKNOWN_xsiType: %s' % self.atype
 
         return qcstatus
 
@@ -673,12 +673,13 @@ undo_processing...')
         :return: None
 
         """
-        self.assessor.attrs.mset(
-                {self.atype+'/validation/status': qcstatus,
-                 self.atype+'/validation/validated_by': 'NULL',
-                 self.atype+'/validation/date': 'NULL',
-                 self.atype+'/validation/notes': 'NULL',
-                 self.atype+'/validation/method': 'NULL'})
+        self.assessor.attrs.mset({
+            '%s/validation/status' % self.atype: qcstatus,
+            '%s/validation/validated_by' % self.atype: 'NULL',
+            '%s/validation/date' % self.atype: 'NULL',
+            '%s/validation/notes' % self.atype: 'NULL',
+            '%s/validation/method' % self.atype: 'NULL',
+        })
 
     def set_proc_and_qc_status(self, procstatus, qcstatus):
         """
@@ -689,8 +690,10 @@ undo_processing...')
         :return: None
 
         """
-        self.assessor.attrs.mset({self.atype+'/procstatus': procstatus,
-                                  self.atype+'/validation/status': qcstatus})
+        self.assessor.attrs.mset({
+            '%s/procstatus' % self.atype: procstatus,
+            '%s/validation/status' % self.atype: qcstatus,
+        })
 
     def set_jobid(self, jobid):
         """
@@ -700,7 +703,7 @@ undo_processing...')
         :return: None
 
         """
-        self.assessor.attrs.set(self.atype+'/jobid', jobid)
+        self.assessor.attrs.set('%s/jobid' % self.atype, jobid)
 
     def set_launch(self, jobid):
         """
@@ -712,11 +715,11 @@ undo_processing...')
 
         """
         today_str = str(date.today())
-        atype = self.atype.lower()
         self.assessor.attrs.mset({
-                atype+'/jobstartdate': today_str,
-                atype+'/jobid': jobid,
-                atype+'/procstatus': JOB_RUNNING})
+            '%s/jobstartdate' % self.atype.lower(): today_str,
+            '%s/jobid' % self.atype.lower(): jobid,
+            '%s/procstatus' % self.atype.lower(): JOB_RUNNING,
+        })
 
     def commands(self, jobdir):
         """
@@ -728,8 +731,8 @@ undo_processing...')
          args.
 
         """
-        return self.processor.get_cmds(
-                   self.assessor, os.path.join(jobdir, self.assessor_label))
+        assr_dir = os.path.join(jobdir, self.assessor_label)
+        return self.processor.get_cmds(self.assessor, assr_dir)
 
     def pbs_path(self, writeonly=False, pbsdir=None):
         """
@@ -758,8 +761,8 @@ undo_processing...')
 
         :return: A string that is the absolute path to the OUTLOG file.
         """
-        label = self.assessor_label
-        return os.path.join(self.upload_dir, OUTLOG_DIRNAME, label+'.output')
+        assr_fout = '%s.output' % self.assessor_label
+        return os.path.join(self.upload_dir, OUTLOG_DIRNAME, assr_fout)
 
     def ready_flag_exists(self):
         """
@@ -786,7 +789,7 @@ undo_processing...')
         # Check status on cluster
         jobstatus = self.get_job_status(jobid)
 
-        if not jobstatus or jobstatus == 'R' or jobstatus == 'Q':
+        if not jobstatus or jobstatus in ['R', 'Q']:
             # Still running
             return JOB_RUNNING
         elif not self.ready_flag_exists():
@@ -1221,8 +1224,8 @@ class ClusterTask(Task):
 
         :return: A string that is the absolute path to the OUTLOG file.
         """
-        label = self.assessor_label
-        return os.path.join(self.diskq, OUTLOG_DIRNAME, label+'.txt')
+        f_out = '%s.txt' % self.assessor_label
+        return os.path.join(self.diskq, OUTLOG_DIRNAME, f_out)
 
     def upload_pbs_dir(self):
         """
@@ -1310,14 +1313,14 @@ class ClusterTask(Task):
         src = self.batch_path()
         dst = self.upload_pbs_dir()
         mkdirp(dst)
-        LOGGER.debug('copying batch file from '+src+' to '+dst)
+        LOGGER.debug('copying batch file from %s to %s' % (src, dst))
         shutil.copy(src, dst)
 
         # Move output file
         src = self.outlog_path()
         dst = self.upload_outlog_dir()
         mkdirp(dst)
-        LOGGER.debug('moving outlog file from '+src+' to '+dst)
+        LOGGER.debug('moving outlog file from %s to %s' % (src, dst))
         shutil.move(src, dst)
 
         # Touch file for dax_upload to check
@@ -1334,14 +1337,14 @@ class ClusterTask(Task):
         src = self.batch_path()
         dst = self.upload_pbs_dir()
         mkdirp(dst)
-        LOGGER.debug('copying batch file from '+src+' to '+dst)
+        LOGGER.debug('copying batch file from %s to %s' % (src, dst))
         shutil.copy(src, dst)
 
         # Move output file
         src = self.outlog_path()
         dst = self.upload_outlog_dir()
         mkdirp(dst)
-        LOGGER.debug('moving outlog file from '+src+' to '+dst)
+        LOGGER.debug('moving outlog file from %s to %s' % (src, dst))
         shutil.move(src, dst)
 
         # Touch file for dax_upload that job failed
@@ -1463,9 +1466,8 @@ undo_processing...')
          be submitted to the scheduler for execution.
 
         """
-        label = self.assessor_label
-        return os.path.join(self.diskq, BATCH_DIRNAME,
-                            label+JOB_EXTENSION_FILE)
+        f_pbs = '%s%s' % (self.assessor_label, JOB_EXTENSION_FILE)
+        return os.path.join(self.diskq, BATCH_DIRNAME, f_pbs)
 
     def outlog_path(self):
         """
@@ -1473,8 +1475,8 @@ undo_processing...')
 
         :return: A string that is the absolute path to the OUTLOG file.
         """
-        label = self.assessor_label
-        return os.path.join(self.diskq, OUTLOG_DIRNAME, label+'.txt')
+        f_txt = '%s.txt' % self.assessor_label
+        return os.path.join(self.diskq, OUTLOG_DIRNAME, f_txt)
 
     def check_running(self):
         """

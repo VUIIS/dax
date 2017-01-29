@@ -160,7 +160,7 @@ class Launcher(object):
             raise DaxLauncherError(err % self.launcher_type)
 
         LOGGER.info('-------------- Launch Tasks --------------\n')
-        LOGGER.info('launcher_type = '+self.launcher_type)
+        LOGGER.info('launcher_type = %s' % self.launcher_type)
 
         xnat = None
         res_dir = DAX_SETTINGS.get_results_dir()
@@ -235,7 +235,7 @@ class Launcher(object):
                 return
 
             if cluster.command_found(cmd=DAX_SETTINGS.get_cmd_submit()):
-                LOGGER.info(str(cjobs)+' jobs currently in queue')
+                LOGGER.info('%s jobs currently in queue' % str(cjobs))
 
         # Launch until we reach cluster limit or no jobs left to launch
         while (cjobs < self.queue_limit or writeonly) and len(task_list) > 0:
@@ -248,17 +248,13 @@ class Launcher(object):
             #     continue
 
             if writeonly:
-                mes_format = """  +Writing PBS file for job:{label}, \
-currently {count} jobs in cluster queue"""
-                LOGGER.info(mes_format.format(
-                        label=cur_task.assessor_label,
-                        count=str(cjobs)))
+                msg = "  +Writing PBS file for job:%s, currently %s jobs in \
+cluster queue"
+                LOGGER.info(msg % (cur_task.assessor_label,
+                                   str(cjobs)))
             else:
-                mes_format = """  +Launching job:{label}, currently \
-{count} jobs in cluster queue"""
-                LOGGER.info(mes_format.format(
-                        label=cur_task.assessor_label,
-                        count=str(cjobs)))
+                msg = '  +Launching job:%s, currently %s jobs in cluster queue'
+                LOGGER.info(msg % (cur_task.assessor_label, str(cjobs)))
 
             try:
                 if self.launcher_type in ['diskq-cluster',
@@ -339,7 +335,7 @@ currently {count} jobs in cluster queue"""
                                            project_list,
                                            sessions_local)
 
-                LOGGER.info(str(len(task_list))+' open tasks found')
+                LOGGER.info('%s open tasks found' % str(len(task_list)))
                 LOGGER.info('Updating tasks...')
                 for cur_task in task_list:
                     msg = '     Updating task: %s'
@@ -405,7 +401,7 @@ currently {count} jobs in cluster queue"""
 
             # Build projects
             for project_id in project_list:
-                LOGGER.info('===== PROJECT:'+project_id+' =====')
+                LOGGER.info('===== PROJECT: %s =====' % project_id)
                 try:
                     self.build_project(xnat, project_id, lockfile_prefix,
                                        sessions_local, mod_delta=mod_delta)
@@ -479,8 +475,8 @@ currently {count} jobs in cluster queue"""
                                              UPDATE_FORMAT)
                 now_date = datetime.today()
                 if now_date > last_mod + lastmod_delta:
-                    mess = "  + Session %s:skipping not modified within delta, \
-last_mod=%s"
+                    mess = "  + Session %s:skipping not modified within delta,\
+ last_mod=%s"
                     LOGGER.info(mess % (sess_info['label'], str(last_mod)))
                     continue
                 else:
@@ -915,8 +911,7 @@ The project is not part of the settings."""
         if not project_list:
             # Priority:
             if self.priority_project:
-                project_list = self.get_project_list(
-                                    self.project_process_dict.keys())
+                project_list = self.get_project_list(self.project_process_dict.keys())
             else:
                 project_list = list(self.project_process_dict.keys())
 
@@ -1007,7 +1002,7 @@ The project is not part of the settings."""
         else:
             # Get a new task with the matched processor
             assr = XnatUtils.get_full_object(xnat, assr_info)
-            cur_task = Task(task_proc, assr,  DAX_SETTINGS.get_results_dir())
+            cur_task = Task(task_proc, assr, DAX_SETTINGS.get_results_dir())
             return cur_task
 
     @staticmethod
@@ -1103,7 +1098,7 @@ The project is not part of the settings."""
         """
         xsi_type = sess_info['xsiType']
         sess_obj = XnatUtils.get_full_object(xnat, sess_info)
-        last_modified_xnat = sess_obj.attrs.get(xsi_type+'/meta/last_modified')
+        last_modified_xnat = sess_obj.attrs.get('%s/meta/last_modified' % xsi_type)
         d_format = '%Y-%m-%d %H:%M:%S'
         last_mod = datetime.strptime(last_modified_xnat[0:19], d_format)
         if last_mod > update_start_time:
@@ -1143,7 +1138,7 @@ The project is not part of the settings."""
         assr_type_set = set([x['proctype'] for x in assr_list])
 
         # Get unique list of processors prescribed for project
-        proc_name_set = set([x.name for x in sess_proc_list+scan_proc_list])
+        proc_name_set = set([x.name for x in sess_proc_list + scan_proc_list])
 
         # Get list of processors that don't have assessors in XNAT yet
         diff_list = list(proc_name_set.difference(assr_type_set))

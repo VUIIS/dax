@@ -9,7 +9,7 @@ Cluster functionality
 import os
 import time
 import logging
-import subprocess
+import subprocess as sb
 from datetime import datetime
 from subprocess import CalledProcessError
 from dax_settings import DAX_Settings
@@ -46,12 +46,12 @@ def count_jobs():
     """
     if command_found(cmd=DAX_SETTINGS.get_cmd_submit()):
         cmd = DAX_SETTINGS.get_cmd_count_nb_jobs()
-        output = subprocess.check_output(cmd, shell=True)
+        output = sb.check_output(cmd, shell=True)
         error = c_output(output)
         while error:
             LOGGER.info('    try again to access number of jobs in 2 seconds.')
             time.sleep(2)
-            output = subprocess.check_output(cmd, shell=True)
+            output = sb.check_output(cmd, shell=True)
             error = c_output(output)
         if int(output) < 0:
             return 0
@@ -73,8 +73,7 @@ def job_status(jobid):
     cmd = DAX_SETTINGS.get_cmd_get_job_status()\
                       .safe_substitute({'jobid': jobid})
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
-                                         shell=True)
+        output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
         output = output.strip()
         if output == DAX_SETTINGS.get_running_status():
             return 'R'
@@ -112,7 +111,7 @@ def tracejob_info(jobid, jobdate):
     :return: dictionary object with 'mem_used', 'walltime_used', 'jobnode'
     """
     time_s = datetime.strptime(jobdate, "%Y-%m-%d")
-    diff_days = (datetime.today()-time_s).days+1
+    diff_days = (datetime.today() - time_s).days + 1
     jobinfo = dict()
     jobinfo['mem_used'] = get_job_mem_used(jobid, diff_days)
     jobinfo['walltime_used'] = get_job_walltime_used(jobid, diff_days)
@@ -138,8 +137,7 @@ def get_job_mem_used(jobid, diff_days):
                       .safe_substitute({'numberofdays': diff_days,
                                         'jobid': jobid})
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
-                                         shell=True)
+        output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
         if output.startswith('sacct: error'):
             raise CalledProcessError(output)
         if output:
@@ -167,9 +165,9 @@ def get_job_walltime_used(jobid, diff_days):
     cmd = DAX_SETTINGS.get_cmd_get_job_walltime()\
                       .safe_substitute({'numberofdays': diff_days,
                                         'jobid': jobid})
+
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
-                                         shell=True)
+        output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
         if output:
             walltime = output.strip()
 
@@ -197,8 +195,7 @@ def get_job_node(jobid, diff_days):
 
     if jobid == 'no_qsub':
         cmd = 'uname -a'
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
-                                         shell=True)
+        output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
         if output and len(output.strip().split(' ')) > 1:
             jobnode = output.strip().split(' ')[1]
         return jobnode
@@ -206,9 +203,9 @@ def get_job_node(jobid, diff_days):
     cmd = DAX_SETTINGS.get_cmd_get_job_node()\
                       .safe_substitute({'numberofdays': diff_days,
                                         'jobid': jobid})
+
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
-                                         shell=True)
+        output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
         if output:
             jobnode = output.strip()
 
@@ -299,6 +296,7 @@ class PBS:   # The script file generator class
                     'job_output_file_options': 'oe',
                     'job_cmds': '\n'.join(self.cmds),
                     'xnat_host': self.xnat_host}
+
         with open(self.filename, 'w') as f_obj:
             f_obj.write(DAX_SETTINGS.get_job_template()
                                     .safe_substitute(job_data))
@@ -323,8 +321,7 @@ def submit_job(filename, outlog=None, force_no_qsub=False):
     if command_found(cmd=submit_cmd) and not force_no_qsub:
         try:
             cmd = '%s %s' % (submit_cmd, filename)
-            proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE)
+            proc = sb.Popen(cmd.split(), stdout=sb.PIPE, stderr=sb.PIPE)
             output, error = proc.communicate()
             if output:
                 LOGGER.info(output)
@@ -335,10 +332,10 @@ def submit_job(filename, outlog=None, force_no_qsub=False):
         except CalledProcessError as err:
             LOGGER.error(err)
             jobid = '0'
+
     else:
         cmd = 'sh %s' % (filename)
-        proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+        proc = sb.Popen(cmd.split(), stdout=sb.PIPE, stderr=sb.PIPE)
         output, error = proc.communicate()
         if outlog:
             with open(outlog, 'w') as log_obj:
@@ -346,6 +343,7 @@ def submit_job(filename, outlog=None, force_no_qsub=False):
                     log_obj.write(line)
                 for line in error:
                     log_obj.write(line)
+
         if error:
             # Set the status to JOB_FAILED
             failed = True

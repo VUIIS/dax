@@ -382,17 +382,18 @@ class SpiderProcessHandler:
             script_name = script_name[7:]
 
         # get the processname from spider
-        if len(re.split("/*_v[0-9]/*", script_name)) > 1:
-            self.version = script_name.split('_v')[-1].replace('_', '.')
-            proctype = re.split(
-                "/*_v[0-9]/*", script_name)[0]+'_v'+self.version.split('.')[0]
+        if len(re.split('/*_v[0-9]/*', script_name)) > 1:
+            self.version = script_name.split('_v')[-1].replace('_', '.')\
+                                                      .split('.')
+            ptype = re.split('/*_v[0-9]/*', script_name)[0]
+            proctype = '%s_v%s' % (ptype, self.version[0])
         else:
             self.version = '1.0.0'
             proctype = script_name
 
         if suffix:
             if suffix[0] != '_':
-                suffix = '_'+suffix
+                suffix = '_%s' % suffix
             suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
             if suffix[-1] == '_':
                 suffix = suffix[:-1]
@@ -457,7 +458,7 @@ Wrong label.'
         if self.time_writer:
             self.time_writer.print_stderr_message(msg)
         else:
-            print "Error: "+msg
+            print "Error: %s" % msg
 
     def set_error(self):
         """
@@ -521,7 +522,7 @@ Wrong label.'
         if self.file_exists(filepath):
             # Check if it's a ps:
             if filepath.lower().endswith('.ps'):
-                pdf_path = os.path.splitext(filepath)[0]+'.pdf'
+                pdf_path = '%s.pdf' % os.path.splitext(filepath)[0]
                 ps2pdf_cmd = 'ps2pdf %s %s' % (filepath, pdf_path)
                 self.print_msg('  -Convertion %s ...' % ps2pdf_cmd)
                 os.system(ps2pdf_cmd)
@@ -635,8 +636,9 @@ Wrong label.'
             self.print_msg('INFO: Job ready to be upload, error: %s'
                            % str(self.error))
             # make the flag folder
-            open(os.path.join(self.directory,
-                              task.READY_TO_UPLOAD+'.txt'), 'w').close()
+            fname = '%s.txt' % task.READY_TO_UPLOAD
+            flag_file = os.path.join(self.directory, fname)
+            open(flag_file, 'w').close()
             if DAX_SETTINGS.get_launcher_type() == 'xnatq-combined':
                 # set status on XNAT to ReadyToUpload
                 self.set_assessor_status(task.READY_TO_UPLOAD)
@@ -644,8 +646,9 @@ Wrong label.'
             self.print_msg('INFO: Job failed, check the outlogs, error: %s'
                            % str(self.error))
             # make the flag folder
-            open(os.path.join(self.directory,
-                              task.JOB_FAILED+'.txt'), 'w').close()
+            fname = '%s.txt' % task.JOB_FAILED
+            flag_file = os.path.join(self.directory, fname)
+            open(flag_file, 'w').close()
             if DAX_SETTINGS.get_launcher_type() == 'xnatq-combined':
                 # set status on XNAT to JOB_FAILED
                 self.set_assessor_status(task.JOB_FAILED)
@@ -776,7 +779,7 @@ def list_sessions(intf, projectid=None, subjectid=None):
         return None
 
     # First get a list of all experiment types
-    post_uri_types = post_uri+'?columns=xsiType'
+    post_uri_types = '%s?columns=xsiType' % post_uri
     sess_list = intf._get_json(post_uri_types)
     for sess in sess_list:
         sess_type = sess['xsiType'].lower()
@@ -794,8 +797,7 @@ def list_sessions(intf, projectid=None, subjectid=None):
         if sess_type.startswith('xnat:') and 'session' in sess_type:
             post_uri_type = post_uri + SESSION_POST_URI.format(stype=sess_type)
         else:
-            post_uri_type = post_uri + NO_MOD_SESSION_POST_URI.format(
-                                                    stype=sess_type)
+            post_uri_type = post_uri + NO_MOD_SESSION_POST_URI.format(stype=sess_type)
         sess_list = intf._get_json(post_uri_type)
 
         for sess in sess_list:
@@ -818,10 +820,10 @@ def list_sessions(intf, projectid=None, subjectid=None):
             else:
                 sess['session_type'] = sess_type
                 sess['type'] = sess_type
-            sess['last_modified'] = sess.get(sess_type+'/meta/last_modified',
-                                             None)
-            sess['last_updated'] = sess.get(sess_type+'/original', None)
-            sess['age'] = sess.get(sess_type+'/age', None)
+            last_modified_str = '%s/meta/last_modified' % sess_type
+            sess['last_modified'] = sess.get(last_modified_str, None)
+            sess['last_updated'] = sess.get('%s/original' % sess_type, None)
+            sess['age'] = sess.get('%s/age' % sess_type, None)
             sess['handedness'] = subj_id2lab[sess['subject_ID']][0]
             sess['gender'] = subj_id2lab[sess['subject_ID']][1]
             sess['yob'] = subj_id2lab[sess['subject_ID']][2]
@@ -922,9 +924,10 @@ def list_project_scans(intf, projectid, include_shared=True):
 
     pfix = 'xnat:imagescandata'
     for scan in scan_list:
-        key = scan['ID']+'-x-'+scan['%s/id' % pfix]
+        key = '%s-x-%s' % (scan['ID'], scan['%s/id' % pfix])
         if scans_dict.get(key):
-            scans_dict[key]['resources'].append(scan['%s/file/label' % pfix])
+            res = '%s/file/label' % pfix
+            scans_dict[key]['resources'].append(scan[res])
         else:
             snew = {}
             snew['scan_id'] = scan['%s/id' % pfix]
@@ -967,10 +970,10 @@ def list_project_scans(intf, projectid, include_shared=True):
         scan_list = intf._get_json(post_uri)
 
         for scan in scan_list:
-            key = scan['ID']+'-x-'+scan['%s/id' % pfix]
+            key = '%s-x-%s' % (scan['ID'], scan['%s/id' % pfix])
             if scans_dict.get(key):
-                scans_dict[key]['resources'].append(
-                                        scan['%s/file/label' % pfix])
+                res = '%s/file/label' % pfix
+                scans_dict[key]['resources'].append(scan[res])
             else:
                 snew = {}
                 snew['scan_id'] = scan['%s/id' % pfix]
@@ -1124,8 +1127,8 @@ def list_project_assessors(intf, projectid):
     if has_fs_datatypes(intf):
         # First get FreeSurfer
         post_uri = SE_ARCHIVE_URI
-        post_uri += ASSESSOR_FS_PROJ_POST_URI.format(
-                            project=projectid, fstype=DEFAULT_FS_DATATYPE)
+        post_uri += ASSESSOR_FS_PROJ_POST_URI.format(project=projectid,
+                                                     fstype=DEFAULT_FS_DATATYPE)
         assessor_list = intf._get_json(post_uri)
 
         pfix = DEFAULT_FS_DATATYPE.lower()
@@ -1133,8 +1136,8 @@ def list_project_assessors(intf, projectid):
             if asse['label']:
                 key = asse['label']
                 if assessors_dict.get(key):
-                    assessors_dict[key]['resources'].append(
-                            asse['%s/out/file/label' % pfix])
+                    res = '%s/out/file/label' % pfix
+                    assessors_dict[key]['resources'].append(asse[res])
                 else:
                     anew = {}
                     anew['ID'] = asse['ID']
@@ -1157,7 +1160,7 @@ def list_project_assessors(intf, projectid):
 
                     if len(asse['label'].rsplit('-x-FS')) > 1:
                         anew['proctype'] = anew['proctype'] + \
-                                        asse['label'].rsplit('-x-FS')[1]
+                                           asse['label'].rsplit('-x-FS')[1]
 
                     anew['version'] = asse.get('%s/procversion' % pfix)
                     anew['xsiType'] = asse['xsiType']
@@ -1187,8 +1190,8 @@ def list_project_assessors(intf, projectid):
             if asse['label']:
                 key = asse['label']
                 if assessors_dict.get(key):
-                    assessors_dict[key]['resources'].append(
-                                asse['%s/out/file/label' % pfix])
+                    res = '%s/out/file/label' % pfix
+                    assessors_dict[key]['resources'].append(asse[res])
                 else:
                     anew = {}
                     anew['ID'] = asse['ID']
@@ -1285,8 +1288,8 @@ def get_resource_lastdate_modified(intf, resource_obj):
     if all_times:
         max_time = max(all_times)
         date = max_time.split('.')[0]
-        res_date = date.split('T')[0].replace('-', '')+date.split('T')[1]\
-                                                           .replace(':', '')
+        res_date = (date.split('T')[0].replace('-', '') +
+                    date.split('T')[1].replace(':', ''))
     else:
         res_date = ('{:%Y%m%d%H%M%S}'.format(datetime.now()))
     return res_date
@@ -1676,7 +1679,7 @@ def is_assessor_good_type(assessor_obj, types_list, full_regex=False):
 
     """
     atype = assessor_obj.attrs.get('xsiType')
-    proctype = assessor_obj.attrs.get(atype+'/proctype')
+    proctype = assessor_obj.attrs.get('%s/proctype' % atype)
     for exp in types_list:
         regex = extract_exp(exp, full_regex)
         if regex.match(proctype):
@@ -1694,7 +1697,7 @@ def is_assessor_usable(assessor_obj):
 
     """
     atype = assessor_obj.attrs.get('xsiType')
-    qcstatus = assessor_obj.attrs.get(atype+'/validation/status')
+    qcstatus = assessor_obj.attrs.get('%s/validation/status' % atype)
     return is_bad_qa(qcstatus)
 
 
@@ -2247,7 +2250,7 @@ def upload_files(filepaths, project_id=None, subject_id=None, session_id=None,
      upload failed.
 
     """
-    status = [False]*len(filepaths)
+    status = [False] * len(filepaths)
     if not resource:
         err = '%s: resource argument not provided.'
         raise XnatUtilsError(err % ('upload_files'))
@@ -2415,10 +2418,12 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail):
         err = "%s: original or thumbnail snapshots don't exist."
         raise XnatUtilsError(err % ('upload_assessor_snapshots'))
 
-    assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(thumbnail))\
+    assessor_obj.out_resource('SNAPSHOTS')\
+                .file(os.path.basename(thumbnail))\
                 .put(thumbnail, thumbnail.split('.')[1].upper(), 'THUMBNAIL',
                      overwrite=True)
-    assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(original))\
+    assessor_obj.out_resource('SNAPSHOTS')\
+                .file(os.path.basename(original))\
                 .put(original, original.split('.')[1].upper(), 'ORIGINAL',
                      overwrite=True)
     return True
@@ -2485,7 +2490,7 @@ def gzip_nii(directory):
 
     """
     for fpath in glob.glob(os.path.join(directory, '*.nii')):
-        os.system('gzip '+fpath)
+        os.system('gzip %s' % fpath)
 
 
 def ungzip_nii(directory):
@@ -2497,7 +2502,7 @@ def ungzip_nii(directory):
 
     """
     for fpath in glob.glob(os.path.join(directory, '*.nii.gz')):
-        os.system('gzip -d '+fpath)
+        os.system('gzip -d %s' % fpath)
 
 
 def run_matlab(matlab_script, verbose=False, matlab_bin='matlab'):
@@ -2518,7 +2523,7 @@ def run_matlab(matlab_script, verbose=False, matlab_bin='matlab'):
     if not verbose:
         matlabdir = os.path.dirname(matlab_script)
         prefix = os.path.basename(matlab_script).split('.')[0]
-        cmd = cmd+' > '+os.path.join(matlabdir, prefix+'_outlog.log')
+        cmd = '%s > %s_outlog.log' % (cmd, os.path.join(matlabdir, prefix))
     os.system(cmd)
     print "Matlab script: %s done" % matlab_script
 
@@ -2645,8 +2650,8 @@ def check_image_format(fpath):
 
     """
     if fpath.endswith('.nii') or fpath.endswith('.rec'):
-        os.system('gzip '+fpath)
-        fpath = fpath+'.gz'
+        os.system('gzip %s' % fpath)
+        fpath = '%s.gz' % fpath
     return fpath
 
 
@@ -2729,7 +2734,7 @@ def get_random_sessions(xnat, project_id, num_sessions):
     sessions = list_experiments(xnat, project_id)
     session_labels = [x['label'] for x in sessions]
     if num_sessions > 0 and num_sessions < 1:
-        num_sessions = int(num_sessions*len(session_labels))
+        num_sessions = int(num_sessions * len(session_labels))
     return ','.join(random.sample(session_labels, num_sessions))
 
 
@@ -2858,7 +2863,7 @@ class CachedImageSession():
         sess_info['project_label'] = sess_info['project_id']
         sess_info['project'] = sess_info['project_id']
         sess_info['subject_ID'] = self.get('xnat:subject_ID')
-        sess_info['URI'] = '/data/experiments/'+sess_info['ID']
+        sess_info['URI'] = '/data/experiments/%s' % sess_info['ID']
         sess_info['session_label'] = sess_info['label']
         sess_info['last_updated'] = sess_info['original']
         sess_info['type'] = sess_info['modality']
@@ -3138,7 +3143,7 @@ class CachedImageAssessor():
             assr_info['walltimeused'] = self.get('proc:walltimeused')
             assr_info['jobnode'] = self.get('proc:jobnode')
         else:
-            print 'WARN:unknown xsiType for assessor:'+assr_info['xsiType']
+            print 'WARN:unknown xsiType for assessor: %s' % assr_info['xsiType']
 
         return assr_info
 
@@ -3425,7 +3430,7 @@ def read_excel(excel_file, header_indexes=None):
         else:
             header = sht.row_values(0)
             start = 0
-        for row_index in range(start+1, sht.nrows):
+        for row_index in range(start + 1, sht.nrows):
             row = list()
             for col_index in range(sht.ncols):
                 value = sht.cell(rowx=row_index, colx=col_index).value
@@ -3509,7 +3514,7 @@ def write_dicom(pixel_array, filename, ds_copy, ds_ori, volume_number,
     file_meta.MediaStorageSOPClassUID = 'Secondary Capture Image Storage'
     file_meta.MediaStorageSOPInstanceUID = ds_ori.SOPInstanceUID
     file_meta.ImplementationClassUID = ds_ori.SOPClassUID
-    ds = FileDataset(filename, {}, file_meta=file_meta, preamble="\0"*128)
+    ds = FileDataset(filename, {}, file_meta=file_meta, preamble="\0" * 128)
 
     # Copy the tag from the original DICOM
     for tag, value in ds_ori.items():
@@ -3525,7 +3530,7 @@ def write_dicom(pixel_array, filename, ds_copy, ds_ori, volume_number,
                                                    .replace(' ', '')
     ds.SOPInstanceUID = sop_uid[:-1]
     ds.ProtocolName = ds_ori.ProtocolName
-    ds.InstanceNumber = volume_number+1
+    ds.InstanceNumber = volume_number + 1
 
     # Copy from T2 the orientation tags:
     ds.PatientPosition = ds_copy.PatientPosition
@@ -3580,7 +3585,7 @@ def convert_nifti_2_dicoms(nifti_path, dicom_targets, dicom_source,
     ti = time.time()
     series_number = 86532 + int(str(ti)[2:4]) + int(str(ti)[4:6])
     sop_id = adc_dcm_obj.SOPInstanceUID.split('.')
-    sop_id = '.'.join(sop_id[:-1])+'.'
+    sop_id = '.'.join(sop_id[:-1]) + '.'
 
     # Sort the DICOM T2 to create the ADC registered DICOMs
     dcm_obj_sorted = dict()
@@ -3594,17 +3599,17 @@ def convert_nifti_2_dicoms(nifti_path, dicom_targets, dicom_source,
     for vol_i in range(f_img_data.shape[2]):
         if f_img_data.shape[2] > 100:
             filename = os.path.join(output_folder, '%s_%03d.dcm' % (label,
-                                                                    vol_i+1))
+                                                                    vol_i + 1))
         elif f_img_data.shape[2] > 10:
             filename = os.path.join(output_folder, '%s_%02d.dcm' % (label,
-                                                                    vol_i+1))
+                                                                    vol_i + 1))
 
         else:
             filename = os.path.join(output_folder, '%s_%d.dcm' % (label,
-                                                                  vol_i+1))
+                                                                  vol_i + 1))
 
         write_dicom(np.rot90(f_img_data[:, :, vol_i]), filename,
-                    dcm_obj_sorted[vol_i+1], adc_dcm_obj, vol_i,
+                    dcm_obj_sorted[vol_i + 1], adc_dcm_obj, vol_i,
                     series_number, sop_id)
 
 
@@ -4063,7 +4068,7 @@ download_files_from_obj().'
             fpath = os.path.join(Outputdir, '%s.zip' % rlabel)
             os.system(unzip_cmd % (Outputdir, fpath))
         else:
-            print '   ->Downloading resource for '+Resource.label()
+            print '   ->Downloading resource for %s' % Resource.label()
             Input_res_label_fname = Resource.files().get()[0]
             fpath = os.path.join(directory, Input_res_label_fname)
             Resource.file(Input_res_label_fname).get(fpath)
@@ -4106,8 +4111,8 @@ upload_files_to_obj(), upload_folder(), or upload_folder_to_obj().'
                                      overwrite=True, extract=True)
                 else:
                     # upload the file
-                    Resource.file(filename).put(
-                            os.path.join(directory, filename), overwrite=True)
+                    fpath = os.path.join(directory, filename)
+                    Resource.file(filename).put(fpath, overwrite=True)
     else:
         msg = 'ERROR in upload_all_resources: Folder %s does not exist.'
         print msg % directory
@@ -4145,7 +4150,7 @@ def download_resource_assessor(directory, xnat, project, subject, experiment,
     print 'Warning: Deprecated method. Use download_files() or \
 download_files_from_obj().'
     if not quiet:
-        print '    +Process: '+assessor_label
+        print '    +Process: %s' % assessor_label
 
     assessor = select_assessor(xnat, assessor_label)
     if not assessor.exists():
@@ -4164,15 +4169,16 @@ download_files_from_obj().'
         SD = SD.replace(" ", "")
 
         if SD != '':
-            directory = directory+'-x-'+SD
+            directory = '%s-x-%s' % (directory, SD)
 
     if not os.path.exists(directory):
         os.mkdir(directory)
 
     # all resources
     if resources_list[0] == 'all':
-        resources_list = list_assessor_out_resources(
-                    xnat, project, subject, experiment, assessor_label)
+        resources_list = list_assessor_out_resources(xnat, project, subject,
+                                                     experiment,
+                                                     assessor_label)
         for resource in resources_list:
             xpath = AR_XPATH.format(project=project,
                                     subject=subject,
@@ -4182,7 +4188,7 @@ download_files_from_obj().'
             Resource = xnat.select(xpath)
             if Resource.exists():
                 if not quiet:
-                    print '      *download resource '+resource['label']
+                    print '      *download resource %s' % resource['label']
 
                 assessor_real_type = assessor_label.split('-x-')[-1]
                 if 'FS' in assessor_real_type:
@@ -4216,7 +4222,7 @@ download_files_from_obj().'
             Resource = xnat.select(xpath)
             if Resource.exists():
                 if not quiet:
-                    print '      *download resource '+resource
+                    print '      *download resource %s' % resource
 
                 assessor_real_type = assessor_label.split('-x-')[-1]
                 if 'FS' in assessor_real_type:
@@ -4257,14 +4263,14 @@ def Upload_folder_to_resource(resourceObj, directory):
     """
     print 'Warning: Deprecated method. Use either upload_folder() or \
 upload_folder_to_obj().'
-    filenameZip = resourceObj.label()+'.zip'
+    filenameZip = '%s.zip' % resourceObj.label()
     initDir = os.getcwd()
     # Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip -r '+filenameZip+' *')
+    os.system('zip -r %s *' % filenameZip)
     # upload
-    resourceObj.put_zip(os.paht.join(directory, filenameZip), overwrite=True,
-                        extract=True)
+    zip_path = os.paht.join(directory, filenameZip)
+    resourceObj.put_zip(zip_path, overwrite=True, extract=True)
     # return to the initial directory:
     os.chdir(initDir)
 

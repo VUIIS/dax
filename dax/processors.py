@@ -37,7 +37,7 @@ class Processor(object):
         self.version = "1.0.0"
         # Suffix
         if suffix_proc and suffix_proc[0] != '_':
-            self.suffix_proc = '_'+suffix_proc
+            self.suffix_proc = '_%s' % suffix_proc
         else:
             self.suffix_proc = suffix_proc
         self.suffix_proc = re.sub('[^a-zA-Z0-9]', '_', self.suffix_proc)
@@ -97,7 +97,7 @@ class Processor(object):
                 procname=re.split("/*_v[0-9]/*", spidername)[0],
                 version=self.version.split('.')[0], suffix=self.suffix_proc)
         else:
-            self.name = os.path.basename(spider_path)[7:-3]+self.suffix_proc
+            self.name = os.path.basename(spider_path)[7:-3] + self.suffix_proc
 
     # has_inputs - does this object have the required inputs?
     # e.g. NIFTI format of the required scan type and quality
@@ -285,7 +285,7 @@ class SessionProcessor(Processor):
         proj_label = session_dict['project']
         subj_label = session_dict['subject_label']
         sess_label = session_dict['label']
-        return proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+self.name
+        return '-x-'.join([proj_label, subj_label, sess_label, self.name])
 
     def get_task(self, intf, csess, upload_dir):
         """
@@ -323,6 +323,6 @@ def processors_by_type(proc_list):
         elif issubclass(proc.__class__, SessionProcessor):
             sess_proc_list.append(proc)
         else:
-            LOGGER.warn('unknown processor type:'+proc)
+            LOGGER.warn('unknown processor type: %s' % proc)
 
     return sess_proc_list, scan_proc_list
