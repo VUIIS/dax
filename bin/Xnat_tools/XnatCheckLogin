@@ -65,7 +65,7 @@ def add_host(dax_netrc, host):
     dax_netrc.add_host(host, user, pwd)
     print 'Login saved.'
     qst = 'Do you want to use host <%s> as default host on your computer?'
-    yes = prompt_user_yes_no(qst)
+    yes = prompt_user_yes_no(qst % host)
     if yes:
         add_to_profile(host)
 
@@ -112,8 +112,8 @@ def check_settings(dax_netrc, host):
         if yes:
             print 'XNAT Hosts stored:'
             if not dax_netrc.is_empty():
-                for host in dax_netrc.get_hosts():
-                    print '  - %s' % host
+                for saved_host in dax_netrc.get_hosts():
+                    print '  - %s' % saved_host
             else:
                 no_host_saved = True
                 print '  No Host found.'
@@ -130,7 +130,7 @@ def check_settings(dax_netrc, host):
     if host_unknown:
         print 'Warning: no information stored for host <%s>.' % host
         qst = 'Do you want to save XNAT host <%s> information?' % host
-        yes = prompt_user_yes_no(qst % host)
+        yes = prompt_user_yes_no(qst)
         if yes:
             add_host(dax_netrc, host)
         else:
