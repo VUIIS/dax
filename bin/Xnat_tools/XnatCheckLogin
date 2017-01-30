@@ -34,16 +34,16 @@ def test_connection_xnat(host, user, pwd):
     :param pwd: Password for XNAT
     :return: True if succeeded, False otherwise.
     """
-    msg = '  Connecting to host <%s> with user <%s>...'
+    msg = '  Connecting to host <%s> with user <%s>...\n'
     sys.stdout.write(msg % (host, user))
     try:
         xnat = Interface(host, user, pwd)
         # try deleting SESSION connection
         xnat._exec('/data/JSESSION', method='DELETE')
-        print ' --> Good login.'
+        print '   --> Good login.'
         return True
     except DatabaseError:
-        print ' --> error: Wrong login.'
+        print '   --> error: Wrong login.'
         return False
 
 
@@ -124,7 +124,7 @@ def check_settings(dax_netrc, host):
             if not host:
                 print 'You need to provide a value.'
 
-    if no_host_saved or not netrc.has_host(host):
+    if no_host_saved or not dax_netrc.has_host(host):
         host_unknown = True
 
     if host_unknown:
@@ -137,7 +137,7 @@ def check_settings(dax_netrc, host):
             return
     else:
         print 'Logins found for <%s>. Checking connection ...' % host
-        user, pwd = dax_netrc.get_host(host)
+        user, pwd = dax_netrc.get_login(host)
         test_connection_xnat(host, user, pwd)
 
 
