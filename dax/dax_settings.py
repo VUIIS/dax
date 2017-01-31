@@ -2,16 +2,26 @@
 
 import os
 import sys
+import stat
+import netrc
 import ConfigParser
 from string import Template
 from importlib import import_module
 from collections import OrderedDict
+from dax.errors import DaxNetrcError
+
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__all__ = ["DAX_Netrc", "DAX_Settings", "DEFAULT_DATATYPE",
+           "DEFAULT_FS_DATATYPE"]
 
 DEFAULT_TEMPLATE = Template("""echo """)
 FILES_OPTIONS = ['cmd_count_nb_jobs', 'cmd_get_job_status',
                  'cmd_get_job_memory', 'cmd_get_job_walltime',
                  'cmd_get_job_node', 'job_template']
-
+# Assessor datatypes
+DEFAULT_FS_DATATYPE = 'fs:fsData'
+DEFAULT_DATATYPE = 'proc:genProcData'
 DAX_MANAGER_DEFAULTS = OrderedDict([
     ('api_url', ''),
     ('api_key_dax', ''),
@@ -37,6 +47,59 @@ DAX_MANAGER_DEFAULTS = OrderedDict([
     ('dax_launch_pid', 'dax_launch_pid'),
     ('max_age', 'dax_max_age'),
     ('admin_email', 'dax_email_address')])
+
+
+class DAX_Netrc(object):
+    """Class for DAX NETRC file containing the information about XNAT logins.
+    """
+    def __init__(self):
+        self.netrc_file = os.path.join(os.path.expanduser('~'), '.daxnetrc')
+        if not os.path.exists(self.netrc_file):
+            open(self.netrc_file, 'a').close()
+            # Setting mode for the file:
+            os.chmod(self.netrc_file, stat.S_IWUSR | stat.S_IRUSR)
+        self.is_secured()
+        self.netrc_obj = netrc.netrc(self.netrc_file)
+
+    def is_secured(self):
+        """ Check if file is secure."""
+        st = os.stat(self.netrc_file)
+        grp_access = bool(st.st_mode & stat.S_IRWXG)
+        other_access = bool(st.st_mode & stat.S_IRWXO)
+        if grp_access or other_access:
+            msg = 'Wrong permission on %s file. Only you should have read and \
+write access.'
+            raise DaxNetrcError(msg % self.netrc_file)
+
+    def is_empty(self):
+        """ Return True if no host stored."""
+        return len(self.netrc_obj.hosts.keys()) == 0
+
+    def has_host(self, host):
+        """ Return True if host present."""
+        return host in self.netrc_obj.hosts.keys()
+
+    def add_host(self, host, user, pwd):
+        """ Adding host to daxnetrc file."""
+        netrc_template = """machine {host}
+                login {user}
+                password {pwd}
+        """
+        with open(self.netrc_file, "a") as f_netrc:
+            lines = netrc_template.format(host=host, user=user, pwd=pwd)
+            f_netrc.writelines(lines)
+
+    def get_hosts(self):
+        """ Rerutn list of hosts from netrc file."""
+        return self.netrc_obj.hosts.keys()
+
+    def get_login(self, host):
+        """ Getting login for an host from daxnetrc file."""
+        netrc_info = self.netrc_obj.authenticators(host)
+        if not netrc_info:
+            raise DaxNetrcError('Host <%s> not found in %s file. \
+Please run dax_setup or XnatCheckLogin to add host.' % (self.netrc_file, host))
+        return netrc_info[0], netrc_info[2]
 
 
 class DAX_Settings(object):
@@ -150,7 +213,7 @@ class DAX_Settings(object):
                 return False
         else:
             return False
-            
+
         return True
 
     def get(self, header, key):
@@ -497,7 +560,7 @@ class DAX_Settings(object):
         if resultsdir is None:
             resultsdir = '/tmp'
         if resultsdir.startswith('~'):
-            return os.path.join(os.path.expanduser('~'),resultsdir[2:])
+            return os.path.join(os.path.expanduser('~'), resultsdir[2:])
         else:
             return resultsdir
 
@@ -507,19 +570,20 @@ class DAX_Settings(object):
         :return: int of the max_age value, None if empty
         """
         return int(self.get('cluster', 'max_age'))
-        
+
     def get_skip_lastupdate(self):
         """Get the skip_lastupdate value from the cluster section.
 
         :return: skip_lastupdate value
         """
         return self.get('cluster', 'skip_lastupdate')
-    
+
     def get_launcher_type(self):
         """
         Get the launcher type from the cluster
 
-        :return: String of the launcher type: xnatq-combined, diskq-xnat, diskq-cluster
+        :return: String of the launcher type: xnatq-combined, diskq-xnat,
+                 diskq-cluster
 
         """
         return self.get('cluster', 'launcher_type')
