@@ -130,7 +130,7 @@ class Task(object):
             if atype == DEFAULT_DATATYPE.lower():
                 assessor.attrs.mset(
                     {'%s/proctype' % atype: self.get_processor_name(),
-                     '%s//procversion' % atype: self.get_processor_version()})
+                     '%s/procversion' % atype: self.get_processor_version()})
 
             self.set_proc_and_qc_status(NEED_INPUTS, JOB_PENDING)
 
