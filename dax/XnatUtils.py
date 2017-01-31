@@ -1,5 +1,7 @@
-""" XnatUtils contains useful function to interface with XNAT using Pyxnat module
-The functions are divided into 4 categories:
+""" XnatUtils contains useful function to interface with XNAT using Pyxnat.
+
+The functions are several categories:
+
 1) Class Specific to XNAT and Spiders:
 InterfaceTemp to create an interface with XNAT using a tempfolder
 AssessorHandler to handle assessor label string and access object
@@ -37,63 +39,114 @@ import random
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 import time
 import xlrd
 import xml.etree.cElementTree as ET
 import zipfile
 import task
-from dax_settings import DAX_Settings
+
+from dax.errors import (XnatUtilsError, XnatAccessError,
+                        XnatAuthentificationError)
+from dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
+                          DEFAULT_FS_DATATYPE)
 
 
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__all__ = ["InterfaceTemp", "AssessorHandler", "SpiderProcessHandler",
+           "CachedImageSession", "CachedImageScan", "CachedImageAssessor",
+           "CachedResource"]
 DAX_SETTINGS = DAX_Settings()
 NS = {'xnat': 'http://nrg.wustl.edu/xnat',
       'proc': 'http://nrg.wustl.edu/proc',
       'fs': 'http://nrg.wustl.edu/fs',
       'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
 
-# Assessor datatypes
-DEFAULT_FS_DATATYPE = 'fs:fsData'
-DEFAULT_DATATYPE = 'proc:genProcData'
+# Select XNAT Path
+P_XPATH = '/project/{project}'
+S_XPATH = '%s/subject/{subject}' % P_XPATH
+E_XPATH = '%s/experiment/{session}' % S_XPATH
+C_XPATH = '%s/scan/{scan}' % E_XPATH
+A_XPATH = '%s/assessor/{assessor}' % E_XPATH
+R_XPATH = '{xpath}/resource/{resource}'
+AR_XPATH = '%s/out/resource/{resource}' % A_XPATH
 
-# URI
-PROJECTS_URI     = '/REST/projects'
-PROJECT_URI      = '/REST/projects/{project}'
-P_RESOURCES_URI  = '/REST/projects/{project}/resources'
-P_RESOURCE_URI   = '/REST/projects/{project}/resources/{resource}'
-ALL_SUBJ_URI     = '/REST/subjects'
-SUBJECTS_URI     = '/REST/projects/{project}/subjects'
-SUBJECT_URI      = '/REST/projects/{project}/subjects/{subject}'
-SU_RESOURCES_URI = '/REST/projects/{project}/subjects/{subject}/resources'
-SU_RESOURCE_URI  = '/REST/projects/{project}/subjects/{subject}/resources/{resource}'
-SE_ARCHIVE_URI   = '/REST/archive/experiments'
-ALL_SESS_URI     = '/REST/experiments'
-ALL_SESS_PROJ_URI= '/REST/projects/{project}/experiments'
-SESSIONS_URI     = '/REST/projects/{project}/subjects/{subject}/experiments'
-SESSION_URI      = '/REST/projects/{project}/subjects/{subject}/experiments/{session}'
-SE_RESOURCES_URI = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/resources'
-SE_RESOURCE_URI  = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/resources/{resource}'
-SCANS_URI        = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/scans'
-SCAN_URI         = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/scans/{scan}'
-SC_RESOURCES_URI = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/scans/{scan}/resources'
-SC_RESOURCE_URI  = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/scans/{scan}/resources/{resource}'
-ASSESSORS_URI    = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/assessors'
-ASSESSOR_URI     = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/assessors/{assessor}'
-A_RESOURCES_URI  = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/assessors/{assessor}/out/resources'
-A_RESOURCE_URI   = '/REST/projects/{project}/subjects/{subject}/experiments/{session}/assessors/{assessor}/out/resources/{resource}'
+# REST URI for XNAT
+PROJECTS_URI = '/REST/projects'
+PROJECT_URI = '%s/{project}' % PROJECTS_URI
+P_RESOURCES_URI = '%s/resources' % PROJECT_URI
+P_RESOURCE_URI = '%s/{resource}' % P_RESOURCES_URI
+ALL_SUBJ_URI = '/REST/subjects'
+SUBJECTS_URI = '%s/subjects' % PROJECT_URI
+SUBJECT_URI = '%s/{subject}' % SUBJECTS_URI
+SU_RESOURCES_URI = '%s/resources' % SUBJECT_URI
+SU_RESOURCE_URI = '%s/{resource}' % SU_RESOURCES_URI
+SE_ARCHIVE_URI = '/REST/archive/experiments'
+ALL_SESS_URI = '/REST/experiments'
+ALL_SESS_PROJ_URI = '%s/experiments' % PROJECT_URI
+SESSIONS_URI = '%s/experiments' % SUBJECT_URI
+SESSION_URI = '%s/{session}' % SESSIONS_URI
+SE_RESOURCES_URI = '%s/resources' % SESSION_URI
+SE_RESOURCE_URI = '%s/{resource}' % SE_RESOURCES_URI
+SCANS_URI = '%s/scans' % SESSION_URI
+SCAN_URI = '%s/{scan}' % SCANS_URI
+SC_RESOURCES_URI = '%s/resources' % SCAN_URI
+SC_RESOURCE_URI = '%s/{resource}' % SC_RESOURCES_URI
+ASSESSORS_URI = '%s/assessors' % SESSION_URI
+ASSESSOR_URI = '%s/{assessor}' % ASSESSORS_URI
+A_RESOURCES_URI = '%s/out/resources' % ASSESSOR_URI
+A_RESOURCE_URI = '%s/{resource}' % A_RESOURCES_URI
 
-# List post URI variables:
-SUBJECT_POST_URI = '''?columns=ID,project,label,URI,last_modified,src,handedness,gender,yob,dob'''
-SESSION_POST_URI = '''?xsiType={stype}&columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,{stype}/age,label,{stype}/meta/last_modified,{stype}/original'''
-NO_MOD_SESSION_POST_URI = '''?xsiType={stype}&columns=ID,URI,subject_label,subject_ID,project,date,xsiType,{stype}/age,label,{stype}/meta/last_modified,{stype}/original'''
-SCAN_POST_URI = '''?columns=ID,URI,label,subject_label,project,xnat:imagesessiondata/scans/scan/id,xnat:imagesessiondata/scans/scan/type,xnat:imagesessiondata/scans/scan/quality,xnat:imagesessiondata/scans/scan/note,xnat:imagesessiondata/scans/scan/frames,xnat:imagesessiondata/scans/scan/series_description,xnat:imagesessiondata/subject_id'''
-SCAN_PROJ_POST_URI = '''?project={project}&xsiType=xnat:imageSessionData&columns=ID,URI,label,subject_label,project,xnat:imagesessiondata/subject_id,xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,xnat:imagescandata/note,xnat:imagescandata/frames,xnat:imagescandata/series_description,xnat:imagescandata/file/label'''
-SCAN_PROJ_INCLUDED_POST_URI = '''?xnat:imagesessiondata/sharing/share/project={project}&xsiType=xnat:imageSessionData&columns=ID,URI,label,subject_label,project,xnat:imagesessiondata/subject_id,xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,xnat:imagescandata/note,xnat:imagescandata/frames,xnat:imagescandata/series_description,xnat:imagescandata/file/label'''
-ASSESSOR_FS_POST_URI = '''?columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,URI,{fstype}/procstatus,{fstype}/validation/status&xsiType={fstype}'''
-ASSESSOR_PR_POST_URI = '''?columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,{pstype}/procstatus,{pstype}/proctype,{pstype}/validation/status&xsiType={pstype}'''
-ASSESSOR_FS_PROJ_POST_URI = '''?project={project}&xsiType={fstype}&columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,subject_label,xnat:imagesessiondata/id,xnat:imagesessiondata/label,URI,{fstype}/procstatus,{fstype}/validation/status,{fstype}/procversion,{fstype}/jobstartdate,{fstype}/memused,{fstype}/walltimeused,{fstype}/jobid,{fstype}/jobnode,{fstype}/out/file/label'''
-ASSESSOR_PR_PROJ_POST_URI = '''?project={project}&xsiType={pstype}&columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,{pstype}/procstatus,{pstype}/proctype,{pstype}/validation/status,{pstype}/procversion,{pstype}/jobstartdate,{pstype}/memused,{pstype}/walltimeused,{pstype}/jobid,{pstype}/jobnode,{pstype}/out/file/label'''
+# List post URI variables for XNAT:
+SUBJECT_POST_URI = '''?columns=ID,project,label,URI,last_modified,src,\
+handedness,gender,yob,dob'''
+SESSION_POST_URI = '''?xsiType={stype}&columns=ID,URI,subject_label,subject_ID\
+,modality,project,date,xsiType,{stype}/age,label,{stype}/meta/last_modified\
+,{stype}/original'''
+NO_MOD_SESSION_POST_URI = '''?xsiType={stype}&columns=ID,URI,subject_label,\
+subject_ID,project,date,xsiType,{stype}/age,label,{stype}/meta/last_modified,\
+{stype}/original'''
+SCAN_POST_URI = '''?columns=ID,URI,label,subject_label,project,\
+xnat:imagesessiondata/scans/scan/id,\
+xnat:imagesessiondata/scans/scan/type,\
+xnat:imagesessiondata/scans/scan/quality,\
+xnat:imagesessiondata/scans/scan/note,\
+xnat:imagesessiondata/scans/scan/frames,\
+xnat:imagesessiondata/scans/scan/series_description,\
+xnat:imagesessiondata/subject_id'''
+SCAN_PROJ_POST_URI = '''?project={project}&xsiType=xnat:imageSessionData&\
+columns=ID,URI,label,subject_label,project,xnat:imagesessiondata/subject_id,\
+xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,\
+xnat:imagescandata/note,xnat:imagescandata/frames,\
+xnat:imagescandata/series_description,xnat:imagescandata/file/label'''
+SCAN_PROJ_INCLUDED_POST_URI = '''?xnat:imagesessiondata/sharing/share/\
+project={project}&xsiType=xnat:imageSessionData&columns=ID,URI,label,\
+subject_label,project,xnat:imagesessiondata/subject_id,xnat:imagescandata/id,\
+xnat:imagescandata/type,xnat:imagescandata/quality,xnat:imagescandata/note,\
+xnat:imagescandata/frames,xnat:imagescandata/series_description,\
+xnat:imagescandata/file/label'''
+ASSESSOR_FS_POST_URI = '''?columns=ID,label,URI,xsiType,project,\
+xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,\
+xnat:imagesessiondata/label,URI,{fstype}/procstatus,\
+{fstype}/validation/status&xsiType={fstype}'''
+ASSESSOR_PR_POST_URI = '''?columns=ID,label,URI,xsiType,project,\
+xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,\
+xnat:imagesessiondata/label,{pstype}/procstatus,{pstype}/proctype,\
+{pstype}/validation/status&xsiType={pstype}'''
+ASSESSOR_FS_PROJ_POST_URI = '''?project={project}&xsiType={fstype}&columns=ID,\
+label,URI,xsiType,project,xnat:imagesessiondata/subject_id,subject_label,\
+xnat:imagesessiondata/id,xnat:imagesessiondata/label,URI,{fstype}/procstatus,\
+{fstype}/validation/status,{fstype}/procversion,{fstype}/jobstartdate,\
+{fstype}/memused,{fstype}/walltimeused,{fstype}/jobid,{fstype}/jobnode,\
+{fstype}/out/file/label'''
+ASSESSOR_PR_PROJ_POST_URI = '''?project={project}&xsiType={pstype}&columns=ID,\
+label,URI,xsiType,project,xnat:imagesessiondata/subject_id,\
+xnat:imagesessiondata/id,xnat:imagesessiondata/label,{pstype}/procstatus,\
+{pstype}/proctype,{pstype}/validation/status,{pstype}/procversion,\
+{pstype}/jobstartdate,{pstype}/memused,{pstype}/walltimeused,\
+{pstype}/jobid,{pstype}/jobnode,{pstype}/out/file/label'''
+EXPERIMENT_POST_URI = '''?columns=ID,URI,subject_label,subject_ID,modality,\
+project,date,xsiType,label,xnat:subjectdata/meta/last_modified'''
 
 
 ###############################################################################
@@ -104,6 +157,8 @@ class InterfaceTemp(Interface):
     Extends the pyxnat.Interface class to make a temporary directory, write the
      cache to it and then blow it away on the Interface.disconnect call()
      NOTE: This is deprecated in pyxnat 1.0.0.0
+
+    Using netrc to get username password if not given.
     """
     def __init__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
                  temp_dir=None):
@@ -116,42 +171,32 @@ class InterfaceTemp(Interface):
         :return: None
 
         """
+        # Host
         self.host = xnat_host
         self.user = xnat_user
         self.pwd = xnat_pass
-        if not xnat_user:
-            self.user = os.environ['XNAT_USER']
-        if not xnat_pass:
-            self.pwd = os.environ['XNAT_PASS']
         if not xnat_host:
             self.host = os.environ['XNAT_HOST']
+        # User:
+        if not self.user:
+            netrc_obj = DAX_Netrc()
+            self.user, self.pwd = netrc_obj.get_login(self.host)
+        else:
+            if not self.pwd:
+                msg = 'Please provide password for host and user <%s>: '
+                self.pwd = raw_input(msg % (self.host, self.user))
+
         if not temp_dir:
             temp_dir = tempfile.mkdtemp()
         if not os.path.exists(temp_dir):
             os.mkdir(temp_dir)
         self.temp_dir = temp_dir
-        self.connect()
         self.authenticate()
 
     def __enter__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
                   temp_dir=None):
         """Enter method for with statement."""
-        self.host = xnat_host
-        self.user = xnat_user
-        self.pwd = xnat_pass
-        if not xnat_user:
-            self.user = os.environ['XNAT_USER']
-        if not xnat_pass:
-            self.pwd = os.environ['XNAT_PASS']
-        if not xnat_host:
-            self.host = os.environ['XNAT_HOST']
-        if not temp_dir:
-            temp_dir = tempfile.mkdtemp()
-        if not os.path.exists(temp_dir):
-            os.mkdir(temp_dir)
-        self.temp_dir = temp_dir
-        self.connect()
-        self.authenticate()
+        self.__init__(xnat_host, xnat_user, xnat_pass, temp_dir)
 
     def __exit__(self, type, value, traceback):
         """Exit method for with statement."""
@@ -173,13 +218,14 @@ class InterfaceTemp(Interface):
         shutil.rmtree(self.temp_dir)
 
     def authenticate(self):
-        """Check the authentification.
+        """Authenticate to XNAT.
 
-        Try to Disconnect the JSESSION and connect again.
+        Connect to XNAT and try to Disconnect the JSESSION before reconnecting.
         Raise XnatAuthentificationError if it failes.
 
         :return: True or False
         """
+        self.connect()
         try:
             self._exec('/data/JSESSION', method='DELETE')
             # Reconnect the JSession for XNAT
@@ -188,29 +234,6 @@ class InterfaceTemp(Interface):
         except DatabaseError as e:
             print e
             raise XnatAuthentificationError(self.host, self.user)
-
-
-class XnatAuthentificationError(Exception):
-    """Custom exception raised when xnat connection failed."""
-    def __init__(self, host=None, user=None):
-        msg = 'ERROR: XNAT Authentification failed. Check logins.'
-        if host:
-            msg = '%s. Host: %s' % (msg, host)
-            if user:
-                msg = '%s / User: %s' % (msg, user)
-        Exception.__init__(self, msg)
-
-
-class XnatUtilsError(Exception):
-    """XnatUtils exception."""
-    def __init__(self, message):
-        Exception.__init__(self, 'Error in XnatUtils: %s' % message)
-
-
-class XnatAccessError(Exception):
-    """XNAT access exception if item does not exist."""
-    def __init__(self, message):
-        Exception.__init__(self, 'Error to access XNAT object: %s' % message)
 
 
 class AssessorHandler:
@@ -232,11 +255,20 @@ class AssessorHandler:
         self.is_session_assessor = False
         self.is_scan_assessor = False
         if len(re.findall('-x-', label)) == 3:
-            self.project_id, self.subject_label, self.session_label, self.proctype = label.split('-x-')
+            labels = label.split('-x-')
+            self.project_id = labels[0]
+            self.subject_label = labels[1]
+            self.session_label = labels[2]
+            self.proctype = labels[3]
             self.scan_id = None
             self.is_session_assessor = True
         elif len(re.findall('-x-', label)) == 4:
-            self.project_id, self.subject_label, self.session_label, self.scan_id, self.proctype = label.split('-x-')
+            labels = label.split('-x-')
+            self.project_id = labels[0]
+            self.subject_label = labels[1]
+            self.session_label = labels[2]
+            self.scan_id = labels[3]
+            self.proctype = labels[4]
             self.is_scan_assessor = True
         else:
             self.assessor_label = None
@@ -302,10 +334,11 @@ class AssessorHandler:
         :return: The pyxnat EObject of the assessor
 
         """
-        tp = '/project/%s/subject/%s/experiment/%s/assessor/%S'
-        string_obj = tp % (self.project_id, self.subject_label,
-                           self.session_label, self.assessor_label)
-        return intf.select(string_obj)
+        xpath = A_XPATH.format(project=self.project_id,
+                               subject=self.subject_label,
+                               session=self.subject_label,
+                               assessor=self.assessor_label)
+        return intf.select(xpath)
 
 
 class SpiderProcessHandler:
@@ -350,17 +383,18 @@ class SpiderProcessHandler:
             script_name = script_name[7:]
 
         # get the processname from spider
-        if len(re.split("/*_v[0-9]/*", script_name)) > 1:
-            self.version = script_name.split('_v')[-1].replace('_', '.')
-            proctype = re.split(
-                "/*_v[0-9]/*", script_name)[0]+'_v'+self.version.split('.')[0]
+        if len(re.split('/*_v[0-9]/*', script_name)) > 1:
+            self.version = script_name.split('_v')[-1].replace('_', '.')\
+                                                      .split('.')
+            ptype = re.split('/*_v[0-9]/*', script_name)[0]
+            proctype = '%s_v%s' % (ptype, self.version[0])
         else:
             self.version = '1.0.0'
             proctype = script_name
 
         if suffix:
             if suffix[0] != '_':
-                suffix = '_'+suffix
+                suffix = '_%s' % suffix
             suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
             if suffix[-1] == '_':
                 suffix = suffix[:-1]
@@ -425,7 +459,7 @@ Wrong label.'
         if self.time_writer:
             self.time_writer.print_stderr_message(msg)
         else:
-            print "Error: "+msg
+            print "Error: %s" % msg
 
     def set_error(self):
         """
@@ -489,7 +523,7 @@ Wrong label.'
         if self.file_exists(filepath):
             # Check if it's a ps:
             if filepath.lower().endswith('.ps'):
-                pdf_path = os.path.splitext(filepath)[0]+'.pdf'
+                pdf_path = '%s.pdf' % os.path.splitext(filepath)[0]
                 ps2pdf_cmd = 'ps2pdf %s %s' % (filepath, pdf_path)
                 self.print_msg('  -Convertion %s ...' % ps2pdf_cmd)
                 os.system(ps2pdf_cmd)
@@ -603,8 +637,9 @@ Wrong label.'
             self.print_msg('INFO: Job ready to be upload, error: %s'
                            % str(self.error))
             # make the flag folder
-            open(os.path.join(self.directory,
-                              task.READY_TO_UPLOAD+'.txt'), 'w').close()
+            fname = '%s.txt' % task.READY_TO_UPLOAD
+            flag_file = os.path.join(self.directory, fname)
+            open(flag_file, 'w').close()
             if DAX_SETTINGS.get_launcher_type() == 'xnatq-combined':
                 # set status on XNAT to ReadyToUpload
                 self.set_assessor_status(task.READY_TO_UPLOAD)
@@ -612,8 +647,9 @@ Wrong label.'
             self.print_msg('INFO: Job failed, check the outlogs, error: %s'
                            % str(self.error))
             # make the flag folder
-            open(os.path.join(self.directory,
-                              task.JOB_FAILED+'.txt'), 'w').close()
+            fname = '%s.txt' % task.JOB_FAILED
+            flag_file = os.path.join(self.directory, fname)
+            open(flag_file, 'w').close()
             if DAX_SETTINGS.get_launcher_type() == 'xnatq-combined':
                 # set status on XNAT to JOB_FAILED
                 self.set_assessor_status(task.JOB_FAILED)
@@ -634,8 +670,7 @@ Wrong label.'
 ###############################################################################
 def get_interface(host=None, user=None, pwd=None):
     """
-    Opens a connection to XNAT using XNAT_USER, XNAT_PASS, and XNAT_HOST from
-     env if host/user/pwd are None.
+    Opens a connection to XNAT.
 
     :param host: URL to connect to XNAT
     :param user: XNAT username
@@ -643,13 +678,6 @@ def get_interface(host=None, user=None, pwd=None):
     :return: InterfaceTemp object which extends functionaly of pyxnat.Interface
 
     """
-    if user is None:
-        user = os.environ['XNAT_USER']
-    if pwd is None:
-        pwd = os.environ['XNAT_PASS']
-    if host is None:
-        host = os.environ['XNAT_HOST']
-    # Don't sys.exit, let callers catch KeyErrors
     return InterfaceTemp(host, user, pwd)
 
 
@@ -752,7 +780,7 @@ def list_sessions(intf, projectid=None, subjectid=None):
         return None
 
     # First get a list of all experiment types
-    post_uri_types = post_uri+'?columns=xsiType'
+    post_uri_types = '%s?columns=xsiType' % post_uri
     sess_list = intf._get_json(post_uri_types)
     for sess in sess_list:
         sess_type = sess['xsiType'].lower()
@@ -784,14 +812,19 @@ def list_sessions(intf, projectid=None, subjectid=None):
             sess['session_id'] = sess['ID']
             sess['session_label'] = sess['label']
             if sess_type.startswith('xnat:') and 'session' in sess_type:
-                sess['session_type'] = sess_type.split('xnat:')[1].split('session')[0].upper()
-                sess['type'] = sess_type.split('xnat:')[1].split('session')[0].upper()
+                sess['session_type'] = sess_type.split('xnat:')[1]\
+                                                .split('session')[0]\
+                                                .upper()
+                sess['type'] = sess_type.split('xnat:')[1]\
+                                        .split('session')[0]\
+                                        .upper()
             else:
                 sess['session_type'] = sess_type
                 sess['type'] = sess_type
-            sess['last_modified'] = sess.get(sess_type+'/meta/last_modified', None)
-            sess['last_updated'] = sess.get(sess_type+'/original', None)
-            sess['age'] = sess.get(sess_type+'/age', None)
+            last_modified_str = '%s/meta/last_modified' % sess_type
+            sess['last_modified'] = sess.get(last_modified_str, None)
+            sess['last_updated'] = sess.get('%s/original' % sess_type, None)
+            sess['age'] = sess.get('%s/age' % sess_type, None)
             sess['handedness'] = subj_id2lab[sess['subject_ID']][0]
             sess['gender'] = subj_id2lab[sess['subject_ID']][1]
             sess['yob'] = subj_id2lab[sess['subject_ID']][2]
@@ -841,20 +874,21 @@ def list_scans(intf, projectid, subjectid, sessionid):
     for scan in scan_list:
         if scan['ID'] == sessionid or scan['label'] == sessionid:
             snew = {}
-            snew['scan_id'] = scan['xnat:imagesessiondata/scans/scan/id']
-            snew['scan_label'] = scan['xnat:imagesessiondata/scans/scan/id']
-            snew['scan_quality'] = scan['xnat:imagesessiondata/scans/scan/quality']
-            snew['scan_note'] = scan['xnat:imagesessiondata/scans/scan/note']
-            snew['scan_frames'] = scan['xnat:imagesessiondata/scans/scan/frames']
-            snew['scan_description'] = scan['xnat:imagesessiondata/scans/scan/series_description']
-            snew['scan_type'] = scan['xnat:imagesessiondata/scans/scan/type']
-            snew['ID'] = scan['xnat:imagesessiondata/scans/scan/id']
-            snew['label'] = scan['xnat:imagesessiondata/scans/scan/id']
-            snew['quality'] = scan['xnat:imagesessiondata/scans/scan/quality']
-            snew['note'] = scan['xnat:imagesessiondata/scans/scan/note']
-            snew['frames'] = scan['xnat:imagesessiondata/scans/scan/frames']
-            snew['series_description'] = scan['xnat:imagesessiondata/scans/scan/series_description']
-            snew['type'] = scan['xnat:imagesessiondata/scans/scan/type']
+            pfix = 'xnat:imagesessiondata/scans/scan'
+            snew['scan_id'] = scan['%s/id' % pfix]
+            snew['scan_label'] = scan['%s/id' % pfix]
+            snew['scan_quality'] = scan['%s/quality' % pfix]
+            snew['scan_note'] = scan['%s/note' % pfix]
+            snew['scan_frames'] = scan['%s/frames' % pfix]
+            snew['scan_description'] = scan['%s/series_description' % pfix]
+            snew['scan_type'] = scan['%s/type' % pfix]
+            snew['ID'] = scan['%s/id' % pfix]
+            snew['label'] = scan['%s/id' % pfix]
+            snew['quality'] = scan['%s/quality' % pfix]
+            snew['note'] = scan['%s/note' % pfix]
+            snew['frames'] = scan['%s/frames' % pfix]
+            snew['series_description'] = scan['%s/series_description' % pfix]
+            snew['type'] = scan['%s/type' % pfix]
             snew['project_id'] = projectid
             snew['project_label'] = projectid
             snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
@@ -889,31 +923,35 @@ def list_project_scans(intf, projectid, include_shared=True):
     post_uri += SCAN_PROJ_POST_URI.format(project=projectid)
     scan_list = intf._get_json(post_uri)
 
+    pfix = 'xnat:imagescandata'
     for scan in scan_list:
-        key = scan['ID']+'-x-'+scan['xnat:imagescandata/id']
+        key = '%s-x-%s' % (scan['ID'], scan['%s/id' % pfix])
         if scans_dict.get(key):
-            scans_dict[key]['resources'].append(scan['xnat:imagescandata/file/label'])
+            res = '%s/file/label' % pfix
+            scans_dict[key]['resources'].append(scan[res])
         else:
             snew = {}
-            snew['scan_id'] = scan['xnat:imagescandata/id']
-            snew['scan_label'] = scan['xnat:imagescandata/id']
-            snew['scan_quality'] = scan['xnat:imagescandata/quality']
-            snew['scan_note'] = scan['xnat:imagescandata/note']
-            snew['scan_frames'] = scan['xnat:imagescandata/frames']
-            snew['scan_description'] = scan['xnat:imagescandata/series_description']
-            snew['scan_type'] = scan['xnat:imagescandata/type']
-            snew['ID'] = scan['xnat:imagescandata/id']
-            snew['label'] = scan['xnat:imagescandata/id']
-            snew['quality'] = scan['xnat:imagescandata/quality']
-            snew['note'] = scan['xnat:imagescandata/note']
-            snew['frames'] = scan['xnat:imagescandata/frames']
-            snew['series_description'] = scan['xnat:imagescandata/series_description']
-            snew['type'] = scan['xnat:imagescandata/type']
+            snew['scan_id'] = scan['%s/id' % pfix]
+            snew['scan_label'] = scan['%s/id' % pfix]
+            snew['scan_quality'] = scan['%s/quality' % pfix]
+            snew['scan_note'] = scan['%s/note' % pfix]
+            snew['scan_frames'] = scan['%s/frames' % pfix]
+            snew['scan_description'] = scan['%s/series_description' % pfix]
+            snew['scan_type'] = scan['%s/type' % pfix]
+            snew['ID'] = scan['%s/id' % pfix]
+            snew['label'] = scan['%s/id' % pfix]
+            snew['quality'] = scan['%s/quality' % pfix]
+            snew['note'] = scan['%s/note' % pfix]
+            snew['frames'] = scan['%s/frames' % pfix]
+            snew['series_description'] = scan['%s/series_description' % pfix]
+            snew['type'] = scan['%s/type' % pfix]
             snew['project_id'] = projectid
             snew['project_label'] = projectid
             snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
             snew['subject_label'] = scan['subject_label']
-            snew['session_type'] = scan['xsiType'].split('xnat:')[1].split('Session')[0].upper()
+            snew['session_type'] = scan['xsiType'].split('xnat:')[1]\
+                                                  .split('Session')[0]\
+                                                  .upper()
             snew['session_id'] = scan['ID']
             snew['session_label'] = scan['label']
             snew['session_uri'] = scan['URI']
@@ -923,7 +961,7 @@ def list_project_scans(intf, projectid, include_shared=True):
             snew['age'] = sess_id2mod[scan['ID']][3]
             snew['last_modified'] = sess_id2mod[scan['ID']][4]
             snew['last_updated'] = sess_id2mod[scan['ID']][5]
-            snew['resources'] = [scan['xnat:imagescandata/file/label']]
+            snew['resources'] = [scan['%s/file/label' % pfix]]
             # make a dictionary of dictionaries
             scans_dict[key] = (snew)
 
@@ -933,30 +971,34 @@ def list_project_scans(intf, projectid, include_shared=True):
         scan_list = intf._get_json(post_uri)
 
         for scan in scan_list:
-            key = scan['ID']+'-x-'+scan['xnat:imagescandata/id']
+            key = '%s-x-%s' % (scan['ID'], scan['%s/id' % pfix])
             if scans_dict.get(key):
-                scans_dict[key]['resources'].append(scan['xnat:imagescandata/file/label'])
+                res = '%s/file/label' % pfix
+                scans_dict[key]['resources'].append(scan[res])
             else:
                 snew = {}
-                snew['scan_id'] = scan['xnat:imagescandata/id']
-                snew['scan_label'] = scan['xnat:imagescandata/id']
-                snew['scan_quality'] = scan['xnat:imagescandata/quality']
-                snew['scan_note'] = scan['xnat:imagescandata/note']
-                snew['scan_frames'] = scan['xnat:imagescandata/frames']
-                snew['scan_description'] = scan['xnat:imagescandata/series_description']
-                snew['scan_type'] = scan['xnat:imagescandata/type']
-                snew['ID'] = scan['xnat:imagescandata/id']
-                snew['label'] = scan['xnat:imagescandata/id']
-                snew['quality'] = scan['xnat:imagescandata/quality']
-                snew['note'] = scan['xnat:imagescandata/note']
-                snew['frames'] = scan['xnat:imagescandata/frames']
-                snew['series_description'] = scan['xnat:imagescandata/series_description']
-                snew['type'] = scan['xnat:imagescandata/type']
+                snew['scan_id'] = scan['%s/id' % pfix]
+                snew['scan_label'] = scan['%s/id' % pfix]
+                snew['scan_quality'] = scan['%s/quality' % pfix]
+                snew['scan_note'] = scan['%s/note' % pfix]
+                snew['scan_frames'] = scan['%s/frames' % pfix]
+                snew['scan_description'] = scan['%s/series_description' % pfix]
+                snew['scan_type'] = scan['%s/type' % pfix]
+                snew['ID'] = scan['%s/id' % pfix]
+                snew['label'] = scan['%s/id' % pfix]
+                snew['quality'] = scan['%s/quality' % pfix]
+                snew['note'] = scan['%s/note' % pfix]
+                snew['frames'] = scan['%s/frames' % pfix]
+                snew['series_description'] = scan['%s/series_description'
+                                                  % pfix]
+                snew['type'] = scan['%s/type' % pfix]
                 snew['project_id'] = projectid
                 snew['project_label'] = projectid
                 snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
                 snew['subject_label'] = scan['subject_label']
-                snew['session_type'] = scan['xsiType'].split('xnat:')[1].split('Session')[0].upper()
+                snew['session_type'] = scan['xsiType'].split('xnat:')[1]\
+                                                      .split('Session')[0]\
+                                                      .upper()
                 snew['session_id'] = scan['ID']
                 snew['session_label'] = scan['label']
                 snew['session_uri'] = scan['URI']
@@ -966,7 +1008,7 @@ def list_project_scans(intf, projectid, include_shared=True):
                 snew['age'] = sess_id2mod[scan['ID']][3]
                 snew['last_modified'] = sess_id2mod[scan['ID']][4]
                 snew['last_updated'] = sess_id2mod[scan['ID']][5]
-                snew['resources'] = [scan['xnat:imagescandata/file/label']]
+                snew['resources'] = [scan['%s/file/label' % pfix]]
                 # make a dictionary of dictionaries
                 scans_dict[key] = (snew)
 
@@ -1015,6 +1057,7 @@ def list_assessors(intf, projectid, subjectid, sessionid):
         post_uri += ASSESSOR_FS_POST_URI.format(fstype=DEFAULT_FS_DATATYPE)
         assessor_list = intf._get_json(post_uri)
 
+        pfix = DEFAULT_FS_DATATYPE.lower()
         for asse in assessor_list:
             anew = {}
             anew['ID'] = asse['ID']
@@ -1028,8 +1071,8 @@ def list_assessors(intf, projectid, subjectid, sessionid):
             anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
             anew['session_id'] = asse['session_ID']
             anew['session_label'] = asse['session_label']
-            anew['procstatus'] = asse['fs:fsdata/procstatus']
-            anew['qcstatus'] = asse['fs:fsdata/validation/status']
+            anew['procstatus'] = asse['%s/procstatus' % pfix]
+            anew['qcstatus'] = asse['%s/validation/status' % pfix]
             anew['proctype'] = 'FreeSurfer'
             anew['xsiType'] = asse['xsiType']
             new_list.append(anew)
@@ -1042,6 +1085,7 @@ def list_assessors(intf, projectid, subjectid, sessionid):
         post_uri += ASSESSOR_PR_POST_URI.format(pstype=DEFAULT_DATATYPE)
         assessor_list = intf._get_json(post_uri)
 
+        pfix = DEFAULT_DATATYPE.lower()
         for asse in assessor_list:
             anew = {}
             anew['ID'] = asse['ID']
@@ -1055,9 +1099,9 @@ def list_assessors(intf, projectid, subjectid, sessionid):
             anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
             anew['session_id'] = asse['session_ID']
             anew['session_label'] = asse['session_label']
-            anew['procstatus'] = asse['proc:genprocdata/procstatus']
-            anew['proctype'] = asse['proc:genprocdata/proctype']
-            anew['qcstatus'] = asse['proc:genprocdata/validation/status']
+            anew['procstatus'] = asse['%s/procstatus' % pfix]
+            anew['proctype'] = asse['%s/proctype' % pfix]
+            anew['qcstatus'] = asse['%s/validation/status' % pfix]
             anew['xsiType'] = asse['xsiType']
             new_list.append(anew)
 
@@ -1088,11 +1132,13 @@ def list_project_assessors(intf, projectid):
                             project=projectid, fstype=DEFAULT_FS_DATATYPE)
         assessor_list = intf._get_json(post_uri)
 
+        pfix = DEFAULT_FS_DATATYPE.lower()
         for asse in assessor_list:
             if asse['label']:
                 key = asse['label']
                 if assessors_dict.get(key):
-                    assessors_dict[key]['resources'].append(asse['fs:fsdata/out/file/label'])
+                    res = '%s/out/file/label' % pfix
+                    assessors_dict[key]['resources'].append(asse[res])
                 else:
                     anew = {}
                     anew['ID'] = asse['ID']
@@ -1103,32 +1149,34 @@ def list_project_assessors(intf, projectid):
                     anew['assessor_uri'] = asse['URI']
                     anew['project_id'] = projectid
                     anew['project_label'] = projectid
-                    anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+                    sfix = 'xnat:imagesessiondata'
+                    anew['subject_id'] = asse['%s/subject_id' % sfix]
                     anew['subject_label'] = asse['subject_label']
                     anew['session_type'] = sess_id2mod[asse['session_ID']][1]
                     anew['session_id'] = asse['session_ID']
                     anew['session_label'] = asse['session_label']
-                    anew['procstatus'] = asse['fs:fsdata/procstatus']
-                    anew['qcstatus'] = asse['fs:fsdata/validation/status']
+                    anew['procstatus'] = asse['%s/procstatus' % pfix]
+                    anew['qcstatus'] = asse['%s/validation/status' % pfix]
                     anew['proctype'] = 'FreeSurfer'
 
                     if len(asse['label'].rsplit('-x-FS')) > 1:
-                        anew['proctype'] = anew['proctype']+asse['label'].rsplit('-x-FS')[1]
+                        anew['proctype'] = anew['proctype'] + \
+                                           asse['label'].rsplit('-x-FS')[1]
 
-                    anew['version'] = asse.get('fs:fsdata/procversion')
+                    anew['version'] = asse.get('%s/procversion' % pfix)
                     anew['xsiType'] = asse['xsiType']
-                    anew['jobid'] = asse.get('fs:fsdata/jobid')
-                    anew['jobstartdate'] = asse.get('fs:fsdata/jobstartdate')
-                    anew['memused'] = asse.get('fs:fsdata/memused')
-                    anew['walltimeused'] = asse.get('fs:fsdata/walltimeused')
-                    anew['jobnode'] = asse.get('fs:fsdata/jobnode')
+                    anew['jobid'] = asse.get('%s/jobid' % pfix)
+                    anew['jobstartdate'] = asse.get('%s/jobstartdate' % pfix)
+                    anew['memused'] = asse.get('%s/memused' % pfix)
+                    anew['walltimeused'] = asse.get('%s/walltimeused' % pfix)
+                    anew['jobnode'] = asse.get('%s/jobnode' % pfix)
                     anew['handedness'] = sess_id2mod[asse['session_ID']][2]
                     anew['gender'] = sess_id2mod[asse['session_ID']][3]
                     anew['yob'] = sess_id2mod[asse['session_ID']][4]
                     anew['age'] = sess_id2mod[asse['session_ID']][5]
                     anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
                     anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
-                    anew['resources'] = [asse['fs:fsdata/out/file/label']]
+                    anew['resources'] = [asse['%s/out/file/label' % pfix]]
                     assessors_dict[key] = anew
 
     if has_genproc_datatypes(intf):
@@ -1138,11 +1186,13 @@ def list_project_assessors(intf, projectid):
                                                      pstype=DEFAULT_DATATYPE)
         assessor_list = intf._get_json(post_uri)
 
+        pfix = DEFAULT_DATATYPE.lower()
         for asse in assessor_list:
             if asse['label']:
                 key = asse['label']
                 if assessors_dict.get(key):
-                    assessors_dict[key]['resources'].append(asse['proc:genprocdata/out/file/label'])
+                    res = '%s/out/file/label' % pfix
+                    assessors_dict[key]['resources'].append(asse[res])
                 else:
                     anew = {}
                     anew['ID'] = asse['ID']
@@ -1153,28 +1203,29 @@ def list_project_assessors(intf, projectid):
                     anew['assessor_uri'] = asse['URI']
                     anew['project_id'] = projectid
                     anew['project_label'] = projectid
-                    anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+                    sfix = 'xnat:imagesessiondata'
+                    anew['subject_id'] = asse['%s/subject_id' % sfix]
                     anew['subject_label'] = sess_id2mod[asse['session_ID']][0]
                     anew['session_type'] = sess_id2mod[asse['session_ID']][1]
                     anew['session_id'] = asse['session_ID']
                     anew['session_label'] = asse['session_label']
-                    anew['procstatus'] = asse['proc:genprocdata/procstatus']
-                    anew['proctype'] = asse['proc:genprocdata/proctype']
-                    anew['qcstatus'] = asse['proc:genprocdata/validation/status']
-                    anew['version'] = asse['proc:genprocdata/procversion']
+                    anew['procstatus'] = asse['%s/procstatus' % pfix]
+                    anew['proctype'] = asse['%s/proctype' % pfix]
+                    anew['qcstatus'] = asse['%s/validation/status' % pfix]
+                    anew['version'] = asse['%s/procversion' % pfix]
                     anew['xsiType'] = asse['xsiType']
-                    anew['jobid'] = asse.get('proc:genprocdata/jobid')
-                    anew['jobnode'] = asse.get('proc:genprocdata/jobnode')
-                    anew['jobstartdate'] = asse.get('proc:genprocdata/jobstartdate')
-                    anew['memused'] = asse.get('proc:genprocdata/memused')
-                    anew['walltimeused'] = asse.get('proc:genprocdata/walltimeused')
+                    anew['jobid'] = asse.get('%s/jobid' % pfix)
+                    anew['jobnode'] = asse.get('%s/jobnode' % pfix)
+                    anew['jobstartdate'] = asse.get('%s/jobstartdate' % pfix)
+                    anew['memused'] = asse.get('%s/memused' % pfix)
+                    anew['walltimeused'] = asse.get('%s/walltimeused' % pfix)
                     anew['handedness'] = sess_id2mod[asse['session_ID']][2]
                     anew['gender'] = sess_id2mod[asse['session_ID']][3]
                     anew['yob'] = sess_id2mod[asse['session_ID']][4]
                     anew['age'] = sess_id2mod[asse['session_ID']][5]
                     anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
                     anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
-                    anew['resources'] = [asse['proc:genprocdata/out/file/label']]
+                    anew['resources'] = [asse['%s/out/file/label' % pfix]]
                     assessors_dict[key] = anew
 
     return sorted(assessors_dict.values(), key=lambda k: k['label'])
@@ -1195,8 +1246,8 @@ def list_assessor_out_resources(intf, projectid, subjectid, sessionid,
     """
     # Check that the assessors types are present on XNAT
     if not has_genproc_datatypes(intf):
-        print 'WARNING: datatypes proc:genProcData not found on XNAT. \
-Needed by default for dax.'
+        print 'WARNING: datatypes %s not found on XNAT. \
+Needed by default for dax.' % DEFAULT_DATATYPE
         return list()
 
     post_uri = A_RESOURCES_URI.format(project=projectid,
@@ -1217,8 +1268,8 @@ def get_resource_lastdate_modified(intf, resource_obj):
     :return: date of last modified data with the format %Y%m%d%H%M%S
     """
     # xpaths for times in resource xml
-    created_dicom_xpath = "/cat:DCMCatalog/cat:entries/cat:entry/@createdTime"
-    modified_dicom_xpath = "/cat:DCMCatalog/cat:entries/cat:entry/@modifiedTime"
+    created_dcm_xpath = "/cat:DCMCatalog/cat:entries/cat:entry/@createdTime"
+    modified_dcm_xpath = "/cat:DCMCatalog/cat:entries/cat:entry/@modifiedTime"
     created_xpath = "/cat:Catalog/cat:entries/cat:entry/@createdTime"
     modified_xpath = "/cat:Catalog/cat:entries/cat:entry/@modifiedTime"
     # Get the resource object and its uri
@@ -1229,16 +1280,17 @@ def get_resource_lastdate_modified(intf, resource_obj):
     root = etree.fromstring(xmlstr)
     create_times = root.xpath(created_xpath, namespaces=root.nsmap)
     if not create_times:
-        create_times = root.xpath(created_dicom_xpath, namespaces=root.nsmap)
+        create_times = root.xpath(created_dcm_xpath, namespaces=root.nsmap)
     mod_times = root.xpath(modified_xpath, namespaces=root.nsmap)
     if not mod_times:
-        mod_times = root.xpath(modified_dicom_xpath, namespaces=root.nsmap)
+        mod_times = root.xpath(modified_dcm_xpath, namespaces=root.nsmap)
     # Find the most recent time
     all_times = create_times + mod_times
     if all_times:
         max_time = max(all_times)
         date = max_time.split('.')[0]
-        res_date = date.split('T')[0].replace('-', '')+date.split('T')[1].replace(':', '')
+        res_date = (date.split('T')[0].replace('-', '') +
+                    date.split('T')[1].replace(':', ''))
     else:
         res_date = ('{:%Y%m%d%H%M%S}'.format(datetime.now()))
     return res_date
@@ -1252,7 +1304,11 @@ def select_assessor(intf, assessor_label):
     :return: pyxnat EObject for the assessor selected
     """
     labels = assessor_label.split('-x-')
-    return intf.select('/project/'+labels[0]+'/subject/'+labels[1]+'/experiment/'+labels[2]+'/assessor/'+assessor_label)
+    xpath = A_XPATH.format(project=labels[0],
+                           subject=labels[1],
+                           session=labels[2],
+                           assessor=assessor_label)
+    return intf.select(xpath)
 
 
 def get_full_object(intf, obj_dict):
@@ -1267,33 +1323,29 @@ def get_full_object(intf, obj_dict):
 
     """
     if 'scan_id' in obj_dict:
-        proj = obj_dict['project_id']
-        subj = obj_dict['subject_id']
-        sess = obj_dict['session_id']
-        scan = obj_dict['scan_id']
-        return intf.select('/project/'+proj+'/subject/'+subj+'/experiment/'+sess+'/scan/'+scan)
+        xpath = C_XPATH.format(project=obj_dict['project_id'],
+                               subject=obj_dict['subject_id'],
+                               session=obj_dict['session_id'],
+                               scan=obj_dict['scan_id'])
     elif 'xsiType' in obj_dict and \
          obj_dict['xsiType'] in [DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE]:
-        proj = obj_dict['project_id']
-        subj = obj_dict['subject_id']
-        sess = obj_dict['session_id']
-        assr = obj_dict['assessor_id']
-        return intf.select('/project/'+proj+'/subject/'+subj+'/experiment/'+sess+'/assessor/'+assr)
+        xpath = A_XPATH.format(project=obj_dict['project_id'],
+                               subject=obj_dict['subject_id'],
+                               session=obj_dict['session_id'],
+                               assessor=obj_dict['assessor_id'])
     elif 'experiments' in obj_dict['URI']:
-        proj = obj_dict['project']
-        subj = obj_dict['subject_ID']
-        sess = obj_dict['ID']
-        return intf.select('/project/'+proj+'/subject/'+subj+'/experiment/'+sess)
+        xpath = E_XPATH.format(project=obj_dict['project'],
+                               subject=obj_dict['subject_ID'],
+                               session=obj_dict['ID'])
     elif 'subjects' in obj_dict['URI']:
-        proj = obj_dict['project']
-        subj = obj_dict['ID']
-        return intf.select('/project/'+proj+'/subject/'+subj)
+        xpath = S_XPATH.format(project=obj_dict['project'],
+                               subject=obj_dict['ID'])
     elif 'projects' in obj_dict['URI']:
-        proj = obj_dict['project']
-        return intf.select('/project/'+proj)
+        xpath = A_XPATH.format(project=obj_dict['project'])
     else:
-        return intf.select('/project/')
+        xpath = '/project/'
         # Return non existing object: obj.exists() -> False
+    return intf.select(xpath)
 
 
 def get_assessor(xnat, projid, subjid, sessid, assrid):
@@ -1308,8 +1360,11 @@ def get_assessor(xnat, projid, subjid, sessid, assrid):
     :return: pyxnat EObject of the assessor
 
     """
-    assessor = xnat.select('/projects/'+projid+'/subjects/'+subjid+'/experiments/'+sessid+'/assessors/'+assrid)
-    return assessor
+    xpath = A_XPATH.format(project=projid,
+                           subject=subjid,
+                           session=sessid,
+                           assessor=assrid)
+    return xnat.select(xpath)
 
 
 def select_obj(intf, project_id=None, subject_id=None, session_id=None,
@@ -1625,7 +1680,7 @@ def is_assessor_good_type(assessor_obj, types_list, full_regex=False):
 
     """
     atype = assessor_obj.attrs.get('xsiType')
-    proctype = assessor_obj.attrs.get(atype+'/proctype')
+    proctype = assessor_obj.attrs.get('%s/proctype' % atype)
     for exp in types_list:
         regex = extract_exp(exp, full_regex)
         if regex.match(proctype):
@@ -1643,7 +1698,7 @@ def is_assessor_usable(assessor_obj):
 
     """
     atype = assessor_obj.attrs.get('xsiType')
-    qcstatus = assessor_obj.attrs.get(atype+'/validation/status')
+    qcstatus = assessor_obj.attrs.get('%s/validation/status' % atype)
     return is_bad_qa(qcstatus)
 
 
@@ -1950,7 +2005,7 @@ def download_from_obj(directory, xnat_obj, resources, all_files=False):
     resources = islist(resources, 'resources', 'download_from_obj')
 
     for resource in resources:
-        if xnat_obj.datatype() in ['proc:genProcData', 'fs:fsData']:
+        if xnat_obj.datatype() in [DEFAULT_DATATYPE, DEFAULT_FS_DATATYPE]:
             resource_obj = xnat_obj.out_resource(resource)
         else:
             resource_obj = xnat_obj.resource(resource)
@@ -2196,7 +2251,7 @@ def upload_files(filepaths, project_id=None, subject_id=None, session_id=None,
      upload failed.
 
     """
-    status = [False]*len(filepaths)
+    status = [False] * len(filepaths)
     if not resource:
         err = '%s: resource argument not provided.'
         raise XnatUtilsError(err % ('upload_files'))
@@ -2244,7 +2299,7 @@ already found on XNAT. No upload. Use remove/removeall." % fpath
     initdir = os.getcwd()
     # Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip -r '+fzip+' * > /dev/null')
+    os.system('zip -r %s * > /dev/null' % fzip)
     # upload
     resource_obj.put_zip(os.path.join(directory, fzip), overwrite=True,
                          extract=True)
@@ -2364,10 +2419,12 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail):
         err = "%s: original or thumbnail snapshots don't exist."
         raise XnatUtilsError(err % ('upload_assessor_snapshots'))
 
-    assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(thumbnail))\
+    assessor_obj.out_resource('SNAPSHOTS')\
+                .file(os.path.basename(thumbnail))\
                 .put(thumbnail, thumbnail.split('.')[1].upper(), 'THUMBNAIL',
                      overwrite=True)
-    assessor_obj.out_resource('SNAPSHOTS').file(os.path.basename(original))\
+    assessor_obj.out_resource('SNAPSHOTS')\
+                .file(os.path.basename(original))\
                 .put(original, original.split('.')[1].upper(), 'ORIGINAL',
                      overwrite=True)
     return True
@@ -2434,7 +2491,7 @@ def gzip_nii(directory):
 
     """
     for fpath in glob.glob(os.path.join(directory, '*.nii')):
-        os.system('gzip '+fpath)
+        os.system('gzip %s' % fpath)
 
 
 def ungzip_nii(directory):
@@ -2446,7 +2503,7 @@ def ungzip_nii(directory):
 
     """
     for fpath in glob.glob(os.path.join(directory, '*.nii.gz')):
-        os.system('gzip -d '+fpath)
+        os.system('gzip -d %s' % fpath)
 
 
 def run_matlab(matlab_script, verbose=False, matlab_bin='matlab'):
@@ -2459,18 +2516,20 @@ def run_matlab(matlab_script, verbose=False, matlab_bin='matlab'):
     :return: None
 
     """
-    print """Matlab script: {script} running ...""".format(script=matlab_script)
-    # with xvfb-run: xvfb-run  -e {err} -f {auth} -a --server-args="-screen 0 1600x1280x24 -ac -extension GLX"
-    cmd = """{matlab} -singleCompThread -nodesktop -nosplash < {script}""".format(script=matlab_script, matlab=matlab_bin)
+    print "Matlab script: %s running ..." % matlab_script
+    # with xvfb-run: xvfb-run  -e {err} -f {auth} -a
+    # --server-args="-screen 0 1600x1280x24 -ac -extension GLX"
+    cmd = ("%s -singleCompThread -nodesktop -nosplash < %s"
+           % (matlab_bin, matlab_script))
     if not verbose:
         matlabdir = os.path.dirname(matlab_script)
         prefix = os.path.basename(matlab_script).split('.')[0]
-        cmd = cmd+' > '+os.path.join(matlabdir, prefix+'_outlog.log')
+        cmd = '%s > %s_outlog.log' % (cmd, os.path.join(matlabdir, prefix))
     os.system(cmd)
-    print """Matlab script: {script} done""".format(script=matlab_script)
+    print "Matlab script: %s done" % matlab_script
 
 
-def run_matlab_by_version(matlab_script, verbose=False, matlab_bin=None):
+def run_matlab_by_version(matlab_script, verbose=False, matlab_bin='matlab'):
     """
     Call MATLAB with -nodesktop -nosplash and -singlecompthread.
 
@@ -2480,19 +2539,7 @@ def run_matlab_by_version(matlab_script, verbose=False, matlab_bin=None):
     :return: None
 
     """
-    print """Matlab script: {script} running ...""".format(script=matlab_script)
-    # with xvfb-run: xvfb-run  -e {err} -f {auth} -a --server-args="-screen 0 1600x1280x24 -ac -extension GLX"
-    if not matlab_bin:
-        cmd = """matlab -singleCompThread -nodesktop -nosplash < {script}""".format(script=matlab_script)
-    else:
-        cmd = """{matlab} -singleCompThread -nodesktop -nosplash < {script}""".format(script=matlab_script,
-                                                                                      matlab=matlab_bin)
-    if not verbose:
-        matlabdir = os.path.dirname(matlab_script)
-        prefix = os.path.basename(matlab_script).split('.')[0]
-        cmd = cmd+' > '+os.path.join(matlabdir, prefix+'_outlog.log')
-    os.system(cmd)
-    print """Matlab script: {script} done""".format(script=matlab_script)
+    run_matlab(matlab_script, verbose=verbose, matlab_bin=matlab_bin)
 
 
 def run_subprocess(args):
@@ -2604,8 +2651,8 @@ def check_image_format(fpath):
 
     """
     if fpath.endswith('.nii') or fpath.endswith('.rec'):
-        os.system('gzip '+fpath)
-        fpath = fpath+'.gz'
+        os.system('gzip %s' % fpath)
+        fpath = '%s.gz' % fpath
     return fpath
 
 
@@ -2688,7 +2735,7 @@ def get_random_sessions(xnat, project_id, num_sessions):
     sessions = list_experiments(xnat, project_id)
     session_labels = [x['label'] for x in sessions]
     if num_sessions > 0 and num_sessions < 1:
-        num_sessions = int(num_sessions*len(session_labels))
+        num_sessions = int(num_sessions * len(session_labels))
     return ','.join(random.sample(session_labels, num_sessions))
 
 
@@ -2711,7 +2758,10 @@ class CachedImageSession():
 
         """
         # self.sess_element = ET.fromstring(xnat.session_xml(proj,sess))
-        xml_str = xnat.select('/project/'+proj+'/subject/'+subj+'/experiment/'+sess).get()
+        xpath = E_XPATH.format(project=proj,
+                               subject=subj,
+                               session=sess)
+        xml_str = xnat.select(xpath).get()
         self.sess_element = ET.fromstring(xml_str)
         self.project = proj
         self.subject = subj
@@ -2719,11 +2769,10 @@ class CachedImageSession():
         self.session = sess
 
     def reload(self):
-        proj = self.project
-        subj = self.subject
-        sess = self.session
-        sess_uri = '/project/' + proj + '/subject/' + subj + '/experiment/' + sess
-        xml_str = self.xnat.select(sess_uri).get()
+        xpath = E_XPATH.format(project=self.project,
+                               subject=self.subject,
+                               session=self.session)
+        xml_str = self.xnat.select(xpath).get()
         self.sess_element = ET.fromstring(xml_str)
 
     def label(self):
@@ -2815,7 +2864,7 @@ class CachedImageSession():
         sess_info['project_label'] = sess_info['project_id']
         sess_info['project'] = sess_info['project_id']
         sess_info['subject_ID'] = self.get('xnat:subject_ID')
-        sess_info['URI'] = '/data/experiments/'+sess_info['ID']
+        sess_info['URI'] = '/data/experiments/%s' % sess_info['ID']
         sess_info['session_label'] = sess_info['label']
         sess_info['last_updated'] = sess_info['original']
         sess_info['type'] = sess_info['modality']
@@ -2830,10 +2879,12 @@ class CachedImageSession():
         """
         res_list = []
 
-        file_elements = self.sess_element.findall('xnat:resources/xnat:resource', NS)
+        ruri = 'xnat:resources/xnat:resource'
+        file_elements = self.sess_element.findall(ruri, NS)
         if file_elements:
             for file_element in file_elements:
-                xsi_type = file_element.get('{http://www.w3.org/2001/XMLSchema-instance}type')
+                xmltype = '{http://www.w3.org/2001/XMLSchema-instance}type'
+                xsi_type = file_element.get(xmltype)
                 if xsi_type == 'xnat:resourceCatalog':
                     res_list.append(CachedResource(file_element, self))
 
@@ -2841,12 +2892,10 @@ class CachedImageSession():
 
     def get_resources(self):
         """
-        Return a list of dictionaries that correspond to the information for each
-         resource
+        Return a list of dictionaries that correspond to the information
+         for each resource
 
-        :return: List of dictionaries that correspond to the information for each
-         resource
-
+        :return: List of dictionaries
         """
         return [res.info() for res in self.resources()]
 
@@ -2965,7 +3014,8 @@ class CachedImageScan():
         file_elements = self.scan_element.findall('xnat:file', NS)
         if file_elements:
             for file_element in file_elements:
-                xsi_type = file_element.get('{http://www.w3.org/2001/XMLSchema-instance}type')
+                xmltype = '{http://www.w3.org/2001/XMLSchema-instance}type'
+                xsi_type = file_element.get(xmltype)
                 if xsi_type == 'xnat:resourceCatalog':
                     res_list.append(CachedResource(file_element, self))
 
@@ -3067,9 +3117,10 @@ class CachedImageAssessor():
         assr_info['subject_label'] = self.parent().subject
         assr_info['session_id'] = self.parent().get('ID')
         assr_info['session_label'] = self.parent().get('label')
-        assr_info['xsiType'] = self.get('{http://www.w3.org/2001/XMLSchema-instance}type').lower()
+        xmltype = '{http://www.w3.org/2001/XMLSchema-instance}type'
+        assr_info['xsiType'] = self.get(xmltype).lower()
 
-        if assr_info['xsiType'] == 'fs:fsdata':
+        if assr_info['xsiType'].lower() == DEFAULT_FS_DATATYPE.lower():
             # FreeSurfer
             assr_info['procstatus'] = self.get('fs:procstatus')
             assr_info['qcstatus'] = self.get('xnat:validation/status')
@@ -3081,7 +3132,7 @@ class CachedImageAssessor():
             assr_info['jobnode'] = self.get('fs:jobnode')
             assr_info['proctype'] = 'FreeSurfer'
 
-        elif assr_info['xsiType'] == 'proc:genprocdata':
+        elif assr_info['xsiType'].lower() == DEFAULT_DATATYPE.lower():
             # genProcData
             assr_info['procstatus'] = self.get('proc:procstatus')
             assr_info['proctype'] = self.get('proc:proctype')
@@ -3093,7 +3144,7 @@ class CachedImageAssessor():
             assr_info['walltimeused'] = self.get('proc:walltimeused')
             assr_info['jobnode'] = self.get('proc:jobnode')
         else:
-            print 'WARN:unknown xsiType for assessor:'+assr_info['xsiType']
+            print 'WARN:unknown xsiType for assessor: %s' % assr_info['xsiType']
 
         return assr_info
 
@@ -3240,7 +3291,7 @@ class CachedResource():
         return res_info
 
 
-####################### File Utils #######################
+# File Utils
 def gzip_file(file_not_zipped):
     """
     Method to gzip a file using the gzip python package
@@ -3380,7 +3431,7 @@ def read_excel(excel_file, header_indexes=None):
         else:
             header = sht.row_values(0)
             start = 0
-        for row_index in range(start+1, sht.nrows):
+        for row_index in range(start + 1, sht.nrows):
             row = list()
             for col_index in range(sht.ncols):
                 value = sht.cell(rowx=row_index, colx=col_index).value
@@ -3391,7 +3442,7 @@ def read_excel(excel_file, header_indexes=None):
     return excel_sheets
 
 
-####################### DICOM Utils #######################
+# DICOM Utils
 def is_dicom(fpath):
     """Check if the file is a DICOM medical data.
 
@@ -3464,7 +3515,7 @@ def write_dicom(pixel_array, filename, ds_copy, ds_ori, volume_number,
     file_meta.MediaStorageSOPClassUID = 'Secondary Capture Image Storage'
     file_meta.MediaStorageSOPInstanceUID = ds_ori.SOPInstanceUID
     file_meta.ImplementationClassUID = ds_ori.SOPClassUID
-    ds = FileDataset(filename, {}, file_meta=file_meta, preamble="\0"*128)
+    ds = FileDataset(filename, {}, file_meta=file_meta, preamble="\0" * 128)
 
     # Copy the tag from the original DICOM
     for tag, value in ds_ori.items():
@@ -3480,7 +3531,7 @@ def write_dicom(pixel_array, filename, ds_copy, ds_ori, volume_number,
                                                    .replace(' ', '')
     ds.SOPInstanceUID = sop_uid[:-1]
     ds.ProtocolName = ds_ori.ProtocolName
-    ds.InstanceNumber = volume_number+1
+    ds.InstanceNumber = volume_number + 1
 
     # Copy from T2 the orientation tags:
     ds.PatientPosition = ds_copy.PatientPosition
@@ -3535,7 +3586,7 @@ def convert_nifti_2_dicoms(nifti_path, dicom_targets, dicom_source,
     ti = time.time()
     series_number = 86532 + int(str(ti)[2:4]) + int(str(ti)[4:6])
     sop_id = adc_dcm_obj.SOPInstanceUID.split('.')
-    sop_id = '.'.join(sop_id[:-1])+'.'
+    sop_id = '.'.join(sop_id[:-1]) + '.'
 
     # Sort the DICOM T2 to create the ADC registered DICOMs
     dcm_obj_sorted = dict()
@@ -3549,32 +3600,34 @@ def convert_nifti_2_dicoms(nifti_path, dicom_targets, dicom_source,
     for vol_i in range(f_img_data.shape[2]):
         if f_img_data.shape[2] > 100:
             filename = os.path.join(output_folder, '%s_%03d.dcm' % (label,
-                                                                    vol_i+1))
+                                                                    vol_i + 1))
         elif f_img_data.shape[2] > 10:
             filename = os.path.join(output_folder, '%s_%02d.dcm' % (label,
-                                                                    vol_i+1))
+                                                                    vol_i + 1))
 
         else:
             filename = os.path.join(output_folder, '%s_%d.dcm' % (label,
-                                                                  vol_i+1))
+                                                                  vol_i + 1))
 
         write_dicom(np.rot90(f_img_data[:, :, vol_i]), filename,
-                    dcm_obj_sorted[vol_i+1], adc_dcm_obj, vol_i,
+                    dcm_obj_sorted[vol_i + 1], adc_dcm_obj, vol_i,
                     series_number, sop_id)
 
 
-############ DEPRECATED Methods still in used in different Spiders ############
+# DEPRECATED Methods still in used in different Spiders
 # It will need to be removed when the spiders are updated
 def list_experiments(intf, projectid=None, subjectid=None):
     """
-    Deprecated method to list all the experiments that you have access to. Or, alternatively, list
-     the experiments in a single project (and single subject) based on passed project ID (/subject ID)
+    Deprecated method to list all the experiments that you have access to.
+     Or, alternatively, list the experiments in a single project
+     (and single subject) based on passed project ID (/subject ID)
 
     :param intf: pyxnat.Interface object
     :param projectid: ID of a project on XNAT
     :param subjectid: ID/label of a subject
     :return: List of experiments
     """
+    print 'Warning: Deprecated method. Use list_sessions().'
     if projectid and subjectid:
         post_uri = SESSIONS_URI.format(project=projectid, subject=subjectid)
     elif projectid is None and subjectid is None:
@@ -3584,7 +3637,7 @@ def list_experiments(intf, projectid=None, subjectid=None):
     else:
         return None
 
-    post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:subjectdata/meta/last_modified'
+    post_uri += EXPERIMENT_POST_URI
     experiment_list = intf._get_json(post_uri)
 
     for exp in experiment_list:
@@ -3613,6 +3666,7 @@ def list_experiment_resources(intf, projectid, subjectid, experimentid):
     :param subjectid: ID/label of a session to get resources for
     :return: List of resources for the session
     """
+    print 'Warning: Deprecated method. Use list_session_resources().'
     post_uri = SE_RESOURCES_URI.format(project=projectid, subject=subjectid,
                                        session=experimentid)
     resource_list = intf._get_json(post_uri)
@@ -3630,11 +3684,15 @@ def download_Scan(Outputdirectory, projectName, subject, experiment, scan,
     :param experiment: XNAT session ID/label
     :param scan: Scan ID to download from
     :param resource_list: List of resources to download data from.
-    :param all_resources: If 1, download from all resources for the scan object, otherwise use the list.
+    :param all_resources: If 1, download from all resources for scan object,
+                          otherwise use the list.
     :return: None
 
     """
-    print'Download resources from ' + projectName + '/' + subject+ '/' + experiment + '/'+ scan
+    print 'Warning: Deprecated method. Use download_file(), download_files(), \
+download_file_from_obj(), or download_files_from_obj().'
+    msg = 'Download resources from %s / %s / %s / %s'
+    print msg % (projectName, subject, experiment, scan)
 
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
@@ -3642,30 +3700,36 @@ def download_Scan(Outputdirectory, projectName, subject, experiment, scan,
     elif isinstance(resource_list, str):
         resource_list = [resource_list]
     else:
-        print "INPUTS ERROR: Check the format of the list of resources in the download_Scan function. Not a list.\n"
-        sys.exit()
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
+resources in download_Scan function. Not a list.")
 
     try:
         xnat = get_interface()
-        SCAN = xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan)
+        xpath = C_XPATH.format(project=projectName,
+                               subject=subject,
+                               session=experiment,
+                               scan=scan)
+        SCAN = xnat.select(xpath)
         if SCAN.exists():
             if SCAN.attrs.get('quality') != 'unusable':
-                dl_good_resources_scan(SCAN, resource_list, Outputdirectory, all_resources)
+                dl_good_resources_scan(SCAN, resource_list, Outputdirectory,
+                                       all_resources)
             else:
                 print 'DOWNLOAD WARNING: Scan unusable!'
         else:
-            print 'DOWNLOAD ERROR: ' + projectName + '/' + subject+ '/' + experiment + '/'+scan+' does not correspond to a Project/Subject/experiment/scan on Xnat.'
+            err = '%s: xnat object for <%s> does not exist on XNAT.'
+            raise XnatAccessError(err % ('download_Scan', xpath))
 
     finally:
         xnat.disconnect()
-    print '===================================================================\n'
+    print '=================================================================\n'
 
 
 # from a list of scantype given, Download the resources
 def download_ScanType(Outputdirectory, projectName, subject, experiment,
                       List_scantype, resource_list, all_resources=0):
     """
-    Deprecated method to download resources from a scan given a series description, rather than a scan ID
+    Deprecated method to download resources from a scan given scan types
 
     :param Outputdirectory: Directory to download the data to
     :param projectName: XNAT project ID
@@ -3673,13 +3737,14 @@ def download_ScanType(Outputdirectory, projectName, subject, experiment,
     :param experiment: XNAT session ID/label
     :param List_scantype: List of scan types to download resources from.
     :param resource_list: List of resources to download data from.
-    :param all_resources: If 1, download from all resources for the scan object, otherwise use the list.
+    :param all_resources: If 1, download from all resources for scan object,
+                          otherwise use the list.
     :return: None
 
     """
-
-    print'Download resources from ' + projectName + '/' + subject+ '/' + experiment + ' and the scan types like ',
-    print List_scantype
+    print 'Warning: Deprecated method.'
+    msg = 'Download resources from %s / %s / %s and the scan types %s'
+    print msg % (projectName, subject, experiment, str(List_scantype))
 
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
@@ -3687,7 +3752,8 @@ def download_ScanType(Outputdirectory, projectName, subject, experiment,
     elif isinstance(resource_list, str):
         resource_list = [resource_list]
     else:
-        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of resources in the download_ScanType function. Not a list.")
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
+resources in download_ScanType function. Not a list.")
 
     # check list of SD:
     if isinstance(List_scantype, list):
@@ -3695,29 +3761,34 @@ def download_ScanType(Outputdirectory, projectName, subject, experiment,
     elif isinstance(List_scantype, str):
         List_scantype = [List_scantype]
     else:
-        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of series_description in the download_ScanType function. Not a list.")
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
+scantypes in download_ScanType function. Not a list.")
 
     try:
         xnat = get_interface()
-
         for scan in list_scans(xnat, projectName, subject, experiment):
             if scan['type'] in List_scantype:
                 if scan['quality'] != 'unusable':
-                    SCAN = xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan['ID'])
-                    dl_good_resources_scan(SCAN, resource_list, Outputdirectory, all_resources)
+                    xpath = C_XPATH.format(project=projectName,
+                                           subject=subject,
+                                           session=experiment,
+                                           scan=scan['ID'])
+                    SCAN = xnat.select(xpath)
+                    dl_good_resources_scan(SCAN, resource_list,
+                                           Outputdirectory, all_resources)
                 else:
                     print 'DOWNLOAD WARNING: Scan unusable!'
-
     finally:
         xnat.disconnect()
-    print '===================================================================\n'
+    print '=================================================================\n'
 
 
 def download_ScanSeriesDescription(Outputdirectory, projectName, subject,
                                    experiment, List_scanSD, resource_list,
                                    all_resources=0):
     """
-    Deprecated method to download resources from a scan given a series description, rather than a scan ID
+    Deprecated method to download resources from a scan given a series
+     description, rather than a scan ID
 
     :param Outputdirectory: Directory to download the data to
     :param projectName: XNAT project ID
@@ -3725,13 +3796,14 @@ def download_ScanSeriesDescription(Outputdirectory, projectName, subject,
     :param experiment: XNAT session ID/label
     :param List_scanSD: List of series descriptions to download resources from.
     :param resource_list: List of resources to download data from.
-    :param all_resources: If 1, download from all resources for the scan object, otherwise use the list.
+    :param all_resources: If 1, download from all resources for scan object,
+                          otherwise use the list.
     :return: None
 
     """
-
-    print'Download resources from ' + projectName + '/' + subject+ '/' + experiment + ' and the list of series description ',
-    print List_scanSD
+    print 'Warning: Deprecated method.'
+    msg = 'Download resources from %s / %s / %s and the series description %s'
+    print msg % (projectName, subject, experiment, str(List_scanSD))
 
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
@@ -3739,7 +3811,8 @@ def download_ScanSeriesDescription(Outputdirectory, projectName, subject,
     elif isinstance(resource_list, str):
         resource_list = [resource_list]
     else:
-        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of resources in the download_ScanSeriesDescription function. Not a list.")
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
+resources in download_ScanSeriesDescription function. Not a list.")
 
     # check list of SD:
     if isinstance(List_scanSD, list):
@@ -3747,23 +3820,28 @@ def download_ScanSeriesDescription(Outputdirectory, projectName, subject,
     elif isinstance(List_scanSD, str):
         List_scanSD = [List_scanSD]
     else:
-        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of series_description in the download_ScanSeriesDescription function. Not a list.")
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
+series_description in download_ScanSeriesDescription function. Not a list.")
 
     try:
         xnat = get_interface()
 
         for scan in list_scans(xnat, projectName, subject, experiment):
-            SCAN = xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan['ID'])
-
+            xpath = C_XPATH.format(project=projectName,
+                                   subject=subject,
+                                   session=experiment,
+                                   scan=scan['ID'])
+            SCAN = xnat.select(xpath)
             if SCAN.attrs.get('series_description') in List_scanSD:
                 if scan['quality'] != 'unusable':
-                    dl_good_resources_scan(SCAN, resource_list, Outputdirectory, all_resources)
+                    dl_good_resources_scan(SCAN, resource_list,
+                                           Outputdirectory, all_resources)
                 else:
                     print 'DOWNLOAD WARNING: Scan unusable!'
 
     finally:
         xnat.disconnect()
-    print '===================================================================\n'
+    print '=================================================================\n'
 
 
 def download_Assessor(Outputdirectory, assessor_label, resource_list,
@@ -3773,13 +3851,13 @@ def download_Assessor(Outputdirectory, assessor_label, resource_list,
 
     :param Outputdirectory: Directory to download data to
     :param assessor_label: The label of the assessor to download from
-    :param resource_list: The list of resource(s) that you want to download data from
+    :param resource_list: list of resource(s) to download
     :param all_resources: if 1, download all of the resources.
     :return: None
 
     """
-
-    print'Download resources from process ' + assessor_label
+    print 'Warning: Deprecated method.'
+    print 'Download resources from process %s' % assessor_label
 
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
@@ -3787,17 +3865,18 @@ def download_Assessor(Outputdirectory, assessor_label, resource_list,
     elif isinstance(resource_list, str):
         resource_list = [resource_list]
     else:
-        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of resources in the download_Assessor function. Not a list.")
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
+resources in the download_Assessor function. Not a list.")
 
     try:
         xnat = get_interface()
-        labels = assessor_label.split('-x-')
-        ASSESSOR = xnat.select('/project/'+labels[0]+'/subjects/'+labels[1]+'/experiments/'+labels[2]+'/assessors/'+assessor_label)
-        dl_good_resources_assessor(ASSESSOR, resource_list, Outputdirectory, all_resources)
+        ASSESSOR = select_assessor(xnat, assessor_label)
+        dl_good_resources_assessor(ASSESSOR, resource_list, Outputdirectory,
+                                   all_resources)
 
     finally:
         xnat.disconnect()
-    print '===================================================================\n'
+    print '=================================================================\n'
 
 
 # from an assessor type, download the resources :
@@ -3811,15 +3890,16 @@ def download_AssessorType(Outputdirectory, projectName, subject, experiment,
     :param projectName: XNAT project ID
     :param subject: XNAT project subject ID/label
     :param experiment: XNAT project session ID/label
-    :param List_process_type: List of process type(s) (proctypes) to download from
+    :param List_process_type: List of process type(s)to download from
     :param resource_list: List of resources to download from each proctype
-    :param all_resources: if 1, download from all resources, otherwise use resource_list
+    :param all_resources: if 1, download from all resources,
+                          otherwise use resource_list
     :return: None
 
     """
-
-    print'Download resources from ' + projectName + '/' + subject+ '/' + experiment + ' and the process ',
-    print List_process_type
+    print 'Warning: Deprecated method.'
+    msg = 'Download resources from %s / %s / %s and the process %s'
+    print msg % (projectName, subject, experiment, str(List_process_type))
 
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
@@ -3827,7 +3907,8 @@ def download_AssessorType(Outputdirectory, projectName, subject, experiment,
     elif isinstance(resource_list, str):
         resource_list = [resource_list]
     else:
-        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of resources in the download_AssessorType function. Not a list.")
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
+resources in the download_AssessorType function. Not a list.")
 
     # Check input for subjects_exps_list :
     if isinstance(List_process_type, list):
@@ -3835,23 +3916,24 @@ def download_AssessorType(Outputdirectory, projectName, subject, experiment,
     elif isinstance(List_process_type, str):
         List_process_type = [List_process_type]
     else:
-        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of process type in the download_AssessorType function. Not a list.")
+        raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
+process type in the download_AssessorType function. Not a list.")
 
     # if FreeSurfer in the list, change it to FS
-    List_process_type = [process_type.replace('FreeSurfer', 'FS') for process_type in List_process_type]
+    List_process_type = [process_type.replace('FreeSurfer', 'FS')
+                         for process_type in List_process_type]
 
     try:
         xnat = get_interface()
-
         for assessor in list_assessors(xnat, projectName, subject, experiment):
             for proc_type in List_process_type:
                 if proc_type == assessor['label'].split('-x-')[-1]:
-                    ASSESSOR = xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor['label'])
-                    dl_good_resources_assessor(ASSESSOR, resource_list, Outputdirectory, all_resources)
-
+                    ASSESSOR = select_assessor(xnat, assessor['label'])
+                    dl_good_resources_assessor(ASSESSOR, resource_list,
+                                               Outputdirectory, all_resources)
     finally:
         xnat.disconnect()
-    print '===================================================================\n'
+    print '=================================================================\n'
 
 
 def dl_good_resources_scan(Scan, resource_list, Outputdirectory,
@@ -3867,6 +3949,7 @@ def dl_good_resources_scan(Scan, resource_list, Outputdirectory,
     :return: None
 
     """
+    print 'Warning: Deprecated method.'
     for Resource in resource_list:
         resourceOK = 0
         if Scan.resource(Resource).exists():
@@ -3881,9 +3964,10 @@ def dl_good_resources_scan(Scan, resource_list, Outputdirectory,
         if resourceOK and all_resources:
             download_all_resources(Scan.resource(Resource), Outputdirectory)
         elif resourceOK and not all_resources:
-            dl, _ = download_biggest_resources(Scan.resource(Resource), Outputdirectory)
+            dl, _ = download_biggest_resources(Scan.resource(Resource),
+                                               Outputdirectory)
             if not dl:
-                print 'ERROR: Download failed, the size of file for the resource is zero.'
+                print 'ERROR: Download failed, Size for the resource is zero.'
 
 
 def dl_good_resources_assessor(Assessor, resource_list, Outputdirectory,
@@ -3893,11 +3977,13 @@ def dl_good_resources_assessor(Assessor, resource_list, Outputdirectory,
 
     :param Assessor: pyxnat EObject of the assessor
     :param resource_list: List of resources labels to download resources from
-    :param Outputdirectory: Download directory for the files from the selected resources
-    :param all_resources: If true, download from all resources, otherwise only the specified ones.
+    :param Outputdirectory: directory where data downloaded
+    :param all_resources: If true, download from all resources,
+                          otherwise only the specified ones.
     :return: None
 
     """
+    print 'Warning: Deprecated method.'
     for Resource in resource_list:
         resourceOK = 0
         if Assessor.out_resource(Resource).exists():
@@ -3910,11 +3996,13 @@ def dl_good_resources_assessor(Assessor, resource_list, Outputdirectory,
             resourceOK = 1
 
         if resourceOK and all_resources:
-            download_all_resources(Assessor.out_resource(Resource), Outputdirectory)
+            download_all_resources(Assessor.out_resource(Resource),
+                                   Outputdirectory)
         elif resourceOK and not all_resources:
-            dl, _ = download_biggest_resources(Assessor.out_resource(Resource), Outputdirectory)
+            dl, _ = download_biggest_resources(Assessor.out_resource(Resource),
+                                               Outputdirectory)
             if not dl:
-                print 'ERROR: Download failed, the size of file for the resource is zero.'
+                print 'ERROR: Download failed. Size for the resource is zero.'
 
 
 def download_biggest_resources(Resource, directory, filename='0'):
@@ -3925,9 +4013,12 @@ def download_biggest_resources(Resource, directory, filename='0'):
     :param directory: Download directory
     :param filename: Filename to override the current name of. If changed,
      the value of filename will be the filename as downlaoded.
-    :return: 1 if download worked and then the full path to the file, 0 and nan otherwise.
+    :return: 1 if download worked and then the full path to the file,
+             0 and nan otherwise.
 
     """
+    print 'Warning: Deprecated method. Use download_biggest_file() or \
+download_biggest_file_from_obj().'
     if os.path.exists(directory):
         number = 0
         Bigger_file_size = 0
@@ -3948,7 +4039,8 @@ def download_biggest_resources(Resource, directory, filename='0'):
             Resource.file(Input_res_label_fname).get(DLFileName)
             return 1, str(DLFileName)
     else:
-        print'ERROR download_biggest_resources in XnatUtils: Folder '+directory+' does not exist.'
+        msg = 'ERROR in download_biggest_resources: Folder %s does not exist.'
+        print msg % directory
 
 
 def download_all_resources(Resource, directory):
@@ -3960,27 +4052,33 @@ def download_all_resources(Resource, directory):
     :return: None
 
     """
+    print 'Warning: Deprecated method. Use download_files() or \
+download_files_from_obj().'
+    unzip_cmd = 'unzip -d %s %s > /dev/null'
     if os.path.exists(directory):
         # if more than one file:
         if len(Resource.files().get()) > 1:
             # create a dir with the resourcename:
-            Outputdir = os.path.join(directory, Resource.label())
+            rlabel = Resource.label()
+            Outputdir = os.path.join(directory, rlabel)
             if not os.path.exists(Outputdir):
                 os.mkdir(Outputdir)
-            print '   ->Downloading all resources for '+Resource.label()+' as a zip'
-            Resource.get(Outputdir, extract=False) # not sure the extract True is working
+            print '   ->Downloading all resources for  as a zip'
+            Resource.get(Outputdir, extract=False)
             print '   ->Unzipping ...'
-            os.system('unzip -d '+Outputdir+' '+os.path.join(Outputdir, Resource.label()+'.zip')+' > /dev/null')
-        # if only one, if using download all resources, download it and unzip it if it's a zip
+            fpath = os.path.join(Outputdir, '%s.zip' % rlabel)
+            os.system(unzip_cmd % (Outputdir, fpath))
         else:
-            print '   ->Downloading resource for '+Resource.label()
+            print '   ->Downloading resource for %s' % Resource.label()
             Input_res_label_fname = Resource.files().get()[0]
-            Resource.file(Input_res_label_fname).get(os.path.join(directory, Input_res_label_fname))
+            fpath = os.path.join(directory, Input_res_label_fname)
+            Resource.file(Input_res_label_fname).get(fpath)
             if os.path.join(directory, Input_res_label_fname)[-3:] == 'zip':
                 print '   -> Unzipping ...'
-                os.system('unzip -d '+directory+' '+os.path.join(directory, Input_res_label_fname)+' > /dev/null')
+                os.system(unzip_cmd % (directory, fpath))
     else:
-        print'ERROR download_all_resources in XnatUtils: Folder '+directory+' does not exist.'
+        msg = 'ERROR in download_all_resources: Folder %s does not exist.'
+        print msg % directory
 
 
 def upload_all_resources(Resource, directory):
@@ -3992,6 +4090,8 @@ def upload_all_resources(Resource, directory):
     :return: None
 
     """
+    print 'Warning: Deprecated method. Use either upload_files(), \
+upload_files_to_obj(), upload_folder(), or upload_folder_to_obj().'
     if os.path.exists(directory):
         if not Resource.exists():
             Resource.create()
@@ -4012,10 +4112,11 @@ def upload_all_resources(Resource, directory):
                                      overwrite=True, extract=True)
                 else:
                     # upload the file
-                    Resource.file(filename).put(
-                            os.path.join(directory, filename), overwrite=True)
+                    fpath = os.path.join(directory, filename)
+                    Resource.file(filename).put(fpath, overwrite=True)
     else:
-        print'ERROR upload_all_resources in XnatUtils: Folder '+directory+' does not exist.'
+        msg = 'ERROR in upload_all_resources: Folder %s does not exist.'
+        print msg % directory
 
 
 def upload_zip(Resource, directory):
@@ -4028,16 +4129,7 @@ def upload_zip(Resource, directory):
     :return: None
 
     """
-    filenameZip = Resource.label()+'.zip'
-    initDir = os.getcwd()
-    # Zip all the files in the directory
-    os.chdir(directory)
-    os.system('zip -r '+filenameZip+' *')
-    # upload
-    Resource.put_zip(os.path.join(directory, filenameZip), overwrite=True,
-                     extract=True)
-    # return to the initial directory:
-    os.chdir(initDir)
+    Upload_folder_to_resource(Resource, directory)
 
 
 def download_resource_assessor(directory, xnat, project, subject, experiment,
@@ -4056,37 +4148,48 @@ def download_resource_assessor(directory, xnat, project, subject, experiment,
     :return: None
 
     """
-
+    print 'Warning: Deprecated method. Use download_files() or \
+download_files_from_obj().'
     if not quiet:
-        print '    +Process: '+assessor_label
+        print '    +Process: %s' % assessor_label
 
-    assessor = xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label)
+    assessor = select_assessor(xnat, assessor_label)
     if not assessor.exists():
         print '      !!WARNING: No assessor with the ID selected.'
         return
 
     if 'fMRIQA' in assessor_label:
         labels = assessor_label.split('-x-')
-        SCAN = xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+labels[3])
+        xpath = C_XPATH.format(project=project,
+                               subject=subject,
+                               session=experiment,
+                               scan=labels[3])
+        SCAN = xnat.select(xpath)
         SD = SCAN.attrs.get('series_description')
         SD = SD.replace('/', '_')
         SD = SD.replace(" ", "")
 
         if SD != '':
-            directory = directory+'-x-'+SD
+            directory = '%s-x-%s' % (directory, SD)
 
     if not os.path.exists(directory):
         os.mkdir(directory)
 
     # all resources
     if resources_list[0] == 'all':
-        post_uri_resource = A_RESOURCES_URI.format(project=project, subject=subject, session=experiment, assessor=assessor_label)
-        resources_list = xnat._get_json(post_uri_resource)
+        resources_list = list_assessor_out_resources(xnat, project, subject,
+                                                     experiment,
+                                                     assessor_label)
         for resource in resources_list:
-            Resource = xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource['label'])
+            xpath = AR_XPATH.format(project=project,
+                                    subject=subject,
+                                    session=experiment,
+                                    assessor=assessor_label,
+                                    resource=resource['label'])
+            Resource = xnat.select(xpath)
             if Resource.exists():
                 if not quiet:
-                    print '      *download resource '+resource['label']
+                    print '      *download resource %s' % resource['label']
 
                 assessor_real_type = assessor_label.split('-x-')[-1]
                 if 'FS' in assessor_real_type:
@@ -4112,10 +4215,15 @@ def download_resource_assessor(directory, xnat, project, subject, experiment,
     # resources in the options
     else:
         for resource in resources_list:
-            Resource = xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource)
+            xpath = AR_XPATH.format(project=project,
+                                    subject=subject,
+                                    session=experiment,
+                                    assessor=assessor_label,
+                                    resource=resource)
+            Resource = xnat.select(xpath)
             if Resource.exists():
                 if not quiet:
-                    print '      *download resource '+resource
+                    print '      *download resource %s' % resource
 
                 assessor_real_type = assessor_label.split('-x-')[-1]
                 if 'FS' in assessor_real_type:
@@ -4139,7 +4247,8 @@ def download_resource_assessor(directory, xnat, project, subject, experiment,
                     else:
                         print "      !!ERROR : The size of the resource is 0."
             else:
-                print '      !!WARNING : no resource '+resource+' for this assessor.'
+                msg = '      !!WARNING : no resource %s for this assessor.'
+                print msg % resource
     print'\n'
 
 
@@ -4153,14 +4262,16 @@ def Upload_folder_to_resource(resourceObj, directory):
     :return: None
 
     """
-    filenameZip = resourceObj.label()+'.zip'
+    print 'Warning: Deprecated method. Use either upload_folder() or \
+upload_folder_to_obj().'
+    filenameZip = '%s.zip' % resourceObj.label()
     initDir = os.getcwd()
     # Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip -r '+filenameZip+' *')
+    os.system('zip -r %s *' % filenameZip)
     # upload
-    resourceObj.put_zip(os.paht.join(directory, filenameZip), overwrite=True,
-                        extract=True)
+    zip_path = os.paht.join(directory, filenameZip)
+    resourceObj.put_zip(zip_path, overwrite=True, extract=True)
     # return to the initial directory:
     os.chdir(initDir)
 
@@ -4176,6 +4287,8 @@ def Download_resource_to_folder(Resource, directory):
     :return: None
 
     """
+    print 'Warning: Deprecated method. Use either download_files() or \
+download_files_from_obj().'
     Res_path = os.path.join(directory, Resource.label())
     if os.path.exists(Res_path):
         os.remove(Res_path)
