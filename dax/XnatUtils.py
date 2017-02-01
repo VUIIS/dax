@@ -196,7 +196,6 @@ class InterfaceTemp(Interface):
     def __enter__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
                   temp_dir=None):
         """Enter method for with statement."""
-        # self.__init__(xnat_host, xnat_user, xnat_pass, temp_dir)
         return self
 
     def __exit__(self, type, value, traceback):

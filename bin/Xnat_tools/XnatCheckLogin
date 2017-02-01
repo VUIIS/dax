@@ -10,7 +10,6 @@ Edited on January 25, 2017
 
 import os
 import sys
-import netrc
 import getpass
 from pyxnat import Interface
 from dax import DAX_Netrc
