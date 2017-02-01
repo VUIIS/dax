@@ -939,7 +939,8 @@ class AutoSpider(object):
         """ Unicode for AutoSpiders."""
         unicode_inputs = list()
         for key, value in self.src_inputs.items():
-            if key not in ['assessor_label', 'temp_dir', 'suffix']:
+            if key not in ['assessor_label', 'temp_dir', 'suffix', 'host',
+                           'user']:
                 unicode_inputs.append("    %s: %s" % (key, value))
         return UNICODE_AUTOSPIDER.format(
             name=self.spider_name,
