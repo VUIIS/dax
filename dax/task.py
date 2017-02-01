@@ -7,10 +7,11 @@ import time
 import logging
 from datetime import date
 
-import cluster
-from cluster import PBS
-from dax.errors import NeedInputsException, NoDataException
-from dax_settings import DAX_Settings, DEFAULT_DATATYPE, DEFAULT_FS_DATATYPE
+from . import cluster
+from .cluster import PBS
+from .errors import (NeedInputsException, NoDataException,
+                     ClusterLaunchException)
+from .dax_settings import DAX_Settings, DEFAULT_DATATYPE, DEFAULT_FS_DATATYPE
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
@@ -497,7 +498,7 @@ undo_processing...')
 
             if jobid == '' or jobid == '0':
                 LOGGER.error('failed to launch job on cluster')
-                raise cluster.ClusterLaunchException
+                raise ClusterLaunchException
             else:
                 self.set_launch(jobid)
                 if force_no_qsub or \
@@ -1054,7 +1055,7 @@ class ClusterTask(Task):
 
         if jobid == '' or jobid == '0':
             LOGGER.error('failed to launch job on cluster')
-            raise cluster.ClusterLaunchException
+            raise ClusterLaunchException
         else:
             self.set_launch(jobid)
             cmd = DAX_SETTINGS.get_cmd_submit()

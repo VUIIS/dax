@@ -12,7 +12,6 @@ import collections
 import csv
 import getpass
 import glob
-from dax import XnatUtils
 from datetime import datetime
 import matplotlib.pyplot as plt
 import nibabel as nib
@@ -27,7 +26,13 @@ import subprocess as sb
 import sys
 import time
 
+from . import XnatUtils
+from .errors import SpiderError, AutoSpiderError
 
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__all__ = ["Spider", "ScanSpider", "SessionSpider", "AutoSpider",
+           "TimedWriter"]
 UNICODE_SPIDER = """
 Spider information:
   -- General --
@@ -221,19 +226,18 @@ class Spider(object):
         """
         self.time_writer('-------- download_inputs --------')
         if not self.inputs:
-            raise SpiderValueError('download_inputs(): \
-self.inputs not define in your spider.')
+            raise SpiderError('download_inputs(): self.inputs not define in \
+your spider.')
         if not isinstance(self.inputs, list):
-            raise SpiderTypeError('self.inputs is not a list: %s'
-                                  % self.inputs)
+            raise SpiderError('self.inputs is not a list: %s' % self.inputs)
         # Inputs folder: jobdir/inputs
         input_dir = os.path.join(self.jobdir, 'inputs')
         xnat = XnatUtils.get_interface(host=self.host, user=self.user,
                                        pwd=self.pwd)
         for data_dict in self.inputs:
             if not isinstance(data_dict, dict):
-                raise SpiderTypeError(
-                    'data in self.inputs is not a dict: %s' % data_dict)
+                raise SpiderError('data in self.inputs is not a dict: %s'
+                                  % data_dict)
             if isinstance(data_dict['resource'], list):
                 resources = data_dict['resource']
             else:
@@ -395,7 +399,7 @@ self.inputs not define in your spider.')
             self.spider_handler.add_folder(fpath, resource)
         else:
             err = "upload(): file path does not exist: %s" % (fpath)
-            raise SpiderValueError(err)
+            raise SpiderError(err)
 
     def upload_dict(self, files_dict):
         """
@@ -419,7 +423,7 @@ self.inputs not define in your spider.')
             else:
                 err = "upload_dict(): variable not recognize in dictionary \
 for resource %s : %s"
-                raise SpiderValueError(err % (resource, type(fpath)))
+                raise SpiderError(err % (resource, type(fpath)))
 
     def end(self):
         """
@@ -443,8 +447,8 @@ for resource %s : %s"
         """
         if executable == name:
             if not XnatUtils.executable_exists(executable):
-                raise SpiderValueError(
-                    "Executable '%s' not found on your computer." % name)
+                raise SpiderError("Executable '%s' not found on your computer."
+                                  % name)
         else:
             executable = os.path.abspath(executable)
             if not executable.endswith(name):
@@ -452,10 +456,10 @@ for resource %s : %s"
                     executable = os.path.join(executable, name)
                 else:
                     msg = "Error for executable path '%s': Wrong name."
-                    raise SpiderValueError(msg % executable)
+                    raise SpiderError(msg % executable)
             if not os.path.isfile(executable):
                 msg = "Executable '%s' not found"
-                raise SpiderValueError(msg % executable)
+                raise SpiderError(msg % executable)
 
         self.get_exe_version(executable, version_opt)
         return executable
@@ -625,17 +629,17 @@ for resource %s : %s"
         self.time_writer('-------- run_cmd_args --------')
         # Check cmd_args set by user:
         if not self.cmd_args:
-            raise SpiderValueError("self.cmd_args not defined.")
+            raise SpiderError("self.cmd_args not defined.")
         if 'exe' not in self.cmd_args.keys():
-            raise SpiderValueError("self.cmd_args doesn't have a key 'exe'.")
+            raise SpiderError("self.cmd_args doesn't have a key 'exe'.")
         elif not XnatUtils.executable_exists(self.cmd_args['exe']):
             msg = "Executable not found: %s."
-            raise SpiderValueError(msg % self.cmd_args['exe'])
+            raise SpiderError(msg % self.cmd_args['exe'])
         if 'template' not in self.cmd_args.keys():
             msg = "self.cmd_args doesn't have a key 'template'."
-            raise SpiderValueError(msg)
+            raise SpiderError(msg)
         if 'args' not in self.cmd_args.keys():
-            raise SpiderValueError("self.cmd_args doesn't have a key 'args'.")
+            raise SpiderError("self.cmd_args doesn't have a key 'args'.")
 
         # Add options to matlab if it's not present in the exe
         cmd = ''
@@ -651,9 +655,8 @@ for resource %s : %s"
         # Write the template in file and call the executable on the file
         if 'filename' in self.cmd_args.keys():
             if not os.path.exists(os.path.dirname(self.cmd_args['filename'])):
-                raise SpiderValueError(
-                        "Folder for %s does not exist."
-                        % os.path.dirname(self.cmd_args['filename']))
+                raise SpiderError("Folder for %s does not exist."
+                                  % os.path.dirname(self.cmd_args['filename']))
             with open(self.cmd_args['filename'], 'w') as f:
                 f.write(template.substitute(self.cmd_args['args']))
             cmd = '%s %s' % (exe, self.cmd_args['filename'])
@@ -1037,7 +1040,7 @@ class AutoSpider(object):
             elif self.template.startswith('#BASH'):
                 self.exe_lang = 'bash'
             else:
-                raise AutoSpiderValueError('Template Unknown. Please add #BASH/\
+                raise AutoSpiderError('Template Unknown. Please add #BASH/\
 #PYTHON/#RUBY/#MATLAB at the beginning of the call file and rerun \
 GeneratorAutoSpider.')
         self.succeeded = run_cmd(self.exe_lang, filepath,
@@ -1127,7 +1130,7 @@ GeneratorAutoSpider.')
             result = self.download_xnat_resource(src, dst_dir)
             return result
         else:
-            raise AutoSpiderValueError('invalid xnat path: %s' % src)
+            raise AutoSpiderError('invalid xnat path: %s' % src)
 
     def copy_local_input(self, src, input_name):
         """Copy local inputs."""
@@ -1141,7 +1144,7 @@ GeneratorAutoSpider.')
             dst = os.path.join(dst_dir, os.path.basename(src))
             copyfile(src, dst)
         else:
-            raise AutoSpiderValueError('input does not exist: %s' % src)
+            raise AutoSpiderError('input does not exist: %s' % src)
 
         return dst
 
@@ -1155,9 +1158,9 @@ GeneratorAutoSpider.')
                 res = xnat.select(_res)
                 result = res.file(_file).get(dst)
             except:
-                raise AutoSpiderException('downloading from XNAT.')
+                raise AutoSpiderError('downloading from XNAT.')
         except:
-            raise AutoSpiderException('FAILED to get XNAT connection.')
+            raise AutoSpiderError('FAILED to get XNAT connection.')
         finally:
             xnat.disconnect()
 
@@ -1173,9 +1176,9 @@ GeneratorAutoSpider.')
                 res.get(dst, extract=True)
                 result = dst
             except:
-                raise AutoSpiderException('downloading from XNAT.')
+                raise AutoSpiderError('downloading from XNAT.')
         except:
-            raise AutoSpiderException('FAILED to get XNAT connection.')
+            raise AutoSpiderError('FAILED to get XNAT connection.')
         finally:
             xnat.disconnect()
 
@@ -1825,25 +1828,9 @@ def merge_pdfs(pdf_pages, pdf_final, time_writer=None):
         pages = ' '.join(pdf_pages)
     else:
         raise TypeError('Wrong type for pdf_pages (list or dict).')
-    cmd = 'gs -q -sPAPERSIZE=letter -dNOPAUSE -dBATCH \
--sDEVICE=pdfwrite -dPDFSETTINGS=/prepress -sOutputFile=%s %s' % (pdf_final, pages)
+    args = '-q -sPAPERSIZE=letter -dNOPAUSE -dBATCH -sDEVICE=pdfwrite \
+-dPDFSETTINGS=/prepress'
+    cmd = 'gs %s -sOutputFile=%s %s' % (args, pdf_final, pages)
     use_time_writer(time_writer, 'INFO:saving final PDF: %s ' % cmd)
     os.system(cmd)
     return pdf_final
-
-
-# Exceptions:
-class SpiderValueError(ValueError):
-    pass
-
-
-class SpiderTypeError(TypeError):
-    pass
-
-
-class AutoSpiderException(Exception):
-    pass
-
-
-class AutoSpiderValueError(ValueError):
-    pass

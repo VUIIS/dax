@@ -8,16 +8,11 @@ import sys
 import logging
 from datetime import datetime, timedelta
 
-import processors
-import modules
-import XnatUtils
-import task
-import cluster
-import bin
-from task import Task, ClusterTask, XnatTask
-from dax_settings import DAX_Settings, DAX_Netrc
-from dax.errors import (ClusterCountJobsException, ClusterLaunchException,
-                        DaxXnatError, DaxLauncherError)
+from . import processors, modules, XnatUtils, task, cluster, bin
+from .task import Task, ClusterTask, XnatTask
+from .dax_settings import DAX_Settings, DAX_Netrc
+from .errors import (ClusterCountJobsException, ClusterLaunchException,
+                     DaxXnatError, DaxLauncherError)
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'

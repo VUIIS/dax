@@ -3,15 +3,15 @@
 
 """ File containing functions called by dax executables """
 
-import os
-import imp
-import redcap
-import logging
 from datetime import datetime
+import imp
+import logging
+import os
+import redcap
 
-import log
-import XnatUtils
-from dax_settings import DAX_Settings
+from . import log
+from . import XnatUtils
+from .dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
 
 
@@ -152,14 +152,10 @@ def pi_from_project(project):
 
     """
     pi_name = ''
-    try:
-        xnat = XnatUtils.get_interface()
+    with XnatUtils.get_interface() as xnat:
         proj = xnat.select.project(project)
         pi_name = proj.attrs.get('xnat:projectdata/pi/lastname')
-    except:
-        pass
-    finally:
-        xnat.disconnect()
+
     return pi_name
 
 

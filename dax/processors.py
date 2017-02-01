@@ -2,9 +2,9 @@
 
 import os
 import re
-import task
 import logging
-import XnatUtils
+
+from . import XnatUtils, task
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'

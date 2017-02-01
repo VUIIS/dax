@@ -4,10 +4,11 @@ import os
 import shutil
 import smtplib
 import logging
-import XnatUtils
 from datetime import datetime
 from email.mime.text import MIMEText
-from dax_settings import DAX_Settings
+
+from . import XnatUtils
+from .dax_settings import DAX_Settings
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'

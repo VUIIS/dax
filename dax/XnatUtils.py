@@ -46,10 +46,10 @@ import xml.etree.cElementTree as ET
 import zipfile
 import task
 
-from dax.errors import (XnatUtilsError, XnatAccessError,
-                        XnatAuthentificationError)
-from dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
-                          DEFAULT_FS_DATATYPE)
+from .errors import (XnatUtilsError, XnatAccessError,
+                     XnatAuthentificationError)
+from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
+                           DEFAULT_FS_DATATYPE)
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
@@ -196,7 +196,8 @@ class InterfaceTemp(Interface):
     def __enter__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
                   temp_dir=None):
         """Enter method for with statement."""
-        self.__init__(xnat_host, xnat_user, xnat_pass, temp_dir)
+        # self.__init__(xnat_host, xnat_user, xnat_pass, temp_dir)
+        return self
 
     def __exit__(self, type, value, traceback):
         """Exit method for with statement."""
