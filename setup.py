@@ -54,8 +54,7 @@ if __name__ == '__main__':
                             'xlrd',
                             'pillow'],
           zip_safe=True,
-          scripts=[
-                   'bin/dax_tools/dax_manager',
+          scripts=['bin/dax_tools/dax_manager',
                    'bin/dax_tools/dax_build',
                    'bin/dax_tools/dax_launch',
                    'bin/dax_tools/dax_update_tasks',

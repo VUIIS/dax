@@ -605,21 +605,18 @@ Wrong label.'
         """
         # Connection to Xnat
         try:
-            xnat = get_interface()
-            assessor = self.assr_handler.select_assessor(xnat)
-            dtype = DEFAULT_DATATYPE
-            if self.assr_handler.get_proctype() == 'FS':
-                dtype = DEFAULT_FS_DATATYPE
-            former_status = assessor.attrs.get('%s/procstatus' % dtype)
-            if assessor.exists() and former_status == task.JOB_RUNNING:
-                assessor.attrs.set('%s/procstatus' % dtype, status)
-                self.print_msg('  - job status set to %s' % str(status))
-        except:
-            # fail to access XNAT -- let dax_upload set the status
+            with get_interface() as xnat:
+                assessor = self.assr_handler.select_assessor(xnat)
+                dtype = DEFAULT_DATATYPE
+                if self.assr_handler.get_proctype() == 'FS':
+                    dtype = DEFAULT_FS_DATATYPE
+                former_status = assessor.attrs.get('%s/procstatus' % dtype)
+                if assessor.exists() and former_status == task.JOB_RUNNING:
+                    assessor.attrs.set('%s/procstatus' % dtype, status)
+                    self.print_msg('  - job status set to %s' % str(status))
+        except XnatAuthentificationError as e:
+            print 'Failed to connect to XNAT. Error: ', e
             pass
-        finally:
-            if 'xnat' in locals() or xnat is not None:
-                xnat.disconnect()
 
     def done(self):
         """
@@ -1882,11 +1879,11 @@ def download_file(directory, resource, project_id=None, subject_id=None,
     :return: Path to the file downloaded.
 
     """
-    xnat = get_interface()
-    resource_obj = select_obj(xnat, project_id, subject_id, session_id,
-                              scan_id, assessor_id, resource)
-    fpath = download_file_from_obj(directory, resource_obj, fname)
-    xnat.disconnect()
+    with get_interface() as xnat:
+        resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+                                  scan_id, assessor_id, resource)
+        fpath = download_file_from_obj(directory, resource_obj, fname)
+
     return fpath
 
 
@@ -1925,11 +1922,11 @@ def download_files(directory, resource, project_id=None, subject_id=None,
     :return: List of all the files downloaded
 
     """
-    xnat = get_interface()
-    resource_obj = select_obj(xnat, project_id, subject_id, session_id,
-                              scan_id, assessor_id, resource)
-    fpaths = download_files_from_obj(directory, resource_obj)
-    xnat.disconnect()
+    with get_interface() as xnat:
+        resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+                                  scan_id, assessor_id, resource)
+        fpaths = download_files_from_obj(directory, resource_obj)
+
     return fpaths
 
 
@@ -1980,11 +1977,11 @@ def download_biggest_file(directory, resource, project_id=None,
     :return: File path of the file downloaded
 
     """
-    xnat = get_interface()
-    resource_obj = select_obj(xnat, project_id, subject_id, session_id,
-                              scan_id, assessor_id, resource)
-    fpath = download_biggest_file_from_obj(directory, resource_obj)
-    xnat.disconnect()
+    with get_interface() as xnat:
+        resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+                                  scan_id, assessor_id, resource)
+        fpath = download_biggest_file_from_obj(directory, resource_obj)
+
     return fpath
 
 
@@ -2036,11 +2033,10 @@ def download(directory, resources, project_id=None, subject_id=None,
     :return: List of filepaths for the downloaded files
 
     """
-    xnat = get_interface()
-    xnat_obj = select_obj(xnat, project_id, subject_id, session_id, scan_id,
-                          assessor_id)
-    fpaths = download_from_obj(directory, xnat_obj, resources, all_files)
-    xnat.disconnect()
+    with get_interface() as xnat:
+        xnat_obj = select_obj(xnat, project_id, subject_id, session_id,
+                              scan_id, assessor_id)
+        fpaths = download_from_obj(directory, xnat_obj, resources, all_files)
     return fpaths
 
 
@@ -2062,14 +2058,14 @@ def download_scan_types(directory, project_id, subject_id, session_id,
     """
     fpaths = list()
     scantypes = islist(scantypes, 'scantypes', 'download_scan_types')
-    xnat = get_interface()
-    for scan in list_scans(xnat, project_id, subject_id, session_id):
-        if scan['type'] in scantypes:
-            scan_obj = select_obj(xnat, project_id, subject_id, session_id,
-                                  scan['ID'])
-            fpaths.extend(download_from_obj(directory, scan_obj, resources,
-                                            all_files))
-    xnat.disconnect()
+    with get_interface() as xnat:
+        for scan in list_scans(xnat, project_id, subject_id, session_id):
+            if scan['type'] in scantypes:
+                scan_obj = select_obj(xnat, project_id, subject_id, session_id,
+                                      scan['ID'])
+                fpaths.extend(download_from_obj(directory, scan_obj, resources,
+                                                all_files))
+
     return fpaths
 
 
@@ -2095,15 +2091,14 @@ def download_scan_seriesdescriptions(directory, project_id, subject_id,
     seriesdescriptions = islist(seriesdescriptions, 'seriesdescription',
                                 'download_scan_seriesdescriptions')
 
-    xnat = get_interface()
-    for scan in list_scans(xnat, project_id, subject_id, session_id):
-        if scan['series_description'] in seriesdescriptions:
-            scan_obj = select_obj(xnat, project_id, subject_id, session_id,
-                                  scan['ID'])
-            fpaths.extend(download_from_obj(directory, scan_obj, resources,
-                                            all_files))
+    with get_interface() as xnat:
+        for scan in list_scans(xnat, project_id, subject_id, session_id):
+            if scan['series_description'] in seriesdescriptions:
+                scan_obj = select_obj(xnat, project_id, subject_id, session_id,
+                                      scan['ID'])
+                fpaths.extend(download_from_obj(directory, scan_obj, resources,
+                                                all_files))
 
-    xnat.disconnect()
     return fpaths
 
 
@@ -2128,15 +2123,16 @@ def download_assessor_proctypes(directory, project_id, subject_id, session_id,
     proctypes = set([proctype.replace('FreeSurfer', 'FS')
                      for proctype in proctypes])
 
-    xnat = get_interface()
-    for assessor in list_assessors(xnat, project_id, subject_id, session_id):
-        if assessor['proctype'] in proctypes:
-            assessor_obj = select_obj(xnat, project_id, subject_id, session_id,
-                                      assessor_id=assessor['label'])
-            fpaths.extend(download_from_obj(directory, assessor_obj, resources,
-                                            all_files))
+    with get_interface() as xnat:
+        li_assrs = list_assessors(xnat, project_id, subject_id, session_id)
+        for assessor in li_assrs:
+            if assessor['proctype'] in proctypes:
+                assessor_obj = select_obj(xnat, project_id, subject_id,
+                                          session_id,
+                                          assessor_id=assessor['label'])
+                fpaths.extend(download_from_obj(directory, assessor_obj,
+                                                resources, all_files))
 
-    xnat.disconnect()
     return fpaths
 
 
@@ -2202,12 +2198,12 @@ def upload_file(filepath, project_id=None, subject_id=None, session_id=None,
         err = '%s: resource argument not provided.'
         raise XnatUtilsError(err % ('upload_file'))
     else:
-        xnat = get_interface()
-        resource_obj = select_obj(xnat, project_id, subject_id, session_id,
-                                  scan_id, assessor_id, resource)
-        status = upload_file_to_obj(filepath, resource_obj, remove, removeall,
-                                    fname)
-        xnat.disconnect()
+        with get_interface() as xnat:
+            resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+                                      scan_id, assessor_id, resource)
+            status = upload_file_to_obj(filepath, resource_obj, remove,
+                                        removeall, fname)
+
     return status
 
 
@@ -2257,12 +2253,12 @@ def upload_files(filepaths, project_id=None, subject_id=None, session_id=None,
         err = '%s: resource argument not provided.'
         raise XnatUtilsError(err % ('upload_files'))
     else:
-        xnat = get_interface()
-        resource_obj = select_obj(xnat, project_id, subject_id, session_id,
-                                  scan_id, assessor_id, resource)
-        status = upload_files_to_obj(filepaths, resource_obj, remove,
-                                     removeall)
-        xnat.disconnect()
+        with get_interface() as xnat:
+            resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+                                      scan_id, assessor_id, resource)
+            status = upload_files_to_obj(filepaths, resource_obj, remove,
+                                         removeall)
+
     return status
 
 
@@ -2334,12 +2330,12 @@ def upload_folder(directory, project_id=None, subject_id=None, session_id=None,
         err = '%s: resource argument not provided.'
         raise XnatUtilsError(err % ('upload_folder'))
     else:
-        xnat = get_interface()
-        resource_obj = select_obj(xnat, project_id, subject_id, session_id,
-                                  scan_id, assessor_id, resource)
-        status = upload_folder_to_obj(directory, resource_obj, resource,
-                                      remove, removeall)
-        xnat.disconnect()
+        with get_interface() as xnat:
+            resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+                                      scan_id, assessor_id, resource)
+            status = upload_folder_to_obj(directory, resource_obj, resource,
+                                          remove, removeall)
+
     return status
 
 
@@ -2397,11 +2393,12 @@ def copy_resource(directory, project_id=None, subject_id=None, session_id=None,
         err = '%s: old_res or new_res argument not provided.'
         raise XnatUtilsError(err % ('copy_resource'))
     else:
-        xnat = get_interface()
-        xnat_obj = select_obj(xnat, project_id, subject_id, session_id,
-                              scan_id, assessor_id)
-        status = copy_resource_from_obj(directory, xnat_obj, old_res, new_res)
-        xnat.disconnect()
+        with get_interface() as xnat:
+            xnat_obj = select_obj(xnat, project_id, subject_id, session_id,
+                                  scan_id, assessor_id)
+            status = copy_resource_from_obj(directory, xnat_obj, old_res,
+                                            new_res)
+
     return status
 
 
@@ -3704,8 +3701,7 @@ download_file_from_obj(), or download_files_from_obj().'
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
 resources in download_Scan function. Not a list.")
 
-    try:
-        xnat = get_interface()
+    with get_interface() as xnat:
         xpath = C_XPATH.format(project=projectName,
                                subject=subject,
                                session=experiment,
@@ -3721,8 +3717,6 @@ resources in download_Scan function. Not a list.")
             err = '%s: xnat object for <%s> does not exist on XNAT.'
             raise XnatAccessError(err % ('download_Scan', xpath))
 
-    finally:
-        xnat.disconnect()
     print '=================================================================\n'
 
 
@@ -3765,8 +3759,7 @@ resources in download_ScanType function. Not a list.")
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
 scantypes in download_ScanType function. Not a list.")
 
-    try:
-        xnat = get_interface()
+    with get_interface() as xnat:
         for scan in list_scans(xnat, projectName, subject, experiment):
             if scan['type'] in List_scantype:
                 if scan['quality'] != 'unusable':
@@ -3779,8 +3772,7 @@ scantypes in download_ScanType function. Not a list.")
                                            Outputdirectory, all_resources)
                 else:
                     print 'DOWNLOAD WARNING: Scan unusable!'
-    finally:
-        xnat.disconnect()
+
     print '=================================================================\n'
 
 
@@ -3824,9 +3816,7 @@ resources in download_ScanSeriesDescription function. Not a list.")
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
 series_description in download_ScanSeriesDescription function. Not a list.")
 
-    try:
-        xnat = get_interface()
-
+    with get_interface() as xnat:
         for scan in list_scans(xnat, projectName, subject, experiment):
             xpath = C_XPATH.format(project=projectName,
                                    subject=subject,
@@ -3840,8 +3830,6 @@ series_description in download_ScanSeriesDescription function. Not a list.")
                 else:
                     print 'DOWNLOAD WARNING: Scan unusable!'
 
-    finally:
-        xnat.disconnect()
     print '=================================================================\n'
 
 
@@ -3869,14 +3857,11 @@ def download_Assessor(Outputdirectory, assessor_label, resource_list,
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
 resources in the download_Assessor function. Not a list.")
 
-    try:
-        xnat = get_interface()
+    with get_interface() as xnat:
         ASSESSOR = select_assessor(xnat, assessor_label)
         dl_good_resources_assessor(ASSESSOR, resource_list, Outputdirectory,
                                    all_resources)
 
-    finally:
-        xnat.disconnect()
     print '=================================================================\n'
 
 
@@ -3924,16 +3909,14 @@ process type in the download_AssessorType function. Not a list.")
     List_process_type = [process_type.replace('FreeSurfer', 'FS')
                          for process_type in List_process_type]
 
-    try:
-        xnat = get_interface()
+    with get_interface() as xnat:
         for assessor in list_assessors(xnat, projectName, subject, experiment):
             for proc_type in List_process_type:
                 if proc_type == assessor['label'].split('-x-')[-1]:
                     ASSESSOR = select_assessor(xnat, assessor['label'])
                     dl_good_resources_assessor(ASSESSOR, resource_list,
                                                Outputdirectory, all_resources)
-    finally:
-        xnat.disconnect()
+
     print '=================================================================\n'
 
 

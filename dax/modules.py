@@ -147,7 +147,7 @@ class Module(object):
             # Create the container (outer) email message.
             msg = MIMEText(self.text_report)
             if not subject:
-                subject = "**ERROR/WARNING for %s**" % self.mod_name
+                subject = "** ERROR/WARNING for %s **" % self.mod_name
             msg['Subject'] = subject
             # me == the sender's email address
             # family = the list of all recipients' email addresses

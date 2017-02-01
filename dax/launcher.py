@@ -418,7 +418,7 @@ cluster queue"
         :return: None
         """
         # Modules prerun
-        LOGGER.info('  *Modules Prerun')
+        LOGGER.info('  * Modules Prerun')
         if sessions_local:
             self.module_prerun(project_id, 'manual_update')
         else:
@@ -499,7 +499,7 @@ cluster queue"
 
         if not sessions_local or sessions_local.lower() == 'all':
             # Modules after run
-            LOGGER.debug('*Modules Afterrun')
+            LOGGER.debug('* Modules Afterrun')
             try:
                 self.module_afterrun(xnat, project_id)
             except Exception as E:

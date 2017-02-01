@@ -104,7 +104,7 @@ class Spider(object):
                 self.suffix = self.suffix[:-1]
             # Add an underscore at the beginning if not present
             if self.suffix[0] != '_':
-                self.suffix = '_'+self.suffix
+                self.suffix = '_%s' % self.suffix
         # print time writer:
         self.time_writer = TimedWriter(use_date=True)
         # Export the variable:
@@ -178,10 +178,11 @@ class Spider(object):
         return pyxnat object
 
         """
-        tmp_dict = collections.OrderedDict(
-                [('project', self.xnat_project),
-                 ('subject', self.xnat_subject),
-                 ('experiment', self.xnat_session)])
+        tmp_dict = collections.OrderedDict([
+            ('project', self.xnat_project),
+            ('subject', self.xnat_subject),
+            ('experiment', self.xnat_session)
+        ])
         # try on scan
         tmp_dict_scan = tmp_dict.copy()
         tmp_dict_scan['scan'] = obj_label
@@ -232,41 +233,43 @@ your spider.')
             raise SpiderError('self.inputs is not a list: %s' % self.inputs)
         # Inputs folder: jobdir/inputs
         input_dir = os.path.join(self.jobdir, 'inputs')
-        xnat = XnatUtils.get_interface(host=self.host, user=self.user,
-                                       pwd=self.pwd)
-        for data_dict in self.inputs:
-            if not isinstance(data_dict, dict):
-                raise SpiderError('data in self.inputs is not a dict: %s'
-                                  % data_dict)
-            if isinstance(data_dict['resource'], list):
-                resources = data_dict['resource']
-            else:
-                resources = [data_dict['resource']]
-            list_inputs = dict()
-            for res in resources:
-                if 'dir' in data_dict.keys():
-                    data_folder = os.path.join(input_dir, data_dict['dir'])
+        with XnatUtils.get_interface(host=self.host, user=self.user,
+                                     pwd=self.pwd) as xnat:
+            for data_dict in self.inputs:
+                if not isinstance(data_dict, dict):
+                    raise SpiderError('data in self.inputs is not a dict: %s'
+                                      % data_dict)
+                if isinstance(data_dict['resource'], list):
+                    resources = data_dict['resource']
                 else:
-                    data_folder = os.path.join(input_dir, data_dict['label'])
-                self.time_writer(' downloading %s for %s into %s'
-                                 % (res, data_dict['label'], data_folder))
-                if not os.path.isdir(data_folder):
-                    os.makedirs(data_folder)
-                xnat_dict = self.get_xnat_dict(data_dict, res)
-                res_str = self.select_str(xnat_dict)
-                resource_obj = xnat.select(res_str)
-                resource_obj.get(data_folder, extract=True)
-                resource_dir = os.path.join(data_folder, resource_obj.label())
-                list_files = list()
-                for root, _, filenames in os.walk(resource_dir):
-                    list_files.extend([os.path.join(root, filename)
-                                       for filename in filenames])
-                list_inputs[res] = list_files
-            if data_dict['label'] in self.data.keys():
-                self.data[data_dict['label']].update(list_inputs)
-            else:
-                self.data[data_dict['label']] = list_inputs
-        xnat.disconnect()
+                    resources = [data_dict['resource']]
+                list_inputs = dict()
+                for res in resources:
+                    if 'dir' in data_dict.keys():
+                        data_folder = os.path.join(input_dir,
+                                                   data_dict['dir'])
+                    else:
+                        data_folder = os.path.join(input_dir,
+                                                   data_dict['label'])
+                    self.time_writer(' downloading %s for %s into %s'
+                                     % (res, data_dict['label'], data_folder))
+                    if not os.path.isdir(data_folder):
+                        os.makedirs(data_folder)
+                    xnat_dict = self.get_xnat_dict(data_dict, res)
+                    res_str = self.select_str(xnat_dict)
+                    resource_obj = xnat.select(res_str)
+                    resource_obj.get(data_folder, extract=True)
+                    resource_dir = os.path.join(data_folder,
+                                                resource_obj.label())
+                    list_files = list()
+                    for root, _, filenames in os.walk(resource_dir):
+                        list_files.extend([os.path.join(root, filename)
+                                           for filename in filenames])
+                    list_inputs[res] = list_files
+                if data_dict['label'] in self.data.keys():
+                    self.data[data_dict['label']].update(list_inputs)
+                else:
+                    self.data[data_dict['label']] = list_inputs
         self.time_writer('-----------------------------------')
 
     def get_xnat_dict(self, data_dict, resource):
@@ -344,15 +347,13 @@ your spider.')
         :return: python list of files downloaded
         """
         # Open connection to XNAT
-        xnat = XnatUtils.get_interface(host=self.host, user=self.user,
-                                       pwd=self.pwd)
-        resource_obj = self.select_obj(intf=xnat,
-                                       obj_label=obj_label,
-                                       resource=resource)
-        list_files = XnatUtils.download_files_from_obj(
-                    directory=folder, resource_obj=resource_obj)
-        # close connection
-        xnat.disconnect()
+        with XnatUtils.get_interface(host=self.host, user=self.user,
+                                     pwd=self.pwd) as xnat:
+            resource_obj = self.select_obj(intf=xnat,
+                                           obj_label=obj_label,
+                                           resource=resource)
+            list_files = XnatUtils.download_files_from_obj(
+                        directory=folder, resource_obj=resource_obj)
         return list_files
 
     def define_spider_process_handler(self):
@@ -1151,36 +1152,28 @@ GeneratorAutoSpider.')
     def download_xnat_file(self, src, dst):
         """Download XNAT specific file."""
         result = None
-        try:
-            xnat = XnatUtils.get_interface(self.host, self.user, self.pwd)
+        with XnatUtils.get_interface(host=self.host, user=self.user,
+                                     pwd=self.pwd) as xnat:
             try:
                 _res, _file = src.split('/files/')
                 res = xnat.select(_res)
                 result = res.file(_file).get(dst)
             except:
                 raise AutoSpiderError('downloading from XNAT.')
-        except:
-            raise AutoSpiderError('FAILED to get XNAT connection.')
-        finally:
-            xnat.disconnect()
 
         return result
 
     def download_xnat_resource(self, src, dst):
         """Download XNAT complete resource."""
         result = None
-        try:
-            xnat = XnatUtils.get_interface(self.host, self.user, self.pwd)
+        with XnatUtils.get_interface(host=self.host, user=self.user,
+                                     pwd=self.pwd) as xnat:
             try:
                 res = xnat.select(src)
                 res.get(dst, extract=True)
                 result = dst
             except:
                 raise AutoSpiderError('downloading from XNAT.')
-        except:
-            raise AutoSpiderError('FAILED to get XNAT connection.')
-        finally:
-            xnat.disconnect()
 
         return result
 
