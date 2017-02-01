@@ -140,18 +140,18 @@ class Spider(object):
             extra += unicode_data
         scan_str = '\n    scan:%s' % self.xnat_scan if self.xnat_scan else ''
         return UNICODE_SPIDER.format(
-                type='Scan' if self.xnat_scan else 'Session',
-                path=self.spider_path,
-                jobdir=self.jobdir,
-                suffix=self.suffix,
-                host=self.host,
-                user=self.user,
-                project=self.xnat_project,
-                subject=self.xnat_subject,
-                session=self.xnat_session,
-                scan=scan_str,
-                extra=extra,
-                )
+            type='Scan' if self.xnat_scan else 'Session',
+            path=self.spider_path,
+            jobdir=self.jobdir,
+            suffix=self.suffix,
+            host=self.host,
+            user=self.user,
+            project=self.xnat_project,
+            subject=self.xnat_subject,
+            session=self.xnat_session,
+            scan=scan_str,
+            extra=extra,
+        )
 
     def __str__(self):
         return unicode(self).encode('utf-8')
@@ -349,7 +349,7 @@ your spider.')
                                            obj_label=obj_label,
                                            resource=resource)
             list_files = XnatUtils.download_files_from_obj(
-                        directory=folder, resource_obj=resource_obj)
+                directory=folder, resource_obj=resource_obj)
         return list_files
 
     def define_spider_process_handler(self):
@@ -647,7 +647,7 @@ for resource %s : %s"
             # add file to run the matlab command if not set
             if 'filename' not in self.cmd_args.keys():
                 self.cmd_args['filename'] = os.path.join(
-                        self.jobdir, 'run_%s_matlab.m' % self.xnat_session)
+                    self.jobdir, 'run_%s_matlab.m' % self.xnat_session)
 
         # Write the template in file and call the executable on the file
         if 'filename' in self.cmd_args.keys():
@@ -725,13 +725,13 @@ class ScanSpider(Spider):
         """
         # Create the SpiderProcessHandler if first time upload
         self.spider_handler = XnatUtils.SpiderProcessHandler(
-                self.spider_path,
-                self.suffix,
-                self.xnat_project,
-                self.xnat_subject,
-                self.xnat_session,
-                self.xnat_scan,
-                time_writer=self.time_writer)
+            self.spider_path,
+            self.suffix,
+            self.xnat_project,
+            self.xnat_subject,
+            self.xnat_session,
+            self.xnat_scan,
+            time_writer=self.time_writer)
 
     def pre_run(self):
         """
@@ -789,12 +789,12 @@ class SessionSpider(Spider):
         """
         # Create the SpiderProcessHandler if first time upload
         self.spider_handler = XnatUtils.SpiderProcessHandler(
-                self.spider_path,
-                self.suffix,
-                self.xnat_project,
-                self.xnat_subject,
-                self.xnat_session,
-                time_writer=self.time_writer)
+            self.spider_path,
+            self.suffix,
+            self.xnat_project,
+            self.xnat_subject,
+            self.xnat_session,
+            time_writer=self.time_writer)
 
     def pre_run(self):
         """
@@ -978,7 +978,7 @@ class AutoSpider(object):
             src_list = self.src_inputs[_input].split(',')
             dst_list = []
             for i, src in enumerate(src_list):
-                input_name = '*_*' % (_input, str(i))
+                input_name = '%s_%s' % (_input, str(i))
                 dst = self.copy_input(src, input_name)
                 if not dst:
                     self.time_writer('ERROR: copying inputs')
@@ -1048,9 +1048,9 @@ GeneratorAutoSpider.')
 
         # to copy results at the end
         self.spider_handler = XnatUtils.SpiderProcessHandler(
-                self.spider_name, self.suffix,
-                assessor_handler=self.ahandler,
-                time_writer=self.time_writer)
+            self.spider_name, self.suffix,
+            assessor_handler=self.ahandler,
+            time_writer=self.time_writer)
 
         self.time_writer('AutoSpider finish(): Copying outputs...')
 
@@ -1292,7 +1292,7 @@ def get_default_argparser(name, description):
         '--user', dest='user', default=None,
         help='Set XNAT User. Default: using env variable XNAT_USER')
     ap.add_argument(
-        '--no_subdir',  action='store_false', dest='subdir',
+        '--no_subdir', action='store_false', dest='subdir',
         help="Do not create a subdir Temp in the jobdir if the directory \
 isn't empty.")
     ap.add_argument(
@@ -1585,9 +1585,9 @@ Using default.")
             if isinstance(volume_ind, int):
                 data = data[:, :, :, volume_ind]
             else:
-                data = data[:, :, :, data.shape[3]/2]
-        default_slices = [data.shape[2]/4, data.shape[2]/2,
-                          3*data.shape[2]/4]
+                data = data[:, :, :, data.shape[3] / 2]
+        default_slices = [data.shape[2] / 4, data.shape[2] / 2,
+                          3 * data.shape[2] / 4]
         default_label = 'Line %s' % index
         if slices:
             if not isinstance(slices, dict):
@@ -1597,7 +1597,7 @@ dictionary. Using default.")
             li_slices = slices.get(str(index), default_slices)
             slices_number = len(li_slices)
             for slice_ind, slice_value in enumerate(li_slices):
-                ind = slices_number*index+slice_ind+1
+                ind = slices_number * index + slice_ind + 1
                 ax = fig.add_subplot(number_im, slices_number, ind)
                 if orient == 'cor':
                     dslice = data[:, slice_value, :]
@@ -1619,21 +1619,21 @@ dictionary. Using default.")
         else:
             # Fix Orientation:
             dslice = []
-            dslice_z = data[:, :, data.shape[2]/2]
+            dslice_z = data[:, :, data.shape[2] / 2]
             if dslice_z.shape[0] != dslice_z.shape[1]:
                 dslice_z = imresize(dslice_z, (max(dslice_z.shape),
                                                max(dslice_z.shape)))
-            dslice_y = data[:, data.shape[1]/2, :]
+            dslice_y = data[:, data.shape[1] / 2, :]
             if dslice_y.shape[0] != dslice_y.shape[1]:
                 dslice_y = imresize(dslice_y, (max(dslice_y.shape),
                                                max(dslice_y.shape)))
-            dslice_x = data[data.shape[0]/2, :, :]
+            dslice_x = data[data.shape[0] / 2, :, :]
             if dslice_x.shape[0] != dslice_x.shape[1]:
                 dslice_x = imresize(dslice_x, (max(dslice_x.shape),
                                                max(dslice_x.shape)))
 
             dslice = [dslice_z, dslice_y, dslice_x]
-            ax = fig.add_subplot(number_im, 3, 3*index+1)
+            ax = fig.add_subplot(number_im, 3, 3 * index + 1)
             ax.imshow(np.rot90(np.transpose(dslice[0]), 2),
                       cmap=cmap.get(str(index), default_cmap),
                       vmin=vmins.get(str(index), None),
@@ -1643,14 +1643,14 @@ dictionary. Using default.")
                           fontsize=9)
             ax.set_xticks([])
             ax.set_yticks([])
-            ax = fig.add_subplot(number_im, 3, 3*index+2)
+            ax = fig.add_subplot(number_im, 3, 3 * index + 2)
             ax.imshow(np.rot90(np.transpose(dslice[1]), 2),
                       cmap=cmap.get(str(index), default_cmap),
                       vmin=vmins.get(str(index), None),
                       vmax=vmaxs.get(str(index), None))
             ax.set_title('Coronal', fontsize=7)
             ax.set_axis_off()
-            ax = fig.add_subplot(number_im, 3, 3*index+3)
+            ax = fig.add_subplot(number_im, 3, 3 * index + 3)
             ax.imshow(np.rot90(np.transpose(dslice[2]), 2),
                       cmap=cmap.get(str(index), default_cmap),
                       vmin=vmins.get(str(index), None),
@@ -1712,19 +1712,19 @@ def plot_stats(pdf_path, page_index, stats_dict, title,
     fig = plt.figure(page_index, figsize=(7.5, 10))
     nb_stats = len(stats_dict.keys())
     for i in range(tables_number):
-        ax = fig.add_subplot(1, tables_number, i+1)
+        ax = fig.add_subplot(1, tables_number, i + 1)
         ax.xaxis.set_visible(False)
         ax.yaxis.set_visible(False)
         ax.axis('off')
         the_table = ax.table(
-                cellText=cell_text[nb_stats/3*i:nb_stats/3*(i+1)],
-                colColours=[(0.8, 0.4, 0.4), (1.0, 1.0, 0.4)],
-                colLabels=columns_header,
-                colWidths=[0.8, 0.32],
-                loc='center',
-                rowLoc='left',
-                colLoc='left',
-                cellLoc='left')
+            cellText=cell_text[nb_stats / 3 * i:nb_stats / 3 * (i + 1)],
+            colColours=[(0.8, 0.4, 0.4), (1.0, 1.0, 0.4)],
+            colLabels=columns_header,
+            colWidths=[0.8, 0.32],
+            loc='center',
+            rowLoc='left',
+            colLoc='left',
+            cellLoc='left')
 
         the_table.auto_set_font_size(False)
         the_table.set_fontsize(6)
