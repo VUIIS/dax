@@ -336,7 +336,7 @@ cluster queue"
                     LOGGER.info(msg % cur_task.assessor_label)
                     cur_task.update_status()
 
-        self.finish_script(xnat, flagfile, project_list, 2, 2, project_local)
+        self.finish_script(flagfile, project_list, 2, 2, project_local)
 
     @staticmethod
     def is_updatable_tasks(assr_info):
@@ -404,7 +404,7 @@ cluster queue"
                     LOGGER.critical(err1 % project_id)
                     LOGGER.critical(err2 % (E.__class__, E.message))
 
-        self.finish_script(xnat, flagfile, project_list, 1, 2, project_local)
+        self.finish_script(flagfile, project_list, 1, 2, project_local)
 
     def build_project(self, xnat, project_id, lockfile_prefix, sessions_local,
                       mod_delta=None):
