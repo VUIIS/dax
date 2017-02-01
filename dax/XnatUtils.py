@@ -215,7 +215,8 @@ class InterfaceTemp(Interface):
         :return: None
         """
         self._exec('/data/JSESSION', method='DELETE')
-        shutil.rmtree(self.temp_dir)
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
 
     def authenticate(self):
         """Authenticate to XNAT.

@@ -88,9 +88,9 @@ class Spider(object):
         self.xnat_session = xnat_session
         self.xnat_scan = None
         # Xnat connection settings:
-        self.host = get_default_value("host", "XNAT_HOST", xnat_host)
-        self.user = get_default_value("user", "XNAT_USER", xnat_user)
-        self.pwd = get_pwd(xnat_host, xnat_user, xnat_pass)
+        self.host = xnat_host
+        self.user = xnat_user
+        self.pwd = xnat_pass
         # Suffix
         if not suffix:
             self.suffix = ""
@@ -107,10 +107,6 @@ class Spider(object):
                 self.suffix = '_%s' % self.suffix
         # print time writer:
         self.time_writer = TimedWriter(use_date=True)
-        # Export the variable:
-        os.environ['XNAT_HOST'] = self.host
-        os.environ['XNAT_USER'] = self.user
-        os.environ['XNAT_PASS'] = self.pwd
         # run the finish or not
         self.skip_finish = skip_finish
         # Inputs:
@@ -883,15 +879,15 @@ class AutoSpider(object):
         # Spider path:
         self.spider_name = name
         if version:
-            self.spider_name += '_v'+version
+            self.spider_name += '_v%s' % version
 
         # directory for temporary files + create it
         self.jobdir = XnatUtils.makedir(os.path.abspath(args.temp_dir),
                                         subdir=args.subdir)
         # Xnat connection settings:
-        self.host = get_default_value("host", "XNAT_HOST", args.host)
-        self.user = get_default_value("user", "XNAT_USER", args.user)
-        self.pwd = get_pwd(args.host, args.user)
+        self.host = args.host
+        self.user = args.user
+        self.pwd = None
         # Suffix
         if not args.suffix:
             self.suffix = ""
@@ -905,13 +901,9 @@ class AutoSpider(object):
                 self.suffix = self.suffix[:-1]
             # Add an underscore at the beginning if not present
             if self.suffix[0] != '_':
-                self.suffix = '_'+self.suffix
+                self.suffix = '_%s' % self.suffix
         # print time writer:
         self.time_writer = TimedWriter(use_date=True)
-        # Export the variable:
-        os.environ['XNAT_HOST'] = self.host
-        os.environ['XNAT_USER'] = self.user
-        os.environ['XNAT_PASS'] = self.pwd
         # run the finish or not
         self.skip_finish = args.skipfinish
 
@@ -950,14 +942,14 @@ class AutoSpider(object):
             if key not in ['assessor_label', 'temp_dir', 'suffix']:
                 unicode_inputs.append("    %s: %s" % (key, value))
         return UNICODE_AUTOSPIDER.format(
-                name=self.spider_name,
-                jobdir=self.jobdir,
-                suffix='None' if not self.suffix else self.suffix,
-                host=self.host,
-                user=self.user,
-                assessor=self.ahandler.assessor_label,
-                inputs='\n'.join(unicode_inputs),
-                )
+            name=self.spider_name,
+            jobdir=self.jobdir,
+            suffix='None' if not self.suffix else self.suffix,
+            host=self.host,
+            user=self.user,
+            assessor=self.ahandler.assessor_label,
+            inputs='\n'.join(unicode_inputs),
+        )
 
     def __str__(self):
         """ Unicode for AutoSpiders."""
@@ -965,13 +957,13 @@ class AutoSpider(object):
 
     def get_argparser(self):
         """Get argparser for the AutoSpider."""
-        parser = get_auto_argparser(self.name, 'Run '+self.name)
+        parser = get_auto_argparser(self.name, 'Run %s' % self.name)
         # Add input params to arguments
         for p in self.params:
             _required = True
             if len(p) >= 4 and p[3].lower().startswith('f'):
                 _required = False
-            parser.add_argument('--'+p[0], dest=p[0], help=p[2],
+            parser.add_argument('--' + p[0], dest=p[0], help=p[2],
                                 required=_required)
         return parser
 
@@ -986,7 +978,7 @@ class AutoSpider(object):
             src_list = self.src_inputs[_input].split(',')
             dst_list = []
             for i, src in enumerate(src_list):
-                input_name = _input+'_'+str(i)
+                input_name = '*_*' % (_input, str(i))
                 dst = self.copy_input(src, input_name)
                 if not dst:
                     self.time_writer('ERROR: copying inputs')
@@ -1072,7 +1064,7 @@ GeneratorAutoSpider.')
 
                 if _res == 'PDF':
                     if _type != 'FILE':
-                        print('ERROR:illegal type for PDF:'+_type)
+                        print('ERROR:illegal type for PDF: %s' % _type)
                     elif len(_path_list) > 1:
                         print('ERROR:multiple PDFs found')
                     elif len(_path_list) == 0:
@@ -1086,7 +1078,7 @@ GeneratorAutoSpider.')
                     for _path in _path_list:
                         self.spider_handler.add_folder(_path, _res)
                 else:
-                    print('ERROR:unknown type:'+_type)
+                    print('ERROR:unknown type: %s' % _type)
         else:
             # Output not specified so upload everything in the job dir
             for _output in os.listdir(self.jobdir):
@@ -1253,7 +1245,7 @@ class TimedWriter(object):
             msg = "%s[%s] %s" % (msg, now.strftime("%Y-%m-%d %H:%M:%S"), text)
         else:
             time_now = time.localtime()
-            time_diff = time.mktime(time_now)-time.mktime(self.start_time)
+            time_diff = time.mktime(time_now) - time.mktime(self.start_time)
             (days, res) = divmod(time_diff, 86400)
             (hours, res) = divmod(res, 3600)
             (mins, secs) = divmod(res, 60)
@@ -1274,56 +1266,6 @@ class TimedWriter(object):
 
 
 # Functions
-def get_default_value(variable, env_name, value):
-    """
-    Return the default value for the variable if arg not NULL else
-     env variables defined by the args
-
-    :param variable: variable name
-    :param env_name: name of the environment variable
-    :param value:    value given by the user
-    :return: default value
-
-    """
-    if value:
-        return value
-    else:
-        if env_name in os.environ and os.environ[env_name] != "":
-            return os.environ[env_name]
-        else:
-            err = """%s not set by user.
-To set it choose one of this solution:
-Set the option --%s in the spider class
-Set the environment variable %s
-"""
-            raise ValueError(err % (env_name, variable, env_name))
-
-
-def get_pwd(host, user, pwd=None):
-    """
-    Return the password from env or ask user if the user was set
-
-    :param host: xnat host
-    :param user: xnat user
-    :param pwd: password
-    :return: default value
-
-    """
-    if pwd:
-        return pwd
-    else:
-        if user:
-            msg = "Enter the password for user '%s' on your XNAT -- %s :"
-            return getpass.getpass(prompt=msg % (user, host))
-        else:
-            if "XNAT_PASS" in os.environ and os.environ["XNAT_PASS"] != "":
-                return os.environ["XNAT_PASS"]
-            else:
-                err = "XNAT_PASS not set by user."
-                err += "\n\t   Set the environment variable XNAT_PASS"
-                raise ValueError(err)
-
-
 def get_default_argparser(name, description):
     """
     Return default argparser arguments for all Spider
