@@ -164,19 +164,19 @@ class Launcher(object):
 
         project_list = self.init_script(flagfile, project_local,
                                         type_update=3, start_end=1)
-        try:
-            if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
-                msg = 'Loading task queue from: %s'
-                LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-                task_list = load_task_queue(status=task.NEED_TO_RUN)
 
-                msg = '%s tasks that need to be launched found'
-                LOGGER.info(msg % str(len(task_list)))
-                self.launch_tasks(task_list, force_no_qsub=force_no_qsub)
-            else:
-                LOGGER.info('Connecting to XNAT at ' + self.xnat_host)
-                xnat = XnatUtils.get_interface(self.xnat_host, self.xnat_user,
-                                               self.xnat_pass)
+        if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
+            msg = 'Loading task queue from: %s'
+            LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
+            task_list = load_task_queue(status=task.NEED_TO_RUN)
+
+            msg = '%s tasks that need to be launched found'
+            LOGGER.info(msg % str(len(task_list)))
+            self.launch_tasks(task_list, force_no_qsub=force_no_qsub)
+        else:
+            LOGGER.info('Connecting to XNAT at %s' % self.xnat_host)
+            with XnatUtils.get_interface(self.xnat_host, self.xnat_user,
+                                         self.xnat_pass) as xnat:
 
                 if not XnatUtils.has_dax_datatypes(xnat):
                     err = 'dax datatypes are not installed on xnat <%s>'
@@ -194,9 +194,8 @@ class Launcher(object):
                 # Launch the task that need to be launch
                 self.launch_tasks(task_list, writeonly, pbsdir,
                                   force_no_qsub=force_no_qsub)
-        finally:
-            self.finish_script(xnat, flagfile, project_list, 3, 2,
-                               project_local)
+
+        self.finish_script(flagfile, project_list, 3, 2, project_local)
 
     @staticmethod
     def is_launchable_tasks(assr_info):
@@ -270,12 +269,12 @@ cluster queue"
                 success = False
 
             if not success:
-                LOGGER.error('ERROR:failed to launch job')
+                LOGGER.error('ERROR: failed to launch job')
                 raise ClusterLaunchException
 
             cur_job_count = cluster.count_jobs()
             if cur_job_count == -1:
-                LOGGER.error('ERROR:cannot get count of jobs from cluster')
+                LOGGER.error('ERROR: cannot get count of jobs from cluster')
                 raise ClusterCountJobsException
 
     # UPDATE Main Method
@@ -303,22 +302,22 @@ cluster queue"
                                 '%s_%s' % (lockfile_prefix, UPDATE_SUFFIX))
         project_list = self.init_script(flagfile, project_local,
                                         type_update=2, start_end=1)
-        try:
-            if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
-                msg = 'Loading task queue from: %s'
-                LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-                task_list = load_task_queue()
 
-                LOGGER.info('%s tasks found.' % str(len(task_list)))
+        if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
+            msg = 'Loading task queue from: %s'
+            LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
+            task_list = load_task_queue()
 
-                LOGGER.info('Updating tasks...')
-                for cur_task in task_list:
-                    LOGGER.info('Updating task: %s' % cur_task.assessor_label)
-                    cur_task.update_status()
-            else:
-                LOGGER.info('Connecting to XNAT at %s' % self.xnat_host)
-                xnat = XnatUtils.get_interface(self.xnat_host, self.xnat_user,
-                                               self.xnat_pass)
+            LOGGER.info('%s tasks found.' % str(len(task_list)))
+
+            LOGGER.info('Updating tasks...')
+            for cur_task in task_list:
+                LOGGER.info('Updating task: %s' % cur_task.assessor_label)
+                cur_task.update_status()
+        else:
+            LOGGER.info('Connecting to XNAT at %s' % self.xnat_host)
+            with XnatUtils.get_interface(self.xnat_host, self.xnat_user,
+                                         self.xnat_pass) as xnat:
 
                 if not XnatUtils.has_dax_datatypes(xnat):
                     err = 'error: dax datatypes are not installed on xnat <%s>'
@@ -336,9 +335,8 @@ cluster queue"
                     msg = '     Updating task: %s'
                     LOGGER.info(msg % cur_task.assessor_label)
                     cur_task.update_status()
-        finally:
-            self.finish_script(xnat, flagfile, project_list, 2, 2,
-                               project_local)
+
+        self.finish_script(xnat, flagfile, project_list, 2, 2, project_local)
 
     @staticmethod
     def is_updatable_tasks(assr_info):
@@ -379,10 +377,10 @@ cluster queue"
                                 '%s_%s' % (lockfile_prefix, BUILD_SUFFIX))
         project_list = self.init_script(flagfile, project_local,
                                         type_update=1, start_end=1)
-        try:
-            LOGGER.info('Connecting to XNAT at %s' % self.xnat_host)
-            xnat = XnatUtils.get_interface(self.xnat_host, self.xnat_user,
-                                           self.xnat_pass)
+
+        LOGGER.info('Connecting to XNAT at %s' % self.xnat_host)
+        with XnatUtils.get_interface(self.xnat_host, self.xnat_user,
+                                     self.xnat_pass) as xnat:
 
             if not XnatUtils.has_dax_datatypes(xnat):
                 err = 'error: dax datatypes are not installed on xnat <%s>'
@@ -406,9 +404,7 @@ cluster queue"
                     LOGGER.critical(err1 % project_id)
                     LOGGER.critical(err2 % (E.__class__, E.message))
 
-        finally:
-            self.finish_script(xnat, flagfile, project_list, 1, 2,
-                               project_local)
+        self.finish_script(xnat, flagfile, project_list, 1, 2, project_local)
 
     def build_project(self, xnat, project_id, lockfile_prefix, sessions_local,
                       mod_delta=None):
@@ -432,10 +428,9 @@ cluster queue"
         #       modules, etc
 
         # Get lists of modules/processors per scan/exp for this project
-        exp_mods, scan_mods = modules.modules_by_type(
-                                self.project_modules_dict[project_id])
-        exp_procs, scan_procs = processors.processors_by_type(
-                                self.project_process_dict[project_id])
+        procs_mods = self.project_modules_dict[project_id]
+        exp_mods, scan_mods = modules.modules_by_type(procs_mods)
+        exp_procs, scan_procs = processors.processors_by_type(procs_mods)
 
         if mod_delta:
             lastmod_delta = str_to_timedelta(mod_delta)
@@ -842,7 +837,7 @@ The project is not part of the settings."""
             bin.upload_update_date_redcap(project_list, type_update, start_end)
         return project_list
 
-    def finish_script(self, xnat, flagfile, project_list, type_update,
+    def finish_script(self, flagfile, project_list, type_update,
                       start_end, project_local):
         """
         Finish script for any of the main methods: build/update/launch
@@ -859,10 +854,6 @@ The project is not part of the settings."""
             self.unlock_flagfile(flagfile)
             # Set the date on REDCAP for update ending
             bin.upload_update_date_redcap(project_list, type_update, start_end)
-
-        if xnat:
-            xnat.disconnect()
-            LOGGER.info('Connection to XNAT closed')
 
     @staticmethod
     def lock_flagfile(lock_file):
@@ -906,7 +897,8 @@ The project is not part of the settings."""
         if not project_list:
             # Priority:
             if self.priority_project:
-                project_list = self.get_project_list(self.project_process_dict.keys())
+                projects = self.project_process_dict.keys()
+                project_list = self.get_project_list(projects)
             else:
                 project_list = list(self.project_process_dict.keys())
 
@@ -1093,7 +1085,8 @@ The project is not part of the settings."""
         """
         xsi_type = sess_info['xsiType']
         sess_obj = XnatUtils.get_full_object(xnat, sess_info)
-        last_modified_xnat = sess_obj.attrs.get('%s/meta/last_modified' % xsi_type)
+        xsi_uri = '%s/meta/last_modified' % xsi_type
+        last_modified_xnat = sess_obj.attrs.get(xsi_uri)
         d_format = '%Y-%m-%d %H:%M:%S'
         last_mod = datetime.strptime(last_modified_xnat[0:19], d_format)
         if last_mod > update_start_time:
