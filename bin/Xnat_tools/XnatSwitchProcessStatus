@@ -656,19 +656,17 @@ assessors.'
                 else:
                     HOST = os.environ['XNAT_HOST']
                 if OPTIONS.username:
-                    USER = OPTIONS.username
-                else:
-                    USER = os.environ['XNAT_USER']
-                if OPTIONS.username:
-                    MSG = ("Please provide the password for user <%s> \
-on xnat(%s):" % (USER, HOST))
+                    MSG = "Please provide the password for user <%s> on xnat(\
+%s):" % (OPTIONS.username, HOST)
                     PWD = getpass.getpass(prompt=MSG)
                 else:
                     PWD = None
 
-                print 'INFO: connection to xnat <%s>:' % (HOST)
+                MSG = 'INFO: connection to xnat <%s>:' % (HOST)
+                print MSG
                 XNAT = XnatUtils.get_interface(host=OPTIONS.host,
-                                               user=OPTIONS.username, pwd=PWD)
+                                               user=OPTIONS.username,
+                                               pwd=PWD)
 
                 if OPTIONS.select:  # SPECIFIC ASSESSOR SELECTED
                     print("INFO: Changing Status on assessor %s to %s"
