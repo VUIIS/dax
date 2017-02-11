@@ -1097,6 +1097,15 @@ GeneratorAutoSpider.')
         self.spider_handler.done()
         self.spider_handler.clean(self.jobdir)
         self.print_end()
+        
+    def print_end(self):
+        """
+        Last print statement to give the time and date at the end of the spider
+
+        :return: None
+        """
+        self.time_writer('Time at the end of the Spider: %s'
+                         % str(datetime.now()))
 
     def copy_input(self, src, input_name):
         """Copy inputs or download from XNAT."""
