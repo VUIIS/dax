@@ -429,7 +429,7 @@ cluster queue"
 
         # Get lists of modules/processors per scan/exp for this project
         proj_mods = self.project_modules_dict[project_id]
-        proj_proc = self.project_process_dict[project_id]
+        proj_procs = self.project_process_dict[project_id]
         exp_mods, scan_mods = modules.modules_by_type(proj_mods)
         exp_procs, scan_procs = processors.processors_by_type(proj_procs)
 
