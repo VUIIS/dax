@@ -386,7 +386,6 @@ class SpiderProcessHandler:
         # get the processname from spider
         if len(re.split('/*_v[0-9]/*', script_name)) > 1:
             self.version = script_name.split('_v')[-1].replace('_', '.')
-            
             ptype = re.split('/*_v[0-9]/*', script_name)[0]
             proctype = '%s_v%s' % (ptype, self.version[0])
         else:
