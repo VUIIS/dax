@@ -1088,6 +1088,15 @@ GeneratorAutoSpider.')
                 self.spider_handler.add_folder(_path, _res)
 
         self.end()
+        
+    def end(self):
+        """
+        Finish the script by sending the end of script flag and cleaning folder
+        :return: None
+        """
+        self.spider_handler.done()
+        self.spider_handler.clean(self.jobdir)
+        self.print_end()
 
     def copy_input(self, src, input_name):
         """Copy inputs or download from XNAT."""
