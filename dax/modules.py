@@ -1,13 +1,14 @@
 """ Module classes for Scan and Sessions """
 
-import os
-import shutil
-import smtplib
-import logging
-import XnatUtils
 from datetime import datetime
 from email.mime.text import MIMEText
-from dax_settings import DAX_Settings
+import logging
+import os
+import smtplib
+import shutil
+
+from . import XnatUtils
+from .dax_settings import DAX_Settings
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
@@ -146,7 +147,7 @@ class Module(object):
             # Create the container (outer) email message.
             msg = MIMEText(self.text_report)
             if not subject:
-                subject = "**ERROR/WARNING for %s**" % self.mod_name
+                subject = "** ERROR/WARNING for %s **" % self.mod_name
             msg['Subject'] = subject
             # me == the sender's email address
             # family = the list of all recipients' email addresses

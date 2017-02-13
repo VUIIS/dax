@@ -3,15 +3,15 @@
 
 """ File containing functions called by dax executables """
 
-import os
-import imp
-import redcap
-import logging
 from datetime import datetime
+import imp
+import logging
+import os
+import redcap
 
-import log
-import XnatUtils
-from dax_settings import DAX_Settings
+from . import log
+from . import XnatUtils
+from .dax_settings import DAX_Settings
 DAX_SETTINGS = DAX_Settings()
 
 
@@ -51,15 +51,15 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
     # Logger for logs
     logger = set_logger(logfile, debug)
 
-    logger.info('Current Process ID: '+str(os.getpid()))
-    logger.info('Current Process Name: dax.bin.update('+settings_path+')')
+    logger.info('Current Process ID: %s' % str(os.getpid()))
+    logger.info('Current Process Name: dax.bin.update(%s)' % settings_path)
     # Load the settings file
-    logger.info('loading settings from:'+settings_path)
+    logger.info('loading settings from: %s' % settings_path)
     settings = imp.load_source('settings', settings_path)
     lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
 
     # Run the updates
-    logger.info('running update, Start Time:'+str(datetime.now()))
+    logger.info('running update, Start Time: %s' % str(datetime.now()))
     try:
         settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions,
                                         writeonly, pbsdir,
@@ -68,7 +68,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
         logger.critical('Caught exception launching jobs in bin.launch_jobs')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
                                                                 e.message))
-    logger.info('finished update, End Time: '+str(datetime.now()))
+    logger.info('finished update, End Time: %s' % str(datetime.now()))
 
 
 def build(settings_path, logfile, debug, projects=None, sessions=None,
@@ -152,14 +152,10 @@ def pi_from_project(project):
 
     """
     pi_name = ''
-    try:
-        xnat = XnatUtils.get_interface()
+    with XnatUtils.get_interface() as xnat:
         proj = xnat.select.project(project)
         pi_name = proj.attrs.get('xnat:projectdata/pi/lastname')
-    except:
-        pass
-    finally:
-        xnat.disconnect()
+
     return pi_name
 
 

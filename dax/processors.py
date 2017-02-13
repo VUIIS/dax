@@ -1,10 +1,10 @@
 """ Processor class define for Scan and Session."""
 
-import os
-import re
-import task
 import logging
-import XnatUtils
+import re
+import os
+
+from . import XnatUtils, task
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
@@ -68,11 +68,13 @@ class Processor(object):
             proc_name = re.split("/*_v[0-9]/*", proc_name)[0]
             # setting the version and name of the spider
             self.version = version
-            self.name = '''{procname}_v{version}{suffix}'''.format(
-                    procname=proc_name, version=self.version.split('.')[0],
-                    suffix=self.suffix_proc)
-            spider_name = '''Spider_{procname}_v{version}.py'''.format(
-                    procname=proc_name, version=version.replace('.', '_'))
+            nformat = '''{procname}_v{version}{suffix}'''
+            self.name = nformat.format(procname=proc_name,
+                                       version=self.version.split('.')[0],
+                                       suffix=self.suffix_proc)
+            sformat = '''Spider_{procname}_v{version}.py'''
+            spider_name = sformat.format(procname=proc_name,
+                                         version=version.replace('.', '_'))
             self.spider_path = os.path.join(os.path.dirname(spider_path),
                                             spider_name)
         else:

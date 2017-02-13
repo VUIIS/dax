@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
 import logging
+import sys
 
 
 def setup_debug_logger(name, logfile):

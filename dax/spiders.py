@@ -10,10 +10,8 @@
 
 import collections
 import csv
-import getpass
-import glob
-from dax import XnatUtils
 from datetime import datetime
+import glob
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
@@ -27,7 +25,13 @@ import subprocess as sb
 import sys
 import time
 
+from . import XnatUtils
+from .errors import SpiderError, AutoSpiderError
 
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__all__ = ["Spider", "ScanSpider", "SessionSpider", "AutoSpider",
+           "TimedWriter"]
 UNICODE_SPIDER = """
 Spider information:
   -- General --
@@ -83,9 +87,9 @@ class Spider(object):
         self.xnat_session = xnat_session
         self.xnat_scan = None
         # Xnat connection settings:
-        self.host = get_default_value("host", "XNAT_HOST", xnat_host)
-        self.user = get_default_value("user", "XNAT_USER", xnat_user)
-        self.pwd = get_pwd(xnat_host, xnat_user, xnat_pass)
+        self.host = xnat_host
+        self.user = xnat_user
+        self.pwd = xnat_pass
         # Suffix
         if not suffix:
             self.suffix = ""
@@ -99,13 +103,9 @@ class Spider(object):
                 self.suffix = self.suffix[:-1]
             # Add an underscore at the beginning if not present
             if self.suffix[0] != '_':
-                self.suffix = '_'+self.suffix
+                self.suffix = '_%s' % self.suffix
         # print time writer:
         self.time_writer = TimedWriter(use_date=True)
-        # Export the variable:
-        os.environ['XNAT_HOST'] = self.host
-        os.environ['XNAT_USER'] = self.user
-        os.environ['XNAT_PASS'] = self.pwd
         # run the finish or not
         self.skip_finish = skip_finish
         # Inputs:
@@ -139,18 +139,18 @@ class Spider(object):
             extra += unicode_data
         scan_str = '\n    scan:%s' % self.xnat_scan if self.xnat_scan else ''
         return UNICODE_SPIDER.format(
-                type='Scan' if self.xnat_scan else 'Session',
-                path=self.spider_path,
-                jobdir=self.jobdir,
-                suffix=self.suffix,
-                host=self.host,
-                user=self.user,
-                project=self.xnat_project,
-                subject=self.xnat_subject,
-                session=self.xnat_session,
-                scan=scan_str,
-                extra=extra,
-                )
+            type='Scan' if self.xnat_scan else 'Session',
+            path=self.spider_path,
+            jobdir=self.jobdir,
+            suffix=self.suffix,
+            host=self.host,
+            user=self.user,
+            project=self.xnat_project,
+            subject=self.xnat_subject,
+            session=self.xnat_session,
+            scan=scan_str,
+            extra=extra,
+        )
 
     def __str__(self):
         return unicode(self).encode('utf-8')
@@ -173,10 +173,11 @@ class Spider(object):
         return pyxnat object
 
         """
-        tmp_dict = collections.OrderedDict(
-                [('project', self.xnat_project),
-                 ('subject', self.xnat_subject),
-                 ('experiment', self.xnat_session)])
+        tmp_dict = collections.OrderedDict([
+            ('project', self.xnat_project),
+            ('subject', self.xnat_subject),
+            ('experiment', self.xnat_session)
+        ])
         # try on scan
         tmp_dict_scan = tmp_dict.copy()
         tmp_dict_scan['scan'] = obj_label
@@ -221,48 +222,49 @@ class Spider(object):
         """
         self.time_writer('-------- download_inputs --------')
         if not self.inputs:
-            raise Exception('ERROR using download_inputs(): \
-self.inputs not define in your spider.')
+            raise SpiderError('download_inputs(): self.inputs not define in \
+your spider.')
         if not isinstance(self.inputs, list):
-            raise Exception('ERROR: self.inputs is not a list: %s'
-                            % self.inputs)
+            raise SpiderError('self.inputs is not a list: %s' % self.inputs)
         # Inputs folder: jobdir/inputs
         input_dir = os.path.join(self.jobdir, 'inputs')
-        xnat = XnatUtils.get_interface(host=self.host, user=self.user,
-                                       pwd=self.pwd)
-        for data_dict in self.inputs:
-            if not isinstance(data_dict, dict):
-                raise Exception('ERROR: data in self.inputs is not a dict: %s'
-                                % data_dict)
-            if isinstance(data_dict['resource'], list):
-                resources = data_dict['resource']
-            else:
-                resources = [data_dict['resource']]
-            list_inputs = dict()
-            for res in resources:
-                if 'dir' in data_dict.keys():
-                    data_folder = os.path.join(input_dir, data_dict['dir'])
+        with XnatUtils.get_interface(host=self.host, user=self.user,
+                                     pwd=self.pwd) as xnat:
+            for data_dict in self.inputs:
+                if not isinstance(data_dict, dict):
+                    raise SpiderError('data in self.inputs is not a dict: %s'
+                                      % data_dict)
+                if isinstance(data_dict['resource'], list):
+                    resources = data_dict['resource']
                 else:
-                    data_folder = os.path.join(input_dir, data_dict['label'])
-                self.time_writer(' downloading %s for %s into %s'
-                                 % (res, data_dict['label'], data_folder))
-                if not os.path.isdir(data_folder):
-                    os.makedirs(data_folder)
-                xnat_dict = self.get_xnat_dict(data_dict, res)
-                res_str = self.select_str(xnat_dict)
-                resource_obj = xnat.select(res_str)
-                resource_obj.get(data_folder, extract=True)
-                resource_dir = os.path.join(data_folder, resource_obj.label())
-                list_files = list()
-                for root, _, filenames in os.walk(resource_dir):
-                    list_files.extend([os.path.join(root, filename)
-                                       for filename in filenames])
-                list_inputs[res] = list_files
-            if data_dict['label'] in self.data.keys():
-                self.data[data_dict['label']].update(list_inputs)
-            else:
-                self.data[data_dict['label']] = list_inputs
-        xnat.disconnect()
+                    resources = [data_dict['resource']]
+                list_inputs = dict()
+                for res in resources:
+                    if 'dir' in data_dict.keys():
+                        data_folder = os.path.join(input_dir,
+                                                   data_dict['dir'])
+                    else:
+                        data_folder = os.path.join(input_dir,
+                                                   data_dict['label'])
+                    self.time_writer(' downloading %s for %s into %s'
+                                     % (res, data_dict['label'], data_folder))
+                    if not os.path.isdir(data_folder):
+                        os.makedirs(data_folder)
+                    xnat_dict = self.get_xnat_dict(data_dict, res)
+                    res_str = self.select_str(xnat_dict)
+                    resource_obj = xnat.select(res_str)
+                    resource_obj.get(data_folder, extract=True)
+                    resource_dir = os.path.join(data_folder,
+                                                resource_obj.label())
+                    list_files = list()
+                    for root, _, filenames in os.walk(resource_dir):
+                        list_files.extend([os.path.join(root, filename)
+                                           for filename in filenames])
+                    list_inputs[res] = list_files
+                if data_dict['label'] in self.data.keys():
+                    self.data[data_dict['label']].update(list_inputs)
+                else:
+                    self.data[data_dict['label']] = list_inputs
         self.time_writer('-----------------------------------')
 
     def get_xnat_dict(self, data_dict, resource):
@@ -340,15 +342,13 @@ self.inputs not define in your spider.')
         :return: python list of files downloaded
         """
         # Open connection to XNAT
-        xnat = XnatUtils.get_interface(host=self.host, user=self.user,
-                                       pwd=self.pwd)
-        resource_obj = self.select_obj(intf=xnat,
-                                       obj_label=obj_label,
-                                       resource=resource)
-        list_files = XnatUtils.download_files_from_obj(
-                    directory=folder, resource_obj=resource_obj)
-        # close connection
-        xnat.disconnect()
+        with XnatUtils.get_interface(host=self.host, user=self.user,
+                                     pwd=self.pwd) as xnat:
+            resource_obj = self.select_obj(intf=xnat,
+                                           obj_label=obj_label,
+                                           resource=resource)
+            list_files = XnatUtils.download_files_from_obj(
+                directory=folder, resource_obj=resource_obj)
         return list_files
 
     def define_spider_process_handler(self):
@@ -395,7 +395,7 @@ self.inputs not define in your spider.')
             self.spider_handler.add_folder(fpath, resource)
         else:
             err = "upload(): file path does not exist: %s" % (fpath)
-            raise ValueError(err)
+            raise SpiderError(err)
 
     def upload_dict(self, files_dict):
         """
@@ -419,7 +419,7 @@ self.inputs not define in your spider.')
             else:
                 err = "upload_dict(): variable not recognize in dictionary \
 for resource %s : %s"
-                raise ValueError(err % (resource, type(fpath)))
+                raise SpiderError(err % (resource, type(fpath)))
 
     def end(self):
         """
@@ -443,8 +443,8 @@ for resource %s : %s"
         """
         if executable == name:
             if not XnatUtils.executable_exists(executable):
-                raise Exception("Executable '%s' not found on your computer."
-                                % (name))
+                raise SpiderError("Executable '%s' not found on your computer."
+                                  % name)
         else:
             executable = os.path.abspath(executable)
             if not executable.endswith(name):
@@ -452,9 +452,10 @@ for resource %s : %s"
                     executable = os.path.join(executable, name)
                 else:
                     msg = "Error for executable path '%s': Wrong name."
-                    raise Exception(msg % (executable))
+                    raise SpiderError(msg % executable)
             if not os.path.isfile(executable):
-                raise Exception("Executable '%s' not found" % (executable))
+                msg = "Executable '%s' not found"
+                raise SpiderError(msg % executable)
 
         self.get_exe_version(executable, version_opt)
         return executable
@@ -619,20 +620,22 @@ for resource %s : %s"
                     key = argument
                     value = value to set
             filename: name for the file if written into a file (optional)
-        :return: None
+        :return: True if succeeded, False otherwise
         """
         self.time_writer('-------- run_cmd_args --------')
         # Check cmd_args set by user:
         if not self.cmd_args:
-            raise Exception("self.cmd_args not defined.")
+            raise SpiderError("self.cmd_args not defined.")
         if 'exe' not in self.cmd_args.keys():
-            raise Exception("self.cmd_args doesn't have a key 'exe'.")
+            raise SpiderError("self.cmd_args doesn't have a key 'exe'.")
         elif not XnatUtils.executable_exists(self.cmd_args['exe']):
-            raise Exception("Executable not found: %s." % self.cmd_args['exe'])
+            msg = "Executable not found: %s."
+            raise SpiderError(msg % self.cmd_args['exe'])
         if 'template' not in self.cmd_args.keys():
-            raise Exception("self.cmd_args doesn't have a key 'template'.")
+            msg = "self.cmd_args doesn't have a key 'template'."
+            raise SpiderError(msg)
         if 'args' not in self.cmd_args.keys():
-            raise Exception("self.cmd_args doesn't have a key 'args'.")
+            raise SpiderError("self.cmd_args doesn't have a key 'args'.")
 
         # Add options to matlab if it's not present in the exe
         cmd = ''
@@ -643,13 +646,13 @@ for resource %s : %s"
             # add file to run the matlab command if not set
             if 'filename' not in self.cmd_args.keys():
                 self.cmd_args['filename'] = os.path.join(
-                        self.jobdir, 'run_%s_matlab.m' % self.xnat_session)
+                    self.jobdir, 'run_%s_matlab.m' % self.xnat_session)
 
         # Write the template in file and call the executable on the file
         if 'filename' in self.cmd_args.keys():
             if not os.path.exists(os.path.dirname(self.cmd_args['filename'])):
-                raise Exception("Folder for %s does not exist."
-                                % os.path.dirname(self.cmd_args['filename']))
+                raise SpiderError("Folder for %s does not exist."
+                                  % os.path.dirname(self.cmd_args['filename']))
             with open(self.cmd_args['filename'], 'w') as f:
                 f.write(template.substitute(self.cmd_args['args']))
             cmd = '%s %s' % (exe, self.cmd_args['filename'])
@@ -661,45 +664,18 @@ for resource %s : %s"
             cmd = '%s %s' % (cmd, template.substitute(self.cmd_args['args']))
 
         self.time_writer("Running command: %s" % cmd)
-        self.execute_cmd(cmd)
+        succeeded = execute_cmd(cmd, time_writer=self.time_writer)
         self.time_writer('-----------------------------------')
+        return succeeded
 
-    def execute_cmd(self, cmd):
-        """
-        Execute a command and print in time the output using subprocess
-
-        :param cmd: command to run
-        :return: None
-        """
-        process = sb.Popen(cmd, shell=True, stdout=sb.PIPE, stderr=sb.STDOUT)
-
-        # Poll process for new output until finished
-        while True:
-            nextline = process.stdout.readline()
-            if nextline == '' and process.poll() is not None:
-                break
-            # sys.stdout.write(nextline)
-            # sys.stdout.flush()
-            self.time_writer(nextline.strip())
-
-        output, error = process.communicate()
-
-        if process.returncode:
-            if error:
-                msg = 'Command define by cmd_args failed. See error:\n %s'
-                raise Exception(msg % error)
-            else:
-                raise Exception('Check output for errors.')
-
-    @staticmethod
-    def run_system_cmd(cmd):
+    def run_system_cmd(self, cmd):
         """
         Run system command line via os.system()
 
         :param cmd: command to run
-        :return: None
+        :return: True if succeeded, False otherwise
         """
-        os.system(cmd)
+        return execute_cmd(cmd, time_writer=self.time_writer)
 
     @staticmethod
     def select_str(xnat_dict):
@@ -748,13 +724,13 @@ class ScanSpider(Spider):
         """
         # Create the SpiderProcessHandler if first time upload
         self.spider_handler = XnatUtils.SpiderProcessHandler(
-                self.spider_path,
-                self.suffix,
-                self.xnat_project,
-                self.xnat_subject,
-                self.xnat_session,
-                self.xnat_scan,
-                time_writer=self.time_writer)
+            self.spider_path,
+            self.suffix,
+            self.xnat_project,
+            self.xnat_subject,
+            self.xnat_session,
+            self.xnat_scan,
+            time_writer=self.time_writer)
 
     def pre_run(self):
         """
@@ -812,12 +788,12 @@ class SessionSpider(Spider):
         """
         # Create the SpiderProcessHandler if first time upload
         self.spider_handler = XnatUtils.SpiderProcessHandler(
-                self.spider_path,
-                self.suffix,
-                self.xnat_project,
-                self.xnat_subject,
-                self.xnat_session,
-                time_writer=self.time_writer)
+            self.spider_path,
+            self.suffix,
+            self.xnat_project,
+            self.xnat_subject,
+            self.xnat_session,
+            time_writer=self.time_writer)
 
     def pre_run(self):
         """
@@ -850,14 +826,47 @@ class SessionSpider(Spider):
         raise NotImplementedError()
 
 
-class AutoSpider(Spider):
-    def __init__(self, name, params, outputs, template, datatype='session', version=None, extension=None):
+SCRIPT_NAME = {
+    'python': '.py',
+    'matlab': '.m',
+    'ruby': '.rb',
+    'bash': '.sh'
+}
+UNICODE_AUTOSPIDER = """AutoSpider information:
+  -- General --
+    Name:    {name}
+    jobdir:  {jobdir}
+    suffix:  {suffix}
+  -- XNAT --
+    host:    {host}
+    user:    {user}
+    assessor: {assessor}
+  -- Inputs --
+{inputs}
+"""
+
+
+# AutoSpider should not be used by the USER. Use InitAutoSpider &
+# GenerateAutoSpider to generate the files needed for a new spider
+class AutoSpider(object):
+    """ Class for Autospider """
+    def __init__(self, name, params, outputs, template, version=None,
+                 exe_lang=None):
+        """
+        Entry point for Autospider class
+
+        :param name: spider name
+        :param params: inputs parameters
+        :param outputs: outputs to save
+        :param template: template to run
+        :param version: spider version
+        :param exe_lang: executable language (python, matlab, bash, ruby)
+        """
         self.name = name
         self.params = params
         self.outputs = outputs
         self.template = template
-        self.datatype = datatype
-        self.extension = extension
+        self.exe_lang = exe_lang
         self.copy_list = []
 
         # Make the parser
@@ -866,17 +875,36 @@ class AutoSpider(Spider):
         # Now parse commandline arguments
         args = parser.parse_args()
 
-        # Initialize spider with the args
-        full_name = name
+        # Spider path:
+        self.spider_name = name
         if version:
-            full_name += '_v'+version
-        super(AutoSpider, self).__init__(full_name,
-            args.temp_dir, args.proj_label, args.subj_label, args.sess_label,
-            xnat_host=args.host, xnat_user=args.user, xnat_pass=None,
-            suffix=args.suffix, skip_finish=args.skipfinish)
+            self.spider_name += '_v%s' % version
 
-        if datatype == 'scan':
-            self.xnat_scan = args.scan_label
+        # directory for temporary files + create it
+        self.jobdir = XnatUtils.makedir(os.path.abspath(args.temp_dir),
+                                        subdir=args.subdir)
+        # Xnat connection settings:
+        self.host = args.host
+        self.user = args.user
+        self.pwd = None
+        # Suffix
+        if not args.suffix:
+            self.suffix = ""
+        else:
+            # Set the suffix_proc remove any special characters, replace by '_'
+            self.suffix = re.sub('[^a-zA-Z0-9]', '_', args.suffix)
+            # Replace multiple underscores by one
+            self.suffix = re.sub('_+', '_', self.suffix)
+            # Remove underscore if at the end of suffix
+            if self.suffix[-1] == '_':
+                self.suffix = self.suffix[:-1]
+            # Add an underscore at the beginning if not present
+            if self.suffix[0] != '_':
+                self.suffix = '_%s' % self.suffix
+        # print time writer:
+        self.time_writer = TimedWriter(use_date=True)
+        # run the finish or not
+        self.skip_finish = args.skipfinish
 
         # Set matlab_bin from args or default to just matlab
         self.matlab_bin = getattr(args, 'matlab_bin', 'matlab')
@@ -892,61 +920,55 @@ class AutoSpider(Spider):
 
             # Check for optional arguments that are not set
             if len(p) >= 4 and \
-                p[3].lower().startswith('f') and \
-                not self.src_inputs[p[0]]:
-                    continue
+               p[3].lower().startswith('f') and \
+               not self.src_inputs[p[0]]:
+                continue
 
             self.copy_list.append(p[0])
 
-        self.src_inputs['temp_dir'] = self.jobdir # reset b/c it could have changed in parent init
+        self.src_inputs['temp_dir'] = self.jobdir
         self.input_dir = os.path.join(self.jobdir, 'INPUT')
         self.script_dir = os.path.join(self.jobdir, 'SCRIPT')
         self.run_inputs = {}
 
-    def get_argparser(self):
-        if self.datatype == 'scan':
-            parser = get_scan_argparser(self.name, 'Run '+self.name)
-        else:
-            parser = get_session_argparser(self.name, 'Run '+self.name)
+        # Assessor:
+        self.ahandler = XnatUtils.AssessorHandler(args.assessor_label)
 
+    def __unicode__(self):
+        """ Unicode for AutoSpiders."""
+        unicode_inputs = list()
+        for key, value in self.src_inputs.items():
+            if key not in ['assessor_label', 'temp_dir', 'suffix', 'host',
+                           'user']:
+                unicode_inputs.append("    %s: %s" % (key, value))
+        return UNICODE_AUTOSPIDER.format(
+            name=self.spider_name,
+            jobdir=self.jobdir,
+            suffix='None' if not self.suffix else self.suffix,
+            host=self.host,
+            user=self.user,
+            assessor=self.ahandler.assessor_label,
+            inputs='\n'.join(unicode_inputs),
+        )
+
+    def __str__(self):
+        """ Unicode for AutoSpiders."""
+        return unicode(self).encode('utf-8')
+
+    def get_argparser(self):
+        """Get argparser for the AutoSpider."""
+        parser = get_auto_argparser(self.name, 'Run %s' % self.name)
         # Add input params to arguments
         for p in self.params:
             _required = True
             if len(p) >= 4 and p[3].lower().startswith('f'):
                 _required = False
-            parser.add_argument('--'+p[0], dest=p[0], help=p[2], required=_required)
-
+            parser.add_argument('--' + p[0], dest=p[0], help=p[2],
+                                required=_required)
         return parser
 
-    def define_spider_process_handler(self):
-        """
-        Define the SpiderProcessHandler for the end of spider
-         using the init attributes about XNAT
-        :return: None
-        """
-        # Create the SpiderProcessHandler if first time upload
-        if self.datatype == 'scan':
-            self.spider_handler = XnatUtils.SpiderProcessHandler(
-                self.spider_path,
-                self.suffix,
-                self.xnat_project,
-                self.xnat_subject,
-                self.xnat_session,
-                self.xnat_scan,
-                time_writer=self.time_writer
-            )
-
-        else:
-            self.spider_handler = XnatUtils.SpiderProcessHandler(
-                self.spider_path,
-                self.suffix,
-                self.xnat_project,
-                self.xnat_subject,
-                self.xnat_session,
-                time_writer=self.time_writer
-            )
-
     def copy_inputs(self):
+        """ Copy the inputs data for AutoSpider."""
         self.run_inputs = self.src_inputs
 
         os.mkdir(self.input_dir)
@@ -956,10 +978,10 @@ class AutoSpider(Spider):
             src_list = self.src_inputs[_input].split(',')
             dst_list = []
             for i, src in enumerate(src_list):
-                input_name = _input+'_'+str(i)
+                input_name = '%s_%s' % (_input, str(i))
                 dst = self.copy_input(src, input_name)
                 if not dst:
-                    print('ERROR:copying inputs')
+                    self.time_writer('ERROR: copying inputs')
                     return None
                 else:
                     dst_list.append(dst)
@@ -970,6 +992,9 @@ class AutoSpider(Spider):
         return self.run_inputs
 
     def go(self):
+        """Main method for AutoSpider."""
+        for line in self.__unicode__().split('\n'):
+            self.time_writer(line)
 
         self.pre_run()
 
@@ -979,49 +1004,67 @@ class AutoSpider(Spider):
             self.finish()
 
     def pre_run(self):
-        '''Pre-Run method to download and organise inputs for the pipeline
-        Implemented in derived class objects.'''
-        print('DEBUG:pre_run()')
+        """Pre-Run method to download and organise inputs for the pipeline
+        Implemented in derived class objects."""
+        self.time_writer('AutoSpider pre_run(): Download/copy inputs...')
         self.copy_inputs()
 
     def run(self):
-        print('DEBUG:run()')
+        """Run method to execute the template for AutoSpider."""
+        self.time_writer('AutoSpider run(): Running command from template...')
         os.mkdir(self.script_dir)
 
-        if self.extension:
-            if self.extension == 'py':
-                self.run_python(self.template, 'script.py')
-            elif self.extension == 'm':
-                self.run_matlab(self.template, 'script.m')
-            elif self.extension == 'sh':
-                self.run_shell(self.template, 'script.sh')
-            else:
-                raise Exception('Extension Unknown for executable: %s'
-                                % self.extension)
-        else:
+        # Get filepath and template
+        filename = 'script%s' % SCRIPT_NAME[self.exe_lang]
+        filepath = os.path.join(self.script_dir, filename)
+        template = Template(self.template)
+
+        # Write the script
+        with open(filepath, 'w') as f:
+            f.write(template.substitute(self.run_inputs))
+
+        if not self.exe_lang:
             if self.template.startswith('#PYTHON'):
-                self.run_python(self.template, 'script.py')
+                self.exe_lang = 'python'
             elif self.template.startswith('%MATLAB'):
-                self.run_matlab(self.template, 'script.m')
+                self.exe_lang = 'matlab'
+            elif self.template.startswith('#RUBY'):
+                self.exe_lang = 'ruby'
+            elif self.template.startswith('#BASH'):
+                self.exe_lang = 'bash'
             else:
-                self.run_shell(self.template, 'script.sh')
+                raise AutoSpiderError('Template Unknown. Please add #BASH/\
+#PYTHON/#RUBY/#MATLAB at the beginning of the call file and rerun \
+GeneratorAutoSpider.')
+        self.succeeded = run_cmd(self.exe_lang, filepath,
+                                 time_writer=self.time_writer,
+                                 matlab_bin=self.matlab_bin)
 
     def finish(self):
-        print('DEBUG:finish()')
+        """finish method to copy the results."""
+        if not self.succeeded:
+            self.time_writer('AutoSpider finish(): run() failed. Exit.')
+            return
 
-        self.has_spider_handler()
+        # to copy results at the end
+        self.spider_handler = XnatUtils.SpiderProcessHandler(
+            self.spider_name, self.suffix,
+            assessor_handler=self.ahandler,
+            time_writer=self.time_writer)
+
+        self.time_writer('AutoSpider finish(): Copying outputs...')
 
         # Add each output
         if self.outputs:
             for _output in self.outputs:
-                #_path = os.path.join(self.jobdir, _output[0])
+                # _path = os.path.join(self.jobdir, _output[0])
                 _type = _output[1]
                 _res = _output[2]
                 _path_list = glob.glob(os.path.join(self.jobdir, _output[0]))
 
                 if _res == 'PDF':
                     if _type != 'FILE':
-                        print('ERROR:illegal type for PDF:'+_type)
+                        print('ERROR:illegal type for PDF: %s' % _type)
                     elif len(_path_list) > 1:
                         print('ERROR:multiple PDFs found')
                     elif len(_path_list) == 0:
@@ -1035,7 +1078,7 @@ class AutoSpider(Spider):
                     for _path in _path_list:
                         self.spider_handler.add_folder(_path, _res)
                 else:
-                    print('ERROR:unknown type:'+_type)
+                    print('ERROR:unknown type: %s' % _type)
         else:
             # Output not specified so upload everything in the job dir
             for _output in os.listdir(self.jobdir):
@@ -1045,54 +1088,36 @@ class AutoSpider(Spider):
 
         self.end()
 
-    def run_matlab(self, mat_template, filename):
-        filepath = os.path.join(self.script_dir, filename)
-        template = Template(mat_template)
+    def end(self):
+        """
+        Finish the script by sending the end of script flag and cleaning folder
+        :return: None
+        """
+        self.spider_handler.done()
+        self.spider_handler.clean(self.jobdir)
+        self.print_end()
 
-        # Write the script
-        with open(filepath, 'w') as f:
-            f.write(template.substitute(self.run_inputs))
+    def print_end(self):
+        """
+        Last print statement
 
-        # Run the script
-        XnatUtils.run_matlab(filepath, verbose=True, matlab_bin=self.matlab_bin)
-
-    def run_shell(self, sh_template, filename):
-        filepath = os.path.join(self.script_dir, filename)
-        template = Template(sh_template)
-
-        # Write the script
-        with open(filepath, 'w') as f:
-            f.write(template.substitute(self.run_inputs))
-
-        # Run it
-        os.chmod(filepath, os.stat(filepath)[ST_MODE] | S_IXUSR)
-        os.system(filepath)
-
-    def run_python(self, py_template, filename):
-        filepath = os.path.join(self.script_dir, filename)
-        template = Template(py_template)
-
-        # Write the script
-        with open(filepath, 'w') as f:
-            f.write(template.substitute(self.run_inputs))
-
-        # Run it
-        os.chmod(filepath, os.stat(filepath)[ST_MODE] | S_IXUSR)
-        os.system('python '+filepath)
+        :return: None
+        """
+        self.time_writer('End of Spider: %s' % self.spider_name)
 
     def copy_input(self, src, input_name):
-
+        """Copy inputs or download from XNAT."""
         if self.is_xnat_uri(src):
-            print('DEBUG:copying xnat input:'+src)
-            src = self.parse_xnat_uri(src)
-            dst = self.copy_xnat_input(src, input_name)
+            self.time_writer(' - copying xnat input: %s' % src)
+            dst = self.copy_xnat_input(src[len('xnat:/'):], input_name)
         else:
-            print('DEBUG:copying local input:'+src)
+            self.time_writer(' - copying local input: %s' % src)
             dst = self.copy_local_input(src, input_name)
 
         return dst
 
     def copy_xnat_input(self, src, input_name):
+        """Copy xnat inputs."""
         dst_dir = os.path.join(self.input_dir, input_name)
         os.makedirs(dst_dir)
 
@@ -1101,8 +1126,8 @@ class AutoSpider(Spider):
             _res, _file = src.split('/files/')
             dst = os.path.join(dst_dir, _file)
 
-            print('DEBUG:downloading from XNAT:'+src+' to '+dst)
-            result =  self.download_xnat_file(src, dst)
+            self.time_writer(' - downloading from XNAT: %s to %s' % (src, dst))
+            result = self.download_xnat_file(src, dst)
             if result:
                 return dst
             else:
@@ -1110,14 +1135,15 @@ class AutoSpider(Spider):
 
         elif '/resources/' in src:
             # Handle resource
-            print('DEBUG:downloading from XNAT:'+src+' to '+dst_dir)
+            self.time_writer(' - downloading from XNAT: %s to %s'
+                             % (src, dst_dir))
             result = self.download_xnat_resource(src, dst_dir)
             return result
         else:
-            print('ERROR:invalid xnat path')
-            return None
+            raise AutoSpiderError('invalid xnat path: %s' % src)
 
     def copy_local_input(self, src, input_name):
+        """Copy local inputs."""
         dst_dir = os.path.join(self.input_dir, input_name)
         os.makedirs(dst_dir)
 
@@ -1128,58 +1154,55 @@ class AutoSpider(Spider):
             dst = os.path.join(dst_dir, os.path.basename(src))
             copyfile(src, dst)
         else:
-            print('ERROR:input does not exist:'+src)
-            dst = None
+            raise AutoSpiderError('input does not exist: %s' % src)
 
         return dst
 
     def download_xnat_file(self, src, dst):
+        """Download XNAT specific file."""
         result = None
-
-        try:
-            xnat = XnatUtils.get_interface(self.host, self.user, self.pwd)
-
+        with XnatUtils.get_interface(host=self.host, user=self.user,
+                                     pwd=self.pwd) as xnat:
             try:
                 _res, _file = src.split('/files/')
                 res = xnat.select(_res)
                 result = res.file(_file).get(dst)
             except:
-                print('ERROR:downloading from XNAT')
-        except:
-            print('ERROR:FAILED to get XNAT connection')
-        finally:
-            xnat.disconnect()
+                raise AutoSpiderError('downloading from XNAT.')
 
         return result
 
     def download_xnat_resource(self, src, dst):
+        """Download XNAT complete resource."""
         result = None
-
-        try:
-            xnat = XnatUtils.get_interface(self.host, self.user, self.pwd)
+        with XnatUtils.get_interface(host=self.host, user=self.user,
+                                     pwd=self.pwd) as xnat:
             try:
                 res = xnat.select(src)
                 res.get(dst, extract=True)
                 result = dst
             except:
-                print('ERROR:downloading from XNAT')
-        except:
-            print('ERROR:FAILED to get XNAT connection')
-        finally:
-            xnat.disconnect()
+                raise AutoSpiderError('downloading from XNAT.')
 
         return result
 
     def is_xnat_uri(self, uri):
+        """Check if uri is xnat or local."""
         return uri.startswith('xnat:/')
 
-    def parse_xnat_uri(self, src):
-        src = src[len('xnat:/'):]
-        src = src.replace(
-            '{session}',
-            '/projects/%s/subjects/%s/experiments/%s'
-            % (self.xnat_project, self.xnat_subject, self.xnat_session))
-        return src
+    def print_args(self, argument_parse):
+        """
+        print arguments given to the Spider
+
+        :param argument_parse: argument parser
+        :return: None
+        """
+        self.time_writer("-- Arguments given to the AutoSpider --")
+        self.time_writer("Argument : Value ")
+        self.time_writer("-----------------------------------")
+        for info, value in sorted(vars(argument_parse).items()):
+            self.time_writer("%s : %s" % (info, value))
+        self.time_writer("-----------------------------------")
 
 
 # class to display time
@@ -1239,7 +1262,7 @@ class TimedWriter(object):
             msg = "%s[%s] %s" % (msg, now.strftime("%Y-%m-%d %H:%M:%S"), text)
         else:
             time_now = time.localtime()
-            time_diff = time.mktime(time_now)-time.mktime(self.start_time)
+            time_diff = time.mktime(time_now) - time.mktime(self.start_time)
             (days, res) = divmod(time_diff, 86400)
             (hours, res) = divmod(res, 3600)
             (mins, secs) = divmod(res, 60)
@@ -1260,56 +1283,6 @@ class TimedWriter(object):
 
 
 # Functions
-def get_default_value(variable, env_name, value):
-    """
-    Return the default value for the variable if arg not NULL else
-     env variables defined by the args
-
-    :param variable: variable name
-    :param env_name: name of the environment variable
-    :param value:    value given by the user
-    :return: default value
-
-    """
-    if value:
-        return value
-    else:
-        if env_name in os.environ and os.environ[env_name] != "":
-            return os.environ[env_name]
-        else:
-            err = """%s not set by user.
-To set it choose one of this solution:
-Set the option --%s in the spider class
-Set the environment variable %s
-"""
-            raise ValueError(err % (env_name, variable, env_name))
-
-
-def get_pwd(host, user, pwd):
-    """
-    Return the password from env or ask user if the user was set
-
-    :param host: xnat host
-    :param user: xnat user
-    :param pwd: password
-    :return: default value
-
-    """
-    if pwd:
-        return pwd
-    else:
-        if user:
-            msg = "Enter the password for user '%s' on your XNAT -- %s :"
-            return getpass.getpass(prompt=msg % (user, host))
-        else:
-            if "XNAT_PASS" in os.environ and os.environ["XNAT_PASS"] != "":
-                return os.environ["XNAT_PASS"]
-            else:
-                err = "XNAT_PASS not set by user."
-                err += "\n\t   Set the environment variable XNAT_PASS"
-                raise ValueError(err)
-
-
 def get_default_argparser(name, description):
     """
     Return default argparser arguments for all Spider
@@ -1334,9 +1307,9 @@ def get_default_argparser(name, description):
         help='Set XNAT Host. Default: using env variable XNAT_HOST')
     ap.add_argument(
         '--user', dest='user', default=None,
-        help='Set XNAT User. Default: using env variable XNAT_USER')
+        help='Set XNAT User.')
     ap.add_argument(
-        '--no_subdir',  action='store_false', dest='subdir',
+        '--no_subdir', action='store_false', dest='subdir',
         help="Do not create a subdir Temp in the jobdir if the directory \
 isn't empty.")
     ap.add_argument(
@@ -1365,6 +1338,37 @@ def get_scan_argparser(name, description):
     """
     ap = get_default_argparser(name, description)
     ap.add_argument('-c', dest='scan_label', help='Scan label', required=True)
+    return ap
+
+
+def get_auto_argparser(name, description):
+    """
+    Return default argparser arguments for AutoSpider
+
+    :return: argparser obj
+
+    """
+    from argparse import ArgumentParser
+    ap = ArgumentParser(prog=name, description=description)
+    ap.add_argument('-d', dest='temp_dir', help='Temporary Directory',
+                    required=True)
+    ap.add_argument('-a', '--assessor', dest='assessor_label', required=True,
+                    help='XNAT Assessor label.')
+    ap.add_argument('--suffix', dest='suffix', default=None,
+                    help='assessor suffix. default: None')
+    ap.add_argument(
+        '--host', dest='host', default=None,
+        help='Set XNAT Host. Default: using env variable XNAT_HOST')
+    ap.add_argument(
+        '--user', dest='user', default=None,
+        help='Set XNAT User.')
+    ap.add_argument(
+        '--no_subdir', action='store_false', dest='subdir',
+        help="Do not create a subdir Temp in the jobdir if the directory \
+isn't empty.")
+    ap.add_argument(
+        '--skipfinish', action='store_true', dest='skipfinish',
+        help='Skip the finish step, so do not move files to upload queue')
     return ap
 
 
@@ -1407,31 +1411,79 @@ def is_good_version(version):
 
 
 def load_inputs(inputs_file):
+    """Load Inputs for AutoSpider."""
     with open(inputs_file, 'Ur') as f:
         data = list(tuple(rec) for rec in csv.reader(f, delimiter=','))
-
     return data
 
 
 def load_outputs(outputs_file):
+    """Load Outputs for AutoSpider."""
     with open(outputs_file, 'Ur') as f:
         data = list(tuple(rec) for rec in csv.reader(f, delimiter=','))
-
     return data
 
 
 def load_template(template_file):
+    """Load template for AutoSpider."""
     with open(template_file, "r") as f:
         data = f.read()
-
     return data
 
 
 def use_time_writer(time_writer, msg):
+    """Print using the time_writer or just print if not define."""
     if not time_writer:
         print msg
     else:
         time_writer(msg)
+
+
+def run_cmd(exe_lang, fpath, time_writer=None, matlab_bin='matlab'):
+    """
+    Run the file fpath using the exe_lang specified.
+
+    :param exe_lang: executable language (bash, python, ruby, matlab)
+    :param fpath: file to run
+    :param time_writer: time writer to display time for each line print
+    :return: None
+    """
+    use_time_writer(time_writer, '-------- Run Command --------')
+
+    if exe_lang == 'matlab':
+        exe = '%s -singleCompThread -nodesktop -nosplash <' % matlab_bin
+    else:
+        os.chmod(fpath, os.stat(fpath)[ST_MODE] | S_IXUSR)
+        exe = exe_lang
+    cmd = '%s %s' % (exe, fpath)
+
+    use_time_writer(time_writer, "Running command: %s" % cmd)
+    result = execute_cmd(cmd, time_writer=time_writer)
+    use_time_writer(time_writer, '-----------------------------------')
+    return result
+
+
+def execute_cmd(cmd, time_writer=None):
+    """
+    Execute a command and print in time the output using subprocess
+
+    :param cmd: command to run
+    :return: True if succeeded, False otherwise
+    """
+    process = sb.Popen(cmd, shell=True, stdout=sb.PIPE, stderr=sb.STDOUT)
+
+    # Poll process for new output until finished
+    while True:
+        nextline = process.stdout.readline().rstrip()
+        if nextline == '' and process.poll() is not None:
+            break
+        use_time_writer(time_writer, nextline)
+
+    output, error = process.communicate()
+
+    if process.returncode:
+        return False
+    return True
 
 
 # PDF Generator for spiders:
@@ -1550,9 +1602,9 @@ Using default.")
             if isinstance(volume_ind, int):
                 data = data[:, :, :, volume_ind]
             else:
-                data = data[:, :, :, data.shape[3]/2]
-        default_slices = [data.shape[2]/4, data.shape[2]/2,
-                          3*data.shape[2]/4]
+                data = data[:, :, :, data.shape[3] / 2]
+        default_slices = [data.shape[2] / 4, data.shape[2] / 2,
+                          3 * data.shape[2] / 4]
         default_label = 'Line %s' % index
         if slices:
             if not isinstance(slices, dict):
@@ -1562,14 +1614,14 @@ dictionary. Using default.")
             li_slices = slices.get(str(index), default_slices)
             slices_number = len(li_slices)
             for slice_ind, slice_value in enumerate(li_slices):
-                ind = slices_number*index+slice_ind+1
+                ind = slices_number * index + slice_ind + 1
                 ax = fig.add_subplot(number_im, slices_number, ind)
                 if orient == 'cor':
-                    dslice = data[:, data.shape[1]/2, :]
+                    dslice = data[:, slice_value, :]
                 elif orient == 'ax':
-                    dslice = data[:, :, data.shape[2]/2]
+                    dslice = data[:, :, slice_value]
                 else:
-                    dslice = data[data.shape[0]/2, :, :]
+                    dslice = data[slice_value, :, :]
                 ax.imshow(np.rot90(np.transpose(dslice), 2),
                           cmap=cmap.get(str(index), default_cmap),
                           vmin=vmins.get(str(index), None),
@@ -1584,21 +1636,21 @@ dictionary. Using default.")
         else:
             # Fix Orientation:
             dslice = []
-            dslice_z = data[:, :, data.shape[2]/2]
+            dslice_z = data[:, :, data.shape[2] / 2]
             if dslice_z.shape[0] != dslice_z.shape[1]:
                 dslice_z = imresize(dslice_z, (max(dslice_z.shape),
                                                max(dslice_z.shape)))
-            dslice_y = data[:, data.shape[1]/2, :]
+            dslice_y = data[:, data.shape[1] / 2, :]
             if dslice_y.shape[0] != dslice_y.shape[1]:
                 dslice_y = imresize(dslice_y, (max(dslice_y.shape),
                                                max(dslice_y.shape)))
-            dslice_x = data[data.shape[0]/2, :, :]
+            dslice_x = data[data.shape[0] / 2, :, :]
             if dslice_x.shape[0] != dslice_x.shape[1]:
                 dslice_x = imresize(dslice_x, (max(dslice_x.shape),
                                                max(dslice_x.shape)))
 
             dslice = [dslice_z, dslice_y, dslice_x]
-            ax = fig.add_subplot(number_im, 3, 3*index+1)
+            ax = fig.add_subplot(number_im, 3, 3 * index + 1)
             ax.imshow(np.rot90(np.transpose(dslice[0]), 2),
                       cmap=cmap.get(str(index), default_cmap),
                       vmin=vmins.get(str(index), None),
@@ -1608,14 +1660,14 @@ dictionary. Using default.")
                           fontsize=9)
             ax.set_xticks([])
             ax.set_yticks([])
-            ax = fig.add_subplot(number_im, 3, 3*index+2)
+            ax = fig.add_subplot(number_im, 3, 3 * index + 2)
             ax.imshow(np.rot90(np.transpose(dslice[1]), 2),
                       cmap=cmap.get(str(index), default_cmap),
                       vmin=vmins.get(str(index), None),
                       vmax=vmaxs.get(str(index), None))
             ax.set_title('Coronal', fontsize=7)
             ax.set_axis_off()
-            ax = fig.add_subplot(number_im, 3, 3*index+3)
+            ax = fig.add_subplot(number_im, 3, 3 * index + 3)
             ax.imshow(np.rot90(np.transpose(dslice[2]), 2),
                       cmap=cmap.get(str(index), default_cmap),
                       vmin=vmins.get(str(index), None),
@@ -1677,19 +1729,19 @@ def plot_stats(pdf_path, page_index, stats_dict, title,
     fig = plt.figure(page_index, figsize=(7.5, 10))
     nb_stats = len(stats_dict.keys())
     for i in range(tables_number):
-        ax = fig.add_subplot(1, tables_number, i+1)
+        ax = fig.add_subplot(1, tables_number, i + 1)
         ax.xaxis.set_visible(False)
         ax.yaxis.set_visible(False)
         ax.axis('off')
         the_table = ax.table(
-                cellText=cell_text[nb_stats/3*i:nb_stats/3*(i+1)],
-                colColours=[(0.8, 0.4, 0.4), (1.0, 1.0, 0.4)],
-                colLabels=columns_header,
-                colWidths=[0.8, 0.32],
-                loc='center',
-                rowLoc='left',
-                colLoc='left',
-                cellLoc='left')
+            cellText=cell_text[nb_stats / 3 * i:nb_stats / 3 * (i + 1)],
+            colColours=[(0.8, 0.4, 0.4), (1.0, 1.0, 0.4)],
+            colLabels=columns_header,
+            colWidths=[0.8, 0.32],
+            loc='center',
+            rowLoc='left',
+            colLoc='left',
+            cellLoc='left')
 
         the_table.auto_set_font_size(False)
         the_table.set_fontsize(6)
@@ -1727,9 +1779,10 @@ def merge_pdfs(pdf_pages, pdf_final, time_writer=None):
     elif isinstance(pdf_pages, list):
         pages = ' '.join(pdf_pages)
     else:
-        raise Exception('Wrong type for pdf_pages (list or dict).')
-    cmd = 'gs -q -sPAPERSIZE=letter -dNOPAUSE -dBATCH \
--sDEVICE=pdfwrite -sOutputFile=%s %s' % (pdf_final, pages)
+        raise TypeError('Wrong type for pdf_pages (list or dict).')
+    args = '-q -sPAPERSIZE=letter -dNOPAUSE -dBATCH -sDEVICE=pdfwrite \
+-dPDFSETTINGS=/prepress'
+    cmd = 'gs %s -sOutputFile=%s %s' % (args, pdf_final, pages)
     use_time_writer(time_writer, 'INFO:saving final PDF: %s ' % cmd)
     os.system(cmd)
     return pdf_final

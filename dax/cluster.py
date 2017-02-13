@@ -11,8 +11,9 @@ import time
 import logging
 import subprocess as sb
 from datetime import datetime
-from subprocess import CalledProcessError
-from dax_settings import DAX_Settings
+
+from .dax_settings import DAX_Settings
+from .errors import ClusterError
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
@@ -32,7 +33,7 @@ def c_output(output):
     try:
         int(output)
         error = False
-    except (CalledProcessError, ValueError) as err:
+    except ValueError as err:
         error = True
         LOGGER.error(err)
     return error
@@ -83,7 +84,7 @@ def job_status(jobid):
             return 'C'
         else:
             return None
-    except CalledProcessError:
+    except sb.CalledProcessError:
         return None
 
 
@@ -139,11 +140,11 @@ def get_job_mem_used(jobid, diff_days):
     try:
         output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
         if output.startswith('sacct: error'):
-            raise CalledProcessError(output)
+            raise ClusterError(output)
         if output:
             mem = output.strip()
 
-    except CalledProcessError:
+    except (sb.CalledProcessError, ClusterError):
         pass
 
     return mem
@@ -171,7 +172,7 @@ def get_job_walltime_used(jobid, diff_days):
         if output:
             walltime = output.strip()
 
-    except CalledProcessError:
+    except sb.CalledProcessError:
         pass
 
     if not walltime and diff_days > 3:
@@ -209,7 +210,7 @@ def get_job_node(jobid, diff_days):
         if output:
             jobnode = output.strip()
 
-    except CalledProcessError:
+    except sb.CalledProcessError:
         pass
 
     return jobnode
@@ -329,7 +330,7 @@ def submit_job(filename, outlog=None, force_no_qsub=False):
                 LOGGER.error(error)
             jobid = get_specific_str(output, DAX_SETTINGS.get_prefix_jobid(),
                                      DAX_SETTINGS.get_suffix_jobid())
-        except CalledProcessError as err:
+        except sb.CalledProcessError as err:
             LOGGER.error(err)
             jobid = '0'
 

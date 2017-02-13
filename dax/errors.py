@@ -9,10 +9,12 @@ Method related to errors and Custom Exceptions.
 import netrc
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
-__all__ = ['DaxError', 'DaxXnatError', 'DaxSetupError', 'DaxNetrcError',
+__all__ = ['DaxError', 'DaxXnatError', 'DaxSpiderError', 'DaxSetupError',
+           'DaxNetrcError',
            'XnatAuthentificationError', 'XnatUtilsError', 'XnatAccessError',
            'ClusterLaunchException', 'ClusterCountJobsException',
-           'ClusterJobIDException']
+           'ClusterJobIDException',
+           'SpiderError', 'AutoSpiderError']
 
 
 # DAX error:
@@ -25,6 +27,11 @@ class DaxXnatError(DaxError):
     """Basic exception for errors related to XNAT raised by dax."""
 
 
+# DAX XNAT error:
+class DaxSpiderError(DaxError):
+    """Basic exception for errors related to spider raised by dax."""
+
+
 # dax_setup errors
 class DaxSetupError(DaxError, ValueError):
     """DaxSetup exception."""
@@ -34,7 +41,7 @@ class DaxSetupError(DaxError, ValueError):
 
 # Dax netrc errors
 class DaxNetrcError(netrc.NetrcParseError):
-    """Basic exception for errors related to dax raised by dax."""
+    """Basic exception for errors related to DAX_Netrc raised by dax."""
 
 
 # Launcher errors:
@@ -69,13 +76,17 @@ class XnatAccessError(DaxXnatError, ValueError):
 
 
 # Cluster errors
-class ClusterLaunchException(Exception):
+class ClusterError(DaxError):
+    """Basic exception for errors related to cluster raised by dax."""
+
+
+class ClusterLaunchException(ClusterError):
     """Custom exception raised when launch on the grid failed"""
     def __init__(self):
         Exception.__init__(self, 'ERROR: Failed to launch job on the grid.')
 
 
-class ClusterCountJobsException(DaxError):
+class ClusterCountJobsException(ClusterError):
     """Custom exception raised when attempting to get the number of
     jobs fails"""
     def __init__(self):
@@ -83,7 +94,7 @@ class ClusterCountJobsException(DaxError):
                                  'jobs from the grid.')
 
 
-class ClusterJobIDException(DaxError):
+class ClusterJobIDException(ClusterError):
     """Custom exception raised when attempting to get the job id failed"""
     def __init__(self):
         Exception.__init__(self, 'ERROR: Failed to get job id.')
@@ -104,3 +115,12 @@ class NoDataException(DaxError):
 
     def __str__(self):
         return repr(self.value)
+
+
+# Spider and AutoSpider Exception:
+class SpiderError(DaxSpiderError):
+    pass
+
+
+class AutoSpiderError(DaxSpiderError):
+    pass

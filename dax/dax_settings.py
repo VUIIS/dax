@@ -1,14 +1,15 @@
 """dax_settings class to read the INI settings file."""
 
-import os
-import sys
-import stat
-import netrc
-import ConfigParser
-from string import Template
-from importlib import import_module
 from collections import OrderedDict
-from dax.errors import DaxNetrcError
+import ConfigParser
+from importlib import import_module
+import os
+import stat
+from string import Template
+import sys
+import netrc
+
+from .errors import DaxNetrcError
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
