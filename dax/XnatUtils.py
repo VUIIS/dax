@@ -388,7 +388,7 @@ class SpiderProcessHandler:
         if len(re.split('/*_v[0-9]/*', script_name)) > 1:
             self.version = script_name.split('_v')[-1].replace('_', '.')
             ptype = re.split('/*_v[0-9]/*', script_name)[0]
-            proctype = '%s_v%s' % (ptype, self.version[0])
+            proctype = '%s_v%s' % (ptype, self.version.split('.')[0])
         else:
             self.version = '1.0.0'
             proctype = script_name
