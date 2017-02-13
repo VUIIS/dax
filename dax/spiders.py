@@ -1099,12 +1099,11 @@ GeneratorAutoSpider.')
 
     def print_end(self):
         """
-        Last print statement to give the time and date at the end of the spider
+        Last print statement
 
         :return: None
         """
-        self.time_writer('Time at the end of the Spider: %s'
-                         % str(datetime.now()))
+        self.time_writer('End of Spider: %s' % self.spider_name)
 
     def copy_input(self, src, input_name):
         """Copy inputs or download from XNAT."""
