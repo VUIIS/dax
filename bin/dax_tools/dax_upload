@@ -17,7 +17,7 @@ import getpass
 from datetime import datetime
 from email.mime.text import MIMEText
 
-from dax import XnatUtils, DAX_Settings
+from dax import XnatUtils, DAX_Settings, DAX_Netrc
 from dax.task import (READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED,
                       JOB_PENDING, NEEDS_QA)
 from dax.task import ClusterTask
@@ -809,6 +809,9 @@ please provide a password')
                 password = os.environ[OPTIONS.password]
             else:
                 password = OPTIONS.password
+        else:
+            netrc_obj = DAX_Netrc()
+            username, password = netrc_obj.get_login(host)
         host_projs.append(dict(zip(DEFAULT_HEADER, [host, username, password,
                                                     projects])))
     return host_projs
@@ -824,7 +827,7 @@ def print_upload_settings():
     LOGGER.info('Upload Settings selected by user:')
     for info in UPLOAD_SETTINGS:
         proj_str = ','.join(info['projects']) if info['projects'] else 'all'
-        user_str = info['username'] if info['username'] else os.environ['XNAT_USER']
+        user_str = info['username'] if info['username'] else ''
         msg = 'XNAT Host: %s -- Xnat Username: %s -- projects: %s'
         LOGGER.info(msg % (info['host'], user_str, proj_str))
     LOGGER.info('Upload Directory: %s ' % (RESULTS_DIR))
@@ -843,7 +846,7 @@ def parse_args():
     ap.add_argument('--host', dest='host', default=None,
                     help='Host for XNAT. Default: using $XNAT_HOST.')
     ap.add_argument('-u', '--username', dest='username', default=None,
-                    help='Username for XNAT. Default: using $XNAT_USER.')
+                    help='Username for XNAT.')
     ap.add_argument('--pwd', dest='password', default=None,
                     help="Password for XNAT. You can specify the environment's \
 variable for this option. Default: using $XNAT_PASS.")
