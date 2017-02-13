@@ -1,11 +1,11 @@
 """ Task object to generate / manage assessors and cluster."""
 
+from datetime import date
+import errno
+import logging
 import os
 import shutil
-import errno
 import time
-import logging
-from datetime import date
 
 from . import cluster
 from .cluster import PBS

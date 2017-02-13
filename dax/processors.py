@@ -1,8 +1,8 @@
 """ Processor class define for Scan and Session."""
 
-import os
-import re
 import logging
+import re
+import os
 
 from . import XnatUtils, task
 

@@ -3,10 +3,10 @@
 
 """ launcher.py that represents the main object called by the executables """
 
-import os
-import sys
-import logging
 from datetime import datetime, timedelta
+import logging
+import sys
+import os
 
 from . import processors, modules, XnatUtils, task, cluster, bin
 from .task import Task, ClusterTask, XnatTask

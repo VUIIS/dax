@@ -1,11 +1,11 @@
 """ Module classes for Scan and Sessions """
 
-import os
-import shutil
-import smtplib
-import logging
 from datetime import datetime
 from email.mime.text import MIMEText
+import logging
+import os
+import smtplib
+import shutil
 
 from . import XnatUtils
 from .dax_settings import DAX_Settings

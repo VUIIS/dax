@@ -44,8 +44,9 @@ import time
 import xlrd
 import xml.etree.cElementTree as ET
 import zipfile
-import task
 
+from .task import (JOB_FAILED, JOB_RUNNING, JOB_PENDING, READY_TO_UPLOAD,
+                   NEEDS_QA, RERUN, REPROC, FAILED_NEEDS_REPROC, BAD_QA_STATUS)
 from .errors import (XnatUtilsError, XnatAccessError,
                      XnatAuthentificationError)
 from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
@@ -610,7 +611,7 @@ Wrong label.'
                 if self.assr_handler.get_proctype() == 'FS':
                     dtype = DEFAULT_FS_DATATYPE
                 former_status = assessor.attrs.get('%s/procstatus' % dtype)
-                if assessor.exists() and former_status == task.JOB_RUNNING:
+                if assessor.exists() and former_status == JOB_RUNNING:
                     assessor.attrs.set('%s/procstatus' % dtype, status)
                     self.print_msg('  - job status set to %s' % str(status))
         except XnatAuthentificationError as e:
@@ -634,22 +635,22 @@ Wrong label.'
             self.print_msg('INFO: Job ready to be upload, error: %s'
                            % str(self.error))
             # make the flag folder
-            fname = '%s.txt' % task.READY_TO_UPLOAD
+            fname = '%s.txt' % READY_TO_UPLOAD
             flag_file = os.path.join(self.directory, fname)
             open(flag_file, 'w').close()
             if DAX_SETTINGS.get_launcher_type() == 'xnatq-combined':
                 # set status on XNAT to ReadyToUpload
-                self.set_assessor_status(task.READY_TO_UPLOAD)
+                self.set_assessor_status(READY_TO_UPLOAD)
         else:
             self.print_msg('INFO: Job failed, check the outlogs, error: %s'
                            % str(self.error))
             # make the flag folder
-            fname = '%s.txt' % task.JOB_FAILED
+            fname = '%s.txt' % JOB_FAILED
             flag_file = os.path.join(self.directory, fname)
             open(flag_file, 'w').close()
             if DAX_SETTINGS.get_launcher_type() == 'xnatq-combined':
                 # set status on XNAT to JOB_FAILED
-                self.set_assessor_status(task.JOB_FAILED)
+                self.set_assessor_status(JOB_FAILED)
 
     def clean(self, directory):
         """
@@ -793,9 +794,10 @@ def list_sessions(intf, projectid=None, subjectid=None):
     # about last_modified field
     for sess_type in type_list:
         if sess_type.startswith('xnat:') and 'session' in sess_type:
-            post_uri_type = post_uri + SESSION_POST_URI.format(stype=sess_type)
+            add_uri_str = SESSION_POST_URI.format(stype=sess_type)
         else:
-            post_uri_type = post_uri + NO_MOD_SESSION_POST_URI.format(stype=sess_type)
+            add_uri_str = NO_MOD_SESSION_POST_URI.format(stype=sess_type)
+        post_uri_type = '%s%s' % (post_uri, add_uri_str)
         sess_list = intf._get_json(post_uri_type)
 
         for sess in sess_list:
@@ -1708,10 +1710,10 @@ def is_bad_qa(qcstatus):
         (NOTE: doesn't follow boolean logic)
 
     """
-    if qcstatus in [task.JOB_PENDING, task.NEEDS_QA, task.REPROC, task.RERUN,
-                    task.FAILED_NEEDS_REPROC]:
+    if qcstatus in [JOB_PENDING, NEEDS_QA, REPROC, RERUN,
+                    FAILED_NEEDS_REPROC]:
         return 0
-    for qc in task.BAD_QA_STATUS:
+    for qc in BAD_QA_STATUS:
         if qc.lower() in qcstatus.split(' ')[0].lower():
             return -1
     return 1
@@ -3522,10 +3524,10 @@ def write_dicom(pixel_array, filename, ds_copy, ds_ori, volume_number,
     # Other tags to set
     ds.SeriesNumber = series_number
     ds.SeriesDescription = ds_ori.SeriesDescription + ' fromNifti'
-    sop_uid = sop_id + str(datetime.datetime.now()).replace('-', '')\
-                                                   .replace(':', '')\
-                                                   .replace('.', '')\
-                                                   .replace(' ', '')
+    sop_uid = sop_id + str(datetime.now()).replace('-', '')\
+                                          .replace(':', '')\
+                                          .replace('.', '')\
+                                          .replace(' ', '')
     ds.SOPInstanceUID = sop_uid[:-1]
     ds.ProtocolName = ds_ori.ProtocolName
     ds.InstanceNumber = volume_number + 1
@@ -4253,7 +4255,7 @@ upload_folder_to_obj().'
     os.chdir(directory)
     os.system('zip -r %s *' % filenameZip)
     # upload
-    zip_path = os.paht.join(directory, filenameZip)
+    zip_path = os.path.join(directory, filenameZip)
     resourceObj.put_zip(zip_path, overwrite=True, extract=True)
     # return to the initial directory:
     os.chdir(initDir)

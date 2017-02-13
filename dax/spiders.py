@@ -10,9 +10,8 @@
 
 import collections
 import csv
-import getpass
-import glob
 from datetime import datetime
+import glob
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
