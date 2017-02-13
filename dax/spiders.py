@@ -1308,7 +1308,7 @@ def get_default_argparser(name, description):
         help='Set XNAT Host. Default: using env variable XNAT_HOST')
     ap.add_argument(
         '--user', dest='user', default=None,
-        help='Set XNAT User. Default: using env variable XNAT_USER')
+        help='Set XNAT User.')
     ap.add_argument(
         '--no_subdir', action='store_false', dest='subdir',
         help="Do not create a subdir Temp in the jobdir if the directory \
@@ -1362,7 +1362,7 @@ def get_auto_argparser(name, description):
         help='Set XNAT Host. Default: using env variable XNAT_HOST')
     ap.add_argument(
         '--user', dest='user', default=None,
-        help='Set XNAT User. Default: using env variable XNAT_USER')
+        help='Set XNAT User.')
     ap.add_argument(
         '--no_subdir', action='store_false', dest='subdir',
         help="Do not create a subdir Temp in the jobdir if the directory \
