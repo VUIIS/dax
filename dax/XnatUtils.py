@@ -338,7 +338,7 @@ class AssessorHandler:
         """
         xpath = A_XPATH.format(project=self.project_id,
                                subject=self.subject_label,
-                               session=self.subject_label,
+                               session=self.session_label,
                                assessor=self.assessor_label)
         return intf.select(xpath)
 

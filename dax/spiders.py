@@ -1087,7 +1087,7 @@ GeneratorAutoSpider.')
                 self.spider_handler.add_folder(_path, _res)
 
         self.end()
-        
+
     def end(self):
         """
         Finish the script by sending the end of script flag and cleaning folder
@@ -1096,7 +1096,7 @@ GeneratorAutoSpider.')
         self.spider_handler.done()
         self.spider_handler.clean(self.jobdir)
         self.print_end()
-        
+
     def print_end(self):
         """
         Last print statement to give the time and date at the end of the spider
