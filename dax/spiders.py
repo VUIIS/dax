@@ -1109,7 +1109,7 @@ GeneratorAutoSpider.')
         """Copy inputs or download from XNAT."""
         if self.is_xnat_uri(src):
             self.time_writer(' - copying xnat input: %s' % src)
-            dst = self.copy_xnat_input(src[len('xnat:/'):], input_name)
+            dst = self.copy_xnat_input(src[len('xnat:'):], input_name)
         else:
             self.time_writer(' - copying local input: %s' % src)
             dst = self.copy_local_input(src, input_name)
@@ -1140,7 +1140,8 @@ GeneratorAutoSpider.')
             result = self.download_xnat_resource(src, dst_dir)
             return result
         else:
-            raise AutoSpiderError('invalid xnat path: %s' % src)
+            err = 'invalid xnat path: %s. missing "/resources/" or "/files/".'
+            raise AutoSpiderError(err % src)
 
     def copy_local_input(self, src, input_name):
         """Copy local inputs."""
@@ -1166,9 +1167,18 @@ GeneratorAutoSpider.')
             try:
                 _res, _file = src.split('/files/')
                 res = xnat.select(_res)
+                if not res.exists():
+                    msg = 'resources specified by %s not found on XNAT.'
+                    raise AutoSpiderError(msg % src)
+            except:
+                msg = 'resources can not be checked because the path given is \
+wrong for XNAT. Please check https://wiki.xnat.org/display/XNAT16/\
+XNAT+REST+API+Directory for the path.'
+                raise AutoSpiderError(msg % src)
+            try:
                 result = res.file(_file).get(dst)
             except:
-                raise AutoSpiderError('downloading from XNAT.')
+                raise AutoSpiderError('downloading files from XNAT failed.')
 
         return result
 
@@ -1179,10 +1189,19 @@ GeneratorAutoSpider.')
                                      pwd=self.pwd) as xnat:
             try:
                 res = xnat.select(src)
+                if not res.exists():
+                    msg = 'resources specified by %s not found on XNAT.'
+                    raise AutoSpiderError(msg % src)
+            except:
+                msg = 'resources can not be checked because the path given is \
+wrong for XNAT. Please check https://wiki.xnat.org/display/XNAT16/\
+XNAT+REST+API+Directory for the path.'
+                raise AutoSpiderError(msg % src)
+            try:
                 res.get(dst, extract=True)
                 result = dst
             except:
-                raise AutoSpiderError('downloading from XNAT.')
+                raise AutoSpiderError('downloading resource from XNAT failed.')
 
         return result
 
