@@ -2442,6 +2442,15 @@ def filter_list_dicts_regex(list_dicts, key, expressions, nor=False,
     flist = list()
     if nor:
         flist = list_dicts
+    if isinstance(expressions, str):
+        expressions = [expressions]
+    elif isinstance(expressions, list):
+        pass
+    else:
+        err = "Wrong type for 'expressions' in filter_list_dicts_regex: %s \
+found, <type 'str'> or <type 'list'> required." % type(expressions)
+        raise XnatUtilsError(err)
+
     for exp in expressions:
         regex = extract_exp(exp, full_regex)
         if nor:
