@@ -90,16 +90,19 @@ def report():
             header = OPTIONS.format.split(',')
             customize_report(project, header)
 
-def quote(s):
+
+def quote(value):
     """
     Quote the string if needed
-    :param s: the string
+    :param value: the string
     :return: quoted string
     """
-    if ',' in s:
-        return '"'+s+'"'
+    if ',' in value:
+        return '"%s"' % value
     else:
-        return s
+        return value
+
+
 def default_report(project):
     """
     Default Method to use for report when the header is not specified
