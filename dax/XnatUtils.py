@@ -3152,7 +3152,8 @@ class CachedImageAssessor():
             assr_info['walltimeused'] = self.get('proc:walltimeused')
             assr_info['jobnode'] = self.get('proc:jobnode')
         else:
-            print 'WARN:unknown xsiType for assessor: %s' % assr_info['xsiType']
+            msg = 'Warning:unknown xsitype for assessor: %s'
+            print msg % assr_info['xsiType']
 
         return assr_info
 
