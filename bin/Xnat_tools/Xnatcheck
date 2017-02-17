@@ -634,27 +634,30 @@ def get_resource(xnat, object_dict, variable_name, resource_label):
     :return: pyxnat Eobject
     """
     if 'scan' in variable_name:
-        cpath = XnatUtils.C_XPATH.format(project=object_dict['project_id'],
-                                         subject=object_dict['subject_id'],
-                                         session=object_dict['session_id'],
-                                         scan=object_dict['scan_id'])
-        xpath = XnatUtils.R_XPATH.format(xpath=cpath, resource=resource_label)
+        return XnatUtils.select_obj(xnat,
+                                    project_id=object_dict['project_id'],
+                                    subject_id=object_dict['subject_id'],
+                                    session_id=object_dict['session_id'],
+                                    scan_id=object_dict['scan_id'],
+                                    resource=resource_label)
     elif 'assessor' in variable_name:
-        xpath = XnatUtils.AR_XPATH.format(project=object_dict['project_id'],
-                                          subject=object_dict['subject_id'],
-                                          session=object_dict['session_id'],
-                                          assessor=object_dict['label'],
-                                          resource=resource_label)
+        return XnatUtils.select_obj(xnat,
+                                    project_id=object_dict['project_id'],
+                                    subject_id=object_dict['subject_id'],
+                                    session_id=object_dict['session_id'],
+                                    assessor_id=object_dict['label'],
+                                    resource=resource_label)
     elif 'session' in variable_name:
-        spath = XnatUtils.E_XPATH.format(project=object_dict['project_id'],
-                                         subject=object_dict['subject_id'],
-                                         session=object_dict['session_id'])
-        xpath = XnatUtils.R_XPATH.format(xpath=spath, resource=resource_label)
+        return XnatUtils.select_obj(xnat,
+                                    project_id=object_dict['project_id'],
+                                    subject_id=object_dict['subject_id'],
+                                    session_id=object_dict['session_id'],
+                                    resource=resource_label)
     else:
-        spath = XnatUtils.S_XPATH.format(project=object_dict['project_id'],
-                                         subject=object_dict['subject_id'])
-        xpath = XnatUtils.R_XPATH.format(xpath=spath, resource=resource_label)
-    return xnat.select(xpath)
+        return XnatUtils.select_obj(xnat,
+                                    project_id=object_dict['project_id'],
+                                    subject_id=object_dict['subject_id'],
+                                    resource=resource_label)
 
 
 def getmemory(memory_str):
