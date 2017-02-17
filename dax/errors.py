@@ -12,6 +12,7 @@ __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ['DaxError', 'DaxXnatError', 'DaxSpiderError', 'DaxSetupError',
            'DaxNetrcError',
            'XnatAuthentificationError', 'XnatUtilsError', 'XnatAccessError',
+           'XnatToolsError', 'XnatToolsArgumentsError',
            'ClusterLaunchException', 'ClusterCountJobsException',
            'ClusterJobIDException',
            'SpiderError', 'AutoSpiderError']
@@ -67,6 +68,27 @@ class XnatUtilsError(DaxXnatError):
     """XnatUtils exception."""
     def __init__(self, message):
         Exception.__init__(self, 'Error in XnatUtils: %s' % message)
+
+
+class XnatToolsError(DaxError):
+    """Xnat Tools Exception."""
+    def __init__(self, message):
+        Exception.__init__(self, 'Error in Xnat_tools: %s' % message)
+
+
+class XnatToolsArgumentsError(DaxError):
+    """Xnat Tools Exception."""
+    def __init__(self, script, message, path_not_found=False,
+                 wrong_ext=False):
+        if path_not_found:
+            err = "Arguments Error in %s: '%s' path not found."
+        elif wrong_ext:
+            err = "Arguments Error in %s: <'%s'> wrong file extension."
+        else:
+            err = "Arguments Error in %s: '%s' required."
+
+        Exception.__init__(self, err % (script, message))
+
 
 
 class XnatAccessError(DaxXnatError, ValueError):
