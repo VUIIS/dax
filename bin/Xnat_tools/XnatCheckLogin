@@ -12,8 +12,11 @@ import os
 import sys
 import getpass
 from pyxnat import Interface
-from dax import DAX_Netrc
 from pyxnat.core.errors import DatabaseError
+
+from dax import DAX_Netrc
+
+import utils
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
@@ -64,7 +67,7 @@ def add_host(dax_netrc, host):
     dax_netrc.add_host(host, user, pwd)
     print 'Login saved.'
     qst = 'Do you want to use host <%s> as default host on your computer?'
-    yes = prompt_user_yes_no(qst % host)
+    yes = utils.prompt_user_yes_no(qst % host)
     if yes:
         add_to_profile(host)
 
@@ -86,13 +89,15 @@ def add_to_profile(host):
         print "Warning: profile file not found. Please add XNAT_HOST \
 to your environment variables manually."
 
-    # Add the line to the profile
-    line_to_add = 'export XNAT_HOST=%s' % host
-    if 'XNAT_HOST' not in open(profile).read():
-        with open(profile, "a") as f_profile:
-            f_profile.write(BASH_PROFILE_XNAT.format(export_cmd=line_to_add))
-    else:
-        print 'Warning: XNAT_HOST already set in your profile file. \
+    if profile:
+        # Add the line to the profile
+        line_to_add = 'export XNAT_HOST=%s' % host
+        if 'XNAT_HOST' not in open(profile).read():
+            with open(profile, "a") as f_profile:
+                lines = BASH_PROFILE_XNAT.format(export_cmd=line_to_add)
+                f_profile.write(lines)
+        else:
+            print 'Warning: XNAT_HOST already set in your profile file. \
 Please edit it.'
 
 
@@ -107,7 +112,8 @@ def check_settings(dax_netrc, host):
     no_host_saved = False
     host_unknown = False
     if not host:
-        yes = prompt_user_yes_no('Do you want to see the xnat host saved?')
+        qst = 'Do you want to see the xnat host saved?'
+        yes = utils.prompt_user_yes_no(qst)
         if yes:
             print 'XNAT Hosts stored:'
             if not dax_netrc.is_empty():
@@ -129,7 +135,7 @@ def check_settings(dax_netrc, host):
     if host_unknown:
         print 'Warning: no information stored for host <%s>.' % host
         qst = 'Do you want to save XNAT host <%s> information?' % host
-        yes = prompt_user_yes_no(qst)
+        yes = utils.prompt_user_yes_no(qst)
         if yes:
             add_host(dax_netrc, host)
         else:
@@ -152,24 +158,10 @@ def parse_args():
     return ap.parse_args()
 
 
-def prompt_user_yes_no(question):
-    """Prompt the user for a question with answer Y/N.
-
-    :return: True if yes, False if no, ask again if any other answer
-    """
-    value = ''
-    while value.lower() not in ['yes', 'no', 'n', 'y']:
-        value = raw_input("%s [yes/no] " % question)
-    if value.lower() in ['yes', 'y']:
-        return True
-    else:
-        return False
-
-
 if __name__ == '__main__':
     args = parse_args()
-    print '==================================================================='
+    utils.print_separators()
     print 'Checking your settings for XNAT in xnatnetrc file:'
     dax_netrc = DAX_Netrc()
     check_settings(dax_netrc, args.host)
-    print '==================================================================='
+    utils.print_separators()
