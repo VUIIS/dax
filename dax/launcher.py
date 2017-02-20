@@ -168,7 +168,8 @@ class Launcher(object):
         if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
             msg = 'Loading task queue from: %s'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-            task_list = load_task_queue(status=task.NEED_TO_RUN)
+            task_list = load_task_queue(status=task.NEED_TO_RUN, 
+                                        proj_filter=self.project_process_dict.keys())
 
             msg = '%s tasks that need to be launched found'
             LOGGER.info(msg % str(len(task_list)))
@@ -306,7 +307,7 @@ cluster queue"
         if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
             msg = 'Loading task queue from: %s'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-            task_list = load_task_queue()
+            task_list = load_task_queue(proj_filter=self.project_process_dict.keys())
 
             LOGGER.info('%s tasks found.' % str(len(task_list)))
 
