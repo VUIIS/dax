@@ -1136,20 +1136,23 @@ The project is not part of the settings."""
         return len(diff_list) > 0
 
 
-def load_task_queue(status=None):
+def load_task_queue(status=None, proj_filter=None):
     """ Load the task queue for DiskQ"""
     task_list = list()
     diskq_dir = os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ')
     results_dir = DAX_SETTINGS.get_results_dir()
 
     for t in os.listdir(os.path.join(diskq_dir, 'BATCH')):
-        # task_path = os.path.join(BATCH_DIR, t)
-
         LOGGER.debug('loading:' + t)
         task = ClusterTask(os.path.splitext(t)[0], results_dir, diskq_dir)
         LOGGER.debug('status = ' + task.get_status())
 
         # TODO:filter based on project, subject, session, type
+        if proj_filter:
+          assr = XnatUtils.AssessorHandler(os.path.join(diskq_dir, 'BATCH', t))
+          if not assr.get_project_id() in proj_filter:
+            continue
+      
         if not status or task.get_status() == status:
             LOGGER.debug('adding task to list:' + t)
             task_list.append(task)
