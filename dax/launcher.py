@@ -1146,9 +1146,9 @@ def load_task_queue(status=None, proj_filter=None):
     for t in os.listdir(os.path.join(diskq_dir, 'BATCH')):        
         # TODO:complete filtering by project/subject/session/type
         if proj_filter:
-          assr = XnatUtils.AssessorHandler(os.path.join(diskq_dir, 'BATCH', t))
-          if not assr.get_project_id() in proj_filter:
-            LOGGER.debug('ignoring:'+t)
+          assr = XnatUtils.AssessorHandler(t)
+          if assr.get_project_id() not in proj_filter:
+            LOGGER.debug('ignoring:' + t)
             continue
 
         LOGGER.debug('loading:' + t)
