@@ -7,56 +7,59 @@ Created on May 6, 2013
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
-import os
 import datetime
+import logging
+import os
 
 from dax import XnatUtils
 
-import utils
+import xnat_tools_utils as utils
 
 
-# Variables
-DISPLAY = {
-    'info': {
-        'host': {'display': 'XNAT Host'},
-        'username': {'display': 'XNAT User'},
-        'printfilters': {'display': 'Print filters', 'default': 'on'},
-        'printformat': {'display': 'Print formats', 'default': 'on'},
-        'csvfile': {'display': 'Out CSV File', 'end': True},
-        'projects': {'display': 'Project(s)'},
-        'res_delimiter': {'display': 'Resource Delimiter'},
-        'filters': {'display': 'Filters String'},
-        'format': {'display': 'Header csv'},
-    },
-    'description': [
-        'Check XNAT data (subject/session/scan/assessor/resource)',
-    ],
-    'required_args': {
-        'projects': {'ifnotand': ['printfilters', 'printformat']},
-    },
-    'default_args': {
-        'host': None,
-        'username': None,
-        'printfilters': False,
-        'printformat': False,
-        'res_delimiter': '--',
-        'projects': None,
-        'filters': None,
-        'csvfile': None,
-        'format': None,
-    },
-}
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__exe__ = os.path.basename(__file__)
+__purpose__ = 'Check XNAT data (subject/session/scan/assessor/resource)'
+__logger__ = utils.setup_info_logger(__exe__)
+__description__ = """What is the script doing :
+   *Check object on XNAT (subject/session/scan/assessor/resources) specify by \
+the options.
+
+How to write a filter string:
+ - for resources filters, the string needs to follow this template:
+   variable_name=value--sizeoperatorValue--nbfoperatorValue--fpathsoperatorValue
+   By default, it will return the assessor that does have the resource if no \
+other filter specify
+ - for other filters, the string needs to follow this template:
+   variable_name=Value
+   operator can be different than =. Look at the table in --printfilters
+
+Use --printfilters to see the different variables available
+
+Examples:
+   *See format variables:
+        Xnatcheck --printformat
+   *See filter variables:
+        Xnatcheck --printfilters
+   *Get list of T1,DTI scans that have a resource called NIFTI:
+        Xnatcheck -p PID --filters type=T1,DTI assessor_res=NIFTI
+   *Get list of fMRIQA assessors that have a resource called PDF:
+        Xnatcheck -p PID --filters proctype=fMRIQA assessor_res=PDF
+   *Get list of assessors except fMRIQA that have a resource called PDF :
+        Xnatcheck -p PID --filters proctype!=fMRIQA assessor_res=PDF
+   *Get list of project sessions that do not have a resource called testing:
+        Xnatcheck -p PID --filters session_label=VUSTP1a,VUSTP2b,VUSTP3a \
+session_res!=testing
+   *Get list of project fMRIQA and VBMQA that used more than 45mb and less \
+than 1hour:
+        Xnatcheck -p PID1,PID2 --filters proctype=fMRIQA,VBMQA \
+procstatus=COMPLETE "memused>45mb" "walltimeused<1:00:00" --format \
+assessor_label,procnode,memused,walltimeused
+"""
+
 NOTFOUND = 'NotFound'
 DEFAULT_CSV_LIST = [
-    'object_type',
-    'project_id',
-    'subject_label',
-    'session_type',
-    'session_label',
-    'as_label',
-    'as_type',
-    'as_description',
-    ' as_quality'
+    'object_type', 'project_id', 'subject_label', 'session_type',
+    'session_label', 'as_label', 'as_type', 'as_description', 'as_quality'
 ]
 ORDER_PRINTING = ['commun', 'project', 'subject', 'session', 'scan',
                   'assessor']
@@ -141,39 +144,6 @@ RESOURCES_LIST = ['scan_res', 'assessor_res', 'session_res', 'subject_res']
 RESOURCES_VARS = ['size', 'nbf', 'fpath']
 RES_OBJ_DICT = {'assessor_res': 'proctype', 'scan_res': 'series_description',
                 'session_res': 'session_label', 'subject_res': 'subject_label'}
-DESCRIPTION = """What is the script doing :
-   *Check object on XNAT (subject/session/scan/assessor/resources) specify by \
-the options.
-
-How to write a filter string:
- - for resources filters, the string needs to follow this template:
-   variable_name=value--sizeoperatorValue--nbfoperatorValue--fpathsoperatorValue
-   By default, it will return the assessor that does have the resource if no \
-other filter specify
- - for other filters, the string needs to follow this template:
-   variable_name=Value
-   operator can be different than =. Look at the table in --printfilters
-
-Use --printfilters to see the different variables available
-
-Examples:
-   *See format variables: Xnatcheck --printformat
-   *See filter variables: Xnatcheck --printfilters
-   *Get list of T1,DTI scans that have a resource called NIFTI: Xnatcheck -p \
-PID --filters type=T1,DTI assessor_res=NIFTI
-   *Get list of fMRIQA assessors that have a resource called PDF: Xnatcheck \
--p PID --filters proctype=fMRIQA assessor_res=PDF
-   *Get list of assessors except fMRIQA that have a resource called PDF :\
-Xnatcheck -p PID --filters proctype!=fMRIQA assessor_res=PDF
-   *Get list of project sessions that do not have a resource called testing: \
-Xnatcheck -p PID --filters session_label=VUSTP1a,VUSTP2b,VUSTP3a \
-session_res!=testing
-   *Get list of project fMRIQA and VBMQA that used more than 45mb and less \
-than 1hour:
-    Xnatcheck -p PID1,PID2 --filters proctype=fMRIQA,VBMQA \
-procstatus=COMPLETE "memused>45mb" "walltimeused<1:00:00" --format \
-assessor_label,procnode,memused,walltimeused
-"""
 
 
 # Classes
@@ -871,6 +841,10 @@ def generate_xnat_object_list(host, username, projects, filters, filters_r):
     :return: list of XNAT objects dictionaries
     """
     object_list = list()
+    if host:
+        host = host
+    else:
+        host = os.environ['XNAT_HOST']
     with XnatUtils.get_interface(host=host, user=username) as xnat:
         print 'INFO: connection to xnat <%s>:' % (host)
         print 'INFO: extracting information from XNAT'
@@ -937,14 +911,14 @@ def print_report(objects, header):
         print _format % (-20, proj, -17, len(_list))
     print '-------------------------------------------\n'
 
-    LOGGER.info(','.join(header))
+    __logger__.info(','.join(header))
     # sort the list of object by the subject label if present:
     if 'subject_label' in objects[0]:
         obj_list = sorted(objects, key=lambda k: k['subject_label'])
     for obj in obj_list:
         row = get_row(obj, header)
         if not all(x is None for x in row):
-            LOGGER.info(','.join(row))
+            __logger__.info(','.join(row))
 
 
 def get_row(obj_dict, header):
@@ -1002,7 +976,6 @@ def print_filters():
     """
     Print the filters available.
 
-    :param :
     :return: None
     """
     _format = ' %*s | %*s | %*s | %*s | %*s '
@@ -1054,68 +1027,79 @@ def print_format():
     print '\n'
 
 
-def get_parser(name):
+def run_xnat_check(args):
+    """
+    Main function for xnat check.xnat
+
+    :param args: arguments parse by argparse
+    """
+    res_delimiter = (args.delimiter_filter_resourse
+                     if args.delimiter_filter_resourse
+                     else '--')
+
+    if args.csvfile:
+        handler = logging.FileHandler(args.csvfile, 'w')
+        __logger__.addHandler(handler)
+
+    utils.print_separators()
+    if args.print_filters:
+        print_filters()
+        utils.print_separators()
+
+    if args.print_format:
+        print_format()
+        utils.print_separators()
+
+    if args.filters:
+        # Create filters from the string:
+        filters, filters_r = create_filters(args.filters,
+                                            res_delimiter)
+        # Generate the list of object from XNAT
+        objects = generate_xnat_object_list(
+            args.host, args.username, args.projects.split(','),
+            filters, filters_r)
+        header = DEFAULT_CSV_LIST
+        if args.format:
+            header = args.format.split(',')
+            if 'object_type' not in header:
+                header = ['object_type'] + header
+        if objects and (filters or filters_r):
+            print_report(objects, header)
+        else:
+            print '--> No object on XNAT found matching your filters.'
+    else:
+        print 'WARNING: No filters given to the options.'
+
+    utils.print_end(__exe__)
+
+
+def get_parser(parser):
     """
     Method to parse arguments base on argparse
 
+    :param parser: parser object
     :return: parser object
     """
-    parser = utils.get_xnat_tools_argparser(name, DESCRIPTION)
-    parser.add_argument("-p", "--project", dest="projects", default=None,
+    parser.add_argument("-p", "--project", dest="projects", required=True,
                         help="Project(s) ID on XNAT")
     _h = "List of filters separated by a space to apply to the search."
     parser.add_argument("--filters", dest="filters", default=None,
-                        nargs='+', type=str, help=_h)
-    parser.add_argument("--delimiter", dest="res_delimiter", default='--',
-                        help="Resource filters delimiter. By default: --")
+                        nargs='+', type=str, help=_h, required=True)
+    _h = "Resource filters delimiter. By default: --."
+    parser.add_argument("--delimiter", dest="delimiter_filter_resourse",
+                        default=None, help=_h)
     parser.add_argument("--csv", dest="csvfile", default=None,
                         help="File path to save the CSV output.")
     _h = "Header for the csv. format: list of variables name comma-separated"
     parser.add_argument("--format", dest="format", default=None, help=_h)
-    parser.add_argument("--printfilters", dest="printfilters",
+    parser.add_argument("--printfilters", dest="print_filters",
                         action='store_true', help="Print available filters.")
-    parser.add_argument("--printformat", dest="printformat",
+    parser.add_argument("--printformat", dest="print_format",
                         action='store_true',
                         help="Print available format for display.")
     return parser
 
 
 if __name__ == '__main__':
-    _name = os.path.basename(__file__)
-    parser = get_parser(_name)
-    args = parser.parse_args()
-
-    # Main display + check arguments (since we have our own display)
-    utils.main_display(_name, parser, DISPLAY)
-    run = utils.check_arguments(_name, args, DISPLAY)
-    LOGGER = utils.setup_info_logger(_name, args.csvfile)
-
-    if run:
-        utils.print_separators()
-        if args.printfilters:
-            print_filters()
-
-        if args.printformat:
-            print_format()
-
-        if args.filters:
-            # Create filters from the string:
-            filters, filters_r = create_filters(args.filters,
-                                                args.res_delimiter)
-            # Generate the list of object from XNAT
-            objects = generate_xnat_object_list(
-                args.host, args.username, args.projects.split(','),
-                filters, filters_r)
-            header = DEFAULT_CSV_LIST
-            if args.format:
-                header = args.format.split(',')
-                if 'object_type' not in header:
-                    header = ['object_type'] + header
-            if objects and (filters or filters_r):
-                print_report(objects, header)
-            else:
-                print '--> No object on XNAT found matching your filters.'
-        else:
-            print 'WARNING: No filters given to the options.'
-
-        utils.print_end(_name)
+    utils.run_tool(__exe__, __description__, get_parser, __purpose__,
+                   run_xnat_check)

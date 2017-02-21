@@ -13,52 +13,14 @@ import redcap
 
 from dax.errors import XnatToolsError
 
-import utils
+import xnat_tools_utils as utils
 
 
-# Variables
-DISPLAY = {
-    'info': {
-        'names': {'display': 'Print field names/labels', 'default': 'on'},
-        'lib': {'display': 'Print libraries names', 'default': 'on'},
-        'all': {'display': 'Records', 'default': 'all'},
-        'csvfile': {'display': 'OUPUT CSV File', 'end': True},
-        'txtfile': {'display': 'Records-field File', 'end': True},
-        'procfile': {'display': 'Records File', 'end': True},
-        'project': {'display': 'Records-Project(s)'},
-        'subject': {'display': 'Records-Subject(s)'},
-        'session': {'display': 'Records-Session(s)'},
-        'assessor': {'display': 'Records'},
-        'proctype': {'display': 'Records-Proctype(s)'},
-    },
-    'description': [
-        'Create REDCap report for a redcap project.',
-        '(Need API key).'
-    ],
-    'required_args': {
-        'key': {},
-        'csvfile': {'ifnotand': ['lib', 'names'], 'path': True, 'ext': 'csv'},
-        'txtfile': {'ifnotand': ['lib', 'names'], 'path': True},
-        'procfile': {'ifnotand': ['lib', 'names'], 'path': True},
-    },
-    'default_args': {
-        'libraries': None,
-        'procfile': None,
-        'lib': False,
-        'all': False,
-        'proctype': None,
-        'csvfile': None,
-        'txtfile': None,
-        'project': None,
-        'session': None,
-        'names': False,
-        'key': None,
-        'assessor': None,
-        'subject': None,
-    },
-}
-DEFAULT_API_URL = 'https://redcap.vanderbilt.edu/api/'
-DESCRIPTION = '''What is the script doing :
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__exe__ = os.path.basename(__file__)
+__purpose__ = 'Create REDCap report for a redcap project.'
+__logger__ = utils.setup_info_logger(__exe__)
+__description__ = '''What is the script doing :
    *Extract data from REDCap as a csv file.
 
 Examples:
@@ -76,6 +38,8 @@ PID-x-109387-x-109387_1-x-FS
    *Extract only the fields described in the txt file: Redcapreport \
 -k KEY -x fields.txt
 '''
+
+DEFAULT_API_URL = 'https://redcap.vanderbilt.edu/api/'
 
 
 def print_lib(redcap_proj):
@@ -239,18 +203,66 @@ def chunked_export(redcap_proj, records, forms, fields, chunk_size=100):
     return True, response
 
 
-def get_parser(name):
+def run_redcapreport(args):
+    """
+    Main function for xnat check.xnat
+
+    :param args: arguments parse by argparse
+    """
+    # variables:
+    fields = utils.read_txt(args.txtfile)
+    if args.libraries:
+        forms = args.libraries.strip()\
+                              .replace(' ', '_')\
+                              .lower()\
+                              .split(',')
+
+    try:
+        print 'INFO: Loading REDCap project...'
+        redcap_proj = redcap.Project(DEFAULT_API_URL, args.key)
+    except redcap.RedcapError:
+        err = 'Connection to REDCap failed. Check the key, options \
+-k/--key passed to the executable'
+        raise XnatToolsError(err)
+
+    utils.print_separators()
+    if args.names:
+        fnames, flabels = redcap_proj.names_labels(True)
+        print 'INFO: Printing fields name and label'
+        print '------------------------------------'
+        for ind, fname in enumerate(fnames):
+            print "%s : %s" % (fname, flabels[ind])
+        utils.print_separators()
+    if args.lib:
+        print_lib(redcap_proj)
+        utils.print_separators()
+    else:
+        records = get_records(args)
+        succeed, csv_data = extract_redcap_data(redcap_proj, records, forms,
+                                                fields)
+
+        if not succeed:
+            err = 'No values to write. Failed extracting data from REDCap.'
+            raise XnatToolsError(err)
+        else:
+            # write data
+            utils.write_csv(csv_data, args.csvfile, __exe__)
+
+    utils.print_end(__exe__)
+
+
+def get_parser(parser):
     """
     Method to parse arguments base on ArgumentParser
 
-    :param name: name of script
+    :param parser: parser default to add argument (not use in this case)
     :return: parser object
     """
     from argparse import ArgumentParser, RawDescriptionHelpFormatter
-    argp = ArgumentParser(prog=name,
-                          description=DESCRIPTION,
+    argp = ArgumentParser(prog=__exe__,
+                          description=__description__,
                           formatter_class=RawDescriptionHelpFormatter)
-    argp.add_argument("-k", "--key", dest="key", required=None,
+    argp.add_argument("-k", "--key", dest="key", required=True,
                       help="API Token for REDCap project.")
     argp.add_argument("-c", "--csvfile", dest="csvfile", default=None,
                       help="csv file path where the report will be save.")
@@ -291,48 +303,5 @@ dti_quality_assurance. By default: all libraries"
 
 
 if __name__ == '__main__':
-    _name = os.path.basename(__file__)
-    parser = get_parser(_name)
-    args = parser.parse_args()
-
-    # Main display + check arguments (since we have our own display)
-    utils.main_display(_name, parser, DISPLAY)
-    run = utils.check_arguments(_name, args, DISPLAY)
-
-    if run:
-        # variables:
-        fields = utils.read_txt(args.txtfile)
-        if args.libraries:
-            forms = args.libraries.strip()\
-                                  .replace(' ', '_')\
-                                  .lower()\
-                                  .split(',')
-
-        try:
-            print 'INFO: Loading REDCap project...'
-            redcap_proj = redcap.Project(DEFAULT_API_URL, args.key)
-        except redcap.RedcapError:
-            err = 'Connection to REDCap failed. Check the key, options \
--k/--key passed to the executable'
-            raise XnatToolsError(err)
-
-        if args.names:
-            fnames, flabels = redcap_proj.names_labels(True)
-            print 'INFO: Printing fields name and label'
-            print '------------------------------------'
-            for ind, fname in enumerate(fnames):
-                print "%s : %s" % (fname, flabels[ind])
-        elif args.lib:
-            print_lib(redcap_proj)
-        else:
-            records = get_records(args)
-            succeed, csv_data = extract_redcap_data()
-
-            if not succeed:
-                err = 'No values to write. Failed extracting data from REDCap.'
-                raise XnatToolsError(err)
-            else:
-                # write data
-                utils.write_csv(csv_data, args.csvfile)
-
-        utils.print_end(_name)
+    utils.run_tool(__exe__, __description__, get_parser, __purpose__,
+                   run_redcapreport)
