@@ -14,7 +14,7 @@ from pyxnat import Interface
 from dax import XnatUtils
 
 # Variables
-CURL_CMD = '''curl -qu {xuser}:{xpass} {xhost}/data/archive/projects/{proj}/subjects/{subj}/experiments/{sess}}/assessors/{asse}/out/resources/DATA/files?format=zip > {zip}'''
+CURL_CMD = '''curl -qu {xuser}:{xpass} {xhost}/data/archive/projects/{proj}/subjects/{subj}/experiments/{sess}/assessors/{asse}/out/resources/DATA/files?format=zip > {zip}'''
 
 def parse_args():
     """
