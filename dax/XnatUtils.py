@@ -2740,7 +2740,7 @@ def get_random_sessions(xnat, project_id, num_sessions):
     :return: List of session labels for the project
 
     """
-    sessions = list_experiments(xnat, project_id)
+    sessions = list_sessions(xnat, project_id)
     session_labels = [x['label'] for x in sessions]
     if num_sessions > 0 and num_sessions < 1:
         num_sessions = int(num_sessions * len(session_labels))
