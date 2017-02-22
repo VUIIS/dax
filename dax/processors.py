@@ -1,5 +1,6 @@
 """ Processor class define for Scan and Session."""
 
+import fnmatch
 import logging
 import re
 import os
@@ -227,7 +228,8 @@ class ScanProcessor(Processor):
         if self.scan_types == 'all':
             return True
         else:
-            for exp in self.scan_types:
+            for expression in self.scan_types:
+                exp = fnmatch.translate(expression)
                 regex = re.compile(exp)
                 if regex.match(scan_dict['scan_type']):
                     return True
