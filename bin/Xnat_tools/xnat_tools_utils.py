@@ -80,21 +80,21 @@ def args_display(args):
     """
     _args = list()
     for key, value in vars(args).items():
-        _format = '    %*s -> %*s'
+        _format = '  %*s -> %*s'
         if isinstance(value, bool):
             if value:
-                _args.append(_format % (-15, key.replace('_', ' '), -45, 'on'))
+                _args.append(_format % (-15, key.replace('_', ' '), -43, 'on'))
         else:
             if value:
                 _args.append(_format % (-15, key.replace('_', ' '),
-                                        -45, get_proper_str(value, True)))
+                                        -43, get_proper_str(value, True)))
 
     print ARGS_DISPLAY.format(args='\n'.join(_args))
-    print_separators(symbol='-')
+    print_separators(symbol='-', return_line=True)
 
 
 def run_tool(script, description, add_tools_arguments, purpose, run_tool_fct,
-             check_arguments=None, extra_display=False):
+             extra_display=False):
     """
     Main function to run for all xnat tools.
     Set args/display and run core function (run_tool_fct)
@@ -112,12 +112,7 @@ def run_tool(script, description, add_tools_arguments, purpose, run_tool_fct,
     if extra_display:
         print extra_display
 
-    run = True
-    if check_arguments:
-        run = check_arguments(script, args)
-
-    if run:
-        run_tool_fct(args)
+    run_tool_fct(args)
 
 
 def setup_info_logger(name, log_file=None):
@@ -239,11 +234,11 @@ def get_proper_str(str_option, end=False):
     :param end: keep the end of the string visible (default beginning)
     :return: shortened string
     """
-    if len(str_option) > 45:
+    if len(str_option) > 43:
         if end:
-            return '...%s' % str_option[-42:]
+            return '...%s' % str_option[-40:]
         else:
-            return '%s...' % str_option[:42]
+            return '%s...' % str_option[:40]
     else:
         return str_option
 
@@ -262,13 +257,16 @@ def prompt_user_yes_no(question):
         return False
 
 
-def print_separators(symbol='=', length=LENGTH):
+def print_separators(symbol='=', length=LENGTH, return_line=False):
     """
     Print line to separate: symbolx60
 
     :param symbol: symbol to print length time (60)
     """
-    print '%s' % (symbol * length)
+    _format = '%s'
+    if return_line:
+        _format = '%s\n'
+    print _format % (symbol * length)
 
 
 def print_end(name):
@@ -276,9 +274,9 @@ def print_end(name):
     Last display when the tool script finish.
     """
     _spaces = (LENGTH-6 - len(name))/2
-    print edit_string_size(name, max_length=LENGTH-6, left_spaces=_spaces,
-                           sformat='%s DONE %s', symbol='=')
-    print '\n'
+    print '%s\n' % edit_string_size(name, max_length=LENGTH-6,
+                                    left_spaces=_spaces,
+                                    sformat='%s DONE %s', symbol='=')
 
 
 def get_gender_from_label(gender):
