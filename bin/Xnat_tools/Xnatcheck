@@ -15,6 +15,7 @@ import logging
 import os
 
 from dax import XnatUtils
+from dax.errors import XnatToolsUserError
 
 import xnat_tools_utils as utils
 
@@ -61,19 +62,6 @@ assessor_label,procnode,memused,walltimeused
 """
 
 NOTFOUND = 'NotFound'
-DEFAULT_CSV_LIST = [
-    'object_type', 'project_id', 'subject_label', 'session_type',
-    'session_label', 'as_label', 'as_type', 'as_description', 'as_quality'
-]
-ORDER_PRINTING = ['commun', 'project', 'subject', 'session', 'scan',
-                  'assessor']
-VARLIST = ['scan_id', 'type', 'series_description', 'quality', 'note',
-           'frames', 'assessor_id', 'assessor_label', 'proctype', 'procstatus',
-           'qcstatus', 'version', 'jobid', 'memused', 'walltimeused',
-           'procnode', 'jobstartdate', 'object_type', 'project_id',
-           'subject_id', 'subject_label', 'session_id', 'session_type',
-           'session_label', 'handedness', 'gender', 'yob', 'age',
-           'last_modified', 'last_updated']
 VARIABLES_LIST = {
     'commun': ['object_type'],
     'project': ['project_id'],
@@ -86,13 +74,6 @@ VARIABLES_LIST = {
                  'qcstatus', 'version', 'jobid', 'memused', 'walltimeused',
                  'jobnode', 'jobstartdate'],
 }
-VAR_FILTERS_LI = [
-    'subject_id', 'subject_label', 'handedness', 'gender', 'yob', 'session_id',
-    'session_type', 'session_label', 'age', 'scan_id', 'type',
-    'series_description', 'quality', 'assessor_id', 'assessor_label',
-    'proctype', 'procstatus', 'qcstatus', 'version', 'jobid', 'memused',
-    'walltimeused', 'jobnode', 'jobstartdate',
-]
 VAR_FILTERS = [
     {'var': 'subject_id', 'value': 'Subjects ID',
      'format': 'comma separated list', 'operator': '=,!=', 'grp': 'subject'},
@@ -162,7 +143,7 @@ class filter_variable:
         :param operator: operator to apply to variable (=,>,<,!=,...)
         :return: None
         """
-        if rvar in VAR_FILTERS_LI:
+        if rvar in [_d['var'] for _d in VAR_FILTERS]:
             self.var = rvar
             self.goodfilter = True
             # init operator:
@@ -1024,7 +1005,7 @@ def print_format():
     Print variables available for output.
     """
     print 'INFO: Printing the variables available for output: '
-    for key in ORDER_PRINTING:
+    for key in utils.ORDER:
         print '%s variables:' % key
         for value in VARIABLES_LIST[key]:
             print ' * %*s ' % (-30, value)
@@ -1054,7 +1035,10 @@ def run_xnat_check(args):
         print_format()
         utils.print_separators()
 
-    if args.filters:
+    if not args.filters:
+        err = 'Argument --filters not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    else:
         # Create filters from the string:
         filters, filters_r = create_filters(args.filters,
                                             res_delimiter)
@@ -1062,7 +1046,7 @@ def run_xnat_check(args):
         objects = generate_xnat_object_list(
             args.host, args.username, args.projects.split(','),
             filters, filters_r)
-        header = DEFAULT_CSV_LIST
+        header = utils.CSV_HEADER[:-2]
         if args.format:
             header = args.format.split(',')
             if 'object_type' not in header:
@@ -1071,8 +1055,6 @@ def run_xnat_check(args):
             print_report(objects, header)
         else:
             print '--> No object on XNAT found matching your filters.'
-    else:
-        print 'WARNING: No filters given to the options.'
 
     utils.print_end(__exe__)
 

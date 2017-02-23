@@ -34,9 +34,10 @@ ARGS_DISPLAY = """Arguments:
 {args}"""
 CSV_HEADER = [
     'object_type', 'project_id', 'subject_label', 'session_type',
-    'session_label', 'as_label', 'as_type', 'as_description', 'quality',
+    'session_label', 'as_label', 'as_type', 'as_description', 'as_quality',
     'resource', 'fpath'
 ]
+ORDER = ['commun', 'project', 'subject', 'session', 'scan', 'assessor']
 XNAT_MODALITIES = {
     'CT': {'xsitype': 'xnat:ctSessionData',
            'info': 'An event in which CT scans are obtained on a subject'},

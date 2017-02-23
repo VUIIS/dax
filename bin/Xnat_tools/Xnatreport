@@ -36,19 +36,6 @@ Examples:
    *Save report in a csv:
         Xnatreport -p PID -c report.csv"""
 
-DEFAULT_CSV_HEADER = 'object_type,project_id,subject_label,session_type,\
-session_label,as_label,as_type,as_description,quality,resource'
-ORDER_PRINTING = [
-    'commun', 'project', 'subject', 'session', 'scan', 'assessor', 'resource'
-]
-VARLIST = [
-    'scan_id', 'type', 'series_description', 'quality', 'note', 'frames',
-    'resource', 'assessor_id', 'assessor_label', 'assessor_URI', 'proctype',
-    'procstatus', 'qcstatus', 'version', 'jobid', 'memused', 'walltimeused',
-    'jobnode', 'jobstartdate', 'object_type', 'project_id', 'subject_id',
-    'subject_label', 'session_id', 'session_type', 'session_label',
-    'handedness', 'gender', 'yob', 'age', 'last_modified', 'last_updated'
-]
 VARIABLES_LIST = {
     'commun': ['object_type'],
     'project': ['project_id'],
@@ -95,7 +82,7 @@ def is_default(header):
 
     :param header: header for report
     """
-    return header == DEFAULT_CSV_HEADER.split(',')
+    return header == utils.CSV_HEADER[:-1]
 
 
 def report(xnat, projects, rformat=None):
@@ -109,7 +96,7 @@ def report(xnat, projects, rformat=None):
     """
     __logger__.info('Date: %s\n' % (str(datetime.now())))
     if not rformat:
-        rformat = DEFAULT_CSV_HEADER
+        rformat = ','.join(utils.CSV_HEADER[:-1])
     __logger__.info(rformat)
 
     for project in projects:
@@ -211,14 +198,14 @@ def get_field(field, is_scan):
     :return: string describing the key in obj_dict
     """
     _field = field
-    if _field in ['as_label', 'as_type', 'as_description', 'quality']:
+    if _field in ['as_label', 'as_type', 'as_description', 'as_quality']:
         if _field == 'as_label':
             _field = 'scan_id' if is_scan else 'assessor_label'
         elif _field == 'as_type':
             _field = 'type' if is_scan else 'proctype'
         elif _field == 'as_description':
             _field = 'series_description' if is_scan else 'procstatus'
-        elif _field == 'quality':
+        elif _field == 'as_quality':
             _field = 'quality' if is_scan else 'qcstatus'
 
     return _field
@@ -271,6 +258,21 @@ def get_resources(xnat, obj_dict):
     return str(_res)
 
 
+def print_format():
+    """
+    Function to print the format for variables.
+
+    :return: None
+    """
+    __logger__.info('INFO: Printing the variables available: ')
+    order_header = utils.ORDER
+    order_header.append('resource')
+    for key in order_header:
+        __logger__.info('%s variables:' % key)
+        for name in VARIABLES_LIST[key]:
+            __logger__.info(' * %*s ' % (-30, name))
+
+
 def run_xnat_report(args):
     """
     Main function for xnat report.
@@ -281,7 +283,8 @@ def run_xnat_report(args):
     if _format and _format[-1] == ',':
         _format = _format[:-1]
 
-    if _format and filter(lambda x: x not in VARLIST, _format.split(',')):
+    var_list = [_i for _list in VARIABLES_LIST.values() for _i in _list]
+    if _format and filter(lambda x: x not in var_list, _format.split(',')):
         err = '--format has some variables that does not exist on XNAT. \
 Please display the variables available on XNAT by using --printformat.'
         raise XnatToolsUserError(__exe__, err)
@@ -305,11 +308,7 @@ exist to create the file: %s not found.' % folder
     utils.print_separators()
 
     if args.print_format:
-        __logger__.info('INFO: Printing the variables available: ')
-        for key in ORDER_PRINTING:
-            __logger__.info('%s variables:' % key)
-            for name in VARIABLES_LIST[key]:
-                __logger__.info(' * %*s ' % (-30, name))
+        print_format()
 
     if _format and _format == 'object_type':
         utils.print_separators()
@@ -341,11 +340,10 @@ option. Adding object_type and project_id.'
                 # check if the project exists:
                 proj_obj = xnat.select('/project/'+proj)
                 if not proj_obj.exists():
-                    warn = ' - Warning: Project %s does not exist on Xnat.'
-                    print warn % proj
-                    projects.remove(proj)
-                else:
-                    print '  - %s' % proj
+                    err = 'Project "%s" given to -p/--project not found on \
+XNAT.'
+                    raise XnatToolsUserError(__exe__, err % proj)
+                print '  - %s' % proj
             print '------------------------------------'
             print 'WARNING: extracting information from XNAT for a full \
 project might take some time. Please be patient.\n'
