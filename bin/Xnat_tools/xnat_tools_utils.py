@@ -32,6 +32,69 @@ DISPLAY_TEMPLATE = """#######################################################\
 """
 ARGS_DISPLAY = """Arguments:
 {args}"""
+CSV_HEADER = [
+    'object_type', 'project_id', 'subject_label', 'session_type',
+    'session_label', 'as_label', 'as_type', 'as_description', 'quality',
+    'resource', 'fpath'
+]
+XNAT_MODALITIES = {
+    'CT': {'xsitype': 'xnat:ctSessionData',
+           'info': 'An event in which CT scans are obtained on a subject'},
+    'MR': {'xsitype': 'xnat:mrSessionData',
+           'info': 'An event in which MR scans are obtained on a subject'},
+    'PET': {'xsitype': 'xnat:petSessionData',
+            'info': 'An event in which PET scans are obtained on a subject'},
+    'EPS': {'xsitype': 'xnat:epsSessionData',
+            'info': 'Cardiac Electrophysiology Session'},
+    'DX': {'xsitype': 'xnat:dxSessionData',
+           'info': 'An event in which Digital Radiography scans are obtained \
+on a subject'},
+    'RT': {'xsitype': 'xnat:rtSessionData', 'info': 'Radiotherapy Session'},
+    'EEG': {'xsitype': 'xnat:eegSessionData',
+            'info': 'Electroencephalography Session'},
+    'HD': {'xsitype': 'xnat:hdSessionData', 'info': 'Hemodynamic Session'},
+    'DX3DCRANIOFACIAL': {'xsitype': 'xnat:dx3DCraniofacialSessionData',
+                         'info': 'X-Ray 3D Craniofacial Session'},
+    'ECG': {'xsitype': 'xnat:ecgSessionData',
+            'info': 'Electrocardiography Session'},
+    'OTHERDICOM': {'xsitype': 'xnat:otherDicomSessionData',
+                   'info': 'DICOM study of undetermined type'},
+    'RF': {'xsitype': 'xnat:rfSessionData',
+           'info': 'Radiofluoroscopy Session'},
+    'XA3D': {'xsitype': 'xnat:xa3DSessionData',
+             'info': 'X-Ray 3D Angiography Session'},
+    'ESV': {'xsitype': 'xnat:esvSessionData',
+            'info': 'Video Endoscopy Session'},
+    'XC': {'xsitype': 'xnat:xcSessionData',
+           'info': 'Visible Light Photography Session'},
+    'XA': {'xsitype': 'xnat:xaSessionData',
+           'info': 'An event in which X-ray Angiography scans are obtained on \
+a subject'},
+    'MEG': {'xsitype': 'xnat:megSessionData',
+            'info': 'Magnetoencephalography Session'},
+    'IO': {'xsitype': 'xnat:ioSessionData',
+           'info': 'Intraoral Radiography Session'},
+    'CR': {'xsitype': 'xnat:crSessionData',
+           'info': 'Computed Radiography Session'},
+    'GM': {'xsitype': 'xnat:gmSessionData',
+           'info': 'Visible Light Microscopy Session'},
+    'GMV': {'xsitype': 'xnat:gmvSessionData',
+            'info': 'Video Microscopy Session'},
+    'ES': {'xsitype': 'xnat:esSessionData',
+           'info': 'Visible Light Endoscopy Session'},
+    'OPT': {'xsitype': 'xnat:optSessionData',
+            'info': 'Ophthalmic Tomography Session'},
+    'MG': {'xsitype': 'xnat:mgSessionData',
+           'info': 'Digital Mammography Session'},
+    'US': {'xsitype': 'xnat:usSessionData',
+           'info': 'Ultrasound Session'},
+    'XCV': {'xsitype': 'xnat:xcvSessionData',
+            'info': 'Video Photography Session'},
+    'SM': {'xsitype': 'xnat:smSessionData',
+           'info': 'Visible Light Slide-Coordinates Microscopy Session'},
+    'OP': {'xsitype': 'xnat:opSessionData',
+           'info': 'Ophthalmic Photography Session'},
+}
 
 
 def parse_args(name, description, add_tools_arguments, purpose):

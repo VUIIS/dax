@@ -25,7 +25,7 @@ import xnat_tools_utils as utils
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __exe__ = os.path.basename(__file__)
 __author__ = 'byvernault'
-__purpose__ = 'Print a detailed report from XNAT projects.'
+__purpose__ = 'Change assessor job/quality control status.'
 __logger__ = utils.setup_info_logger(__exe__)
 __description__ = """What is the script doing :
     *Switch/Set the status for assessors on XNAT selected by the proctype.
@@ -524,7 +524,7 @@ def print_status():
 
 def run_xnat_switch_process_status(args):
     """
-    Main function for xnat report.
+    Main function for xnat switch process status.
 
     :param args: arguments parse by argparse
     """
