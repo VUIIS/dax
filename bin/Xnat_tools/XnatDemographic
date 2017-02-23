@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 '''
+Upload demographic data to a project on XNAT.
 
 Created on May 6, 2013
 Edited on February 19, 2015
@@ -21,6 +22,7 @@ import xnat_tools_utils as utils
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __exe__ = os.path.basename(__file__)
+__author__ = 'byvernault'
 __purpose__ = 'Upload demographic data to XNAT from a csv file'
 __description__ = """What is the script doing :
    * Upload demographic data to a project on XNAT from a CSV file giving to \
@@ -411,12 +413,12 @@ will take some time to upload demographic data. Please be patient.'
     utils.print_end(__exe__)
 
 
-def get_parser(parser):
+def add_to_parser(parser):
     """
-    Method to parse arguments base on argparse
+    Method to add arguments to default parser for xnat_tools in utils.
 
     :param parser: parser object
-    :return: parser object
+    :return: parser object with new arguments
     """
     _h = "File path as inputs that will be read for XNAT information. \
 Default header used: project_id,subject_label,session_label,handedness,\
@@ -441,5 +443,5 @@ comma separated list."
 
 
 if __name__ == '__main__':
-    utils.run_tool(__exe__, __description__, get_parser, __purpose__,
+    utils.run_tool(__exe__, __description__, add_to_parser, __purpose__,
                    run_xnat_demographics)

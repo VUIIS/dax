@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 '''
-Query through Xnat
+Display information on a project from Xnat
+
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
@@ -17,6 +18,7 @@ import xnat_tools_utils as utils
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __exe__ = os.path.basename(__file__)
+__author__ = 'byvernault'
 __purpose__ = 'Display information on a XNAT project.'
 __description__ = '''What is the script doing :
    * Generate a report for a XNAT project displaying scans/assessors
@@ -309,12 +311,12 @@ def run_xnat_info(args):
     utils.print_end(__exe__)
 
 
-def get_parser(parser):
+def add_to_parser(parser):
     """
-    Method to parse arguments base on argparse
+    Method to add arguments to default parser for xnat_tools in utils.
 
     :param parser: parser object
-    :return: parser object
+    :return: parser object with new arguments
     """
     parser.add_argument(dest='project', help='Project ID on XNAT')
     parser.add_argument("-x", "--filetxt", dest='output_file', default=None,
@@ -335,5 +337,5 @@ def get_parser(parser):
 
 
 if __name__ == '__main__':
-    utils.run_tool(__exe__, __description__, get_parser, __purpose__,
+    utils.run_tool(__exe__, __description__, add_to_parser, __purpose__,
                    run_xnat_info)

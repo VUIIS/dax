@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 '''
+Check XNAT data (subject/session/scan/assessor/resource).
+
 Created on May 6, 2013
+Edited on February 22, 2017
 
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
@@ -18,6 +21,7 @@ import xnat_tools_utils as utils
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __exe__ = os.path.basename(__file__)
+__author__ = 'byvernault'
 __purpose__ = 'Check XNAT data (subject/session/scan/assessor/resource)'
 __logger__ = utils.setup_info_logger(__exe__)
 __description__ = """What is the script doing :
@@ -1029,7 +1033,7 @@ def print_format():
 
 def run_xnat_check(args):
     """
-    Main function for xnat check.xnat
+    Main function for xnat check.
 
     :param args: arguments parse by argparse
     """
@@ -1037,8 +1041,8 @@ def run_xnat_check(args):
                      if args.delimiter_filter_resourse
                      else '--')
 
-    if args.csvfile:
-        handler = logging.FileHandler(args.csvfile, 'w')
+    if args.csv_file:
+        handler = logging.FileHandler(args.csv_file, 'w')
         __logger__.addHandler(handler)
 
     utils.print_separators()
@@ -1073,12 +1077,12 @@ def run_xnat_check(args):
     utils.print_end(__exe__)
 
 
-def get_parser(parser):
+def add_to_parser(parser):
     """
-    Method to parse arguments base on argparse
+    Method to add arguments to default parser for xnat_tools in utils.
 
     :param parser: parser object
-    :return: parser object
+    :return: parser object with new arguments
     """
     parser.add_argument("-p", "--project", dest="projects", required=True,
                         help="Project(s) ID on XNAT")
@@ -1088,7 +1092,7 @@ def get_parser(parser):
     _h = "Resource filters delimiter. By default: --."
     parser.add_argument("--delimiter", dest="delimiter_filter_resourse",
                         default=None, help=_h)
-    parser.add_argument("--csv", dest="csvfile", default=None,
+    parser.add_argument("--csv", dest="csv_file", default=None,
                         help="File path to save the CSV output.")
     _h = "Header for the csv. format: list of variables name comma-separated"
     parser.add_argument("--format", dest="format", default=None, help=_h)
@@ -1101,5 +1105,5 @@ def get_parser(parser):
 
 
 if __name__ == '__main__':
-    utils.run_tool(__exe__, __description__, get_parser, __purpose__,
+    utils.run_tool(__exe__, __description__, add_to_parser, __purpose__,
                    run_xnat_check)

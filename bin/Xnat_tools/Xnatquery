@@ -17,6 +17,7 @@ import xnat_tools_utils as utils
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __exe__ = os.path.basename(__file__)
+__author__ = 'byvernault'
 __purpose__ = 'Query through XNAT at the level you want.'
 __description__ = """What is the script doing :
    * Query on Xnat at any level.
@@ -146,11 +147,10 @@ def query_assessor(xnat, assessor_label, qall=False):
 
 def run_xnat_query(args):
     """
-    Main function for xnat check.xnat
+    Main function for xnat query.
 
     :param args: arguments parse by argparse
     """
-    # ASSESSOR
     if args.host:
         host = args.host
     else:
@@ -210,12 +210,12 @@ def run_xnat_query(args):
     utils.print_end(__exe__)
 
 
-def get_parser(parser):
+def add_to_parser(parser):
     """
-    Method to parse arguments base on argparse
+    Method to add arguments to default parser for xnat_tools in utils.
 
     :param parser: parser object
-    :return: parser object
+    :return: parser object with new arguments
     """
     _h = "project ID on Xnat or 'all' to see all the project."
     parser.add_argument("-p", "--project", dest="project", default=None,
@@ -238,5 +238,5 @@ def get_parser(parser):
 
 
 if __name__ == '__main__':
-    utils.run_tool(__exe__, __description__, get_parser, __purpose__,
+    utils.run_tool(__exe__, __description__, add_to_parser, __purpose__,
                    run_xnat_query)

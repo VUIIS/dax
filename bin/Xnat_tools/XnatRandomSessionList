@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-'''Gets a list of random sessions from XNAT'''
+'''
+Gets a list of random sessions from XNAT
+
+@author: Steve Daemon, Electrical Engineering, Vanderbilt University
+'''
 
 import os
 
@@ -9,10 +13,12 @@ from dax import XnatUtils
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __exe__ = os.path.basename(__file__)
+__author__ = 'sdaemon'
 __purpose__ = 'Program to get a random list of sessions'
 __description__ = """What is the script doing :
    * Return a random list of sessions from XNAT
 """
+
 
 def parse_args():
     """

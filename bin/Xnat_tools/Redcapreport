@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 '''
+Create REDCap csv report for a redcap project.
+
 Created on November 5, 2013
+Edited on February 22, 2017
 
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
@@ -18,6 +21,7 @@ import xnat_tools_utils as utils
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __exe__ = os.path.basename(__file__)
+__author__ = 'byvernault'
 __purpose__ = 'Create REDCap report for a redcap project.'
 __logger__ = utils.setup_info_logger(__exe__)
 __description__ = '''What is the script doing :
@@ -251,12 +255,12 @@ def run_redcapreport(args):
     utils.print_end(__exe__)
 
 
-def get_parser(parser):
+def add_to_parser(parser):
     """
-    Method to parse arguments base on ArgumentParser
+    Method to add arguments to default parser for xnat_tools in utils.
 
-    :param parser: parser default to add argument (not use in this case)
-    :return: parser object
+    :param parser: parser object
+    :return: parser object with new arguments
     """
     from argparse import ArgumentParser, RawDescriptionHelpFormatter
     argp = ArgumentParser(prog=__exe__,
@@ -303,5 +307,5 @@ dti_quality_assurance. By default: all libraries"
 
 
 if __name__ == '__main__':
-    utils.run_tool(__exe__, __description__, get_parser, __purpose__,
+    utils.run_tool(__exe__, __description__, add_to_parser, __purpose__,
                    run_redcapreport)
