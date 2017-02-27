@@ -18,8 +18,7 @@ from pyxnat import Interface
 from pyxnat.core.errors import DatabaseError
 
 from dax import DAX_Netrc
-
-import xnat_tools_utils as utils
+import dax.xnat_tools_utils as utils
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'

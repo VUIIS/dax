@@ -11,8 +11,7 @@ import os
 
 from dax import XnatUtils
 from dax.errors import XnatToolsUserError
-
-import xnat_tools_utils as utils
+import dax.xnat_tools_utils as utils
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'

@@ -13,7 +13,7 @@ import logging
 import os
 import sys
 
-from dax.errors import XnatToolsError, XnatToolsUserError
+from .errors import XnatToolsError, XnatToolsUserError
 
 
 LENGTH = 64

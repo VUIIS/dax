@@ -4,7 +4,9 @@
 
 import bin
 import log
+import xnat_tools_utils
 import XnatUtils
+
 from .task import Task
 from .cluster import PBS
 from .launcher import Launcher

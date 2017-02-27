@@ -15,8 +15,7 @@ import sys
 import redcap
 
 from dax.errors import XnatToolsError
-
-import xnat_tools_utils as utils
+import dax.xnat_tools_utils as utils
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
