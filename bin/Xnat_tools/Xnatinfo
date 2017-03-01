@@ -200,6 +200,10 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
             for _sc in sorted(scans_unusable):
                 unusables.append(_format % (-20, _sc[0], -20, _sc[1],
                                             -20, _sc[2], -20, _sc[3]))
+
+            if len(unusables) == 1:
+                unusables.append('  None')
+
         scans_str = SCAN_TEMPLATE.format(scan_info='\n'.join(scan_info),
                                          scan_unusable='\n'.join(unusables))
 
