@@ -290,7 +290,7 @@ def get_option_list(string):
         return string.split(',')
 
 
-def get_proper_str(str_option, end=False):
+def get_proper_str(str_option, end=False, size=43):
     """
     Method to shorten a string into the proper size for display
 
@@ -298,11 +298,11 @@ def get_proper_str(str_option, end=False):
     :param end: keep the end of the string visible (default beginning)
     :return: shortened string
     """
-    if len(str_option) > 43:
+    if len(str_option) > size:
         if end:
-            return '...%s' % str_option[-40:]
+            return '...%s' % str_option[-(size-3):]
         else:
-            return '%s...' % str_option[:40]
+            return '%s...' % str_option[:(size-3)]
     else:
         return str_option
 

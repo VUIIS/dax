@@ -1214,14 +1214,16 @@ XNAT+REST+API+Directory for the path.'
 wrong for XNAT: %s. Please check https://wiki.xnat.org/display/XNAT16/\
 XNAT+REST+API+Directory for the path.'
                 raise AutoSpiderError(msg % src)
+
             try:
-                res.get(dst, extract=True)
+                # res.get(dst, extract=True)
                 results = XnatUtils.download_files_from_obj(dst, res)
                 if len(results) == 1:
                     return results[0]
                 else:
                     return results
-            except:
+            except Exception as err:
+                print err
                 raise AutoSpiderError('downloading resource from XNAT failed.')
 
         return results
