@@ -607,42 +607,6 @@ def create_assessor(xnat, assessor, assessor_dict, session_type,
     return assessor
 
 
-def print_obj_info(ind, nb, obj):
-    """
-    Print info on the object for user display.
-
-    :param ind: index of item to display in the list
-    :param nb: number of item in the list of objects
-    :param obj: object dictionary in the list
-    :return: none
-    """
-    _format = '  + %d/%d objects: %s'
-    _f_scan = 'scan %s -- type: %s -- series description: %s -- quality: %s'
-    _f_assr = 'proc %s -- job status: %s -- QC status: %s'
-    if obj['object_type'] == 'scan':
-        info = _f_scan % (obj['ID'], obj['type'], obj['series_description'],
-                          obj['quality'])
-    else:
-        info = _f_assr % (obj['label'], obj['procstatus'], obj['qcstatus'])
-    __logger__.info(_format % (ind, nb, info))
-
-
-def new_tree_object(previous, obj):
-    """
-    Check that we are still on the same project/subject/session.
-
-    :param previous: previous loop info
-    :param obj: object
-    :return: True if new info, False otherwise
-    """
-    if obj['project_id'] != previous['project'] or \
-       obj['subject_label'] != previous['subject'] or \
-       obj['session_label'] != previous['session']:
-        return True
-
-    return False
-
-
 def upload_data_xnat(xnat, args, scans, assessors):
     """
     Main function to upload data from XNAT
@@ -657,12 +621,12 @@ def upload_data_xnat(xnat, args, scans, assessors):
     _format = ' * project: %s - subject: %s - session: %s'
     previous = {'project': None, 'subject': None, 'session': None}
 
-    # Download:
-    __logger__.info('INFO: Uploading data for each pair project/subject..')
+    # Upload:
+    __logger__.info('INFO: Uploading data ...')
     _list = scans + assessors
     _nb_objs = len(_list)
     for ind, obj in enumerate(sorted(_list, key=lambda k: k['session_label'])):
-        if new_tree_object(previous, obj):
+        if utils.new_tree_object(previous, obj):
             previous = {'project': obj['project_id'],
                         'subject': obj['subject_label'],
                         'session': obj['session_label']}
@@ -671,7 +635,7 @@ def upload_data_xnat(xnat, args, scans, assessors):
 
         xnat_obj = get_xnat_obj(xnat, obj, args.session_type)
         if xnat_obj:
-            print_obj_info(ind+1, _nb_objs, obj)
+            __logger__.info(utils.get_obj_info(ind+1, _nb_objs, obj))
             upload_resources(xnat_obj, args, xnat_obj, obj)
 
 

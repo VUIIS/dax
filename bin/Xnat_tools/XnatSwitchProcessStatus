@@ -260,7 +260,7 @@ def filter_assessors(args, assessors, has_fs_datatypes=False,
     return assessors
 
 
-def delete_resource(assessor_obj, resource):
+def delete_assr_resource(assessor_obj, resource):
     """
     Method to delete the resources for an assessors
 
@@ -395,7 +395,7 @@ def set_need_inputs_proctype(xnat, assessor, need_inputs, full_regex=False):
                 a_linked_dict['session_id'],
                 a_linked_dict['label'])
             for resource in li_assessors:
-                delete_resource(assessor_obj, resource['label'])
+                delete_assr_resource(assessor_obj, resource['label'])
 
 
 def set_status(xnat, args, assessors, has_fs_datatypes=False):
@@ -500,12 +500,14 @@ def set_status_assessor(xnat, assessor, status,
         if delete_resources:
             if 'resources' in assessor.keys():
                 resources = assessor['resources']
+                for resource in resources:
+                    delete_assr_resource(assessor_obj, resource)
             else:
                 resources = XnatUtils.list_assessor_out_resources(
                     xnat, assessor['project_id'], assessor['subject_label'],
                     assessor['session_label'], assessor['label'])
-            for resource in resources:
-                delete_resource(assessor_obj, resource['label'])
+                for resource in resources:
+                    delete_assr_resource(assessor_obj, resource['label'])
 
 
 def print_status():

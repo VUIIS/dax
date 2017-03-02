@@ -29,7 +29,7 @@ DISPLAY_TEMPLATE = """#######################################################\
 # Examples:                                                    #
 #     Check the help for examples by running --help            #
 ################################################################
-"""
+{extra}"""
 ARGS_DISPLAY = """Arguments:
 {args}"""
 CSV_HEADER = [
@@ -98,11 +98,16 @@ a subject'},
 }
 
 
-def parse_args(name, description, add_tools_arguments, purpose):
+def parse_args(name, description, add_tools_arguments, purpose,
+               extra_display=''):
     """
     Method to parse arguments base on argparse
 
     :param name: name of the script
+    :param description: description of the script for help display
+    :param add_tools_arguments: fct to add arguments to parser
+    :param purpose: purpose of the script
+    :param extra_display: extra display
     :return: parser object
     """
     from argparse import ArgumentParser, RawTextHelpFormatter
@@ -113,24 +118,26 @@ def parse_args(name, description, add_tools_arguments, purpose):
     parser.add_argument('-u', '--username', dest='username', default=None,
                         help='Username for XNAT.')
     parser = add_tools_arguments(parser)
-    main_display(name, purpose)
+    main_display(name, purpose, extra_display)
     args = parser.parse_args()
     args_display(args)
     return args
 
 
-def main_display(name, description):
+def main_display(name, description, extra_display=''):
     """
     Main display of the executables before any process
 
     :param name: name of the executable
     :param description: description to display
+    :param extra_display: extra display
     :return: None
     """
     _spaces = (LENGTH - len(name))/2
     _name = edit_string_size(name, left_spaces=_spaces)
     _desc = edit_string_size(description, left_spaces=4)
-    print DISPLAY_TEMPLATE.format(name=_name, description=_desc)
+    print DISPLAY_TEMPLATE.format(name=_name, description=_desc,
+                                  extra=extra_display)
     print_separators(symbol='-')
 
 
@@ -158,7 +165,7 @@ def args_display(args):
 
 
 def run_tool(script, description, add_tools_arguments, purpose, run_tool_fct,
-             extra_display=False):
+             extra_display=''):
     """
     Main function to run for all xnat tools.
     Set args/display and run core function (run_tool_fct)
@@ -171,11 +178,8 @@ def run_tool(script, description, add_tools_arguments, purpose, run_tool_fct,
     :param extra_display: extra display after checking args
     :return: None
     """
-    args = parse_args(script, description, add_tools_arguments, purpose)
-
-    if extra_display:
-        print extra_display
-
+    args = parse_args(script, description, add_tools_arguments, purpose,
+                      extra_display)
     run_tool_fct(args)
 
 
@@ -272,20 +276,19 @@ def write_csv(csv_string, csv_file, exe_name=''):
             output_file.write(line)
 
 
-def get_option_list(string):
+def get_option_list(string, all_value='all'):
     """
     Method to switch the string of value separated by a comma into a list.
      If the value is 'all', keep all.
 
     :param string: string to change
+    :param all_value: value to return if all used
     :return: None if not set, all if all, list of value otherwise
     """
-    if not string:
+    if not string or string == 'nan':
         return None
     elif string == 'all':
-        return 'all'
-    elif string == 'nan':
-        return None
+        return all_value
     else:
         return string.split(',')
 
@@ -385,7 +388,7 @@ def get_resources_list(object_dict, resources_list):
     """
     # Get list of resources' label
     if resources_list == 'all':
-        res_list = object_dict['resources']
+        res_list = object_dict('resources', None)
     else:
         res_list = resources_list
     return res_list
@@ -405,3 +408,64 @@ def display_item(project, subject=None, session=None):
         print '  +Subject: %s' % (subject)
         if session:
             print '    *Session: %s' % (session)
+
+
+def is_assessor_type(obj_type):
+    """
+    Function to return if type is assessor.
+
+    :param obj_dict: dictionary to describe XNAT object parameters
+    :return: boolean
+    """
+    return 'xsiType' in obj_type.keys()
+
+
+def get_obj_info(ind, nb, obj):
+    """
+    Return info on the object for tools display (upload/download).
+
+    :param ind: index of item to display in the list
+    :param nb: number of item in the list of objects
+    :param obj: object dictionary in the list
+    :return: none
+    """
+    _format = '  + %d/%d objects: %s'
+    _f_scan = 'scan %s %s'
+    _f_s_extra = '-- type: %s -- series description: %s -- quality: %s'
+    _f_assr = 'proc %s %s '
+    _f_a_extra = '-- job status: %s -- QC status: %s'
+    if is_assessor_type(obj):
+        extra = ''
+        _status = obj.get('procstatus', '')
+        _qcstatus = obj.get('qcstatus', '')
+        if _status or _qcstatus:
+            extra = _f_a_extra % (_status, _qcstatus)
+
+        info = _f_assr % (obj['label'], extra)
+    else:
+        extra = ''
+        _type = obj.get('type', '')
+        _desc = obj.get('series_description', '')
+        _qual = obj.get('quality', '')
+        if _type or _desc or _qual:
+            extra = _f_s_extra % (_type, _desc, _qual)
+
+        info = _f_scan % (obj['ID'], extra)
+
+    return _format % (ind, nb, info)
+
+
+def new_tree_object(previous, obj):
+    """
+    Check that we are still on the same project/subject/session.
+
+    :param previous: previous loop info
+    :param obj: object
+    :return: True if new info, False otherwise
+    """
+    if obj['project_id'] != previous['project'] or \
+       obj['subject_label'] != previous['subject'] or \
+       obj['session_label'] != previous['session']:
+        return True
+
+    return False
