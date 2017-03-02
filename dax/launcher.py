@@ -168,7 +168,8 @@ class Launcher(object):
         if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
             msg = 'Loading task queue from: %s'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-            task_list = load_task_queue(status=task.NEED_TO_RUN)
+            task_list = load_task_queue(status=task.NEED_TO_RUN, 
+                                        proj_filter=self.project_process_dict.keys())
 
             msg = '%s tasks that need to be launched found'
             LOGGER.info(msg % str(len(task_list)))
@@ -306,7 +307,7 @@ cluster queue"
         if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
             msg = 'Loading task queue from: %s'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-            task_list = load_task_queue()
+            task_list = load_task_queue(proj_filter=self.project_process_dict.keys())
 
             LOGGER.info('%s tasks found.' % str(len(task_list)))
 
@@ -1136,20 +1137,24 @@ The project is not part of the settings."""
         return len(diff_list) > 0
 
 
-def load_task_queue(status=None):
+def load_task_queue(status=None, proj_filter=None):
     """ Load the task queue for DiskQ"""
     task_list = list()
     diskq_dir = os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ')
     results_dir = DAX_SETTINGS.get_results_dir()
 
-    for t in os.listdir(os.path.join(diskq_dir, 'BATCH')):
-        # task_path = os.path.join(BATCH_DIR, t)
+    for t in os.listdir(os.path.join(diskq_dir, 'BATCH')):        
+        # TODO:complete filtering by project/subject/session/type
+        if proj_filter:
+          assr = XnatUtils.AssessorHandler(t)
+          if assr.get_project_id() not in proj_filter:
+            LOGGER.debug('ignoring:' + t)
+            continue
 
         LOGGER.debug('loading:' + t)
         task = ClusterTask(os.path.splitext(t)[0], results_dir, diskq_dir)
         LOGGER.debug('status = ' + task.get_status())
-
-        # TODO:filter based on project, subject, session, type
+        
         if not status or task.get_status() == status:
             LOGGER.debug('adding task to list:' + t)
             task_list.append(task)

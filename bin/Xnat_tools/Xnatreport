@@ -47,6 +47,7 @@ VARIABLES_LIST = {
                  'procstatus', 'qcstatus', 'version', 'jobid', 'memused',
                  'walltimeused', 'jobnode', 'jobstartdate'],
     'resource': ['resource']}
+QUOTE_FIELDS = ['type', 'series_description', 'quality', 'qcstatus']
 
 
 def display(row):
@@ -82,6 +83,19 @@ def is_default(header):
     :param header: header for report
     """
     return header == utils.CSV_HEADER[:-1]
+
+
+def quote(value):
+    """
+    Quote the string if needed
+
+    :param value: the string
+    :return: quoted string
+    """
+    if ',' in value:
+        return '"%s"' % value
+    else:
+        return value
 
 
 def report(xnat, projects, rformat=None):
@@ -183,6 +197,8 @@ def get_row(xnat, obj_dict, header):
             row.append(get_object_type(obj_dict))
         elif _field == 'resource':
             row.append(get_resources(xnat, obj_dict))
+        elif _field in QUOTE_FIELDS:
+            row.append(quote(obj_dict.get(_field)))
         else:
             row.append(obj_dict.get(_field))
     return row
