@@ -146,7 +146,7 @@ class Processor(object):
 class ScanProcessor(Processor):
     """ Scan Processor class for processor on a scan on XNAT """
     def __init__(self, scan_types, walltime_str, memreq_mb, spider_path,
-                 version=None, ppn=1, suffix_proc=''):
+                 version=None, ppn=1, suffix_proc='', full_regex=False):
         """
         Entry point of the ScanProcessor Class.
 
@@ -157,12 +157,14 @@ class ScanProcessor(Processor):
         :param version: Version of the spider (taken from the file name)
         :param ppn: Number of processors per node to request
         :param suffix_proc: Processor suffix
+        :param full_regex: use full regex
         :return: None
 
         """
         super(ScanProcessor, self).__init__(walltime_str, memreq_mb,
                                             spider_path, version, ppn,
                                             suffix_proc)
+        self.full_regex = full_regex
         if isinstance(scan_types, list):
             self.scan_types = scan_types
         elif isinstance(scan_types, str):
@@ -229,8 +231,7 @@ class ScanProcessor(Processor):
             return True
         else:
             for expression in self.scan_types:
-                exp = fnmatch.translate(expression)
-                regex = re.compile(exp)
+                regex = XnatUtils.extract_exp(expression, self.full_regex)
                 if regex.match(scan_dict['scan_type']):
                     return True
             return False
