@@ -120,9 +120,9 @@ class Task(object):
 
         # Create assessor if needed
         if not assessor.exists():
-            if self.atype == DEFAULT_DATATYPE.lower():
-                kwargs = {'%s/fsversion' % DEFAULT_DATATYPE.lower(): '0'}
-                assessor.create(assessors=DEFAULT_DATATYPE.lower(), **kwargs)
+            if self.atype == DEFAULT_FS_DATATYPE.lower():
+                kwargs = {'%s/fsversion' % DEFAULT_FS_DATATYPE.lower(): '0'}
+                assessor.create(assessors=DEFAULT_FS_DATATYPE.lower(), **kwargs)
             else:
                 assessor.create(assessors=self.atype)
 
