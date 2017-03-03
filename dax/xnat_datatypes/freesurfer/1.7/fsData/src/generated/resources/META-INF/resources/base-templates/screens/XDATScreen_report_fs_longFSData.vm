@@ -1,0 +1,343 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2//EN">
+$page.setTitle("LongitudinalFS Details")
+$page.setLinkColor($ui.alink)
+$page.setVlinkColor($ui.vlink)/*
+ ##---------------------------------------- 
+ ## DO NOT MODIFY THIS FILE HERE
+ ##
+ ## TO MODIFY, COPY THIS FILE to src/main/resources/templates/screens/ and modify it there 
+ ##----------------------------------------
+#if ($turbineUtils.GetPassedParameter("popup", $data))
+	#set ($popup = $turbineUtils.GetPassedParameter("popup", data) )
+	#set ($popup = "false")
+#end
+<TABLE width="100%">
+	<TR>
+		<TD>
+			<table width="100%">
+				<TR>
+					<TD align="left" valign="middle">
+						<font face="$ui.sansSerifFonts" size="3"><b>LongitudinalFS Details</b></font>
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+			<TABLE width="100%">
+				<TR>
+					<TD valign="top">
+						<TABLE>
+							<TR><TD>subject_ID</TD><TD>$!item.getStringProperty("fs:longFSData/subject_ID")</TD></TR>
+							<TR><TD>age</TD><TD>$!item.getDoubleProperty("fs:longFSData/age")</TD></TR>
+							<TR><TD>date</TD><TD>$!item.getProperty("fs:longFSData/date")</TD></TR>
+							<TR><TD>time</TD><TD>$!item.getProperty("fs:longFSData/time")</TD></TR>
+							<TR><TD>duration</TD><TD>$!item.getProperty("fs:longFSData/duration")</TD></TR>
+							<TR><TD>delay</TD><TD>$!item.getIntegerProperty("fs:longFSData/delay")</TD></TR>
+							<TR><TD>delay/ref_expt_id</TD><TD>$!item.getStringProperty("fs:longFSData/delay/ref_expt_id")</TD></TR>
+							<TR><TD>note</TD><TD>$!item.getStringProperty("fs:longFSData/note")</TD></TR>
+							<TR><TD>acquisition_site</TD><TD>$!item.getStringProperty("fs:longFSData/acquisition_site")</TD></TR>
+							<TR><TD>ID</TD><TD>$!item.getStringProperty("fs:longFSData/ID")</TD></TR>
+							<TR><TD>project</TD><TD>$!item.getStringProperty("fs:longFSData/project")</TD></TR>
+							<TR><TD>visit_id</TD><TD>$!item.getStringProperty("fs:longFSData/visit_id")</TD></TR>
+							<TR><TD>visit</TD><TD>$!item.getStringProperty("fs:longFSData/visit")</TD></TR>
+							<TR><TD>version</TD><TD>$!item.getIntegerProperty("fs:longFSData/version")</TD></TR>
+							<TR><TD>original</TD><TD>$!item.getStringProperty("fs:longFSData/original")</TD></TR>
+							<TR><TD>protocol</TD><TD>$!item.getStringProperty("fs:longFSData/protocol")</TD></TR>
+							<TR><TD>label</TD><TD>$!item.getStringProperty("fs:longFSData/label")</TD></TR>
+							<TR><TD>fsversion</TD><TD>$!item.getStringProperty("fs:longFSData/fsversion")</TD></TR>
+							<TR><TD>measures/volumetric/ICV</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/ICV")</TD></TR>
+							<TR><TD>measures/volumetric/lhCortexVol</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/lhCortexVol")</TD></TR>
+							<TR><TD>measures/volumetric/rhCortexVol</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/rhCortexVol")</TD></TR>
+							<TR><TD>measures/volumetric/CortexVol</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/CortexVol")</TD></TR>
+							<TR><TD>measures/volumetric/SubCortGrayVol</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/SubCortGrayVol")</TD></TR>
+							<TR><TD>measures/volumetric/TotalGrayVol</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/TotalGrayVol")</TD></TR>
+							<TR><TD>measures/volumetric/SupraTentorialVol</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/SupraTentorialVol")</TD></TR>
+							<TR><TD>measures/volumetric/lhCorticalWhiteMatterVol</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/lhCorticalWhiteMatterVol")</TD></TR>
+							<TR><TD>measures/volumetric/rhCorticalWhiteMatterVol</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/rhCorticalWhiteMatterVol")</TD></TR>
+							<TR><TD>measures/volumetric/CorticalWhiteMatterVol</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/CorticalWhiteMatterVol")</TD></TR>
+						</TABLE>
+					</TD>
+					<TD valign="top" align="right">
+						#parse($turbineUtils.getTemplateName("actions",$om.getXSIType(),$project))
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+<!-- BEGIN fs:longFSData -->
+			<TABLE>
+				<TR><TH align="left"><font face="$ui.sansSerifFonts" size="2">Related Items</font></TH></TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE>
+						</TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($xnat_experimentData_share_1_NUM_ROWS=$item.getChildItems("fs:longFSData/sharing/share").size() - 1)
+							#if($xnat_experimentData_share_1_NUM_ROWS>=0)
+								#foreach($xnat_experimentData_share_1_COUNTER in [0..$xnat_experimentData_share_1_NUM_ROWS])
+<!-- BEGIN fs:longFSData/sharing/share[$xnat_experimentData_share_1_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/sharing/share[$xnat_experimentData_share_1_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>share</TD><TD>$!item.getStringProperty("fs:longFSData/sharing/share[$xnat_experimentData_share_1_COUNTER]/share")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("fs:longFSData/sharing/share[$xnat_experimentData_share_1_COUNTER]/label")</TD></TR>
+													<TR><TD>project</TD><TD>$!item.getStringProperty("fs:longFSData/sharing/share[$xnat_experimentData_share_1_COUNTER]/project")</TD></TR>
+													<TR><TD>visit</TD><TD>$!item.getStringProperty("fs:longFSData/sharing/share[$xnat_experimentData_share_1_COUNTER]/visit")</TD></TR>
+													<TR><TD>protocol</TD><TD>$!item.getStringProperty("fs:longFSData/sharing/share[$xnat_experimentData_share_1_COUNTER]/protocol")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:longFSData/sharing/share[$xnat_experimentData_share_1_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+<!-- BEGIN fs:longFSData/investigator -->
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/investigator</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+										<TR><TD>title</TD><TD>$!item.getStringProperty("fs:longFSData/investigator/title")</TD></TR>
+										<TR><TD>firstname</TD><TD>$!item.getStringProperty("fs:longFSData/investigator/firstname")</TD></TR>
+										<TR><TD>lastname</TD><TD>$!item.getStringProperty("fs:longFSData/investigator/lastname")</TD></TR>
+										<TR><TD>institution</TD><TD>$!item.getStringProperty("fs:longFSData/investigator/institution")</TD></TR>
+										<TR><TD>department</TD><TD>$!item.getStringProperty("fs:longFSData/investigator/department")</TD></TR>
+										<TR><TD>email</TD><TD>$!item.getStringProperty("fs:longFSData/investigator/email")</TD></TR>
+										<TR><TD>phone</TD><TD>$!item.getStringProperty("fs:longFSData/investigator/phone")</TD></TR>
+										<TR><TD>ID</TD><TD>$!item.getStringProperty("fs:longFSData/investigator/ID")</TD></TR>
+									</TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END fs:longFSData/investigator -->
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+<!-- BEGIN fs:longFSData/validation -->
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/validation</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+										<TR><TD>method</TD><TD>$!item.getStringProperty("fs:longFSData/validation/method")</TD></TR>
+										<TR><TD>date</TD><TD>$!item.getProperty("fs:longFSData/validation/date")</TD></TR>
+										<TR><TD>notes</TD><TD>$!item.getStringProperty("fs:longFSData/validation/notes")</TD></TR>
+										<TR><TD>validated_by</TD><TD>$!item.getStringProperty("fs:longFSData/validation/validated_by")</TD></TR>
+										<TR><TD>status</TD><TD>$!item.getStringProperty("fs:longFSData/validation/status")</TD></TR>
+									</TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END fs:longFSData/validation -->
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($xnat_abstractResource_4_NUM_ROWS=$item.getChildItems("fs:longFSData/resources/resource").size() - 1)
+							#if($xnat_abstractResource_4_NUM_ROWS>=0)
+								#foreach($xnat_abstractResource_4_COUNTER in [0..$xnat_abstractResource_4_NUM_ROWS])
+<!-- BEGIN fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>note</TD><TD>$!item.getStringProperty("fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER]/note")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER]/label")</TD></TR>
+													<TR><TD>file_count</TD><TD>$!item.getIntegerProperty("fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER]/file_count")</TD></TR>
+													<TR><TD>file_size</TD><TD>$!item.getProperty("fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER]/file_size")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE><TR><TD>
+													#set($xnat_abstractResource_tag_5_NUM_ROWS=$item.getChildItems("fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER]/tags/tag").size() - 1)
+													#if($xnat_abstractResource_tag_5_NUM_ROWS>=0)
+														#foreach($xnat_abstractResource_tag_5_COUNTER in [0..$xnat_abstractResource_tag_5_NUM_ROWS])
+<!-- BEGIN fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER]/tags/tag[$xnat_abstractResource_tag_5_COUNTER] -->
+															<TABLE>
+																<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER]/tags/tag[$xnat_abstractResource_tag_5_COUNTER]</font></TH></TR>
+																<TR>
+																	<TD align="left" valign="top">
+																		<TABLE>
+																			<TR><TD>tag</TD><TD>$!item.getStringProperty("fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER]/tags/tag[$xnat_abstractResource_tag_5_COUNTER]/tag")</TD></TR>
+																			<TR><TD>name</TD><TD>$!item.getStringProperty("fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER]/tags/tag[$xnat_abstractResource_tag_5_COUNTER]/name")</TD></TR>
+																		</TABLE>
+																	</TD>
+																</TR>
+															</TABLE>
+<!-- END fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER]/tags/tag[$xnat_abstractResource_tag_5_COUNTER] -->
+														#end
+													#end
+												</TD></TR></TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:longFSData/resources/resource[$xnat_abstractResource_4_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($xnat_experimentData_field_6_NUM_ROWS=$item.getChildItems("fs:longFSData/fields/field").size() - 1)
+							#if($xnat_experimentData_field_6_NUM_ROWS>=0)
+								#foreach($xnat_experimentData_field_6_COUNTER in [0..$xnat_experimentData_field_6_NUM_ROWS])
+<!-- BEGIN fs:longFSData/fields/field[$xnat_experimentData_field_6_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/fields/field[$xnat_experimentData_field_6_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>field</TD><TD>$!item.getStringProperty("fs:longFSData/fields/field[$xnat_experimentData_field_6_COUNTER]/field")</TD></TR>
+													<TR><TD>name</TD><TD>$!item.getStringProperty("fs:longFSData/fields/field[$xnat_experimentData_field_6_COUNTER]/name")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:longFSData/fields/field[$xnat_experimentData_field_6_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($fs_longFSData_vol_region_7_NUM_ROWS=$item.getChildItems("fs:longFSData/measures/volumetric/regions/region").size() - 1)
+							#if($fs_longFSData_vol_region_7_NUM_ROWS>=0)
+								#foreach($fs_longFSData_vol_region_7_COUNTER in [0..$fs_longFSData_vol_region_7_NUM_ROWS])
+<!-- BEGIN fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>NVoxels</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER]/NVoxels")</TD></TR>
+													<TR><TD>Volume</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER]/Volume")</TD></TR>
+													<TR><TD>normMean</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER]/normMean")</TD></TR>
+													<TR><TD>normStdDev</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER]/normStdDev")</TD></TR>
+													<TR><TD>normMin</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER]/normMin")</TD></TR>
+													<TR><TD>normMax</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER]/normMax")</TD></TR>
+													<TR><TD>normRange</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER]/normRange")</TD></TR>
+													<TR><TD>SegId</TD><TD>$!item.getStringProperty("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER]/SegId")</TD></TR>
+													<TR><TD>name</TD><TD>$!item.getStringProperty("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER]/name")</TD></TR>
+													<TR><TD>hemisphere</TD><TD>$!item.getStringProperty("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER]/hemisphere")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_7_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($fs_longFSData_hemisphere_8_NUM_ROWS=$item.getChildItems("fs:longFSData/measures/surface/hemisphere").size() - 1)
+							#if($fs_longFSData_hemisphere_8_NUM_ROWS>=0)
+								#foreach($fs_longFSData_hemisphere_8_COUNTER in [0..$fs_longFSData_hemisphere_8_NUM_ROWS])
+<!-- BEGIN fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>NumVert</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/NumVert")</TD></TR>
+													<TR><TD>SurfArea</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/SurfArea")</TD></TR>
+													<TR><TD>name</TD><TD>$!item.getStringProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/name")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE><TR><TD>
+													#set($fs_longFSData_surf_region_9_NUM_ROWS=$item.getChildItems("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region").size() - 1)
+													#if($fs_longFSData_surf_region_9_NUM_ROWS>=0)
+														#foreach($fs_longFSData_surf_region_9_COUNTER in [0..$fs_longFSData_surf_region_9_NUM_ROWS])
+<!-- BEGIN fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER] -->
+															<TABLE>
+																<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER]</font></TH></TR>
+																<TR>
+																	<TD align="left" valign="top">
+																		<TABLE>
+																			<TR><TD>NumVert</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER]/NumVert")</TD></TR>
+																			<TR><TD>SurfArea</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER]/SurfArea")</TD></TR>
+																			<TR><TD>GrayVol</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER]/GrayVol")</TD></TR>
+																			<TR><TD>ThickAvg</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER]/ThickAvg")</TD></TR>
+																			<TR><TD>ThickStd</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER]/ThickStd")</TD></TR>
+																			<TR><TD>MeanCurv</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER]/MeanCurv")</TD></TR>
+																			<TR><TD>GausCurv</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER]/GausCurv")</TD></TR>
+																			<TR><TD>FoldInd</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER]/FoldInd")</TD></TR>
+																			<TR><TD>CurvInd</TD><TD>$!item.getDoubleProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER]/CurvInd")</TD></TR>
+																			<TR><TD>name</TD><TD>$!item.getStringProperty("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER]/name")</TD></TR>
+																		</TABLE>
+																	</TD>
+																</TR>
+															</TABLE>
+<!-- END fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER]/regions/region[$fs_longFSData_surf_region_9_COUNTER] -->
+														#end
+													#end
+												</TD></TR></TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_8_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($fs_longFSData_timepoint_10_NUM_ROWS=$item.getChildItems("fs:longFSData/timepoints/timepoint").size() - 1)
+							#if($fs_longFSData_timepoint_10_NUM_ROWS>=0)
+								#foreach($fs_longFSData_timepoint_10_COUNTER in [0..$fs_longFSData_timepoint_10_NUM_ROWS])
+<!-- BEGIN fs:longFSData/timepoints/timepoint[$fs_longFSData_timepoint_10_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/timepoints/timepoint[$fs_longFSData_timepoint_10_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>imageSessionID</TD><TD>$!item.getStringProperty("fs:longFSData/timepoints/timepoint[$fs_longFSData_timepoint_10_COUNTER]/imageSessionID")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("fs:longFSData/timepoints/timepoint[$fs_longFSData_timepoint_10_COUNTER]/label")</TD></TR>
+													<TR><TD>visit_id</TD><TD>$!item.getStringProperty("fs:longFSData/timepoints/timepoint[$fs_longFSData_timepoint_10_COUNTER]/visit_id")</TD></TR>
+													<TR><TD>project</TD><TD>$!item.getStringProperty("fs:longFSData/timepoints/timepoint[$fs_longFSData_timepoint_10_COUNTER]/project")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:longFSData/timepoints/timepoint[$fs_longFSData_timepoint_10_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+			</TABLE>
+<!-- END fs:longFSData -->
+		</TD>
+	</TR>
+</TABLE><BR>#parse("/screens/ReportProjectSpecificFields.vm")

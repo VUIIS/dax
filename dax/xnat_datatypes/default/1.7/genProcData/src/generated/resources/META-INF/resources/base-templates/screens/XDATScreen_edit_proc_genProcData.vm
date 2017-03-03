@@ -1,0 +1,408 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2//EN">
+$page.setTitle("XDAT")
+$page.setLinkColor($ui.alink)
+$page.setVlinkColor($ui.vlink)/*
+ ##---------------------------------------- 
+ ## DO NOT MODIFY THIS FILE HERE
+ ##
+ ## TO MODIFY, COPY THIS FILE to src/main/resources/templates/screens/ and modify it there 
+ ##----------------------------------------
+#set($months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
+#set($days = [ 1..31 ])
+#set($years = [ $!turbineUtils.getYear()..1900])
+#if ($data.message)
+<font color="red" size="3">$data.message</font>
+#end
+<p>
+<form ID="form1" name="form1" method="post" action="$link.setAction("ModifyImageAssessorData")">
+<input type="hidden" name="project" value="$!{project}" >
+#if($vr)
+	<font color="red">Invalid parameters:<BR>$vr.toHTML()</font>
+<HR>
+#end
+
+<TABLE width="100%">
+	<TR>
+		<TD>
+			<table width="100%">
+				<TR>
+					<TD align="left" valign="middle">
+						<DIV class="edit_title">Processing Details</DIV>
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+			<TABLE width="100%">
+				<TR>
+					<TD valign="top">
+						<TABLE>
+							<TR><TD colspan='2'>
+								<hr>
+								#parse("/screens/xnat_edit_experimentData.vm")
+								<HR></TD></TR>
+							<tr>
+								<th align="left">Processing ID</th>
+								<TD align="left">#xdatStringBox("proc:genProcData.ID" $item "" $vr)</TD>
+							</tr>
+							<tr>
+								<TD colspan="2">#parse("/screens/EditProjectSpecificFields.vm")</TD>
+							</tr>
+							<TR><TD>imageSession_ID</TD><TD>#xdatStringBox("proc:genProcData/imageSession_ID" $item "" $vr)</TD></TR>
+							<TR><TD>date</TD><TD>#xdatDateBox("proc:genProcData/date" $item $vr $years)</TD></TR>
+							<TR><TD>time</TD><TD>#xdatTextBox("proc:genProcData/time" $item "" $vr)</TD></TR>
+							<TR><TD>duration</TD><TD>#xdatTextBox("proc:genProcData/duration" $item "" $vr)</TD></TR>
+							<TR><TD>delay</TD><TD>#xdatTextBox("proc:genProcData/delay" $item "" $vr)</TD></TR>
+							<TR><TD>delay/ref_expt_id</TD><TD>#xdatStringBox("proc:genProcData/delay/ref_expt_id" $item "" $vr)</TD></TR>
+							<TR><TD>note</TD><TD>#xdatStringBox("proc:genProcData/note" $item "" $vr)</TD></TR>
+							<TR><TD>acquisition_site</TD><TD>#xdatStringBox("proc:genProcData/acquisition_site" $item "" $vr)</TD></TR>
+							<TR><TD>visit_id</TD><TD>#xdatStringBox("proc:genProcData/visit_id" $item "" $vr)</TD></TR>
+							<TR><TD>visit</TD><TD>#xdatStringBox("proc:genProcData/visit" $item "" $vr)</TD></TR>
+							<TR><TD>version</TD><TD>#xdatTextBox("proc:genProcData/version" $item "" $vr)</TD></TR>
+							<TR><TD>original</TD><TD>#xdatStringBox("proc:genProcData/original" $item "" $vr)</TD></TR>
+							<TR><TD>protocol</TD><TD>#xdatStringBox("proc:genProcData/protocol" $item "" $vr)</TD></TR>
+							<TR><TD>label</TD><TD>#xdatStringBox("proc:genProcData/label" $item "" $vr)</TD></TR>
+							<TR><TD>procstatus</TD><TD>#xdatStringBox("proc:genProcData/procstatus" $item "" $vr)</TD></TR>
+							<TR><TD>proctype</TD><TD>#xdatStringBox("proc:genProcData/proctype" $item "" $vr)</TD></TR>
+							<TR><TD>procversion</TD><TD>#xdatStringBox("proc:genProcData/procversion" $item "" $vr)</TD></TR>
+							<TR><TD>jobid</TD><TD>#xdatStringBox("proc:genProcData/jobid" $item "" $vr)</TD></TR>
+							<TR><TD>walltimeused</TD><TD>#xdatStringBox("proc:genProcData/walltimeused" $item "" $vr)</TD></TR>
+							<TR><TD>memusedmb</TD><TD>#xdatTextBox("proc:genProcData/memusedmb" $item "" $vr)</TD></TR>
+							<TR><TD>jobstartdate</TD><TD>#xdatDateBox("proc:genProcData/jobstartdate" $item $vr $years)</TD></TR>
+							<TR><TD>memused</TD><TD>#xdatStringBox("proc:genProcData/memused" $item "" $vr)</TD></TR>
+							<TR><TD>jobnode</TD><TD>#xdatStringBox("proc:genProcData/jobnode" $item "" $vr)</TD></TR>
+						</TABLE>
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+<!-- BEGIN proc:genProcData -->
+			<TABLE>
+				<TR><TH align="left"><font face="$ui.sansSerifFonts" size="2">Related Items</font></TH></TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#foreach($xnat_abstractResource_1_COUNTER in [0..5])
+<!-- BEGIN proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER] -->
+								<TABLE>
+									<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]</font></TH></TR>
+									<TR>
+										<TD align="left" valign="top">
+											<TABLE>
+												<TR><TD>note</TD><TD>#xdatStringBox("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/note" $item "" $vr)</TD></TR>
+												<TR><TD>label</TD><TD>#xdatStringBox("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/label" $item "" $vr)</TD></TR>
+												<TR><TD>file_count</TD><TD>#xdatTextBox("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/file_count" $item "" $vr)</TD></TR>
+												<TR><TD>file_size</TD><TD>#xdatTextBox("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/file_size" $item "" $vr)</TD></TR>
+																		#xdatHiddenBox("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/xnat_abstractResource_id" $item "")
+											</TABLE>
+										</TD>
+									</TR>
+<!-- BEGIN proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag -->
+									<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag</font></TH></TR>
+									<TR>
+										<TD align="left" valign="top">
+											<TABLE>
+												<TR>
+													<TD>tag</TD>
+													<TD>name</TD>
+												</TR>
+												#foreach($xnat_abstractResource_tag_2_COUNTER in [0..5])
+													<TR>
+														<TD>#xdatTextBox("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER]/tag" $item "" $vr)</TD>
+														<TD>#xdatTextBox("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER]/name" $item "" $vr)</TD>
+														#xdatHiddenBox("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER]/xnat_abstractResource_tag_id" $item "")
+													</TR>
+												#end
+											</TABLE>
+										</TD>
+									</TR>
+<!-- END proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag -->
+								</TABLE>
+<!-- END proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER] -->
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#foreach($xnat_abstractResource_2_COUNTER in [0..5])
+<!-- BEGIN proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER] -->
+								<TABLE>
+									<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER]</font></TH></TR>
+									<TR>
+										<TD align="left" valign="top">
+											<TABLE>
+												<TR><TD>note</TD><TD>#xdatStringBox("proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER]/note" $item "" $vr)</TD></TR>
+												<TR><TD>label</TD><TD>#xdatStringBox("proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER]/label" $item "" $vr)</TD></TR>
+												<TR><TD>file_count</TD><TD>#xdatTextBox("proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER]/file_count" $item "" $vr)</TD></TR>
+												<TR><TD>file_size</TD><TD>#xdatTextBox("proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER]/file_size" $item "" $vr)</TD></TR>
+																		#xdatHiddenBox("proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER]/xnat_abstractResource_id" $item "")
+											</TABLE>
+										</TD>
+									</TR>
+<!-- BEGIN proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER]/tags/tag -->
+									<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER]/tags/tag</font></TH></TR>
+									<TR>
+										<TD align="left" valign="top">
+											<TABLE>
+												<TR>
+													<TD>tag</TD>
+													<TD>name</TD>
+												</TR>
+												#foreach($xnat_abstractResource_tag_3_COUNTER in [0..5])
+													<TR>
+														<TD>#xdatTextBox("proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER]/tags/tag[$xnat_abstractResource_tag_3_COUNTER]/tag" $item "" $vr)</TD>
+														<TD>#xdatTextBox("proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER]/tags/tag[$xnat_abstractResource_tag_3_COUNTER]/name" $item "" $vr)</TD>
+														#xdatHiddenBox("proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER]/tags/tag[$xnat_abstractResource_tag_3_COUNTER]/xnat_abstractResource_tag_id" $item "")
+													</TR>
+												#end
+											</TABLE>
+										</TD>
+									</TR>
+<!-- END proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER]/tags/tag -->
+								</TABLE>
+<!-- END proc:genProcData/out/file[$xnat_abstractResource_2_COUNTER] -->
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+<!-- BEGIN proc:genProcData/parameters/addParam -->
+				<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/parameters/addParam</font></TH></TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE>
+							<TR>
+								<TD>addField</TD>
+								<TD>name</TD>
+							</TR>
+							#foreach($xnat_addField_3_COUNTER in [0..5])
+								<TR>
+									<TD>#xdatTextBox("proc:genProcData/parameters/addParam[$xnat_addField_3_COUNTER]/addField" $item "" $vr)</TD>
+									<TD>#xdatTextBox("proc:genProcData/parameters/addParam[$xnat_addField_3_COUNTER]/name" $item "" $vr)</TD>
+									#xdatHiddenBox("proc:genProcData/parameters/addParam[$xnat_addField_3_COUNTER]/xnat_addField_id" $item "")
+								</TR>
+							#end
+						</TABLE>
+					</TD>
+				</TR>
+<!-- END proc:genProcData/parameters/addParam -->
+				<TR>
+					<TD align="left" valign="top">
+<!-- BEGIN proc:genProcData/provenance -->
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/provenance</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+																#xdatHiddenBox("proc:genProcData/provenance/prov_process_id" $item "")
+									</TABLE>
+								</TD>
+							</TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE><TR><TD>
+										#foreach($prov_processStep_4_COUNTER in [0..5])
+<!-- BEGIN proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER] -->
+											<TABLE>
+												<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]</font></TH></TR>
+												<TR>
+													<TD align="left" valign="top">
+														<TABLE>
+															<TR><TD>program</TD><TD>#xdatStringBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/program" $item "" $vr)</TD></TR>
+															<TR><TD>program/version</TD><TD>#xdatStringBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/program/version" $item "" $vr)</TD></TR>
+															<TR><TD>program/arguments</TD><TD>#xdatStringBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/program/arguments" $item "" $vr)</TD></TR>
+															<TR><TD>timestamp</TD><TD>#xdatTextBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/timestamp" $item "" $vr)</TD></TR>
+															<TR><TD>cvs</TD><TD>#xdatStringBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/cvs" $item "" $vr)</TD></TR>
+															<TR><TD>user</TD><TD>#xdatStringBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/user" $item "" $vr)</TD></TR>
+															<TR><TD>machine</TD><TD>#xdatStringBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/machine" $item "" $vr)</TD></TR>
+															<TR><TD>platform</TD><TD>#xdatStringBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/platform" $item "" $vr)</TD></TR>
+															<TR><TD>platform/version</TD><TD>#xdatStringBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/platform/version" $item "" $vr)</TD></TR>
+															<TR><TD>compiler</TD><TD>#xdatStringBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/compiler" $item "" $vr)</TD></TR>
+															<TR><TD>compiler/version</TD><TD>#xdatStringBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/compiler/version" $item "" $vr)</TD></TR>
+																					#xdatHiddenBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/prov_processStep_id" $item "")
+														</TABLE>
+													</TD>
+												</TR>
+<!-- BEGIN proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/library -->
+												<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/library</font></TH></TR>
+												<TR>
+													<TD align="left" valign="top">
+														<TABLE>
+															<TR>
+																<TD>library</TD>
+																<TD>version</TD>
+															</TR>
+															#foreach($prov_processStep_library_5_COUNTER in [0..5])
+																<TR>
+																	<TD>#xdatTextBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/library[$prov_processStep_library_5_COUNTER]/library" $item "" $vr)</TD>
+																	<TD>#xdatTextBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/library[$prov_processStep_library_5_COUNTER]/version" $item "" $vr)</TD>
+																	#xdatHiddenBox("proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/library[$prov_processStep_library_5_COUNTER]/prov_processStep_library_id" $item "")
+																</TR>
+															#end
+														</TABLE>
+													</TD>
+												</TR>
+<!-- END proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER]/library -->
+											</TABLE>
+<!-- END proc:genProcData/provenance/processStep[$prov_processStep_4_COUNTER] -->
+										#end
+									</TD></TR></TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END proc:genProcData/provenance -->
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+<!-- BEGIN proc:genProcData/investigator -->
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/investigator</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+										<TR><TD>title</TD><TD>#xdatStringBox("proc:genProcData/investigator/title" $item "" $vr)</TD></TR>
+										<TR><TD>firstname</TD><TD>#xdatStringBox("proc:genProcData/investigator/firstname" $item "" $vr)</TD></TR>
+										<TR><TD>lastname</TD><TD>#xdatStringBox("proc:genProcData/investigator/lastname" $item "" $vr)</TD></TR>
+										<TR><TD>institution</TD><TD>#xdatStringBox("proc:genProcData/investigator/institution" $item "" $vr)</TD></TR>
+										<TR><TD>department</TD><TD>#xdatStringBox("proc:genProcData/investigator/department" $item "" $vr)</TD></TR>
+										<TR><TD>email</TD><TD>#xdatStringBox("proc:genProcData/investigator/email" $item "" $vr)</TD></TR>
+										<TR><TD>phone</TD><TD>#xdatStringBox("proc:genProcData/investigator/phone" $item "" $vr)</TD></TR>
+										<TR><TD>ID</TD><TD>#xdatStringBox("proc:genProcData/investigator/ID" $item "" $vr)</TD></TR>
+																#xdatHiddenBox("proc:genProcData/investigator/xnat_investigatorData_id" $item "")
+									</TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END proc:genProcData/investigator -->
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+<!-- BEGIN proc:genProcData/validation -->
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/validation</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+										<TR><TD>method</TD><TD>#xdatStringBox("proc:genProcData/validation/method" $item "" $vr)</TD></TR>
+										<TR><TD>date</TD><TD>#xdatDateBox("proc:genProcData/validation/date" $item $vr $years)</TD></TR>
+										<TR><TD>notes</TD><TD>#xdatStringBox("proc:genProcData/validation/notes" $item "" $vr)</TD></TR>
+										<TR><TD>validated_by</TD><TD>#xdatStringBox("proc:genProcData/validation/validated_by" $item "" $vr)</TD></TR>
+										<TR><TD>status</TD><TD>#xdatStringBox("proc:genProcData/validation/status" $item "" $vr)</TD></TR>
+																#xdatHiddenBox("proc:genProcData/validation/xnat_validationData_id" $item "")
+									</TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END proc:genProcData/validation -->
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#foreach($xnat_abstractResource_7_COUNTER in [0..5])
+<!-- BEGIN proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER] -->
+								<TABLE>
+									<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER]</font></TH></TR>
+									<TR>
+										<TD align="left" valign="top">
+											<TABLE>
+												<TR><TD>note</TD><TD>#xdatStringBox("proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER]/note" $item "" $vr)</TD></TR>
+												<TR><TD>label</TD><TD>#xdatStringBox("proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER]/label" $item "" $vr)</TD></TR>
+												<TR><TD>file_count</TD><TD>#xdatTextBox("proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER]/file_count" $item "" $vr)</TD></TR>
+												<TR><TD>file_size</TD><TD>#xdatTextBox("proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER]/file_size" $item "" $vr)</TD></TR>
+																		#xdatHiddenBox("proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER]/xnat_abstractResource_id" $item "")
+											</TABLE>
+										</TD>
+									</TR>
+<!-- BEGIN proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER]/tags/tag -->
+									<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER]/tags/tag</font></TH></TR>
+									<TR>
+										<TD align="left" valign="top">
+											<TABLE>
+												<TR>
+													<TD>tag</TD>
+													<TD>name</TD>
+												</TR>
+												#foreach($xnat_abstractResource_tag_8_COUNTER in [0..5])
+													<TR>
+														<TD>#xdatTextBox("proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER]/tags/tag[$xnat_abstractResource_tag_8_COUNTER]/tag" $item "" $vr)</TD>
+														<TD>#xdatTextBox("proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER]/tags/tag[$xnat_abstractResource_tag_8_COUNTER]/name" $item "" $vr)</TD>
+														#xdatHiddenBox("proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER]/tags/tag[$xnat_abstractResource_tag_8_COUNTER]/xnat_abstractResource_tag_id" $item "")
+													</TR>
+												#end
+											</TABLE>
+										</TD>
+									</TR>
+<!-- END proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER]/tags/tag -->
+								</TABLE>
+<!-- END proc:genProcData/resources/resource[$xnat_abstractResource_7_COUNTER] -->
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+<!-- BEGIN proc:genProcData/fields/field -->
+				<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/fields/field</font></TH></TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE>
+							<TR>
+								<TD>field</TD>
+								<TD>name</TD>
+							</TR>
+							#foreach($xnat_experimentData_field_8_COUNTER in [0..5])
+								<TR>
+									<TD>#xdatTextBox("proc:genProcData/fields/field[$xnat_experimentData_field_8_COUNTER]/field" $item "" $vr)</TD>
+									<TD>#xdatTextBox("proc:genProcData/fields/field[$xnat_experimentData_field_8_COUNTER]/name" $item "" $vr)</TD>
+									#xdatHiddenBox("proc:genProcData/fields/field[$xnat_experimentData_field_8_COUNTER]/xnat_experimentData_field_id" $item "")
+								</TR>
+							#end
+						</TABLE>
+					</TD>
+				</TR>
+<!-- END proc:genProcData/fields/field -->
+<!-- BEGIN proc:genProcData/scans/scan -->
+				<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/scans/scan</font></TH></TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE>
+							<TR>
+							</TR>
+							#foreach($proc_genProcData_scan_8_COUNTER in [0..5])
+								<TR>
+									#xdatHiddenBox("proc:genProcData/scans/scan[$proc_genProcData_scan_8_COUNTER]/proc_genProcData_scan_id" $item "")
+								</TR>
+							#end
+						</TABLE>
+					</TD>
+				</TR>
+<!-- END proc:genProcData/scans/scan -->
+			</TABLE>
+<!-- END proc:genProcData -->
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+		#xdatEditProps($item $edit_screen)
+		<TR><TD COLSPAN=2 ALIGN=left><input type="button" ONCLICK="validateForm();"  name="eventSubmit_doInsert" value="Submit"/></TD></TR>
+		</TD>
+	</TR>
+</TABLE>
+</form>
+
+<script type="text/javascript">
+function validateForm()
+{
+   //INSERT CUSTOM CONTENT HERE
+
+   validateExperimentForm();
+   return false;
+}
+</script>

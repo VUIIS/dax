@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSPY v2004 rel. 3 U (http://www.xmlspy.com) by Tim Olsen (Washington University) -->
+<!-- edited with XMLSpy v2005 rel. 3 U (http://www.altova.com) by Dan Marcus (Washington University) -->
+<xs:schema targetNamespace="http://nrg.wustl.edu/fs" xmlns:fs="http://nrg.wustl.edu/fs" xmlns:xdat="http://nrg.wustl.edu/xdat" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xnat="http://nrg.wustl.edu/xnat" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://nrg.wustl.edu/xnat" schemaLocation="../xnat/xnat.xsd"/>
+	<xs:element name="Freesurfer" type="fs:fsData"/>
+	<xs:element name="LongitudinalFS" type="fs:longFSData"/>
+	<xs:element name="AutomaticSegmentation" type="fs:automaticSegmentationData"/>
+	<xs:complexType name="fsData">
+		<xs:complexContent>
+			<xs:extension base="xnat:imageAssessorData">
+				<xs:sequence>
+					<xs:element name="fsversion" type="xs:string"/>
+					<xs:element name="measures">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="volumetric">
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="ICV" type="xs:float" minOccurs="0"/>
+											<xs:element name="lhCortexVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="rhCortexVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="CortexVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="SubCortGrayVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="TotalGrayVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="SupraTentorialVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="lhCorticalWhiteMatterVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="rhCorticalWhiteMatterVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="CorticalWhiteMatterVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="regions" minOccurs="0">
+												<xs:complexType>
+													<xs:sequence minOccurs="0">
+														<xs:element name="region" minOccurs="0" maxOccurs="unbounded">
+															<xs:annotation>
+																<xs:appinfo>
+																	<xdat:element>
+																		<xdat:sqlElement name="fsData_vol_region"/>
+																	</xdat:element>
+																	<xdat:field>
+																		<xdat:relation uniqueComposite="name" relationType="single"/>
+																	</xdat:field>
+																</xs:appinfo>
+															</xs:annotation>
+															<xs:complexType>
+																<xs:sequence minOccurs="0">
+																	<xs:element name="NVoxels" type="xs:float" minOccurs="0"/>
+																	<xs:element name="Volume" type="xs:float" minOccurs="0"/>
+																	<xs:element name="normMean" type="xs:float" minOccurs="0"/>
+																	<xs:element name="normStdDev" type="xs:float" minOccurs="0"/>
+																	<xs:element name="normMin" type="xs:float" minOccurs="0"/>
+																	<xs:element name="normMax" type="xs:float" minOccurs="0"/>
+																	<xs:element name="normRange" type="xs:float" minOccurs="0"/>
+																</xs:sequence>
+																<xs:attribute name="SegId" type="xs:string" use="optional"/>
+																<xs:attribute name="name" type="xs:string" use="required">
+																	<xs:annotation>
+																		<xs:appinfo>
+																			<xdat:field uniqueComposite="name"/>
+																		</xs:appinfo>
+																	</xs:annotation>
+																</xs:attribute>
+																<xs:attribute name="hemisphere">
+																	<xs:simpleType>
+																		<xs:restriction base="xs:string">
+																			<xs:enumeration value="left"/>
+																			<xs:enumeration value="right"/>
+																		</xs:restriction>
+																	</xs:simpleType>
+																</xs:attribute>
+															</xs:complexType>
+														</xs:element>
+													</xs:sequence>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element name="surface">
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="hemisphere" maxOccurs="2">
+												<xs:complexType>
+													<xs:sequence>
+														<xs:element name="NumVert" type="xs:float" minOccurs="0"/>
+														<xs:element name="SurfArea" type="xs:float" minOccurs="0"/>
+														<xs:element name="regions" minOccurs="0">
+															<xs:complexType>
+																<xs:sequence minOccurs="0">
+																	<xs:element name="region" minOccurs="0" maxOccurs="unbounded">
+																		<xs:annotation>
+																			<xs:appinfo>
+																				<xdat:element>
+																					<xdat:sqlElement name="fsData_surf_region"/>
+																				</xdat:element>
+																				<xdat:field>
+																					<xdat:relation uniqueComposite="name" relationType="single"/>
+																				</xdat:field>
+																			</xs:appinfo>
+																		</xs:annotation>
+																		<xs:complexType>
+																			<xs:sequence minOccurs="0">
+																				<xs:element name="NumVert" type="xs:float" minOccurs="0"/>
+																				<xs:element name="SurfArea" type="xs:float" minOccurs="0"/>
+																				<xs:element name="GrayVol" type="xs:float" minOccurs="0"/>
+																				<xs:element name="ThickAvg" type="xs:float" minOccurs="0"/>
+																				<xs:element name="ThickStd" type="xs:float" minOccurs="0"/>
+																				<xs:element name="MeanCurv" type="xs:float" minOccurs="0"/>
+																				<xs:element name="GausCurv" type="xs:float" minOccurs="0"/>
+																				<xs:element name="FoldInd" type="xs:float" minOccurs="0"/>
+																				<xs:element name="CurvInd" type="xs:float" minOccurs="0"/>
+																			</xs:sequence>
+																			<xs:attribute name="name" type="xs:string" use="required">
+																				<xs:annotation>
+																					<xs:appinfo>
+																						<xdat:field uniqueComposite="name"/>
+																					</xs:appinfo>
+																				</xs:annotation>
+																			</xs:attribute>
+																		</xs:complexType>
+																	</xs:element>
+																</xs:sequence>
+															</xs:complexType>
+														</xs:element>
+													</xs:sequence>
+													<xs:attribute name="name" use="required">
+														<xs:simpleType>
+															<xs:restriction base="xs:string">
+																<xs:enumeration value="left"/>
+																<xs:enumeration value="right"/>
+															</xs:restriction>
+														</xs:simpleType>
+													</xs:attribute>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+				</xs:sequence>
+				<xs:element name="procstatus" type="xs:string" use="optional" />
+				<xs:element name="proctype" type="xs:string" use="optional" />
+				<xs:element name="jobid" type="xs:string" use="optional" />				
+				<xs:element name="walltimeused" type="xs:string" use="optional" />
+				<xs:element name="jobstartdate" type="xs:date" use="optional"/>
+				<xs:element name="memused" type="xs:string" use="optional" />
+				<xs:element name="procversion" type="xs:string" use="optional" />
+				<xs:element name="jobnode" type="xs:string" use="optional" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="longFSData">
+		<xs:complexContent>
+			<xs:extension base="xnat:subjectAssessorData">
+				<xs:sequence>
+					<xs:element name="fsversion" type="xs:string"/>
+					<xs:element name="measures">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="volumetric">
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="ICV" type="xs:float" minOccurs="0"/>
+											<xs:element name="lhCortexVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="rhCortexVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="CortexVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="SubCortGrayVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="TotalGrayVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="SupraTentorialVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="lhCorticalWhiteMatterVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="rhCorticalWhiteMatterVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="CorticalWhiteMatterVol" type="xs:float" minOccurs="0"/>
+											<xs:element name="regions" minOccurs="0">
+												<xs:complexType>
+													<xs:sequence minOccurs="0">
+														<xs:element name="region" minOccurs="0" maxOccurs="unbounded">
+															<xs:annotation>
+																<xs:appinfo>
+																	<xdat:element>
+																		<xdat:sqlElement name="longFSData_vol_region"/>
+																	</xdat:element>
+																	<xdat:field>
+																		<xdat:relation uniqueComposite="name" relationType="single"/>
+																	</xdat:field>
+																</xs:appinfo>
+															</xs:annotation>
+															<xs:complexType>
+																<xs:sequence minOccurs="0">
+																	<xs:element name="NVoxels" type="xs:float" minOccurs="0"/>
+																	<xs:element name="Volume" type="xs:float" minOccurs="0"/>
+																	<xs:element name="normMean" type="xs:float" minOccurs="0"/>
+																	<xs:element name="normStdDev" type="xs:float" minOccurs="0"/>
+																	<xs:element name="normMin" type="xs:float" minOccurs="0"/>
+																	<xs:element name="normMax" type="xs:float" minOccurs="0"/>
+																	<xs:element name="normRange" type="xs:float" minOccurs="0"/>
+																</xs:sequence>
+																<xs:attribute name="SegId" type="xs:string" use="optional"/>
+																<xs:attribute name="name" type="xs:string" use="required">
+																	<xs:annotation>
+																		<xs:appinfo>
+																			<xdat:field uniqueComposite="name"/>
+																		</xs:appinfo>
+																	</xs:annotation>
+																</xs:attribute>
+																<xs:attribute name="hemisphere">
+																	<xs:simpleType>
+																		<xs:restriction base="xs:string">
+																			<xs:enumeration value="left"/>
+																			<xs:enumeration value="right"/>
+																		</xs:restriction>
+																	</xs:simpleType>
+																</xs:attribute>
+															</xs:complexType>
+														</xs:element>
+													</xs:sequence>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element name="surface">
+									<xs:complexType>
+									<xs:sequence>
+											<xs:element name="hemisphere" maxOccurs="2">
+												<xs:complexType>
+													<xs:sequence>
+														<xs:element name="NumVert" type="xs:float" minOccurs="0"/>
+														<xs:element name="SurfArea" type="xs:float" minOccurs="0"/>
+														<xs:element name="regions" minOccurs="0">
+															<xs:complexType>
+																<xs:sequence minOccurs="0">
+																	<xs:element name="region" minOccurs="0" maxOccurs="unbounded">
+																		<xs:annotation>
+																			<xs:appinfo>
+																				<xdat:element>
+																					<xdat:sqlElement name="longFSData_surf_region"/>
+																				</xdat:element>
+																				<xdat:field>
+																					<xdat:relation uniqueComposite="name" relationType="single"/>
+																				</xdat:field>
+																			</xs:appinfo>
+																		</xs:annotation>
+																		<xs:complexType>
+																			<xs:sequence minOccurs="0">
+																				<xs:element name="NumVert" type="xs:float" minOccurs="0"/>
+																				<xs:element name="SurfArea" type="xs:float" minOccurs="0"/>
+																				<xs:element name="GrayVol" type="xs:float" minOccurs="0"/>
+																				<xs:element name="ThickAvg" type="xs:float" minOccurs="0"/>
+																				<xs:element name="ThickStd" type="xs:float" minOccurs="0"/>
+																				<xs:element name="MeanCurv" type="xs:float" minOccurs="0"/>
+																				<xs:element name="GausCurv" type="xs:float" minOccurs="0"/>
+																				<xs:element name="FoldInd" type="xs:float" minOccurs="0"/>
+																				<xs:element name="CurvInd" type="xs:float" minOccurs="0"/>
+																			</xs:sequence>
+																			<xs:attribute name="name" type="xs:string" use="required">
+																				<xs:annotation>
+																					<xs:appinfo>
+																						<xdat:field uniqueComposite="name"/>
+																					</xs:appinfo>
+																				</xs:annotation>
+																			</xs:attribute>
+																		</xs:complexType>
+																	</xs:element>
+																</xs:sequence>
+															</xs:complexType>
+														</xs:element>
+													</xs:sequence>
+													<xs:attribute name="name" use="required">
+														<xs:simpleType>
+															<xs:restriction base="xs:string">
+																<xs:enumeration value="left"/>
+																<xs:enumeration value="right"/>
+															</xs:restriction>
+														</xs:simpleType>
+													</xs:attribute>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>										
+									</xs:complexType>
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="timepoints" minOccurs="0">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="timepoint" maxOccurs="unbounded">
+									<xs:annotation>
+										<xs:appinfo>
+											<xdat:field>
+												<xdat:relation uniqueComposite="session" relationType="single"/>
+											</xdat:field>
+										</xs:appinfo>
+									</xs:annotation>
+									<xs:complexType>
+										<xs:attribute name="imageSessionID" type="xs:string" use="required">
+											<xs:annotation>
+												<xs:appinfo>
+													<xdat:field uniqueComposite="session"/>
+												</xs:appinfo>
+											</xs:annotation>
+										</xs:attribute>
+										<xs:attribute name="label" type="xs:string" use="optional"/>
+										<xs:attribute name="visit_id" type="xs:string" use="optional"/>
+										<xs:attribute name="project" type="xs:string" use="optional"/>
+									</xs:complexType>
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="automaticSegmentationData">
+		<xs:complexContent>
+			<xs:extension base="xnat:mrAssessorData">
+				<xs:sequence>
+					<xs:element name="ICV" type="xs:integer" minOccurs="0"/>
+					<xs:element name="regions">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="region" type="xnat:volumetricRegion" maxOccurs="unbounded"/>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+</xs:schema>

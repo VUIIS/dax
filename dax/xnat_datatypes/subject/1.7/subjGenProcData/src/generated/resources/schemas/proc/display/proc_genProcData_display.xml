@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Displays xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xdat/display.xsd" schema-element="proc:subjGenProcData" full-description="Longitudinal Processing" brief-description="Longitudinal Processing">
+	<DisplayField id="EXPT_ID" header="ID" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData.ID"/>
+		<HTML-Link>
+			<Property name="HREF" value="none"/>
+			<Property name="ONCLICK" value="return rpt('@Field1','proc:subjGenProcData','proc:subjGenProcData.ID');">
+				<InsertValue id="Field1" field="EXPT_ID"/>
+			</Property>
+		</HTML-Link>
+	</DisplayField>
+	<DisplayField id="RPT" header="ID" visible="true" image="true">
+		<Content type="sql">'/@WEBAPP/images/r.gif'::text</Content>
+		<HTML-Link>
+			<Property name="HREF" value="none"/>
+			<Property name="ONCLICK" value="return rpt('@Field1','proc:subjGenProcData','proc:subjGenProcData.ID');">
+				<InsertValue id="Field1" field="EXPT_ID"/>
+			</Property>
+		</HTML-Link>
+	</DisplayField>
+	<DisplayField id="DATE" header="Date" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData.date"/>
+	</DisplayField>
+	<DisplayField header="Projects" id="PROJECTS" data-type="string">
+		<DisplayFieldElement name="Field1" viewName="PROC_SUBJGENPROCDATA_PROJECTS" viewColumn="PROJECTS"/>
+	</DisplayField>
+	<DisplayField header="Label" id="LABEL" data-type="string">
+	<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData.ID"/>
+	<DisplayFieldElement name="Field2" schema-element="proc:subjGenProcData.label"/>
+	<Content type="sql">COALESCE(@Field2, @Field1)</Content>
+		<HTML-Link>
+			<SecureLink elementName="proc:subjGenProcData">
+				<securityMappingValue displayFieldId="PROJECTS" schemaElementMap="proc:subjGenProcData/sharing/share/project"/>
+				<securityMappingValue displayFieldId="PROJECT" schemaElementMap="proc:subjGenProcData/project"/>
+			</SecureLink>
+			<Property name="HREF" value="@WEBAPPapp/action/DisplayItemAction/search_value/@Field1/search_element/proc:subjGenProcData/search_field/proc:subjGenProcData.ID">
+				<InsertValue id="Field1" field="EXPT_ID"/>
+			</Property>
+			<Property name="ONCLICK" value="return rpt('@Field1','proc:subjGenProcData','proc:subjGenProcData.ID');">
+				<InsertValue id="Field1" field="EXPT_ID"/>
+			</Property>
+			<Property name="TITLE" value="Inserted: @Field1 (@Field2)">
+				<InsertValue id="Field1" field="INSERT_DATE"/>
+				<InsertValue id="Field2" field="INSERT_USER"/>
+			</Property>
+		</HTML-Link>
+	</DisplayField>
+	<DisplayField id="PROJECT" header="Project" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData.project"/>
+	</DisplayField>
+	<DisplayField id="PROC_SUBJGENPROCDATA_PROJECT_IDENTIFIER" header="PROC_SUBJGENPROCDATA ID" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
+		<Content type="sql">proc_subjgenprocdata_project_id</Content>
+		<HTML-Link>
+			<SecureLink elementName="proc:subjGenProcData">
+				<securityMappingValue displayFieldId="PROJECTS" schemaElementMap="proc:subjGenProcData/sharing/share/project"/>
+				<securityMappingValue displayFieldId="PROJECT" schemaElementMap="proc:subjGenProcData/project"/>
+			</SecureLink>
+			<Property name="HREF" value="@WEBAPPapp/action/DisplayItemAction/search_value/@Field1/search_element/proc:genProcData/search_field/proc:genProcData.ID/project/@Field2">
+				<InsertValue id="Field1" field="EXPT_ID"/>
+				<InsertValue id="Field2" field="@WHERE"/>
+			</Property>
+		</HTML-Link>
+		<SubQuery>SELECT DISTINCT COALESCE(label,sharing_share_xnat_experimentda_id) AS proc_subjgenprocdata_project_id,sharing_share_xnat_experimentda_id FROM (	SELECT sharing_share_xnat_experimentda_id,label FROM xnat_experimentdata_share WHERE project='@WHERE'	UNION 	SELECT id,label FROM xnat_experimentData WHERE project='@WHERE' )SEARCH</SubQuery>
+		<MappingColumns>
+			<MappingColumn schemaField="proc:subjGenProcData.ID" queryField="sharing_share_xnat_experimentda_id"/>
+		</MappingColumns>
+	</DisplayField>
+	<DisplayField id="INSERT_DATE" header="Inserted" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData.meta.insert_date"/>
+	</DisplayField>
+	<DisplayField id="INSERT_USER" header="Creator" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData.meta.insert_user.login"/>
+	</DisplayField>
+	<DisplayField id="PROC_SUBJGENPROCDATA_FIELD_MAP" header="Field" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
+		<Content type="sql">field</Content>
+		<SubQuery>SELECT DISTINCT ON ( e.ID) e.ID AS expt_id,field FROM xnat_experimentData_field ef JOIN (SELECT ID,extension,element_name FROM xnat_experimentData e JOIN xdat_meta_element xme ON e.extension=xme.xdat_meta_element_id WHERE xme.element_name='proc:subjGenProcData') e on ef.fields_field_xnat_experimentdat_id=e.id WHERE name='@WHERE'</SubQuery>
+		<MappingColumns>
+			<MappingColumn schemaField="proc:subjGenProcData.ID" queryField="expt_id"/>
+		</MappingColumns>
+	</DisplayField>
+	<DisplayField id="PROCSTATUS" header="procstatus" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData/procstatus"/>
+	</DisplayField>
+	<DisplayField id="PROCTYPE" header="proctype" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData/proctype"/>
+	</DisplayField>
+    <DisplayField id="PROCVERSION" header="procversion" visible="true" searchable="true">
+        <DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData/procversion"/>
+    </DisplayField>
+    <DisplayField id="JOBID" header="jobid" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData/jobid"/>
+	</DisplayField>
+	<DisplayField id="WALLTIMEUSED" header="walltimeused" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData/walltimeused"/>
+	</DisplayField>
+	<DisplayField id="MEMUSEDMB" header="memusedmb" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData/memusedmb"/>
+	</DisplayField>
+	<DisplayField id="JOBSTARTDATE" header="jobstartdate" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData/jobstartdate"/>
+	</DisplayField>
+	<DisplayField id="MEMUSED" header="memused" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData/memused"/>
+	</DisplayField>
+	<DisplayField id="QC_STATUS" header="QC_Status" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData.validation.status"/>
+	</DisplayField>
+	<DisplayField id="QC_NOTES" header="QC_Notes" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData.validation.notes"/>
+	</DisplayField>
+	<DisplayField id="QC_USER" header="QC_User" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData.validation.validated_by"/>
+	</DisplayField>
+	<DisplayField id="QC_DATE" header="QC_Date" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData.validation.date"/>
+	</DisplayField>
+	 <DisplayField id="JOBNODE" header="jobnode" visible="true" searchable="true">
+        <DisplayFieldElement name="Field1" schema-element="proc:subjGenProcData/jobnode"/>
+    </DisplayField>
+	<DisplayVersion versionName="listing" default-order-by="DATE" default-sort-order="DESC" brief-description="Processing" dark-color="9999CC" light-color="CCCCFF">
+		<DisplayFieldRef id="RPT"/>
+		<DisplayFieldRef id="LABEL"/>
+		<DisplayFieldRef id="DATE"/>
+		<DisplayFieldRef id="PROCSTATUS"/>
+		<DisplayFieldRef id="PROCTYPE"/>
+        <DisplayFieldRef id="PROCVERSION"/>
+        <DisplayFieldRef id="JOBID"/>
+		<DisplayFieldRef id="JOBSTARTDATE"/>
+		<DisplayFieldRef id="JOBNODE"/>
+		<DisplayFieldRef id="WALLTIMEUSED"/>
+		<DisplayFieldRef id="MEMUSEDMB"/>
+		<DisplayFieldRef id="MEMUSED"/>
+		<DisplayFieldRef id="QC_STATUS"/>
+		<DisplayFieldRef id="QC_USER"/>
+		<DisplayFieldRef id="QC_DATE"/>
+		<DisplayFieldRef id="QC_NOTES"/>
+	</DisplayVersion>
+	<DisplayVersion versionName="listing_csv" default-order-by="DATE" default-sort-order="DESC" brief-description="Processing" dark-color="9999CC" light-color="CCCCFF">
+		<DisplayFieldRef id="LABEL"/>
+		<DisplayFieldRef id="DATE"/>
+		<DisplayFieldRef id="PROCSTATUS"/>
+        <DisplayFieldRef id="PROCTYPE"/>
+        <DisplayFieldRef id="PROCVERSION"/>
+		<DisplayFieldRef id="JOBID"/>
+		<DisplayFieldRef id="JOBSTARTDATE"/>
+		<DisplayFieldRef id="JOBNODE"/>
+		<DisplayFieldRef id="WALLTIMEUSED"/>
+		<DisplayFieldRef id="MEMUSEDMB"/>
+		<DisplayFieldRef id="MEMUSED"/>
+		<DisplayFieldRef id="QC_STATUS"/>
+		<DisplayFieldRef id="QC_USER"/>
+		<DisplayFieldRef id="QC_DATE"/>
+		<DisplayFieldRef id="QC_NOTES"/>
+	</DisplayVersion>
+	<DisplayVersion versionName="full" default-order-by="DATE" default-sort-order="DESC" brief-description="Processing" dark-color="9999CC" light-color="CCCCFF">
+		<DisplayFieldRef id="EXPT_ID"/>
+		<DisplayFieldRef id="DATE"/>
+		<DisplayFieldRef id="PROCSTATUS"/>
+        <DisplayFieldRef id="PROCTYPE"/>
+        <DisplayFieldRef id="PROCVERSION"/>
+		<DisplayFieldRef id="JOBID"/>
+		<DisplayFieldRef id="JOBSTARTDATE"/>
+		<DisplayFieldRef id="JOBNODE"/>
+		<DisplayFieldRef id="WALLTIMEUSED"/>
+		<DisplayFieldRef id="MEMUSEDMB"/>
+		<DisplayFieldRef id="MEMUSED"/>
+		<DisplayFieldRef id="QC_STATUS"/>
+		<DisplayFieldRef id="QC_USER"/>
+		<DisplayFieldRef id="QC_DATE"/>
+		<DisplayFieldRef id="QC_NOTES"/>
+	</DisplayVersion>
+	<DisplayVersion versionName="detailed" default-order-by="DATE" default-sort-order="DESC" brief-description="Processing" dark-color="9999CC" light-color="CCCCFF">
+		<DisplayFieldRef id="EXPT_ID"/>
+		<DisplayFieldRef id="DATE"/>
+		<DisplayFieldRef id="PROCSTATUS"/>
+        <DisplayFieldRef id="PROCTYPE"/>
+        <DisplayFieldRef id="PROCVERSION"/>
+		<DisplayFieldRef id="JOBID"/>
+		<DisplayFieldRef id="JOBSTARTDATE"/>
+		<DisplayFieldRef id="JOBNODE"/>
+		<DisplayFieldRef id="WALLTIMEUSED"/>
+		<DisplayFieldRef id="MEMUSEDMB"/>
+		<DisplayFieldRef id="MEMUSED"/>
+		<DisplayFieldRef id="QC_STATUS"/>
+		<DisplayFieldRef id="QC_USER"/>
+		<DisplayFieldRef id="QC_DATE"/>
+		<DisplayFieldRef id="QC_NOTES"/>
+	</DisplayVersion>
+	<DisplayVersion versionName="project_bundle" default-order-by="DATE" default-sort-order="DESC" brief-description="Processing" dark-color="9999CC" light-color="CCCCFF">
+		<DisplayFieldRef id="PROC_SUBJGENPROCDATA_PROJECT_IDENTIFIER"/>
+		<DisplayFieldRef id="DATE"/>
+		<DisplayFieldRef id="PROCSTATUS"/>
+        <DisplayFieldRef id="PROCTYPE"/>
+        <DisplayFieldRef id="PROCVERSION"/>
+		<DisplayFieldRef id="JOBID"/>
+		<DisplayFieldRef id="JOBSTARTDATE"/>
+		<DisplayFieldRef id="JOBNODE"/>
+		<DisplayFieldRef id="WALLTIMEUSED"/>
+		<DisplayFieldRef id="MEMUSEDMB"/>
+		<DisplayFieldRef id="MEMUSED"/>
+		<DisplayFieldRef id="QC_STATUS"/>
+		<DisplayFieldRef id="QC_USER"/>
+		<DisplayFieldRef id="QC_DATE"/>
+		<DisplayFieldRef id="QC_NOTES"/>
+	</DisplayVersion>
+	<ViewLink alias="PROC_SUBJGENPROCDATA_PROJECTS">
+		<Mapping TableName="PROC_SUBJGENPROCDATA_PROJECTS">
+			<MappingColumn rootElement="proc:subjGenProcData" fieldElement="proc:subjGenProcData.ID" mapsTo="id"/>
+		</Mapping>
+	</ViewLink>
+	<SQLView name="PROC_SUBJGENPROCDATA_PROJECTS" sql="SELECT id, '&lt;' || expt.project || '&gt;' || xs_a_concat(', ' || shared.project) AS projects FROM xnat_experimentData expt LEFT JOIN xnat_experimentData_share shared ON expt.id=shared.sharing_share_xnat_experimentda_id LEFT JOIN xdat_meta_element xme ON expt.extension = xme.xdat_meta_element_id WHERE element_name='proc:subjGenProcData' GROUP BY expt.id,expt.project"/>
+</Displays>

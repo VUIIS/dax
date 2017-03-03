@@ -1,0 +1,520 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2//EN">
+$page.setTitle("Freesurfer Details")
+$page.setLinkColor($ui.alink)
+$page.setVlinkColor($ui.vlink)/*
+ ##---------------------------------------- 
+ ## DO NOT MODIFY THIS FILE HERE
+ ##
+ ## TO MODIFY, COPY THIS FILE to src/main/resources/templates/screens/ and modify it there 
+ ##----------------------------------------
+#if ($turbineUtils.GetPassedParameter("popup", $data))
+	#set ($popup = $turbineUtils.GetPassedParameter("popup", data) )
+	#set ($popup = "false")
+#end
+<TABLE width="100%">
+	<TR>
+		<TD>
+			<table width="100%">
+				<TR>
+					<TD align="left" valign="middle">
+						<font face="$ui.sansSerifFonts" size="3"><b>Freesurfer Details</b></font>
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+			<TABLE width="100%">
+				<TR>
+					<TD valign="top">
+						<TABLE>
+							<TR><TD>imageSession_ID</TD><TD>$!item.getStringProperty("fs:fsData/imageSession_ID")</TD></TR>
+							<TR><TD>date</TD><TD>$!item.getProperty("fs:fsData/date")</TD></TR>
+							<TR><TD>time</TD><TD>$!item.getProperty("fs:fsData/time")</TD></TR>
+							<TR><TD>duration</TD><TD>$!item.getProperty("fs:fsData/duration")</TD></TR>
+							<TR><TD>delay</TD><TD>$!item.getIntegerProperty("fs:fsData/delay")</TD></TR>
+							<TR><TD>delay/ref_expt_id</TD><TD>$!item.getStringProperty("fs:fsData/delay/ref_expt_id")</TD></TR>
+							<TR><TD>note</TD><TD>$!item.getStringProperty("fs:fsData/note")</TD></TR>
+							<TR><TD>acquisition_site</TD><TD>$!item.getStringProperty("fs:fsData/acquisition_site")</TD></TR>
+							<TR><TD>ID</TD><TD>$!item.getStringProperty("fs:fsData/ID")</TD></TR>
+							<TR><TD>project</TD><TD>$!item.getStringProperty("fs:fsData/project")</TD></TR>
+							<TR><TD>visit_id</TD><TD>$!item.getStringProperty("fs:fsData/visit_id")</TD></TR>
+							<TR><TD>visit</TD><TD>$!item.getStringProperty("fs:fsData/visit")</TD></TR>
+							<TR><TD>version</TD><TD>$!item.getIntegerProperty("fs:fsData/version")</TD></TR>
+							<TR><TD>original</TD><TD>$!item.getStringProperty("fs:fsData/original")</TD></TR>
+							<TR><TD>protocol</TD><TD>$!item.getStringProperty("fs:fsData/protocol")</TD></TR>
+							<TR><TD>label</TD><TD>$!item.getStringProperty("fs:fsData/label")</TD></TR>
+							<TR><TD>fsversion</TD><TD>$!item.getStringProperty("fs:fsData/fsversion")</TD></TR>
+							<TR><TD>measures/volumetric/ICV</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/ICV")</TD></TR>
+							<TR><TD>measures/volumetric/lhCortexVol</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/lhCortexVol")</TD></TR>
+							<TR><TD>measures/volumetric/rhCortexVol</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/rhCortexVol")</TD></TR>
+							<TR><TD>measures/volumetric/CortexVol</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/CortexVol")</TD></TR>
+							<TR><TD>measures/volumetric/SubCortGrayVol</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/SubCortGrayVol")</TD></TR>
+							<TR><TD>measures/volumetric/TotalGrayVol</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/TotalGrayVol")</TD></TR>
+							<TR><TD>measures/volumetric/SupraTentorialVol</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/SupraTentorialVol")</TD></TR>
+							<TR><TD>measures/volumetric/lhCorticalWhiteMatterVol</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/lhCorticalWhiteMatterVol")</TD></TR>
+							<TR><TD>measures/volumetric/rhCorticalWhiteMatterVol</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/rhCorticalWhiteMatterVol")</TD></TR>
+							<TR><TD>measures/volumetric/CorticalWhiteMatterVol</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/CorticalWhiteMatterVol")</TD></TR>
+							<TR><TD>procstatus</TD><TD>$!item.getStringProperty("fs:fsData/procstatus")</TD></TR>
+							<TR><TD>proctype</TD><TD>$!item.getStringProperty("fs:fsData/proctype")</TD></TR>
+							<TR><TD>jobid</TD><TD>$!item.getStringProperty("fs:fsData/jobid")</TD></TR>
+							<TR><TD>walltimeused</TD><TD>$!item.getStringProperty("fs:fsData/walltimeused")</TD></TR>
+							<TR><TD>jobstartdate</TD><TD>$!item.getProperty("fs:fsData/jobstartdate")</TD></TR>
+							<TR><TD>memused</TD><TD>$!item.getStringProperty("fs:fsData/memused")</TD></TR>
+							<TR><TD>procversion</TD><TD>$!item.getStringProperty("fs:fsData/procversion")</TD></TR>
+							<TR><TD>jobnode</TD><TD>$!item.getStringProperty("fs:fsData/jobnode")</TD></TR>
+						</TABLE>
+					</TD>
+					<TD valign="top" align="right">
+						#parse($turbineUtils.getTemplateName("actions",$om.getXSIType(),$project))
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+<!-- BEGIN fs:fsData -->
+			<TABLE>
+				<TR><TH align="left"><font face="$ui.sansSerifFonts" size="2">Related Items</font></TH></TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE>
+						</TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($xnat_abstractResource_1_NUM_ROWS=$item.getChildItems("fs:fsData/in/file").size() - 1)
+							#if($xnat_abstractResource_1_NUM_ROWS>=0)
+								#foreach($xnat_abstractResource_1_COUNTER in [0..$xnat_abstractResource_1_NUM_ROWS])
+<!-- BEGIN fs:fsData/in/file[$xnat_abstractResource_1_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/in/file[$xnat_abstractResource_1_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>note</TD><TD>$!item.getStringProperty("fs:fsData/in/file[$xnat_abstractResource_1_COUNTER]/note")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("fs:fsData/in/file[$xnat_abstractResource_1_COUNTER]/label")</TD></TR>
+													<TR><TD>file_count</TD><TD>$!item.getIntegerProperty("fs:fsData/in/file[$xnat_abstractResource_1_COUNTER]/file_count")</TD></TR>
+													<TR><TD>file_size</TD><TD>$!item.getProperty("fs:fsData/in/file[$xnat_abstractResource_1_COUNTER]/file_size")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE><TR><TD>
+													#set($xnat_abstractResource_tag_2_NUM_ROWS=$item.getChildItems("fs:fsData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag").size() - 1)
+													#if($xnat_abstractResource_tag_2_NUM_ROWS>=0)
+														#foreach($xnat_abstractResource_tag_2_COUNTER in [0..$xnat_abstractResource_tag_2_NUM_ROWS])
+<!-- BEGIN fs:fsData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER] -->
+															<TABLE>
+																<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER]</font></TH></TR>
+																<TR>
+																	<TD align="left" valign="top">
+																		<TABLE>
+																			<TR><TD>tag</TD><TD>$!item.getStringProperty("fs:fsData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER]/tag")</TD></TR>
+																			<TR><TD>name</TD><TD>$!item.getStringProperty("fs:fsData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER]/name")</TD></TR>
+																		</TABLE>
+																	</TD>
+																</TR>
+															</TABLE>
+<!-- END fs:fsData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER] -->
+														#end
+													#end
+												</TD></TR></TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:fsData/in/file[$xnat_abstractResource_1_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($xnat_abstractResource_3_NUM_ROWS=$item.getChildItems("fs:fsData/out/file").size() - 1)
+							#if($xnat_abstractResource_3_NUM_ROWS>=0)
+								#foreach($xnat_abstractResource_3_COUNTER in [0..$xnat_abstractResource_3_NUM_ROWS])
+<!-- BEGIN fs:fsData/out/file[$xnat_abstractResource_3_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/out/file[$xnat_abstractResource_3_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>note</TD><TD>$!item.getStringProperty("fs:fsData/out/file[$xnat_abstractResource_3_COUNTER]/note")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("fs:fsData/out/file[$xnat_abstractResource_3_COUNTER]/label")</TD></TR>
+													<TR><TD>file_count</TD><TD>$!item.getIntegerProperty("fs:fsData/out/file[$xnat_abstractResource_3_COUNTER]/file_count")</TD></TR>
+													<TR><TD>file_size</TD><TD>$!item.getProperty("fs:fsData/out/file[$xnat_abstractResource_3_COUNTER]/file_size")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE><TR><TD>
+													#set($xnat_abstractResource_tag_4_NUM_ROWS=$item.getChildItems("fs:fsData/out/file[$xnat_abstractResource_3_COUNTER]/tags/tag").size() - 1)
+													#if($xnat_abstractResource_tag_4_NUM_ROWS>=0)
+														#foreach($xnat_abstractResource_tag_4_COUNTER in [0..$xnat_abstractResource_tag_4_NUM_ROWS])
+<!-- BEGIN fs:fsData/out/file[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER] -->
+															<TABLE>
+																<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/out/file[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER]</font></TH></TR>
+																<TR>
+																	<TD align="left" valign="top">
+																		<TABLE>
+																			<TR><TD>tag</TD><TD>$!item.getStringProperty("fs:fsData/out/file[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER]/tag")</TD></TR>
+																			<TR><TD>name</TD><TD>$!item.getStringProperty("fs:fsData/out/file[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER]/name")</TD></TR>
+																		</TABLE>
+																	</TD>
+																</TR>
+															</TABLE>
+<!-- END fs:fsData/out/file[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER] -->
+														#end
+													#end
+												</TD></TR></TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:fsData/out/file[$xnat_abstractResource_3_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($xnat_addField_5_NUM_ROWS=$item.getChildItems("fs:fsData/parameters/addParam").size() - 1)
+							#if($xnat_addField_5_NUM_ROWS>=0)
+								#foreach($xnat_addField_5_COUNTER in [0..$xnat_addField_5_NUM_ROWS])
+<!-- BEGIN fs:fsData/parameters/addParam[$xnat_addField_5_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/parameters/addParam[$xnat_addField_5_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>addField</TD><TD>$!item.getStringProperty("fs:fsData/parameters/addParam[$xnat_addField_5_COUNTER]/addField")</TD></TR>
+													<TR><TD>name</TD><TD>$!item.getStringProperty("fs:fsData/parameters/addParam[$xnat_addField_5_COUNTER]/name")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:fsData/parameters/addParam[$xnat_addField_5_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+<!-- BEGIN fs:fsData/provenance -->
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/provenance</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+									</TABLE>
+								</TD>
+							</TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE><TR><TD>
+										#set($prov_processStep_7_NUM_ROWS=$item.getChildItems("fs:fsData/provenance/processStep").size() - 1)
+										#if($prov_processStep_7_NUM_ROWS>=0)
+											#foreach($prov_processStep_7_COUNTER in [0..$prov_processStep_7_NUM_ROWS])
+<!-- BEGIN fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER] -->
+												<TABLE>
+													<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]</font></TH></TR>
+													<TR>
+														<TD align="left" valign="top">
+															<TABLE>
+																<TR><TD>program</TD><TD>$!item.getStringProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/program")</TD></TR>
+																<TR><TD>program/version</TD><TD>$!item.getStringProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/program/version")</TD></TR>
+																<TR><TD>program/arguments</TD><TD>$!item.getStringProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/program/arguments")</TD></TR>
+																<TR><TD>timestamp</TD><TD>$!item.getProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/timestamp")</TD></TR>
+																<TR><TD>cvs</TD><TD>$!item.getStringProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/cvs")</TD></TR>
+																<TR><TD>user</TD><TD>$!item.getStringProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/user")</TD></TR>
+																<TR><TD>machine</TD><TD>$!item.getStringProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/machine")</TD></TR>
+																<TR><TD>platform</TD><TD>$!item.getStringProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/platform")</TD></TR>
+																<TR><TD>platform/version</TD><TD>$!item.getStringProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/platform/version")</TD></TR>
+																<TR><TD>compiler</TD><TD>$!item.getStringProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/compiler")</TD></TR>
+																<TR><TD>compiler/version</TD><TD>$!item.getStringProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/compiler/version")</TD></TR>
+															</TABLE>
+														</TD>
+													</TR>
+													<TR>
+														<TD align="left" valign="top">
+															<TABLE><TR><TD>
+																#set($prov_processStep_library_8_NUM_ROWS=$item.getChildItems("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/library").size() - 1)
+																#if($prov_processStep_library_8_NUM_ROWS>=0)
+																	#foreach($prov_processStep_library_8_COUNTER in [0..$prov_processStep_library_8_NUM_ROWS])
+<!-- BEGIN fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/library[$prov_processStep_library_8_COUNTER] -->
+																		<TABLE>
+																			<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/library[$prov_processStep_library_8_COUNTER]</font></TH></TR>
+																			<TR>
+																				<TD align="left" valign="top">
+																					<TABLE>
+																						<TR><TD>library</TD><TD>$!item.getStringProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/library[$prov_processStep_library_8_COUNTER]/library")</TD></TR>
+																						<TR><TD>version</TD><TD>$!item.getStringProperty("fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/library[$prov_processStep_library_8_COUNTER]/version")</TD></TR>
+																					</TABLE>
+																				</TD>
+																			</TR>
+																		</TABLE>
+<!-- END fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER]/library[$prov_processStep_library_8_COUNTER] -->
+																	#end
+																#end
+															</TD></TR></TABLE>
+														</TD>
+													</TR>
+												</TABLE>
+<!-- END fs:fsData/provenance/processStep[$prov_processStep_7_COUNTER] -->
+											#end
+										#end
+									</TD></TR></TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END fs:fsData/provenance -->
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($xnat_experimentData_share_9_NUM_ROWS=$item.getChildItems("fs:fsData/sharing/share").size() - 1)
+							#if($xnat_experimentData_share_9_NUM_ROWS>=0)
+								#foreach($xnat_experimentData_share_9_COUNTER in [0..$xnat_experimentData_share_9_NUM_ROWS])
+<!-- BEGIN fs:fsData/sharing/share[$xnat_experimentData_share_9_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/sharing/share[$xnat_experimentData_share_9_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>share</TD><TD>$!item.getStringProperty("fs:fsData/sharing/share[$xnat_experimentData_share_9_COUNTER]/share")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("fs:fsData/sharing/share[$xnat_experimentData_share_9_COUNTER]/label")</TD></TR>
+													<TR><TD>project</TD><TD>$!item.getStringProperty("fs:fsData/sharing/share[$xnat_experimentData_share_9_COUNTER]/project")</TD></TR>
+													<TR><TD>visit</TD><TD>$!item.getStringProperty("fs:fsData/sharing/share[$xnat_experimentData_share_9_COUNTER]/visit")</TD></TR>
+													<TR><TD>protocol</TD><TD>$!item.getStringProperty("fs:fsData/sharing/share[$xnat_experimentData_share_9_COUNTER]/protocol")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:fsData/sharing/share[$xnat_experimentData_share_9_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+<!-- BEGIN fs:fsData/investigator -->
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/investigator</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+										<TR><TD>title</TD><TD>$!item.getStringProperty("fs:fsData/investigator/title")</TD></TR>
+										<TR><TD>firstname</TD><TD>$!item.getStringProperty("fs:fsData/investigator/firstname")</TD></TR>
+										<TR><TD>lastname</TD><TD>$!item.getStringProperty("fs:fsData/investigator/lastname")</TD></TR>
+										<TR><TD>institution</TD><TD>$!item.getStringProperty("fs:fsData/investigator/institution")</TD></TR>
+										<TR><TD>department</TD><TD>$!item.getStringProperty("fs:fsData/investigator/department")</TD></TR>
+										<TR><TD>email</TD><TD>$!item.getStringProperty("fs:fsData/investigator/email")</TD></TR>
+										<TR><TD>phone</TD><TD>$!item.getStringProperty("fs:fsData/investigator/phone")</TD></TR>
+										<TR><TD>ID</TD><TD>$!item.getStringProperty("fs:fsData/investigator/ID")</TD></TR>
+									</TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END fs:fsData/investigator -->
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+<!-- BEGIN fs:fsData/validation -->
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/validation</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+										<TR><TD>method</TD><TD>$!item.getStringProperty("fs:fsData/validation/method")</TD></TR>
+										<TR><TD>date</TD><TD>$!item.getProperty("fs:fsData/validation/date")</TD></TR>
+										<TR><TD>notes</TD><TD>$!item.getStringProperty("fs:fsData/validation/notes")</TD></TR>
+										<TR><TD>validated_by</TD><TD>$!item.getStringProperty("fs:fsData/validation/validated_by")</TD></TR>
+										<TR><TD>status</TD><TD>$!item.getStringProperty("fs:fsData/validation/status")</TD></TR>
+									</TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END fs:fsData/validation -->
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($xnat_abstractResource_12_NUM_ROWS=$item.getChildItems("fs:fsData/resources/resource").size() - 1)
+							#if($xnat_abstractResource_12_NUM_ROWS>=0)
+								#foreach($xnat_abstractResource_12_COUNTER in [0..$xnat_abstractResource_12_NUM_ROWS])
+<!-- BEGIN fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>note</TD><TD>$!item.getStringProperty("fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER]/note")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER]/label")</TD></TR>
+													<TR><TD>file_count</TD><TD>$!item.getIntegerProperty("fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER]/file_count")</TD></TR>
+													<TR><TD>file_size</TD><TD>$!item.getProperty("fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER]/file_size")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE><TR><TD>
+													#set($xnat_abstractResource_tag_13_NUM_ROWS=$item.getChildItems("fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER]/tags/tag").size() - 1)
+													#if($xnat_abstractResource_tag_13_NUM_ROWS>=0)
+														#foreach($xnat_abstractResource_tag_13_COUNTER in [0..$xnat_abstractResource_tag_13_NUM_ROWS])
+<!-- BEGIN fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER]/tags/tag[$xnat_abstractResource_tag_13_COUNTER] -->
+															<TABLE>
+																<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER]/tags/tag[$xnat_abstractResource_tag_13_COUNTER]</font></TH></TR>
+																<TR>
+																	<TD align="left" valign="top">
+																		<TABLE>
+																			<TR><TD>tag</TD><TD>$!item.getStringProperty("fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER]/tags/tag[$xnat_abstractResource_tag_13_COUNTER]/tag")</TD></TR>
+																			<TR><TD>name</TD><TD>$!item.getStringProperty("fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER]/tags/tag[$xnat_abstractResource_tag_13_COUNTER]/name")</TD></TR>
+																		</TABLE>
+																	</TD>
+																</TR>
+															</TABLE>
+<!-- END fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER]/tags/tag[$xnat_abstractResource_tag_13_COUNTER] -->
+														#end
+													#end
+												</TD></TR></TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:fsData/resources/resource[$xnat_abstractResource_12_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($xnat_experimentData_field_14_NUM_ROWS=$item.getChildItems("fs:fsData/fields/field").size() - 1)
+							#if($xnat_experimentData_field_14_NUM_ROWS>=0)
+								#foreach($xnat_experimentData_field_14_COUNTER in [0..$xnat_experimentData_field_14_NUM_ROWS])
+<!-- BEGIN fs:fsData/fields/field[$xnat_experimentData_field_14_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/fields/field[$xnat_experimentData_field_14_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>field</TD><TD>$!item.getStringProperty("fs:fsData/fields/field[$xnat_experimentData_field_14_COUNTER]/field")</TD></TR>
+													<TR><TD>name</TD><TD>$!item.getStringProperty("fs:fsData/fields/field[$xnat_experimentData_field_14_COUNTER]/name")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:fsData/fields/field[$xnat_experimentData_field_14_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($fs_fsData_vol_region_15_NUM_ROWS=$item.getChildItems("fs:fsData/measures/volumetric/regions/region").size() - 1)
+							#if($fs_fsData_vol_region_15_NUM_ROWS>=0)
+								#foreach($fs_fsData_vol_region_15_COUNTER in [0..$fs_fsData_vol_region_15_NUM_ROWS])
+<!-- BEGIN fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>NVoxels</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER]/NVoxels")</TD></TR>
+													<TR><TD>Volume</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER]/Volume")</TD></TR>
+													<TR><TD>normMean</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER]/normMean")</TD></TR>
+													<TR><TD>normStdDev</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER]/normStdDev")</TD></TR>
+													<TR><TD>normMin</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER]/normMin")</TD></TR>
+													<TR><TD>normMax</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER]/normMax")</TD></TR>
+													<TR><TD>normRange</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER]/normRange")</TD></TR>
+													<TR><TD>SegId</TD><TD>$!item.getStringProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER]/SegId")</TD></TR>
+													<TR><TD>name</TD><TD>$!item.getStringProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER]/name")</TD></TR>
+													<TR><TD>hemisphere</TD><TD>$!item.getStringProperty("fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER]/hemisphere")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:fsData/measures/volumetric/regions/region[$fs_fsData_vol_region_15_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($fs_fsData_hemisphere_16_NUM_ROWS=$item.getChildItems("fs:fsData/measures/surface/hemisphere").size() - 1)
+							#if($fs_fsData_hemisphere_16_NUM_ROWS>=0)
+								#foreach($fs_fsData_hemisphere_16_COUNTER in [0..$fs_fsData_hemisphere_16_NUM_ROWS])
+<!-- BEGIN fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>NumVert</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/NumVert")</TD></TR>
+													<TR><TD>SurfArea</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/SurfArea")</TD></TR>
+													<TR><TD>name</TD><TD>$!item.getStringProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/name")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE><TR><TD>
+													#set($fs_fsData_surf_region_17_NUM_ROWS=$item.getChildItems("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region").size() - 1)
+													#if($fs_fsData_surf_region_17_NUM_ROWS>=0)
+														#foreach($fs_fsData_surf_region_17_COUNTER in [0..$fs_fsData_surf_region_17_NUM_ROWS])
+<!-- BEGIN fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER] -->
+															<TABLE>
+																<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER]</font></TH></TR>
+																<TR>
+																	<TD align="left" valign="top">
+																		<TABLE>
+																			<TR><TD>NumVert</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER]/NumVert")</TD></TR>
+																			<TR><TD>SurfArea</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER]/SurfArea")</TD></TR>
+																			<TR><TD>GrayVol</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER]/GrayVol")</TD></TR>
+																			<TR><TD>ThickAvg</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER]/ThickAvg")</TD></TR>
+																			<TR><TD>ThickStd</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER]/ThickStd")</TD></TR>
+																			<TR><TD>MeanCurv</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER]/MeanCurv")</TD></TR>
+																			<TR><TD>GausCurv</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER]/GausCurv")</TD></TR>
+																			<TR><TD>FoldInd</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER]/FoldInd")</TD></TR>
+																			<TR><TD>CurvInd</TD><TD>$!item.getDoubleProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER]/CurvInd")</TD></TR>
+																			<TR><TD>name</TD><TD>$!item.getStringProperty("fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER]/name")</TD></TR>
+																		</TABLE>
+																	</TD>
+																</TR>
+															</TABLE>
+<!-- END fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER]/regions/region[$fs_fsData_surf_region_17_COUNTER] -->
+														#end
+													#end
+												</TD></TR></TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END fs:fsData/measures/surface/hemisphere[$fs_fsData_hemisphere_16_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+			</TABLE>
+<!-- END fs:fsData -->
+		</TD>
+	</TR>
+</TABLE>

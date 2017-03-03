@@ -1,0 +1,406 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2//EN">
+$page.setTitle("Processing Details")
+$page.setLinkColor($ui.alink)
+$page.setVlinkColor($ui.vlink)
+#if ($turbineUtils.GetPassedParameter("popup", $data))
+	#set ($popup = $turbineUtils.GetPassedParameter("popup", data) )
+	#set ($popup = "false")
+#end
+<TABLE width="100%">
+	<TR>
+		<TD>
+			<table width="100%">
+				<TR>
+					<TD align="left" valign="middle">
+						<font face="$ui.sansSerifFonts" size="3"><b>Processing Details</b></font>
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+			<TABLE width="100%">
+				<TR>
+					<TD valign="top">
+						<TABLE>
+							<TR><TD>Label</TD><TD><strong>$!item.getStringProperty("proc:genProcData/label")</strong></TD></TR>
+							<TR><TD>Proc Type</TD><TD>$!item.getStringProperty("proc:genProcData/proctype")</TD></TR>
+                            <TR><TD>Proc Version</TD><TD>$!item.getStringProperty("proc:genProcData/procversion")</TD></TR>
+                            <TR><TD>Proc Date</TD><TD>$!item.getProperty("proc:genProcData/date")</TD></TR>
+                            <TR><TD>ID</TD><TD>$!item.getStringProperty("proc:genProcData/ID")</TD></TR>
+							<TR><TD>Note</TD><TD>$!item.getStringProperty("proc:genProcData/note")</TD></TR>
+							<TR><TD>Version</TD><TD>$!item.getIntegerProperty("proc:genProcData/version")</TD></TR>
+						</table>
+						<BR />
+						<table>
+						    <TR><TH>Job Information</TH></TR>
+							<TR><TD>Job Status</TD><TD><strong>$!item.getStringProperty("proc:genProcData/procstatus")</strong></TD></TR>
+							<TR><TD>Job ID</TD><TD>$!item.getStringProperty("proc:genProcData/jobid")</TD></TR>
+							<TR><TD>Job Start Date</TD><TD>$!item.getStringProperty("proc:genProcData/jobstartdate")</TD></TR>
+							<TR><TD>Job Node</TD><TD>$!item.getStringProperty("proc:genProcData/jobnode")</TD></TR>
+							<TR><TD>Walltime Used</TD><TD>$!item.getStringProperty("proc:genProcData/walltimeused")</TD></TR>
+							<TR><TD>Mem Used</TD><TD>$!item.getStringProperty("proc:genProcData/memused")</TD></TR>
+						</TABLE>
+						<BR />
+						 <TABLE>
+                        	<TR><TH>QC Information</TH></TR>
+                            <TR><TD>Status</TD><TD><strong>$!item.getStringProperty("proc:genProcData/validation/status")</strong></TD></TR>
+							<TR><TD>Set by</TD><TD>$!item.getStringProperty("proc:genProcData/validation/validated_by")</TD></TR>
+							<TR><TD>Date</TD><TD>$!item.getStringProperty("proc:genProcData/validation/date")</TD></TR>
+							<TR><TD>Method</TD><TD>$!item.getStringProperty("proc:genProcData/validation/method")</TD></TR>
+							<TR><TD>Notes</TD><TD>$!item.getStringProperty("proc:genProcData/validation/notes")</TD></TR>
+                        </TABLE>
+					</TD>
+					<TD valign="top" align="right">
+						#elementActionsBox($element $search_field $search_value $data.getSession().getAttribute("user") $item)
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+<!-- BEGIN proc:genProcData -->
+			<TABLE>
+				#set($xnat_abstractResource_1_NUM_ROWS=$item.getChildItems("proc:genProcData/in/file").size() - 1)
+				#if($xnat_abstractResource_1_NUM_ROWS>=0)
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE>
+							<TR>
+								<TD>
+									#foreach($xnat_abstractResource_1_COUNTER in [0..$xnat_abstractResource_1_NUM_ROWS])
+<!-- BEGIN proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>note</TD><TD>$!item.getStringProperty("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/note")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/label")</TD></TR>
+													<TR><TD>file_count</TD><TD>$!item.getIntegerProperty("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/file_count")</TD></TR>
+													<TR><TD>file_size</TD><TD>$!item.getProperty("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/file_size")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR>
+														<TD>
+														#set($xnat_abstractResource_tag_2_NUM_ROWS=$item.getChildItems("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag").size() - 1)
+														#if($xnat_abstractResource_tag_2_NUM_ROWS>=0)
+															#foreach($xnat_abstractResource_tag_2_COUNTER in [0..$xnat_abstractResource_tag_2_NUM_ROWS])
+<!-- BEGIN proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER] -->
+															<TABLE>
+																<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER]</font></TH></TR>
+																<TR>
+																	<TD align="left" valign="top">
+																		<TABLE>
+																			<TR><TD>tag</TD><TD>$!item.getStringProperty("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER]/tag")</TD></TR>
+																			<TR><TD>name</TD><TD>$!item.getStringProperty("proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER]/name")</TD></TR>
+																		</TABLE>
+																	</TD>
+																</TR>
+															</TABLE>
+<!-- END proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER]/tags/tag[$xnat_abstractResource_tag_2_COUNTER] -->
+															#end
+														#end
+												</TD></TR></TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END proc:genProcData/in/file[$xnat_abstractResource_1_COUNTER] -->
+								#end
+								</TD>
+							</TR>
+						</TABLE>
+					</TD>
+				</TR>
+				#end
+
+				#set($xnat_abstractResource_3_NUM_ROWS=$item.getChildItems("proc:genProcData/out/file").size() - 1)
+				#if($xnat_abstractResource_3_NUM_ROWS>=0)
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE>
+							<TR>
+								<TD>
+									#foreach($xnat_abstractResource_3_COUNTER in [0..$xnat_abstractResource_3_NUM_ROWS])
+<!-- BEGIN proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>note</TD><TD>$!item.getStringProperty("proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER]/note")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER]/label")</TD></TR>
+													<TR><TD>file_count</TD><TD>$!item.getIntegerProperty("proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER]/file_count")</TD></TR>
+													<TR><TD>file_size</TD><TD>$!item.getProperty("proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER]/file_size")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE><TR><TD>
+													#set($xnat_abstractResource_tag_4_NUM_ROWS=$item.getChildItems("proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER]/tags/tag").size() - 1)
+													#if($xnat_abstractResource_tag_4_NUM_ROWS>=0)
+														#foreach($xnat_abstractResource_tag_4_COUNTER in [0..$xnat_abstractResource_tag_4_NUM_ROWS])
+<!-- BEGIN proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER] -->
+															<TABLE>
+																<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER]</font></TH></TR>
+																<TR>
+																	<TD align="left" valign="top">
+																		<TABLE>
+																			<TR><TD>tag</TD><TD>$!item.getStringProperty("proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER]/tag")</TD></TR>
+																			<TR><TD>name</TD><TD>$!item.getStringProperty("proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER]/name")</TD></TR>
+																		</TABLE>
+																	</TD>
+																</TR>
+															</TABLE>
+<!-- END proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER] -->
+														#end
+													#end
+												</TD></TR></TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END proc:genProcData/out/file[$xnat_abstractResource_3_COUNTER] -->
+						#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				#end
+
+				#set($xnat_addField_5_NUM_ROWS=$item.getChildItems("proc:genProcData/parameters/addParam").size() - 1)
+				#if($xnat_addField_5_NUM_ROWS>=0)
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+								#foreach($xnat_addField_5_COUNTER in [0..$xnat_addField_5_NUM_ROWS])
+<!-- BEGIN proc:genProcData/parameters/addParam[$xnat_addField_5_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/parameters/addParam[$xnat_addField_5_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>addField</TD><TD>$!item.getStringProperty("proc:genProcData/parameters/addParam[$xnat_addField_5_COUNTER]/addField")</TD></TR>
+													<TR><TD>name</TD><TD>$!item.getStringProperty("proc:genProcData/parameters/addParam[$xnat_addField_5_COUNTER]/name")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END proc:genProcData/parameters/addParam[$xnat_addField_5_COUNTER] -->
+								#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+			#end
+
+<!-- BEGIN proc:genProcData/provenance -->
+			#set($prov_processStep_7_NUM_ROWS=$item.getChildItems("proc:genProcData/provenance/processStep").size() - 1)
+			#if($prov_processStep_7_NUM_ROWS>=0)
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/provenance</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+									</TABLE>
+								</TD>
+							</TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE><TR><TD>
+											#foreach($prov_processStep_7_COUNTER in [0..$prov_processStep_7_NUM_ROWS])
+<!-- BEGIN proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER] -->
+												<TABLE>
+													<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]</font></TH></TR>
+													<TR>
+														<TD align="left" valign="top">
+															<TABLE>
+																<TR><TD>program</TD><TD>$!item.getStringProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/program")</TD></TR>
+																<TR><TD>program/version</TD><TD>$!item.getStringProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/program/version")</TD></TR>
+																<TR><TD>program/arguments</TD><TD>$!item.getStringProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/program/arguments")</TD></TR>
+																<TR><TD>timestamp</TD><TD>$!item.getProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/timestamp")</TD></TR>
+																<TR><TD>cvs</TD><TD>$!item.getStringProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/cvs")</TD></TR>
+																<TR><TD>user</TD><TD>$!item.getStringProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/user")</TD></TR>
+																<TR><TD>machine</TD><TD>$!item.getStringProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/machine")</TD></TR>
+																<TR><TD>platform</TD><TD>$!item.getStringProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/platform")</TD></TR>
+																<TR><TD>platform/version</TD><TD>$!item.getStringProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/platform/version")</TD></TR>
+																<TR><TD>compiler</TD><TD>$!item.getStringProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/compiler")</TD></TR>
+																<TR><TD>compiler/version</TD><TD>$!item.getStringProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/compiler/version")</TD></TR>
+															</TABLE>
+														</TD>
+													</TR>
+													<TR>
+														<TD align="left" valign="top">
+															<TABLE><TR><TD>
+																#set($prov_processStep_library_8_NUM_ROWS=$item.getChildItems("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/library").size() - 1)
+																#if($prov_processStep_library_8_NUM_ROWS>=0)
+																	#foreach($prov_processStep_library_8_COUNTER in [0..$prov_processStep_library_8_NUM_ROWS])
+<!-- BEGIN proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/library[$prov_processStep_library_8_COUNTER] -->
+																		<TABLE>
+																			<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/library[$prov_processStep_library_8_COUNTER]</font></TH></TR>
+																			<TR>
+																				<TD align="left" valign="top">
+																					<TABLE>
+																						<TR><TD>library</TD><TD>$!item.getStringProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/library[$prov_processStep_library_8_COUNTER]/library")</TD></TR>
+																						<TR><TD>version</TD><TD>$!item.getStringProperty("proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/library[$prov_processStep_library_8_COUNTER]/version")</TD></TR>
+																					</TABLE>
+																				</TD>
+																			</TR>
+																		</TABLE>
+<!-- END proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER]/library[$prov_processStep_library_8_COUNTER] -->
+																	#end
+																#end
+															</TD></TR></TABLE>
+														</TD>
+													</TR>
+												</TABLE>
+<!-- END proc:genProcData/provenance/processStep[$prov_processStep_7_COUNTER] -->
+											#end
+									</TD></TR></TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END proc:genProcData/provenance -->
+					</TD>
+				</TR>
+				#end
+
+				#set($xnat_experimentData_share_9_NUM_ROWS=$item.getChildItems("proc:genProcData/sharing/share").size() - 1)
+				#if($xnat_experimentData_share_9_NUM_ROWS>=0)
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+								#foreach($xnat_experimentData_share_9_COUNTER in [0..$xnat_experimentData_share_9_NUM_ROWS])
+<!-- BEGIN proc:genProcData/sharing/share[$xnat_experimentData_share_9_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/sharing/share[$xnat_experimentData_share_9_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>share</TD><TD>$!item.getStringProperty("proc:genProcData/sharing/share[$xnat_experimentData_share_9_COUNTER]/share")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("proc:genProcData/sharing/share[$xnat_experimentData_share_9_COUNTER]/label")</TD></TR>
+													<TR><TD>project</TD><TD>$!item.getStringProperty("proc:genProcData/sharing/share[$xnat_experimentData_share_9_COUNTER]/project")</TD></TR>
+													<TR><TD>visit</TD><TD>$!item.getStringProperty("proc:genProcData/sharing/share[$xnat_experimentData_share_9_COUNTER]/visit")</TD></TR>
+													<TR><TD>protocol</TD><TD>$!item.getStringProperty("proc:genProcData/sharing/share[$xnat_experimentData_share_9_COUNTER]/protocol")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END proc:genProcData/sharing/share[$xnat_experimentData_share_9_COUNTER] -->
+								#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				#end
+
+				#set($xnat_abstractResource_12_NUM_ROWS=$item.getChildItems("proc:genProcData/resources/resource").size() - 1)
+				#if($xnat_abstractResource_12_NUM_ROWS>=0)
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+								#foreach($xnat_abstractResource_12_COUNTER in [0..$xnat_abstractResource_12_NUM_ROWS])
+<!-- BEGIN proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>note</TD><TD>$!item.getStringProperty("proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER]/note")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER]/label")</TD></TR>
+													<TR><TD>file_count</TD><TD>$!item.getIntegerProperty("proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER]/file_count")</TD></TR>
+													<TR><TD>file_size</TD><TD>$!item.getProperty("proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER]/file_size")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE><TR><TD>
+													#set($xnat_abstractResource_tag_13_NUM_ROWS=$item.getChildItems("proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER]/tags/tag").size() - 1)
+													#if($xnat_abstractResource_tag_13_NUM_ROWS>=0)
+														#foreach($xnat_abstractResource_tag_13_COUNTER in [0..$xnat_abstractResource_tag_13_NUM_ROWS])
+<!-- BEGIN proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER]/tags/tag[$xnat_abstractResource_tag_13_COUNTER] -->
+															<TABLE>
+																<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER]/tags/tag[$xnat_abstractResource_tag_13_COUNTER]</font></TH></TR>
+																<TR>
+																	<TD align="left" valign="top">
+																		<TABLE>
+																			<TR><TD>tag</TD><TD>$!item.getStringProperty("proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER]/tags/tag[$xnat_abstractResource_tag_13_COUNTER]/tag")</TD></TR>
+																			<TR><TD>name</TD><TD>$!item.getStringProperty("proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER]/tags/tag[$xnat_abstractResource_tag_13_COUNTER]/name")</TD></TR>
+																		</TABLE>
+																	</TD>
+																</TR>
+															</TABLE>
+<!-- END proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER]/tags/tag[$xnat_abstractResource_tag_13_COUNTER] -->
+														#end
+													#end
+												</TD></TR></TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END proc:genProcData/resources/resource[$xnat_abstractResource_12_COUNTER] -->
+								#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				#end
+
+
+				#set($xnat_experimentData_field_14_NUM_ROWS=$item.getChildItems("proc:genProcData/fields/field").size() - 1)
+				#if($xnat_experimentData_field_14_NUM_ROWS>=0)
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+								#foreach($xnat_experimentData_field_14_COUNTER in [0..$xnat_experimentData_field_14_NUM_ROWS])
+<!-- BEGIN proc:genProcData/fields/field[$xnat_experimentData_field_14_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/fields/field[$xnat_experimentData_field_14_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>field</TD><TD>$!item.getStringProperty("proc:genProcData/fields/field[$xnat_experimentData_field_14_COUNTER]/field")</TD></TR>
+													<TR><TD>name</TD><TD>$!item.getStringProperty("proc:genProcData/fields/field[$xnat_experimentData_field_14_COUNTER]/name")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END proc:genProcData/fields/field[$xnat_experimentData_field_14_COUNTER] -->
+								#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				#end
+
+
+				#set($proc_genProcData_scan_15_NUM_ROWS=$item.getChildItems("proc:genProcData/scans/scan").size() - 1)
+				#if($proc_genProcData_scan_15_NUM_ROWS>=0)
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+								#foreach($proc_genProcData_scan_15_COUNTER in [0..$proc_genProcData_scan_15_NUM_ROWS])
+<!-- BEGIN proc:genProcData/scans/scan[$proc_genProcData_scan_15_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:genProcData/scans/scan[$proc_genProcData_scan_15_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END proc:genProcData/scans/scan[$proc_genProcData_scan_15_COUNTER] -->
+								#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				#end
+			</TABLE>
+<!-- END proc:genProcData -->
+		</TD>
+	</TR>
+</TABLE>

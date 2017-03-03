@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema attributeFormDefault="unqualified"
+           elementFormDefault="qualified"
+           targetNamespace="http://nrg.wustl.edu/proc"
+           xmlns:proc="http://nrg.wustl.edu/proc"
+           xmlns:xdat="http://nrg.wustl.edu/xdat"
+           xmlns:xnat="http://nrg.wustl.edu/xnat"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:import namespace="http://nrg.wustl.edu/xnat" schemaLocation="../xnat/xnat.xsd"/>
+  <xs:element name="Longitudinal Processing" type="proc:subjGenProcData"/>
+
+  <xs:complexType name="subjGenProcData">
+    <xs:complexContent>
+      <xs:extension base="xnat:subjectAssessorData">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="includedStudies">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element maxOccurs="unbounded" minOccurs="0" name="Study">
+                  <xs:complexType>
+                    <xs:attribute type="xs:string" name="id" use="required"/>
+                    <xs:sequence>
+                      <xs:element minOccurs="0" type="xs:string" name="studyUID"/>
+                      <xs:element minOccurs="0" type="xs:string" name="studyDate"/>
+                      <xs:element minOccurs="0" type="xs:string" name="seriesNumber"/>
+                      <xs:element minOccurs="0" type="xs:string" name="seriesUID"/>
+                    </xs:sequence>
+                  </xs:complexType>
+                </xs:element>
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="procstatus" type="xs:string" use="optional" />
+ 		  <xs:element name="proctype" type="xs:string" use="optional" />
+          <xs:element name="procversion" type="xs:string" use="optional" />
+          <xs:element name="jobid" type="xs:string" use="optional" />
+ 		  <xs:element name="walltimeused" type="xs:string" use="optional" />
+		  <xs:element name="memusedmb" type="xs:integer" use="optional" />
+ 		  <xs:element name="jobstartdate" type="xs:date" use="optional"/>
+ 		  <xs:element name="memused" type="xs:string" use="optional" />
+ 		  <xs:element name="jobnode" type="xs:string" use="optional" />
+        </xs:sequence>
+        <xs:attribute type="xs:string" name="type" use="optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+</xs:schema>
