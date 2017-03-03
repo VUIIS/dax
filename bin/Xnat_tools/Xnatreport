@@ -90,6 +90,19 @@ def report():
             header = OPTIONS.format.split(',')
             customize_report(project, header)
 
+
+def quote(value):
+    """
+    Quote the string if needed
+    :param value: the string
+    :return: quoted string
+    """
+    if ',' in value:
+        return '"%s"' % value
+    else:
+        return value
+
+
 def default_report(project):
     """
     Default Method to use for report when the header is not specified
@@ -110,8 +123,8 @@ def default_report(project):
                                                       scan_dict['session_label'], scan_dict['ID'])
             scan_res = '/'.join([r['label'] for r in sres_list])
             LOGGER.info(','.join(['scan', scan_dict['subject_label'], scan_dict['session_type'],
-                                  scan_dict['session_label'], scan_dict['ID'], scan_dict['type'],
-                                  scan_dict['series_description'], scan_dict['quality'], scan_res]))
+                                  scan_dict['session_label'], scan_dict['ID'], quote(scan_dict['type']),
+                                  quote(scan_dict['series_description']), quote(scan_dict['quality']), scan_res]))
         #ASSESSOR
         for assessor_dict in [a for a in assessors_list if a['subject_label'] == subject]:
             ares_list = XnatUtils.list_assessor_out_resources(XNAT, project, assessor_dict['subject_label'],
@@ -120,7 +133,7 @@ def default_report(project):
             LOGGER.info(','.join(['assessor', assessor_dict['subject_label'], assessor_dict['session_type'],
                                    assessor_dict['session_label'], assessor_dict['label'],
                                    assessor_dict['proctype'], assessor_dict['procstatus'],
-                                   assessor_dict['qcstatus'], assessor_res]))
+                                   quote(assessor_dict['qcstatus']), assessor_res]))
 
 def customize_report(project, header):
     """

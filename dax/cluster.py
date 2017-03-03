@@ -1,38 +1,27 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """ cluster.py
 
 Cluster functionality
 """
 
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
-
 import os
 import time
 import logging
-import subprocess
+import subprocess as sb
 from datetime import datetime
-from subprocess import CalledProcessError
-from dax_settings import DAX_Settings
-DAX_SETTINGS = DAX_Settings()
-DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
-JOB_TEMPLATE = DAX_SETTINGS.get_job_template()
-CMD_SUBMIT = DAX_SETTINGS.get_cmd_submit()
-CMD_COUNT_NB_JOBS = DAX_SETTINGS.get_cmd_count_nb_jobs()
-CMD_GET_JOB_STATUS = DAX_SETTINGS.get_cmd_get_job_status()
-CMD_GET_JOB_WALLTIME = DAX_SETTINGS.get_cmd_get_job_walltime()
-CMD_GET_JOB_MEMORY = DAX_SETTINGS.get_cmd_get_job_memory()
-CMD_GET_JOB_NODE = DAX_SETTINGS.get_cmd_get_job_node()
-RUNNING_STATUS = DAX_SETTINGS.get_running_status()
-QUEUE_STATUS = DAX_SETTINGS.get_queue_status()
-COMPLETE_STATUS = DAX_SETTINGS.get_complete_status()
-PREFIX_JOBID = DAX_SETTINGS.get_prefix_jobid()
-SUFFIX_JOBID = DAX_SETTINGS.get_suffix_jobid()
-MAX_TRACE_DAYS = 30
 
-#Logger to print logs
+from .dax_settings import DAX_Settings
+from .errors import ClusterError
+
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+DAX_SETTINGS = DAX_Settings()
+MAX_TRACE_DAYS = 30
+# Logger to print logs
 LOGGER = logging.getLogger('dax')
+
 
 def c_output(output):
     """
@@ -44,10 +33,11 @@ def c_output(output):
     try:
         int(output)
         error = False
-    except (CalledProcessError, ValueError) as err:
+    except ValueError as err:
         error = True
         LOGGER.error(err)
     return error
+
 
 def count_jobs():
     """
@@ -55,18 +45,23 @@ def count_jobs():
 
     :return: number of jobs in the queue
     """
-    cmd = CMD_COUNT_NB_JOBS
-    output = subprocess.check_output(cmd, shell=True)
-    error = c_output(output)
-    while error:
-        LOGGER.info('     try again to access number of jobs in 2 seconds.')
-        time.sleep(2)
-        output = subprocess.check_output(cmd, shell=True)
+    if command_found(cmd=DAX_SETTINGS.get_cmd_submit()):
+        cmd = DAX_SETTINGS.get_cmd_count_nb_jobs()
+        output = sb.check_output(cmd, shell=True)
         error = c_output(output)
-    if int(output) < 0:
-        return 0
+        while error:
+            LOGGER.info('    try again to access number of jobs in 2 seconds.')
+            time.sleep(2)
+            output = sb.check_output(cmd, shell=True)
+            error = c_output(output)
+        if int(output) < 0:
+            return 0
+        else:
+            return int(output)
     else:
-        return int(output)
+        LOGGER.info(' Running locally. No queue with jobs.')
+        return 0
+
 
 def job_status(jobid):
     """
@@ -76,20 +71,22 @@ def job_status(jobid):
     :return: job status
 
     """
-    cmd = CMD_GET_JOB_STATUS.safe_substitute({'jobid':jobid})
+    cmd = DAX_SETTINGS.get_cmd_get_job_status()\
+                      .safe_substitute({'jobid': jobid})
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
         output = output.strip()
-        if output == RUNNING_STATUS:
+        if output == DAX_SETTINGS.get_running_status():
             return 'R'
-        elif output == QUEUE_STATUS:
+        elif output == DAX_SETTINGS.get_queue_status():
             return 'Q'
-        elif output == COMPLETE_STATUS or len(output) == 0:
+        elif output == DAX_SETTINGS.get_complete_status() or len(output) == 0:
             return 'C'
         else:
             return None
-    except CalledProcessError:
+    except sb.CalledProcessError:
         return None
+
 
 def is_traceable_date(jobdate):
     """
@@ -105,6 +102,7 @@ def is_traceable_date(jobdate):
     except ValueError:
         return False
 
+
 def tracejob_info(jobid, jobdate):
     """
     Trace the job information from the cluster
@@ -114,13 +112,14 @@ def tracejob_info(jobid, jobdate):
     :return: dictionary object with 'mem_used', 'walltime_used', 'jobnode'
     """
     time_s = datetime.strptime(jobdate, "%Y-%m-%d")
-    diff_days = (datetime.today()-time_s).days+1
+    diff_days = (datetime.today() - time_s).days + 1
     jobinfo = dict()
     jobinfo['mem_used'] = get_job_mem_used(jobid, diff_days)
     jobinfo['walltime_used'] = get_job_walltime_used(jobid, diff_days)
     jobinfo['jobnode'] = get_job_node(jobid, diff_days)
 
     return jobinfo
+
 
 def get_job_mem_used(jobid, diff_days):
     """
@@ -135,16 +134,21 @@ def get_job_mem_used(jobid, diff_days):
     if not jobid:
         return mem
 
-    cmd = CMD_GET_JOB_MEMORY.safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
+    cmd = DAX_SETTINGS.get_cmd_get_job_memory()\
+                      .safe_substitute({'numberofdays': diff_days,
+                                        'jobid': jobid})
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
+        if output.startswith('sacct: error'):
+            raise ClusterError(output)
         if output:
             mem = output.strip()
 
-    except CalledProcessError:
+    except (sb.CalledProcessError, ClusterError):
         pass
 
     return mem
+
 
 def get_job_walltime_used(jobid, diff_days):
     """
@@ -159,19 +163,23 @@ def get_job_walltime_used(jobid, diff_days):
     if not jobid:
         return walltime
 
-    cmd = CMD_GET_JOB_WALLTIME.safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
+    cmd = DAX_SETTINGS.get_cmd_get_job_walltime()\
+                      .safe_substitute({'numberofdays': diff_days,
+                                        'jobid': jobid})
+
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
         if output:
             walltime = output.strip()
 
-    except CalledProcessError:
+    except sb.CalledProcessError:
         pass
 
     if not walltime and diff_days > 3:
         walltime = 'NotFound'
 
     return walltime
+
 
 def get_job_node(jobid, diff_days):
     """
@@ -186,16 +194,27 @@ def get_job_node(jobid, diff_days):
     if not jobid:
         return jobnode
 
-    cmd = CMD_GET_JOB_NODE.safe_substitute({'numberofdays':diff_days, 'jobid':jobid})
+    if jobid == 'no_qsub':
+        cmd = 'uname -a'
+        output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
+        if output and len(output.strip().split(' ')) > 1:
+            jobnode = output.strip().split(' ')[1]
+        return jobnode
+
+    cmd = DAX_SETTINGS.get_cmd_get_job_node()\
+                      .safe_substitute({'numberofdays': diff_days,
+                                        'jobid': jobid})
+
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
         if output:
             jobnode = output.strip()
 
-    except CalledProcessError:
+    except sb.CalledProcessError:
         pass
 
     return jobnode
+
 
 def get_specific_str(big_str, prefix, suffix):
     """
@@ -204,7 +223,7 @@ def get_specific_str(big_str, prefix, suffix):
     :param big_str: string to reduce
     :param prefix: prefix to remove
     :param suffix: suffix to remove
-    :return: string reduced, return empty string if prefix and suffix not present
+    :return: string reduced, return empty string if prefix/suffix not present
     """
     specific_str = big_str
     if prefix and len(specific_str.split(prefix)) > 1:
@@ -216,10 +235,21 @@ def get_specific_str(big_str, prefix, suffix):
     else:
         return ''
 
-class PBS:   #The script file generator class
+
+def command_found(cmd='qsub'):
+    """ Return True if the command was found."""
+    if True in [os.path.isfile(os.path.join(path, cmd)) and
+                os.access(os.path.join(path, cmd), os.X_OK)
+                for path in os.environ["PATH"].split(os.pathsep)]:
+        return True
+    return False
+
+
+class PBS:   # The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
     def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
-                 ppn=1, email=None, email_options=DEFAULT_EMAIL_OPTS, xnat_host=None):
+                 ppn=1, email=None,
+                 email_options=DAX_SETTINGS.get_email_opts(), xnat_host=None):
         """
         Entry point for the PBS class
 
@@ -253,58 +283,71 @@ class PBS:   #The script file generator class
 
         :return: None
         """
-        #pbs_dir
+        # pbs_dir
         job_dir = os.path.dirname(self.filename)
         if not os.path.exists(job_dir):
             os.makedirs(job_dir)
         # Write the Bedpost script (default value)
-        job_data = {'job_email':self.email,
-                    'job_email_options':self.email_options,
-                    'job_ppn':str(self.ppn),
-                    'job_walltime':str(self.walltime_str),
-                    'job_memory':str(self.mem_mb),
-                    'job_output_file':self.outfile,
-                    'job_output_file_options':'oe',
-                    'job_cmds':'\n'.join(self.cmds),
-                    'xnat_host':self.xnat_host}
-        with open(self.filename, 'w') as f_obj:
-            f_obj.write(JOB_TEMPLATE.safe_substitute(job_data))
+        job_data = {'job_email': self.email,
+                    'job_email_options': self.email_options,
+                    'job_ppn': str(self.ppn),
+                    'job_walltime': str(self.walltime_str),
+                    'job_memory': str(self.mem_mb),
+                    'job_output_file': self.outfile,
+                    'job_output_file_options': 'oe',
+                    'job_cmds': '\n'.join(self.cmds),
+                    'xnat_host': self.xnat_host}
 
-    def submit(self):
+        with open(self.filename, 'w') as f_obj:
+            f_obj.write(DAX_SETTINGS.get_job_template()
+                                    .safe_substitute(job_data))
+
+    def submit(self, outlog=None, force_no_qsub=False):
         """
         Submit the file to the cluster
 
         :return: None
         """
+        return submit_job(self.filename, outlog=outlog,
+                          force_no_qsub=force_no_qsub)
+
+
+def submit_job(filename, outlog=None, force_no_qsub=False):
+    """
+    Submit the file to the cluster
+    :return: jobid and error if the job failed when running locally
+    """
+    failed = False
+    submit_cmd = DAX_SETTINGS.get_cmd_submit()
+    if command_found(cmd=submit_cmd) and not force_no_qsub:
         try:
-            cmd = CMD_SUBMIT +' '+ self.filename
-            proc = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            cmd = '%s %s' % (submit_cmd, filename)
+            proc = sb.Popen(cmd.split(), stdout=sb.PIPE, stderr=sb.PIPE)
             output, error = proc.communicate()
             if output:
-                LOGGER.info('    '+output)
+                LOGGER.info(output)
             if error:
                 LOGGER.error(error)
-            #output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-            jobid = get_specific_str(output, PREFIX_JOBID, SUFFIX_JOBID)
-        except CalledProcessError as err:
+            jobid = get_specific_str(output, DAX_SETTINGS.get_prefix_jobid(),
+                                     DAX_SETTINGS.get_suffix_jobid())
+        except sb.CalledProcessError as err:
             LOGGER.error(err)
             jobid = '0'
 
-        return jobid.strip()
+    else:
+        cmd = 'sh %s' % (filename)
+        proc = sb.Popen(cmd.split(), stdout=sb.PIPE, stderr=sb.PIPE)
+        output, error = proc.communicate()
+        if outlog:
+            with open(outlog, 'w') as log_obj:
+                for line in output:
+                    log_obj.write(line)
+                for line in error:
+                    log_obj.write(line)
 
-class ClusterLaunchException(Exception):
-    """Custom exception raised when launch on the grid failed"""
-    def __init__(self):
-        Exception.__init__(self, 'ERROR: Failed to launch job on the grid.')
+        if error:
+            # Set the status to JOB_FAILED
+            failed = True
+        jobid = 'no_qsub'
 
-class ClusterCountJobsException(Exception):
-    """Custom exception raised when attempting to get the number of
-    jobs fails"""
-    def __init__(self):
-        Exception.__init__(self, 'ERROR: Failed to fetch number of '
-                                 'jobs from the grid.')
-
-class ClusterJobIDException(Exception):
-    """Custom exception raised when attempting to get the job id failed"""
-    def __init__(self):
-        Exception.__init__(self, 'ERROR: Failed to get job id.')
+    return jobid.strip(), failed

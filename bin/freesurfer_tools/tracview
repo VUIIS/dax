@@ -47,7 +47,7 @@ if __name__ == '__main__':
     sess_label = args.session
     subjects_dir = args.subjects_dir
 
-    local_subj_path = glob.glob(subjects_dir+'/*'++'*TRACULA_v*/TRACULA/'+sess_label)[0]
+    local_subj_path = glob.glob(subjects_dir+'/*'+'*TRACULA_v*/TRACULA/'+sess_label)[0]
 
     if not os.path.exists(local_subj_path):
         print 'ERROR:cannot load, %s not found in local TRACULA subjects directory.' % (sess_label)

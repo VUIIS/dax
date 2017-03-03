@@ -31,7 +31,7 @@ pip install git+https://github.com/VUIIS/dax.git@branch_name --upgrade
 The wiki is accessible up top or by clicking [here](https://github.com/VUIIS/dax/wiki).
 
 # Docs
-[![Documentation Status](https://readthedocs.org/projects/dax/badge/?version=latest)](http://dax.readthedocs.org/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/dax/badge/?version=master)](http://dax.readthedocs.org/en/master/?badge=master)
 
 # Spiders
 All of our piplines are available on NITRC. [Come join our team!](https://www.nitrc.org/projects/masimatlab)

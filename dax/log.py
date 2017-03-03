@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
 import logging
+import sys
+
 
 def setup_debug_logger(name, logfile):
     """
@@ -13,8 +14,9 @@ def setup_debug_logger(name, logfile):
     :return: logger object
 
     """
-    formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
-    
+    fmt = '%(asctime)s - %(levelname)s - %(module)s - %(message)s'
+    formatter = logging.Formatter(fmt=fmt)
+
     if logfile:
         handler = logging.FileHandler(logfile, 'w')
     else:
@@ -40,7 +42,7 @@ def setup_info_logger(name, logfile):
         handler = logging.FileHandler(logfile, 'w')
     else:
         handler = logging.StreamHandler(sys.stdout)
-    
+
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
@@ -66,6 +68,7 @@ def setup_critical_logger(name, logfile):
     logger.addHandler(handler)
     return logger
 
+
 def setup_warning_logger(name, logfile):
     """
     Sets up the warning logger
@@ -75,7 +78,6 @@ def setup_warning_logger(name, logfile):
     :return: logger object
 
     """
-
     if logfile:
         handler = logging.FileHandler(logfile, 'w')
     else:
@@ -85,6 +87,7 @@ def setup_warning_logger(name, logfile):
     logger.setLevel(logging.WARNING)
     logger.addHandler(handler)
     return logger
+
 
 def setup_error_logger(name, logfile):
     """
