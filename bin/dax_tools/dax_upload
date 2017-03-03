@@ -14,7 +14,6 @@ import json
 import shutil
 import smtplib
 import getpass
-import glob
 from datetime import datetime
 from email.mime.text import MIMEText
 
