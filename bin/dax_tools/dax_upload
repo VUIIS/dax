@@ -14,6 +14,7 @@ import json
 import shutil
 import smtplib
 import getpass
+import glob
 from datetime import datetime
 from email.mime.text import MIMEText
 
@@ -214,9 +215,10 @@ def get_assessor_list(projects):
 
     LOGGER.debug(' - Get Processes names from the upload folder...')
     # check all files/folder in the directory
-    dirs = filter(os.path.isdir, os.listdir(RESULTS_DIR))
+    dirs = filter(os.path.isdir, glob.glob(os.path.join(RESULTS_DIR,'*')))
     dirs.sort(key=lambda x: os.path.getmtime(x))
     for assessor_label in dirs:
+        assessor_label = os.path.basename(assessor_label)
         if assessor_label in _UPLOAD_SKIP_LIST:
             continue
         # If projects set, check that the project is in the list of projects
