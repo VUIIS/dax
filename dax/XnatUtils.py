@@ -2554,6 +2554,16 @@ def run_subprocess(args):
     stdout, stderr = process.communicate()
     return stdout, stderr
 
+def make_temp_dir():
+    """
+    Makes a directory using tempfile
+    
+    :return: Full path of the directory created
+    """    
+
+    return tempdir.mkdtemp()
+
+
 
 def makedir(directory, prefix='TempDir', subdir=True):
     """
