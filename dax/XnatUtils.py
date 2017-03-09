@@ -2554,6 +2554,10 @@ def run_subprocess(args):
     stdout, stderr = process.communicate()
     return stdout, stderr
 
+def make_temp_dir():
+    return tempdir.mkdtemp()
+
+
 
 def makedir(directory, prefix='TempDir', subdir=True):
     """
