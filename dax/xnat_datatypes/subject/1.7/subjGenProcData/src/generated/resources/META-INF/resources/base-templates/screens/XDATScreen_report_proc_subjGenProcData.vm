@@ -1,0 +1,254 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2//EN">
+$page.setTitle("Longitudinal Processing Details")
+$page.setLinkColor($ui.alink)
+$page.setVlinkColor($ui.vlink)/*
+ ##---------------------------------------- 
+ ## DO NOT MODIFY THIS FILE HERE
+ ##
+ ## TO MODIFY, COPY THIS FILE to src/main/resources/templates/screens/ and modify it there 
+ ##----------------------------------------
+#if ($turbineUtils.GetPassedParameter("popup", $data))
+	#set ($popup = $turbineUtils.GetPassedParameter("popup", data) )
+	#set ($popup = "false")
+#end
+<TABLE width="100%">
+	<TR>
+		<TD>
+			<table width="100%">
+				<TR>
+					<TD align="left" valign="middle">
+						<font face="$ui.sansSerifFonts" size="3"><b>Longitudinal Processing Details</b></font>
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+			<TABLE width="100%">
+				<TR>
+					<TD valign="top">
+						<TABLE>
+							<TR><TD>subject_ID</TD><TD>$!item.getStringProperty("proc:subjGenProcData/subject_ID")</TD></TR>
+							<TR><TD>age</TD><TD>$!item.getDoubleProperty("proc:subjGenProcData/age")</TD></TR>
+							<TR><TD>date</TD><TD>$!item.getProperty("proc:subjGenProcData/date")</TD></TR>
+							<TR><TD>time</TD><TD>$!item.getProperty("proc:subjGenProcData/time")</TD></TR>
+							<TR><TD>duration</TD><TD>$!item.getProperty("proc:subjGenProcData/duration")</TD></TR>
+							<TR><TD>delay</TD><TD>$!item.getIntegerProperty("proc:subjGenProcData/delay")</TD></TR>
+							<TR><TD>delay/ref_expt_id</TD><TD>$!item.getStringProperty("proc:subjGenProcData/delay/ref_expt_id")</TD></TR>
+							<TR><TD>note</TD><TD>$!item.getStringProperty("proc:subjGenProcData/note")</TD></TR>
+							<TR><TD>acquisition_site</TD><TD>$!item.getStringProperty("proc:subjGenProcData/acquisition_site")</TD></TR>
+							<TR><TD>ID</TD><TD>$!item.getStringProperty("proc:subjGenProcData/ID")</TD></TR>
+							<TR><TD>project</TD><TD>$!item.getStringProperty("proc:subjGenProcData/project")</TD></TR>
+							<TR><TD>visit_id</TD><TD>$!item.getStringProperty("proc:subjGenProcData/visit_id")</TD></TR>
+							<TR><TD>visit</TD><TD>$!item.getStringProperty("proc:subjGenProcData/visit")</TD></TR>
+							<TR><TD>version</TD><TD>$!item.getIntegerProperty("proc:subjGenProcData/version")</TD></TR>
+							<TR><TD>original</TD><TD>$!item.getStringProperty("proc:subjGenProcData/original")</TD></TR>
+							<TR><TD>protocol</TD><TD>$!item.getStringProperty("proc:subjGenProcData/protocol")</TD></TR>
+							<TR><TD>label</TD><TD>$!item.getStringProperty("proc:subjGenProcData/label")</TD></TR>
+							<TR><TD>procstatus</TD><TD>$!item.getStringProperty("proc:subjGenProcData/procstatus")</TD></TR>
+							<TR><TD>proctype</TD><TD>$!item.getStringProperty("proc:subjGenProcData/proctype")</TD></TR>
+							<TR><TD>procversion</TD><TD>$!item.getStringProperty("proc:subjGenProcData/procversion")</TD></TR>
+							<TR><TD>jobid</TD><TD>$!item.getStringProperty("proc:subjGenProcData/jobid")</TD></TR>
+							<TR><TD>walltimeused</TD><TD>$!item.getStringProperty("proc:subjGenProcData/walltimeused")</TD></TR>
+							<TR><TD>memusedmb</TD><TD>$!item.getIntegerProperty("proc:subjGenProcData/memusedmb")</TD></TR>
+							<TR><TD>jobstartdate</TD><TD>$!item.getProperty("proc:subjGenProcData/jobstartdate")</TD></TR>
+							<TR><TD>memused</TD><TD>$!item.getStringProperty("proc:subjGenProcData/memused")</TD></TR>
+							<TR><TD>jobnode</TD><TD>$!item.getStringProperty("proc:subjGenProcData/jobnode")</TD></TR>
+							<TR><TD>type</TD><TD>$!item.getStringProperty("proc:subjGenProcData/type")</TD></TR>
+						</TABLE>
+					</TD>
+					<TD valign="top" align="right">
+						#parse($turbineUtils.getTemplateName("actions",$om.getXSIType(),$project))
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+<!-- BEGIN proc:subjGenProcData -->
+			<TABLE>
+				<TR><TH align="left"><font face="$ui.sansSerifFonts" size="2">Related Items</font></TH></TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE>
+						</TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($xnat_experimentData_share_1_NUM_ROWS=$item.getChildItems("proc:subjGenProcData/sharing/share").size() - 1)
+							#if($xnat_experimentData_share_1_NUM_ROWS>=0)
+								#foreach($xnat_experimentData_share_1_COUNTER in [0..$xnat_experimentData_share_1_NUM_ROWS])
+<!-- BEGIN proc:subjGenProcData/sharing/share[$xnat_experimentData_share_1_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:subjGenProcData/sharing/share[$xnat_experimentData_share_1_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>share</TD><TD>$!item.getStringProperty("proc:subjGenProcData/sharing/share[$xnat_experimentData_share_1_COUNTER]/share")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("proc:subjGenProcData/sharing/share[$xnat_experimentData_share_1_COUNTER]/label")</TD></TR>
+													<TR><TD>project</TD><TD>$!item.getStringProperty("proc:subjGenProcData/sharing/share[$xnat_experimentData_share_1_COUNTER]/project")</TD></TR>
+													<TR><TD>visit</TD><TD>$!item.getStringProperty("proc:subjGenProcData/sharing/share[$xnat_experimentData_share_1_COUNTER]/visit")</TD></TR>
+													<TR><TD>protocol</TD><TD>$!item.getStringProperty("proc:subjGenProcData/sharing/share[$xnat_experimentData_share_1_COUNTER]/protocol")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END proc:subjGenProcData/sharing/share[$xnat_experimentData_share_1_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+<!-- BEGIN proc:subjGenProcData/investigator -->
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:subjGenProcData/investigator</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+										<TR><TD>title</TD><TD>$!item.getStringProperty("proc:subjGenProcData/investigator/title")</TD></TR>
+										<TR><TD>firstname</TD><TD>$!item.getStringProperty("proc:subjGenProcData/investigator/firstname")</TD></TR>
+										<TR><TD>lastname</TD><TD>$!item.getStringProperty("proc:subjGenProcData/investigator/lastname")</TD></TR>
+										<TR><TD>institution</TD><TD>$!item.getStringProperty("proc:subjGenProcData/investigator/institution")</TD></TR>
+										<TR><TD>department</TD><TD>$!item.getStringProperty("proc:subjGenProcData/investigator/department")</TD></TR>
+										<TR><TD>email</TD><TD>$!item.getStringProperty("proc:subjGenProcData/investigator/email")</TD></TR>
+										<TR><TD>phone</TD><TD>$!item.getStringProperty("proc:subjGenProcData/investigator/phone")</TD></TR>
+										<TR><TD>ID</TD><TD>$!item.getStringProperty("proc:subjGenProcData/investigator/ID")</TD></TR>
+									</TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END proc:subjGenProcData/investigator -->
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+<!-- BEGIN proc:subjGenProcData/validation -->
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:subjGenProcData/validation</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+										<TR><TD>method</TD><TD>$!item.getStringProperty("proc:subjGenProcData/validation/method")</TD></TR>
+										<TR><TD>date</TD><TD>$!item.getProperty("proc:subjGenProcData/validation/date")</TD></TR>
+										<TR><TD>notes</TD><TD>$!item.getStringProperty("proc:subjGenProcData/validation/notes")</TD></TR>
+										<TR><TD>validated_by</TD><TD>$!item.getStringProperty("proc:subjGenProcData/validation/validated_by")</TD></TR>
+										<TR><TD>status</TD><TD>$!item.getStringProperty("proc:subjGenProcData/validation/status")</TD></TR>
+									</TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END proc:subjGenProcData/validation -->
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($xnat_abstractResource_4_NUM_ROWS=$item.getChildItems("proc:subjGenProcData/resources/resource").size() - 1)
+							#if($xnat_abstractResource_4_NUM_ROWS>=0)
+								#foreach($xnat_abstractResource_4_COUNTER in [0..$xnat_abstractResource_4_NUM_ROWS])
+<!-- BEGIN proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>note</TD><TD>$!item.getStringProperty("proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER]/note")</TD></TR>
+													<TR><TD>label</TD><TD>$!item.getStringProperty("proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER]/label")</TD></TR>
+													<TR><TD>file_count</TD><TD>$!item.getIntegerProperty("proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER]/file_count")</TD></TR>
+													<TR><TD>file_size</TD><TD>$!item.getProperty("proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER]/file_size")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE><TR><TD>
+													#set($xnat_abstractResource_tag_5_NUM_ROWS=$item.getChildItems("proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER]/tags/tag").size() - 1)
+													#if($xnat_abstractResource_tag_5_NUM_ROWS>=0)
+														#foreach($xnat_abstractResource_tag_5_COUNTER in [0..$xnat_abstractResource_tag_5_NUM_ROWS])
+<!-- BEGIN proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER]/tags/tag[$xnat_abstractResource_tag_5_COUNTER] -->
+															<TABLE>
+																<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER]/tags/tag[$xnat_abstractResource_tag_5_COUNTER]</font></TH></TR>
+																<TR>
+																	<TD align="left" valign="top">
+																		<TABLE>
+																			<TR><TD>tag</TD><TD>$!item.getStringProperty("proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER]/tags/tag[$xnat_abstractResource_tag_5_COUNTER]/tag")</TD></TR>
+																			<TR><TD>name</TD><TD>$!item.getStringProperty("proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER]/tags/tag[$xnat_abstractResource_tag_5_COUNTER]/name")</TD></TR>
+																		</TABLE>
+																	</TD>
+																</TR>
+															</TABLE>
+<!-- END proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER]/tags/tag[$xnat_abstractResource_tag_5_COUNTER] -->
+														#end
+													#end
+												</TD></TR></TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END proc:subjGenProcData/resources/resource[$xnat_abstractResource_4_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($xnat_experimentData_field_6_NUM_ROWS=$item.getChildItems("proc:subjGenProcData/fields/field").size() - 1)
+							#if($xnat_experimentData_field_6_NUM_ROWS>=0)
+								#foreach($xnat_experimentData_field_6_COUNTER in [0..$xnat_experimentData_field_6_NUM_ROWS])
+<!-- BEGIN proc:subjGenProcData/fields/field[$xnat_experimentData_field_6_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:subjGenProcData/fields/field[$xnat_experimentData_field_6_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>field</TD><TD>$!item.getStringProperty("proc:subjGenProcData/fields/field[$xnat_experimentData_field_6_COUNTER]/field")</TD></TR>
+													<TR><TD>name</TD><TD>$!item.getStringProperty("proc:subjGenProcData/fields/field[$xnat_experimentData_field_6_COUNTER]/name")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END proc:subjGenProcData/fields/field[$xnat_experimentData_field_6_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#set($proc_subjGenProcData_Study_7_NUM_ROWS=$item.getChildItems("proc:subjGenProcData/includedStudies/Study").size() - 1)
+							#if($proc_subjGenProcData_Study_7_NUM_ROWS>=0)
+								#foreach($proc_subjGenProcData_Study_7_COUNTER in [0..$proc_subjGenProcData_Study_7_NUM_ROWS])
+<!-- BEGIN proc:subjGenProcData/includedStudies/Study[$proc_subjGenProcData_Study_7_COUNTER] -->
+									<TABLE>
+										<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">proc:subjGenProcData/includedStudies/Study[$proc_subjGenProcData_Study_7_COUNTER]</font></TH></TR>
+										<TR>
+											<TD align="left" valign="top">
+												<TABLE>
+													<TR><TD>id</TD><TD>$!item.getStringProperty("proc:subjGenProcData/includedStudies/Study[$proc_subjGenProcData_Study_7_COUNTER]/id")</TD></TR>
+													<TR><TD>studyUID</TD><TD>$!item.getStringProperty("proc:subjGenProcData/includedStudies/Study[$proc_subjGenProcData_Study_7_COUNTER]/studyUID")</TD></TR>
+													<TR><TD>studyDate</TD><TD>$!item.getStringProperty("proc:subjGenProcData/includedStudies/Study[$proc_subjGenProcData_Study_7_COUNTER]/studyDate")</TD></TR>
+													<TR><TD>seriesNumber</TD><TD>$!item.getStringProperty("proc:subjGenProcData/includedStudies/Study[$proc_subjGenProcData_Study_7_COUNTER]/seriesNumber")</TD></TR>
+													<TR><TD>seriesUID</TD><TD>$!item.getStringProperty("proc:subjGenProcData/includedStudies/Study[$proc_subjGenProcData_Study_7_COUNTER]/seriesUID")</TD></TR>
+												</TABLE>
+											</TD>
+										</TR>
+									</TABLE>
+<!-- END proc:subjGenProcData/includedStudies/Study[$proc_subjGenProcData_Study_7_COUNTER] -->
+								#end
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+			</TABLE>
+<!-- END proc:subjGenProcData -->
+		</TD>
+	</TR>
+</TABLE><BR>#parse("/screens/ReportProjectSpecificFields.vm")

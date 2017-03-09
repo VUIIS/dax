@@ -1,0 +1,333 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2//EN">
+$page.setTitle("XDAT")
+$page.setLinkColor($ui.alink)
+$page.setVlinkColor($ui.vlink)/*
+ ##---------------------------------------- 
+ ## DO NOT MODIFY THIS FILE HERE
+ ##
+ ## TO MODIFY, COPY THIS FILE to src/main/resources/templates/screens/ and modify it there 
+ ##----------------------------------------
+#set($months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
+#set($days = [ 1..31 ])
+#set($years = [ $!turbineUtils.getYear()..1900])
+#if ($data.message)
+<font color="red" size="3">$data.message</font>
+#end
+<p>
+<form ID="form1" name="form1" method="post" action="$link.setAction("ModifySubjectAssessorData")">
+<input type="hidden" name="project" value="$!{project}" >
+#if($vr)
+	<font color="red">Invalid parameters:<BR>$vr.toHTML()</font>
+<HR>
+#end
+
+<TABLE width="100%">
+	<TR>
+		<TD>
+			<table width="100%">
+				<TR>
+					<TD align="left" valign="middle">
+						<DIV class="edit_title">LongitudinalFS Details</DIV>
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+			<TABLE width="100%">
+				<TR>
+					<TD valign="top">
+						<TABLE>
+							<TR><TD colspan='2'>
+								#parse("/screens/xnat_edit_subjectAssessorData.vm")
+							</TD></TR>
+							<tr>
+								<TD colspan="2">#parse("/screens/EditProjectSpecificFields.vm")</TD>
+							</tr>
+							<TR><TD>age</TD><TD>#xdatTextBox("fs:longFSData/age" $item "" $vr)</TD></TR>
+							<TR><TD>date</TD><TD>#xdatDateBox("fs:longFSData/date" $item $vr $years)</TD></TR>
+							<TR><TD>time</TD><TD>#xdatTextBox("fs:longFSData/time" $item "" $vr)</TD></TR>
+							<TR><TD>duration</TD><TD>#xdatTextBox("fs:longFSData/duration" $item "" $vr)</TD></TR>
+							<TR><TD>delay</TD><TD>#xdatTextBox("fs:longFSData/delay" $item "" $vr)</TD></TR>
+							<TR><TD>delay/ref_expt_id</TD><TD>#xdatStringBox("fs:longFSData/delay/ref_expt_id" $item "" $vr)</TD></TR>
+							<TR><TD>note</TD><TD>#xdatStringBox("fs:longFSData/note" $item "" $vr)</TD></TR>
+							<TR><TD>acquisition_site</TD><TD>#xdatStringBox("fs:longFSData/acquisition_site" $item "" $vr)</TD></TR>
+							<TR><TD>visit_id</TD><TD>#xdatStringBox("fs:longFSData/visit_id" $item "" $vr)</TD></TR>
+							<TR><TD>visit</TD><TD>#xdatStringBox("fs:longFSData/visit" $item "" $vr)</TD></TR>
+							<TR><TD>version</TD><TD>#xdatTextBox("fs:longFSData/version" $item "" $vr)</TD></TR>
+							<TR><TD>original</TD><TD>#xdatStringBox("fs:longFSData/original" $item "" $vr)</TD></TR>
+							<TR><TD>protocol</TD><TD>#xdatStringBox("fs:longFSData/protocol" $item "" $vr)</TD></TR>
+							<TR><TD>label</TD><TD>#xdatStringBox("fs:longFSData/label" $item "" $vr)</TD></TR>
+							<TR><TD>fsversion</TD><TD>#xdatStringBox("fs:longFSData/fsversion" $item "" $vr)</TD></TR>
+							<TR><TD>measures/volumetric/ICV</TD><TD>#xdatTextBox("fs:longFSData/measures/volumetric/ICV" $item "" $vr)</TD></TR>
+							<TR><TD>measures/volumetric/lhCortexVol</TD><TD>#xdatTextBox("fs:longFSData/measures/volumetric/lhCortexVol" $item "" $vr)</TD></TR>
+							<TR><TD>measures/volumetric/rhCortexVol</TD><TD>#xdatTextBox("fs:longFSData/measures/volumetric/rhCortexVol" $item "" $vr)</TD></TR>
+							<TR><TD>measures/volumetric/CortexVol</TD><TD>#xdatTextBox("fs:longFSData/measures/volumetric/CortexVol" $item "" $vr)</TD></TR>
+							<TR><TD>measures/volumetric/SubCortGrayVol</TD><TD>#xdatTextBox("fs:longFSData/measures/volumetric/SubCortGrayVol" $item "" $vr)</TD></TR>
+							<TR><TD>measures/volumetric/TotalGrayVol</TD><TD>#xdatTextBox("fs:longFSData/measures/volumetric/TotalGrayVol" $item "" $vr)</TD></TR>
+							<TR><TD>measures/volumetric/SupraTentorialVol</TD><TD>#xdatTextBox("fs:longFSData/measures/volumetric/SupraTentorialVol" $item "" $vr)</TD></TR>
+							<TR><TD>measures/volumetric/lhCorticalWhiteMatterVol</TD><TD>#xdatTextBox("fs:longFSData/measures/volumetric/lhCorticalWhiteMatterVol" $item "" $vr)</TD></TR>
+							<TR><TD>measures/volumetric/rhCorticalWhiteMatterVol</TD><TD>#xdatTextBox("fs:longFSData/measures/volumetric/rhCorticalWhiteMatterVol" $item "" $vr)</TD></TR>
+							<TR><TD>measures/volumetric/CorticalWhiteMatterVol</TD><TD>#xdatTextBox("fs:longFSData/measures/volumetric/CorticalWhiteMatterVol" $item "" $vr)</TD></TR>
+						</TABLE>
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+<!-- BEGIN fs:longFSData -->
+			<TABLE>
+				<TR><TH align="left"><font face="$ui.sansSerifFonts" size="2">Related Items</font></TH></TR>
+				<TR>
+					<TD align="left" valign="top">
+<!-- BEGIN fs:longFSData/investigator -->
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/investigator</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+										<TR><TD>title</TD><TD>#xdatStringBox("fs:longFSData/investigator/title" $item "" $vr)</TD></TR>
+										<TR><TD>firstname</TD><TD>#xdatStringBox("fs:longFSData/investigator/firstname" $item "" $vr)</TD></TR>
+										<TR><TD>lastname</TD><TD>#xdatStringBox("fs:longFSData/investigator/lastname" $item "" $vr)</TD></TR>
+										<TR><TD>institution</TD><TD>#xdatStringBox("fs:longFSData/investigator/institution" $item "" $vr)</TD></TR>
+										<TR><TD>department</TD><TD>#xdatStringBox("fs:longFSData/investigator/department" $item "" $vr)</TD></TR>
+										<TR><TD>email</TD><TD>#xdatStringBox("fs:longFSData/investigator/email" $item "" $vr)</TD></TR>
+										<TR><TD>phone</TD><TD>#xdatStringBox("fs:longFSData/investigator/phone" $item "" $vr)</TD></TR>
+										<TR><TD>ID</TD><TD>#xdatStringBox("fs:longFSData/investigator/ID" $item "" $vr)</TD></TR>
+																#xdatHiddenBox("fs:longFSData/investigator/xnat_investigatorData_id" $item "")
+									</TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END fs:longFSData/investigator -->
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+<!-- BEGIN fs:longFSData/validation -->
+						<TABLE>
+							<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/validation</font></TH></TR>
+							<TR>
+								<TD align="left" valign="top">
+									<TABLE>
+										<TR><TD>method</TD><TD>#xdatStringBox("fs:longFSData/validation/method" $item "" $vr)</TD></TR>
+										<TR><TD>date</TD><TD>#xdatDateBox("fs:longFSData/validation/date" $item $vr $years)</TD></TR>
+										<TR><TD>notes</TD><TD>#xdatStringBox("fs:longFSData/validation/notes" $item "" $vr)</TD></TR>
+										<TR><TD>validated_by</TD><TD>#xdatStringBox("fs:longFSData/validation/validated_by" $item "" $vr)</TD></TR>
+										<TR><TD>status</TD><TD>#xdatStringBox("fs:longFSData/validation/status" $item "" $vr)</TD></TR>
+																#xdatHiddenBox("fs:longFSData/validation/xnat_validationData_id" $item "")
+									</TABLE>
+								</TD>
+							</TR>
+						</TABLE>
+<!-- END fs:longFSData/validation -->
+					</TD>
+				</TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#foreach($xnat_abstractResource_3_COUNTER in [0..5])
+<!-- BEGIN fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER] -->
+								<TABLE>
+									<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER]</font></TH></TR>
+									<TR>
+										<TD align="left" valign="top">
+											<TABLE>
+												<TR><TD>note</TD><TD>#xdatStringBox("fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER]/note" $item "" $vr)</TD></TR>
+												<TR><TD>label</TD><TD>#xdatStringBox("fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER]/label" $item "" $vr)</TD></TR>
+												<TR><TD>file_count</TD><TD>#xdatTextBox("fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER]/file_count" $item "" $vr)</TD></TR>
+												<TR><TD>file_size</TD><TD>#xdatTextBox("fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER]/file_size" $item "" $vr)</TD></TR>
+																		#xdatHiddenBox("fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER]/xnat_abstractResource_id" $item "")
+											</TABLE>
+										</TD>
+									</TR>
+<!-- BEGIN fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER]/tags/tag -->
+									<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER]/tags/tag</font></TH></TR>
+									<TR>
+										<TD align="left" valign="top">
+											<TABLE>
+												<TR>
+													<TD>tag</TD>
+													<TD>name</TD>
+												</TR>
+												#foreach($xnat_abstractResource_tag_4_COUNTER in [0..5])
+													<TR>
+														<TD>#xdatTextBox("fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER]/tag" $item "" $vr)</TD>
+														<TD>#xdatTextBox("fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER]/name" $item "" $vr)</TD>
+														#xdatHiddenBox("fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER]/tags/tag[$xnat_abstractResource_tag_4_COUNTER]/xnat_abstractResource_tag_id" $item "")
+													</TR>
+												#end
+											</TABLE>
+										</TD>
+									</TR>
+<!-- END fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER]/tags/tag -->
+								</TABLE>
+<!-- END fs:longFSData/resources/resource[$xnat_abstractResource_3_COUNTER] -->
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+<!-- BEGIN fs:longFSData/fields/field -->
+				<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/fields/field</font></TH></TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE>
+							<TR>
+								<TD>field</TD>
+								<TD>name</TD>
+							</TR>
+							#foreach($xnat_experimentData_field_4_COUNTER in [0..5])
+								<TR>
+									<TD>#xdatTextBox("fs:longFSData/fields/field[$xnat_experimentData_field_4_COUNTER]/field" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/fields/field[$xnat_experimentData_field_4_COUNTER]/name" $item "" $vr)</TD>
+									#xdatHiddenBox("fs:longFSData/fields/field[$xnat_experimentData_field_4_COUNTER]/xnat_experimentData_field_id" $item "")
+								</TR>
+							#end
+						</TABLE>
+					</TD>
+				</TR>
+<!-- END fs:longFSData/fields/field -->
+<!-- BEGIN fs:longFSData/measures/volumetric/regions/region -->
+				<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/measures/volumetric/regions/region</font></TH></TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE>
+							<TR>
+								<TD>NVoxels</TD>
+								<TD>Volume</TD>
+								<TD>normMean</TD>
+								<TD>normStdDev</TD>
+								<TD>normMin</TD>
+								<TD>normMax</TD>
+								<TD>normRange</TD>
+								<TD>SegId</TD>
+								<TD>name</TD>
+								<TD>hemisphere</TD>
+							</TR>
+							#foreach($fs_longFSData_vol_region_4_COUNTER in [0..5])
+								<TR>
+									<TD>#xdatTextBox("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_4_COUNTER]/NVoxels" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_4_COUNTER]/Volume" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_4_COUNTER]/normMean" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_4_COUNTER]/normStdDev" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_4_COUNTER]/normMin" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_4_COUNTER]/normMax" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_4_COUNTER]/normRange" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_4_COUNTER]/SegId" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_4_COUNTER]/name" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_4_COUNTER]/hemisphere" $item "" $vr)</TD>
+									#xdatHiddenBox("fs:longFSData/measures/volumetric/regions/region[$fs_longFSData_vol_region_4_COUNTER]/fs_longFSData_vol_region_id" $item "")
+								</TR>
+							#end
+						</TABLE>
+					</TD>
+				</TR>
+<!-- END fs:longFSData/measures/volumetric/regions/region -->
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE><TR><TD>
+							#foreach($fs_longFSData_hemisphere_4_COUNTER in [0..5])
+<!-- BEGIN fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER] -->
+								<TABLE>
+									<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]</font></TH></TR>
+									<TR>
+										<TD align="left" valign="top">
+											<TABLE>
+												<TR><TD>NumVert</TD><TD>#xdatTextBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/NumVert" $item "" $vr)</TD></TR>
+												<TR><TD>SurfArea</TD><TD>#xdatTextBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/SurfArea" $item "" $vr)</TD></TR>
+												<TR><TD>name</TD><TD>#xdatStringBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/name" $item "" $vr)</TD></TR>
+																		#xdatHiddenBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/fs_longFSData_hemisphere_id" $item "")
+											</TABLE>
+										</TD>
+									</TR>
+<!-- BEGIN fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region -->
+									<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region</font></TH></TR>
+									<TR>
+										<TD align="left" valign="top">
+											<TABLE>
+												<TR>
+													<TD>NumVert</TD>
+													<TD>SurfArea</TD>
+													<TD>GrayVol</TD>
+													<TD>ThickAvg</TD>
+													<TD>ThickStd</TD>
+													<TD>MeanCurv</TD>
+													<TD>GausCurv</TD>
+													<TD>FoldInd</TD>
+													<TD>CurvInd</TD>
+													<TD>name</TD>
+												</TR>
+												#foreach($fs_longFSData_surf_region_5_COUNTER in [0..5])
+													<TR>
+														<TD>#xdatTextBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region[$fs_longFSData_surf_region_5_COUNTER]/NumVert" $item "" $vr)</TD>
+														<TD>#xdatTextBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region[$fs_longFSData_surf_region_5_COUNTER]/SurfArea" $item "" $vr)</TD>
+														<TD>#xdatTextBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region[$fs_longFSData_surf_region_5_COUNTER]/GrayVol" $item "" $vr)</TD>
+														<TD>#xdatTextBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region[$fs_longFSData_surf_region_5_COUNTER]/ThickAvg" $item "" $vr)</TD>
+														<TD>#xdatTextBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region[$fs_longFSData_surf_region_5_COUNTER]/ThickStd" $item "" $vr)</TD>
+														<TD>#xdatTextBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region[$fs_longFSData_surf_region_5_COUNTER]/MeanCurv" $item "" $vr)</TD>
+														<TD>#xdatTextBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region[$fs_longFSData_surf_region_5_COUNTER]/GausCurv" $item "" $vr)</TD>
+														<TD>#xdatTextBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region[$fs_longFSData_surf_region_5_COUNTER]/FoldInd" $item "" $vr)</TD>
+														<TD>#xdatTextBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region[$fs_longFSData_surf_region_5_COUNTER]/CurvInd" $item "" $vr)</TD>
+														<TD>#xdatTextBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region[$fs_longFSData_surf_region_5_COUNTER]/name" $item "" $vr)</TD>
+														#xdatHiddenBox("fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region[$fs_longFSData_surf_region_5_COUNTER]/fs_longFSData_surf_region_id" $item "")
+													</TR>
+												#end
+											</TABLE>
+										</TD>
+									</TR>
+<!-- END fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER]/regions/region -->
+								</TABLE>
+<!-- END fs:longFSData/measures/surface/hemisphere[$fs_longFSData_hemisphere_4_COUNTER] -->
+							#end
+						</TD></TR></TABLE>
+					</TD>
+				</TR>
+<!-- BEGIN fs:longFSData/timepoints/timepoint -->
+				<TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">fs:longFSData/timepoints/timepoint</font></TH></TR>
+				<TR>
+					<TD align="left" valign="top">
+						<TABLE>
+							<TR>
+								<TD>imageSessionID</TD>
+								<TD>label</TD>
+								<TD>visit_id</TD>
+								<TD>project</TD>
+							</TR>
+							#foreach($fs_longFSData_timepoint_5_COUNTER in [0..5])
+								<TR>
+									<TD>#xdatTextBox("fs:longFSData/timepoints/timepoint[$fs_longFSData_timepoint_5_COUNTER]/imageSessionID" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/timepoints/timepoint[$fs_longFSData_timepoint_5_COUNTER]/label" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/timepoints/timepoint[$fs_longFSData_timepoint_5_COUNTER]/visit_id" $item "" $vr)</TD>
+									<TD>#xdatTextBox("fs:longFSData/timepoints/timepoint[$fs_longFSData_timepoint_5_COUNTER]/project" $item "" $vr)</TD>
+									#xdatHiddenBox("fs:longFSData/timepoints/timepoint[$fs_longFSData_timepoint_5_COUNTER]/fs_longFSData_timepoint_id" $item "")
+								</TR>
+							#end
+						</TABLE>
+					</TD>
+				</TR>
+<!-- END fs:longFSData/timepoints/timepoint -->
+			</TABLE>
+<!-- END fs:longFSData -->
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+		#xdatEditProps($item $edit_screen)
+		<TR><TD COLSPAN=2 ALIGN=left><input type="button" ONCLICK="validateForm();"  name="eventSubmit_doInsert" value="Submit"/></TD></TR>
+		</TD>
+	</TR>
+</TABLE>
+</form>
+
+<script type="text/javascript">
+function validateForm()
+{
+   //INSERT CUSTOM CONTENT HERE
+
+   validateSubjectAssessorForm();
+   return false;
+}
+</script>

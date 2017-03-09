@@ -1,0 +1,95 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2//EN">
+$page.setTitle("XDAT")
+$page.setLinkColor($ui.alink)
+$page.setVlinkColor($ui.vlink)
+
+#set($months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
+#set($days = [ 1..31 ])
+#set($years = [ $!turbineUtils.getYear()..1990])
+
+#set($qcValues = [["Failed","Failed"],["Failed-needs reprocessing","Failed-needs reprocessing"],["Passed","Passed"],["Passed with edits","Passed with edits"], ["Rerun","Rerun"]])
+#if ($data.message)
+	<font color="red" size="3">$data.message</font>
+#end
+<p>
+<form ID="form1" name="form1" method="post" action="$link.setAction("ModifyItem")">
+<input type="hidden" name="project" value="$!{project}" >
+#if($vr)
+	<font color="red">Invalid parameters:<BR>$vr.toHTML()</font>
+	<HR>
+#end
+
+<TABLE width="100%">
+	<TR>
+		<TD>
+			<table width="100%">
+				<TR>
+					<TD align="left" valign="middle">
+						<DIV class="edit_title">Freesurfer Details</DIV>
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+	<TR>
+		<TD>
+			<TABLE width="100%">
+				<TR>
+					<TD valign="top">
+						<TABLE>
+							<TR>
+								<TD colspan='2'>
+									<HR>
+									#parse("/screens/xnat_edit_experimentData.vm")
+									<HR>
+								</TD>
+							</TR>
+							<TR>
+								<TD colspan="2">#parse("/screens/EditProjectSpecificFields.vm")</TD>
+							</TR>
+                            <TR>
+                            	<TD align="left" valign="top">
+                        			<!-- BEGIN fs:fsData/validation -->
+                                 	<TABLE>
+                                        <TR><TH align="left"><BR><font face="$ui.sansSerifFonts" size="2">FreeSurfer QC</font></TH></TR>
+                                        <TR>
+                                        	<TD align="left" valign="top">
+                                            	<TABLE>
+                                                    <TR><TD>Status</TD><TD>#cndaSelectBoxSimple("fs:fsData/validation/status" $item $qcValues $vr)</TD></TR>
+                                                    <TR><TD>Method</TD><TD>#xdatStringBox("fs:fsData/validation/method" $item "" $vr)</TD></TR>
+                                                    <TR><TD>Notes</TD><TD>#xdatTextArea("fs:fsData/validation/notes" $item "" $vr 10 30)</TD></TR>
+                                                    #xdatHiddenBox("fs:fsData/validation/xnat_validationData_id" $item "")
+                                                    #xdatHiddenBox("fs:fsData/imageSession_ID" $item "")
+                                                    #xdatHiddenBox("fs:fsData/fsversion" $item "")
+                                                    #xdatHiddenBox("fs:fsData/procversion" $item "")
+													#xdatHiddenBox("fs:fsData/validation/validated_by" "" $user.username)
+													#xdatHiddenBox("fs:fsData/validation/date" $item "")
+                                                </TABLE>
+                                            </TD>
+                                        </TR>
+                                	</TABLE>
+                        			<!-- END fs:fsData/validation -->
+                                </TD>
+                             </TR>
+					    </TABLE>
+					</TD>
+				</TR>
+			</TABLE>
+		</TD>
+	</TR>
+   	<TR>
+		<TD>
+			#xdatEditProps($item $edit_screen)
+			<TR><TD COLSPAN=2 ALIGN=left><input type="button" ONCLICK="validateForm();"  name="eventSubmit_doInsert" value="Submit"/></TD></TR>
+		</TD>
+	</TR>
+</TABLE>
+</form>
+
+<script type="text/javascript">
+	function validateForm()
+	{
+		document.getElementById('fs:fsData/validation/date').value = new Date().toISOString().slice(0,10);
+	    document.getElementById("form1").submit();
+	}
+</script>

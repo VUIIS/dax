@@ -1,0 +1,229 @@
+<!-- BEGIN imageSessionData/xnat_imageSessionData_report.vm -->
+#if($project)
+
+#else
+  #set($project=$om.getProject())
+#end
+<script type="text/javascript" src="$content.getURI("scripts/FileViewer.js")"></script>
+<script type="text/javascript">
+    document.title = "Session: $!item.getProperty('label')";
+</script>
+#set($subject = $mr.getSubjectData())
+#if($item.needsActivation())
+	<div id="quarantine_div" class="error" style="background-color:#FFCC33;">This session is in quarantine.&nbsp;&nbsp;&nbsp;&nbsp;<a onclick="toggleQuarantine();">Activate</a></div><br>
+#end
+#addCustomScreens($om.getXSIType() "report/errors")
+#parse($turbineUtils.getTemplateName("_title",$om.getXSIType(),$project))
+#if($project)
+
+#else
+#set($project=$mr.getProject())
+#end
+<BR>
+
+#addCustomScreens($om.getXSIType() "report/alert")
+#parse("/screens/workflow_alert.vm")
+<table width="100%" border="0">
+	<tr>
+	   <td align=left>
+		#parse($turbineUtils.getTemplateName("_details",$om.getXSIType(),$project))
+	    </td>
+  	</tr>
+    <tr>
+    	<td>
+    		#addCustomScreens($om.getXSIType() "report/postDetails")
+    	</td>
+    </tr>
+  	<tr>
+        <td colspan=2>
+			#parse("/screens/ReportProjectSpecificFields.vm")
+        </td>
+	</tr>
+    <tr>
+    	<td>
+            #parse("/screens/qc_summary.vm")
+    	</td>
+    </tr>
+    <tr>
+    	<td>
+    		#addCustomScreens($om.getXSIType() "report/preScans")
+    	</td>
+    </tr>
+ 	<tr>
+		<td align=left colspan=2 valign=top>
+		      <BR/><BR/>
+              #parse($turbineUtils.getTemplateName("_scans",$om.getXSIType(),$project))
+        </td>
+	</tr>
+    <tr>
+    	<td>
+    		#addCustomScreens($om.getXSIType() "report/postScans")
+    	</td>
+    </tr>
+    <tr>
+        <td align=left colspan=2 valign=top></td>
+    </tr>
+    <tr>
+		<td align=left colspan=2 valign=top>
+            #parse($turbineUtils.getTemplateName("_assessments",$om.getXSIType(),$project))
+        </td>
+    </tr>
+    <tr>
+    	<td>
+    		#addCustomScreens($om.getXSIType() "report/postAssessments")
+    	</td>
+    </tr>
+    <tr>
+        <td align=left colspan=2 valign=top><BR/></td>
+    </tr>
+
+    <!--TEST 1-->
+	#set ($scanCounter = 101)
+    #parse($turbineUtils.getTemplateName("_reconstructions",$om.getXSIType(),$project))
+
+    <tr>
+    	<td>
+    		#addCustomScreens($om.getXSIType() "report/postRecons")
+    	</td>
+    </tr>
+
+    <!--TEST 2-->
+	#set ($scanCounter = 202)
+    <tr>
+        <td align=left colspan=2 valign=top>
+    		#parse("/screens/workflow_summary.vm")
+    	</td>
+    </tr>
+    <tr>
+    	<td>
+    		#addCustomScreens($om.getXSIType() "report/postWorkflowSummary")
+    	</td>
+    </tr>
+</table>
+
+<script type="text/javascript">
+    var image_session_id="$om.getId()";
+</script>
+
+<script type="text/javascript">
+
+    function  toggleQuarantine(){
+        #if($item.needsActivation())
+        window.qStatus="true"
+        #else
+        window.qStatus="false"
+        #end
+        if(window.qStatus=="true"){
+            var initCallback={
+    						  success:function(o){
+    						        closeModalPanel("quarantine_");
+    						        if(document.getElementById("quarantine_div")!=undefined){
+    						            document.getElementById("quarantine_div").style.display='none';
+    						        }
+    						        if(document.getElementById("quarantine_a")!=undefined){
+    					    	        document.getElementById("quarantine_a").innerHTML="Places this data in quarantine.";
+    					    	        document.getElementById("quarantine_a").innerHTML="<img id='quarantine_img' border='0' src='$content.getURI("images/checkmarkOrange.gif")'/> Quarantine";
+    					    	    }
+    						    	window.qStatus="false";
+                              },
+    			              failure:function(o){
+    						        closeModalPanel("quarantine_");
+    				          },
+    			              scope:this
+    		                }
+
+            openModalPanel("quarantine_","Removing item from quarantine.");
+    		#if($item.instanceOf("xnat:subjectData"))
+    		      YAHOO.util.Connect.asyncRequest('PUT',serverRoot+"/REST/projects/$om.getProject()/subjects/$om.getId()?activate=true&XNAT_CSRF="+csrfToken,initCallback);
+            #elseif($item.instanceOf("xnat:derivedData"))
+    		      YAHOO.util.Connect.asyncRequest('PUT',serverRoot+"/REST/projects/$om.getProject()/subjects/$om.getImageSessionData().getSubjectId()/experiments/$om.getImageSessionData().getId()/assessors/$om.getId()?activate=true&XNAT_CSRF="+csrfToken,initCallback);
+            #else
+    		      YAHOO.util.Connect.asyncRequest('PUT',serverRoot+"/REST/projects/$om.getProject()/subjects/$om.getSubjectId()/experiments/$om.getId()?activate=true&XNAT_CSRF="+csrfToken,initCallback);
+            #end
+        }else{
+            var initCallback={
+						      success:function(o){
+    						        closeModalPanel("activate_");
+    						        if(document.getElementById("quarantine_div")!=undefined){
+    						          document.getElementById("quarantine_div").style.display='none';
+    						        }
+    						        if(document.getElementById("quarantine_a")!=undefined){
+    					    	      document.getElementById("quarantine_a").innerHTML="Removes this data and its descendents from quarantine.";
+    					    	      document.getElementById("quarantine_a").innerHTML="<img id='quarantine_img' border='0' src='$content.getURI("images/checkmarkGreen.gif")'/> Activate";
+    					    	    }
+    						    	window.qStatus="true";
+                               },
+			                   failure:function(o){
+						            closeModalPanel("activate_");
+				               },
+			                   scope:this
+		                      }
+		    openModalPanel("activate_","Placing item in quarantine.");
+		    #if($item.instanceOf("xnat:subjectData"))
+		          YAHOO.util.Connect.asyncRequest('PUT',serverRoot+"/REST/projects/$om.getProject()/subjects/$om.getId()?quarantine=true&XNAT_CSRF="+csrfToken,initCallback);
+            #elseif($item.instanceOf("xnat:derivedData"))
+		          YAHOO.util.Connect.asyncRequest('PUT',serverRoot+"/REST/projects/$om.getProject()/subjects/$om.getImageSessionData().getSubjectId()/experiments/$om.getImageSessionData().getId()/assessors/$om.getId()?quarantine=true&XNAT_CSRF="+csrfToken,initCallback);
+            #else
+		          YAHOO.util.Connect.asyncRequest('PUT',serverRoot+"/REST/projects/$om.getProject()/subjects/$om.getSubjectId()/experiments/$om.getId()?quarantine=true&XNAT_CSRF="+csrfToken,initCallback);
+            #end
+        }
+    }
+
+    var obj=new Object();
+    obj.uri=serverRoot + "/REST/experiments/$!om.getId()";
+    obj.categories=new Object();
+    obj.categories.ids=new Array();
+
+    #if ($item.canEdit($data.getSession().getAttribute("user")))
+	      obj.canEdit=true;
+    #else
+	      obj.canEdit=false;
+	#end
+    #if ($item.canDelete($data.getSession().getAttribute("user")))
+	      obj.canDelete=true;
+    #else
+	      obj.canDelete=false;
+	#end
+
+    #if($om.getSortedScans().size()>0)
+      obj.categories.ids.push("scans");
+      obj.categories["scans"]=new Array();
+      #foreach($scan in $om.getSortedScans())
+        obj.categories["scans"].push({id:"$scan.getId()",label:"$!scan.getId() $!scan.getType()"});
+      #end
+    #end
+
+    #if($om.getReconstructions_reconstructedimage().size()>0)
+      obj.categories.ids.push("reconstructions");
+      obj.categories["reconstructions"]=new Array();
+      #foreach($recon in $om.getReconstructions_reconstructedimage())
+        obj.categories["reconstructions"].push({id:"$recon.getId()",label:"$!recon.getId() $!recon.getType()"});
+      #end
+    #end
+
+    #if($om.getMinimalLoadAssessors().size()>0)
+      obj.categories.ids.push("assessors");
+      obj.categories["assessors"]=new Array();
+
+      #foreach ($proc in $om.getChildItems("assessors/assessor"))
+        obj.categories["assessors"].push({id:"$proc.getProperty('ID')",label: "[" + window.available_elements.getByName("$!proc.getXSIType()").singular + "] $!proc.getProperty('label')"});
+	  #end
+    #end
+
+    obj.isImageSession=true;
+    window.viewer=new FileViewer(obj);
+
+    function showFiles(){
+        window.viewer.render();
+    }
+</script>
+
+<style type="text/css">
+  .icon-of { display:block; height: 19px; padding-left: 20px; background: transparent url($content.getURI("scripts/yui/build/treeview/assets/img/folders/of.gif")) no-repeat;}
+  .icon-f { display:block; font-size:9px; height: 17px; padding-left: 4px;}
+  .icon-cf { display:block; height: 19px; padding-left: 20px; background: transparent url($content.getURI("scripts/yui/build/treeview/assets/img/folders/cf.gif")) no-repeat;}
+  .ygtvcheck0 { background: url($content.getURI("scripts/yui/build/treeview/assets/img/check/check0.gif")) 0 0 no-repeat; width:16px; cursor:pointer }
+  .ygtvcheck1 { background: url($content.getURI("scripts/yui/build/treeview/assets/img/check/check1.gif")) 0 0 no-repeat; width:16px; cursor:pointer }
+  .ygtvcheck2 { background: url($content.getURI("scripts/yui/build/treeview/assets/img/check/check2.gif")) 0 0 no-repeat; width:16px; cursor:pointer }
+</style>
+<!-- END imageSessionData/xnat_imageSessionData_report.vm -->

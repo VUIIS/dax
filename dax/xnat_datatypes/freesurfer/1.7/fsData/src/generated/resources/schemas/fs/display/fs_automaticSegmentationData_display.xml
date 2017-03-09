@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Displays xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xdat/display.xsd" schema-element="fs:automaticSegmentationData" full-description="AutomaticSegmentation" brief-description="AutomaticSegmentation">
+	<Arc name="ASSESSOR">
+		<CommonField id="EXPT_ID" local-field="EXPT_ID"/>
+		<CommonField id="ASSESSED_EXPT_ID" local-field="SESSION_ID"/>
+	</Arc>
+	<Arc name="PARTICIPANT_EXPERIMENT">
+		<CommonField id="PART_ID" local-field="SUBJECT_ID"/>
+		<CommonField id="DATE" local-field="MR_DATE"/>
+		<CommonField id="EXPT_ID" local-field="EXPT_ID"/>
+	</Arc>
+	<DisplayField id="SESSION_ID" header="Session" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="fs:automaticSegmentationData.imageSession_ID"/>
+		<HTML-Link>
+			<Property name="HREF" value="none"/>
+			<Property name="ONCLICK" value="return rpt('@Field1','xnat:mrSessionData','xnat:mrSessionData.ID');">
+				<InsertValue id="Field1" field="SESSION_ID"/>
+			</Property>
+		</HTML-Link>
+	</DisplayField>
+	<DisplayField id="SUBJECT_ID" header="Subject" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="xnat:mrSessionData.subject_ID"/>
+		<HTML-Link>
+			<Property name="HREF" value="none"/>
+			<Property name="ONCLICK" value="return rpt('@Field1','xnat:subjectData','xnat:subjectData.ID');">
+				<InsertValue id="Field1" field="SUBJECT_ID"/>
+			</Property>
+		</HTML-Link>
+	</DisplayField>
+	<DisplayField id="MR_DATE" header="MR Date" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="xnat:mrSessionData.date"/>
+	</DisplayField>
+	<DisplayField id="EXPT_ID" header="ID" visible="false" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="fs:automaticSegmentationData.ID"/>
+		<HTML-Link>
+			<Property name="HREF" value="none"/>
+			<Property name="ONCLICK" value="return rpt('@Field1','fs:automaticSegmentationData','fs:automaticSegmentationData.ID');">
+				<InsertValue id="Field1" field="EXPT_ID"/>
+			</Property>
+		</HTML-Link>
+	</DisplayField>
+	<DisplayField id="RPT" header="ID" visible="true" image="true">
+		<Content type="sql">'/@WEBAPP/images/r.gif'::text</Content>
+		<HTML-Link>
+			<Property name="HREF" value="none"/>
+			<Property name="ONCLICK" value="return rpt('@Field1','fs:automaticSegmentationData','fs:automaticSegmentationData.ID');">
+				<InsertValue id="Field1" field="EXPT_ID"/>
+			</Property>
+		</HTML-Link>
+	</DisplayField>
+	<DisplayField id="DATE" header="Date" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="fs:automaticSegmentationData.date"/>
+	</DisplayField>
+	<DisplayField id="AGE" header="Age" visible="true" searchable="true" data-type="integer">
+	<DisplayFieldElement name="Field1" schema-element="xnat:mrSessionData.date"/>
+	<DisplayFieldElement name="Field2" schema-element="xnat:demographicData.dob"/>
+	<DisplayFieldElement name="Field3" schema-element="xnat:demographicData.yob"/>
+	<Content type="sql">CAST(COALESCE(FLOOR(CAST((CAST(((@Field1) - (@Field2))AS FLOAT4)/365) AS numeric)),FLOOR((EXTRACT(YEAR FROM @Field1)) - (@Field3))) AS numeric)</Content>
+	</DisplayField>
+	<DisplayField header="Projects" id="PROJECTS" data-type="string">
+		<DisplayFieldElement name="Field1" viewName="FS_AUTOMATICSEGMENTATIONDATA_PROJECTS" viewColumn="PROJECTS"/>
+	</DisplayField>
+	<DisplayField header="Label" id="LABEL" data-type="string">
+	<DisplayFieldElement name="Field1" schema-element="fs:automaticSegmentationData.ID"/>
+	<DisplayFieldElement name="Field2" schema-element="fs:automaticSegmentationData.label"/>
+	<Content type="sql">COALESCE(@Field2, @Field1)</Content>
+		<HTML-Link>
+			<SecureLink elementName="fs:automaticSegmentationData">
+				<securityMappingValue displayFieldId="PROJECTS" schemaElementMap="fs:automaticSegmentationData/sharing/share/project"/>
+				<securityMappingValue displayFieldId="PROJECT" schemaElementMap="fs:automaticSegmentationData/project"/>
+			</SecureLink>
+			<Property name="HREF" value="@WEBAPPapp/action/DisplayItemAction/search_value/@Field1/search_element/fs:automaticSegmentationData/search_field/fs:automaticSegmentationData.ID">
+				<InsertValue id="Field1" field="EXPT_ID"/>
+			</Property>
+			<Property name="ONCLICK" value="return rpt('@Field1','fs:automaticSegmentationData','fs:automaticSegmentationData.ID');">
+				<InsertValue id="Field1" field="EXPT_ID"/>
+			</Property>
+			<Property name="TITLE" value="Inserted: @Field1 (@Field2)">
+				<InsertValue id="Field1" field="INSERT_DATE"/>
+				<InsertValue id="Field2" field="INSERT_USER"/>
+			</Property>
+		</HTML-Link>
+	</DisplayField>
+	<DisplayField id="PROJECT" header="Project" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="fs:automaticSegmentationData.project"/>
+	</DisplayField>
+	<DisplayField id="FS_AUTOMATICSEGMENTATIONDATA_PROJECT_IDENTIFIER" header="FS_AUTOMATICSEGMENTATIONDATA ID" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
+		<Content type="sql">fs_automaticsegmentationdata_project_id</Content>
+		<HTML-Link>
+			<SecureLink elementName="fs:automaticSegmentationData">
+				<securityMappingValue displayFieldId="PROJECTS" schemaElementMap="fs:automaticSegmentationData/sharing/share/project"/>
+				<securityMappingValue displayFieldId="PROJECT" schemaElementMap="fs:automaticSegmentationData/project"/>
+			</SecureLink>
+			<Property name="HREF" value="@WEBAPPapp/action/DisplayItemAction/search_value/@Field1/search_element/fs:automaticSegmentationData/search_field/fs:automaticSegmentationData.ID/project/@Field2">
+				<InsertValue id="Field1" field="EXPT_ID"/>
+				<InsertValue id="Field2" field="@WHERE"/>
+			</Property>
+		</HTML-Link>
+		<SubQuery>SELECT DISTINCT COALESCE(label,sharing_share_xnat_experimentda_id) AS fs_automaticsegmentationdata_project_id,sharing_share_xnat_experimentda_id FROM (	SELECT sharing_share_xnat_experimentda_id,label FROM xnat_experimentdata_share WHERE project='@WHERE'	UNION 	SELECT id,label FROM xnat_experimentData WHERE project='@WHERE' )SEARCH</SubQuery>
+		<MappingColumns>
+			<MappingColumn schemaField="fs:automaticSegmentationData.ID" queryField="sharing_share_xnat_experimentda_id"/>
+		</MappingColumns>
+	</DisplayField>
+	<DisplayField id="FS_AUTOMATICSEGMENTATIONDATA_FIELD_MAP" header="Field" visible="true" searchable="false" data-type="string" xsi:type="SubQueryField">
+		<Content type="sql">field</Content>
+		<SubQuery>SELECT DISTINCT ON ( e.ID) e.ID AS expt_id,field FROM xnat_experimentData_field ef JOIN (SELECT ID,extension,element_name FROM xnat_experimentData e JOIN xdat_meta_element xme ON e.extension=xme.xdat_meta_element_id WHERE xme.element_name='fs:automaticSegmentationData') e on ef.fields_field_xnat_experimentdat_id=e.id WHERE name='@WHERE'</SubQuery>
+		<MappingColumns>
+			<MappingColumn schemaField="fs:automaticSegmentationData.ID" queryField="expt_id"/>
+		</MappingColumns>
+	</DisplayField>
+	<DisplayField id="INSERT_DATE" header="Inserted" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="fs:automaticSegmentationData.meta.insert_date"/>
+	</DisplayField>
+	<DisplayField id="INSERT_USER" header="Creator" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="fs:automaticSegmentationData.meta.insert_user.login"/>
+	</DisplayField>
+	<DisplayField id="ICV" header="ICV" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="fs:automaticSegmentationData/ICV"/>
+	</DisplayField>
+	<DisplayVersion versionName="listing" default-order-by="DATE" default-sort-order="DESC" brief-description="AutomaticSegmentation" dark-color="9999CC" light-color="CCCCFF">
+		<DisplayFieldRef id="RPT"/>
+		<DisplayFieldRef id="LABEL"/>
+		<DisplayFieldRef id="LABEL"  element_name="xnat:mrSessionData"/>
+		<DisplayFieldRef id="SUBJECT_LABEL" element_name="xnat:subjectData"/>
+		<DisplayFieldRef id="ICV"/>
+	</DisplayVersion>
+	<DisplayVersion versionName="listing_csv" default-order-by="DATE" default-sort-order="DESC" brief-description="AutomaticSegmentation" dark-color="9999CC" light-color="CCCCFF">
+		<DisplayFieldRef id="EXPT_ID"/>
+		<DisplayFieldRef id="LABEL"/>
+		<DisplayFieldRef id="LABEL"  element_name="xnat:mrSessionData"/>
+		<DisplayFieldRef id="SUBJECT_LABEL" element_name="xnat:subjectData"/>
+		<DisplayFieldRef id="ICV"/>
+	</DisplayVersion>
+	<DisplayVersion versionName="full" default-order-by="DATE" default-sort-order="DESC" brief-description="AutomaticSegmentation" dark-color="9999CC" light-color="CCCCFF">
+		<DisplayFieldRef id="EXPT_ID"/>
+		<DisplayFieldRef id="LABEL"/>
+		<DisplayFieldRef id="LABEL"  element_name="xnat:mrSessionData"/>
+		<DisplayFieldRef id="SUBJECT_LABEL" element_name="xnat:subjectData"/>
+		<DisplayFieldRef id="ICV"/>
+	</DisplayVersion>
+	<DisplayVersion versionName="detailed" default-order-by="DATE" default-sort-order="DESC" brief-description="AutomaticSegmentation" dark-color="9999CC" light-color="CCCCFF">
+		<DisplayFieldRef id="ICV"/>
+	</DisplayVersion>
+	<DisplayVersion versionName="project_bundle" default-order-by="DATE" default-sort-order="DESC" brief-description="AutomaticSegmentation" dark-color="9999CC" light-color="CCCCFF">
+		<DisplayFieldRef id="FS_AUTOMATICSEGMENTATIONDATA_PROJECT_IDENTIFIER"/>
+		<DisplayFieldRef id="MR_PROJECT_IDENTIFIER" element_name="xnat:mrSessionData"/>
+		<DisplayFieldRef id="SUB_PROJECT_IDENTIFIER" element_name="xnat:subjectData"/>
+		<DisplayFieldRef id="ICV"/>
+	</DisplayVersion>
+	<ViewLink alias="FS_AUTOMATICSEGMENTATIONDATA_PROJECTS">
+		<Mapping TableName="FS_AUTOMATICSEGMENTATIONDATA_PROJECTS">
+			<MappingColumn rootElement="fs:automaticSegmentationData" fieldElement="fs:automaticSegmentationData.ID" mapsTo="id"/>
+		</Mapping>
+	</ViewLink>
+	<SQLView name="FS_AUTOMATICSEGMENTATIONDATA_PROJECTS" sql="SELECT id, '&lt;' || expt.project || '&gt;' || xs_a_concat(',&lt;' || shared.project || '&gt;') AS projects FROM xnat_experimentData expt LEFT JOIN xnat_experimentData_share shared ON expt.id=shared.sharing_share_xnat_experimentda_id LEFT JOIN xdat_meta_element xme ON expt.extension = xme.xdat_meta_element_id WHERE element_name='fs:automaticSegmentationData' GROUP BY expt.id,expt.project"/>
+</Displays>
