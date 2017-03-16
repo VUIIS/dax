@@ -963,7 +963,7 @@ def generate_settings_REDCap():
 
     return settings_path_list, daxlogsdir_dict, email_dict, settings_info
 
-def run_dax_build(filepath, logdir, debug, email_add, proj_lastrun):
+def run_dax_build(filepath, logdir, debug, email_add, proj_lastrun=None):
     """
     Function to submit dax_build to the cluster and redirect output to the logfile
 
