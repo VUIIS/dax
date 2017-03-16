@@ -961,9 +961,9 @@ def generate_settings_REDCap():
             daxlogsdir_dict[filepath] = setting.dax_logs_path
             email_dict[filepath] = setting.get_admin_email()
 
-    return settings_path_list, daxlogsdir_dict, email_dict
+    return settings_path_list, daxlogsdir_dict, email_dict, settings_info
 
-def run_dax_build(filepath, logdir, debug, email_add):
+def run_dax_build(filepath, logdir, debug, email_add, proj_lastrun):
     """
     Function to submit dax_build to the cluster and redirect output to the logfile
 
@@ -975,7 +975,7 @@ def run_dax_build(filepath, logdir, debug, email_add):
     """
     try:
         logfile = get_logfile_name(logdir, "buildlog", filepath)
-        dax.bin.build(filepath, logfile, debug)
+        dax.bin.build(filepath, logfile, debug, proj_lastrun=proj_lastrun)
     except Exception as _:
         LOGGER.error('Caught exception in worker "dax_build '+filepath+'" : \n'\
                      +traceback.format_exc())
@@ -1063,6 +1063,9 @@ def parse_args():
     argp.add_argument('--logfile', dest='logfile', help='Logs file path if needed.', default=None)
     argp.add_argument('--nodebug', dest='debug', action='store_false',
                       help='Avoid printing DEBUG information.')
+    argp.add_argument('--uselastrun', dest='uselastrun', action='store_true',
+                      help='Use last run to skip sessions.')
+                      
     return argp.parse_args()
 
 if __name__ == '__main__':
@@ -1106,7 +1109,7 @@ if __name__ == '__main__':
 
     #If api_key given, use the redcap db:
     if API_KEY:
-        SETTINGS_PATHS, DAX_LOGS_DIRS_DICT, EMAIL_DICT = generate_settings_REDCap()
+        SETTINGS_PATHS, DAX_LOGS_DIRS_DICT, EMAIL_DICT, SETTINGS_INFO = generate_settings_REDCap()
 
     if PARGS.writeonly or PARGS.status:
         pass
@@ -1119,14 +1122,34 @@ if __name__ == '__main__':
 
         # Workers:
         WORKERS = []
-        #When to run dax_build / dax_update_tasks / dax_launch
-        # dax_build -> 6am / 8pm
-        # dax_update_tasks -> every odd hours (1-3-5...)
-        # dax_launch -> every hour
-        #Submit executables
-        LOGGER.info('dax_build will run at 6am and 8pm...')
-        LOGGER.info('dax_update_tasks will run on odd hours...')
-        LOGGER.info('dax_launcher will run every hour...')
+                    
+        proj_lastrun = {}
+        if PARGS.uselastrun:
+            LOGGER.info('running with uselastrun')
+            # Build a dictionary mapping project to the lastrun start time for each project,
+            # but only if there's also a valid end time, otherwise set to None
+            for pset in SETTINGS_INFO:
+                # TODO: limit the projects to only those we care about at this point
+                proj = pset[REDCAP_VAR['project']]
+                try:
+                    date_format = '%Y-%m-%d %H:%M:%S'
+                    build_start = datetime.strptime(pset[REDCAP_VAR['dax_build_start_date']], date_format)
+                    build_end = datetime.strptime(pset[REDCAP_VAR['dax_build_end_date']], date_format)
+                    proj_lastrun[proj] = build_start
+                    LOGGER.debug(proj+':last run time '+str(build_start))
+                except ValueError:
+                    LOGGER.debug(proj+':could not load build dates for project')
+                    proj_lastrun[proj] = None
+        else:
+            #When to run dax_build / dax_update_tasks / dax_launch
+            # dax_build -> 6am / 8pm
+            # dax_update_tasks -> every odd hours (1-3-5...)
+            # dax_launch -> every hour
+            #Submit executables
+            LOGGER.info('dax_build will run at 6am and 8pm...')
+            LOGGER.info('dax_update_tasks will run on odd hours...')
+            LOGGER.info('dax_launcher will run every hour...')
+            
         LOGGER.info('Submitting dax executables for each settings file...')
         for fpath in SETTINGS_PATHS:
             if fpath in DAX_LOGS_DIRS_DICT.keys():
@@ -1134,15 +1157,24 @@ if __name__ == '__main__':
             if fpath in EMAIL_DICT.keys():
                 elist = EMAIL_DICT[fpath]
 
-            # start processes
-            arguments = (fpath, dax_logs_dir, PARGS.debug, elist)
-            if NOW_HOUR == 6 or NOW_HOUR == 20: #6am-8pm
-                process = submit_exec(run_dax_build, arguments, fpath, 'dax_build')
+            if PARGS.uselastrun:
+                # start processes
+                arguments = (fpath, dax_logs_dir, PARGS.debug, elist)
+                process = submit_exec(run_dax_build, arguments+(proj_lastrun,), fpath, 'dax_build')
                 WORKERS.append(process)
 
-            if NOW_HOUR%2 == 1: # odd hours
                 process = submit_exec(run_dax_update_tasks, arguments, fpath, 'dax_update_tasks')
-                WORKERS.append(process)
+                WORKERS.append(process)    
+            else:
+                # start processes
+                arguments = (fpath, dax_logs_dir, PARGS.debug, elist)
+                if NOW_HOUR == 6 or NOW_HOUR == 20: #6am-8pm
+                    process = submit_exec(run_dax_build, arguments, fpath, 'dax_build')
+                    WORKERS.append(process)
+
+                if NOW_HOUR%2 == 1: # odd hours
+                    process = submit_exec(run_dax_update_tasks, arguments, fpath, 'dax_update_tasks')
+                    WORKERS.append(process)
 
             # Run every time that dax_manager run
             process = submit_exec(run_dax_launch, arguments, fpath, 'dax_launch')

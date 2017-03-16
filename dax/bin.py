@@ -72,7 +72,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
 
 
 def build(settings_path, logfile, debug, projects=None, sessions=None,
-          mod_delta=None):
+          mod_delta=None, proj_lastrun=None):
     """
     Method that is responsible for running all modules and putting assessors
      into the database
@@ -99,7 +99,7 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
     logger.info('running build, Start Time: %s' % str(datetime.now()))
     try:
         settings.myLauncher.build(lockfile_prefix, projects, sessions,
-                                  mod_delta=mod_delta)
+                                  mod_delta=mod_delta, proj_lastrun=proj_lastrun)
     except Exception as e:
         logger.critical('Caught exception building Project in bin.build')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
