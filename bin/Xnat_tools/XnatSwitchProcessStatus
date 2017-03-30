@@ -603,6 +603,11 @@ NEED_TO_RUN and delete previous resources.")
                       help="Rerun the assessor that have the status JOB_FAILED: \
 switching status to NEED_TO_RUN from JOB_FAILED and delete previous \
 resources.")
+    argp.add_argument("--rerundiskq", dest="rerundiskq", action='store_true',
+                      help="Rerun the assessor that have the status JOB_FAILED: \
+switching status to NEED_INPUTS from JOB_FAILED and delete previous \
+resources.")
+
     return argp
 
 
@@ -620,6 +625,10 @@ if __name__ == '__main__':
         elif OPTIONS.restart:
             STATUS = dax.task.NEED_TO_RUN
             FORMERSTATUS = None
+            DELETERESOURCES = True
+        elif OPTIONS.restartdiskq
+            STATUS = dax.task.NEED_INPUTS
+            FORMERSTATUS = NONE
             DELETERESOURCES = True
         else:
             FORMERSTATUS = OPTIONS.formerstatus
