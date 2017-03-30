@@ -309,7 +309,7 @@ Please display the variables available on XNAT by using --printformat.'
             err = 'argument -p/--project is required.'
             raise XnatToolsUserError(__exe__, err)
 
-        if args.csvfile:
+        if args.csv_file:
             folder = os.path.dirname(os.path.abspath(args.csv_file))
             if not os.path.exists(folder):
                 err = 'argument -c/--csvfile set with a folder that does not \
