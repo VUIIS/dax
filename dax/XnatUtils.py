@@ -824,10 +824,16 @@ def list_sessions(intf, projectid=None, subjectid=None):
             sess['last_modified'] = sess.get(last_modified_str, None)
             sess['last_updated'] = sess.get('%s/original' % sess_type, None)
             sess['age'] = sess.get('%s/age' % sess_type, None)
-            sess['handedness'] = subj_id2lab[sess['subject_ID']][0]
-            sess['gender'] = subj_id2lab[sess['subject_ID']][1]
-            sess['yob'] = subj_id2lab[sess['subject_ID']][2]
-            sess['dob'] = subj_id2lab[sess['subject_ID']][3]
+            try:
+                sess['handedness'] = subj_id2lab[sess['subject_ID']][0]
+                sess['gender'] = subj_id2lab[sess['subject_ID']][1]
+                sess['yob'] = subj_id2lab[sess['subject_ID']][2]
+                sess['dob'] = subj_id2lab[sess['subject_ID']][3]
+            except:
+                sess['handedness'] = 'UNK'
+                sess['gender'] = 'UNK'
+                sess['yob'] = 'UNK'
+                sess['dob'] = 'UNK'
 
         # Add sessions of this type to full list
         full_sess_list.extend(sess_list)
