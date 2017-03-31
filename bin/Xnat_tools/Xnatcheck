@@ -1037,6 +1037,9 @@ def run_xnat_check(args):
     if not args.filters:
         err = 'Argument --filters not provided.'
         raise XnatToolsUserError(__exe__, err)
+    elif not args.projects:
+        err = 'Argument -p/--project not provided.'
+        raise XnatToolsUserError(__exe__, err)
     else:
         # Create filters from the string:
         filters, filters_r = create_filters(args.filters,
@@ -1065,11 +1068,11 @@ def add_to_parser(parser):
     :param parser: parser object
     :return: parser object with new arguments
     """
-    parser.add_argument("-p", "--project", dest="projects", required=True,
+    parser.add_argument("-p", "--project", dest="projects", default=None,
                         help="Project(s) ID on XNAT")
     _h = "List of filters separated by a space to apply to the search."
     parser.add_argument("--filters", dest="filters", default=None,
-                        nargs='+', type=str, help=_h, required=True)
+                        nargs='+', type=str, help=_h)
     _h = "Resource filters delimiter. By default: --."
     parser.add_argument("--delimiter", dest="delimiter_filter_resourse",
                         default=None, help=_h)
