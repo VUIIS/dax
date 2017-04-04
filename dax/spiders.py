@@ -1119,8 +1119,13 @@ GeneratorAutoSpider.')
     def copy_input(self, src, input_name):
         """Copy inputs or download from XNAT."""
         if self.is_xnat_uri(src):
+            if src.startswith('xnat://')
+                src = src[len('xnat:/'):]
+            else:
+                src = src[len('xnat:'):]       
+
             self.time_writer(' - copying xnat input: %s' % src)
-            dst = self.copy_xnat_input(src[len('xnat:'):], input_name)
+            dst = self.copy_xnat_input(src, input_name)
         else:
             self.time_writer(' - copying local input: %s' % src)
             dst = self.copy_local_input(src, input_name)
