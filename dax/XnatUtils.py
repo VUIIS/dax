@@ -27,6 +27,7 @@ from dicom.dataset import Dataset, FileDataset
 import dicom
 import dicom.UID
 import fnmatch
+import getpass
 import glob
 import gzip
 from lxml import etree
@@ -184,8 +185,8 @@ class InterfaceTemp(Interface):
             self.user, self.pwd = netrc_obj.get_login(self.host)
         else:
             if not self.pwd:
-                msg = 'Please provide password for host and user <%s>: '
-                self.pwd = raw_input(msg % (self.host, self.user))
+                msg = 'Please provide password for host <%s> and user <%s>: '
+                self.pwd = getpass.getpass(msg % (self.host, self.user))
 
         if not temp_dir:
             temp_dir = tempfile.mkdtemp()
@@ -2264,7 +2265,7 @@ def upload_files(filepaths, project_id=None, subject_id=None, session_id=None,
 
 
 def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False,
-                         removeall=False):
+                         removeall=False, extract=True):
     """
     Upload all of the files in a folder based on the pyxnat EObject passed
 
@@ -2275,6 +2276,7 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False,
      from resource_obj
     :param remove: Remove the file if it exists if True
     :param removeall: Remove all of the files if they exist if True
+    :param extract: extract the files if it's a zip
     :return: True if upload was OK, False otherwise
 
     """
@@ -2300,7 +2302,7 @@ already found on XNAT. No upload. Use remove/removeall." % fpath
     os.system('zip -r %s * > /dev/null' % fzip)
     # upload
     resource_obj.put_zip(os.path.join(directory, fzip), overwrite=True,
-                         extract=True)
+                         extract=extract)
     # return to the initial directory:
     os.chdir(initdir)
     return True
@@ -2308,7 +2310,7 @@ already found on XNAT. No upload. Use remove/removeall." % fpath
 
 def upload_folder(directory, project_id=None, subject_id=None, session_id=None,
                   scan_id=None, assessor_id=None, resource=None, remove=False,
-                  removeall=False):
+                  removeall=False, extract=True):
     """
     Upload a folder to some URI in XNAT based on the inputs
 
@@ -2323,6 +2325,7 @@ def upload_folder(directory, project_id=None, subject_id=None, session_id=None,
                    Otherwise don't upload if exists
     :param removeall: Remove all of the files that exist, and upload what is in
                       the local directory.
+    :param extract: extract the files if it's a zip
     :return: True if upload was OK, False otherwise
 
     """
@@ -2335,7 +2338,7 @@ def upload_folder(directory, project_id=None, subject_id=None, session_id=None,
             resource_obj = select_obj(xnat, project_id, subject_id, session_id,
                                       scan_id, assessor_id, resource)
             status = upload_folder_to_obj(directory, resource_obj, resource,
-                                          remove, removeall)
+                                          remove, removeall, extract)
 
     return status
 
@@ -2442,6 +2445,15 @@ def filter_list_dicts_regex(list_dicts, key, expressions, nor=False,
     flist = list()
     if nor:
         flist = list_dicts
+    if isinstance(expressions, str):
+        expressions = [expressions]
+    elif isinstance(expressions, list):
+        pass
+    else:
+        err = "Wrong type for 'expressions' in filter_list_dicts_regex: %s \
+found, <type 'str'> or <type 'list'> required." % type(expressions)
+        raise XnatUtilsError(err)
+
     for exp in expressions:
         regex = extract_exp(exp, full_regex)
         if nor:
@@ -2741,7 +2753,7 @@ def get_random_sessions(xnat, project_id, num_sessions):
     :return: List of session labels for the project
 
     """
-    sessions = list_experiments(xnat, project_id)
+    sessions = list_sessions(xnat, project_id)
     session_labels = [x['label'] for x in sessions]
     if num_sessions > 0 and num_sessions < 1:
         num_sessions = int(num_sessions * len(session_labels))
@@ -3153,7 +3165,8 @@ class CachedImageAssessor():
             assr_info['walltimeused'] = self.get('proc:walltimeused')
             assr_info['jobnode'] = self.get('proc:jobnode')
         else:
-            print 'WARN:unknown xsiType for assessor: %s' % assr_info['xsiType']
+            msg = 'Warning:unknown xsitype for assessor: %s'
+            print msg % assr_info['xsiType']
 
         return assr_info
 
@@ -4058,7 +4071,7 @@ download_files_from_obj().'
             Outputdir = os.path.join(directory, rlabel)
             if not os.path.exists(Outputdir):
                 os.mkdir(Outputdir)
-            print '   ->Downloading all resources for  as a zip'
+            print '   ->Downloading all resources as a zip'
             Resource.get(Outputdir, extract=False)
             print '   ->Unzipping ...'
             fpath = os.path.join(Outputdir, '%s.zip' % rlabel)

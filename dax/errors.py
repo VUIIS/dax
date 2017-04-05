@@ -7,11 +7,14 @@ Method related to errors and Custom Exceptions.
 """
 
 import netrc
+import sys
+
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ['DaxError', 'DaxXnatError', 'DaxSpiderError', 'DaxSetupError',
            'DaxNetrcError',
            'XnatAuthentificationError', 'XnatUtilsError', 'XnatAccessError',
+           'XnatToolsError', 'XnatToolsUserError',
            'ClusterLaunchException', 'ClusterCountJobsException',
            'ClusterJobIDException',
            'SpiderError', 'AutoSpiderError']
@@ -67,6 +70,20 @@ class XnatUtilsError(DaxXnatError):
     """XnatUtils exception."""
     def __init__(self, message):
         Exception.__init__(self, 'Error in XnatUtils: %s' % message)
+
+
+class XnatToolsError(DaxError):
+    """Xnat Tools Exception."""
+    def __init__(self, message):
+        Exception.__init__(self, 'Error in xnat_tools: %s' % message)
+
+
+class XnatToolsUserError(DaxError):
+    """Xnat Tools Exception."""
+    def __init__(self, script, message):
+        print '\n%s: error: %s' % (script, message)
+        sys.exc_info()[-1]
+        sys.exit(self)
 
 
 class XnatAccessError(DaxXnatError, ValueError):

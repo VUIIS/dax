@@ -901,6 +901,7 @@ class AutoSpider(object):
             # Add an underscore at the beginning if not present
             if self.suffix[0] != '_':
                 self.suffix = '_%s' % self.suffix
+
         # print time writer:
         self.time_writer = TimedWriter(use_date=True)
         # run the finish or not
@@ -1036,6 +1037,7 @@ class AutoSpider(object):
                 raise AutoSpiderError('Template Unknown. Please add #BASH/\
 #PYTHON/#RUBY/#MATLAB at the beginning of the call file and rerun \
 GeneratorAutoSpider.')
+
         self.succeeded = run_cmd(self.exe_lang, filepath,
                                  time_writer=self.time_writer,
                                  matlab_bin=self.matlab_bin)
@@ -1062,13 +1064,22 @@ GeneratorAutoSpider.')
                 _res = _output[2]
                 _path_list = glob.glob(os.path.join(self.jobdir, _output[0]))
 
+                required = True
+                if len(_output) >= 4 and _output[3].lower().startswith('f'):
+                    required = False
+
+                if len(_path_list) == 0 and required:
+                    err = "outputs not found for %s of type <'%s'>: %s"
+                    raise AutoSpiderError(err % (_res, _type, _output[0]))
+
                 if _res == 'PDF':
                     if _type != 'FILE':
-                        print('ERROR:illegal type for PDF: %s' % _type)
+                        raise AutoSpider('ERROR: illegal type for PDF: %s'
+                                         % _type)
                     elif len(_path_list) > 1:
-                        print('ERROR:multiple PDFs found')
+                        raise AutoSpider('ERROR: multiple PDFs found')
                     elif len(_path_list) == 0:
-                        print('ERROR: no PDF found')
+                        raise AutoSpider('ERROR: no PDF found')
                     else:
                         self.spider_handler.add_pdf(_path_list[0])
                 elif _type == 'FILE':
@@ -1078,7 +1089,7 @@ GeneratorAutoSpider.')
                     for _path in _path_list:
                         self.spider_handler.add_folder(_path, _res)
                 else:
-                    print('ERROR:unknown type: %s' % _type)
+                    raise AutoSpider('ERROR: unknown type: %s' % _type)
         else:
             # Output not specified so upload everything in the job dir
             for _output in os.listdir(self.jobdir):
@@ -1108,8 +1119,13 @@ GeneratorAutoSpider.')
     def copy_input(self, src, input_name):
         """Copy inputs or download from XNAT."""
         if self.is_xnat_uri(src):
+            if src.startswith('xnat://'):
+                src = src[len('xnat:/'):]
+            else:
+                src = src[len('xnat:'):]       
+
             self.time_writer(' - copying xnat input: %s' % src)
-            dst = self.copy_xnat_input(src[len('xnat:/'):], input_name)
+            dst = self.copy_xnat_input(src, input_name)
         else:
             self.time_writer(' - copying local input: %s' % src)
             dst = self.copy_local_input(src, input_name)
@@ -1133,14 +1149,21 @@ GeneratorAutoSpider.')
             else:
                 return None
 
-        elif '/resources/' in src:
+        elif '/file/' in src:
+            err = 'invalid xnat path: %s. "file" found instead of "files".'
+            raise AutoSpiderError(err % src)
+
+        elif '/resources/' in src or '/resource/' in src:
             # Handle resource
             self.time_writer(' - downloading from XNAT: %s to %s'
                              % (src, dst_dir))
             result = self.download_xnat_resource(src, dst_dir)
             return result
+
         else:
-            raise AutoSpiderError('invalid xnat path: %s' % src)
+            err = 'invalid xnat path: %s. Missing "/resource(s)/" or \
+"/files/" in path.'
+            raise AutoSpiderError(err % src)
 
     def copy_local_input(self, src, input_name):
         """Copy local inputs."""
@@ -1160,31 +1183,55 @@ GeneratorAutoSpider.')
 
     def download_xnat_file(self, src, dst):
         """Download XNAT specific file."""
-        result = None
+        results = None
         with XnatUtils.get_interface(host=self.host, user=self.user,
                                      pwd=self.pwd) as xnat:
             try:
                 _res, _file = src.split('/files/')
                 res = xnat.select(_res)
-                result = res.file(_file).get(dst)
+                if not res.exists():
+                    msg = 'resources specified by %s not found on XNAT.'
+                    raise AutoSpiderError(msg % src)
             except:
-                raise AutoSpiderError('downloading from XNAT.')
+                msg = 'resources can not be checked because the path given is \
+wrong for XNAT. Please check https://wiki.xnat.org/display/XNAT16/\
+XNAT+REST+API+Directory for the path.'
+                raise AutoSpiderError(msg % src)
+            try:
+                results = res.file(_file).get(dst)
+            except:
+                raise AutoSpiderError('downloading files from XNAT failed.')
 
-        return result
+        return results
 
     def download_xnat_resource(self, src, dst):
         """Download XNAT complete resource."""
-        result = None
+        results = None
         with XnatUtils.get_interface(host=self.host, user=self.user,
                                      pwd=self.pwd) as xnat:
             try:
                 res = xnat.select(src)
-                res.get(dst, extract=True)
-                result = dst
+                if not res.exists():
+                    msg = 'resources specified by %s not found on XNAT.'
+                    raise AutoSpiderError(msg % src)
             except:
-                raise AutoSpiderError('downloading from XNAT.')
+                msg = 'resources can not be checked because the path given is \
+wrong for XNAT: %s. Please check https://wiki.xnat.org/display/XNAT16/\
+XNAT+REST+API+Directory for the path.'
+                raise AutoSpiderError(msg % src)
 
-        return result
+            try:
+                # res.get(dst, extract=True)
+                results = XnatUtils.download_files_from_obj(dst, res)
+                if len(results) == 1:
+                    return results[0]
+                else:
+                    return results
+            except Exception as err:
+                print err
+                raise AutoSpiderError('downloading resource from XNAT failed.')
+
+        return results
 
     def is_xnat_uri(self, uri):
         """Check if uri is xnat or local."""
