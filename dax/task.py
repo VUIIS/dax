@@ -377,8 +377,9 @@ class Task(object):
         # Run undo
         self.undo_processing()
 
-        # TODO:
-        # delete the local copies
+        # Delete the local copies
+        os.remove(local_zip)
+        shutil.rmtree(local_dir)
 
     def update_status(self):
         """
