@@ -2588,7 +2588,7 @@ def makedir(directory, prefix='TempDir', subdir=True):
     :return: Full path of the directory created.
     """
     if not os.path.exists(directory):
-        os.mkdir(directory)
+        os.makedirs(directory)
     else:
         if subdir:
             today = datetime.now()
@@ -2596,7 +2596,7 @@ def makedir(directory, prefix='TempDir', subdir=True):
                                   str(today.day))
             directory = os.path.join(directory, '%s_%s' % (prefix, ftime))
             if not os.path.exists(directory):
-                os.mkdir(directory)
+                os.makedirs(directory)
             else:
                 clean_directory(directory)
     return directory
