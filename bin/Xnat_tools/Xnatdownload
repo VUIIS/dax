@@ -558,7 +558,6 @@ previous download.'
             else:
                 res_path = get_path(directory, obj_dict, label, one_dir)
                 _row = get_row(obj_dict, label, res_path)
-                print(res_path)
                 if not should_download_resource(self.xnat, res_obj, res_path,
                                                 self.last_download):
                     msg = 'Skipping resource. Up-to-date.'
