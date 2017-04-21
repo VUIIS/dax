@@ -558,6 +558,7 @@ previous download.'
             else:
                 res_path = get_path(directory, obj_dict, label, one_dir)
                 _row = get_row(obj_dict, label, res_path)
+                print(res_path)
                 if not should_download_resource(self.xnat, res_obj, res_path,
                                                 self.last_download):
                     msg = 'Skipping resource. Up-to-date.'
@@ -670,10 +671,10 @@ def get_path(directory, obj_dict, res_label, one_dir=False):
         if utils.is_assessor_type(obj_dict):
             label = obj_dict['label']
         else:
-            label = '-x-'.join(obj_dict['project_id'],
-                               obj_dict['subject_label'],
-                               obj_dict['session_label'],
-                               obj_dict['ID'])
+            label = '-x-'.join([obj_dict['project_id'],
+                                obj_dict['subject_label'],
+                                obj_dict['session_label'],
+                                obj_dict['ID']])
 
             label = add_scan_info_to_label(obj_dict, label)
         obj_path = os.path.join(directory, label, res_label)
