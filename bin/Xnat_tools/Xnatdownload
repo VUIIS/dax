@@ -15,10 +15,12 @@ WARNING: very important,--update OPTIONS isn't working completely.
 '''
 
 import csv
+import glob
 from datetime import datetime
 import logging
 import os
 import time
+import shutil
 import sys
 
 from dax import XnatUtils
@@ -140,18 +142,17 @@ download_report.csv if you want to start from scratch."""
                 csv_writer.writerow(_row)
                 csv_writer.writerow(utils.CSV_HEADER)
 
-    def write_obj(self, row):
+    def write_obj(self, rows):
         """
         Write one line of the report after downloading resource.
 
-        :param obj_dict: dictionary with information on the obj
-        :param res_label: label for resource
-        :param res_path: resource path
+        :param rows: list of rows to write in the report file
         """
-        if ','.join(row) not in open(self.report_file).read():
-            with open(self.report_file, 'a') as f_writer:
-                csv_writer = csv.writer(f_writer, delimiter=',')
-                csv_writer.writerow(row)
+        with open(self.report_file, 'a') as f_writer:
+            for row in rows:
+                if ','.join(row) not in open(self.report_file).read():
+                    csv_writer = csv.writer(f_writer, delimiter=',')
+                    csv_writer.writerow(row)
 
     def get_xnat_data(self, args):
         """
@@ -489,7 +490,7 @@ scratch.'
                     err = 'Object not found on XNAT: %s'
                     raise XnatToolsUserError(__exe__, err % obj)
                 else:
-                    __logger__.info(utils.get_obj_info(ind+1, _nb_objs, obj))
+                    __logger__.info(utils.get_obj_info(ind + 1, _nb_objs, obj))
                     resources = self.get_resources(obj)
                     for res in resources:
                         if utils.is_assessor_type(obj):
@@ -544,7 +545,9 @@ previous download.'
         Method to download a resource from XNAT.
 
         :param directory: directory path to store the data
+        :param res_obj: resource eObject from pyxnat
         :param obj_dict: object information
+        :param label: resource label
         :param otype: object type (scan or assessor)
         """
         _format = '   > Resource "%s": %s '
@@ -557,11 +560,13 @@ previous download.'
                 __logger__.info(_format % (label, msg))
             else:
                 res_path = get_path(directory, obj_dict, label, one_dir)
-                _row = get_row(obj_dict, label, res_path)
                 if not should_download_resource(self.xnat, res_obj, res_path,
-                                                self.last_download):
+                                                self.last_download, one_dir):
+                    if one_dir:
+                        res_path = glob.glob('{0}*'.format(res_path))[0]
                     msg = 'Skipping resource. Up-to-date.'
                     __logger__.info(_format % (label, msg))
+                    _row = get_row(obj_dict, label, res_path)
                     self.write_obj(_row)
                 else:
                     if not os.path.exists(res_path):
@@ -573,16 +578,59 @@ previous download.'
                     else:
                         msg = 'Downloading all files.'
                         __logger__.info(_format % (label, msg))
+                        if one_dir:
+                            res_path = move_files(directory, obj_dict,
+                                                  label)
+                        _row = get_row(obj_dict, label, res_path)
                         self.write_obj(_row)
 
 
-def get_row(obj_dict, res_label, res_path):
+def move_files(directory, obj_dict, res_label):
+    """
+    Function to move the files if one_dir selected.
+
+    :param directory: directory where the data should be
+    :param files: list of files downloaded from XNAT
+    :param obj_dict: object information from XNAT
+    :param res_label: resource label
+    :return fpath: folder containing the data or filepath if one file
+    """
+    if utils.is_assessor_type(obj_dict):
+        label = obj_dict['label']
+    else:
+        label = '-x-'.join([obj_dict['project_id'],
+                            obj_dict['subject_label'],
+                            obj_dict['session_label'],
+                            obj_dict['ID']])
+
+    ppath = os.path.join(directory, '{0}-{1}'.format(label, res_label))
+    new_fpaths = list()
+    for name in os.listdir(os.path.join(ppath, res_label)):
+        fpath = os.path.join(ppath, res_label, name)
+        sep = '-'
+        # If the label in the name, remove it:
+        if label in name:
+            name = name.split(label)[-1]
+            # If it removed all the name, just add a letter
+            if name[0] == '.':
+                sep = ''
+        new_fpath = '{0}{1}{2}'.format(ppath, sep, name)
+        # Move the folder with the prefix
+        shutil.move(fpath, new_fpath)
+        new_fpaths.append(new_fpath)
+
+    shutil.rmtree(ppath)
+    return new_fpaths
+
+
+def get_row(obj_dict, res_label, res_paths):
     """
     Function to return row to print in report.
 
     :param obj_dict: dictionary with information on the obj
-        :param res_label: label for resource
-        :param res_path: resource path
+    :param res_label: label for resource
+    :param res_paths: resource path
+    :return: list of rows to write
     """
     _otype = 'assessor' if utils.is_assessor_type(obj_dict) else 'scan'
     _sess_type = obj_dict.get('session_type', '')
@@ -597,14 +645,21 @@ def get_row(obj_dict, res_label, res_path):
         _desc = obj_dict.get('series_description', '')
         _quality = obj_dict.get('quality', '')
 
-    _row = [_otype, obj_dict['project_id'], obj_dict['subject_label'],
-            _sess_type, obj_dict['session_label'], _label, _type, _desc,
-            _quality, res_label, res_path]
+    if isinstance(res_paths, str):
+        res_paths = [res_paths]
 
-    return _row
+    _rows = list()
+    for res_path in res_paths:
+        _row = [_otype, obj_dict['project_id'], obj_dict['subject_label'],
+                _sess_type, obj_dict['session_label'], _label, _type, _desc,
+                _quality, res_label, res_path]
+        _rows.append(_row)
+
+    return _rows
 
 
-def should_download_resource(xnat, res_obj, res_path, last_dl_date=None):
+def should_download_resource(xnat, res_obj, res_path, last_dl_date=None,
+                             one_dir=False):
     """
     Function to check if we need to download the resource.
     download if:
@@ -616,13 +671,28 @@ def should_download_resource(xnat, res_obj, res_path, last_dl_date=None):
     :param res_obj: resource pyxnat object
     :param res_path: resource path
     :param last_dl_date: last download date
+    :param one_dir: one directory
     :return: boolean, true to allow download, false otherwise
     """
-    return (not os.path.exists(res_path) or
-            not os.listdir(res_path) or
-            (last_dl_date and
-             int(get_file_timestamp(res_path)) <
-             int(XnatUtils.get_resource_lastdate_modified(xnat, res_obj))))
+    # In case we use one directory, getting the path for the file.
+    if one_dir:
+        # Search for files with the appropriate name
+        fpaths = glob.glob('{0}*'.format(res_path))
+        if not fpaths:
+            return True
+        else:
+            return should_download_resource(xnat, res_obj, fpaths[0],
+                                            last_dl_date=last_dl_date)
+    else:
+        if not os.path.exists(res_path):
+            return True
+        elif os.path.isdir(res_path) and not os.listdir(res_path):
+            return True
+        elif (last_dl_date is not None and
+              int(get_file_timestamp(res_path)) <
+              int(XnatUtils.get_resource_lastdate_modified(xnat, res_obj))):
+            return True
+        return False
 
 
 def get_file_timestamp(filepath):
@@ -670,13 +740,13 @@ def get_path(directory, obj_dict, res_label, one_dir=False):
         if utils.is_assessor_type(obj_dict):
             label = obj_dict['label']
         else:
-            label = '-x-'.join(obj_dict['project_id'],
-                               obj_dict['subject_label'],
-                               obj_dict['session_label'],
-                               obj_dict['ID'])
+            label = '-x-'.join([obj_dict['project_id'],
+                                obj_dict['subject_label'],
+                                obj_dict['session_label'],
+                                obj_dict['ID']])
 
-            label = add_scan_info_to_label(obj_dict, label)
-        obj_path = os.path.join(directory, label, res_label)
+        obj_path = os.path.join(directory,
+                                '{0}-{1}'.format(label, res_label))
     else:
         if utils.is_assessor_type(obj_dict):
             label = obj_dict['label']
