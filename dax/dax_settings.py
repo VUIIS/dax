@@ -99,7 +99,7 @@ write access.'
         netrc_info = self.netrc_obj.authenticators(host)
         if not netrc_info:
             raise DaxNetrcError('Host <%s> not found in %s file. \
-Please run dax_setup or XnatCheckLogin to add host.' % (self.netrc_file, host))
+Please run dax_setup or XnatCheckLogin to add host.' % (host, self.netrc_file))
         return netrc_info[0], netrc_info[2]
 
 
