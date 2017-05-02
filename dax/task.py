@@ -130,7 +130,8 @@ class Task(object):
         if not assessor.exists():
             if self.atype == DEFAULT_FS_DATATYPE.lower():
                 kwargs = {'%s/fsversion' % DEFAULT_FS_DATATYPE.lower(): '0'}
-                assessor.create(assessors=DEFAULT_FS_DATATYPE.lower(), **kwargs)
+                assessor.create(assessors=DEFAULT_FS_DATATYPE.lower(),
+                                **kwargs)
             else:
                 assessor.create(assessors=self.atype)
 
@@ -188,11 +189,11 @@ class Task(object):
         """
         atype = self.atype
         mgets = self.assessor.attrs.mget([
-                         '%s/memused' % atype,
-                         '%s/walltimeused' % atype,
-                         '%s/jobid' % atype,
-                         '%s/jobnode' % atype,
-                         '%s/jobstartdate' % atype
+            '%s/memused' % atype,
+            '%s/walltimeused' % atype,
+            '%s/jobid' % atype,
+            '%s/jobnode' % atype,
+            '%s/jobstartdate' % atype
         ])
         return [mgets[0].strip(),
                 mgets[1].strip(),

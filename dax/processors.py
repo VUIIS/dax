@@ -186,7 +186,7 @@ class ScanProcessor(Processor):
         """
         raise NotImplementedError()
 
-    def get_assessor_name(self, cscan):
+    def get_assessor(self, cscan):
         """
         Returns the label of the assessor
 
@@ -199,8 +199,31 @@ class ScanProcessor(Processor):
         sess_label = scan_dict['session_label']
         proj_label = scan_dict['project_label']
         scan_label = scan_dict['scan_label']
-        return '-x-'.join([proj_label, subj_label, sess_label, scan_label,
-                           self.name])
+        assr_name = '-x-'.join([proj_label, subj_label, sess_label, scan_label,
+                                self.name])
+
+        # Check if shared project:
+        csess = cscan.parent()
+        proj_shared = csess.has_shared_project()
+        assr_name_shared = None
+        if proj_shared:
+            assr_name_shared = '-x-'.join([proj_shared, subj_label, sess_label,
+                                           scan_label, self.name])
+
+        # Look for existing assessor
+        p_assr = None
+        assr_label = assr_name
+        for assr in csess.assessors():
+            if assr.info()['label'] == assr_name:
+                p_assr = assr
+                break
+            if assr_name_shared is not None and \
+               assr.info()['label'] == assr_name_shared:
+                p_assr = assr
+                assr_label = assr_name_shared
+                break
+
+        return p_assr, assr_label
 
     def get_task(self, intf, cscan, upload_dir):
         """
@@ -213,10 +236,7 @@ class ScanProcessor(Processor):
         :return: Task object
 
         """
-        scan_dict = cscan.info()
-        assessor_name = self.get_assessor_name(cscan)
-        scan = XnatUtils.get_full_object(intf, scan_dict)
-        assessor = scan.parent().assessor(assessor_name)
+        assessor, _ = self.get_assessor(cscan)
         return task.Task(self, assessor, upload_dir)
 
     def should_run(self, scan_dict):
@@ -278,7 +298,7 @@ class SessionProcessor(Processor):
         """
         return True
 
-    def get_assessor_name(self, csess):
+    def get_assessor(self, csess):
         """
         Get the name of the assessor
 
@@ -290,7 +310,29 @@ class SessionProcessor(Processor):
         proj_label = session_dict['project']
         subj_label = session_dict['subject_label']
         sess_label = session_dict['label']
-        return '-x-'.join([proj_label, subj_label, sess_label, self.name])
+        assr_name = '-x-'.join([proj_label, subj_label, sess_label, self.name])
+
+        # Check if shared project:
+        proj_shared = csess.has_shared_project()
+        assr_name_shared = None
+        if proj_shared:
+            assr_name_shared = '-x-'.join([proj_shared, subj_label, sess_label,
+                                           self.name])
+
+        # Look for existing assessor
+        p_assr = None
+        assr_label = assr_name
+        for assr in csess.assessors():
+            if assr.info()['label'] == assr_name:
+                p_assr = assr
+                break
+            if assr_name_shared is not None and \
+               assr.info()['label'] == assr_name_shared:
+                p_assr = assr
+                assr_label = assr_name_shared
+                break
+
+        return p_assr, assr_label
 
     def get_task(self, intf, csess, upload_dir):
         """
@@ -302,10 +344,7 @@ class SessionProcessor(Processor):
         :return: Task object of the assessor
 
         """
-        sess_info = csess.info()
-        assessor_name = self.get_assessor_name(csess)
-        session = XnatUtils.get_full_object(intf, sess_info)
-        assessor = session.assessor(assessor_name)
+        assessor, _ = self.get_assessor(csess)
         return task.Task(self, assessor, upload_dir)
 
 
