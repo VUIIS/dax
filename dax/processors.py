@@ -236,7 +236,10 @@ class ScanProcessor(Processor):
         :return: Task object
 
         """
-        assessor, _ = self.get_assessor(cscan)
+        scan_dict = cscan.info()
+        _, assessor_name = self.get_assessor(cscan)
+        scan = XnatUtils.get_full_object(intf, scan_dict)
+        assessor = scan.parent().assessor(assessor_name)
         return task.Task(self, assessor, upload_dir)
 
     def should_run(self, scan_dict):
@@ -344,7 +347,10 @@ class SessionProcessor(Processor):
         :return: Task object of the assessor
 
         """
-        assessor, _ = self.get_assessor(csess)
+        sess_info = csess.info()
+        _, assessor_name = self.get_assessor(csess)
+        session = XnatUtils.get_full_object(intf, sess_info)
+        assessor = session.assessor(assessor_name)
         return task.Task(self, assessor, upload_dir)
 
 
