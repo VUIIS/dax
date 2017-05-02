@@ -344,18 +344,18 @@ def set_proc_status(assessor_obj, status, username='NULL',
     :param xsitype: datatype to change status
     :return: None
     """
-    assessor_obj.attrs.set(xsitype+'/procstatus', status)
+    assessor_obj.attrs.set(xsitype + '/procstatus', status)
     if status == task.NEED_INPUTS or status == task.NEED_TO_RUN:
-        assessor_obj.attrs.mset({xsitype+'/validation/status': 'Job Pending',
-                                 xsitype+'/jobid': 'NULL',
-                                 xsitype+'/memused': 'NULL',
-                                 xsitype+'/walltimeused': 'NULL',
-                                 xsitype+'/jobnode': 'NULL',
-                                 xsitype+'/jobstartdate': 'NULL',
-                                 xsitype+'/validation/validated_by': 'NULL',
-                                 xsitype+'/validation/date': 'NULL',
-                                 xsitype+'/validation/notes': 'NULL',
-                                 xsitype+'/validation/method': 'NULL'})
+        assessor_obj.attrs.mset({xsitype + '/validation/status': 'Job Pending',
+                                 xsitype + '/jobid': 'NULL',
+                                 xsitype + '/memused': 'NULL',
+                                 xsitype + '/walltimeused': 'NULL',
+                                 xsitype + '/jobnode': 'NULL',
+                                 xsitype + '/jobstartdate': 'NULL',
+                                 xsitype + '/validation/validated_by': 'NULL',
+                                 xsitype + '/validation/date': 'NULL',
+                                 xsitype + '/validation/notes': 'NULL',
+                                 xsitype + '/validation/method': 'NULL'})
     sys.stdout.write('   - Job Status on Assessor %s changed to %s\n'
                      % (assessor_obj.label(), status))
     if status == task.COMPLETE:
@@ -602,14 +602,14 @@ the assessors from -t you changed are inputs to those assessors."
                         action="store_true", help=_h)
     parser.add_argument("--fullRegex", dest="full_regex", action='store_true',
                         help="Use full regex for filtering data.")
-    _h = "Restart the assessors which mean switching status to NEED_TO_RUN \
-and delete previous resources."
+    _h = "Restart the assessors by switching the status for all assessors \
+found to NEED_TO_RUN and delete previous resources."
     parser.add_argument("--restart", dest="restart", action='store_true',
                         help=_h)
-    _h = "Rerun the assessors meaning switching sttus to NEED_TO_RUN for \
+    _h = "Rerun the assessors by switching status to NEED_TO_RUN for \
 assessors that failed and delete previous resources."
     parser.add_argument("--rerun", dest="rerun", action='store_true', help=_h)
-    _h = "Init the assessors meaning switching status to NEED_INPUTS for \
+    _h = "Init the assessors by switching status to NEED_INPUTS for \
 assessors that have been set to NO_DATA."
     parser.add_argument("--init", dest="init", action='store_true', help=_h)
     return parser
