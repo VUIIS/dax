@@ -206,7 +206,7 @@ class ScanProcessor(Processor):
         csess = cscan.parent()
         proj_shared = csess.has_shared_project()
         assr_name_shared = None
-        if proj_shared:
+        if proj_shared is not None:
             assr_name_shared = '-x-'.join([proj_shared, subj_label, sess_label,
                                            scan_label, self.name])
 
@@ -318,7 +318,7 @@ class SessionProcessor(Processor):
         # Check if shared project:
         proj_shared = csess.has_shared_project()
         assr_name_shared = None
-        if proj_shared:
+        if proj_shared is not None:
             assr_name_shared = '-x-'.join([proj_shared, subj_label, sess_label,
                                            self.name])
 
