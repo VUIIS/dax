@@ -214,13 +214,13 @@ class ScanProcessor(Processor):
         p_assr = None
         assr_label = assr_name
         for assr in csess.assessors():
-            if assr.info()['label'] == assr_name:
-                p_assr = assr
-                break
             if assr_name_shared is not None and \
                assr.info()['label'] == assr_name_shared:
                 p_assr = assr
                 assr_label = assr_name_shared
+                break
+            if assr.info()['label'] == assr_name:
+                p_assr = assr
                 break
 
         return p_assr, assr_label
@@ -326,13 +326,13 @@ class SessionProcessor(Processor):
         p_assr = None
         assr_label = assr_name
         for assr in csess.assessors():
-            if assr.info()['label'] == assr_name:
-                p_assr = assr
-                break
             if assr_name_shared is not None and \
                assr.info()['label'] == assr_name_shared:
                 p_assr = assr
                 assr_label = assr_name_shared
+                break
+            if assr.info()['label'] == assr_name:
+                p_assr = assr
                 break
 
         return p_assr, assr_label
