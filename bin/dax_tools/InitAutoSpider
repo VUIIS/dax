@@ -189,7 +189,7 @@ def generate_inputs():
         inputs_lines = list()
         print INPUTS_INFO
         nb_inputs = ask_number_inout_puts()
-        for index in range(1, nb_inputs+1):
+        for index in range(1, nb_inputs + 1):
             print '\n -- setting input %s --' % index
             var_name = get_user_variable('What is the variable name?', index,
                                          not_null=True)
@@ -214,7 +214,7 @@ def generate_outputs():
         outputs_lines = list()
         print OUTPUTS_INFO
         nb_outputs = ask_number_inout_puts(is_out=True)
-        for index in range(1, nb_outputs+1):
+        for index in range(1, nb_outputs + 1):
             print '\n -- setting output %s --' % index
             res_path = get_user_variable(
                 'What is the output path in the jobdir?', index, not_null=True)
@@ -222,7 +222,11 @@ def generate_outputs():
             res_type = get_user_variable(mg, index, for_type=True)
             res_name = get_user_variable('What is the resource name?', index,
                                          not_null=True)
-            outputs_lines.append('%s,%s,%s' % (res_path, res_type, res_name))
+            required = prompt_user_yes_no('Is this output required?')
+            template = '{0},{1},{2}'
+            if not required:
+                template = '{0},{1},{2},f'
+            outputs_lines.append(template.format(res_path, res_type, res_name))
 
         with open(os.path.join(spider_path, OUTPUTS_FNAME), 'a') as f_out:
             f_out.writelines('\n'.join(outputs_lines))
@@ -264,7 +268,8 @@ Must be X.Y.Z. See http://semver.org."
 
     # Generate file
     code_fname = get_code_fname(ARGS.exe)
-    spider_file = 'Spider_'+ARGS.name+'_v'+ARGS.version.replace('.', '_')+'.py'
+    spider_file = 'Spider_{0}_v{1}.py'.format(ARGS.name,
+                                              ARGS.version.replace('.', '_'))
     generate_str = GENERATE_TEMPLATE.format(
         name=ARGS.name,
         version=ARGS.version,
