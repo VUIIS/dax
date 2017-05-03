@@ -2832,6 +2832,17 @@ class CachedImageSession():
 
         return ''
 
+    def has_shared_project(self):
+        """
+        Get the project if shared.
+
+        :return: project_shared_id if shared, None otherwise
+        """
+        project_id = self.sess_element.get('project')
+        if project_id != self.project:
+            return project_id
+        return None
+
     def scans(self):
         """
         Get a list of CachedImageScan objects for the XNAT session

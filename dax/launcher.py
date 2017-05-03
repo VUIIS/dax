@@ -598,14 +598,7 @@ cluster queue"
             if not sess_proc.should_run(sess_info):
                 continue
 
-            assr_name = sess_proc.get_assessor_name(csess)
-
-            # Look for existing assessor
-            p_assr = None
-            for assr in csess.assessors():
-                if assr.info()['label'] == assr_name:
-                    p_assr = assr
-                    break
+            p_assr, assr_name = sess_proc.get_assessor(csess)
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
                 if p_assr is None or \
@@ -701,13 +694,7 @@ setting assessor status'
             if not scan_proc.should_run(scan_info):
                 continue
 
-            assr_name = scan_proc.get_assessor_name(cscan)
-
-            # Look for existing assessor
-            p_assr = None
-            for assr in cscan.parent().assessors():
-                if assr.info()['label'] == assr_name:
-                    p_assr = assr
+            p_assr, assr_name = scan_proc.get_assessor(cscan)
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
                 if p_assr is None or \
