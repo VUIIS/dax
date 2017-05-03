@@ -186,7 +186,7 @@ class ScanProcessor(Processor):
         """
         raise NotImplementedError()
 
-    def get_assessor(self, cscan):
+    def get_assessor_name(self, cscan):
         """
         Returns the label of the assessor
 
@@ -211,19 +211,36 @@ class ScanProcessor(Processor):
                                            scan_label, self.name])
 
         # Look for existing assessor
-        p_assr = None
         assr_label = assr_name
         for assr in csess.assessors():
             if assr_name_shared is not None and \
                assr.info()['label'] == assr_name_shared:
-                p_assr = assr
                 assr_label = assr_name_shared
                 break
             if assr.info()['label'] == assr_name:
+                break
+
+        return assr_label
+
+    def get_assessor(self, cscan):
+        """
+        Returns the assessor object depending on cscan and the assessor label.
+
+        :param cscan: CachedImageScan object from XnatUtils
+        :return: String of the assessor label
+
+        """
+        assessor_name = self.get_assessor_name(cscan)
+
+        # Look for existing assessor
+        csess = cscan.parent()
+        p_assr = None
+        for assr in csess.assessors():
+            if assr.info()['label'] == assessor_name:
                 p_assr = assr
                 break
 
-        return p_assr, assr_label
+        return p_assr, assessor_name
 
     def get_task(self, intf, cscan, upload_dir):
         """
@@ -237,7 +254,7 @@ class ScanProcessor(Processor):
 
         """
         scan_dict = cscan.info()
-        _, assessor_name = self.get_assessor(cscan)
+        assessor_name = self.get_assessor_name(cscan)
         scan = XnatUtils.get_full_object(intf, scan_dict)
         assessor = scan.parent().assessor(assessor_name)
         return task.Task(self, assessor, upload_dir)
@@ -301,11 +318,11 @@ class SessionProcessor(Processor):
         """
         return True
 
-    def get_assessor(self, csess):
+    def get_assessor_name(self, csess):
         """
-        Get the name of the assessor
+        Returns the label of the assessor
 
-        :param csess: CachedImageSession from XnatUtils
+        :param csess: CachedImageSession object from XnatUtils
         :return: String of the assessor label
 
         """
@@ -323,19 +340,35 @@ class SessionProcessor(Processor):
                                            self.name])
 
         # Look for existing assessor
-        p_assr = None
         assr_label = assr_name
         for assr in csess.assessors():
             if assr_name_shared is not None and \
                assr.info()['label'] == assr_name_shared:
-                p_assr = assr
                 assr_label = assr_name_shared
                 break
             if assr.info()['label'] == assr_name:
+                break
+
+        return assr_label
+
+    def get_assessor(self, csess):
+        """
+        Returns the assessor object depending on csess and the assessor label.
+
+        :param csess: CachedImageSession object from XnatUtils
+        :return: String of the assessor label
+
+        """
+        assessor_name = self.get_assessor_name(csess)
+
+        # Look for existing assessor
+        p_assr = None
+        for assr in csess.assessors():
+            if assr.info()['label'] == assessor_name:
                 p_assr = assr
                 break
 
-        return p_assr, assr_label
+        return p_assr, assessor_name
 
     def get_task(self, intf, csess, upload_dir):
         """
@@ -348,7 +381,7 @@ class SessionProcessor(Processor):
 
         """
         sess_info = csess.info()
-        _, assessor_name = self.get_assessor(csess)
+        assessor_name = self.get_assessor_name(csess)
         session = XnatUtils.get_full_object(intf, sess_info)
         assessor = session.assessor(assessor_name)
         return task.Task(self, assessor, upload_dir)
