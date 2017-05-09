@@ -348,7 +348,8 @@ class SpiderProcessHandler:
     """Class to handle the uploading of results for a spider."""
     def __init__(self, script_name, suffix, project=None, subject=None,
                  experiment=None, scan=None, alabel=None,
-                 assessor_handler=None, time_writer=None):
+                 assessor_handler=None, time_writer=None,
+                 host=os.environ.get('XNAT_HOST', None)):
         """
         Entry point to the SpiderProcessHandler Class.
         You can generate a SpiderProcessHandler by giving:
@@ -377,30 +378,8 @@ class SpiderProcessHandler:
         self.error = 0
         self.has_pdf = 0
         self.time_writer = time_writer
-        # Get the process name and the version
-        if len(script_name.split('/')) > 1:
-            script_name = os.path.basename(script_name)
-        if script_name.endswith('.py'):
-            script_name = script_name[:-3]
-        if 'Spider' in script_name:
-            script_name = script_name[7:]
-
-        # get the processname from spider
-        if len(re.split('/*_v[0-9]/*', script_name)) > 1:
-            self.version = script_name.split('_v')[-1].replace('_', '.')
-            ptype = re.split('/*_v[0-9]/*', script_name)[0]
-            proctype = '%s_v%s' % (ptype, self.version.split('.')[0])
-        else:
-            self.version = '1.0.0'
-            proctype = script_name
-
-        if suffix:
-            if suffix[0] != '_':
-                suffix = '_%s' % suffix
-            suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
-            if suffix[-1] == '_':
-                suffix = suffix[:-1]
-            proctype = proctype + suffix
+        self.host = host
+        proctype, self.version = get_proctype(script_name, suffix=None)
 
         # Create the assessor handler
         if assessor_handler:
@@ -606,7 +585,7 @@ Wrong label.'
         """
         # Connection to Xnat
         try:
-            with get_interface() as xnat:
+            with get_interface(host=self.host) as xnat:
                 assessor = self.assr_handler.select_assessor(xnat)
                 dtype = DEFAULT_DATATYPE
                 if self.assr_handler.get_proctype() == 'FS':
@@ -662,6 +641,38 @@ Wrong label.'
         if self.has_pdf and not self.error:
             # Remove the data
             shutil.rmtree(directory)
+
+
+def get_proctype(spider, suffix=None):
+    """ Return the proctype from the spider_path
+
+    :param spider: path to the spider
+    :return: proctype, version
+    """
+    # Get the process name and the version
+    if len(spider.split('/')) > 1:
+        spider = os.path.basename(spider)
+    if spider.endswith('.py'):
+        spider = spider[:-3]
+    if 'Spider' in spider:
+        spider = spider[7:]
+
+    # get the processname from spider
+    proctype = spider
+    version = '1.0.0'
+    if len(re.split('/*_v[0-9]/*', spider)) > 1:
+        version = spider.split('_v')[-1].replace('_', '.')
+        ptype = re.split('/*_v[0-9]/*', spider)[0]
+        proctype = '%s_v%s' % (ptype, version.split('.')[0])
+
+    if suffix is not None:
+        if suffix[0] != '_':
+            suffix = '_{}'.format(suffix)
+        suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
+        if suffix[-1] == '_':
+            suffix = suffix[:-1]
+        proctype = '{}{}'.format(proctype, suffix)
+    return proctype, version
 
 
 ###############################################################################
@@ -1720,13 +1731,14 @@ def is_bad_qa(qcstatus):
     return 1
 
 
-def get_good_cscans(csess, scantypes):
+def get_good_cscans(csess, scantypes, needs_qc=True):
     """
     Given a CachedImageSession, get the list of all of the usable
      CachedImageScan objects in the session
 
     :param csess: CachedImageSession object from XnatUtils
     :param scantypes: List of scantypes to filter for
+    :param needs_qc: if we are looking for assessor with qc that passed
     :return: List of CachedImageScan objects that fit the scantypes and that
      are usable
 
@@ -1734,17 +1746,18 @@ def get_good_cscans(csess, scantypes):
     cscans_list = list()
     for cscan in csess.scans():
         if is_cscan_good_type(cscan, scantypes) and \
-           not is_cscan_unusable(cscan):
+           (not needs_qc or not is_cscan_unusable(cscan)):
             cscans_list.append(cscan)
     return cscans_list
 
 
-def get_good_scans(session_obj, scantypes):
+def get_good_scans(session_obj, scantypes, needs_qc=True):
     """
     Get usable scans from a session.
 
     :param session_obj: Pyxnat session EObject
     :param scantypes: List of scanttypes (regex) to filter for
+    :param needs_qc: if we are looking for scans that are not unusable
     :return: List of python scan EObjects that fit the scantypes and that are
      usable
 
@@ -1752,18 +1765,19 @@ def get_good_scans(session_obj, scantypes):
     scans = list()
     for scan_obj in session_obj.scans().fetchall('obj'):
         if is_scan_good_type(scan_obj, scantypes) and \
-           not is_scan_unusable(scan_obj):
+           (not needs_qc or not is_scan_unusable(scan_obj)):
             scans.append(scan_obj)
     return scans
 
 
-def get_good_cassr(csess, proctypes):
+def get_good_cassr(csess, proctypes, needs_qc=True):
     """
     Get all the assessors in the session and filter out the ones that are
      usable and that have the proctype(s) specified
 
     :param csess: CachedImageSession object from XnatUtils
     :param proctypes: List of proctypes to filter for
+    :param needs_qc: if we are looking for assessor with qc that passed
     :return: List of CachedImageAssessor objects that are usable and have
      one of the proctype(s) specified.
 
@@ -1771,18 +1785,20 @@ def get_good_cassr(csess, proctypes):
     cassr_list = list()
     for cassr in csess.assessors():
         usable_status = is_cassessor_usable(cassr)
-        if is_cassessor_good_type(cassr, proctypes) and usable_status == 1:
+        if is_cassessor_good_type(cassr, proctypes) and \
+           (not needs_qc or usable_status == 1):
             cassr_list.append(cassr)
     return cassr_list
 
 
-def get_good_assr(session_obj, proctypes):
+def get_good_assr(session_obj, proctypes, needs_qc=True):
     """
     Get all the assessors in the session and filter out the ones
      that are usable and that have the proctype(s) specified
 
     :param session_obj: Session EObject from Pyxnat
     :param proctypes: List of proctype(s) to filter for
+    :param needs_qc: if we are looking for assessor with qc that passed
     :return: List of Assessor EObjects that are usable and have one of the
      proctype(s) specified.
 
@@ -1791,7 +1807,7 @@ def get_good_assr(session_obj, proctypes):
     for assessor_obj in session_obj.assessors().fetchall('obj'):
         usable_status = is_assessor_usable(assessor_obj)
         if is_assessor_good_type(assessor_obj, proctypes) and \
-           usable_status == 1:
+           (not needs_qc or usable_status == 1):
             assessors.append(assessor_obj)
     return assessors
 
