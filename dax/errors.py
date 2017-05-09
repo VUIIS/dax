@@ -11,13 +11,14 @@ import sys
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
-__all__ = ['DaxError', 'DaxXnatError', 'DaxSpiderError', 'DaxSetupError',
-           'DaxNetrcError',
+__all__ = ['DaxError', 'DaxXnatError', 'DaxSpiderError', 'DaxProcessorError',
+           'DaxSetupError', 'DaxNetrcError',
            'XnatAuthentificationError', 'XnatUtilsError', 'XnatAccessError',
            'XnatToolsError', 'XnatToolsUserError',
            'ClusterLaunchException', 'ClusterCountJobsException',
            'ClusterJobIDException',
-           'SpiderError', 'AutoSpiderError']
+           'SpiderError', 'AutoSpiderError',
+           'AutoProcessorError']
 
 
 # DAX error:
@@ -30,9 +31,14 @@ class DaxXnatError(DaxError):
     """Basic exception for errors related to XNAT raised by dax."""
 
 
-# DAX XNAT error:
+# DAX Spider error:
 class DaxSpiderError(DaxError):
     """Basic exception for errors related to spider raised by dax."""
+
+
+# DAX Processor error:
+class DaxProcessorError(DaxError):
+    """Basic exception for errors related to processor raised by dax."""
 
 
 # dax_setup errors
@@ -140,4 +146,9 @@ class SpiderError(DaxSpiderError):
 
 
 class AutoSpiderError(DaxSpiderError):
+    pass
+
+
+# Processor Exception:
+class AutoProcessorError(DaxProcessorError):
     pass

@@ -99,7 +99,8 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
     logger.info('running build, Start Time: %s' % str(datetime.now()))
     try:
         settings.myLauncher.build(lockfile_prefix, projects, sessions,
-                                  mod_delta=mod_delta, proj_lastrun=proj_lastrun)
+                                  mod_delta=mod_delta,
+                                  proj_lastrun=proj_lastrun)
     except Exception as e:
         logger.critical('Caught exception building Project in bin.build')
         logger.critical('Exception Class %s with message %s' % (e.__class__,

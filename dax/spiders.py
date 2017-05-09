@@ -864,7 +864,7 @@ class AutoSpider(object):
         """
         self.name = name
         self.params = params
-        self.outputs = outputs
+        self.outputs = list()
         self.template = template
         self.exe_lang = exe_lang
         self.copy_list = []
@@ -932,6 +932,9 @@ class AutoSpider(object):
         self.script_dir = os.path.join(self.jobdir, 'SCRIPT')
         self.run_inputs = {}
 
+        # Outputs
+        self._populate_from_inputs(outputs)
+
         # Assessor:
         self.ahandler = XnatUtils.AssessorHandler(args.assessor_label)
 
@@ -991,6 +994,25 @@ class AutoSpider(object):
             self.run_inputs[_input] = ','.join(dst_list)
 
         return self.run_inputs
+
+    def _populate_from_inputs(self, outputs):
+        """ Populate the outputs with the inputs if set"""
+        for output in outputs:
+            # If a argument in the string from input
+            if '${' in output[0]:
+                name = output[0].partition('{')[-1].rpartition('}')[0]
+                if name in self.src_inputs.keys():
+                    for val in self.src_inputs.get(name).split(','):
+                        out1 = output[0].replace('${%s}' % name, val)
+                        out2 = output[1]
+                        out3 = output[2].replace('${%s}' % name, val)
+                        self.outputs.append((out1, out2, out3))
+                else:
+                    err = '${ found in the output but the format is unknown. \
+The format {} can not be read by the spider because {} is not an input.'
+                    raise AutoSpiderError(err.format(output[0], name))
+            else:
+                self.outputs.append(output)
 
     def go(self):
         """Main method for AutoSpider."""
@@ -1052,7 +1074,8 @@ GeneratorAutoSpider.')
         self.spider_handler = XnatUtils.SpiderProcessHandler(
             self.spider_name, self.suffix,
             assessor_handler=self.ahandler,
-            time_writer=self.time_writer)
+            time_writer=self.time_writer,
+            host=self.src_inputs.get('host', os.environ['XNAT_HOST']))
 
         self.time_writer('AutoSpider finish(): Copying outputs...')
 
