@@ -820,8 +820,8 @@ in session %s'
                 err2 = 'Exception class %s caught with message %s'
                 LOGGER.critical(err1 % project_id)
                 LOGGER.critical(err2 % (E.__class__, E.message))
-            	LOGGER.critical(traceback.format_exc())
-                
+                LOGGER.critical(traceback.format_exc())
+
         LOGGER.debug('\n')
 
     # Generic Methods
@@ -957,7 +957,9 @@ The project is not part of the settings."""
 
         # Get lists of processors for this project
         pp_dict = self.project_process_dict[project_id]
-        sess_procs, scan_procs = processors.processors_by_type(pp_dict)
+        yaml_files = self.yaml_files[project_id]
+        sess_procs, scan_procs = processors.processors_by_type(pp_dict,
+                                                               yaml_files)
 
         # Get lists of assessors for this project
         assr_list = self.get_assessors_list(xnat, project_id, sessions_local)

@@ -328,7 +328,7 @@ class SessionProcessor(Processor):
 
         """
         session_dict = csess.info()
-        proj_label = session_dict['project']
+        proj_label = session_dict['project_id']
         subj_label = session_dict['subject_label']
         sess_label = session_dict['label']
         assr_name = '-x-'.join([proj_label, subj_label, sess_label, self.name])
@@ -390,7 +390,7 @@ class SessionProcessor(Processor):
 
 class AutoProcessor(Processor):
     """ Auto Processor class for AutoSpider using YAML files"""
-    def __init__(self, yaml_file):
+    def __init__(self, yaml_file, **default_vars):
         """
         Entry point for the auto processor
 
@@ -400,6 +400,10 @@ class AutoProcessor(Processor):
         """
         self.inputs = dict()
         self.read_yaml(yaml_file)
+        # Set the default from default_vars if set:
+        for key, value in self.inputs.items():
+            if key in default_vars:
+                self.inputs[key] = default_vars[key]
 
     def read_yaml(self, yaml_file):
         """
@@ -419,23 +423,45 @@ any duplicate "---" if you have more than one. It should only be at the \
 beginning of your file.'
                 raise AutoProcessorError(err.format(yaml_file))
 
+            # Set Inputs from Yaml
             self._check_default_keys(yaml_file, doc)
             inputs = doc.get('inputs')
             self.inputs = inputs.get('default')
-            for key, value in inputs.get('other').items():
-                self.inputs[key] = value
             self.xnat_inputs = inputs.get('xnat')
             self.command = doc.get('command')
-            self.level = doc.get('level').get('type')
-            self.scan_nb = doc.get('level').get('scan_nb', None)
-            if self.level == 'scan':
-                self.scaninfo = [_doc for _doc in doc.get('xnat').get('scans')
-                                 if self.scan_nb in _doc.keys]
+
+            # Getting proctype from Yaml
             self.proctype, self.version = XnatUtils.get_proctype(
                 self.inputs.get('spiderpath'),
                 suffix=self.inputs.get('suffix', None))
+
+            # Set attributs:
+            attrs = doc.get('attrs')
             self.name = self.proctype
-            self.xsitype = doc.get('xsitype', 'proc:genProcData')
+            self.walltime_str = attrs.get('walltime')
+            self.memreq_mb = attrs.get('memory')
+            self.ppn = attrs.get('ppn', 1)
+            self.xsitype = attrs.get('xsitype', 'proc:genProcData')
+            self.full_regex = attrs.get('fullregex', False)
+            self.suffix = attrs.get('suffix', None)
+            self.type = attrs.get('type')
+            self.scan_nb = attrs.get('scan_nb', None)
+
+            # Set scan info if scan auto processor
+            if self.type == 'scan':
+                if self.scan_nb is None:
+                    err = 'YAML File {} does not have a scan_nb defined.'
+                    raise AutoProcessorError(err.format(yaml_file))
+
+                _docs = [_doc for _doc in self.xnat_inputs.get('scans')
+                         if self.scan_nb in _doc.keys()]
+                if len(_docs) == 1:
+                    self.scaninfo = _docs[0]
+                else:
+                    err = 'YAML File {} does not have a valid scan_nb defined.\
+ No xnat.scans.{} in inputs found.'
+                    raise AutoProcessorError(err.format(yaml_file,
+                                                        self.scan_nb))
 
     def _check_default_keys(self, yaml_file, doc):
         """ Static method to raise error if key not found in dictionary from
@@ -446,19 +472,20 @@ beginning of your file.'
         :param key: key to check in the doc
         """
         # first level
-        for key in ['inputs', 'command', 'level']:
+        for key in ['inputs', 'command', 'attrs']:
             self._raise_yaml_error_if_no_key(doc, yaml_file, key)
-        # Second level in inputs and level:
+        # Second level in inputs and attrs:
         inputs = doc.get('inputs')
-        level = doc.get('level')
+        attrs = doc.get('attrs')
         for _doc, key in [(inputs, 'default'), (inputs, 'xnat'),
-                          (inputs, 'other'), (level, 'type')]:
+                          (attrs, 'type'), (attrs, 'memory'),
+                          (attrs, 'walltime')]:
             self._raise_yaml_error_if_no_key(_doc, yaml_file, key)
-        if level['type'] == 'scan':
-            self._raise_yaml_error_if_no_key(level, yaml_file, 'scan_nb')
-        # third level for default and xnat:
+        if attrs['type'] == 'scan':
+            self._raise_yaml_error_if_no_key(attrs, yaml_file, 'scan_nb')
+        # third level for default:
         default = doc.get('inputs').get('default')
-        for key in ['name', 'suffix', 'walltime', 'mem', 'spiderpath']:
+        for key in ['spiderpath']:
             self._raise_yaml_error_if_no_key(default, yaml_file, key)
 
     @ staticmethod
@@ -488,9 +515,9 @@ beginning of your file.'
             csess = cobj.parent()
 
         obj_info = cobj.info()
-        labels = [obj_info['project'], obj_info['subject_label'],
+        labels = [obj_info['project_id'], obj_info['subject_label'],
                   obj_info['session_label']]
-        if self.level == 'scan':
+        if self.type == 'scan':
             labels.append(obj_info['scan_label'])
         labels.append(self.proctype)
         assr_name = '-x-'.join(labels)
@@ -565,10 +592,11 @@ beginning of your file.'
 
         """
         if 'scan_type' in obj_dict:
-            if self.scan_types == 'all':
+            scantypes = self.scaninfo.get('types', '').split(',')
+            if scantypes == 'all':
                 return True
             else:
-                for expression in self.scaninfo.get('types', '').split(','):
+                for expression in scantypes:
                     regex = XnatUtils.extract_exp(expression, self.full_regex)
                     if regex.match(obj_dict['scan_type']):
                         return True
@@ -599,7 +627,8 @@ beginning of your file.'
             if XnatUtils.is_cscan_unusable(cobj):
                     return -1, 'Scan unusable'
 
-            for resource in self.scaninfo.get('resources', ''):
+            for res_dict in self.scaninfo.get('resources', list()):
+                resource = res_dict.get('resource')
                 if not XnatUtils.has_resource(cobj, resource):
                     msg = '{}: {} not found.'
                     LOGGER.debug(msg.format(self.proctype, resource))
@@ -612,7 +641,7 @@ beginning of your file.'
         for scan_in in self.xnat_inputs.get('scans', list()):
             if self.scan_nb not in scan_in.keys():
                 scantypes = scan_in.get('types').split(',')
-                nargs = scan_in.get('nargs', '1')
+                nargs = scan_in.get('nargs', False)
                 needs_qc = scan_in.get('needs_qc', True)
                 doc_res = scan_in.get('resources', list())
                 resources = [_doc.get('resource') for _doc in doc_res]
@@ -654,7 +683,7 @@ beginning of your file.'
             msg = '{}: No {} {} found.'
             LOGGER.debug(msg.format(self.name, ','.join(sp_types), otype))
             return -1, 'No {} found'.format(','.join(sp_types))
-        elif nargs is False and len(sp_types) > 1:
+        elif nargs is False and len(good_cobjs) > 1:
             msg = '{}: Too many {} {} found.'
             LOGGER.debug(msg.format(self.name, ','.join(sp_types),
                                     '{}s'.otype))
@@ -696,7 +725,7 @@ resource/{4}'
                 label = obj_info['label']
                 path_tmp = assr_tmp
             elif isinstance(cobj, XnatUtils.CachedImageScan):
-                label = obj_info['id']
+                label = obj_info['ID']
                 path_tmp = scan_tmp
             filepaths.append(path_tmp.format(obj_info['project_id'],
                                              obj_info['subject_label'],
@@ -712,10 +741,12 @@ resource/{4}'
         :param jobdir: jobdir where the job's output will be generated
         :return: command to execute the spider in the job script
         """
-        self.inputs['assr'] = assessor.label()
+        # Add the jobidr and the assessor label:
+        assr_label = assessor.label()
         proj_label = assessor.parent().parent().parent().label()
         subj_label = assessor.parent().parent().label()
         sess_label = assessor.parent().label()
+        scan_label = assr_label.split('-x-')[3]
 
         # Get the csess:
         csess = XnatUtils.CachedImageSession(assessor._intf, proj_label,
@@ -727,8 +758,14 @@ resource/{4}'
             scantypes = scan_in.get('types').split(',')
             needs_qc = scan_in.get('needs_qc', True)
             resources = scan_in.get('resources', list())
-            self._append_xnat_cobj(csess, scantypes, resources, needs_qc,
-                                   'scan')
+            if self.scan_nb not in scan_in.keys():
+                self._append_xnat_cobj(csess, scantypes, resources, needs_qc,
+                                       'scan')
+            else:
+                cprocscan = [cscan for cscan in csess.scans()
+                             if cscan.info()['ID'] == scan_label]
+                self._get_xnat_procscan(cprocscan, resources)
+
         # Assessors:
         for assr_in in self.xnat_inputs.get('assessors', list()):
             proctypes = assr_in.get('proctypes').split(',')
@@ -738,6 +775,12 @@ resource/{4}'
                                    'scan')
 
         cmd = self.command.format(**self.inputs)
+
+        # Add assr and jobidr:
+        if ' -a ' not in cmd and ' --assessor ' not in cmd:
+            cmd = '{} -a {}'.format(cmd, assr_label)
+        if ' -d ' not in cmd:
+            cmd = '{} -d {}'.format(cmd, jobdir)
 
         return [cmd]
 
@@ -755,12 +798,25 @@ resource/{4}'
             good_cobjs = XnatUtils.get_good_cscans(csess, sp_types, needs_qc)
         else:
             good_cobjs = XnatUtils.get_good_cassr(csess, sp_types, needs_qc)
-        for resource in resources:
-            if 'varname' not in resource.keys():
+        for res_info in resources:
+            if 'varname' not in res_info.keys():
                 LOGGER.warn("No Key 'varname' found for resource in YAML.")
             else:
-                self.inputs[resource.get('varname')] = self.get_xnat_path(
-                    good_cobjs, resource)
+                _in = self.get_xnat_path(good_cobjs, res_info.get('resource'))
+                self.inputs[res_info.get('varname')] = ','.join(_in)
+
+    def _get_xnat_procscan(self, cprocscan, resources):
+        """Method to append XNAT cobj info to inputs for command.
+
+        :param cscan: CachedImageScan related to the assessor
+        :param resources: list of resources from YAML file with var
+        """
+        for res_info in resources:
+            if 'varname' not in res_info.keys():
+                LOGGER.warn("No Key 'varname' found for resource in YAML.")
+            else:
+                _in = self.get_xnat_path(cprocscan, res_info.get('resource'))
+                self.inputs[res_info.get('varname')] = ','.join(_in)
 
 
 def processors_by_type(proc_list, yaml_files=None):
@@ -789,7 +845,7 @@ def processors_by_type(proc_list, yaml_files=None):
     if yaml_files is not None:
         for yaml_file in yaml_files:
             proc = AutoProcessor(yaml_file)
-            if proc.level == 'scan':
+            if proc.type == 'scan':
                 scan_proc_list.append(proc)
             else:
                 sess_proc_list.append(proc)
