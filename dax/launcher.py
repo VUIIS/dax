@@ -55,8 +55,10 @@ def check_dir(dir_path):
 
 class Launcher(object):
     """ Launcher object to manage a list of projects from a settings file """
-    def __init__(self, project_process_dict, project_modules_dict,
-                 yaml_files=None,
+    def __init__(self,
+                 project_process_dict=dict(),
+                 project_modules_dict=dict(),
+                 yaml_dict=dict(),
                  priority_project=None,
                  queue_limit=DAX_SETTINGS.get_queue_limit(),
                  root_job_dir=DAX_SETTINGS.get_root_job_dir(),
@@ -83,9 +85,14 @@ class Launcher(object):
         """
         self.queue_limit = queue_limit
         self.root_job_dir = root_job_dir
-        self.project_process_dict = project_process_dict
-        self.project_modules_dict = project_modules_dict
-        self.yaml_files = yaml_files
+        self.project_process_dict = (project_process_dict
+                                     if project_process_dict is not None
+                                     else dict())
+        self.project_modules_dict = (project_modules_dict
+                                     if project_modules_dict is not None
+                                     else dict())
+        self.yaml_dict = yaml_dict if yaml_dict is not None else dict()
+
         self.priority_project = priority_project
         self.job_email = job_email
         self.job_email_options = job_email_options
@@ -110,14 +117,36 @@ class Launcher(object):
             check_dir(os.path.join(res_dir, 'OUTLOG'))
             check_dir(os.path.join(res_dir, 'PBS'))
 
-        # Add empty lists for projects in one list but not the other
-        for proj in self.project_process_dict.keys():
-            if proj not in self.project_modules_dict:
-                self.project_modules_dict[proj] = list()
+        # If project_process_dict or module or yaml_files not set, exception:
+        if not self.project_process_dict and \
+           not self.project_modules_dict and \
+           not self.yaml_dict:
+            err = 'Launcher instance missing inputs. Please provide one of \
+the following information: process_dict, modules_dict, yaml_dict.'
+            raise DaxLauncherError(err)
 
-        for proj in self.project_modules_dict.keys():
-            if proj not in self.project_process_dict:
-                self.project_process_dict[proj] = list()
+        # Add empty lists for projects in one list but not the other
+        if self.project_process_dict:
+            for proj in self.project_process_dict.keys():
+                if proj not in self.project_modules_dict:
+                    self.project_modules_dict[proj] = list()
+
+        if self.project_modules_dict:
+            for proj in self.project_modules_dict.keys():
+                if proj not in self.project_process_dict:
+                    self.project_process_dict[proj] = list()
+
+        # Add projects as empty project if yaml_dict set
+        if self.yaml_dict:
+            if not isinstance(self.yaml_dict, dict):
+                err = 'Yaml_files set but not a dictionary with project name \
+as a key and list of yaml filepaths as values.'
+                raise DaxLauncherError(err)
+            for proj in self.yaml_dict.keys():
+                if proj not in self.project_process_dict.keys():
+                    self.project_process_dict[proj] = list()
+                if proj not in self.project_modules_dict.keys():
+                    self.project_modules_dict[proj] = list()
 
         self.xnat_host = xnat_host
         if not self.xnat_host:
@@ -447,10 +476,10 @@ cluster queue"
         # Get lists of modules/processors per scan/exp for this project
         proj_mods = self.project_modules_dict[project_id]
         proj_procs = self.project_process_dict[project_id]
-        yaml_files = self.yaml_files[project_id]
+        yaml_dict = self.yaml_dict[project_id]
         exp_mods, scan_mods = modules.modules_by_type(proj_mods)
         exp_procs, scan_procs = processors.processors_by_type(proj_procs,
-                                                              yaml_files)
+                                                              yaml_dict)
 
         if mod_delta:
             lastmod_delta = str_to_timedelta(mod_delta)
@@ -957,9 +986,9 @@ The project is not part of the settings."""
 
         # Get lists of processors for this project
         pp_dict = self.project_process_dict[project_id]
-        yaml_files = self.yaml_files[project_id]
+        yaml_dict = self.yaml_dict[project_id]
         sess_procs, scan_procs = processors.processors_by_type(pp_dict,
-                                                               yaml_files)
+                                                               yaml_dict)
 
         # Get lists of assessors for this project
         assr_list = self.get_assessors_list(xnat, project_id, sessions_local)
