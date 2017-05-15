@@ -399,11 +399,15 @@ class AutoProcessor(Processor):
 
         """
         self.inputs = dict()
+        self.extra_inputs = dict()
         self.read_yaml(yaml_file)
+
         # Set the default from default_vars if set:
-        for key, value in self.inputs.items():
-            if key in default_vars:
+        for key, value in default_vars.items():
+            if key in self.inputs.keys():
                 self.inputs[key] = default_vars[key]
+            if key in self.extra_inputs.keys():
+                self.extra_inputs[key] = default_vars[key]
 
     def read_yaml(self, yaml_file):
         """
@@ -426,9 +430,18 @@ beginning of your file.'
             # Set Inputs from Yaml
             self._check_default_keys(yaml_file, doc)
             inputs = doc.get('inputs')
-            self.inputs = inputs.get('default')
             self.xnat_inputs = inputs.get('xnat')
             self.command = doc.get('command')
+            for key, value in inputs.get('default').items():
+                # If value is a key in command
+                k_str = '{{{}}}'.format(key)
+                if k_str in self.command:
+                    self.inputs[key] = value
+                else:
+                    if isinstance(value, bool) and value is True:
+                        self.extra_inputs[key] = ''
+                    elif value and value != 'None':
+                        self.extra_inputs[key] = value
 
             # Getting proctype from Yaml
             self.proctype, self.version = XnatUtils.get_proctype(
@@ -775,6 +788,9 @@ resource/{4}'
                                    'scan')
 
         cmd = self.command.format(**self.inputs)
+
+        for key, value in self.extra_inputs.items():
+            cmd = '{} --{} {}'.format(cmd, key, value)
 
         # Add assr and jobidr:
         if ' -a ' not in cmd and ' --assessor ' not in cmd:
