@@ -1145,7 +1145,7 @@ GeneratorAutoSpider.')
             if src.startswith('xnat://'):
                 src = src[len('xnat:/'):]
             else:
-                src = src[len('xnat:'):]       
+                src = src[len('xnat:'):]
 
             self.time_writer(' - copying xnat input: %s' % src)
             dst = self.copy_xnat_input(src, input_name)

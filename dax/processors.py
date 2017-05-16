@@ -718,12 +718,13 @@ beginning of your file.'
                         return 0, 'Missing {} on {}'.format(res, _type)
         return 1, None
 
-    def get_xnat_path(self, cobjs, resource):
+    def get_xnat_path(self, cobjs, resource, fpath=None):
         """Method to get the file path on XNAT for the scans
 
         :param cobjs: list of cobjs (assessor or scan) in dax.XnatUtils
                       (see XnatUtils in dax for information)
         :param resource: name of the resource
+        :param fpath: filepath to get
         :return: list of paths
         """
         filepaths = list()
@@ -740,11 +741,13 @@ resource/{4}'
             elif isinstance(cobj, XnatUtils.CachedImageScan):
                 label = obj_info['ID']
                 path_tmp = scan_tmp
-            filepaths.append(path_tmp.format(obj_info['project_id'],
-                                             obj_info['subject_label'],
-                                             obj_info['session_label'],
-                                             label,
-                                             resource))
+            x_path = path_tmp.format(obj_info['project_id'],
+                                     obj_info['subject_label'],
+                                     obj_info['session_label'],
+                                     label, resource)
+            if fpath:
+                x_path = '{}/files/{}'.format(x_path, fpath)
+            filepaths.append(x_path)
         return filepaths
 
     def get_cmds(self, assessor, jobdir):
@@ -818,7 +821,8 @@ resource/{4}'
             if 'varname' not in res_info.keys():
                 LOGGER.warn("No Key 'varname' found for resource in YAML.")
             else:
-                _in = self.get_xnat_path(good_cobjs, res_info.get('resource'))
+                _in = self.get_xnat_path(good_cobjs, res_info.get('resource'),
+                                         fpath=res_info.get('filepath', None))
                 self.inputs[res_info.get('varname')] = ','.join(_in)
 
     def _get_xnat_procscan(self, cprocscan, resources):
@@ -831,7 +835,8 @@ resource/{4}'
             if 'varname' not in res_info.keys():
                 LOGGER.warn("No Key 'varname' found for resource in YAML.")
             else:
-                _in = self.get_xnat_path(cprocscan, res_info.get('resource'))
+                _in = self.get_xnat_path(cprocscan, res_info.get('resource'),
+                                         fpath=res_info.get('filepath', None))
                 self.inputs[res_info.get('varname')] = ','.join(_in)
 
 
