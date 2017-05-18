@@ -114,7 +114,10 @@ name as a key and list of yaml filepaths as values.'
         for project, yaml_files in yaml_dict.items():
             for yaml_file in yaml_files:
                 proc = processors.AutoProcessor(yaml_file)
-                self.project_process_dict.get(project, list()).append(proc)
+                if project not in self.project_process_dict:
+                    self.project_process_dict[project] = [proc]
+                else:
+                    self.project_process_dict[project].append(proc)
 
         self.priority_project = priority_project
         self.job_email = job_email
