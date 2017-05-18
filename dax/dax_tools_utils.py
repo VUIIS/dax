@@ -1705,6 +1705,7 @@ unknown (-1/0/1): %s" % state)
             self.inc_test()
             print("Launching tasks for %s - %s with writeonly ..."
                   % (project, ','.join(sessions)))
+            print('or issue here')
             tasks_list = self.launch_obj.get_tasks(
                 self.xnat, self.all_tasks, [project], ','.join(sessions))
             for cur_task in tasks_list:
@@ -1713,7 +1714,7 @@ unknown (-1/0/1): %s" % state)
                                 self.launch_obj.job_email_options,
                                 self.launch_obj.xnat_host,
                                 True, pbsdir=DAX_TEST_DIR)
-            results = display_pbs_file(project, sessions)
+            results = self.display_pbs_file(project, sessions)
             if results:
                 print("launch SUCCEEDED")
             else:
@@ -1875,73 +1876,70 @@ flagfile for %s." % (cobj.info()['label']))
         :return: Number of test that ran, fail, error
         """
         # print info settings:
-        display_settings()
+        self.display_settings()
 
         # Test dax functionalities:
         self.test_dax(project, sessions)
 
+    def display_pbs_file(self, project, sessions):
+        """
+        Function to display one of the pbs file created
 
-def display_pbs_file(tests, project, sessions):
-    """
-    Function to display one of the pbs file created
+        :param tests: tests_results object
+        :param project: XNAT project
+        :param sessions: XNAT sessions
+        :return: True if PBS created, False if not.
+        """
+        pbs_files = list()
+        # get a PBS file created:
+        for sess in sessions:
+            pbs_files.extend(glob.glob(os.path.join(DAX_TEST_DIR,
+                             '%s-x-*-x-%s-x-*.pbs' % (project, sess))))
 
-    :param tests: tests_results object
-    :param project: XNAT project
-    :param sessions: XNAT sessions
-    :return: True if PBS created, False if not.
-    """
-    pbs_files = list()
-    # get a PBS file created:
-    for sess in sessions:
-        pbs_files.extend(glob.glob(os.path.join(DAX_TEST_DIR,
-                         '%s-x-*-x-%s-x-*.pbs' % (project, sess))))
-
-    # if empty raise Error
-    if len(pbs_files) == 0:
-        print('[ERROR] No PBS file generated in %s by dax_launch'
-              % DAX_TEST_DIR)
-        tests.inc_error()
-        return False
-    else:
-        print('PBS Example:\n')
-        print(open(pbs_files[0], "rb").read())
-        return True
-
-
-def display_settings(tests):
-    """
-    Function to display from the settings:
-        - projects
-        - processors and the default values
-        - modules and the default values
-        - launcher and the default values
-
-    :param tests: tests_results object
-    :return: None
-    """
-    proj_list = list()
-    print('Settings arguments:')
-    print_settings(tests.launch_obj.__dict__)
-    proj_mods = tests.launch_obj.project_modules_dict
-    proj_procs = tests.launch_obj.project_process_dict
-    proj_list.extend(proj_mods.keys())
-    proj_list.extend(proj_procs.keys())
-    print('\nList of XNAT projects : %s' % ','.join(list(set(proj_list))))
-
-    for project in list(set(proj_list)):
-        print(' - Project %s:' % project)
-        print('  + Module(s) arguments:')
-        if project in proj_mods.keys() and len(proj_mods[project]) > 0:
-            for module in proj_mods[project]:
-                print_module(module)
+        # if empty raise Error
+        if len(pbs_files) == 0:
+            print('[ERROR] No PBS file generated in %s by dax_launch'
+                  % DAX_TEST_DIR)
+            self.inc_error()
+            return False
         else:
-            print('    No module set for the project.')
-        print('\n  + Processor(s) arguments:')
-        if project in proj_procs.keys() and len(proj_procs[project]) > 0:
-            for processor in proj_procs[project]:
-                print_processor(processor)
-        else:
-            print('    No processor set for the project.')
+            print('PBS Example:\n')
+            print(open(pbs_files[0], "rb").read())
+            return True
+
+    def display_settings(self):
+        """
+        Function to display from the settings:
+            - projects
+            - processors and the default values
+            - modules and the default values
+            - launcher and the default values
+
+        :return: None
+        """
+        proj_list = list()
+        print('Settings arguments:')
+        print_settings(self.launch_obj.__dict__)
+        proj_mods = self.launch_obj.project_modules_dict
+        proj_procs = self.launch_obj.project_process_dict
+        proj_list.extend(proj_mods.keys())
+        proj_list.extend(proj_procs.keys())
+        print('\nList of XNAT projects : %s' % ','.join(list(set(proj_list))))
+
+        for project in list(set(proj_list)):
+            print(' - Project %s:' % project)
+            print('  + Module(s) arguments:')
+            if project in proj_mods.keys() and len(proj_mods[project]) > 0:
+                for module in proj_mods[project]:
+                    print_module(module)
+            else:
+                print('    No module set for the project.')
+            print('\n  + Processor(s) arguments:')
+            if project in proj_procs.keys() and len(proj_procs[project]) > 0:
+                for processor in proj_procs[project]:
+                    print_processor(processor)
+            else:
+                print('    No processor set for the project.')
 
 
 def print_settings(settings_dict):
