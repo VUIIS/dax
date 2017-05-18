@@ -77,6 +77,7 @@ It can be the yaml file for a processor or settings.'
 if __name__ == '__main__':
     args = parse_args()
 
+    print('Deprecated executable. Use dax test instead.')
     dax_tools.testing(args.test_file, args.project, args.sessions, args.host,
                       args.username, args.hide, args.do_not_remove,
                       args.nb_sess)

@@ -6,4 +6,5 @@
 from dax import dax_tools_utils as dax_tools
 
 if __name__ == '__main__':
+    print('Deprecated executable. Use dax setup instead.')
     dax_tools.setup_dax_package()

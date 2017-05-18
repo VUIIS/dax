@@ -64,6 +64,7 @@ and errors.')
 if __name__ == '__main__':
     args = parse_args()
 
+    print('Deprecated executable. Use dax upload instead.')
     dax_tools.upload_tasks(args.logfile, args.debug, args.upload_settings,
                            args.host, args.username, args.password,
                            args.projects, args.suffix, args.emailaddress)
