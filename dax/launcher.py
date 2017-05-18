@@ -160,7 +160,7 @@ as a key and list of yaml filepaths as values.'
         else:
             self.xnat_user = xnat_user
             if not xnat_pass:
-                msg = 'Please provide password for host and user <%s>: '
+                msg = 'Please provide password for host <%s> and user <%s>: '
                 self.xnat_pass = raw_input(msg % (self.xnat_host,
                                                   self.xnat_user))
             else:
