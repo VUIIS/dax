@@ -850,6 +850,11 @@ in session %s'
         :param start_end: starting timestamp (1) and ending timestamp (2)
         :return: None
         """
+        # Get default project list for XNAT out of the module/process dict
+        ulist = set(self.project_process_dict.keys() +
+                    self.project_modules_dict.keys() +
+                    self.yaml_dict.keys())
+        project_list = sorted(ulist)
         if project_local:
             if ',' in project_local:
                 mess = """too much projects ID given to the option\
@@ -857,7 +862,7 @@ in session %s'
                 mess_str = mess.format(proj=project_local)
                 LOGGER.error(mess_str)
                 exit(1)
-            elif project_local in self.project_process_dict.keys():
+            elif project_local in project_list:
                 # Updating session for a specific project
                 project_list = [project_local]
             else:
@@ -871,10 +876,6 @@ The project is not part of the settings."""
             if not success:
                 LOGGER.warn('failed to get lock. Already running.')
                 exit(1)
-            # Get default project list for XNAT out of the module/process dict
-            ulist = set(self.project_process_dict.keys() +
-                        self.project_modules_dict.keys())
-            project_list = sorted(ulist)
             # Set the date on REDCAP for update starting
             bin.upload_update_date_redcap(project_list, type_update, start_end)
         return project_list
