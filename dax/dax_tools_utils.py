@@ -426,7 +426,6 @@ SETTINGS_DISPLAY = """  Xnat host: {host}
   Projects Priority: {priority}
   Projects Processors: {pp}
   Projects Modules: {pm}
-  Projects Yaml processors: {yaml}
   Root Job Dir: {jobdir}
   Job email: {email}
   Email options: {email_opts}
@@ -1439,8 +1438,7 @@ class test_results:
                 self.run_test_module(project, sessions)
             elif isinstance(self.tobj, launcher.Launcher):
                 unique_list = list(set(self.tobj.project_process_dict.keys() +
-                                       self.tobj.project_modules_dict.keys() +
-                                       self.tobj.yaml_dict.keys()))
+                                       self.tobj.project_modules_dict.keys()))
                 if self.tobj.priority_project:
                     project_list = self.tobj.get_project_list(unique_list)
                 else:
@@ -1540,7 +1538,7 @@ class test_results:
             elif isinstance(proc_obj, processors.SessionProcessor):
                 co_list.append(csess)
             elif isinstance(proc_obj, processors.AutoProcessor):
-                if processors.type == 'session':
+                if proc_obj.type == 'session':
                     co_list.append(csess)
                 else:
                     for cscan in csess.scans():
@@ -1674,7 +1672,6 @@ unknown (-1/0/1): %s" % state)
             return True
         else:
             list_proc_obj = self.tobj.project_process_dict.get(project, list())
-            list_proc_obj.extend(self.tobj.yaml_dict.get(project, list()))
 
         for proc_obj in list_proc_obj:
             for cobj in self.set_proc_cobjs_list(proc_obj, project, sessions):
@@ -1952,10 +1949,8 @@ flagfile for %s." % (cobj.info()['label']))
         print_settings(self.launch_obj.__dict__)
         proj_mods = self.launch_obj.project_modules_dict
         proj_procs = self.launch_obj.project_process_dict
-        proj_yaml = self.launch_obj.yaml_dict
         proj_list.extend(proj_mods.keys())
         proj_list.extend(proj_procs.keys())
-        proj_list.extend(proj_yaml.keys())
         print('\nList of XNAT projects : %s' % ','.join(list(set(proj_list))))
 
         for project in list(set(proj_list)):
@@ -1966,20 +1961,12 @@ flagfile for %s." % (cobj.info()['label']))
                     print_module(module)
             else:
                 print('    No module set for the project.')
-            print('\n  + Regular Processor(s) arguments:')
+            print('\n  + Processor(s) arguments:')
             if project in proj_procs.keys() and len(proj_procs[project]) > 0:
                 for processor in proj_procs[project]:
                     print_processor(processor)
             else:
                 print('    No processor set for the project.')
-
-            print('\n  + YAMl Processor(s) arguments:')
-            if project in proj_yaml.keys() and len(proj_yaml[project]) > 0:
-                for yaml_file in proj_yaml[project]:
-                    proc = processors.AutoProcessor(yaml_file)
-                    print_processor(proc)
-            else:
-                print('    No YAML processor set for the project.')
 
 
 def print_settings(settings_dict):
@@ -1996,7 +1983,6 @@ def print_settings(settings_dict):
         priority=settings_dict['priority_project'],
         pp=settings_dict['project_process_dict'],
         pm=settings_dict['project_modules_dict'],
-        yaml=settings_dict['yaml_dict'],
         jobdir=settings_dict['root_job_dir'],
         email=settings_dict['job_email'],
         email_opts=settings_dict['job_email_options'],

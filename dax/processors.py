@@ -850,13 +850,12 @@ resource/{4}'
                 self.inputs[res_info.get('varname')] = ','.join(_in)
 
 
-def processors_by_type(proc_list, yaml_files=None):
+def processors_by_type(proc_list):
     """
     Organize the processor types and return a list of session processors
      first, then scan
 
     :param proc_list: List of Processor classes from the DAX settings file
-    :param yaml_files: list of yaml files
     :return: List of SessionProcessors, and list of ScanProcessors
 
     """
@@ -870,16 +869,12 @@ def processors_by_type(proc_list, yaml_files=None):
                 scan_proc_list.append(proc)
             elif issubclass(proc.__class__, SessionProcessor):
                 sess_proc_list.append(proc)
+            elif isinstance(proc, AutoProcessor):
+                if proc.type == 'scan':
+                    scan_proc_list.append(proc)
+                else:
+                    sess_proc_list.append(proc)
             else:
                 LOGGER.warn('unknown processor type: %s' % proc)
-
-    # If any yaml files given:
-    if yaml_files is not None:
-        for yaml_file in yaml_files:
-            proc = AutoProcessor(yaml_file)
-            if proc.type == 'scan':
-                scan_proc_list.append(proc)
-            else:
-                sess_proc_list.append(proc)
 
     return sess_proc_list, scan_proc_list
