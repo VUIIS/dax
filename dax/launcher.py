@@ -805,7 +805,7 @@ in session %s'
         :param settings_filename: Settings file name for temp dir
         :return: None
         """
-        for mod in self.project_modules_dict[project_id]:
+        for mod in self.project_modules_dict.get(project_id, list()):
             try:
                 mod.prerun(settings_filename)
             except Exception as E:
@@ -825,7 +825,7 @@ in session %s'
         :param project_id: project ID on XNAT
         :return: None
         """
-        for mod in self.project_modules_dict[project_id]:
+        for mod in self.project_modules_dict.get(project_id, list()):
             try:
                 mod.afterrun(xnat, project_id)
             except Exception as E:
@@ -969,8 +969,8 @@ The project is not part of the settings."""
         task_list = list()
 
         # Get lists of processors for this project
-        pp_dict = self.project_process_dict[project_id]
-        yaml_dict = self.yaml_dict[project_id]
+        pp_dict = self.project_process_dict.get(project_id, None)
+        yaml_dict = self.yaml_dict.get(project_id, None)
         sess_procs, scan_procs = processors.processors_by_type(pp_dict,
                                                                yaml_dict)
 
