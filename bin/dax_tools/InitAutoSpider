@@ -198,7 +198,11 @@ def generate_inputs():
 .PATH / 4.STRING / 5.INT]"
             var_type = get_user_variable(mg, index, for_type=True)
             var_desc = get_user_variable("What is the description?", index)
-            inputs_lines.append('%s,%s,%s' % (var_name, var_type, var_desc))
+            required = prompt_user_yes_no('Is this input required?')
+            template = '{0},{1},{2}'
+            if not required:
+                template = '{0},{1},{2},F'
+            inputs_lines.append(template.format(var_name, var_type, var_desc))
 
         with open(os.path.join(spider_path, INPUTS_FNAME), 'a') as f_in:
             f_in.writelines('\n'.join(inputs_lines))
@@ -225,7 +229,7 @@ def generate_outputs():
             required = prompt_user_yes_no('Is this output required?')
             template = '{0},{1},{2}'
             if not required:
-                template = '{0},{1},{2},f'
+                template = '{0},{1},{2},F'
             outputs_lines.append(template.format(res_path, res_type, res_name))
 
         with open(os.path.join(spider_path, OUTPUTS_FNAME), 'a') as f_out:
