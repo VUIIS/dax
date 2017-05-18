@@ -445,11 +445,12 @@ beginning of your file.'
 
             # Getting proctype from Yaml
             self.proctype, self.version = XnatUtils.get_proctype(
-                self.inputs.get('spiderpath'),
+                self.inputs.get('spider_path'),
                 suffix=self.inputs.get('suffix', None))
 
             # Set attributs:
             attrs = doc.get('attrs')
+            self.spider_path = self.inputs.get('spider_path')
             self.name = self.proctype
             self.walltime_str = attrs.get('walltime')
             self.memreq_mb = attrs.get('memory')
@@ -498,7 +499,7 @@ beginning of your file.'
             self._raise_yaml_error_if_no_key(attrs, yaml_file, 'scan_nb')
         # third level for default:
         default = doc.get('inputs').get('default')
-        for key in ['spiderpath']:
+        for key in ['spider_path']:
             self._raise_yaml_error_if_no_key(default, yaml_file, key)
 
     @ staticmethod
