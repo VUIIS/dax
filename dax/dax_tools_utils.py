@@ -1859,7 +1859,7 @@ flagfile for %s." % (cobj.info()['label']))
         else:
             print("run() FAILED")
 
-        if self.test_after_run():
+        if self.test_after_run(project):
             print("afterrun() SUCCEEDED")
         else:
             print("afterrun() FAILED")
@@ -2069,7 +2069,7 @@ def load_test(filepath):
         print('[ERROR] %s does not exists.' % filepath)
         return None
 
-    if is_python_file(filepath):
+    if filepath.endswith('.py') or is_python_file(filepath):
         test = imp.load_source('test', filepath)
         # Check if processor file
         try:
