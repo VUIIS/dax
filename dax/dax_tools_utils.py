@@ -26,6 +26,7 @@ import stat
 import subprocess as sb
 import sys
 import time
+import traceback
 
 from . import bin
 from . import launcher
@@ -425,6 +426,7 @@ SETTINGS_DISPLAY = """  Xnat host: {host}
   Projects Priority: {priority}
   Projects Processors: {pp}
   Projects Modules: {pm}
+  Projects Yaml processors: {yaml}
   Root Job Dir: {jobdir}
   Job email: {email}
   Email options: {email_opts}
@@ -519,21 +521,25 @@ def testing(test_file, project, sessions, host=None, username=None, hide=False,
     :param do_not_remove: do not remove files generated
     :param nb_sess: number of sessions to process(default 5 maximum)
     """
-    _host = host if host is not None else os.environ.get('XNAT_HOST', None)
-    _user = username if username is not None else 'user set in Dax netrc file.'
-    print(TD_INFO.format(platform=platform.system(),
-                         version=platform.python_version(),
-                         dax_version=__version__,
-                         host=_host, user=_user))
-
     # Create test results class object:
     tests = test_results()
 
     # Load test_file:
     test_obj = load_test(test_file)
+
     if not test_obj:
         tests.inc_error()
     else:
+        _host = host if host is not None else os.environ.get('XNAT_HOST', None)
+        _user = username if username is not None else 'user in dax netrc file.'
+        if isinstance(test_obj, launcher.Launcher):
+            _host = test_obj.xnat_host
+            _user = test_obj.xnat_user
+
+        print(TD_INFO.format(platform=platform.system(),
+                             version=platform.python_version(),
+                             dax_version=__version__,
+                             host=_host, user=_user))
         # set test object:
         tests.set_tobj(test_obj)
         # Make the temp dir:
@@ -547,7 +553,7 @@ def testing(test_file, project, sessions, host=None, username=None, hide=False,
             logfile = None
         log.setup_debug_logger('dax', logfile)
 
-        with XnatUtils.get_interface(host=host, user=username) as xnat:
+        with XnatUtils.get_interface(host=_host, user=username) as xnat:
             tests.set_xnat(xnat)
             tests.run_test(project, sessions, nb_sess)
 
@@ -1432,9 +1438,13 @@ class test_results:
             elif isinstance(self.tobj, modules.Module):
                 self.run_test_module(project, sessions)
             elif isinstance(self.tobj, launcher.Launcher):
-                unique_list = set(self.tobj.project_process_dict.keys() +
-                                  self.tobj.project_modules_dict.keys())
-                project_list = self.tobj.get_project_list(list(unique_list))
+                unique_list = list(set(self.tobj.project_process_dict.keys() +
+                                       self.tobj.project_modules_dict.keys() +
+                                       self.tobj.yaml_dict.keys()))
+                if self.tobj.priority_project:
+                    project_list = self.tobj.get_project_list(unique_list)
+                else:
+                    project_list = unique_list
                 for project in project_list:
                     sessions = randomly_get_sessions(self.xnat, project,
                                                      nb_sess)
@@ -1614,8 +1624,11 @@ unknown (-1/0/1): %s" % state)
                     return False
                 print("Outputs: state = %s and qcstatus = %s"
                       % (state, qcstatus))
-            except Exception as e:
-                print('[ERROR]', e)
+            except Exception:
+                print('[ERROR]')
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                          limit=2, file=sys.stdout)
                 self.inc_error()
                 return False
 
@@ -1640,8 +1653,11 @@ unknown (-1/0/1): %s" % state)
             else:
                 self.inc_fail()
                 print("\nbuild FAILED")
-        except Exception as e:
-            print('[ERROR]', e)
+        except Exception:
+            print('[ERROR]')
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                      limit=2, file=sys.stdout)
             self.inc_error()
 
     def check_sessions(self, project, sessions):
@@ -1657,7 +1673,9 @@ unknown (-1/0/1): %s" % state)
         elif isinstance(self.tobj, modules.Module):
             return True
         else:
-            list_proc_obj = self.tobj.project_process_dict[project]
+            list_proc_obj = self.tobj.project_process_dict.get(project, list())
+            list_proc_obj.extend(self.tobj.yaml_dict.get(project, list()))
+
         for proc_obj in list_proc_obj:
             for cobj in self.set_proc_cobjs_list(proc_obj, project, sessions):
                 cinfo = cobj.info()
@@ -1719,8 +1737,11 @@ unknown (-1/0/1): %s" % state)
                 print("launch SUCCEEDED")
             else:
                 print("launch FAILED")
-        except Exception as e:
-            print('[ERROR]', e)
+        except Exception:
+            print('[ERROR]')
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                      limit=2, file=sys.stdout)
             self.inc_error()
 
     @staticmethod
@@ -1761,8 +1782,11 @@ unknown (-1/0/1): %s" % state)
             print("Pre run ...")
             self.tobj.prerun()
             return True
-        except Exception as e:
-            print('[ERROR]', e)
+        except Exception:
+            print('[ERROR]')
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                      limit=2, file=sys.stdout)
             self.inc_error()
             return False
 
@@ -1792,8 +1816,11 @@ unknown (-1/0/1): %s" % state)
 flagfile for %s." % (cobj.info()['label']))
 
             return True
-        except Exception as e:
-            print('[ERROR]', e)
+        except Exception:
+            print('[ERROR]')
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                      limit=2, file=sys.stdout)
             self.inc_error()
             return False
 
@@ -1811,8 +1838,11 @@ flagfile for %s." % (cobj.info()['label']))
             print("After run ...")
             self.tobj.afterrun(self.xnat, project)
             return True
-        except Exception as e:
-            print('[ERROR]', e)
+        except Exception:
+            print('[ERROR]')
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                      limit=2, file=sys.stdout)
             self.inc_error()
             return False
 
@@ -1922,8 +1952,10 @@ flagfile for %s." % (cobj.info()['label']))
         print_settings(self.launch_obj.__dict__)
         proj_mods = self.launch_obj.project_modules_dict
         proj_procs = self.launch_obj.project_process_dict
+        proj_yaml = self.launch_obj.yaml_dict
         proj_list.extend(proj_mods.keys())
         proj_list.extend(proj_procs.keys())
+        proj_list.extend(proj_yaml.keys())
         print('\nList of XNAT projects : %s' % ','.join(list(set(proj_list))))
 
         for project in list(set(proj_list)):
@@ -1934,12 +1966,20 @@ flagfile for %s." % (cobj.info()['label']))
                     print_module(module)
             else:
                 print('    No module set for the project.')
-            print('\n  + Processor(s) arguments:')
+            print('\n  + Regular Processor(s) arguments:')
             if project in proj_procs.keys() and len(proj_procs[project]) > 0:
                 for processor in proj_procs[project]:
                     print_processor(processor)
             else:
                 print('    No processor set for the project.')
+
+            print('\n  + YAMl Processor(s) arguments:')
+            if project in proj_yaml.keys() and len(proj_yaml[project]) > 0:
+                for yaml_file in proj_yaml[project]:
+                    proc = processors.AutoProcessor(yaml_file)
+                    print_processor(proc)
+            else:
+                print('    No YAML processor set for the project.')
 
 
 def print_settings(settings_dict):
@@ -1956,6 +1996,7 @@ def print_settings(settings_dict):
         priority=settings_dict['priority_project'],
         pp=settings_dict['project_process_dict'],
         pm=settings_dict['project_modules_dict'],
+        yaml=settings_dict['yaml_dict'],
         jobdir=settings_dict['root_job_dir'],
         email=settings_dict['job_email'],
         email_opts=settings_dict['job_email_options'],
@@ -2098,8 +2139,11 @@ the python file {}.'
         # So far only auto processor:
         try:
             return processors.AutoProcessor(filepath)
-        except AutoProcessorError as err:
-            print('[ERROR]', err)
+        except AutoProcessorError:
+            print('[ERROR]')
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                      limit=2, file=sys.stdout)
 
     else:
         err = '[ERROR] {} format unknown. Please provide a .py or .yaml file.'
