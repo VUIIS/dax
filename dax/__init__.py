@@ -3,6 +3,7 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
 import bin
+import dax_tools_utils
 import log
 import xnat_tools_utils
 import XnatUtils

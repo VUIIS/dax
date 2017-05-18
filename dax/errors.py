@@ -12,7 +12,7 @@ import sys
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ['DaxError', 'DaxXnatError', 'DaxSpiderError', 'DaxProcessorError',
-           'DaxSetupError', 'DaxNetrcError',
+           'DaxSetupError', 'DaxNetrcError', 'DaxUploadError',
            'XnatAuthentificationError', 'XnatUtilsError', 'XnatAccessError',
            'XnatToolsError', 'XnatToolsUserError',
            'ClusterLaunchException', 'ClusterCountJobsException',
@@ -45,7 +45,14 @@ class DaxProcessorError(DaxError):
 class DaxSetupError(DaxError, ValueError):
     """DaxSetup exception."""
     def __init__(self, message):
-        Exception.__init__(self, 'Error in dax_setup: %s' % message)
+        Exception.__init__(self, 'Error in dax setup: %s' % message)
+
+
+# Launcher errors:
+class DaxUploadError(DaxError):
+    """Custom exception raised with dax upload."""
+    def __init__(self, message):
+        Exception.__init__(self, 'Error with dax upload: %s' % message)
 
 
 # Dax netrc errors
