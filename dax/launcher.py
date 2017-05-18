@@ -410,7 +410,8 @@ cluster queue"
             # Priority if set:
             if self.priority_project and not project_local:
                 unique_list = set(self.project_process_dict.keys() +
-                                  self.project_modules_dict.keys())
+                                  self.project_modules_dict.keys() +
+                                  self.yaml_dict.keys())
                 project_list = self.get_project_list(list(unique_list))
 
             # Build projects
@@ -936,12 +937,13 @@ The project is not part of the settings."""
         task_list = list()
 
         if not project_list:
+            projects = self.project_process_dict.keys()
+            projects.extend(self.yaml_dict.keys())
             # Priority:
             if self.priority_project:
-                projects = self.project_process_dict.keys()
                 project_list = self.get_project_list(projects)
             else:
-                project_list = list(self.project_process_dict.keys())
+                project_list = list(projects)
 
         # iterate projects
         for project_id in project_list:
