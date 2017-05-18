@@ -1410,7 +1410,6 @@ class test_results:
             proj_mod = {project: []}
             self.launch_obj = launcher.Launcher(
                 proj_proc, proj_mod, priority_project=None,
-                xnat_user=self.xnat.user,
                 xnat_host=self.xnat.host)
         elif isinstance(self.tobj, modules.Module):
             # Set the cobj:
@@ -1418,7 +1417,6 @@ class test_results:
             proj_mod = {project: [self.tobj]}
             self.launch_obj = launcher.Launcher(
                 proj_proc, proj_mod, priority_project=None,
-                xnat_user=self.xnat.user,
                 xnat_host=self.xnat.host)
         elif isinstance(self.tobj, launcher.Launcher):
             self.launch_obj = self.tobj
@@ -2128,7 +2126,7 @@ def print_sub_test(name):
     :param name: name for the method
     :return: None
     """
-    print('\n{}\n + Testing method %s \n'.format(DEL_DW, name))
+    print('\n{}\n + Testing method {} \n'.format(DEL_DW, name))
 
 
 def get_sessions_for_project(xnat, project, sessions, nb_sess=5):
@@ -2201,7 +2199,7 @@ Please check your ini file.\n', MSHE)
         :return: True if using default settings, False otherwise
         """
         # For each section ask the user if he wants to edit it:
-        print 'Starting to config the dax_settings.ini file:'
+        print('Starting to config the dax_settings.ini file:')
         for section in self.config_parser.sections():
             sys.stdout.write('  - Section: %s\n' % section)
             qst = '    Do you want to set/modify the section [%s] in the \
@@ -2252,7 +2250,7 @@ settings file?' % section
                 else:
                     stdin = os.path.abspath(stdin)
                 if not os.path.exists(stdin):
-                    print "Path <%s> does not exists." % stdin
+                    print("Path <%s> does not exists." % stdin)
                     stdin = self._prompt(section, option)
         else:
             stdin = raw_input('Please enter %s: ' % option)
@@ -2318,10 +2316,10 @@ def test_connection_xnat(host, user, pwd):
     try:
         # try deleting SESSION connection
         xnat._exec('/data/JSESSION', method='DELETE')
-        print ' --> Good login.\n'
+        print(' --> Good login.\n')
         return True
     except DatabaseError:
-        print ' --> error: Wrong login.\n'
+        print(' --> error: Wrong login.\n')
         return False
 
 
@@ -2332,7 +2330,7 @@ def set_xnat_netrc():
     """
     netrc_obj = DAX_Netrc()
     if netrc_obj.is_empty():
-        print 'Warning: daxnetrc is empty. Setting XNAT login:'
+        print('Warning: daxnetrc is empty. Setting XNAT login:')
         connection = False
         while not connection:
             host = raw_input("Please enter your XNAT host: ")
