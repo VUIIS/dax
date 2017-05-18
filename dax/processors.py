@@ -863,13 +863,14 @@ def processors_by_type(proc_list, yaml_files=None):
     scan_proc_list = list()
 
     # Build list of processors by type
-    for proc in proc_list:
-        if issubclass(proc.__class__, ScanProcessor):
-            scan_proc_list.append(proc)
-        elif issubclass(proc.__class__, SessionProcessor):
-            sess_proc_list.append(proc)
-        else:
-            LOGGER.warn('unknown processor type: %s' % proc)
+    if proc_list is not None:
+        for proc in proc_list:
+            if issubclass(proc.__class__, ScanProcessor):
+                scan_proc_list.append(proc)
+            elif issubclass(proc.__class__, SessionProcessor):
+                sess_proc_list.append(proc)
+            else:
+                LOGGER.warn('unknown processor type: %s' % proc)
 
     # If any yaml files given:
     if yaml_files is not None:

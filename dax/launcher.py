@@ -125,28 +125,12 @@ class Launcher(object):
 the following information: process_dict, modules_dict, yaml_dict.'
             raise DaxLauncherError(err)
 
-        # Add empty lists for projects in one list but not the other
-        if self.project_process_dict:
-            for proj in self.project_process_dict.keys():
-                if proj not in self.project_modules_dict:
-                    self.project_modules_dict[proj] = list()
-
-        if self.project_modules_dict:
-            for proj in self.project_modules_dict.keys():
-                if proj not in self.project_process_dict:
-                    self.project_process_dict[proj] = list()
-
         # Add projects as empty project if yaml_dict set
         if self.yaml_dict:
             if not isinstance(self.yaml_dict, dict):
                 err = 'Yaml_files set but not a dictionary with project name \
 as a key and list of yaml filepaths as values.'
                 raise DaxLauncherError(err)
-            for proj in self.yaml_dict.keys():
-                if proj not in self.project_process_dict.keys():
-                    self.project_process_dict[proj] = list()
-                if proj not in self.project_modules_dict.keys():
-                    self.project_modules_dict[proj] = list()
 
         self.xnat_host = xnat_host
         if not self.xnat_host:
@@ -474,9 +458,9 @@ cluster queue"
         #       modules, etc
 
         # Get lists of modules/processors per scan/exp for this project
-        proj_mods = self.project_modules_dict[project_id]
-        proj_procs = self.project_process_dict[project_id]
-        yaml_dict = self.yaml_dict[project_id]
+        proj_mods = self.project_modules_dict.get(project_id, None)
+        proj_procs = self.project_process_dict.get(project_id, None)
+        yaml_dict = self.yaml_dict.get(project_id, None)
         exp_mods, scan_mods = modules.modules_by_type(proj_mods)
         exp_procs, scan_procs = processors.processors_by_type(proj_procs,
                                                               yaml_dict)
