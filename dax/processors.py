@@ -657,7 +657,8 @@ beginning of your file.'
                 nargs = scan_in.get('nargs', False)
                 needs_qc = scan_in.get('needs_qc', True)
                 doc_res = scan_in.get('resources', list())
-                resources = [_doc.get('resource') for _doc in doc_res]
+                resources = [_doc.get('resource') for _doc in doc_res
+                             if _doc.get('required', True)]
                 status, qcstatus = self._check_xnat_cobj(
                     csess, scantypes, 'scan', nargs, resources, needs_qc)
                 if status == 0 or status == -1:
@@ -668,7 +669,8 @@ beginning of your file.'
             nargs = assr_in.get('nargs', False)
             needs_qc = assr_in.get('needs_qc', True)
             doc_res = assr_in.get('resources', list())
-            resources = [_doc.get('resource') for _doc in doc_res]
+            resources = [_doc.get('resource') for _doc in doc_res
+                         if _doc.get('required', True)]
             status, qcstatus = self._check_xnat_cobj(
                 csess, proctypes, 'assessor', nargs, resources, needs_qc)
             if status == 0 or status == -1:
@@ -718,7 +720,7 @@ beginning of your file.'
                         return 0, 'Missing {} on {}'.format(res, _type)
         return 1, None
 
-    def get_xnat_path(self, cobjs, resource, fpath=None):
+    def get_xnat_path(self, cobjs, resource, required=True, fpath=None):
         """Method to get the file path on XNAT for the scans
 
         :param cobjs: list of cobjs (assessor or scan) in dax.XnatUtils
@@ -741,13 +743,19 @@ resource/{4}'
             elif isinstance(cobj, XnatUtils.CachedImageScan):
                 label = obj_info['ID']
                 path_tmp = scan_tmp
-            x_path = path_tmp.format(obj_info['project_id'],
-                                     obj_info['subject_label'],
-                                     obj_info['session_label'],
-                                     label, resource)
-            if fpath:
-                x_path = '{}/files/{}'.format(x_path, fpath)
-            filepaths.append(x_path)
+            if resource in [res['label'] for res in cobj.get_resources()]:
+                x_path = path_tmp.format(obj_info['project_id'],
+                                         obj_info['subject_label'],
+                                         obj_info['session_label'],
+                                         label, resource)
+                if fpath:
+                    x_path = '{}/files/{}'.format(x_path, fpath)
+                filepaths.append(x_path)
+            else:
+                if required:
+                    msg = 'No resource {} found for {} in session {}.'
+                    LOGGER.debug(msg.format(resource, label,
+                                            obj_info['session_label']))
         return filepaths
 
     def get_cmds(self, assessor, jobdir):
@@ -817,13 +825,14 @@ resource/{4}'
             good_cobjs = XnatUtils.get_good_cscans(csess, sp_types, needs_qc)
         else:
             good_cobjs = XnatUtils.get_good_cassr(csess, sp_types, needs_qc)
-        for res_info in resources:
-            if 'varname' not in res_info.keys():
+        for res_l in resources:
+            if 'varname' not in res_l.keys():
                 LOGGER.warn("No Key 'varname' found for resource in YAML.")
             else:
-                _in = self.get_xnat_path(good_cobjs, res_info.get('resource'),
-                                         fpath=res_info.get('filepath', None))
-                self.inputs[res_info.get('varname')] = ','.join(_in)
+                _in = self.get_xnat_path(good_cobjs, res_l.get('resource'),
+                                         required=res_l.get('required', True),
+                                         fpath=res_l.get('filepath', None))
+                self.inputs[res_l.get('varname')] = ','.join(_in)
 
     def _get_xnat_procscan(self, cprocscan, resources):
         """Method to append XNAT cobj info to inputs for command.
