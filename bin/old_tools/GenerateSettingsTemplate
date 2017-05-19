@@ -95,15 +95,15 @@ def write_settings():
         priority = ARGS.p_order.split(",")
         p_mod = '{'
         p_proc = '{'
-        for ind,  project in enumerate(priority):
+        for ind, project in enumerate(priority):
             if ind == 0:
                 p_mod += '"%s": [],\n' % project
                 p_proc += '"%s": [],\n' % project
             else:
                 # 12 = length of proj_mod = {
-                p_mod += '%s"%s": [],\n' % (' '*12, project)
+                p_mod += '%s"%s": [],\n' % (' ' * 12, project)
                 # 13 = length of proj_proc = {
-                p_proc += '%s"%s": [],\n' % (' '*13, project)
+                p_proc += '%s"%s": [],\n' % (' ' * 13, project)
         p_mod = p_mod[:-2] + '}'
         p_proc = p_proc[:-2] + '}'
     else:
@@ -155,7 +155,9 @@ generated. Default: current directory.')
                       help='XNAT Host to run the settings on.')
     return argp.parse_args()
 
+
 if __name__ == '__main__':
+    print('Deprecated executable. Use dax_generator settings instead.')
     ARGS = parse_args()
 
     # Get a proper name from the input

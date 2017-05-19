@@ -14,8 +14,8 @@ INPUTS_FNAME = "inputs.csv"
 OUTPUTS_FNAME = "outputs.csv"
 GENSPIDER_FNAME = "genspider.sh"
 TEST_TEMPLATE = "python {spider} -a 'assessor_label' -d 'tmp_dir' <args> ..."
-GENERATE_TEMPLATE = "GenerateAutoSpider -n {name} -v {version} -i inputs.csv \
--o outputs.csv -c {script} -d ."
+GENERATE_TEMPLATE = "dax_generator autospider -n {name} -v {version} -i \
+inputs.csv -o outputs.csv -c {script} -d ."
 INPUTS_TYPE = {1: 'FILE', 2: 'DIR', 3: 'PATH', 4: 'STRING', 5: 'INT'}
 OUTPUTS_TYPE = {1: 'FILE', 2: 'DIR'}
 INPUTS_INFO = """
