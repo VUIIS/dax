@@ -1046,8 +1046,9 @@ def parse_args():
 
     :return: parser object parsed
     """
-    from argparse import ArgumentParser
-    parser = ArgumentParser(prog='dax', description=__description__)
+    from argparse import ArgumentParser, RawTextHelpFormatter
+    parser = ArgumentParser(prog='dax_generator', description=__description__,
+                            formatter_class=RawTextHelpFormatter)
     dax_parser = parser.add_subparsers(help='dax_generator commands',
                                        dest='command')
 
