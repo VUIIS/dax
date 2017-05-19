@@ -1786,7 +1786,8 @@ def get_good_cassr(csess, proctypes, needs_qc=True):
     for cassr in csess.assessors():
         usable_status = is_cassessor_usable(cassr)
         if is_cassessor_good_type(cassr, proctypes) and \
-           (not needs_qc or usable_status == 1):
+           (not needs_qc or usable_status == 1) and \
+           cassr.info()['procstatus'] != 'NEED_INPUTS':
             cassr_list.append(cassr)
     return cassr_list
 
