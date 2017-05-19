@@ -695,6 +695,7 @@ beginning of your file.'
             good_cobjs = XnatUtils.get_good_cscans(csess, sp_types, needs_qc)
         else:
             good_cobjs = XnatUtils.get_good_cassr(csess, sp_types, needs_qc)
+
         if not good_cobjs:
             msg = '{}: No {} {} found.'
             LOGGER.debug(msg.format(self.name, ','.join(sp_types), otype))

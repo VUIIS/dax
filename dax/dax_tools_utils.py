@@ -541,6 +541,7 @@ def testing(test_file, project, sessions, host=None, username=None, hide=False,
                              host=_host, user=_user))
         # set test object:
         tests.set_tobj(test_obj)
+
         # Make the temp dir:
         if not os.path.isdir(DAX_TEST_DIR):
             os.makedirs(DAX_TEST_DIR)
@@ -1720,7 +1721,6 @@ unknown (-1/0/1): %s" % state)
             self.inc_test()
             print("Launching tasks for %s - %s with writeonly ..."
                   % (project, ','.join(sessions)))
-            print('or issue here')
             tasks_list = self.launch_obj.get_tasks(
                 self.xnat, self.all_tasks, [project], ','.join(sessions))
             for cur_task in tasks_list:
