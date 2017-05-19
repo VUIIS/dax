@@ -753,11 +753,10 @@ resource/{4}'
                 if fpath:
                     x_path = '{}/files/{}'.format(x_path, fpath)
                 filepaths.append(x_path)
-            else:
-                if required:
-                    msg = 'No resource {} found for {} in session {}.'
-                    LOGGER.debug(msg.format(resource, label,
-                                            obj_info['session_label']))
+            elif required:
+                msg = 'No resource {} found for {} in session {}.'
+                LOGGER.debug(msg.format(resource, label,
+                                        obj_info['session_label']))
         return filepaths
 
     def get_cmds(self, assessor, jobdir):
@@ -798,7 +797,7 @@ resource/{4}'
             needs_qc = assr_in.get('needs_qc', True)
             resources = assr_in.get('resources', list())
             self._append_xnat_cobj(csess, proctypes, resources, needs_qc,
-                                   'scan')
+                                   'assessor')
 
         cmd = self.command.format(**self.inputs)
 
@@ -827,6 +826,7 @@ resource/{4}'
             good_cobjs = XnatUtils.get_good_cscans(csess, sp_types, needs_qc)
         else:
             good_cobjs = XnatUtils.get_good_cassr(csess, sp_types, needs_qc)
+
         for res_l in resources:
             if 'varname' not in res_l.keys():
                 LOGGER.warn("No Key 'varname' found for resource in YAML.")
