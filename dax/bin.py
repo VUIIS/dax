@@ -8,10 +8,13 @@ import imp
 import logging
 import os
 import redcap
+import yaml
 
+from . import Launcher
 from . import log
 from . import XnatUtils
 from .dax_settings import DAX_Settings
+from .errors import DaxError
 DAX_SETTINGS = DAX_Settings()
 
 
@@ -221,3 +224,123 @@ def set_dax_manager(record_data, field_prefix, start_end):
         key = dax_config[field_prefix + '_end_date']
         record_data[key] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
     return record_data
+
+
+def read_yaml_settings(yaml_file):
+    """
+    Method to read the settings yaml file and generate the launcher object.
+
+    :param yaml_file: path to yaml file defining the settings
+    :return: launcher object
+    """
+    if not os.path.isfile(yaml_file):
+        err = 'Path not found for {}'
+        raise DaxError(err.format(yaml_file))
+
+    with open(yaml_file, "r") as yaml_stream:
+        try:
+            doc = yaml.load(yaml_stream)
+        except yaml.ComposerError:
+            err = 'YAML File {} has more than one document. Please remove \
+any duplicate "---" if you have more than one. It should only be at the \
+beginning of your file.'
+            raise DaxError(err.format(yaml_file))
+
+        # Set Inputs from Yaml
+        check_default_keys(yaml_file, doc)
+
+        # Set attributs for settings:
+        attrs = doc.get('attrs')
+
+        # Read modules and processors:
+        mods = dict()
+        modules = doc.get('modules')
+        for mod_dict in modules:
+            mods[mod_dict.get('name')] = load_from_file(
+                mod_dict.get('filepath'), mod_dict.get('arguments'))
+        procs = dict()
+        processors = doc.get('processors')
+        for proc_dict in processors:
+            procs[proc_dict.get('name')] = load_from_file(
+                proc_dict.get('filepath'), proc_dict.get('arguments'))
+
+        # YAML processors:
+        yamlprocs = doc.get('yamlprocessors')
+
+        # project:
+        proj_mod = dict()
+        proj_proc = dict()
+        yaml_proc = dict()
+        projects = doc.get('projects')
+        for proj_dict in projects:
+            project = proj_dict.get('project')
+            if project:
+                # modules:
+                for mod_n in proj_dict.get('modules').split(','):
+                    proj_mod[project] = mods[mod_n]
+                # processors:
+                for proc_n in proj_dict.get('processors').split(','):
+                    proj_proc[project] = procs[proc_n]
+                # yaml_proc:
+                for yaml_n in proj_dict.get('yamlprocessors').split(','):
+                    yaml_proc[project] = [_yp for _yp in yamlprocs
+                                          if _yp.get('name') == yaml_n]
+
+        # set in attrs:
+        attrs['project_process_dict'] = proj_proc
+        attrs['project_modules_dict'] = proj_mod
+        attrs['yaml_dict'] = yaml_proc
+
+    return Launcher(**attrs)
+
+
+def check_default_keys(yaml_file, doc):
+    """ Static method to raise error if key not found in dictionary from
+    yaml file.
+    :param yaml_file: path to yaml file defining the processor
+    :param doc: doc dictionary extracted from the yaml file
+    """
+    for key in ['projects', 'attrs', 'modules', 'processors',
+                'yamlprocessors']:
+        raise_yaml_error_if_no_key(doc, yaml_file, key)
+
+
+def raise_yaml_error_if_no_key(doc, yaml_file, key):
+    """Method to raise an execption if the key is not in the dict
+    :param doc: dict to check
+    :param yaml_file: YAMLfile path
+    :param key: key to search
+    """
+    if key not in doc.keys():
+        err = 'YAML File {} does not have {} defined. See example.'
+        raise DaxError(err.format(yaml_file, key))
+
+
+def load_from_file(filepath, args):
+    """
+    Check if a file exists and if it's a python file
+    :param filepath: path to the file to test
+    :return: True the file pass the test, False otherwise
+    """
+    if not os.path.exists(filepath):
+        raise DaxError('File %s does not exists.' % filepath)
+
+    if filepath.endswith('.py'):
+        test = imp.load_source('test', filepath)
+        # Check if processor file
+        try:
+            return eval('test.{}(**args)'.format(test.__processor_name__))
+        except AttributeError:
+            pass
+
+        # Check if it's a module
+        try:
+            return eval('test.{}(**args)'.format(
+                os.path.basename(filepath)[:-3]))
+        except AttributeError:
+            pass
+
+        err = '[ERROR] Module or processor or myLauncher object NOT FOUND in \
+the python file {}.'
+        print(err.format(filepath))
+        return None
