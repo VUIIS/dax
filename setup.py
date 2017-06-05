@@ -77,6 +77,7 @@ if __name__ == '__main__':
                    'bin/Xnat_tools/Redcapreport',
                    'bin/Xnat_tools/Xnatcheck',
                    'bin/Xnat_tools/Xnatdownload',
+                   'bin/Xnat_tools/Xnatdl',
                    'bin/Xnat_tools/XnatDemographic',
                    'bin/Xnat_tools/Xnatinfo',
                    'bin/Xnat_tools/Xnatmirror',
