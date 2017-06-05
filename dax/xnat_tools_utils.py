@@ -417,7 +417,7 @@ def is_assessor_type(obj_type):
     :param obj_dict: dictionary to describe XNAT object parameters
     :return: boolean
     """
-    return 'xsiType' in obj_type.keys()
+    return 'xsiType' in obj_type.keys() or 'procstatus' in obj_type.keys()
 
 
 def get_obj_info(ind, nb, obj):
