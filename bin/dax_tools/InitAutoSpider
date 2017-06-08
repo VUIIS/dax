@@ -81,7 +81,7 @@ def parse_args():
                         help='Name for Spider. e.g. fMRIQA')
     parser.add_argument('-v', dest='version', default='1.0.0',
                         help='Spider version, format: X.Y.Z. Default: 1.0.0')
-    parser.add_argument('-d', dest='directory', default=None,
+    parser.add_argument('-d', dest='directory', default=os.getcwd(),
                         help="Directory where the folder will be created.")
     parser.add_argument('-e', dest='exe', default='bash',
                         choices=['bash', 'python', 'matlab', 'ruby'],
