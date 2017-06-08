@@ -587,13 +587,15 @@ Wrong label.'
         try:
             with get_interface(host=self.host) as xnat:
                 assessor = self.assr_handler.select_assessor(xnat)
-                dtype = DEFAULT_DATATYPE
-                if self.assr_handler.get_proctype() == 'FS':
-                    dtype = DEFAULT_FS_DATATYPE
-                former_status = assessor.attrs.get('%s/procstatus' % dtype)
-                if assessor.exists() and former_status == JOB_RUNNING:
-                    assessor.attrs.set('%s/procstatus' % dtype, status)
-                    self.print_msg('  - job status set to %s' % str(status))
+                if assessor.exists():
+                    dtype = DEFAULT_DATATYPE
+                    if self.assr_handler.get_proctype() == 'FS':
+                        dtype = DEFAULT_FS_DATATYPE
+                    former_status = assessor.attrs.get('%s/procstatus' % dtype)
+                    if former_status == JOB_RUNNING:
+                        assessor.attrs.set('%s/procstatus' % dtype, status)
+                        msg = '  - job status set to %s'
+                        self.print_msg(msg % str(status))
         except XnatAuthentificationError as e:
             print 'Failed to connect to XNAT. Error: ', e
             pass
