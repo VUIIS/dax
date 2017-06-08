@@ -1109,7 +1109,7 @@ def upload_assessors(xnat, projects):
                            assessor_label, str(datetime.now())))
 
         assessor_dict = get_assessor_dict(assessor_label, assessor_path)
-        if get_assessor_dict:
+        if assessor_dict:
             uploaded = upload_assessor(xnat, assessor_dict)
             if not uploaded:
                 mess = """    - Assessor label : {label}\n"""
