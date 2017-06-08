@@ -859,12 +859,10 @@ def is_complete(assessor_dict, procstatus):
     if procstatus == READY_TO_COMPLETE or procstatus == COMPLETE:
         eflag = os.path.join(assessor_dict['path'], _EMAILED_FLAG_FILE)
         open(eflag, 'w').close()
-        mess = """    - Assessor label : {label}\n"""
-        message = mess.format(label=assessor_dict['label'])
         LOGGER.warn('  -->Data already present on XNAT.\n')
-        return True, message
+        return True
     else:
-        return False, ''
+        return False
 
 
 def create_freesurfer_assessor(assessor_obj):
@@ -1313,19 +1311,19 @@ Missing args. 4 needed, %s found at line %s." % (str(len(row)), str(index)))
             raise Exception("error: doesn't recognize the file format for the \
 settings file. Please use either JSON/PYTHON/CSV format.")
     else:  # if not file, use the environment variables and options
-        host = os.environ['XNAT_HOST']
+        _host = os.environ['XNAT_HOST']
         username = None
         password = None
         projects = []
         if host:
-            host = host
+            _host = host
         if projects:
             projects = projects.split(',')
         if username:
             username = username
             if not password:
                 MSG = "Please provide the password for user <%s> on xnat(%s):"
-                password = getpass.getpass(prompt=MSG % (username, host))
+                password = getpass.getpass(prompt=MSG % (username, _host))
                 if not password:
                     raise Exception('error: the password entered was empty. \
 please provide a password')
@@ -1335,8 +1333,8 @@ please provide a password')
                 password = password
         else:
             netrc_obj = DAX_Netrc()
-            username, password = netrc_obj.get_login(host)
-        host_projs.append(dict(zip(DEFAULT_HEADER, [host, username, password,
+            username, password = netrc_obj.get_login(_host)
+        host_projs.append(dict(zip(DEFAULT_HEADER, [_host, username, password,
                                                     projects])))
     return host_projs
 
