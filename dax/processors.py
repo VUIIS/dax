@@ -10,7 +10,7 @@ from .errors import AutoProcessorError
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
-__all__ = ['Processor', 'ScanProcessor', 'SessionProcessor']
+__all__ = ['Processor', 'ScanProcessor', 'SessionProcessor', 'AutoProcessor']
 # Logger for logs
 LOGGER = logging.getLogger('dax')
 
