@@ -699,7 +699,11 @@ beginning of your file.'
         if not good_cobjs:
             msg = '{}: No {} {} found.'
             LOGGER.debug(msg.format(self.name, ','.join(sp_types), otype))
-            return -1, 'No {} found'.format(','.join(sp_types))
+            # Return NO DATA if scan and 0 if assessor
+            if otype == 'scan':
+                return -1, 'No {} found'.format(','.join(sp_types))
+            else:
+                return 0, 'No {} found'.format(','.join(sp_types))
         elif nargs is False and len(good_cobjs) > 1:
             msg = '{}: Too many {} {} found.'
             LOGGER.debug(msg.format(self.name, ','.join(sp_types),
