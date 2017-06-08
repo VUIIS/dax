@@ -846,7 +846,7 @@ inputs:
          - resource: # resource label
            varname: ares2
            required: False
-command: python {{spider_path}} --scan {{sres1}} --ass {{ares1},{{ares2}}
+command: python {{spider_path}} --scan {{sres1}} --ass {{ares1}},{{ares2}}
 attrs:
   suffix: # if suffix
   xsitype: proc:genProcData  # xsitype on xnat (proc:genProcData or fs:fsData)
@@ -1132,7 +1132,7 @@ generated. Default: current directory.')
     auto_proc_desc = "Generate your yaml file for Autoprocessor."
     auto_proc_parser = dax_parser.add_parser('autoprocessor',
                                              help=auto_proc_desc)
-    auto_proc_parser.add_argument('--name', dest='filename', required=True,
+    auto_proc_parser.add_argument('--name', dest='name', required=True,
                                   help='Name for your yaml file.')
     auto_proc_parser.add_argument('-d', dest='directory', default=None,
                                   help='Directory where the processor file \
