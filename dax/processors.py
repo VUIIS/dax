@@ -703,7 +703,7 @@ beginning of your file.'
         elif nargs is False and len(good_cobjs) > 1:
             msg = '{}: Too many {} {} found.'
             LOGGER.debug(msg.format(self.name, ','.join(sp_types),
-                                    '{}s'.otype))
+                                    '{}s'.format(otype)))
             return 0, 'Too many {} found'.format(','.join(sp_types))
 
         # Check resources if set:
