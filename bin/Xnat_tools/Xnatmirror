@@ -653,6 +653,11 @@ def write_xml(xml_str, file_path, clean_tags=True):
         if 'ID' in root.attrib:
             del root.attrib['ID']
 
+        # Remove sharing tags
+        tag = '{http://nrg.wustl.edu/xnat}sharing'
+        for child in root.findall(tag):
+            root.remove(child)
+
         # Remove out
         for child in root.findall('{http://nrg.wustl.edu/xnat}out'):
             root.remove(child)
