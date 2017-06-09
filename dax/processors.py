@@ -430,8 +430,9 @@ beginning of your file.'
             # Set Inputs from Yaml
             self._check_default_keys(yaml_file, doc)
             inputs = doc.get('inputs')
-            self.xnat_inputs = inputs.get('xnat')
+            attrs = doc.get('attrs')
             self.command = doc.get('command')
+            self.xnat_inputs = inputs.get('xnat')
             for key, value in inputs.get('default').items():
                 # If value is a key in command
                 k_str = '{{{}}}'.format(key)
@@ -445,11 +446,9 @@ beginning of your file.'
 
             # Getting proctype from Yaml
             self.proctype, self.version = XnatUtils.get_proctype(
-                self.inputs.get('spider_path'),
-                suffix=self.inputs.get('suffix', None))
+                self.inputs.get('spider_path'), attrs.get('suffix', None))
 
             # Set attributs:
-            attrs = doc.get('attrs')
             self.spider_path = self.inputs.get('spider_path')
             self.name = self.proctype
             self.walltime_str = attrs.get('walltime')
