@@ -62,7 +62,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
     lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
 
     # Run the updates
-    logger.info('running update, Start Time: %s' % str(datetime.now()))
+    logger.info('running launcher, Start Time: %s' % str(datetime.now()))
     try:
         settings.myLauncher.launch_jobs(lockfile_prefix, projects, sessions,
                                         writeonly, pbsdir,
@@ -71,7 +71,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
         logger.critical('Caught exception launching jobs in bin.launch_jobs')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
                                                                 e.message))
-    logger.info('finished update, End Time: %s' % str(datetime.now()))
+    logger.info('finished launcher, End Time: %s' % str(datetime.now()))
 
 
 def build(settings_path, logfile, debug, projects=None, sessions=None,
@@ -102,7 +102,8 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
     logger.info('running build, Start Time: %s' % str(datetime.now()))
     try:
         settings.myLauncher.build(lockfile_prefix, projects, sessions,
-                                  mod_delta=mod_delta, proj_lastrun=proj_lastrun)
+                                  mod_delta=mod_delta,
+                                  proj_lastrun=proj_lastrun)
     except Exception as e:
         logger.critical('Caught exception building Project in bin.build')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
@@ -135,7 +136,7 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
     lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
 
     # Run the update
-    logger.info('updating open tasks, Start Time: %s' % str(datetime.now()))
+    logger.info('updating tasks, Start Time: %s' % str(datetime.now()))
     try:
         settings.myLauncher.update_tasks(lockfile_prefix, projects, sessions)
     except Exception as e:
@@ -143,7 +144,7 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
         logger.critical('Exception Class %s with message %s' % (e.__class__,
                                                                 e.message))
 
-    logger.info('finished open tasks, End Time: %s' % str(datetime.now()))
+    logger.info('finished updating tasks, End Time: %s' % str(datetime.now()))
 
 
 def pi_from_project(project):

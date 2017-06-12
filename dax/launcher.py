@@ -55,7 +55,10 @@ def check_dir(dir_path):
 
 class Launcher(object):
     """ Launcher object to manage a list of projects from a settings file """
-    def __init__(self, project_process_dict, project_modules_dict,
+    def __init__(self,
+                 project_process_dict=dict(),
+                 project_modules_dict=dict(),
+                 yaml_dict=dict(),
                  priority_project=None,
                  queue_limit=DAX_SETTINGS.get_queue_limit(),
                  root_job_dir=DAX_SETTINGS.get_root_job_dir(),
@@ -82,8 +85,40 @@ class Launcher(object):
         """
         self.queue_limit = queue_limit
         self.root_job_dir = root_job_dir
-        self.project_process_dict = project_process_dict
-        self.project_modules_dict = project_modules_dict
+
+        # Processors:
+        if not isinstance(project_process_dict, dict):
+            err = 'project_process_dict set but it is not a dictionary with \
+project name as a key and list of processors objects as values.'
+            raise DaxLauncherError(err)
+        self.project_process_dict = (project_process_dict
+                                     if project_process_dict is not None
+                                     else dict())
+
+        # Modules:
+        if not isinstance(project_modules_dict, dict):
+            err = 'project_modules_dict set but it is not a dictionary with \
+project name as a key and list of processors objects as values.'
+            raise DaxLauncherError(err)
+        self.project_modules_dict = (project_modules_dict
+                                     if project_modules_dict is not None
+                                     else dict())
+
+        # YAML dict:
+        if not isinstance(yaml_dict, dict):
+            err = 'Yaml_files set but it is not a dictionary with project \
+name as a key and list of yaml filepaths as values.'
+            raise DaxLauncherError(err)
+        self.yaml_dict = yaml_dict if yaml_dict is not None else dict()
+        # Add processors to project_process_dict:
+        for project, yaml_files in yaml_dict.items():
+            for yaml_file in yaml_files:
+                proc = processors.AutoProcessor(yaml_file)
+                if project not in self.project_process_dict:
+                    self.project_process_dict[project] = [proc]
+                else:
+                    self.project_process_dict[project].append(proc)
+
         self.priority_project = priority_project
         self.job_email = job_email
         self.job_email_options = job_email_options
@@ -108,15 +143,6 @@ class Launcher(object):
             check_dir(os.path.join(res_dir, 'OUTLOG'))
             check_dir(os.path.join(res_dir, 'PBS'))
 
-        # Add empty lists for projects in one list but not the other
-        for proj in self.project_process_dict.keys():
-            if proj not in self.project_modules_dict:
-                self.project_modules_dict[proj] = list()
-
-        for proj in self.project_modules_dict.keys():
-            if proj not in self.project_process_dict:
-                self.project_process_dict[proj] = list()
-
         self.xnat_host = xnat_host
         if not self.xnat_host:
             self.xnat_host = os.environ['XNAT_HOST']
@@ -129,7 +155,7 @@ class Launcher(object):
         else:
             self.xnat_user = xnat_user
             if not xnat_pass:
-                msg = 'Please provide password for host and user <%s>: '
+                msg = 'Please provide password for host <%s> and user <%s>: '
                 self.xnat_pass = raw_input(msg % (self.xnat_host,
                                                   self.xnat_user))
             else:
@@ -169,8 +195,9 @@ class Launcher(object):
         if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
             msg = 'Loading task queue from: %s'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-            task_list = load_task_queue(status=task.NEED_TO_RUN, 
-                                        proj_filter=self.project_process_dict.keys())
+            task_list = load_task_queue(
+                status=task.NEED_TO_RUN,
+                proj_filter=self.project_process_dict.keys())
 
             msg = '%s tasks that need to be launched found'
             LOGGER.info(msg % str(len(task_list)))
@@ -310,7 +337,8 @@ cluster queue"
         if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
             msg = 'Loading task queue from: %s'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-            task_list = load_task_queue(proj_filter=self.project_process_dict.keys())
+            task_list = load_task_queue(
+                proj_filter=self.project_process_dict.keys())
 
             LOGGER.info('%s tasks found.' % str(len(task_list)))
 
@@ -400,22 +428,22 @@ cluster queue"
             for project_id in project_list:
                 LOGGER.info('===== PROJECT: %s =====' % project_id)
                 try:
-                    if ((proj_lastrun) and 
-                       (project_id in proj_lastrun) and 
+                    if ((proj_lastrun) and
+                       (project_id in proj_lastrun) and
                        (proj_lastrun[project_id] is not None)):
-                    	lastrun = proj_lastrun[project_id]
+                        lastrun = proj_lastrun[project_id]
                     else:
-                    	lastrun = None
+                        lastrun = None
 
                     self.build_project(xnat, project_id, lockfile_prefix,
-                                       sessions_local, mod_delta=mod_delta, lastrun=lastrun)
+                                       sessions_local,
+                                       mod_delta=mod_delta, lastrun=lastrun)
                 except Exception as E:
                     err1 = 'Caught exception building project %s'
                     err2 = 'Exception class %s caught with message %s'
                     LOGGER.critical(err1 % project_id)
                     LOGGER.critical(err2 % (E.__class__, E.message))
                     LOGGER.critical(traceback.format_exc())
-
 
         self.finish_script(flagfile, project_list, 1, 2, project_local)
 
@@ -441,8 +469,8 @@ cluster queue"
         #       modules, etc
 
         # Get lists of modules/processors per scan/exp for this project
-        proj_mods = self.project_modules_dict[project_id]
-        proj_procs = self.project_process_dict[project_id]
+        proj_mods = self.project_modules_dict.get(project_id, None)
+        proj_procs = self.project_process_dict.get(project_id, None)
         exp_mods, scan_mods = modules.modules_by_type(proj_mods)
         exp_procs, scan_procs = processors.processors_by_type(proj_procs)
 
@@ -473,15 +501,16 @@ cluster queue"
                                        str(last_up))
                     LOGGER.info(mess_str)
                     continue
-                    
+
             elif lastrun:
                 last_mod = datetime.strptime(sess_info['last_modified'][0:19],
                                              UPDATE_FORMAT)
-            	if last_mod < lastrun:
+                if last_mod < lastrun:
                     mess = "  + Session %s:skipping not modified since last run,\
  last_mod=%s, last_run=%s"
-                    LOGGER.info(mess % (sess_info['label'], str(last_mod), str(lastrun)))
-                    continue            
+                    LOGGER.info(mess % (sess_info['label'], str(last_mod),
+                                        str(lastrun)))
+                    continue
 
             elif lastmod_delta:
                 last_mod = datetime.strptime(sess_info['last_modified'][0:19],
@@ -785,7 +814,7 @@ in session %s'
         :param settings_filename: Settings file name for temp dir
         :return: None
         """
-        for mod in self.project_modules_dict[project_id]:
+        for mod in self.project_modules_dict.get(project_id, list()):
             try:
                 mod.prerun(settings_filename)
             except Exception as E:
@@ -805,7 +834,7 @@ in session %s'
         :param project_id: project ID on XNAT
         :return: None
         """
-        for mod in self.project_modules_dict[project_id]:
+        for mod in self.project_modules_dict.get(project_id, list()):
             try:
                 mod.afterrun(xnat, project_id)
             except Exception as E:
@@ -813,8 +842,8 @@ in session %s'
                 err2 = 'Exception class %s caught with message %s'
                 LOGGER.critical(err1 % project_id)
                 LOGGER.critical(err2 % (E.__class__, E.message))
-            	LOGGER.critical(traceback.format_exc())
-                
+                LOGGER.critical(traceback.format_exc())
+
         LOGGER.debug('\n')
 
     # Generic Methods
@@ -829,6 +858,10 @@ in session %s'
         :param start_end: starting timestamp (1) and ending timestamp (2)
         :return: None
         """
+        # Get default project list for XNAT out of the module/process dict
+        ulist = set(self.project_process_dict.keys() +
+                    self.project_modules_dict.keys())
+        project_list = sorted(ulist)
         if project_local:
             if ',' in project_local:
                 mess = """too much projects ID given to the option\
@@ -836,7 +869,7 @@ in session %s'
                 mess_str = mess.format(proj=project_local)
                 LOGGER.error(mess_str)
                 exit(1)
-            elif project_local in self.project_process_dict.keys():
+            elif project_local in project_list:
                 # Updating session for a specific project
                 project_list = [project_local]
             else:
@@ -850,10 +883,6 @@ The project is not part of the settings."""
             if not success:
                 LOGGER.warn('failed to get lock. Already running.')
                 exit(1)
-            # Get default project list for XNAT out of the module/process dict
-            ulist = set(self.project_process_dict.keys() +
-                        self.project_modules_dict.keys())
-            project_list = sorted(ulist)
             # Set the date on REDCAP for update starting
             bin.upload_update_date_redcap(project_list, type_update, start_end)
         return project_list
@@ -916,12 +945,12 @@ The project is not part of the settings."""
         task_list = list()
 
         if not project_list:
+            projects = self.project_process_dict.keys()
             # Priority:
             if self.priority_project:
-                projects = self.project_process_dict.keys()
                 project_list = self.get_project_list(projects)
             else:
-                project_list = list(self.project_process_dict.keys())
+                project_list = list(projects)
 
         # iterate projects
         for project_id in project_list:
@@ -949,7 +978,7 @@ The project is not part of the settings."""
         task_list = list()
 
         # Get lists of processors for this project
-        pp_dict = self.project_process_dict[project_id]
+        pp_dict = self.project_process_dict.get(project_id, None)
         sess_procs, scan_procs = processors.processors_by_type(pp_dict)
 
         # Get lists of assessors for this project
@@ -1163,18 +1192,18 @@ def load_task_queue(status=None, proj_filter=None):
     diskq_dir = os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ')
     results_dir = DAX_SETTINGS.get_results_dir()
 
-    for t in os.listdir(os.path.join(diskq_dir, 'BATCH')):        
+    for t in os.listdir(os.path.join(diskq_dir, 'BATCH')):
         # TODO:complete filtering by project/subject/session/type
         if proj_filter:
-          assr = XnatUtils.AssessorHandler(t)
-          if assr.get_project_id() not in proj_filter:
-            LOGGER.debug('ignoring:' + t)
-            continue
+            assr = XnatUtils.AssessorHandler(t)
+            if assr.get_project_id() not in proj_filter:
+                LOGGER.debug('ignoring:' + t)
+                continue
 
         LOGGER.debug('loading:' + t)
         task = ClusterTask(os.path.splitext(t)[0], results_dir, diskq_dir)
         LOGGER.debug('status = ' + task.get_status())
-        
+
         if not status or task.get_status() == status:
             LOGGER.debug('adding task to list:' + t)
             task_list.append(task)

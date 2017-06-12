@@ -288,12 +288,13 @@ def modules_by_type(mod_list):
     scan_mod_list = list()
 
     # Build list of processors by type
-    for mod in mod_list:
-        if issubclass(mod.__class__, ScanModule):
-            scan_mod_list.append(mod)
-        elif issubclass(mod.__class__, SessionModule):
-            sess_mod_list.append(mod)
-        else:
-            LOGGER.warn('unknown module type: %s' % mod)
+    if mod_list is not None:
+        for mod in mod_list:
+            if issubclass(mod.__class__, ScanModule):
+                scan_mod_list.append(mod)
+            elif issubclass(mod.__class__, SessionModule):
+                sess_mod_list.append(mod)
+            else:
+                LOGGER.warn('unknown module type: %s' % mod)
 
     return sess_mod_list, scan_mod_list

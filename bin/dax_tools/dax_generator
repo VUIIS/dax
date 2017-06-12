@@ -1,0 +1,1369 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Executable to build you sessions for a settings file describing which
+project on XNAT and which pipelines to run on those projects.
+"""
+
+import datetime
+from dax import spiders
+from dax import DAX_Settings
+import os
+import re
+
+
+__author__ = "Benjamin Yvernault"
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__description__ = """Dax executable to help generate templates for dax files:
+- module
+- spider
+- autospider
+- processor
+- autoprocessor
+- settings
+"""
+
+MO_TEMPLATE = '''"""Module to do: {purpose}.
+
+Author:         {author}
+contact:        {email_addr}
+Module name:    Module_{name}
+Creation date:  {now}
+Purpose:        {purpose}
+"""
+
+# Python packages import
+import os
+import logging
+from dax import XnatUtils, ScanModule, SessionModule
+
+__author__ = "{author}"
+__email__ = "{email_addr}"
+__purpose__ = "{purpose}"
+__module_name__ = "Module_{name}"
+__modifications__ = """{now} - Original write"""
+
+# set-up logger for printing statements
+LOGGER = logging.getLogger('dax')
+
+# Default values for arguments:
+# EDIT PARAMETERS FOR YOUR MODULE CASE
+DEFAULT_TPM_PATH = '/tmp/{name}_temp/'
+DEFAULT_MODULE_NAME = '{name}'
+DEFAULT_TEXT_REPORT = 'ERROR/WARNING for {name} :\\n'
+'''
+
+SCAN_MO_TEMPLATE = MO_TEMPLATE + '''
+
+class Module_{name}(ScanModule):
+    """Module class for {name} that runs on a scan.
+
+    :param mod_name: module name
+    :param directory: temp directory for the module temporary files
+    :param email: email address to send error/warning to
+    :param text_report: title for the report
+    #
+    # ADD MORE PARAMETERS AS NEEDED HERE AND IN __INIT__
+    #
+    """
+
+    def __init__(self, mod_name=DEFAULT_MODULE_NAME,
+                 directory=DEFAULT_TPM_PATH, email=None,
+                 text_report=DEFAULT_TEXT_REPORT):
+        """Entry point for Module_{name} Class."""
+        super(Module_{name},
+              self).__init__(mod_name, directory, email,
+                             text_report=text_report)
+        #
+        # ADD MORE PARAMETERS AS NEEDED HERE LIKE self.param = param
+        #
+
+    def prerun(self, settings_filename=''):
+        """Method overridden from base-class.
+
+        Method that runs at the beginning, before looping over the sessions
+        in a project on XNAT
+
+        :param settings_filename: settings filename to set the temporary folder
+        """
+        # make temporary directory using the settings filename
+        self.make_dir(settings_filename)
+
+        #
+        # ADD CODE HERE IF YOU NEED TO EXECUTE SOMETHING BEFORE THE LOOP
+        #
+
+    def afterrun(self, xnat, project):
+        """Method overridden from base-class.
+
+        Method that runs at the end, after looping over the sessions
+        in a project on XNAT
+
+        :param xnat: interface to xnat object (XnatUtils.get_interface())
+        :param project: project ID/label on XNAT
+        """
+        #
+        # ADD CODE HERE IF YOU NEED TO EXECUTE SOMETHING AFTER THE LOOP
+        #
+
+        # send report
+        if self.send_an_email:
+            self.send_report()
+
+        # clean the directory created
+        try:
+            os.rmdir(self.directory)
+        except:
+            warn = '{name} -- afterrun -- %s not empty. Could not delete it.'
+            LOGGER.warn(warn % self.directory)
+
+    def needs_run(self, cscan, xnat):
+        """Method overridden from base-class.
+
+        Method that runs before each loop step to check
+        if we need to run on this scan
+
+        :param cscan: CacheScan object from XnatUtils
+        :param xnat: interface to xnat object (XnatUtils.get_interface())
+        :return: boolean, True if needs to run
+        """
+        #
+        # CODE TO CHECK IF THE MODULE NEEDS TO RUN FOR THE SCAN DEFINE BY CSCAN
+        #
+        # EXAMPLE: CHECK IF NIFTI EXISTS AND IF THERE IS A DICOM FOR DCM2NII
+        # # Variables:
+        # scan_info = cscan.info()
+        #
+        # # Check output
+        # if XnatUtils.has_resource(cscan, 'NIFTI'):
+        #     LOGGER.debug('Has NIFTI')
+        #     return False
+        # # Check input
+        # if not XnatUtils.has_resource(cscan, 'DICOM'):
+        #     LOGGER.debug('no DICOM resource')
+        #     return False
+
+        return True
+
+    def run(self, scan_info, scan_obj):
+        """Method: {purpose}.
+
+        Lines of code that will be executed for the scan
+
+        :param scan_info: python dictionary with information on the scan
+                          (see output of XnatUtils.list_scans)
+        :param scan_obj: pyxnat Scan object
+        """
+        #
+        # CODE TO EXECUTE ON THE SCAN (E.G: GENERATE NIFTI/PREVIEW)
+        #
+
+        # clean temporary folder
+        self.clean_directory()
+'''
+
+SESSION_MO_TEMPLATE = MO_TEMPLATE + '''
+# Resource name set on session to know that the module ran
+RESOURCE_FLAG_NAME = 'Module_{name}'
+
+
+class Module_{name}(SessionModule):
+    """Module class for {name} that runs on a session.
+
+    :param mod_name: module name
+    :param directory: temp directory for the module temporary files
+    :param email: email address to send error/warning to
+    :param text_report: title for the report
+    #
+    # ADD MORE PARAMETERS AS NEEDED HERE AND IN __INIT__
+    #
+    """
+
+    def __init__(self, mod_name=DEFAULT_MODULE_NAME,
+                 directory=DEFAULT_TPM_PATH, email=None,
+                 text_report=DEFAULT_TEXT_REPORT):
+        """Entry point for Module_{name} Class."""
+        super(Module_{name},
+              self).__init__(mod_name, directory, email,
+                             text_report=text_report)
+        #
+        # ADD MORE PARAMETERS AS NEEDED HERE LIKE self.param = param
+        #
+
+    def prerun(self, settings_filename=''):
+        """Method overridden from base-class.
+
+        Method that runs at the beginning, before looping over the sessions
+        in a project on XNAT
+
+        :param settings_filename: settings filename to set the temporary folder
+        """
+        # make temporary directory using the settings filename
+        self.make_dir(settings_filename)
+
+        #
+        # ADD CODE HERE IF YOU NEED TO EXECUTE SOMETHING BEFORE THE LOOP
+        #
+
+    def afterrun(self, xnat, project):
+        """Method overridden from base-class.
+
+        Method that runs at the end, after looping over the sessions
+        in a project on XNAT
+
+        :param xnat: interface to xnat object (XnatUtils.get_interface())
+        :param project: project ID/label on XNAT
+        """
+        #
+        # ADD CODE HERE IF YOU NEED TO EXECUTE SOMETHING AFTER THE LOOP
+        #
+
+        # send report
+        if self.send_an_email:
+            self.send_report()
+
+        # clean the directory created
+        try:
+            os.rmdir(self.directory)
+        except:
+            warn = '{name} -- afterrun -- %s not empty. Could not delete it.'
+            LOGGER.warn(warn % self.directory)
+
+    def needs_run(self, csess, xnat):
+        """Method overridden from base-class.
+
+        Method that runs before each loop step to check if we need to run
+        on this session
+
+        :param csess: CacheSession object from XnatUtils
+        :param xnat: interface to xnat object (XnatUtils.get_interface())
+        :return: boolean, True if needs to run
+        """
+
+        #
+        # CODE TO CHECK IF THE MODULE NEEDS TO RUN FOR THE SESSION DEFINE \
+BY CSESS
+        # FOR SESSION MODULE, SET A RESOURCE ON SESSION WITH FLAG NAME
+        #
+
+        return self.has_flag_resource(csess, RESOURCE_FLAG_NAME)
+
+    def run(self, session_info, session_obj):
+        """Method: {purpose}.
+
+        Lines of code that will be executed for the session
+
+        :param session_info: python dictionary with information on the session
+                             (see output of XnatUtils.list_sessions)
+        :param session_obj: pyxnat Session object
+        """
+        #
+        # CODE TO EXECUTE ON THE SESSION (E.G: SET SCAN TYPE)
+        #
+
+        # clean temporary folder
+        self.clean_directory()
+
+        # create the flag resource on the session
+        session_obj.resource(RESOURCE_FLAG_NAME).create()
+'''
+
+SP_TEMPLATE = '''"""Spider_{name}.
+
+Author:         {author}
+contact:        {email_addr}
+Spider name:    {name}
+Spider version: {version}
+Creation date:  {now}
+Purpose:        {purpose}
+"""
+
+# Python packages import
+import os
+import sys
+from dax import spiders, ScanSpider, SessionSpider
+
+__author__ = "{author}"
+__email__ = "{email_addr}"
+__purpose__ = "{purpose}"
+__spider_name__ = "{name}"
+__version__ = "{version}"
+__modifications__ = """{now} - Original write"""
+
+'''
+
+SCAN_SP_TEMPLATE = SP_TEMPLATE + '''
+def parse_args():
+    """Argument parser for the spider input variables.
+
+    by default (set in get_session_argparser):
+        -p       : proj_label
+        -s       : subj_label
+        -e       : sess_label
+        -c       : scan_label
+        -d       : temp_dir
+        --suffix : suffix (suffix for assessor proctype on XNAT)
+        --host : host for XNAT (default: XNAT_HOST env variable)
+        --user : user on XNAT (default: XNAT_USER env variable)
+    your arguments:
+        ...
+
+    :return: argument parser object created by parse_args()
+    """
+    ap = spiders.get_scan_argparser("{name}", __purpose__)
+
+    #
+    # ADD YOUR OTHER OPTIONS FOR THIS SPECIFIC SPIDER
+    # example to add one options:
+    # ap.add_argument("--option", dest="option_id", default=None,
+    #                 help="Option description.", required=True)
+    #
+
+    return ap.parse_args()
+
+
+class Spider_{name}(ScanSpider):
+    """Scan Spider: Spider_{name}
+
+    :param spider_path: spider file path
+    :param jobdir: directory for temporary files
+    :param xnat_project: project ID on XNAT
+    :param xnat_subject: subject label on XNAT
+    :param xnat_session: experiment label on XNAT
+    :param xnat_scan: scan label on XNAT
+
+    #
+    # ADD MORE PARAMETERS AS NEEDED HERE AND IN __INIT__
+    #
+
+    :param xnat_host: host for XNAT if not set in environment variables
+    :param xnat_user: user for XNAT if not set in environment variables
+    :param xnat_pass: password for XNAT if not set in environment variables
+    :param suffix: suffix to the assessor creation
+    """
+
+    def __init__(self, spider_path, jobdir,
+                 xnat_project, xnat_subject, xnat_session, xnat_scan,
+                 xnat_host=None, xnat_user=None, xnat_pass=None,
+                 suffix="", subdir=True, skip_finish=False):
+        """Entry point for Spider_{name} Class."""
+        super(Spider_{name},
+              self).__init__(spider_path, jobdir, xnat_project, xnat_subject,
+                             xnat_session, xnat_scan, xnat_host, xnat_user,
+                             xnat_pass, suffix, subdir, skip_finish)
+        # Inputs to download from XNAT specified by:
+        #   type: 'scan' or 'assessor' or 'session' or 'subject' or 'project'
+        #   label: label on xnat for the object, e.g: '0002' for a scan
+        #   resource: label of the resource on xnat, e.g: NIFTI
+        #   dir (optional): directory where to download the data
+        #   scan (optional): if using an scan assessor and giving just the
+        #                    proctype to the label key, generate the
+        #                    assessor_label string.
+        self.inputs = [
+            {{'type':, 'label':, 'resource': }},
+            {{'type':, 'label':, 'resource': }},
+        ]
+        self.pdf_final = os.path.join(
+                self.jobdir, 'Report_{name}_%s_%s.pdf' % (self.xnat_session,
+                                                          self.xnat_scan))
+
+    def pre_run(self):
+        """Method to download data from XNAT."""
+        # Download inputs specified by self.inputs
+        self.download_inputs()
+        # Or write your own code to download data
+
+    def run(self):
+        """Method running the process for the spider on the inputs data."""
+        # Run command define by self.cmd_args
+        matlab_template = """
+addpath('$mpath');
+function_to_call('$input1', '$input2', $input3);"""
+        self.cmd_args = {{
+            'exe': 'matlab',
+            'template': matlab_template,
+            'args': {{'input1': self.data['0002']['NIFTI'],
+                     'input2': self.data['0003']['NIFTI'],
+                     'input3': 10,
+                     'mpath': '/path',
+                     }}
+        }}
+        self.run_cmd_args()
+        # Or write your own code to run your process in this method
+
+    def finish(self):
+        """Method to copy the results in dax.RESULTS_DIR."""
+        results_dict = {{'PDF': self.pdf_final,
+                        #
+                        # ADD OTHER RESULTS YOU WANT TO SAVE
+                        #
+                        }}
+        self.upload_dict(results_dict)
+        self.end()
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    # generate spider object:
+    spider_obj = Spider_{name}(
+                    spider_path=sys.argv[0],
+                    jobdir=args.temp_dir,
+                    xnat_project=args.proj_label,
+                    xnat_subject=args.subj_label,
+                    xnat_session=args.sess_label,
+                    xnat_scan=args.scan_label,
+                    xnat_host=args.host,
+                    xnat_user=args.user,
+                    xnat_pass=None,
+                    suffix=args.suffix,
+                    subdir=args.subdir,
+                    skip_finish=args.skipfinish)
+    # print some information before starting
+    spider_obj.print_init(args, "{author}", "{email_addr}")
+
+    # Pre-run method to download data from XNAT
+    spider_obj.pre_run()
+
+    # Run method
+    spider_obj.run()
+
+    # Finish method to copy results
+    if not spider_obj.skipfinish:
+        spider_obj.finish()
+'''
+
+SESSION_SP_TEMPLATE = SP_TEMPLATE + '''
+def parse_args():
+    """Argument parser for the spider input variables.
+
+    by default (set in get_session_argparser):
+        -p       : proj_label
+        -s       : subj_label
+        -e       : sess_label
+        -d       : temp_dir
+        --suffix : suffix (suffix for assessor proctype on XNAT)
+        --host : host for XNAT (default: XNAT_HOST env variable)
+        --user : user on XNAT (default: XNAT_USER env variable)
+    your arguments:
+        ...
+
+    :return: argument parser object created by parse_args()
+    """
+    ap = spiders.get_session_argparser("{name}", __purpose__)
+
+    #
+    # ADD YOUR OTHER OPTIONS FOR THIS SPECIFIC SPIDER
+    # example to add one options:
+    # ap.add_argument("--option", dest="option_id", default=None,
+    #                 help="Option description.", required=True)
+    #
+
+    return ap.parse_args()
+
+
+class Spider_{name}(SessionSpider):
+    """Session Spider: Spider_{name}.
+
+    :param spider_path: spider file path
+    :param jobdir: directory for temporary files
+    :param xnat_project: project ID on XNAT
+    :param xnat_subject: subject label on XNAT
+    :param xnat_session: experiment label on XNAT
+
+    #
+    # ADD MORE PARAMETERS AS NEEDED HERE AND IN __INIT__
+    #
+
+    :param xnat_host: host for XNAT if not set in environment variables
+    :param xnat_user: user for XNAT if not set in environment variables
+    :param xnat_pass: password for XNAT if not set in environment variables
+    :param suffix: suffix to the assessor creation
+    """
+
+    def __init__(self, spider_path, jobdir,
+                 xnat_project, xnat_subject, xnat_session,
+                 xnat_host=None, xnat_user=None, xnat_pass=None,
+                 suffix="", subdir=True, skip_finish=False):
+        """Entry point for Spider_{name} Class."""
+        super(Spider_{name},
+              self).__init__(spider_path, jobdir,
+                             xnat_project, xnat_subject, xnat_session,
+                             xnat_host, xnat_user, xnat_pass,
+                             suffix, subdir, skip_finish)
+        # Inputs to download from XNAT specified by:
+        #   type: 'scan' or 'assessor' or 'session' or 'subject' or 'project'
+        #   label: label on xnat for the object, e.g: '0002' for a scan
+        #   resource: label of the resource on xnat, e.g: NIFTI
+        #   dir (optional): directory where to download the data
+        #   scan (optional): if using an scan assessor and giving just the
+        #                    proctype to the label key, generate the
+        #                    assessor_label string.
+        self.inputs = [
+            {{'type':, 'label':, 'resource': }},
+            {{'type':, 'label':, 'resource': }},
+        ]
+        self.pdf_final = os.path.join(
+                self.jobdir, 'Report_{name}_%s.pdf' % self.xnat_session)
+
+    def pre_run(self):
+        """Method to download data from XNAT."""
+        # Download inputs specified by self.inputs
+        self.download_inputs()
+        # Or write your own code to download data
+
+    def run(self):
+        """Method running the process for the spider on the inputs data."""
+        # Run command define by self.cmd_args
+        matlab_template = """
+addpath('$mpath');
+function_to_call('$input1', '$input2', $input3);"""
+        self.cmd_args = {{
+            'exe': 'matlab',
+            'template': matlab_template,
+            'args': {{'input1': self.data['0002']['NIFTI'],
+                     'input2': self.data['0003']['NIFTI'],
+                     'input3': 10,
+                     'mpath': '/path',
+                     }}
+        }}
+        self.run_cmd_args()
+        # Or write your own code to run your process in this method
+
+    def finish(self):
+        """Method to copy the results in dax.RESULTS_DIR."""
+        results_dict = {{'PDF': self.pdf_final,
+                        #
+                        # ADD OTHER RESULTS YOU WANT TO SAVE
+                        #
+                        }}
+        self.upload_dict(results_dict)
+        self.end()
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    # generate spider object:
+    spider_obj = Spider_{name}(
+                    spider_path=sys.argv[0],
+                    jobdir=args.temp_dir,
+                    xnat_project=args.proj_label,
+                    xnat_subject=args.subj_label,
+                    xnat_session=args.sess_label,
+                    xnat_host=args.host,
+                    xnat_user=args.user,
+                    xnat_pass=None,
+                    suffix=args.suffix,
+                    subdir=args.subdir,
+                    skip_finish=args.skipfinish)
+    # print some information before starting
+    spider_obj.print_init(args, "{author}", "{email_addr}")
+
+    # Pre-run method to download data from XNAT
+    spider_obj.pre_run()
+
+    # Run method
+    spider_obj.run()
+
+    # Finish method to copy results
+    if not spider_obj.skipfinish:
+        spider_obj.finish()
+'''
+
+AUTO_SP_TEMPLATE = '''# This file generated by GenerateAutoSpider
+from dax import AutoSpider
+
+name = '{name}'
+
+version = '{version}'
+
+exe_lang = '{exe_lang}'
+
+inputs = {inputs}
+
+outputs = {outputs}
+
+code = r"""{code}"""
+
+if __name__ == '__main__':
+    spider = AutoSpider(
+        name,
+        inputs,
+        outputs,
+        code,
+        version=version,
+        exe_lang=exe_lang,
+    )
+
+    spider.go()
+'''
+
+PR_TEMPLATE = '''"""Processor associated to Spider_{name}.
+
+Author:         {author}
+contact:        {email_addr}
+Processor name: Processor_{name}
+Creation date:  {now}
+Purpose:        {purpose}
+"""
+
+# Python packages import
+import os
+import logging
+from dax import XnatUtils, ScanProcessor, SessionProcessor
+
+__author__ = "{author}"
+__email__ = "{email_addr}"
+__purpose__ = "{purpose}"
+__processor_name__ = "Processor_{name}"
+__modifications__ = """{now} - Original write"""
+
+# set-up logger for printing statements
+LOGGER = logging.getLogger('dax')
+
+# Default values for arguments:
+# EDIT PARAMETERS FOR YOUR SPIDER CASE (SPIDER_PATH, WALLTIME, etc...)
+DEFAULT_SPIDER_PATH = os.path.join(SPIDER_PATH, 'Spider_{name}_v1_0_0.py')
+DEFAULT_WALLTIME = '01:00:00'
+DEFAULT_MEM = 2048
+'''
+
+SCAN_PR_TEMPLATE = PR_TEMPLATE + '''
+DEFAULT_SCAN_TYPES = [] # ADD SCAN TYPES
+
+# Format for the spider command line
+SPIDER_FORMAT = """python {{spider}} \\
+-p {{proj}} \\
+-s {{subj}} \\
+-e {{sess}} \\
+-c {{scan}} \\
+-d {{dir}} \\
+--suffix "{{suffix_proc}}"
+"""
+
+
+class Processor_{name}(ScanProcessor):
+    """Processor class for {name} that runs on a scan.
+
+    :param spider_path: spider path on the system
+    :param version: version of the spider
+    :param walltime: walltime required by the spider
+    :param mem_mb: memory in Mb required by the spider
+    :param scan_types: scan types on XNAT that the spider should run on
+
+    #
+    # ADD MORE PARAMETERS AS NEEDED HERE AND IN __INIT__
+    #
+
+    :param suffix: suffix to the spider
+    """
+
+    def __init__(self, spider_path=DEFAULT_SPIDER_PATH, version=None,
+                 walltime=DEFAULT_WALLTIME, mem_mb=DEFAULT_MEM,
+                 scan_types=DEFAULT_SCAN_TYPES, suffix_proc=''):
+        """Entry point for Processor_{name} Class."""
+        super(Processor_{name},
+              self).__init__(scan_types, walltime, mem_mb, spider_path,
+                             version, suffix_proc=suffix_proc)
+        #
+        # ADD MORE PARAMETERS AS NEEDED HERE LIKE self.param = param
+        #
+
+    def has_inputs(self, cscan):
+        """Method overridden from base class.
+
+        By definition:
+            status = 0  -> NEED_INPUTS,
+            status = 1  -> NEED_TO_RUN
+            status = -1 -> NO_DATA
+            qcstatus needs a value only when -1 or 0.
+        You need to set qcstatus to a short string that explain
+        why it's no ready to run. e.g: No NIFTI
+
+        :param cscan: object cscan define in dax.XnatUtils
+                      (see XnatUtils in dax for information)
+        :return: status, qcstatus
+        """
+
+        #
+        # CODE TO CHECK IF THE PROCESS HAS THE INPUTS NEEDED FROM XNAT
+        # CHECK FUNCTION FROM XnatUtils IN dax:
+        #  get_good_cscans / has_resource / etc...
+        #  get_good_cassr / is_cassessor_good_type / etc...
+        #
+        # EXAMPLE:
+        #  if XnatUtils.is_cscan_unusable(cscan):
+        #      return -1, 'Scan unusable'
+        #
+        #  if XnatUtils.has_resource(cscan, 'NIFTI'):
+        #      return 1, None
+        #
+        #  LOGGER.debug('{name}: No NIFI found.')
+        #  return 0, 'No NIFTI'
+        #
+
+        return status, qcstatus
+
+    def get_cmds(self, assessor, jobdir):
+        """Method to generate the spider command for cluster job.
+
+        :param assessor: pyxnat assessor object
+        :param jobdir: jobdir where the job's output will be generated
+        :return: command to execute the spider in the job script
+        """
+        proj_label = assessor.parent().parent().parent().label()
+        subj_label = assessor.parent().parent().label()
+        sess_label = assessor.parent().label()
+        assr_label = assessor.label()
+        scan_label = assr_label.split('-x-')[3]
+
+        #
+        # ADD CUSTOM PARAMETERS TO THE SPIDER TEMPLATE \
+(don't forgot the SPIDER_FORMAT (top))
+        #
+
+        cmd = SPIDER_FORMAT.format(spider=self.spider_path,
+                                   proj=proj_label,
+                                   subj=subj_label,
+                                   sess=sess_label,
+                                   scan=scan_label,
+                                   dir=jobdir,
+                                   suffix_proc=self.suffix_proc)
+
+        return [cmd]
+'''
+
+SESSION_PR_TEMPLATE = PR_TEMPLATE + '''
+# Format for the spider command line
+SPIDER_FORMAT = """python {{spider}} \\
+-p {{proj}} \\
+-s {{subj}} \\
+-e {{sess}} \\
+-d {{dir}} \\
+--suffix "{{suffix_proc}}"
+"""
+
+
+class Processor_{name}(SessionProcessor):
+    """Processor class for {name} that runs on a session.
+
+    :param spider_path: spider path on the system
+    :param version: version of the spider
+    :param walltime: walltime required by the spider
+    :param mem_mb: memory in Mb required by the spider
+    #
+    # ADD MORE PARAMETERS AS NEEDED HERE AND IN THE __INIT__
+    #
+    :param suffix: suffix to the spider
+    """
+
+    def __init__(self, spider_path=DEFAULT_SPIDER_PATH, version=None,
+                 walltime=DEFAULT_WALLTIME, mem_mb=DEFAULT_MEM,
+                 suffix_proc=''):
+        """Entry point for Processor_{name} Class."""
+        super(Processor_{name},
+              self).__init__(walltime, mem_mb, spider_path, version,
+                             suffix_proc=suffix_proc)
+        #
+        # ADD MORE PARAMETERS AS NEEDED HERE LIKE self.param = param
+        #
+
+    def has_inputs(self, csess):
+        """Method overridden from base class.
+
+        By definition:
+            status = 0  -> NEED_INPUTS,
+            status = 1  -> NEED_TO_RUN
+            status = -1 -> NO_DATA
+            qcstatus needs a value only when -1 or 0.
+        You need to set qcstatus to a short string that explain
+        why it's no ready to run. e.g: No NIFTI
+
+        :param csess: object csess define in dax.XnatUtils
+                      (see XnatUtils in dax for information)
+        :return: status, qcstatus
+        """
+
+        #
+        # CODE TO CHECK IF THE PROCESS HAS THE INPUTS NEEDED FROM XNAT
+        # CHECK FUNCTION FROM XnatUtils IN dax:
+        #  get_good_cscans / has_resource / etc...
+        #  get_good_cassr / is_cassessor_good_type / etc...
+        #
+
+        return status, qcstatus
+
+    def get_cmds(self, assessor, jobdir):
+        """Method to generate the spider command for cluster job.
+
+        :param assessor: pyxnat assessor object
+        :param jobdir: jobdir where the job's output will be generated
+        :return: command to execute the spider in the job script
+        """
+        proj_label = assessor.parent().parent().parent().label()
+        subj_label = assessor.parent().parent().label()
+        sess_label = assessor.parent().label()
+
+        #
+        # ADD CUSTOM PARAMETERS TO THE SPIDER TEMPLATE \
+(don't forgot the SPIDER_FORMAT (top))
+        #
+
+        cmd = SPIDER_FORMAT.format(spider=self.spider_path,
+                                   proj=proj_label,
+                                   subj=subj_label,
+                                   sess=sess_label,
+                                   dir=jobdir)
+
+        return [cmd]
+'''
+
+AUTO_PR_TEMPLATE = '''---
+inputs:
+  # Default inputs for the spider
+  default:
+    spider_path: {spider_path}
+    # add other variables for your spider. E.g:
+    # matlab_code: /.../script.m
+  # All inputs related to XNAT on a session (scans or assessors)
+  xnat:
+    # all scans needed
+    scans:
+      - scan1:
+        types: # scan types to search
+        needs_qc: # if needs to check the quality of the scan, def: True
+        resources:
+          - resource: # resource label
+            varname: res1 # varname in the command line
+    # all assessors needed
+    assessors:
+     - assessor1:
+       proctypes: # proctypes to search
+       needs_qc: # if needs to check the quality of the assessor, def: True
+       resources:
+         - resource: # resource label
+           varname: ares1
+         - resource: # resource label
+           varname: ares2
+           required: False
+command: python {{spider_path}} --scan {{sres1}} --ass {{ares1}},{{ares2}}
+attrs:
+  suffix: # if suffix
+  xsitype: proc:genProcData  # xsitype on xnat (proc:genProcData or fs:fsData)
+  walltime: 01:00:00
+  memory: 3850
+  ppn: 4
+  type: # session or scan
+  #if type = scan, you need to add scan_nb pointing to one scan
+  #scan_nb: scan1
+
+
+# All default inputs will be convert to --varname value when you define an
+# input as: varname: value if you don't put the varname in the command.
+# if the value is not set, the options is not used.
+# E.G: is_ct: False, it won't add to your command line: --is_ct. In the other
+# hand, is_ct: True, will add to your command line --is_ct
+'''
+
+DAX_SETTINGS = DAX_Settings()
+DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
+DEFAULT_QUEUE_LIMIT = DAX_SETTINGS.get_queue_limit()
+
+SE_TEMPLATE = '''"""Settings_{name}.
+
+Author: {author}
+contact: {email_addr}
+Settings File name: {name}
+Creation date: {now}
+Purpose: Settings file to describe the modules/processors for the project(s)
+"""
+
+# Python packages import:
+from dax import Launcher
+
+# header:
+__author__ = "{author}"
+__email__ = "{email_addr}"
+__purpose__ = "Settings file to describe the modules/processors for \\
+the project(s)"
+__settings_name__ = "{name}"
+__modifications__ = "{now} - Original write"
+
+# Arguments for Launcher:
+EMAIL = "{email_addr}"
+QUEUE_LIMIT = {q_limit}
+PRIORITY_ORDER = {p_order}  # CHANGE THE ORDER OF PRIORITY FOR YOUR PROJECT(S)
+EMAIL_OPTS = "{e_opts}"
+XNAT_HOST = "{host}"
+
+# Modules
+
+#
+# DEFINE THE MODULES YOU WANT TO RUN FOR YOUR PROJECT(S).
+# E.G: VUSTP_Module_dcm2nii = Module_dcm2nii(directory="/tmp/dcm2nii_phillips")
+#
+
+# Processors
+
+#
+# DEFINE THE PROCESSORS YOU WANT TO RUN FOR YOUR PROJECT(S).
+# E.G: VUSTP_1_Processor_fMRIQA = Processor_fMRIQA(mem_mb="4096", \
+version="2.0.0")
+#
+
+# Associate Project with modules/processors
+# modules
+# ADD THE MODULES FOR EACH PROJECT OR LEAVE IT EMPTY
+proj_mod = {p_mod}
+
+# processors
+# ADD THE PROCESSORS FOR EACH PROJECT OR LEAVE IT EMPTY
+proj_proc = {p_proc}
+
+# Launcher
+myLauncher = Launcher(proj_proc, proj_mod, priority_project=PRIORITY_ORDER,
+                      job_email=EMAIL, job_email_options=EMAIL_OPTS,
+                      queue_limit=QUEUE_LIMIT, xnat_host=XNAT_HOST)
+'''
+
+
+def write_module(args, module_path, templates):
+    """Write the Module.py with the proper template.
+
+    :param args: args from script
+    :param module_path: path to write module file
+    :param templates: template to use (scan or session)
+    :return: None
+    """
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    module_code = templates.format(author=args.author,
+                                   email_addr=args.email,
+                                   name=args.name,
+                                   now=now_str,
+                                   purpose=args.purpose)
+    with open(module_path, 'w') as f_obj:
+        f_obj.writelines(module_code)
+
+
+def write_spider(args, spider_path, templates):
+    """Create the Spider path with the proper template.
+
+    :param args: args from script
+    :param spider_path: path to write spider file
+    :param templates: template to use (scan or session)
+    :return: None
+    """
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    spider_code = templates.format(author=args.author,
+                                   email_addr=args.email,
+                                   name=args.name,
+                                   version=args.version,
+                                   now=now_str,
+                                   purpose=args.purpose)
+    with open(spider_path, 'w') as f_obj:
+        f_obj.writelines(spider_code)
+
+
+def get_exe_language(code_file):
+    """Return the exe language that will be use to run the code_str."""
+    extension = code_file.split('.')[-1]
+    if extension == 'py':
+        return 'python'
+    elif extension == 'm':
+        return 'matlab'
+    elif extension == 'sh':
+        return 'bash'
+    elif extension == 'rb':
+        return 'ruby'
+    else:
+        print "Warning: file %s don't have any known extension \
+(.py/.m/.sh/.rb)" % code_file
+        return None
+
+
+def write_processor(args, processor_path, templates):
+    """Write the Processor.py with the proper template.
+
+    :param args: args from script
+    :param processor_path: path where the processor script will be saved
+    :param templates: template to use (scan or session)
+    :param args: arguments parser
+    """
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    processor_code = templates.format(author=args.author,
+                                      email_addr=args.email,
+                                      name=args.name,
+                                      now=now_str,
+                                      purpose=args.purpose)
+    with open(processor_path, 'w') as f_obj:
+        f_obj.writelines(processor_code)
+
+
+def write_settings(settings_path):
+    """Write the ProjectSettingsFile.py from the template.
+
+    :return: None
+    """
+    priority = []
+    host = '%s' % args.xnat_host if args.xnat_host else ''
+    if args.p_order:
+        priority = args.p_order.split(",")
+        p_mod = '{'
+        p_proc = '{'
+        for ind, project in enumerate(priority):
+            if ind == 0:
+                p_mod += '"%s": [],\n' % project
+                p_proc += '"%s": [],\n' % project
+            else:
+                # 12 = length of proj_mod = {
+                p_mod += '%s"%s": [],\n' % (' ' * 12, project)
+                # 13 = length of proj_proc = {
+                p_proc += '%s"%s": [],\n' % (' ' * 13, project)
+        p_mod = p_mod[:-2] + '}'
+        p_proc = p_proc[:-2] + '}'
+    else:
+        p_mod = '{"proj1": ["module1", "...", "moduleN"], \
+"proj2": ["module1", "...", "moduleN"]}'
+        p_proc = '{"proj1": ["processor1", "...", "processorN"], \
+"proj2": ["processor1", "...", "processorN"]}'
+
+    settings_code = SE_TEMPLATE.format(author=args.author,
+                                       email_addr=args.email,
+                                       name=args.name,
+                                       now=str(datetime.now()),
+                                       q_limit=args.q_limit,
+                                       p_order=priority,
+                                       e_opts=args.e_opts,
+                                       p_mod=p_mod,
+                                       p_proc=p_proc,
+                                       host=host)
+    with open(settings_path, 'w') as f_obj:
+        f_obj.writelines(settings_code)
+
+
+def parse_args():
+    """Method to parse arguments base on ArgumentParser.
+
+    :return: parser object parsed
+    """
+    from argparse import ArgumentParser, RawTextHelpFormatter
+    parser = ArgumentParser(prog='dax_generator', description=__description__,
+                            formatter_class=RawTextHelpFormatter)
+    dax_parser = parser.add_subparsers(help='dax_generator commands',
+                                       dest='command')
+
+    # Set a parser for each executables:
+    # Module:
+    module_desc = "Generate template for module file."
+    module_parser = dax_parser.add_parser('module', help=module_desc)
+    module_parser.add_argument('-n', dest='name', required=True,
+                               help='Name for module. E.G: dcm2nii.')
+    module_parser.add_argument('-a', dest='author', help='Author name.',
+                               required=True)
+    module_parser.add_argument('-e', dest='email', required=True,
+                               help='Author email address.')
+    module_parser.add_argument('-p', dest='purpose', required=True,
+                               help='Module purpose.')
+    module_parser.add_argument('--onScan', dest='on_scan', action='store_true',
+                               help='Use Scan type Spider.')
+    _help = 'Directory where the module file will be generated. \
+Default: current directory.'
+    module_parser.add_argument('-d', dest='directory', default=None,
+                               help=_help)
+
+    # Spider:
+    spider_desc = "Generate template for spider file (scan or session)."
+    spider_parser = dax_parser.add_parser('spider', help=spider_desc)
+    spider_parser.add_argument('-n', dest='name', required=True,
+                               help='Name for Spider. E.G: fMRIQA.')
+    spider_parser.add_argument('-v', dest='version', required=True,
+                               help='Spider version (format: X.Y.Z).')
+    spider_parser.add_argument('-a', dest='author', help='Author name.',
+                               required=True)
+    spider_parser.add_argument('-e', dest='email', required=True,
+                               help='Author email address.')
+    spider_parser.add_argument('-p', dest='purpose', required=True,
+                               help='Spider purpose.')
+    spider_parser.add_argument('-c', dest='on_scan', action='store_true',
+                               help='Use Scan type Spider.')
+    spider_parser.add_argument('-d', dest='directory', default=None,
+                               help="Directory where the spider file will be \
+generated. Default: current directory.")
+
+    # AutoSpider:
+    autospider_desc = "Generate your Spider .py following the dax template \
+for AutoSpider"
+    autospider_parser = dax_parser.add_parser('autospider',
+                                              help=autospider_desc)
+    autospider_parser.add_argument(
+        '-n', dest='name', required=True, help='Name for Spider. e.g. fMRIQA')
+    autospider_parser.add_argument(
+        '-v', dest='version', required=True,
+        help='Spider version, format: X.Y.Z, e.g. 1.0.0')
+    autospider_parser.add_argument(
+        '-i', dest='inputs_file', help='Path to inputs file', required=True)
+    autospider_parser.add_argument(
+        '-o', dest='outputs_file', help='Path to outputs file', required=True)
+    autospider_parser.add_argument(
+        '-c', dest='code_file', required=True,
+        help='Path to code template file')
+    autospider_parser.add_argument(
+        '-d', dest='directory', default=None,
+        help="Directory where spider file will be written")
+
+    # Processor:
+    proc_desc = "Generate template for processor file (scan or session)."
+    proc_parser = dax_parser.add_parser('processor', help=proc_desc)
+    proc_parser.add_argument('-n', dest='name', required=True,
+                             help='Name for Processor. E.G: fMRIQA.')
+    proc_parser.add_argument('-a', dest='author', required=True,
+                             help='Author name.')
+    proc_parser.add_argument('-e', dest='email', required=True,
+                             help='Author email address.')
+    proc_parser.add_argument('-p', dest='purpose', required=True,
+                             help='Processor purpose.')
+    proc_parser.add_argument('--onScan', dest='on_scan', action='store_true',
+                             help='Use Scan type Spider.')
+    proc_parser.add_argument('-d', dest='directory', default=None,
+                             help='Directory where the processor file will be \
+generated. Default: current directory.')
+
+    # AutoProcessor:
+    auto_proc_desc = "Generate your yaml file for Autoprocessor."
+    auto_proc_parser = dax_parser.add_parser('autoprocessor',
+                                             help=auto_proc_desc)
+    auto_proc_parser.add_argument('--name', dest='name', required=True,
+                                  help='Name for your yaml file.')
+    auto_proc_parser.add_argument('-d', dest='directory', default=None,
+                                  help='Directory where the processor file \
+will be generated. Default: current directory.')
+    auto_proc_parser.add_argument('--spider', dest='spider_path', default=None,
+                                  help='Path to the spider file.')
+
+    # Settings:
+    settings_desc = "Generate template for settings file."
+    settings_parser = dax_parser.add_parser('settings', help=settings_desc)
+    settings_parser.add_argument('-n', dest='name', required=True,
+                                 help='Name for ProjectSettingsFile.')
+    settings_parser.add_argument('-a', dest='author', required=True,
+                                 help='Author name.')
+    settings_parser.add_argument('-e', dest='email', required=True,
+                                 help='Author email address.')
+    settings_parser.add_argument('-p', dest='p_order', help='Projects to \
+process in order separate by a coma. E.G: ADNI,Test,Project3')
+    settings_parser.add_argument('--Qlimit', dest='q_limit',
+                                 default=DEFAULT_QUEUE_LIMIT,
+                                 help='Queue limit on cluster to submit jobs. \
+Default: %s' % str(DEFAULT_QUEUE_LIMIT))
+    settings_parser.add_argument('--Eopts', dest='e_opts',
+                                 default=DEFAULT_EMAIL_OPTS,
+                                 help='Options for email in the job. \
+Default= %s' % (DEFAULT_EMAIL_OPTS))
+    settings_parser.add_argument('-d', dest='directory', default=None,
+                                 help='Directory where the processor file \
+will be generated. Default: current directory.')
+    settings_parser.add_argument('--host', dest='xnat_host', default=None,
+                                 help='XNAT Host to run the settings on.')
+
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    args = parse_args()
+
+    if args.command == 'module':
+        # Get a proper name from the input
+        # remove .py if present at the end of the file
+        if args.name.endswith('.py'):
+            args.name = args.name[:-3]
+        # remove settings if present in name
+        if "module" in args.name.lower():
+            module_search = re.compile(re.escape('module'), re.IGNORECASE)
+            args.name = module_search.sub('', args.name)
+        # remove any particular character and change it by an underscore
+        args.name = re.sub('[^a-zA-Z0-9]', '_', args.name)
+        if args.name[-1] == '_':
+            args.name = args.name[:-1]
+
+        module_name = """Module_{name}.py""".format(name=args.name)
+        if args.directory and os.path.exists(args.directory):
+            module_path = os.path.join(args.directory, module_name)
+        else:
+            module_path = os.path.join(os.getcwd(), module_name)
+        if args.on_scan:
+            print "Generating file %s for scan module %s ..." % \
+                  (module_path, args.name)
+            write_module(args, module_path, SCAN_MO_TEMPLATE)
+        else:
+            print "Generating file %s for session module %s ..." % \
+                  (module_path, args.name)
+            write_module(args, module_path, SESSION_MO_TEMPLATE)
+
+    elif args.command == 'spider':
+        # Get a proper name from the input
+        # remove .py if present at the end of the file
+        if args.name.endswith('.py'):
+            args.name = args.name[:-3]
+        # remove settings if present in name
+        if "spider" in args.name.lower():
+            spider_search = re.compile(re.escape('spider'), re.IGNORECASE)
+            args.name = spider_search.sub('', args.name)
+        # remove any particular character and change it by an underscore
+        args.name = re.sub('[^a-zA-Z0-9]', '_', args.name)
+        if args.name[-1] == '_':
+            args.name = args.name[:-1]
+
+        # Check version
+        if not spiders.is_good_version(args.version):
+            err = """wrong format version given to script. It must follow the \
+X.Y.Z template with X, Y, and Z integers. Look at http://semver.org for more \
+information."""
+            raise ValueError(err)
+
+        tmp = """Spider_{name}_v{version}.py"""
+        spider_name = tmp.format(name=args.name,
+                                 version=args.version.replace('.', '_'))
+        if args.directory and os.path.exists(args.directory):
+            spider_path = os.path.join(args.directory, spider_name)
+        else:
+            spider_path = os.path.join(os.getcwd(), spider_name)
+        if args.on_scan:
+            print "Generating file %s for scan spider %s ..." % \
+                  (spider_path, args.name)
+            write_spider(args, spider_path, SCAN_SP_TEMPLATE)
+        else:
+            print "Generating file %s for session spider %s ..." % \
+                  (spider_path, args.name)
+            write_spider(args, spider_path, SESSION_SP_TEMPLATE)
+
+    elif args.command == 'autospider':
+        inputs_file = args.inputs_file
+        outputs_file = args.outputs_file
+        code_file = args.code_file
+        # TODO: error-checking on the files
+        # Check spider name
+        if args.name.endswith('.py') or "spider" in args.name.lower() or \
+           not re.compile('^\w+$').match(args.name):
+            err = "Invalid spider name"
+            raise ValueError(err)
+        # Check version
+        if not spiders.is_good_version(args.version):
+            err = "Invalid format for version. \
+    Must be X.Y.Z. See http://semver.org."
+            raise ValueError(err)
+        # Load Inputs
+        inputs = spiders.load_inputs(inputs_file)
+        inputs_str = '['
+        for i in inputs:
+            inputs_str += '\n    ("'
+            inputs_str += '", "'.join(i)
+            inputs_str += '"),'
+        inputs_str = inputs_str[:-1] + ']'
+        # Load Outputs
+        outputs = spiders.load_outputs(outputs_file)
+        outputs_str = '['
+        for i in outputs:
+            outputs_str += '\n    ("'
+            outputs_str += '", "'.join(i)
+            outputs_str += '"),'
+        outputs_str = outputs_str[:-1] + '\n]'
+        # Get executable language:
+        exe_lang = get_exe_language(code_file)
+        # Load the code template
+        code_str = spiders.load_template(code_file)
+        code_str = code_str.replace('"""', "'''")
+        # Make the spider
+        spider_file = 'Spider_{}_v{}.py'.format(args.name,
+                                                args.version.replace('.', '_'))
+        spider_str = AUTO_SP_TEMPLATE.format(
+            name=args.name,
+            inputs=inputs_str,
+            outputs=outputs_str,
+            code=code_str,
+            version=args.version,
+            exe_lang=exe_lang)
+        # Write the file
+        with open(spider_file, 'w') as f:
+            f.write(spider_str)
+
+    elif args.command == 'processor':
+        # Get a proper name from the input
+        # remove .py if present at the end of the file
+        if args.name.endswith('.py'):
+            args.name = args.name[:-3]
+        # remove processor if present in name
+        if "processor" in args.name.lower():
+            proc_search = re.compile(re.escape('processor'), re.IGNORECASE)
+            args.name = proc_search.sub('', args.name)
+        # remove any particular character and change it by an underscore
+        args.name = re.sub('[^a-zA-Z0-9]', '_', args.name)
+        if args.name[-1] == '_':
+            args.name = args.name[:-1]
+
+        procname = """Processor_{name}.py""".format(name=args.name)
+        if args.directory and os.path.exists(args.directory):
+            procpath = os.path.join(args.directory, procname)
+        else:
+            procpath = os.path.join(os.getcwd(), procname)
+        if args.on_scan:
+            print "Generating file %s for scan processor %s ..." % \
+                  (procpath, args.name)
+            write_processor(args, procpath, SCAN_PR_TEMPLATE)
+        else:
+            print "Generating file %s for session processor %s ..." % \
+                  (procpath, args.name)
+            write_processor(args, procpath, SESSION_PR_TEMPLATE)
+
+    elif args.command == 'autoprocessor':
+        # remove .py if present at the end of the file
+        if args.name.endswith('.yaml'):
+            args.name = args.name[:-5]
+        elif args.name.endswith('.py'):
+            args.name = args.name[:-3]
+        # remove processor if present in name
+        if "processor" in args.name.lower():
+            proc_search = re.compile(re.escape('processor'), re.IGNORECASE)
+            args.name = proc_search.sub('', args.name)
+        # remove any particular character and change it by an underscore
+        args.name = re.sub('[^a-zA-Z0-9]', '_', args.name)
+        if args.name[-1] == '_':
+            args.name = args.name[:-1]
+
+        procname = """Processor_{name}.yaml""".format(name=args.name)
+        proc_str = AUTO_PR_TEMPLATE.format(
+            spider_path=args.spider_path if args.spider_path else '')
+        # Write the file
+        if args.directory and os.path.exists(args.directory):
+            procpath = os.path.join(args.directory, procname)
+        else:
+            procpath = os.path.join(os.getcwd(), procname)
+        with open(procpath, 'w') as f:
+            f.write(proc_str)
+
+    elif args.command == 'settings':
+        # Get a proper name from the input
+        # remove .py if present at the end of the file
+        if args.name.endswith('.py'):
+            args.name = args.name[:-3]
+        # remove settings if present in name
+        if "settings" in args.name.lower():
+            settings_search = re.compile(re.escape('settings'), re.IGNORECASE)
+            args.name = settings_search.sub('', args.name)
+        # remove any particular character and change it by an underscore
+        args.name = re.sub('[^a-zA-Z0-9]', '_', args.name)
+        if args.name[-1] == '_':
+            args.name = args.name[:-1]
+        # Check email:
+        if args.email and '@' not in args.email and \
+           not len(args.email.split('.')) > 1:
+            raise Exception("Error: email address not valid.")
+
+        settings_name = """Settings_{name}.py""".format(name=args.name)
+        if args.directory and os.path.exists(args.directory):
+            settings_path = os.path.join(args.directory, settings_name)
+        else:
+            settings_path = os.path.join(os.getcwd(), settings_name)
+
+        print "Generating file %s for scan processor %s ..." % \
+              (settings_path, args.name)
+        write_settings(settings_path)

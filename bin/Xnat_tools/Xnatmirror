@@ -7,14 +7,18 @@ Xnatmirror - copies Subjects, Sessions (MR, PET, CT), Scans and Assessors
 from __future__ import print_function
 import os
 import sys
-import getpass
 from datetime import datetime
 
 import xml.etree.cElementTree as ET
 
-from dax.XnatUtils import InterfaceTemp as Interface
 from dax import XnatUtils
+from dax.errors import XnatToolsUserError
 
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__exe__ = os.path.basename(__file__)
+__author__ = 'Brian Boyd'
+__purpose__ = 'Mirror projects between XNAT instances.'
 # Define attributes to be copied
 PROJ_ATTRS = [
     'xnat:projectData/name',
@@ -34,14 +38,18 @@ SUBJ_ATTRS = [
     'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/handedness',
     'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/ses',
     'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/education',
-    'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/educationDesc',
+    'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/\
+educationDesc',
     'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/race',
     'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/ethnicity',
     'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/weight',
     'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/height',
-    'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/gestational_age',
-    'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/post_menstrual_age',
-    'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/birth_weight'
+    'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/\
+gestational_age',
+    'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/\
+post_menstrual_age',
+    'xnat:subjectData/demographics[@xsi:type=xnat:demographicData]/\
+birth_weight'
 ]
 
 MR_EXP_ATTRS = [
@@ -232,10 +240,11 @@ PROC_ATTRS = [
     'proc:genProcData/memused'
 ]
 
+
 def check_attributes(src_obj, dest_obj, dtype=None):
     '''Check that attributes on dest match those on src'''
 
-    if dtype == None:
+    if dtype is None:
         dtype = src_obj.datatype()
 
     if dtype == 'xnat:projectData':
@@ -255,7 +264,7 @@ def check_attributes(src_obj, dest_obj, dtype=None):
     elif dtype == 'proc:genProcData':
         attr_list = PROC_ATTRS
     elif dtype == 'xnat:otherDicomScanData':
-        attr_list = OTHER_DICOM_SCAN_ATTRS   
+        attr_list = OTHER_DICOM_SCAN_ATTRS
     else:
         print('WARN:Unknown Type:%s' % dtype)
         return
@@ -265,21 +274,25 @@ def check_attributes(src_obj, dest_obj, dtype=None):
         src_v = src_v.replace("\\", "|")
         dest_v = dest_obj.attrs.get(a)
         if src_v != dest_v:
-            print('WARN:Attribute mismatch, setting again:%s:src_v=%s,dest_v=%s' % (a, src_v, dest_v))
+            print('WARN: Attri mismatch, setting again:%s:src_v=%s,dest_v=%s'
+                  % (a, src_v, dest_v))
             dest_obj.attrs.set(a, src_v)
+
 
 def copy_attrs(src_obj, dest_obj, attr_list):
     """ Copies list of attributes form source to destination"""
     src_attrs = src_obj.attrs.mget(attr_list)
     src_list = dict(zip(attr_list, src_attrs))
 
-    # NOTE: For some reason need to set te again b/c a bug somewhere sets te to sequence name
+    # NOTE: For some reason need to set te again b/c a bug somewhere sets te
+    # to sequence name
     te_key = 'xnat:mrScanData/parameters/te'
     if te_key in src_list:
         src_list[te_key] = src_obj.attrs.get(te_key)
 
     dest_obj.attrs.mset(src_list)
     return 0
+
 
 def copy_attributes(src_obj, dest_obj):
     '''Copy attributes from src to dest'''
@@ -308,16 +321,20 @@ def copy_attributes(src_obj, dest_obj):
     elif src_type == 'xnat:otherDicomScanData':
         copy_attrs(src_obj, dest_obj, OTHER_DICOM_SCAN_ATTRS)
     else:
-        print('ERROR:cannot copy attributes, unsupported datatype:'+src_type)
+        print('ERROR:cannot copy attributes, unsupported datatype:' + src_type)
+
 
 def subj_compare(item1, item2):
     '''Compare sort of items'''
     return cmp(item1.label(), item2.label())
 
+
 def copy_file(src_f, dest_r, cache_d):
-    '''Copy file from XNAT file source to XNAT resource destination, using local cache in between'''
+    '''
+    Copy file from XNAT file source to XNAT resource destination,
+    using local cache in between'''
     f_label = src_f.label()
-    loc_f = cache_d+'/'+f_label
+    loc_f = cache_d + '/' + f_label
 
     # Make subdirectories
     loc_d = os.path.dirname(loc_f)
@@ -326,7 +343,7 @@ def copy_file(src_f, dest_r, cache_d):
 
     try:
         # Download file
-        if os.path.exists(loc_f) == False:
+        if os.path.exists(loc_f) is False:
             src_f.get(loc_f)
 
         # Get File Attributes
@@ -340,18 +357,23 @@ def copy_file(src_f, dest_r, cache_d):
             dest_r.file(f_label).put(loc_f, f_format, f_content)
         elif f_format and not f_content and not f_tags:   # format only
             dest_r.file(f_label).put(loc_f, f_format)
-        elif f_format and f_content and f_tags:           # format, content, & tags
+        elif f_format and f_content and f_tags:   # format, content, & tags
             dest_r.file(f_label).put(loc_f, f_format, f_content)
         else:                                             # none
             dest_r.file(f_label).put(loc_f)
 
         # Delete local copy
         os.remove(loc_f)
-    except:
-        print("ERROR:failed to copy file:%s, error=%s" % (f_label, sys.exc_info()[0]))
+    except Exception:
+        print("ERROR:failed to copy file:%s, error=%s"
+              % (f_label, sys.exc_info()[0]))
+
 
 def copy_res_zip(src_r, dest_r, cache_d):
-    '''Copy a resource from XNAT source to XNAT destination using local cache in between'''
+    '''
+    Copy a resource from XNAT source to XNAT destination using local cache
+    in between
+    '''
     try:
         # Download zip of resource
         print('INFO:Downloading resource as zip...')
@@ -368,6 +390,7 @@ def copy_res_zip(src_r, dest_r, cache_d):
         print('ERROR:failed to copy:%s:%s' % (cache_z, sys.exc_info()[0]))
         raise
 
+
 def is_empty_resource(_res):
     '''Check if resource contains any files'''
     f_count = 0
@@ -376,6 +399,7 @@ def is_empty_resource(_res):
         break
 
     return f_count == 0
+
 
 def copy_project(src_proj, dst_proj, proj_cache_dir):
     '''Copy XNAT project from source to destination'''
@@ -387,7 +411,7 @@ def copy_project(src_proj, dst_proj, proj_cache_dir):
             raise Exception('ERROR: can not create project on destination \
 xnat. Check your user rights. %s' % e)
         copy_attributes(src_proj, dst_proj)
-    #elif CHECK_ATTRS:
+    # elif CHECK_ATTRS:
     #    check_attributes(src_proj, dst_proj)
 
     # Process each subject of project
@@ -408,6 +432,7 @@ xnat. Check your user rights. %s' % e)
         subj_cache_dir = os.path.join(proj_cache_dir, subject_label)
         copy_subject(src_subj, dst_subj, subj_cache_dir)
 
+
 def copy_subject(src_subj, dst_subj, subj_cache_dir):
     '''Copy subject from XNAT src to XNAT dst'''
 
@@ -424,9 +449,9 @@ def copy_subject(src_subj, dst_subj, subj_cache_dir):
         write_xml(subj_xml, xml_path)
         dst_subj.create(xml=xml_path, allowDataDeletion=False)
 
-        #dst_subj.create()
-        #copy_attributes(src_subj, dst_subj)
-    #elif CHECK_ATTRS:
+        # dst_subj.create()
+        # copy_attributes(src_subj, dst_subj)
+    # elif CHECK_ATTRS:
     #    print('INFO:checking subject attributes')
     #    check_attributes(src_subj, dst_subj)
 
@@ -435,8 +460,8 @@ def copy_subject(src_subj, dst_subj, subj_cache_dir):
         sess_label = src_sess.label()
         sess_type = src_sess.datatype()
         if sess_type != 'xnat:mrSessionData' and \
-            sess_type != 'xnat:petSessionData' and \
-            sess_type != 'xnat:ctSessionData':
+           sess_type != 'xnat:petSessionData' and \
+           sess_type != 'xnat:ctSessionData':
             print('WARN:Skipping, session is not MR, CT, or PET Session')
             continue
 
@@ -445,6 +470,7 @@ def copy_subject(src_subj, dst_subj, subj_cache_dir):
         dst_sess = dst_subj.experiment(sess_label)
         sess_cache_dir = os.path.join(subj_cache_dir, sess_label)
         copy_session(src_sess, dst_sess, sess_cache_dir)
+
 
 def copy_session(src_sess, dst_sess, sess_cache_dir):
     '''Copy XNAT session from source to destination'''
@@ -459,11 +485,11 @@ def copy_session(src_sess, dst_sess, sess_cache_dir):
         write_xml(sess_xml, xml_path)
         dst_sess.create(xml=xml_path, allowDataDeletion=False)
 
-        #sess_type = src_sess.datatype()
-        #dst_sess.create(experiments=sess_type)
-        #copy_attributes(src_sess, dst_sess)
+        # sess_type = src_sess.datatype()
+        # dst_sess.create(experiments=sess_type)
+        # copy_attributes(src_sess, dst_sess)
 
-    #elif CHECK_ATTRS:
+    # elif CHECK_ATTRS:
     #    print('INFO:checking session attributes')
     #    check_attributes(src_sess, dst_sess)
 
@@ -484,6 +510,7 @@ def copy_session(src_sess, dst_sess, sess_cache_dir):
             dst_assr = dst_sess.assessor(assr_label)
             assr_cache_dir = os.path.join(sess_cache_dir, assr_label)
             copy_assr(src_assr, dst_assr, assr_cache_dir)
+
 
 def copy_scan(src_scan, dst_scan, scan_cache_dir):
     '''Copy scan from source XNAT to destination XNAT'''
@@ -515,6 +542,7 @@ def copy_scan(src_scan, dst_scan, scan_cache_dir):
         else:
             copy_res(src_res, dst_res, res_cache_dir, use_zip=True)
 
+
 def copy_res(src_res, dst_res, res_cache_dir, use_zip=False):
     '''Copy resource from source XNAT to destination XNAT'''
 
@@ -542,8 +570,15 @@ def copy_res(src_res, dst_res, res_cache_dir, use_zip=False):
                 print('INFO:Copying resource as zip: %s...' % src_res.label())
                 copy_res_zip(src_res, dst_res, res_cache_dir)
                 return
-            except:
-                print('ERROR:failed to copy resource as zip, will copy individual files')
+            except Exception:
+                try:
+                    print('INFO: second attempt to copy resource as zip: %s...'
+                          % src_res.label())
+                    copy_res_zip(src_res, dst_res, res_cache_dir)
+                    return
+                except Exception:
+                    print('ERROR:failed twice to copy resource as zip, will \
+copy individual files')
 
         copy_count = 0
         for f in src_res.files():
@@ -561,7 +596,9 @@ def copy_res(src_res, dst_res, res_cache_dir, use_zip=False):
                 print('INFO:Copying file: %s...' % f_label)
                 copy_count += 1
                 copy_file(f, dst_res, res_cache_dir)
-        print('INFO:Finished checking resource, %d new files copied' % copy_count)
+        print('INFO:Finished checking resource, %d new files copied'
+              % copy_count)
+
 
 def copy_assr(src_assr, dst_assr, assr_cache_dir):
     '''Copy assessor from source XNAT to destination XNAT'''
@@ -569,7 +606,7 @@ def copy_assr(src_assr, dst_assr, assr_cache_dir):
     # Check type
     assr_type = src_assr.datatype()
     if assr_type != 'proc:genProcData' and assr_type != 'fs:fsData':
-        print('WARN:skipping unsupported assessor type:'+assr_type)
+        print('WARN:skipping unsupported assessor type: {}'.format(assr_type))
         return
 
     if not dst_assr.exists() or CHECK_ATTRS:
@@ -599,26 +636,30 @@ def parse_args():
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument(
-            'project',
-            help="XNAT Project Name to look for Subjects")
+        'project',
+        help="XNAT Project Name to look for Subjects")
     parser.add_argument(
-            'directory',
-            help="Directory to temporarily hold data during processing")
+        'directory',
+        help="Directory to temporarily hold data during processing")
     parser.add_argument(
-            '--shost', dest='srchost', default=None,
-            help='Source Host for XNAT. Default: using $SRC_XNAT_HOST.')
+        '-src', '--shost', dest='srchost',
+        default=os.environ.get('SRC_XNAT_HOST', None),
+        help='Source Host for XNAT. Default: using $SRC_XNAT_HOST.')
     parser.add_argument(
-            '--suser', dest='srcuser', default=None,
-            help='Source user for XNAT. Default: using $SRC_XNAT_USER.')
+        '--suser', dest='srcuser',
+        default=os.environ.get('SRC_XNAT_USER', None),
+        help='Source user for XNAT. Default: using $SRC_XNAT_USER.')
     parser.add_argument(
-            '--dhost', dest='desthost', default=None,
-            help='Destination Host for XNAT. Default: using $DEST_XNAT_HOST.')
+        '-dest', '--dhost', dest='desthost',
+        default=os.environ.get('DEST_XNAT_HOST', None),
+        help='Destination Host for XNAT. Default: using $DEST_XNAT_HOST.')
     parser.add_argument(
-            '--duser', dest='destuser', default=None,
-            help='Destination user for XNAT. Default: using $DEST_XNAT_USER.')
+        '--duser', dest='destuser',
+        default=os.environ.get('DEST_XNAT_USER', None),
+        help='Destination user for XNAT. Default: using $DEST_XNAT_USER.')
     parser.add_argument(
-            '--continu', dest='continu', action='store_true', default=False,
-            help='Continue the mirror from the last subject uploaded. \
+        '--continu', dest='continu', action='store_true', default=False,
+        help='Continue the mirror from the last subject uploaded. \
 Warning: you need to keep the same folder than the previous Xnatmirror call.')
     parser.add_argument(
         '-cf',
@@ -633,25 +674,31 @@ Warning: you need to keep the same folder than the previous Xnatmirror call.')
     return parser.parse_args()
 
 
-def interface_xnat(host, user, pwd):
-    """Create interface with XNAT and check connection."""
-    intf = Interface(host, user, pwd)
-    try:
-        XnatUtils.list_projects(intf)
-    except:
-        raise Exception('ERROR: Connection to XNAT (%s) with user <%s> failed. \
-Please check your credentials.' % (host, user))
-    return intf
+# def interface_xnat(host, user, pwd):
+#     """Create interface with XNAT and check connection."""
+#     intf = Interface(host, user, pwd)
+#     try:
+#         XnatUtils.list_projects(intf)
+#     except:
+#         raise Exception('ERROR: Connection to XNAT (%s) with user <%s> failed. \
+# Please check your credentials.' % (host, user))
+#     return intf
 
 
 def write_xml(xml_str, file_path, clean_tags=True):
     """Writing XML."""
     root = ET.fromstring(xml_str)
 
-    if clean_tags: # We only want the tags and attributes relevant to root, no children
+    # We only want the tags and attributes relevant to root, no children
+    if clean_tags:
         # Remove ID
         if 'ID' in root.attrib:
             del root.attrib['ID']
+
+        # Remove sharing tags
+        tag = '{http://nrg.wustl.edu/xnat}sharing'
+        for child in root.findall(tag):
+            root.remove(child)
 
         # Remove out
         for child in root.findall('{http://nrg.wustl.edu/xnat}out'):
@@ -659,7 +706,8 @@ def write_xml(xml_str, file_path, clean_tags=True):
             break
 
         # Remove session ID
-        for child in root.findall('{http://nrg.wustl.edu/xnat}imageSession_ID'):
+        tag = '{http://nrg.wustl.edu/xnat}imageSession_ID'
+        for child in root.findall(tag):
             root.remove(child)
 
         # Remove subject ID
@@ -667,7 +715,8 @@ def write_xml(xml_str, file_path, clean_tags=True):
             root.remove(child)
 
         # Remove _session ID
-        for child in root.findall('{http://nrg.wustl.edu/xnat}image_session_ID'):
+        tag = '{http://nrg.wustl.edu/xnat}image_session_ID'
+        for child in root.findall(tag):
             root.remove(child)
 
         # Remove scans
@@ -698,9 +747,10 @@ def write_xml(xml_str, file_path, clean_tags=True):
         ET.register_namespace('fs', 'http://nrg.wustl.edu/fs')
         ET.ElementTree(root).write(file_path)
     except IOError as error:
-        print('ERROR:writing xml file:'+file_path+':'+str(error))
+        print('ERROR:writing xml file: {}: {}'.format(file_path, str(error)))
 
-# ==============================================================================
+
+# ==========================================================================
 # Main
 if __name__ == '__main__':
     args = parse_args()
@@ -708,98 +758,79 @@ if __name__ == '__main__':
     DEST_PROJECT = SRC_PROJECT
     CHECK_ATTRS = args.ca
     CHECK_FILES = args.cf
-    CACHEDIR = os.path.join(args.directory, 'Xnatmirror__'+DEST_PROJECT)
+    CACHEDIR = os.path.join(args.directory, 'Xnatmirror__' + DEST_PROJECT)
 else:
     sys.exit(1)
 
-# Get Credentials for the XNAT instances
-# either variables or the env variables
-print('Xnatmirror Script:')
-credentials = [
-    {'value': args.srchost, 'env': 'SRC_XNAT_HOST', 'opt': '--shost'},
-    {'value': args.srcuser, 'env': 'SRC_XNAT_USER', 'opt': '--suser'},
-    {'value': args.desthost, 'env': 'DEST_XNAT_HOST', 'opt': '--dhost'},
-    {'value': args.destuser, 'env': 'DEST_XNAT_USER', 'opt': '--duser'},
-]
-logs_info = {
-    'SRC_XNAT_PASS': os.environ.get('SRC_XNAT_PASS', None),
-    'DEST_XNAT_PASS': os.environ.get('DEST_XNAT_PASS', None)
-}
+PRINT_TEMP = '''
+Xnatmirror Script:
+Src XNAT Host:\t{srch}
+Src XNAT Proj:\t{srcp}
+Src XNAT User:\t{srcu}
+---------->
+Dest XNAT Host:\t{desth}
+Dest XNAT Proj:\t{destp}
+Dest XNAT User:\t{destu}
 
-for credential in credentials:
-    if credential['value']:
-        logs_info[credential['env']] = credential['value']
-    elif credential['env'] in os.environ:
-        logs_info[credential['env']] = os.environ[credential['env']]
-    else:
-        raise Exception('ERROR: {env} not found. Please use the option {opt} \
-option or set the environment variable {env}.'.format(env=credential['env'],
-                                                      opt=credential['opt']))
+Time: {date}
+========================================================
+'''
 
-# Get the password if not set:
-if not logs_info['SRC_XNAT_PASS']:
-    MSG = "Please give the password of source user <%s> on source xnat(%s):" \
-          % (logs_info['SRC_XNAT_USER'], logs_info['SRC_XNAT_HOST'])
-    logs_info['SRC_XNAT_PASS'] = getpass.getpass(prompt=MSG)
-if not logs_info['DEST_XNAT_PASS']:
-    MSG = "Please give the password of dest user <%s> on dest xnat(%s):" \
-          % (logs_info['DEST_XNAT_USER'], logs_info['DEST_XNAT_HOST'])
-    logs_info['DEST_XNAT_PASS'] = getpass.getpass(prompt=MSG)
+if not args.srchost:
+    err = 'Source Host not found. Argument -src/--shost not provided.'
+    raise XnatToolsUserError(__exe__, err)
+if not args.desthost:
+    err = 'Destination Host not found. Argument -dest/--dhost not provided.'
+    raise XnatToolsUserError(__exe__, err)
 
-print('Src XNAT Host:\t%s' % logs_info['SRC_XNAT_HOST'])
-print('Src XNAT Proj:\t%s' % SRC_PROJECT)
-print('Src XNAT User:\t%s' % logs_info['SRC_XNAT_USER'])
-print('Dest XNAT Host:\t%s' % logs_info['DEST_XNAT_HOST'])
-print('Dest XNAT Proj:\t%s' % DEST_PROJECT)
-print('Dest XNAT User:\t%s' % logs_info['DEST_XNAT_USER'])
+with XnatUtils.get_interface(host=args.srchost,
+                             user=args.srcuser) as src_xnat:
+    with XnatUtils.get_interface(host=args.desthost,
+                                 user=args.destuser) as dst_xnat:
+        msg = PRINT_TEMP.format(
+            srch=src_xnat.host,
+            srcp=SRC_PROJECT,
+            srcu=src_xnat.user,
+            desth=dst_xnat.host,
+            destp=DEST_PROJECT,
+            destu=dst_xnat.user,
+            date=str(datetime.now()))
+        SKIPPING_PROC_DATA = False
+        # TODO: confirm datatypes and variables exist on destination XNAT
+        if not XnatUtils.has_dax_datatypes(dst_xnat):
+            print('Warning: dax datatypes has not been found on the \
+Destination XNAT (%s) to be able to upload processed data (assessors).'
+                  % dst_xnat.host)
+            question = 'Do you want to continue and skip the processed data?'
+            value = ''
+            while value.lower() not in ['yes', 'no', 'n', 'y']:
+                value = raw_input("%s [yes/no] " % question)
+            if value.lower() in ['yes', 'y']:
+                SKIPPING_PROC_DATA = True
+            else:
+                print('Please install the data types (look at the wiki on \
+github) and launch again Xnatmirror. Exiting Xnatmirror.')
+                sys.exit()
 
-# print current time
-print('\n\nTime: ', str(datetime.now()), '====================================\
-====================')
-
-# Create pyxnat Interfaces
-src_xnat = interface_xnat(logs_info['SRC_XNAT_HOST'],
-                          logs_info['SRC_XNAT_USER'],
-                          logs_info['SRC_XNAT_PASS'])
-
-dst_xnat = interface_xnat(logs_info['DEST_XNAT_HOST'],
-                          logs_info['DEST_XNAT_USER'],
-                          logs_info['DEST_XNAT_PASS'])
-
-SKIPPING_PROC_DATA = False
-# TODO: confirm datatypes and variables exist on destination XNAT
-if not XnatUtils.has_dax_datatypes(dst_xnat):
-    print('Warning: dax datatypes has not been found on the Destination XNAT \
-(%s) to be able to upload processed data (assessors).' % logs_info['DEST_XNAT_HOST'])
-    question = 'Do you want to continue and skip the processed data?'
-    value = ''
-    while value.lower() not in ['yes', 'no', 'n', 'y']:
-        value = raw_input("%s [yes/no] " % question)
-    if value.lower() in ['yes', 'y']:
-        SKIPPING_PROC_DATA = True
-    else:
-        print('Please install the data types (look at the wiki on github) and \
-launch again Xnatmirror. Exiting Xnatmirror.')
-        sys.exit()
-
-# Copy project
-print('INFO:loading projects...')
-src_p = src_xnat.select('/project/'+SRC_PROJECT)
-if not src_p.exists():
-    raise Exception('ERROR: project %s not found on XNAT or wrong credentials \
-for the XNAT. Please check those information.' % SRC_PROJECT)
-dst_p = dst_xnat.select.project(DEST_PROJECT)
-p_cache_dir = os.path.join(CACHEDIR, DEST_PROJECT)
-if args.continu:
-    # Continue: Reading folder with previous mirror to get subjects already
-    # done
-    SUBJECTS_MIRRORED = os.listdir(p_cache_dir)
-    # Remove last subject to redo it (if it didn't finish properly last time)
-    SUBJECTS_MIRRORED.remove(SUBJECTS_MIRRORED[-1])
-else:
-    SUBJECTS_MIRRORED = []
-# Copy project
-copy_project(src_p, dst_p, p_cache_dir)
+        # Copy project
+        print('INFO:loading projects...')
+        src_p = src_xnat.select('/project/{}'.format(SRC_PROJECT))
+        if not src_p.exists():
+            raise Exception('ERROR: project %s not found on XNAT or wrong \
+credentials for the XNAT. Please check those information.' % SRC_PROJECT)
+        dst_p = dst_xnat.select.project(DEST_PROJECT)
+        p_cache_dir = os.path.join(CACHEDIR, DEST_PROJECT)
+        if args.continu:
+            # Continue: Reading folder with previous mirror to get subjects
+            # already done
+            SUBJECTS_MIRRORED = os.listdir(p_cache_dir)
+            # Remove last subject to redo it (if it didn't finish properly
+            # last time)
+            SUBJECTS_MIRRORED.remove(SUBJECTS_MIRRORED[-1])
+        else:
+            SUBJECTS_MIRRORED = []
+        # Copy project
+        copy_project(src_p, dst_p, p_cache_dir)
 
 # Wrap up
 print('DONE')
