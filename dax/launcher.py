@@ -3,13 +3,18 @@
 
 """ launcher.py that represents the main object called by the executables """
 
+from builtins import input
+from builtins import str
+from builtins import object
+
 from datetime import datetime, timedelta
 import logging
+import redcap
 import sys
 import os
 import traceback
 
-from . import processors, modules, XnatUtils, task, cluster, bin
+from . import processors, modules, XnatUtils, task, cluster
 from .task import Task, ClusterTask, XnatTask
 from .dax_settings import DAX_Settings, DAX_Netrc
 from .errors import (ClusterCountJobsException, ClusterLaunchException,
@@ -111,7 +116,7 @@ name as a key and list of yaml filepaths as values.'
             raise DaxLauncherError(err)
         self.yaml_dict = yaml_dict if yaml_dict is not None else dict()
         # Add processors to project_process_dict:
-        for project, yaml_files in yaml_dict.items():
+        for project, yaml_files in list(yaml_dict.items()):
             for yaml_file in yaml_files:
                 proc = processors.AutoProcessor(yaml_file)
                 if project not in self.project_process_dict:
@@ -156,8 +161,8 @@ name as a key and list of yaml filepaths as values.'
             self.xnat_user = xnat_user
             if not xnat_pass:
                 msg = 'Please provide password for host <%s> and user <%s>: '
-                self.xnat_pass = raw_input(msg % (self.xnat_host,
-                                                  self.xnat_user))
+                self.xnat_pass = input(msg % (self.xnat_host,
+                                              self.xnat_user))
             else:
                 self.xnat_pass = xnat_pass
 
@@ -197,7 +202,7 @@ name as a key and list of yaml filepaths as values.'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
             task_list = load_task_queue(
                 status=task.NEED_TO_RUN,
-                proj_filter=self.project_process_dict.keys())
+                proj_filter=list(self.project_process_dict.keys()))
 
             msg = '%s tasks that need to be launched found'
             LOGGER.info(msg % str(len(task_list)))
@@ -338,7 +343,7 @@ cluster queue"
             msg = 'Loading task queue from: %s'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
             task_list = load_task_queue(
-                proj_filter=self.project_process_dict.keys())
+                proj_filter=list(self.project_process_dict.keys()))
 
             LOGGER.info('%s tasks found.' % str(len(task_list)))
 
@@ -420,8 +425,8 @@ cluster queue"
 
             # Priority if set:
             if self.priority_project and not project_local:
-                unique_list = set(self.project_process_dict.keys() +
-                                  self.project_modules_dict.keys())
+                unique_list = set(list(self.project_process_dict.keys()) +
+                                  list(self.project_modules_dict.keys()))
                 project_list = self.get_project_list(list(unique_list))
 
             # Build projects
@@ -859,8 +864,8 @@ in session %s'
         :return: None
         """
         # Get default project list for XNAT out of the module/process dict
-        ulist = set(self.project_process_dict.keys() +
-                    self.project_modules_dict.keys())
+        ulist = set(list(self.project_process_dict.keys()) +
+                    list(self.project_modules_dict.keys()))
         project_list = sorted(ulist)
         if project_local:
             if ',' in project_local:
@@ -884,7 +889,7 @@ The project is not part of the settings."""
                 LOGGER.warn('failed to get lock. Already running.')
                 exit(1)
             # Set the date on REDCAP for update starting
-            bin.upload_update_date_redcap(project_list, type_update, start_end)
+            upload_update_date_redcap(project_list, type_update, start_end)
         return project_list
 
     def finish_script(self, flagfile, project_list, type_update,
@@ -903,7 +908,7 @@ The project is not part of the settings."""
         if not project_local:
             self.unlock_flagfile(flagfile)
             # Set the date on REDCAP for update ending
-            bin.upload_update_date_redcap(project_list, type_update, start_end)
+            upload_update_date_redcap(project_list, type_update, start_end)
 
     @staticmethod
     def lock_flagfile(lock_file):
@@ -945,7 +950,7 @@ The project is not part of the settings."""
         task_list = list()
 
         if not project_list:
-            projects = self.project_process_dict.keys()
+            projects = list(self.project_process_dict.keys())
             # Priority:
             if self.priority_project:
                 project_list = self.get_project_list(projects)
@@ -1059,7 +1064,7 @@ The project is not part of the settings."""
         if slocal and slocal.lower() != 'all':
             # filter the list and keep the match between both list:
             val = slocal.split(',')
-            assr_list = filter(lambda x: x['session_label'] in val, assr_list)
+            assr_list = [x for x in assr_list if x['session_label'] in val]
             if not assr_list:
                 warn = 'No processes on XNAT matched the sessions given: %s .'
                 LOGGER.warn(warn % slocal)
@@ -1082,7 +1087,7 @@ The project is not part of the settings."""
         if slocal and slocal.lower() != 'all':
             # filter the list and keep the match between both list:
             val = slocal.split(',')
-            list_sessions = filter(lambda x: x['label'] in val, list_sessions)
+            list_sessions = [x for x in list_sessions if x['label'] in val]
             if not list_sessions:
                 warn = 'No session from XNAT matched the sessions given: %s .'
                 LOGGER.warn(warn % slocal)
@@ -1103,8 +1108,8 @@ The project is not part of the settings."""
         :param all_projects: list of all the projects in the settings file
         :return: list of project sorted to update
         """
-        random_project = filter(lambda x: x not in self.priority_project,
-                                all_projects)
+        random_project = [x for x in all_projects
+                          if x not in self.priority_project]
         return self.priority_project + random_project
 
     @staticmethod
@@ -1243,3 +1248,67 @@ def log_updating_status(procname, assessor_label):
     mess = """* Processor:{proc}: updating status: {label}"""
     mess_str = mess.format(proc=procname, label=assessor_label)
     LOGGER.debug(mess_str)
+
+
+def upload_update_date_redcap(project_list, type_update, start_end):
+    """
+    Upload the timestamp of when bin ran on a project (start and finish).
+
+    :param project_list: List of projects that were updated
+    :param type_update: What type of process ran: dax_build (1),
+     dax_update_tasks (2), dax_launch (3)
+    :param start_end: starting timestamp (1) and ending timestamp (2)
+    :return: None
+
+    """
+    dax_config = DAX_SETTINGS.get_dax_manager_config()
+    logger = logging.getLogger('dax')
+    if DAX_SETTINGS.get_api_url() and \
+       DAX_SETTINGS.get_api_key_dax() and \
+       dax_config:
+        redcap_project = None
+        try:
+            redcap_project = redcap.Project(DAX_SETTINGS.get_api_url(),
+                                            DAX_SETTINGS.get_api_key_dax())
+        except Exception:
+            logger.warn('Could not access redcap. Either wrong DAX_SETTINGS. \
+API_URL/API_KEY or redcap down.')
+
+        if redcap_project:
+            data = list()
+            for project in project_list:
+                to_upload = dict()
+                to_upload[dax_config['project']] = project
+                if type_update == 1:
+                    to_upload = set_dax_manager(to_upload, 'dax_build',
+                                                start_end)
+                elif type_update == 2:
+                    to_upload = set_dax_manager(to_upload, 'dax_update_tasks',
+                                                start_end)
+                elif type_update == 3:
+                    to_upload = set_dax_manager(to_upload, 'dax_launch',
+                                                start_end)
+                data.append(to_upload)
+            XnatUtils.upload_list_records_redcap(redcap_project, data)
+
+
+def set_dax_manager(record_data, field_prefix, start_end):
+    """
+    Update the process id of what was running and when
+
+    :param record_data: the REDCap record infor from Project.export_records()
+    :param field_prefix: prefix to make field assignment simpler
+    :param start_end: 1 if starting process, 2 if ending process
+    :return: updated record_data to upload to REDCap
+
+    """
+    dax_config = DAX_SETTINGS.get_dax_manager_config()
+    if start_end == 1:
+        key = dax_config[field_prefix + '_start_date']
+        record_data[key] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
+        record_data[dax_config[field_prefix + '_end_date']] = 'In Process'
+        record_data[dax_config[field_prefix + '_pid']] = str(os.getpid())
+    elif start_end == 2:
+        key = dax_config[field_prefix + '_end_date']
+        record_data[key] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
+    return record_data

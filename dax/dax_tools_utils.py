@@ -5,8 +5,19 @@
 Functions used by dax_tools like in dax_upload/dax_test/dax_setup.
 """
 
+from __future__ import print_function
+
+from future import standard_library
+standard_library.install_aliases()
+from builtins import filter
+from builtins import input
+from builtins import str
+from builtins import zip
+from builtins import range
+from builtins import object
+
 from collections import OrderedDict
-import ConfigParser
+import configparser
 import csv
 from datetime import datetime
 from email.mime.text import MIMEText
@@ -709,7 +720,7 @@ def get_assessor_dict(assessor_label, assessor_path):
     if len(labels) > 3:
         values = [labels[0], labels[1], labels[2], assessor_label, labels[-1],
                   assessor_path]
-        assessor_dict = dict(zip(keys, values))
+        assessor_dict = dict(list(zip(keys, values)))
     return assessor_dict
 
 
@@ -724,7 +735,8 @@ def get_assessor_list(projects):
 
     LOGGER.debug(' - Get Processes names from the upload folder...')
     # check all files/folder in the directory
-    dirs = filter(os.path.isdir, glob.glob(os.path.join(RESULTS_DIR, '*')))
+    dirs = list(filter(os.path.isdir,
+                       glob.glob(os.path.join(RESULTS_DIR, '*'))))
     dirs.sort(key=lambda x: os.path.getmtime(x))
     for assessor_label in dirs:
         assessor_label = os.path.basename(assessor_label)
@@ -1305,8 +1317,8 @@ def load_upload_settings(f_settings, host, username, password, projects):
 Missing args. 4 needed, %s found at line %s." % (str(len(row)), str(index)))
                     else:
                         if row != DEFAULT_HEADER:
-                            host_projs.append(dict(zip(DEFAULT_HEADER,
-                                                       row[:4])))
+                            host_projs.append(dict(list(zip(DEFAULT_HEADER,
+                                                        row[:4]))))
         else:
             raise Exception("error: doesn't recognize the file format for the \
 settings file. Please use either JSON/PYTHON/CSV format.")
@@ -1334,8 +1346,9 @@ please provide a password')
         else:
             netrc_obj = DAX_Netrc()
             username, password = netrc_obj.get_login(_host)
-        host_projs.append(dict(zip(DEFAULT_HEADER, [_host, username, password,
-                                                    projects])))
+        host_projs.append(dict(list(zip(DEFAULT_HEADER, [_host, username,
+                                                         password,
+                                                         projects]))))
     return host_projs
 
 
@@ -1356,7 +1369,7 @@ def print_upload_settings(upload_settings):
 
 
 # Functions for testings:
-class test_results:
+class test_results(object):
     '''
     Class to keep tract of test results (number of test, fail, error, time)
 
@@ -1436,8 +1449,9 @@ class test_results:
             elif isinstance(self.tobj, modules.Module):
                 self.run_test_module(project, sessions)
             elif isinstance(self.tobj, launcher.Launcher):
-                unique_list = list(set(self.tobj.project_process_dict.keys() +
-                                       self.tobj.project_modules_dict.keys()))
+                unique_list = list(set(
+                    list(self.tobj.project_process_dict.keys()) +
+                    list(self.tobj.project_modules_dict.keys())))
                 if self.tobj.priority_project:
                     project_list = self.tobj.get_project_list(unique_list)
                 else:
@@ -1947,20 +1961,22 @@ flagfile for %s." % (cobj.info()['label']))
         print_settings(self.launch_obj.__dict__)
         proj_mods = self.launch_obj.project_modules_dict
         proj_procs = self.launch_obj.project_process_dict
-        proj_list.extend(proj_mods.keys())
-        proj_list.extend(proj_procs.keys())
+        proj_list.extend(list(proj_mods.keys()))
+        proj_list.extend(list(proj_procs.keys()))
         print('\nList of XNAT projects : %s' % ','.join(list(set(proj_list))))
 
         for project in list(set(proj_list)):
             print(' - Project %s:' % project)
             print('  + Module(s) arguments:')
-            if project in proj_mods.keys() and len(proj_mods[project]) > 0:
+            if project in list(proj_mods.keys()) and \
+               len(proj_mods[project]) > 0:
                 for module in proj_mods[project]:
                     print_module(module)
             else:
                 print('    No module set for the project.')
             print('\n  + Processor(s) arguments:')
-            if project in proj_procs.keys() and len(proj_procs[project]) > 0:
+            if project in list(proj_procs.keys()) and \
+               len(proj_procs[project]) > 0:
                 for processor in proj_procs[project]:
                     print_processor(processor)
             else:
@@ -1998,7 +2014,7 @@ def print_module(mod_obj):
     level = 'Scan' if isinstance(mod_obj, modules.ScanModule) else 'Session'
     mod_dict = mod_obj.__dict__
     other_args = ''
-    for key, arg in mod_dict.items():
+    for key, arg in list(mod_dict.items()):
         if key not in MOD_DEF_ARGS:
             other_args += "       %s: %s\n" % (key, str(arg).strip())
     print(MOD_DISPLAY.format(name=mod_dict['mod_name'],
@@ -2029,7 +2045,7 @@ def print_processor(proc_obj):
     else:
         host = 'using default XNAT_HOST'
 
-    for key, arg in proc_dict.items():
+    for key, arg in list(proc_dict.items()):
         if key not in PROC_DEF_ARGS:
             other_args += "       %s: %s\n" % (key, str(arg).strip())
 
@@ -2195,19 +2211,19 @@ class DAX_Setup_Handler(object):
                                           '.dax_settings.ini')
 
         # ConfigParser
-        self.config_parser = ConfigParser.SafeConfigParser(allow_no_value=True)
+        self.config_parser = configparser.SafeConfigParser(allow_no_value=True)
 
         # Set the configParser from init file or default value
         if os.path.isfile(self.settings_file):
             try:
                 self.config_parser.read(self.settings_file)
-            except ConfigParser.MissingSectionHeaderError as MSHE:
+            except configparser.MissingSectionHeaderError as MSHE:
                 self._print_error_and_exit('Missing header bracket detected. \
 Please check your ini file.\n', MSHE)
         else:  # set to default
             for section in sorted(DEFAULTS.keys()):
                 self.config_parser.add_section(section)
-                for option in DEFAULTS[section].iterkeys():
+                for option in list(DEFAULTS[section].keys()):
                     self.config_parser.set(section, option,
                                            DEFAULTS[section][option])
 
@@ -2264,12 +2280,12 @@ settings file?' % section
         :param option: option name
         :return: String of the input
         """
-        if option in OPTIONS_DESCRIPTION.keys():
-            if 'confidential' in OPTIONS_DESCRIPTION[option].keys():
+        if option in list(OPTIONS_DESCRIPTION.keys()):
+            if 'confidential' in list(OPTIONS_DESCRIPTION[option].keys()):
                 msg = OPTIONS_DESCRIPTION[option]['msg']
                 stdin = getpass.getpass(prompt=msg)
             else:
-                stdin = raw_input(OPTIONS_DESCRIPTION[option]['msg'])
+                stdin = input(OPTIONS_DESCRIPTION[option]['msg'])
             if OPTIONS_DESCRIPTION[option]['is_path'] and stdin:
                 if stdin.startswith('~/'):
                     stdin = os.path.join(os.path.expanduser('~'), stdin[2:])
@@ -2279,7 +2295,7 @@ settings file?' % section
                     print("Path <%s> does not exists." % stdin)
                     stdin = self._prompt(section, option)
         else:
-            stdin = raw_input('Please enter %s: ' % option)
+            stdin = input('Please enter %s: ' % option)
         if not stdin:
             stdin = DEFAULTS[section][option]
 
@@ -2293,10 +2309,10 @@ settings file?' % section
         """
         cluster_type = '0'
         while cluster_type not in ['1', '2', '3']:
-            cluster_type = raw_input("Which cluster are you using? \
+            cluster_type = input("Which cluster are you using? \
 [1.SGE 2.SLURM 3.MOAB] ")
-        sys.stdout.write('Warning: You can edit the cluster templates files at any \
-time in ~/.dax_templates/\n')
+        sys.stdout.write('Warning: You can edit the cluster templates files \
+at any time in ~/.dax_templates/\n')
 
         for option in ['gateway', 'root_job_dir', 'queue_limit', 'results_dir',
                        'max_age', 'launcher_type', 'skip_lastupdate']:
@@ -2316,7 +2332,7 @@ time in ~/.dax_templates/\n')
                                       '.dax_templates')
         if not os.path.exists(templates_path):
             os.makedirs(templates_path)
-        for option, value in cluster_dict.items():
+        for option, value in list(cluster_dict.items()):
             if option in OPTIONS_DESCRIPTION and \
                OPTIONS_DESCRIPTION[option]['is_path']:
                 file_path = os.path.join(templates_path, option + '.txt')
@@ -2359,8 +2375,8 @@ def set_xnat_netrc():
         print('Warning: daxnetrc is empty. Setting XNAT login:')
         connection = False
         while not connection:
-            host = raw_input("Please enter your XNAT host: ")
-            user = raw_input("Please enter your XNAT username: ")
+            host = input("Please enter your XNAT host: ")
+            user = input("Please enter your XNAT username: ")
             pwd = getpass.getpass(prompt='Please enter your XNAT password: ')
             connection = test_connection_xnat(host, user, pwd)
         if connection:

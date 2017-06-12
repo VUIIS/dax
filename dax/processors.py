@@ -1,5 +1,7 @@
 """ Processor class define for Scan and Session."""
 
+from builtins import object
+
 import logging
 import re
 import os
@@ -403,10 +405,10 @@ class AutoProcessor(Processor):
         self.read_yaml(yaml_file)
 
         # Set the default from default_vars if set:
-        for key, value in default_vars.items():
-            if key in self.inputs.keys():
+        for key, value in list(default_vars.items()):
+            if key in list(self.inputs.keys()):
                 self.inputs[key] = default_vars[key]
-            if key in self.extra_inputs.keys():
+            if key in list(self.extra_inputs.keys()):
                 self.extra_inputs[key] = default_vars[key]
 
     def read_yaml(self, yaml_file):
@@ -433,7 +435,7 @@ beginning of your file.'
             attrs = doc.get('attrs')
             self.command = doc.get('command')
             self.xnat_inputs = inputs.get('xnat')
-            for key, value in inputs.get('default').items():
+            for key, value in list(inputs.get('default').items()):
                 # If value is a key in command
                 k_str = '{{{}}}'.format(key)
                 if k_str in self.command:
@@ -467,7 +469,7 @@ beginning of your file.'
                     raise AutoProcessorError(err.format(yaml_file))
 
                 _docs = [_doc for _doc in self.xnat_inputs.get('scans')
-                         if self.scan_nb in _doc.keys()]
+                         if self.scan_nb in list(_doc.keys())]
                 if len(_docs) == 1:
                     self.scaninfo = _docs[0]
                 else:
@@ -509,7 +511,7 @@ beginning of your file.'
         :param yaml_file: YAMLfile path
         :param key: key to search
         """
-        if key not in doc.keys():
+        if key not in list(doc.keys()):
             err = 'YAML File {} does not have {} defined. See example.'
             raise AutoProcessorError(err.format(yaml_file, key))
 
@@ -652,7 +654,7 @@ beginning of your file.'
         # Check xnat inputs set in YAML file:
         # Scans:
         for scan_in in self.xnat_inputs.get('scans', list()):
-            if self.scan_nb not in scan_in.keys():
+            if self.scan_nb not in list(scan_in.keys()):
                 scantypes = scan_in.get('types').split(',')
                 nargs = scan_in.get('nargs', False)
                 needs_qc = scan_in.get('needs_qc', True)
@@ -786,7 +788,7 @@ resource/{4}'
             scantypes = scan_in.get('types').split(',')
             needs_qc = scan_in.get('needs_qc', True)
             resources = scan_in.get('resources', list())
-            if self.scan_nb not in scan_in.keys():
+            if self.scan_nb not in list(scan_in.keys()):
                 self._append_xnat_cobj(csess, scantypes, resources, needs_qc,
                                        'scan')
             else:
@@ -804,7 +806,7 @@ resource/{4}'
 
         cmd = self.command.format(**self.inputs)
 
-        for key, value in self.extra_inputs.items():
+        for key, value in list(self.extra_inputs.items()):
             cmd = '{} --{} {}'.format(cmd, key, value)
 
         # Add assr and jobidr:
@@ -831,7 +833,7 @@ resource/{4}'
             good_cobjs = XnatUtils.get_good_cassr(csess, sp_types, needs_qc)
 
         for res_l in resources:
-            if 'varname' not in res_l.keys():
+            if 'varname' not in list(res_l.keys()):
                 LOGGER.warn("No Key 'varname' found for resource in YAML.")
             else:
                 _in = self.get_xnat_path(good_cobjs, res_l.get('resource'),
@@ -846,7 +848,7 @@ resource/{4}'
         :param resources: list of resources from YAML file with var
         """
         for res_info in resources:
-            if 'varname' not in res_info.keys():
+            if 'varname' not in list(res_info.keys()):
                 LOGGER.warn("No Key 'varname' found for resource in YAML.")
             else:
                 _in = self.get_xnat_path(cprocscan, res_info.get('resource'),

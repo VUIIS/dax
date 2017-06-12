@@ -20,6 +20,14 @@ SpiderProcessHandler to handle results at the end of any spider
 7) Old download functions still used in some spiders
 """
 
+from __future__ import print_function
+
+from builtins import next
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
+
 import collections
 import csv
 from datetime import datetime
@@ -235,11 +243,11 @@ class InterfaceTemp(Interface):
             self.connect()
             return True
         except DatabaseError as e:
-            print e
+            print(e)
             raise XnatAuthentificationError(self.host, self.user)
 
 
-class AssessorHandler:
+class AssessorHandler(object):
     """
     Class to intelligently deal with the Assessor labels.
     Make the splitting of the strings easier.
@@ -344,7 +352,7 @@ class AssessorHandler:
         return intf.select(xpath)
 
 
-class SpiderProcessHandler:
+class SpiderProcessHandler(object):
     """Class to handle the uploading of results for a spider."""
     def __init__(self, script_name, suffix, project=None, subject=None,
                  experiment=None, scan=None, alabel=None,
@@ -427,7 +435,7 @@ Wrong label.'
         if self.time_writer:
             self.time_writer(msg)
         else:
-            print msg
+            print(msg)
 
     def print_err(self, msg):
         """
@@ -440,7 +448,7 @@ Wrong label.'
         if self.time_writer:
             self.time_writer.print_stderr_message(msg)
         else:
-            print "Error: %s" % msg
+            print("Error: %s" % msg)
 
     def set_error(self):
         """
@@ -597,7 +605,7 @@ Wrong label.'
                         msg = '  - job status set to %s'
                         self.print_msg(msg % str(status))
         except XnatAuthentificationError as e:
-            print 'Failed to connect to XNAT. Error: ', e
+            print('Failed to connect to XNAT. Error: ', e)
             pass
 
     def done(self):
@@ -1025,7 +1033,7 @@ def list_project_scans(intf, projectid, include_shared=True):
                 # make a dictionary of dictionaries
                 scans_dict[key] = (snew)
 
-    return sorted(scans_dict.values(), key=lambda k: k['scan_label'])
+    return sorted(list(scans_dict.values()), key=lambda k: k['session_label'])
 
 
 def list_scan_resources(intf, projectid, subjectid, sessionid, scanid):
@@ -1142,7 +1150,7 @@ def list_project_assessors(intf, projectid):
         # First get FreeSurfer
         post_uri = SE_ARCHIVE_URI
         post_uri += ASSESSOR_FS_PROJ_POST_URI.format(
-                            project=projectid, fstype=DEFAULT_FS_DATATYPE)
+            project=projectid, fstype=DEFAULT_FS_DATATYPE)
         assessor_list = intf._get_json(post_uri)
 
         pfix = DEFAULT_FS_DATATYPE.lower()
@@ -1173,8 +1181,8 @@ def list_project_assessors(intf, projectid):
                     anew['proctype'] = 'FreeSurfer'
 
                     if len(asse['label'].rsplit('-x-FS')) > 1:
-                        anew['proctype'] = anew['proctype'] + \
-                                           asse['label'].rsplit('-x-FS')[1]
+                        anew['proctype'] = (anew['proctype'] +
+                                            asse['label'].rsplit('-x-FS')[1])
 
                     anew['version'] = asse.get('%s/procversion' % pfix)
                     anew['xsiType'] = asse['xsiType']
@@ -1241,7 +1249,7 @@ def list_project_assessors(intf, projectid):
                     anew['resources'] = [asse['%s/out/file/label' % pfix]]
                     assessors_dict[key] = anew
 
-    return sorted(assessors_dict.values(), key=lambda k: k['label'])
+    return sorted(list(assessors_dict.values()), key=lambda k: k['label'])
 
 
 def list_assessor_out_resources(intf, projectid, subjectid, sessionid,
@@ -1259,8 +1267,8 @@ def list_assessor_out_resources(intf, projectid, subjectid, sessionid,
     """
     # Check that the assessors types are present on XNAT
     if not has_genproc_datatypes(intf):
-        print 'WARNING: datatypes %s not found on XNAT. \
-Needed by default for dax.' % DEFAULT_DATATYPE
+        print('WARNING: datatypes %s not found on XNAT. \
+Needed by default for dax.' % DEFAULT_DATATYPE)
         return list()
 
     post_uri = A_RESOURCES_URI.format(project=projectid,
@@ -1411,7 +1419,7 @@ assessor_id at the same time.")
     else:
         tmp_dict['resource'] = resource
 
-    for key, value in tmp_dict.items():
+    for key, value in list(tmp_dict.items()):
         if value:
             select_str += '''/{key}/{label}'''.format(key=key, label=value)
     return intf.select(select_str)
@@ -1621,7 +1629,7 @@ def is_assessor_on_same_session_usable(cobj, proctype, is_scan_proc=False):
             return 1
         elif len(good_cassr_list) > 1:
             msg = "WARNING: too many assessors %s with a good QC status."
-            print msg % (proctype)
+            print(msg % proctype)
             return 0
     return 0
 
@@ -2189,8 +2197,8 @@ def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False,
             if remove:
                 resource_obj.file(str(filename)).delete()
             else:
-                print "WARNING: upload_file_to_obj in XnatUtils: resource %s \
-already exists." % filename
+                print("WARNING: upload_file_to_obj in XnatUtils: resource %s \
+already exists." % filename)
                 return False
         resource_obj.file(str(filename)).put(str(filepath), overwrite=True)
         return True
@@ -2310,8 +2318,8 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False,
             # check if any files already exists on XNAT, if yes return FALSE
             for fpath in get_files_in_folder(directory):
                 if resource_obj.file(fpath).exists():
-                    print "Warning: upload_folder_to_obj in XnatUtils: file %s \
-already found on XNAT. No upload. Use remove/removeall." % fpath
+                    print("Warning: upload_folder_to_obj in XnatUtils: file \
+%s already found on XNAT. No upload. Use remove/removeall." % fpath)
                     return False
 
     fzip = '%s.zip' % resource_label
@@ -2546,7 +2554,7 @@ def run_matlab(matlab_script, verbose=False, matlab_bin='matlab'):
     :return: None
 
     """
-    print "Matlab script: %s running ..." % matlab_script
+    print("Matlab script: %s running ..." % matlab_script)
     # with xvfb-run: xvfb-run  -e {err} -f {auth} -a
     # --server-args="-screen 0 1600x1280x24 -ac -extension GLX"
     cmd = ("%s -singleCompThread -nodesktop -nosplash < %s"
@@ -2556,7 +2564,7 @@ def run_matlab(matlab_script, verbose=False, matlab_bin='matlab'):
         prefix = os.path.basename(matlab_script).split('.')[0]
         cmd = '%s > %s_outlog.log' % (cmd, os.path.join(matlabdir, prefix))
     os.system(cmd)
-    print "Matlab script: %s done" % matlab_script
+    print("Matlab script: %s done" % matlab_script)
 
 
 def run_matlab_by_version(matlab_script, verbose=False, matlab_bin='matlab'):
@@ -2585,15 +2593,14 @@ def run_subprocess(args):
     stdout, stderr = process.communicate()
     return stdout, stderr
 
+
 def make_temp_dir():
     """
     Makes a directory using tempfile
-    
+
     :return: Full path of the directory created
-    """    
-
-    return tempdir.mkdtemp()
-
+    """
+    return tempfile.mkdtemp()
 
 
 def makedir(directory, prefix='TempDir', subdir=True):
@@ -2629,14 +2636,14 @@ def print_args(options):
     :return: None
 
     """
-    print "--Arguments given to the spider--"
-    for info, value in vars(options).items():
+    print("--Arguments given to the spider--")
+    for info, value in list(vars(options).items()):
         if value:
-            print """{info}: {value}""".format(info=info, value=value)
+            print("{info}: {value}".format(info=info, value=value))
         else:
-            print ("%s: Not set. The process might fail without this argument."
-                   % info)
-    print "---------------------------------"
+            print("%s: Not set. The process might fail without this argument."
+                  % info)
+    print("---------------------------------")
 
 
 def get_files_in_folder(folder, label=''):
@@ -2720,7 +2727,7 @@ def upload_list_records_redcap(redcap_project, data):
         except AssertionError as err:
             err = 'upload_list_records_redcap: Creation of record failed.'
             raise XnatUtilsError(err)
-        except:
+        except Exception:
             err = 'upload_list_records_redcap: connection to REDCap \
 interrupted.'
             raise XnatUtilsError(err)
@@ -2782,7 +2789,7 @@ def get_random_sessions(xnat, project_id, num_sessions):
 ###############################################################################
 #                                5) Cached Class                              #
 ###############################################################################
-class CachedImageSession():
+class CachedImageSession(object):
     """
     Class to cache the XML information for a session on XNAT
     """
@@ -2960,7 +2967,7 @@ class CachedImageSession():
         return get_full_object(self.xnat, self.info())
 
 
-class CachedImageScan():
+class CachedImageScan(object):
     """
     Class to cache the XML information for a scan on XNAT
     """
@@ -3081,7 +3088,7 @@ class CachedImageScan():
         return [res.info() for res in self.resources()]
 
 
-class CachedImageAssessor():
+class CachedImageAssessor(object):
     """
     Class to cache the XML information for an assessor on XNAT
     """
@@ -3196,7 +3203,7 @@ class CachedImageAssessor():
             assr_info['jobnode'] = self.get('proc:jobnode')
         else:
             msg = 'Warning:unknown xsitype for assessor: %s'
-            print msg % assr_info['xsiType']
+            print(msg % assr_info['xsiType'])
 
         return assr_info
 
@@ -3265,7 +3272,7 @@ class CachedImageAssessor():
         return self.get_out_resources()
 
 
-class CachedResource():
+class CachedResource(object):
     """
     Class to cache resource XML info on XNAT
     """
@@ -3455,7 +3462,7 @@ def read_csv(csv_file, header=None, delimiter=','):
         for row in reader:
             if row == header:
                 continue
-            csv_info.append(dict(zip(header, row)))
+            csv_info.append(dict(list(zip(header, row))))
     return csv_info
 
 
@@ -3488,7 +3495,7 @@ def read_excel(excel_file, header_indexes=None):
             for col_index in range(sht.ncols):
                 value = sht.cell(rowx=row_index, colx=col_index).value
                 row.append(value)
-            sheet_info.append(dict(zip(header, row)))
+            sheet_info.append(dict(list(zip(header, row))))
         excel_sheets[sht.name] = sheet_info
 
     return excel_sheets
@@ -3570,7 +3577,7 @@ def write_dicom(pixel_array, filename, ds_copy, ds_ori, volume_number,
     ds = FileDataset(filename, {}, file_meta=file_meta, preamble="\0" * 128)
 
     # Copy the tag from the original DICOM
-    for tag, value in ds_ori.items():
+    for tag, value in list(ds_ori.items()):
         if tag != ds_ori.data_element("PixelData").tag:
             ds[tag] = value
 
@@ -3679,7 +3686,7 @@ def list_experiments(intf, projectid=None, subjectid=None):
     :param subjectid: ID/label of a subject
     :return: List of experiments
     """
-    print 'Warning: Deprecated method. Use list_sessions().'
+    print('Warning: Deprecated method. Use list_sessions().')
     if projectid and subjectid:
         post_uri = SESSIONS_URI.format(project=projectid, subject=subjectid)
     elif projectid is None and subjectid is None:
@@ -3718,7 +3725,7 @@ def list_experiment_resources(intf, projectid, subjectid, experimentid):
     :param subjectid: ID/label of a session to get resources for
     :return: List of resources for the session
     """
-    print 'Warning: Deprecated method. Use list_session_resources().'
+    print('Warning: Deprecated method. Use list_session_resources().')
     post_uri = SE_RESOURCES_URI.format(project=projectid, subject=subjectid,
                                        session=experimentid)
     resource_list = intf._get_json(post_uri)
@@ -3741,10 +3748,10 @@ def download_Scan(Outputdirectory, projectName, subject, experiment, scan,
     :return: None
 
     """
-    print 'Warning: Deprecated method. Use download_file(), download_files(), \
-download_file_from_obj(), or download_files_from_obj().'
+    print('Warning: Deprecated method. Use download_file(), download_files(), \
+download_file_from_obj(), or download_files_from_obj().')
     msg = 'Download resources from %s / %s / %s / %s'
-    print msg % (projectName, subject, experiment, scan)
+    print(msg % (projectName, subject, experiment, scan))
 
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
@@ -3766,12 +3773,12 @@ resources in download_Scan function. Not a list.")
                 dl_good_resources_scan(SCAN, resource_list, Outputdirectory,
                                        all_resources)
             else:
-                print 'DOWNLOAD WARNING: Scan unusable!'
+                print('DOWNLOAD WARNING: Scan unusable!')
         else:
             err = '%s: xnat object for <%s> does not exist on XNAT.'
             raise XnatAccessError(err % ('download_Scan', xpath))
 
-    print '=================================================================\n'
+    print('================================================================\n')
 
 
 # from a list of scantype given, Download the resources
@@ -3791,9 +3798,9 @@ def download_ScanType(Outputdirectory, projectName, subject, experiment,
     :return: None
 
     """
-    print 'Warning: Deprecated method.'
+    print('Warning: Deprecated method.')
     msg = 'Download resources from %s / %s / %s and the scan types %s'
-    print msg % (projectName, subject, experiment, str(List_scantype))
+    print(msg % (projectName, subject, experiment, str(List_scantype)))
 
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
@@ -3825,9 +3832,9 @@ scantypes in download_ScanType function. Not a list.")
                     dl_good_resources_scan(SCAN, resource_list,
                                            Outputdirectory, all_resources)
                 else:
-                    print 'DOWNLOAD WARNING: Scan unusable!'
+                    print('DOWNLOAD WARNING: Scan unusable!')
 
-    print '=================================================================\n'
+    print('================================================================\n')
 
 
 def download_ScanSeriesDescription(Outputdirectory, projectName, subject,
@@ -3848,9 +3855,9 @@ def download_ScanSeriesDescription(Outputdirectory, projectName, subject,
     :return: None
 
     """
-    print 'Warning: Deprecated method.'
+    print('Warning: Deprecated method.')
     msg = 'Download resources from %s / %s / %s and the series description %s'
-    print msg % (projectName, subject, experiment, str(List_scanSD))
+    print(msg % (projectName, subject, experiment, str(List_scanSD)))
 
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
@@ -3882,9 +3889,9 @@ series_description in download_ScanSeriesDescription function. Not a list.")
                     dl_good_resources_scan(SCAN, resource_list,
                                            Outputdirectory, all_resources)
                 else:
-                    print 'DOWNLOAD WARNING: Scan unusable!'
+                    print('DOWNLOAD WARNING: Scan unusable!')
 
-    print '=================================================================\n'
+    print('================================================================\n')
 
 
 def download_Assessor(Outputdirectory, assessor_label, resource_list,
@@ -3899,8 +3906,8 @@ def download_Assessor(Outputdirectory, assessor_label, resource_list,
     :return: None
 
     """
-    print 'Warning: Deprecated method.'
-    print 'Download resources from process %s' % assessor_label
+    print('Warning: Deprecated method.')
+    print('Download resources from process %s' % assessor_label)
 
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
@@ -3916,7 +3923,7 @@ resources in the download_Assessor function. Not a list.")
         dl_good_resources_assessor(ASSESSOR, resource_list, Outputdirectory,
                                    all_resources)
 
-    print '=================================================================\n'
+    print('================================================================\n')
 
 
 # from an assessor type, download the resources :
@@ -3937,9 +3944,9 @@ def download_AssessorType(Outputdirectory, projectName, subject, experiment,
     :return: None
 
     """
-    print 'Warning: Deprecated method.'
+    print('Warning: Deprecated method.')
     msg = 'Download resources from %s / %s / %s and the process %s'
-    print msg % (projectName, subject, experiment, str(List_process_type))
+    print(msg % (projectName, subject, experiment, str(List_process_type)))
 
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
@@ -3971,7 +3978,7 @@ process type in the download_AssessorType function. Not a list.")
                     dl_good_resources_assessor(ASSESSOR, resource_list,
                                                Outputdirectory, all_resources)
 
-    print '=================================================================\n'
+    print('================================================================\n')
 
 
 def dl_good_resources_scan(Scan, resource_list, Outputdirectory,
@@ -3987,7 +3994,7 @@ def dl_good_resources_scan(Scan, resource_list, Outputdirectory,
     :return: None
 
     """
-    print 'Warning: Deprecated method.'
+    print('Warning: Deprecated method.')
     for Resource in resource_list:
         resourceOK = 0
         if Scan.resource(Resource).exists():
@@ -4005,7 +4012,7 @@ def dl_good_resources_scan(Scan, resource_list, Outputdirectory,
             dl, _ = download_biggest_resources(Scan.resource(Resource),
                                                Outputdirectory)
             if not dl:
-                print 'ERROR: Download failed, Size for the resource is zero.'
+                print('ERROR: Download failed, Size for the resource is zero.')
 
 
 def dl_good_resources_assessor(Assessor, resource_list, Outputdirectory,
@@ -4021,7 +4028,7 @@ def dl_good_resources_assessor(Assessor, resource_list, Outputdirectory,
     :return: None
 
     """
-    print 'Warning: Deprecated method.'
+    print('Warning: Deprecated method.')
     for Resource in resource_list:
         resourceOK = 0
         if Assessor.out_resource(Resource).exists():
@@ -4040,7 +4047,7 @@ def dl_good_resources_assessor(Assessor, resource_list, Outputdirectory,
             dl, _ = download_biggest_resources(Assessor.out_resource(Resource),
                                                Outputdirectory)
             if not dl:
-                print 'ERROR: Download failed. Size for the resource is zero.'
+                print('ERROR: Download failed. Size for the resource is zero.')
 
 
 def download_biggest_resources(Resource, directory, filename='0'):
@@ -4055,8 +4062,8 @@ def download_biggest_resources(Resource, directory, filename='0'):
              0 and nan otherwise.
 
     """
-    print 'Warning: Deprecated method. Use download_biggest_file() or \
-download_biggest_file_from_obj().'
+    print('Warning: Deprecated method. Use download_biggest_file() or \
+download_biggest_file_from_obj().')
     if os.path.exists(directory):
         number = 0
         Bigger_file_size = 0
@@ -4078,7 +4085,7 @@ download_biggest_file_from_obj().'
             return 1, str(DLFileName)
     else:
         msg = 'ERROR in download_biggest_resources: Folder %s does not exist.'
-        print msg % directory
+        print(msg % directory)
 
 
 def download_all_resources(Resource, directory):
@@ -4090,8 +4097,8 @@ def download_all_resources(Resource, directory):
     :return: None
 
     """
-    print 'Warning: Deprecated method. Use download_files() or \
-download_files_from_obj().'
+    print('Warning: Deprecated method. Use download_files() or \
+download_files_from_obj().')
     unzip_cmd = 'unzip -d %s %s > /dev/null'
     if os.path.exists(directory):
         # if more than one file:
@@ -4101,22 +4108,22 @@ download_files_from_obj().'
             Outputdir = os.path.join(directory, rlabel)
             if not os.path.exists(Outputdir):
                 os.mkdir(Outputdir)
-            print '   ->Downloading all resources as a zip'
+            print('   ->Downloading all resources as a zip')
             Resource.get(Outputdir, extract=False)
-            print '   ->Unzipping ...'
+            print('   ->Unzipping ...')
             fpath = os.path.join(Outputdir, '%s.zip' % rlabel)
             os.system(unzip_cmd % (Outputdir, fpath))
         else:
-            print '   ->Downloading resource for %s' % Resource.label()
+            print('   ->Downloading resource for %s' % Resource.label())
             Input_res_label_fname = Resource.files().get()[0]
             fpath = os.path.join(directory, Input_res_label_fname)
             Resource.file(Input_res_label_fname).get(fpath)
             if os.path.join(directory, Input_res_label_fname)[-3:] == 'zip':
-                print '   -> Unzipping ...'
+                print('   -> Unzipping ...')
                 os.system(unzip_cmd % (directory, fpath))
     else:
         msg = 'ERROR in download_all_resources: Folder %s does not exist.'
-        print msg % directory
+        print(msg % directory)
 
 
 def upload_all_resources(Resource, directory):
@@ -4128,8 +4135,8 @@ def upload_all_resources(Resource, directory):
     :return: None
 
     """
-    print 'Warning: Deprecated method. Use either upload_files(), \
-upload_files_to_obj(), upload_folder(), or upload_folder_to_obj().'
+    print('Warning: Deprecated method. Use either upload_files(), \
+upload_files_to_obj(), upload_folder(), or upload_folder_to_obj().')
     if os.path.exists(directory):
         if not Resource.exists():
             Resource.create()
@@ -4154,7 +4161,7 @@ upload_files_to_obj(), upload_folder(), or upload_folder_to_obj().'
                     Resource.file(filename).put(fpath, overwrite=True)
     else:
         msg = 'ERROR in upload_all_resources: Folder %s does not exist.'
-        print msg % directory
+        print(msg % directory)
 
 
 def upload_zip(Resource, directory):
@@ -4186,14 +4193,14 @@ def download_resource_assessor(directory, xnat, project, subject, experiment,
     :return: None
 
     """
-    print 'Warning: Deprecated method. Use download_files() or \
-download_files_from_obj().'
+    print('Warning: Deprecated method. Use download_files() or \
+download_files_from_obj().')
     if not quiet:
-        print '    +Process: %s' % assessor_label
+        print('    +Process: %s' % assessor_label)
 
     assessor = select_assessor(xnat, assessor_label)
     if not assessor.exists():
-        print '      !!WARNING: No assessor with the ID selected.'
+        print('      !!WARNING: No assessor with the ID selected.')
         return
 
     if 'fMRIQA' in assessor_label:
@@ -4227,7 +4234,7 @@ download_files_from_obj().'
             Resource = xnat.select(xpath)
             if Resource.exists():
                 if not quiet:
-                    print '      *download resource %s' % resource['label']
+                    print('      *download resource %s' % resource['label'])
 
                 assessor_real_type = assessor_label.split('-x-')[-1]
                 if 'FS' in assessor_real_type:
@@ -4248,7 +4255,7 @@ download_files_from_obj().'
                             local_fname = os.path.join(Res_path, fname)
                             Resfile.get(local_fname)
                     else:
-                        print "\t    *ERROR : The size of the resource is 0."
+                        print("\t    *ERROR : The size of the resource is 0.")
 
     # resources in the options
     else:
@@ -4261,7 +4268,7 @@ download_files_from_obj().'
             Resource = xnat.select(xpath)
             if Resource.exists():
                 if not quiet:
-                    print '      *download resource %s' % resource
+                    print('      *download resource %s' % resource)
 
                 assessor_real_type = assessor_label.split('-x-')[-1]
                 if 'FS' in assessor_real_type:
@@ -4283,11 +4290,11 @@ download_files_from_obj().'
                             local_fname = os.path.join(Res_path, fname)
                             Resfile.get(local_fname)
                     else:
-                        print "      !!ERROR : The size of the resource is 0."
+                        print("      !!ERROR : The size of the resource is 0.")
             else:
                 msg = '      !!WARNING : no resource %s for this assessor.'
-                print msg % resource
-    print'\n'
+                print(msg % resource)
+    print('\n')
 
 
 def Upload_folder_to_resource(resourceObj, directory):
@@ -4300,8 +4307,8 @@ def Upload_folder_to_resource(resourceObj, directory):
     :return: None
 
     """
-    print 'Warning: Deprecated method. Use either upload_folder() or \
-upload_folder_to_obj().'
+    print('Warning: Deprecated method. Use either upload_folder() or \
+upload_folder_to_obj().')
     filenameZip = '%s.zip' % resourceObj.label()
     initDir = os.getcwd()
     # Zip all the files in the directory
@@ -4325,8 +4332,8 @@ def Download_resource_to_folder(Resource, directory):
     :return: None
 
     """
-    print 'Warning: Deprecated method. Use either download_files() or \
-download_files_from_obj().'
+    print('Warning: Deprecated method. Use either download_files() or \
+download_files_from_obj().')
     Res_path = os.path.join(directory, Resource.label())
     if os.path.exists(Res_path):
         os.remove(Res_path)
