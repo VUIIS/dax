@@ -3,6 +3,7 @@
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 
 import bin
+import dax_tools_utils
 import log
 import xnat_tools_utils
 import XnatUtils
@@ -15,4 +16,4 @@ from .version import VERSION as __version__
 from .XnatUtils import SpiderProcessHandler, AssessorHandler
 from .modules import ScanModule, SessionModule
 from .spiders import AutoSpider, ScanSpider, SessionSpider
-from .processors import ScanProcessor, SessionProcessor
+from .processors import ScanProcessor, SessionProcessor, AutoProcessor
