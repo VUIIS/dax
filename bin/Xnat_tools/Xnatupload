@@ -134,10 +134,10 @@ def read_csv_for_upload(csv_file, session_type, report=False):
             for ind, row in enumerate(csvreader):
                 if len(row) < 11:
                     msg = 'not enough column. Required 11 columns, %d given.'
-                    __logger__.info(warn_format % (ind+1, msg % len(row)))
+                    __logger__.info(warn_format % (ind + 1, msg % len(row)))
                 else:
                     if row[0] == 'scan':
-                        scan = read_row(row, session_type, ind+1)
+                        scan = read_row(row, session_type, ind + 1)
                         if scan:
                             scans.append(scan)
                             # Resource:
@@ -145,7 +145,7 @@ def read_csv_for_upload(csv_file, session_type, report=False):
                                                       scan['label'],
                                                       row[-2], row[-1])
                     elif row[0] == 'assessor':
-                        assessor = read_row(row, session_type, ind+1,
+                        assessor = read_row(row, session_type, ind + 1,
                                             header=ASSESSOR_HEADER)
                         if scan:
                             assessors.append(assessor)
@@ -155,7 +155,7 @@ def read_csv_for_upload(csv_file, session_type, report=False):
                                                       row[-2], row[-1])
                     else:
                         msg = 'does not start with "scan" or "assessor".'
-                        __logger__.info(warn_format % (ind+1, msg))
+                        __logger__.info(warn_format % (ind + 1, msg))
 
         __logger__.info('INFO: Reading CSV DONE')
         utils.print_separators()
@@ -210,7 +210,12 @@ def read_row(row, session_type, ind, header=SCAN_HEADER):
             __logger__.info(warn_format % (ind, msg))
         else:
             obj_dict = dict(zip(header, row[:9]))
-            obj_dict['label'] = '-x-'.join([row[1], row[2], row[4], row[5]])
+            if is_scan:
+                label = '-x-'.join([row[1], row[2], row[4], row[5]])
+            else:
+                label = row[5]
+
+            obj_dict['label'] = label
 
     return obj_dict
 
@@ -360,14 +365,14 @@ def get_display(obj):
         _at = utils.get_proper_str(obj['proctype'], size=12)
         _job = utils.get_proper_str(obj['procstatus'], size=12)
         _qc = utils.get_proper_str(obj['qcstatus'], size=12)
-        return (-10, 'assessor', -10, _pj, -10, _su,  -10, _st, -15, _se,
+        return (-10, 'assessor', -10, _pj, -10, _su, -10, _st, -15, _se,
                 -30, _as, -15, _at, -15, _job, -15, _qc, -58, _re)
     else:
         _sc = utils.get_proper_str(obj['ID'], size=27)
         _sct = utils.get_proper_str(obj['type'], size=27)
         _sd = utils.get_proper_str(obj['series_description'], size=12)
         _qc = utils.get_proper_str(obj['quality'], size=12)
-        return (-10, 'scan', -10, _pj, -10, _su,  -10, _st, -15, _se, -30, _sc,
+        return (-10, 'scan', -10, _pj, -10, _su, -10, _st, -15, _se, -30, _sc,
                 -15, _sct, -15, _sd, -15, _qc, -58, _re)
 
 
@@ -382,7 +387,7 @@ def print_report(csv_file, session_type):
     _fmt = ' %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s '
     scans, assessors = read_csv_for_upload(csv_file, session_type, report=True)
     _header = _fmt % (
-        -10, 'ObjectType', -10, 'Project', -10, 'Subject',  -10, 'SessType',
+        -10, 'ObjectType', -10, 'Project', -10, 'Subject', -10, 'SessType',
         -15, 'Session', -30, 'Label', -15, 'Type', -15, 'Description',
         -15, 'Quality', -58, 'Resource')
     _objects = list()
@@ -577,7 +582,7 @@ def create_assessor(xnat, assessor, assessor_dict, session_type,
     :return: pyxnat assessor Eobject
     """
     now = datetime.now()
-    today = str(now.year)+'-'+str(now.month)+'-'+str(now.day)
+    today = '{}-{}-{}'.format(str(now.year), str(now.month), str(now.day))
 
     if assessor_dict['proctype'].lower() in ['freesurfer', 'fs'] and \
        XnatUtils.has_fs_datatypes(xnat):
@@ -587,14 +592,14 @@ def create_assessor(xnat, assessor, assessor_dict, session_type,
         xsitype = XnatUtils.DEFAULT_DATATYPE
 
     kwargs = {
-       'assessors': xsitype,
-       '%s/procstatus' % xsitype: assessor_dict['procstatus'],
-       '%s/validation/status' % xsitype: assessor_dict['qcstatus'],
-       '%s/proctype' % xsitype: assessor_dict['proctype'],
-       '%s/date' % xsitype: today,
-       # experiment
-       'experiments': utils.XNAT_MODALITIES[session_type]['xsitype'],
-       'xnat:experimentData/date': creation_date,
+        'assessors': xsitype,
+        '%s/procstatus' % xsitype: assessor_dict['procstatus'],
+        '%s/validation/status' % xsitype: assessor_dict['qcstatus'],
+        '%s/proctype' % xsitype: assessor_dict['proctype'],
+        '%s/date' % xsitype: today,
+        # experiment
+        'experiments': utils.XNAT_MODALITIES[session_type]['xsitype'],
+        'xnat:experimentData/date': creation_date,
     }
 
     # For FreeSurfer Assessor add version
@@ -635,7 +640,7 @@ def upload_data_xnat(xnat, args, scans, assessors):
 
         xnat_obj = get_xnat_obj(xnat, obj, args.session_type)
         if xnat_obj:
-            __logger__.info(utils.get_obj_info(ind+1, _nb_objs, obj))
+            __logger__.info(utils.get_obj_info(ind + 1, _nb_objs, obj))
             upload_resources(xnat_obj, args, xnat_obj, obj)
 
 
@@ -712,14 +717,16 @@ def delete_all_resources(xnat, obj, obj_dict):
     :return: None
     """
     if obj_dict['object_type'] == 'scan':
-        for resource_label in XnatUtils.list_scan_resources(
-           xnat, obj_dict['project_id'], obj_dict['subject_label'],
-           obj_dict['session_label'], obj_dict['ID']):
+        resources = XnatUtils.list_scan_resources(
+            xnat, obj_dict['project_id'], obj_dict['subject_label'],
+            obj_dict['session_label'], obj_dict['ID'])
+        for resource_label in resources:
             obj.resource(resource_label).delete()
     else:
-        for resource_label in XnatUtils.list_assessor_out_resources(
-           xnat, obj_dict['project_id'], obj_dict['subject_label'],
-           obj_dict['session_label'], obj_dict['label']):
+        resources = XnatUtils.list_assessor_out_resources(
+            xnat, obj_dict['project_id'], obj_dict['subject_label'],
+            obj_dict['session_label'], obj_dict['label'])
+        for resource_label in resources:
             obj.out_resource(resource_label).delete()
 
 
