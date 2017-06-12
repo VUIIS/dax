@@ -283,6 +283,7 @@ generated. Default: current directory.')
 
 
 if __name__ == '__main__':
+    print('Deprecated executable. Use dax_generator processor instead.')
     ARGS = parse_args()
 
     # Get a proper name from the input

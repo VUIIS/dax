@@ -1,0 +1,70 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Executable to upload processed data back to XNAT from the dax queue folder.
+"""
+
+from dax import dax_tools_utils as dax_tools
+from dax import DAX_Settings
+
+DAX_SETTINGS = DAX_Settings()
+RESULTS_DIR = DAX_SETTINGS.get_results_dir()
+__description__ = """What is the dax executable doing :
+   * Upload all processes run through dax back to XNAT from the queue folder \
+<{folder}>
+
+Examples:
+   * run dax_upload: dax_upload
+   * run dax_upload and write output to a file: dax_upload -l /path/to/file.log
+   * run dax_upload and send email warnings/errors: dax_upload -e ...@gmail.com
+   * run dax_upload for a specific xnat: dax_upload --host https://...
+   * run dax_upload for a specific xnat/username: dax_upload --host \
+https://... -u admin
+   * run dax_upload for a specific xnat/username: dax_upload --host \
+https://... -u admin -p project1,project2
+"""
+
+
+def parse_args():
+    """
+    Method to parse arguments base on argparse
+
+    :return: parser object
+    """
+    from argparse import ArgumentParser, RawTextHelpFormatter
+    description = __description__.format(folder=RESULTS_DIR)
+    ap = ArgumentParser(prog='dax_upload', description=description,
+                        formatter_class=RawTextHelpFormatter)
+    ap.add_argument('--host', dest='host', default=None,
+                    help='Host for XNAT. Default: using $XNAT_HOST.')
+    ap.add_argument('-u', '--username', dest='username', default=None,
+                    help='Username for XNAT.')
+    ap.add_argument('--pwd', dest='password', default=None,
+                    help="Password for XNAT. You can specify the environment's \
+variable for this option. Default: using $XNAT_PASS.")
+    ap.add_argument('-s', '--suffix', dest='suffix', default="",
+                    help='Suffix for the flagfile for dax_upload (Use this \
+option if you use different XNAT_HOST).')
+    ap.add_argument('-p', '--projects', dest='projects', default=None,
+                    help='List of projects to upload to XNAT from the queue.')
+    ap.add_argument('-f', '--uploadFileSettings', dest='upload_settings',
+                    default=None, help='File describing each XNAT host and \
+projects to upload  (.py/.csv/.json).')
+    ap.add_argument('-e', '--email', dest='emailaddress', default=None,
+                    help='Email address to inform you about the warnings \
+and errors.')
+    ap.add_argument('-l', '--logfile', dest='logfile',
+                    help='Logs file path if needed.', default=None)
+    ap.add_argument('--nodebug', dest='debug', action='store_false',
+                    help='Avoid printing DEBUG information.')
+    return ap.parse_args()
+
+
+if __name__ == '__main__':
+    args = parse_args()
+
+    print('Deprecated executable. Use dax upload instead.')
+    dax_tools.upload_tasks(args.logfile, args.debug, args.upload_settings,
+                           args.host, args.username, args.password,
+                           args.projects, args.suffix, args.emailaddress)

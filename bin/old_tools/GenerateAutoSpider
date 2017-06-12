@@ -75,6 +75,7 @@ def get_exe_language(code_file):
 
 
 if __name__ == '__main__':
+    print('Deprecated executable. Use dax_generator autospider instead.')
     ARGS = parse_args()
     inputs_file = ARGS.inputs_file
     outputs_file = ARGS.outputs_file
@@ -102,7 +103,7 @@ Must be X.Y.Z. See http://semver.org."
         inputs_str += '", "'.join(i)
         inputs_str += '"),'
 
-    inputs_str = inputs_str[:-1]+']'
+    inputs_str = inputs_str[:-1] + ']'
 
     # Load Outputs
     outputs = spiders.load_outputs(outputs_file)
@@ -112,7 +113,7 @@ Must be X.Y.Z. See http://semver.org."
         outputs_str += '", "'.join(i)
         outputs_str += '"),'
 
-    outputs_str = outputs_str[:-1]+'\n]'
+    outputs_str = outputs_str[:-1] + '\n]'
 
     # Get executable language:
     exe_lang = get_exe_language(code_file)
@@ -122,7 +123,8 @@ Must be X.Y.Z. See http://semver.org."
     code_str = code_str.replace('"""', "'''")
 
     # Make the spider
-    spider_file = 'Spider_'+ARGS.name+'_v'+ARGS.version.replace('.', '_')+'.py'
+    spider_file = 'Spider_{}_v{}.py'.format(ARGS.name,
+                                            ARGS.version.replace('.', '_'))
     spider_str = SPIDER_TEMPLATE.format(
         name=ARGS.name,
         inputs=inputs_str,

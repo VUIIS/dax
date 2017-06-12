@@ -82,10 +82,10 @@ Status:
 
 SCAN_TEMPLATE = '''Scan info :
 --------------------------------------------------------------------------
-  Scan type                      | Count
-  ---------------------------------------
+  Scan type                                                    | Count
+  ---------------------------------------------------------------------
 {scan_info}
-  ---------------------------------------
+  ---------------------------------------------------------------------
 
   List of unusable scan :
   -----------------------
@@ -191,7 +191,7 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
         scan_info = list()
         for key in sorted(scans_found):
             _format = '  %*s | %*s'
-            scan_info.append(_format % (-30, key[:30], -30, scans_found[key]))
+            scan_info.append(_format % (-60, key[:60], -30, scans_found[key]))
         unusables = ['  skipped...']
         if not ignore_unusable:
             _format = '  %*s | %*s | %*s | %*s'
