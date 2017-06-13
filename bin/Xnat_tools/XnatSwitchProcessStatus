@@ -11,6 +11,10 @@ Edited on February 22, 2017
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
+from __future__ import print_function
+
+from builtins import str
+
 from datetime import datetime
 import os
 import sys
@@ -153,7 +157,7 @@ def get_assessors(xnat, args, has_fs_datatypes=False):
             raise XnatToolsUserError(__exe__, err)
         assessors.append(assessor)
     if args.txt_file:
-        print 'INFO: Reading assessors from txt file: %s' % args.txt_file
+        print('INFO: Reading assessors from txt file: %s' % args.txt_file)
         if args.txt_file and not os.path.exists(args.txt_file):
             err = "Argument -x/--txtfile - file does not exist: %s"
             raise XnatToolsUserError(__exe__, err % args.txt_file)
@@ -169,7 +173,7 @@ set properly.\nTraceback: %s' % err
                 assessors.append(assessor)
 
     if args.projects:
-        print 'INFO: Querying XNAT to get assessors for all the projects.'
+        print('INFO: Querying XNAT to get assessors for all the projects.')
         if args.projects == 'all':
             _uri = XnatUtils.PROJECTS_URI
             projects = [_p['ID'] for _p in xnat._get_json(_uri)]
@@ -193,18 +197,18 @@ set properly.\nTraceback: %s' % err
 
     # Print number of assessors found:
     if projects and assessors:
-        print 'INFO: Number of XNAT assessors found after filtering:'
+        print('INFO: Number of XNAT assessors found after filtering:')
         if assessors:
             _format = '| %*s | %*s |'
             _sep = ' ---------------------------------------------'
-            print _sep
-            print _format % (-20, 'Project ID', -20, 'Number of Assessors')
-            print _sep
+            print(_sep)
+            print(_format % (-20, 'Project ID', -20, 'Number of Assessors'))
+            print(_sep)
             for project in projects:
-                print _format % (-20, project,
+                print(_format % (-20, project,
                                  -20, len([_a for _a in assessors
-                                           if _a['project_id'] == project]))
-            print '%s\n' % _sep
+                                           if _a['project_id'] == project])))
+            print('%s\n' % _sep)
 
     return assessors
 
@@ -298,7 +302,7 @@ file.\n'
             else:
                 err = '     -> ERROR: deleting file by file for resource %s\n'
                 sys.stdout.write(err % (resource))
-                print e
+                print(e)
     sys.stdout.write('     -> Resource %s deleted\n' % (resource))
 
 
@@ -444,16 +448,16 @@ use --printstatus.\nDo you want to continue?'
     if ni_proctypes and status != task.NEED_TO_RUN:
         msg = 'Warning: You want to change the status for linked \
 assessors "%s" to "%s" but the status set is not NEED_TO_RUN but "%s"'
-        print msg % (ni_proctypes, task.NEED_INPUTS, status)
-        print '         The tool will not change the status on the linked \
-assessors.'
+        print(msg % (ni_proctypes, task.NEED_INPUTS, status))
+        print('         The tool will not change the status on the linked \
+assessors.')
 
     _format = '  + Process %s/%s : %s\n'
     if not status:
         err = 'argument -s/--status not provided.'
         raise XnatToolsUserError(__exe__, err)
 
-    print 'INFO: Switching assessors status:'
+    print('INFO: Switching assessors status:')
     nb = str(len(assessors))
     sorted_list = sorted(assessors, key=lambda k: k['label'])
     for ind, assessor in enumerate(sorted_list):
@@ -498,7 +502,7 @@ def set_status_assessor(xnat, assessor, status,
             set_proc_status(assessor_obj, status, username=xnat.user)
 
         if delete_resources:
-            if 'resources' in assessor.keys():
+            if 'resources' in list(assessor.keys()):
                 resources = assessor['resources']
                 for resource in resources:
                     delete_assr_resource(assessor_obj, resource)
@@ -514,13 +518,13 @@ def print_status():
     """
     Function to print the statuses
     """
-    print PRINT_STR % (
+    print(PRINT_STR % (
         -18, task.NEED_INPUTS, -18, task.NEED_TO_RUN, -18, task.JOB_RUNNING,
         -18, task.JOB_FAILED, -18, task.READY_TO_UPLOAD, -18, task.UPLOADING,
         -18, task.READY_TO_COMPLETE, -18, task.COMPLETE, -28, task.JOB_PENDING,
         -28, task.NEEDS_QA, -28, task.PASSED_QA, -28, task.FAILED,
         -28, task.RERUN, task.NEED_INPUTS, -28, task.REPROC, task.NEED_INPUTS,
-        -28, task.FAILED_NEEDS_REPROC, -28, task.PASSED_EDITED_QA)
+        -28, task.FAILED_NEEDS_REPROC, -28, task.PASSED_EDITED_QA))
 
 
 def run_xnat_switch_process_status(args):
@@ -540,7 +544,7 @@ def run_xnat_switch_process_status(args):
     user = args.username
     with XnatUtils.get_interface(host=host, user=user) as xnat:
         utils.print_separators()
-        print 'INFO: connection to xnat <%s>:' % (host)
+        print('INFO: connection to xnat <%s>:' % (host))
 
         if not XnatUtils.has_dax_datatypes(xnat):
             err = 'Your XNAT instance does not have the assessor datatypes \
@@ -553,7 +557,7 @@ required by dax. Please install them. Check https://github.com/VUIIS/dax wiki.'
 
         # Switch status for assessors:
         if not assessors:
-            print 'INFO: No XNAT assessors found after filtering.'
+            print('INFO: No XNAT assessors found after filtering.')
         else:
             set_status(xnat, args, assessors, has_fs_datatypes)
 

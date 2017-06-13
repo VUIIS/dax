@@ -7,6 +7,11 @@ Upload data to XNAT following the csv file information
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
+from __future__ import print_function
+
+from builtins import str
+from builtins import zip
+
 import csv
 from datetime import datetime
 import glob
@@ -101,8 +106,8 @@ def extract_objects_one_subject(project, subject, obj_list):
     :param obj_list: objects list to filter
     :return: list containing only the desired objects
     """
-    return filter(lambda x: (x['subject_label'] == subject and
-                             x['project_id'] == project), obj_list)
+    return [x for x in obj_list if (x['subject_label'] == subject and
+                                    x['project_id'] == project)]
 
 
 def read_csv_for_upload(csv_file, session_type, report=False):
@@ -205,11 +210,12 @@ def read_row(row, session_type, ind, header=SCAN_HEADER):
             extra = '/6'
         __logger__.info(warn_format % (ind, msg, extra))
     else:
-        if not session_type and not row[3] in utils.XNAT_MODALITIES.keys():
+        if not session_type and \
+           not row[3] in list(utils.XNAT_MODALITIES.keys()):
             msg = 'wrong session type, not defined on XNAT.'
             __logger__.info(warn_format % (ind, msg))
         else:
-            obj_dict = dict(zip(header, row[:9]))
+            obj_dict = dict(list(zip(header, row[:9])))
             if is_scan:
                 label = '-x-'.join([row[1], row[2], row[4], row[5]])
             else:
@@ -254,9 +260,9 @@ def add_resource(rs_dict, label, resource_label, fpath):
     :param fpath: path to the resource to add
     :return: list of object with the resources specified by resource
     """
-    if label in rs_dict.keys():
+    if label in list(rs_dict.keys()):
         resources_dict = rs_dict[label]
-        if resource_label in resources_dict.keys():
+        if resource_label in list(resources_dict.keys()):
             resources_dict[resource_label].append(fpath)
         else:
             resources_dict[resource_label] = [fpath]
@@ -275,7 +281,7 @@ def combine_obj_resource(obj_list, r_dict):
     :return: list of object with the resources specified by resource
     """
     # Unique list of dictionaries:
-    obj_list = {v['label']: v for v in obj_list}.values()
+    obj_list = list({v['label']: v for v in obj_list}.values())
     for object_dict in obj_list:
         object_dict['resource'] = r_dict[object_dict['label']]
     return obj_list
@@ -316,8 +322,8 @@ def generate_previews(ra_dict):
     _format = ' Warning: generate_previews -- %s -- %s'
     cmd_o = 'gs -q -o %s -sDEVICE=pngalpha -dLastPage=1 %s'
     cmd_p = 'convert %s -resize x200 %s'
-    for label, resource_dict in ra_dict.items():
-        if 'PDF' in resource_dict.keys():
+    for label, resource_dict in list(ra_dict.items()):
+        if 'PDF' in list(resource_dict.keys()):
             pdf_path = check_pdf_path(resource_dict['PDF'], label)
             if not pdf_path:
                 msg = 'No proper PDF file found. No snapshots will be created.'
@@ -341,7 +347,7 @@ def generate_previews(ra_dict):
                     msg = 'Failed to create preview/original for snapshots.'
                     __logger__.info(_format % (label, msg))
                 else:
-                    if 'SNAPSHOTS' in resource_dict.keys():
+                    if 'SNAPSHOTS' in list(resource_dict.keys()):
                         resource_dict['SNAPSHOTS'].append(snapshot_original)
                         resource_dict['SNAPSHOTS'].append(snapshot_preview)
                     else:
@@ -358,9 +364,9 @@ def get_display(obj):
     _su = utils.get_proper_str(obj['subject_label'])
     _st = utils.get_proper_str(obj['session_type'])
     _se = utils.get_proper_str(obj['session_label'], size=15)
-    _re = '/'.join(obj['resource'].keys())
+    _re = '/'.join(list(obj['resource'].keys()))
 
-    if 'qcstatus' in obj.keys():  # Assessor
+    if 'qcstatus' in list(obj.keys()):  # Assessor
         _as = utils.get_proper_str(obj['label'], size=27)
         _at = utils.get_proper_str(obj['proctype'], size=12)
         _job = utils.get_proper_str(obj['procstatus'], size=12)
@@ -407,12 +413,12 @@ def print_modality():
 
     :return: None
     """
-    print 'INFO: Printing the modality available for a Session'
+    print('INFO: Printing the modality available for a Session')
     sort_list = sorted(utils.XNAT_MODALITIES,
                        key=lambda key: utils.XNAT_MODALITIES[mod_key])
-    for mod_key, mod_dict in sort_list.items():
-        print ' %*s : %*s ' % (-17, mod_key, -30, mod_dict['info'])
-    print '==================================================================='
+    for mod_key, mod_dict in list(sort_list.items()):
+        print(' %*s : %*s ' % (-17, mod_key, -30, mod_dict['info']))
+    print('==================================================================')
 
 
 def get_files_in_folder(folder, label=''):
@@ -659,7 +665,7 @@ def upload_resources(xnat, args, obj, obj_dict):
         delete_all_resources(xnat, obj, obj_dict)
 
     # Upload each resources:
-    for resource_label, fpath_list in obj_dict['resource'].items():
+    for resource_label, fpath_list in list(obj_dict['resource'].items()):
         __logger__.info('   > Resource %s' % (resource_label))
         if resource_label == 'SNAPSHOTS' and \
            obj_dict['object_type'] == 'assessor':
@@ -778,7 +784,7 @@ def run_xnat_upload(args):
         raise XnatToolsUserError(__exe__, err % args.csvfile)
 
     if args.session_type and \
-       args.session_type not in utils.XNAT_MODALITIES.keys():
+       args.session_type not in list(utils.XNAT_MODALITIES.keys()):
         err = 'Argument --sess does not exist on XNAT: %s' % args.session_type
         raise XnatToolsUserError(__exe__, err)
 
@@ -798,7 +804,7 @@ def run_xnat_upload(args):
         user = args.username
         with XnatUtils.get_interface(host=host, user=user) as xnat:
             utils.print_separators()
-            print 'INFO: connection to xnat <%s>:' % (host)
+            print('INFO: connection to xnat <%s>:' % (host))
 
             # has_fs_datatypes = XnatUtils.has_fs_datatypes(xnat)
 

@@ -11,6 +11,10 @@ Edited on February 20, 2017
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
+from __future__ import print_function
+
+from builtins import str
+
 import csv
 import os
 
@@ -67,15 +71,15 @@ def get_yob_from_label(yob, row_index):
     if '/' in yob:
         msg = ' warning: row %s -- "/" detected in the year of birth (yob) \
 value. Using last digit of the string: %s'
-        print msg % (str(row_index+1), yob.split('/')[-1])
+        print(msg % (str(row_index + 1), yob.split('/')[-1]))
         yob = yob.split('/')[-1]
 
     try:
         int(yob)
         return yob
-    except:
+    except Exception:
         msg = ' warning: row %s -- year of birth (yob) not a proper integer.'
-        print msg % (str(row_index+1))
+        print(msg % (str(row_index + 1)))
         return ''
 
 
@@ -101,17 +105,17 @@ def read_csv(csv_file, session_vars, header_format, delimiter):
         session_variables = SESSION_PARAMETERS_LIST
 
     msg = 'Warning: the variables for a session are the following : %s'
-    print msg % (','.join(session_variables))
+    print(msg % (','.join(session_variables)))
 
     # Header if set:
     if header_format:
-        print 'Warning: the header has been set by the options --format.'
+        print('Warning: the header has been set by the options --format.')
         header = header_format.split(',')
     else:
-        print 'Warning: the header has not been set. Using the first line for \
-the header.'
-    print 'INFO: Reading CSV -- if you see any warning, it means that the \
-information on the row will not be uploaded.'
+        print('Warning: the header has not been set. Using the first line for \
+the header.')
+    print('INFO: Reading CSV -- if you see any warning, it means that the \
+information on the row will not be uploaded.')
     with open(csv_file, 'rb') as csvfileread:
         csvreader = csv.reader(csvfileread, delimiter=delimiter)
         for index, row in enumerate(csvreader):
@@ -125,12 +129,12 @@ information on the row will not be uploaded.'
                 if 'project_id' not in header or 'subject_label' not in header:
                     msg = ' warning: row %s -- "project_id" and \
 "subject_label" not in the header. Check the header.'
-                    print msg % (str(index+1))
+                    print(msg % (str(index + 1)))
                     return None, None
                 if 'age' in header and 'session_label' not in header:
                     msg = ' warning: row %s -- age found in header but \
 session_label not in it. Check the header.'
-                    print msg % (str(index+1))
+                    print(msg % (str(index + 1)))
             else:
                 demo_list.append(get_row_csv(row, header, index,
                                  session_variables))
@@ -151,8 +155,8 @@ def get_row_csv(row, header, row_index, session_variables):
     """
     tmp_dict = dict()
     if len(row) != len(header):
-        print ' WARNING: row %s -- less or more columns than the header. \
-Check the csv file.' % (str(row_index+1))
+        print(' WARNING: row %s -- less or more columns than the header. \
+Check the csv file.' % (str(row_index + 1)))
         return tmp_dict
     else:
         tmp_dict['upload_demo_subject'] = dict()
@@ -180,22 +184,22 @@ Check the csv file.' % (str(row_index+1))
 
 def print_report(demographics, header):
     """
-    Method to print the report on the upload of demographic data
+    Method to print(the report on the upload of demographic data
 
     :param demographics: list of demographic to upload (dicts)
     :param header: list of field names for header
     :return: None
     """
     # Display:
-    print """Report information :
+    print("""Report information :
 List of the data that need to be upload for the header:
-%s""" % ','.join(header)
+%s""" % ','.join(header))
     utils.print_separators(symbol='-')
     new_list = sorted(demographics, key=lambda k: k['project_id'])
     for obj_dict in sorted(new_list):
         if obj_dict:
             row = get_row_info(obj_dict)
-            print ','.join(row)
+            print(','.join(row))
     utils.print_separators(symbol='-')
 
 
@@ -209,12 +213,12 @@ def get_row_info(obj_dict, header):
     """
     row = list()
     for field in header:
-        if field in obj_dict.keys():
+        if field in list(obj_dict.keys()):
             row.append(obj_dict.get(field, ''))
         else:
-            if field in obj_dict['upload_demo_subject'].keys():
+            if field in list(obj_dict['upload_demo_subject'].keys()):
                 row.append(obj_dict['upload_demo_subject'].get(field, ''))
-            elif field in obj_dict['upload_demo_session'].keys():
+            elif field in list(obj_dict['upload_demo_session'].keys()):
                 row.append(obj_dict['upload_demo_session'].get(field, ''))
             else:
                 row.append('')
@@ -223,31 +227,31 @@ def get_row_info(obj_dict, header):
 
 def print_info_row(object_dict):
     """
-    Method to print information when uploading
+    Method to print(information when uploading
 
     :param obj_dict: dictionary to convert
     :return: None
     """
     _tmp = ' *Project: %s  / Subject: %s'
     _args = [object_dict['project_id'], object_dict['subject_label']]
-    if 'session_label' in object_dict.keys():
+    if 'session_label' in list(object_dict.keys()):
         _tmp += ' / Session: %s'
         _args.append(object_dict['session_label'])
-    print _tmp % _args
+    print(_tmp % _args)
 
-    if 'upload_demo_subject' in object_dict.keys():
-        for tag, value in object_dict['upload_demo_subject'].items():
+    if 'upload_demo_subject' in list(object_dict.keys()):
+        for tag, value in list(object_dict['upload_demo_subject'].items()):
             _tmp += ' / %s: %s'
             _args.append(tag)
             _args.append(value)
 
-    if 'upload_demo_session' in object_dict.keys():
-        for tag, value in object_dict['upload_demo_session'].items():
+    if 'upload_demo_session' in list(object_dict.keys()):
+        for tag, value in list(object_dict['upload_demo_session'].items()):
             _tmp += ' / %s: %s'
             _args.append(tag)
             _args.append(value)
 
-    print _tmp % _args
+    print(_tmp % _args)
 
 
 def print_format():
@@ -262,15 +266,15 @@ def print_format():
 session level (required as well in the csv to know where to set the \
 information specified by the user):
  Required variables:"""
-    print msg
+    print(msg)
     for value in REQUIRED_VARIABLES_LIST:
-        print _format % (-30, value)
-    print 'Default Subject demographic attributes:'
+        print(_format % (-30, value))
+    print('Default Subject demographic attributes:')
     for value in SUBJECT_PARAMETERS_LIST:
-        print _format % (-30, value)
-    print 'Default Session demographic attributes:'
+        print(_format % (-30, value))
+    print('Default Session demographic attributes:')
     for value in SESSION_PARAMETERS_LIST:
-        print _format % (-30, value)
+        print(_format % (-30, value))
     msg = """INFO: You can generate your own attributes by creating them on \
 the XNAT directly and use the script to upload the values.
 
@@ -280,7 +284,7 @@ data to a subject.
     * for session attributes, you need to give the session_label as well.
     * for specific attributes that you created on XNAT, please put the name \
 of the variables in the header."""
-    print msg
+    print(msg)
 
 
 def upload_demographic_data(xnat, demographics):
@@ -301,7 +305,7 @@ def upload_demographic_data(xnat, demographics):
         if not subject_obj.exists():
             msg = " --> WARNING: Subject %s doesn't exist. No information \
 will be uploaded."
-            print msg % (obj_dict['subject_label'])
+            print(msg % (obj_dict['subject_label']))
         else:
             update_demo_data(subject_obj, obj_dict)
 
@@ -314,12 +318,12 @@ def update_demo_data(subject_obj, obj_dict):
     :param obj_dict: list of values to upload
     :return: None
     """
-    if 'upload_demo_subject' in obj_dict.keys():
+    if 'upload_demo_subject' in list(obj_dict.keys()):
         update_tags_subject(subject_obj, obj_dict['subject_label'],
                             obj_dict['upload_demo_subject'])
 
-    if 'upload_demo_session' in obj_dict.keys() and \
-       'session_label' in obj_dict.keys():
+    if 'upload_demo_session' in list(obj_dict.keys()) and \
+       'session_label' in list(obj_dict.keys()):
         session_obj = subject_obj.experiment(obj_dict['session_label'])
         update_tags_session(session_obj, obj_dict['session_label'],
                             obj_dict['upload_demo_session'])
@@ -335,7 +339,7 @@ def update_tags_subject(subject_obj, subject_label, subj_dict):
     :return: None
     """
     mset_dict = dict()
-    for tag, value in subj_dict.items():
+    for tag, value in list(subj_dict.items()):
         if tag in SUBJECT_PARAMETERS_LIST:  # default attributes
             key_tmp = 'xnat:subjectData/demographics[@xsi:type=xnat:\
 demographicData]/%s'
@@ -344,7 +348,7 @@ demographicData]/%s'
         mset_dict[key_tmp % tag.lower()] = value
 
     subject_obj.attrs.mset(mset_dict)
-    print "  - %s set on subject." % (', '.join(subj_dict.keys()))
+    print("  - %s set on subject." % (', '.join(list(subj_dict.keys()))))
 
 
 def update_tags_session(session_obj, session_label, sess_dict):
@@ -360,10 +364,10 @@ def update_tags_session(session_obj, session_label, sess_dict):
 
     if not session_obj.exists():
         msg = "  --> warning: Session %s doesn't exist or not set."
-        print msg % (session_label)
+        print(msg % (session_label))
     else:
         xsitype_sess = session_obj.attrs.get('xsiType')
-        for tag, value in sess_dict.items():
+        for tag, value in list(sess_dict.items()):
             if tag in SESSION_PARAMETERS_LIST:
                 key_tmp = '%s/%s'
             else:
@@ -371,7 +375,7 @@ def update_tags_session(session_obj, session_label, sess_dict):
             mset_dict[key_tmp % (xsitype_sess, tag.lower())] = value
 
         session_obj.attrs.mset(mset_dict)
-        print "  - %s set on session." % (', '.join(sess_dict.keys()))
+        print("  - %s set on session." % (', '.join(list(sess_dict.keys()))))
 
 
 def run_xnat_demographics(args):
@@ -393,7 +397,7 @@ def run_xnat_demographics(args):
             demographics, header = read_csv(args.csvfile, args.session_format,
                                             args.format, args.delimiter)
             if not demographics:
-                print 'INFO: no valid demographic data found.'
+                print('INFO: no valid demographic data found.')
             elif args.report:
                 print_report(demographics, header)
             else:
@@ -403,10 +407,10 @@ def run_xnat_demographics(args):
                     host = os.environ['XNAT_HOST']
                 user = args.username
                 with XnatUtils.get_interface(host=host, user=user) as xnat:
-                    print 'INFO: connection to xnat <%s>:' % (host)
+                    print('INFO: connection to xnat <%s>:' % (host))
                     msg = 'INFO: Uploading demographics data to XNAT <%s>. It \
 will take some time to upload demographic data. Please be patient.'
-                    print msg % (host)
+                    print(msg % (host))
                     upload_demographic_data(xnat, demographics)
 
     utils.print_end(__exe__)

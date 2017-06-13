@@ -10,6 +10,12 @@ Edited on February 22, 2017
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
+from __future__ import print_function
+
+from builtins import filter
+from builtins import str
+from builtins import range
+
 import os
 import sys
 import redcap
@@ -61,16 +67,16 @@ def print_lib(redcap_proj):
                            redcap_proj.metadata)[0]
             all_forms.append(field['form_name'])
         except IndexError as e:
-            print 'ERROR: IndexError when checking the libraries.'
-            print e
+            print('ERROR: IndexError when checking the libraries.')
+            print(e)
             sys.exit()
 
     # print the forms
     unique_forms = set(all_forms)
-    print 'INFO: Printing REDCap libraries name'
-    print '------------------------------------'
+    print('INFO: Printing REDCap libraries name')
+    print('------------------------------------')
     for form in unique_forms:
-        print form
+        print(form)
 
 
 def get_records(args, redcap_proj):
@@ -88,21 +94,21 @@ def get_records(args, redcap_proj):
     proctypes_list = utils.get_option_list(args.proctype)
 
     if args.all:
-        print 'INFO: Export ALL records from redcap project...'
+        print('INFO: Export ALL records from redcap project...')
         record_list = redcap_proj.export_records(
             fields=[redcap_proj.def_field])
         list_records = [r[redcap_proj.def_field] for r in record_list]
     elif not list_records:
         list_records = list()
-        print 'INFO: Export SPECIFIC records from redcap project...'
+        print('INFO: Export SPECIFIC records from redcap project...')
         rc_fields = ['record_id', 'project_xnat', 'subject_xnat',
                      'experiment_xnat', 'process_name_xnat']
         rc_list = redcap_proj.export_records(fields=rc_fields)
         # Filter:
-        rc_list = filter(lambda x: is_good_record(x, projects_list,
-                                                  subjects_list,
-                                                  sessions_list,
-                                                  proctypes_list), rc_list)
+        rc_list = [x for x in rc_list if is_good_record(x, projects_list,
+                                                        subjects_list,
+                                                        sessions_list,
+                                                        proctypes_list)]
         # Get list:
         list_records = [r['record_id'] for r in rc_list]
     return list_records
@@ -145,7 +151,7 @@ def extract_redcap_data(redcap_proj, records, forms, fields):
     if len(records) < 100:
         msg = 'INFO: Export data from REDCap for the %s records that need \
 to be download...'
-        print msg % (str(len(records)))
+        print(msg % (str(len(records))))
         try:
             csv_data = redcap_proj.export_records(records=records,
                                                   forms=forms,
@@ -155,7 +161,7 @@ to be download...'
         except redcap.RedcapError as err:
             msg = 'Error from PyCap: %s'
             raise XnatToolsError(msg % err)
-        except:
+        except Exception:
             err = 'Connection to REDCap stopped.'
             raise XnatToolsError(err)
     else:
@@ -170,8 +176,8 @@ def chunks(l, n):
     :param n: size of each chunk
     :return: None
     """
-    for i in xrange(0, len(l), n):
-        yield l[i:i+n]
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
 
 
 def chunked_export(redcap_proj, records, forms, fields, chunk_size=100):
@@ -188,11 +194,11 @@ def chunked_export(redcap_proj, records, forms, fields, chunk_size=100):
     """
     msg = 'INFO: Extracting data from REDCap 100 by 100 records for the \
 %s records that need to be download...'
-    print msg % (str(len(records)))
+    print(msg % (str(len(records))))
     try:
         response = []
         for index, record_chunk in enumerate(chunks(records, chunk_size)):
-            print ' > index: '+str(index)+' x100'
+            print(' > index: {}x100'.format(str(index)))
             chunked_response = redcap_proj.export_records(
                 records=record_chunk,
                 forms=forms,
@@ -221,7 +227,7 @@ def run_redcapreport(args):
                               .split(',')
 
     try:
-        print 'INFO: Loading REDCap project...'
+        print('INFO: Loading REDCap project...')
         redcap_proj = redcap.Project(DEFAULT_API_URL, args.key)
     except redcap.RedcapError:
         err = 'Connection to REDCap failed. Check the key, options \
@@ -231,10 +237,10 @@ def run_redcapreport(args):
     utils.print_separators()
     if args.names:
         fnames, flabels = redcap_proj.names_labels(True)
-        print 'INFO: Printing fields name and label'
-        print '------------------------------------'
+        print('INFO: Printing fields name and label')
+        print('------------------------------------')
         for ind, fname in enumerate(fnames):
-            print "%s : %s" % (fname, flabels[ind])
+            print("%s : %s" % (fname, flabels[ind]))
         utils.print_separators()
     if args.lib:
         print_lib(redcap_proj)
