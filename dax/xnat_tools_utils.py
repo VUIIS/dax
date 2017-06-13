@@ -220,12 +220,12 @@ def edit_string_size(strings, max_length=LENGTH - 4, left_spaces=0,
     :return: new string of length 60
     """
     if isinstance(strings, str):
-        _lspaces = symbol * left_spaces
+        _lspaces = symbol * int(left_spaces)
         if symbol != ' ':
             _lspaces = '%s ' % _lspaces[:-1]
         _str = '%s%s' % (_lspaces, strings)
         _space = (max_length - len(_str))
-        return sformat % (_str, symbol * _space)
+        return sformat % (_str, symbol * int(_space))
     elif isinstance(strings, list):
         # Separate the string in several
         new_strings = list()
