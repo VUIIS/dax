@@ -86,6 +86,14 @@ BATCH_DIRNAME = 'BATCH'
 OUTLOG_DIRNAME = 'OUTLOG'
 PBS_DIRNAME = 'PBS'
 
+# Status and QC status supported by DAX
+SUPPORTED_STATUS = [NO_DATA, NEED_TO_RUN, NEED_INPUTS, JOB_RUNNING, JOB_FAILED,
+                    READY_TO_UPLOAD, UPLOADING, READY_TO_COMPLETE, COMPLETE,
+                    JOB_BUILT]
+SUPPORTED_QC_STATUS = [JOB_PENDING, NEEDS_QA, GOOD, PASSED_QA, FAILED, BAD,
+                       POOR, RERUN, REPROC, DONOTRUN, FAILED_NEEDS_REPROC,
+                       PASSED_EDITED_QA]
+
 
 def mkdirp(path):
     try:
@@ -122,7 +130,8 @@ class Task(object):
         if not assessor.exists():
             if self.atype == DEFAULT_FS_DATATYPE.lower():
                 kwargs = {'%s/fsversion' % DEFAULT_FS_DATATYPE.lower(): '0'}
-                assessor.create(assessors=DEFAULT_FS_DATATYPE.lower(), **kwargs)
+                assessor.create(assessors=DEFAULT_FS_DATATYPE.lower(),
+                                **kwargs)
             else:
                 assessor.create(assessors=self.atype)
 
@@ -180,11 +189,11 @@ class Task(object):
         """
         atype = self.atype
         mgets = self.assessor.attrs.mget([
-                         '%s/memused' % atype,
-                         '%s/walltimeused' % atype,
-                         '%s/jobid' % atype,
-                         '%s/jobnode' % atype,
-                         '%s/jobstartdate' % atype
+            '%s/memused' % atype,
+            '%s/walltimeused' % atype,
+            '%s/jobid' % atype,
+            '%s/jobnode' % atype,
+            '%s/jobstartdate' % atype
         ])
         return [mgets[0].strip(),
                 mgets[1].strip(),
@@ -369,8 +378,9 @@ class Task(object):
         # Run undo
         self.undo_processing()
 
-        # TODO:
-        # delete the local copies
+        # Delete the local copies
+        os.remove(local_zip)
+        shutil.rmtree(local_dir)
 
     def update_status(self):
         """

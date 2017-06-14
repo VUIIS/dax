@@ -8,53 +8,52 @@ Query through Xnat
 '''
 
 import os
-import sys
-import getpass
-from dax import XnatUtils
 
-########### VARIABLES ###########
-DEFAULT_ARGUMENTS = {'username': None, 'me': False, 'all': False, 'scan': None,
-                     'project': None, 'host': None, 'session': None,
-                     'assessor': None, 'subject': None}
-DESCRIPTION = """What is the script doing :
-   *Query on Xnat at any level.
+from dax import XnatUtils
+from dax.errors import XnatToolsUserError
+import dax.xnat_tools_utils as utils
+
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__exe__ = os.path.basename(__file__)
+__author__ = 'byvernault'
+__purpose__ = 'Query through XNAT at the level you want.'
+__description__ = """What is the script doing :
+   * Query on Xnat at any level.
 
 Examples:
-   *Show all the projects you have access to: Xnatquery --me
-   *Show all projects: Xnatquery --all
-   *Query a specific level (example scan/assessors for a session): Xnatquery -p PID -s 109873 -e 109873
-   *Query a specific level with all objects under it : Xnatquery -p PID -s 109873 --all"""
+   *Show all the projects you have access to:
+        Xnatquery --me
+   *Show all projects:
+        Xnatquery --all
+   *Query a specific level (example scan/assessors for a session):
+        Xnatquery -p PID -s 109873 -e 109873
+   *Query a specific level with all objects under it :
+        Xnatquery -p PID -s 109873 --all"""
 
-########### USEFUL FUNCTIONS ###########
-def display_item(project, subject=None, session=None):
-    """
-    Method to display the tree
 
-    :param project: project ID on XNAT
-    :param subject: subject label on XNAT
-    :param session: session label on XNAT
-    :return: None
-    """
-    print'Project: %s' % (project)
-    if subject:
-        print '  +Subject: %s' % (subject)
-        if session:
-            print '    *Session: %s' % (session)
-
-########### SPECIFIC FUNCTIONS ###########
-def query_project(project):
+def query_project(xnat, project, qall=False):
     """
     Method to query a project
 
     :param project: project ID on XNAT
     :return: None
     """
-    for subject in XnatUtils.list_subjects(XNAT, project):
-        print '  +Subject: '+subject['label']
-        if OPTIONS.all:
-            query_subject(project, subject['label'])
+    if not project:
+        err = 'argument project not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    print'Project: %s' % (project)
+    subjects = XnatUtils.list_subjects(xnat, project)
+    if not subjects:
+        err = 'no subjects found for project %s.' % project
+        raise XnatToolsUserError(__exe__, err)
+    for subject in subjects:
+        print '  + Subject: '+subject['label']
+        if qall:
+            query_subject(xnat, project, subject['label'], qall)
 
-def query_subject(project, subject):
+
+def query_subject(xnat, project, subject, qall=False):
     """
     Method to query a subject
 
@@ -62,12 +61,23 @@ def query_subject(project, subject):
     :param subject: subject label on XNAT
     :return: None
     """
-    for session in XnatUtils.list_experiments(XNAT, project,subject):
-        print '    *Session: '+session['label']
-        if OPTIONS.all:
-            query_session(project, subject,session['label'])
+    if not project:
+        err = 'argument project not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    if not subject:
+        err = 'argument subject not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    sessions = XnatUtils.list_sessions(xnat, project, subject)
+    if not sessions:
+        err = 'no sessions found for subject %s.' % project
+        raise XnatToolsUserError(__exe__, err)
+    for session in sessions:
+        print '    * Session: '+session['label']
+        if qall:
+            query_session(xnat, project, subject, session['label'], qall)
 
-def query_session(project, subject, session):
+
+def query_session(xnat, project, subject, session, qall=False):
     """
     Method to query a session
 
@@ -76,14 +86,31 @@ def query_session(project, subject, session):
     :param session: session label on XNAT
     :return: None
     """
-    print '      ***SCANS***'
-    for scan in XnatUtils.list_scans(XNAT, project, subject, session):
-        query_scan(project, subject, session, scan['ID'], scan['type'])
-    print '      ***PROCESSES***'
-    for assessor in XnatUtils.list_assessors(XNAT, project, subject, session):
-        query_assessor(assessor['label'])
+    if not project:
+        err = 'argument project not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    if not subject:
+        err = 'argument subject not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    if not session:
+        err = 'argument session not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    scans = XnatUtils.list_scans(xnat, project, subject, session)
+    if not scans:
+        err = 'no scans found for session %s.' % project
+        raise XnatToolsUserError(__exe__, err)
+    print '      *** SCANS ***'
+    for scan in scans:
+        query_scan(xnat, project, subject, session, scan['ID'], scan['type'],
+                   qall)
 
-def query_scan(project, subject, session, scan, scantype):
+    print '      *** PROCESSES ***'
+    assrs = XnatUtils.list_assessors(xnat, project, subject, session)
+    for assessor in assrs:
+        query_assessor(xnat, assessor['label'], qall)
+
+
+def query_scan(xnat, project, subject, session, scan, scantype, qall=False):
     """
     Method to query a scan
 
@@ -94,12 +121,14 @@ def query_scan(project, subject, session, scan, scantype):
     :param scantype: scan type for display
     :return: None
     """
-    print '       -%s -- %s' % (scan, scantype)
-    if OPTIONS.all:
-        for resource in XnatUtils.list_scan_resources(XNAT, project, subject, session, scan):
-            print '         ->%s' % (resource['label'])
+    print '       - %s -- %s' % (scan, scantype)
+    if qall:
+        for resource in XnatUtils.list_scan_resources(xnat, project, subject,
+                                                      session, scan):
+            print '         -> %s' % (resource['label'])
 
-def query_assessor(assessor_label):
+
+def query_assessor(xnat, assessor_label, qall=False):
     """
     Method to query a assessor
 
@@ -107,249 +136,106 @@ def query_assessor(assessor_label):
     :return: None
     """
     labels = assessor_label.split('-x-')
-    print '       -%s' % (assessor_label)
-    if OPTIONS.all:
-        for out_resource in XnatUtils.list_assessor_out_resources(XNAT, labels[0], labels[1],
-                                                                  labels[2], assessor_label):
-            print '         ->%s' % (out_resource['label'])
+    print '       - %s' % (assessor_label)
+    if qall:
+        list_assrs = XnatUtils.list_assessor_out_resources(
+            xnat, labels[0], labels[1], labels[2], assessor_label)
+        for out_resource in list_assrs:
+            print '         -> %s' % (out_resource['label'])
 
-########### CHECK OPTIONS ###########
-def check_options():
+
+def run_xnat_query(args):
     """
-    Method to check options specified by the user
+    Main function for xnat query.
 
-    :return: True if options are fine, False otherwise
+    :param args: arguments parse by argparse
     """
-    # The options :
-    if not OPTIONS.me:
-        if not OPTIONS.project and not OPTIONS.all and not OPTIONS.assessor:
-            print 'OPTION ERROR: You need to specify a project with the option -p/--project.'
-            return False
-
-    #ASSESSOR
-    if OPTIONS.assessor:
-        if len(OPTIONS.assessor.split(',')) > 1:
-            print 'OPTION ERROR: Too much processes labels given to the option.'
-            return False
-        labels = OPTIONS.assessor.split('-x-')
-        if not len(labels) > 1:
-            print 'OPTION ERROR: You used the option -a/--assessor with an invalid process label.'
-            return False
-        else:
-            if not XnatUtils.select_obj(XNAT, labels[0], labels[1], labels[2], OPTIONS.assessor).exists():
-                print 'OPTION ERROR: You used the option -a/--assessor with an not existing process label.'
-                return False
-    #PROJECT
-    if OPTIONS.project:
-        if len(OPTIONS.project.split(','))>1:
-            print 'OPTION ERROR: Too much projects IDs given to the option.'
-            return False
-        project_obj = XnatUtils.select_obj(XNAT, OPTIONS.project)
-        if not project_obj.exists():
-            print 'OPTION ERROR: You used the option -p/--project with an not existing project ID.'
-            return False
-        #SUBJECT
-        if OPTIONS.subject:
-            if len(OPTIONS.subject.split(','))>1:
-                print 'OPTION ERROR: Too much subjects labels given to the option.'
-                return False
-            subject_obj = project_obj.subject(OPTIONS.subject)
-            if not subject_obj.exists():
-                print 'OPTION ERROR: You used the option -s/--subject with an not existing subject label.'
-                return False
-            #EXPERIMENT
-            if OPTIONS.session:
-                if len(OPTIONS.session.split(','))>1:
-                    print 'OPTION ERROR: Too much experiment labels given to the option.'
-                    return False
-                session_obj = subject_obj.experiment(OPTIONS.session)
-                if not session_obj.exists():
-                    print 'OPTION ERROR: You used the option -e/--experiment with an not existing experiment label.'
-                    return False
-                #SCAN
-                if OPTIONS.scan:
-                    if len(OPTIONS.scan.split(','))>1:
-                        print 'OPTION ERROR: Too much scans IDs given to the option.'
-                        return False
-                    scan_obj = session_obj.scan(OPTIONS.scan)
-                    if not scan_obj.exists():
-                        print 'OPTION ERROR: You used the option -c/--scan with an not existing scan ID.'
-                        return False
-
-    return True
-
-########### MAIN DISPLAY FUNCTION ###########
-def main_display():
-    """
-    Main display of the executables before any process
-
-    :return: None
-    """
-    print '################################################################'
-    print '#                          XNATQUERY                           #'
-    print '#                                                              #'
-    print '# Developed by the masiLab Vanderbilt University, TN, USA.     #'
-    print '# If issues, email benjamin.c.yvernault@vanderbilt.edu         #'
-    print '# Usage:                                                       #'
-    print '#     Query through XNAT at the level you want                 #'
-    print '# Parameters :                                                 #'
-    if vars(OPTIONS) == DEFAULT_ARGUMENTS:
-        print '#     No Arguments given                                       #'
-        print '#     See the help bellow or Use "Xnatquery" -h                #'
-        print '################################################################\n'
-        PARSER.print_help()
-        sys.exit()
+    if args.host:
+        host = args.host
     else:
-        if OPTIONS.host:
-            print '#     %*s -> %*s#' %(-20, 'XNAT Host', -33, get_proper_str(OPTIONS.host))
-        if OPTIONS.username:
-            print '#     %*s -> %*s#' %(-20, 'XNAT User', -33, get_proper_str(OPTIONS.username))
-        if OPTIONS.me:
-            print '#     %*s#' %(-57,'->List of projects on Xnat you have access to.')
+        host = os.environ['XNAT_HOST']
+    user = args.username
+
+    utils.print_separators()
+
+    with XnatUtils.get_interface(host=host, user=user) as xnat:
+        print 'INFO: connection to xnat <%s>:' % host
+        if args.me:
+            print 'List of projects on XNAT you have access to:'
+            print '---------------------------------------'
+            for proj in xnat._get_json(XnatUtils.PROJECTS_URI):
+                if XnatUtils.list_subjects(xnat, proj['ID']):
+                    print '%*s : %*s' % (-20, proj['ID'], -30, proj['name'])
+            print '---------------------------------------'
+
+        # if all projects
+        if args.assessor:
+            utils.print_separators()
+            labels = args.assessor.split('-x-')
+            utils.display_item(labels[0], labels[1], labels[2])
+            query_assessor(xnat, args.assessor, qall=True)
+
+        elif args.project == 'all' or args.all:
+            utils.print_separators()
+            projects_list = xnat._get_json(XnatUtils.PROJECTS_URI)
+            for project in projects_list:
+                query_project(xnat, project['ID'], qall=True)
         else:
-            if OPTIONS.assessor:
-                print '#     %*s -> %*s#' %(-20, 'Query level', -33, 'resources')
-                print '#     %*s -> %*s#' %(-20, 'Process', -33, OPTIONS.assessor)
-            elif not OPTIONS.project:
-                print '#     %*s -> %*s#' %(-20, 'Query level', -33, 'projects')
-            else:
-                if not OPTIONS.subject:
-                    print '#     %*s -> %*s#' %(-20, 'Query level', -33, 'subjects')
-                    print '#     %*s -> %*s#' %(-20, 'Project', -33, OPTIONS.project)
-                else:
-                    if not OPTIONS.experiment:
-                        print '#     %*s -> %*s#' %(-20, 'Query level', -33, 'sessions')
-                        print '#     %*s -> %*s#' %(-20, 'Project', -33, OPTIONS.project)
-                        print '#     %*s -> %*s#' %(-20, 'Subject', -33, OPTIONS.subject)
+            if args.subject:
+                utils.print_separators()
+                if args.session:
+                    utils.display_item(args.project, args.subject,
+                                       args.session)
+                    if args.scan:
+                        scan_obj = XnatUtils.select_obj(
+                            xnat, args.project, args.subject, args.session,
+                            args.scan)
+                        scan_type = scan_obj.attrs.get('type')
+                        query_scan(args.project, args.subject, args.session,
+                                   args.scan, scan_type, qall=True)
                     else:
-                        if not OPTIONS.scan or not OPTIONS.assessor:
-                            print '#     %*s -> %*s#' %(-20, 'Query level', -33,'scans/processes')
-                            print '#     %*s -> %*s#' %(-20, 'Project', -33, OPTIONS.project)
-                            print '#     %*s -> %*s#' %(-20, 'Subject', -33, OPTIONS.subject)
-                            print '#     %*s -> %*s#' %(-20, 'Session', -33, OPTIONS.session)
-                        elif OPTIONS.scan:
-                            print '#     %*s -> %*s#' %(-20, 'Query level', -33, 'resources')
-                            print '#     %*s -> %*s#' %(-20, 'Project', -33, OPTIONS.project)
-                            print '#     %*s -> %*s#' %(-20, 'Subject', -33, OPTIONS.subject)
-                            print '#     %*s -> %*s#' %(-20, 'Session', -33, OPTIONS.session)
-                            print '#     %*s -> %*s#' %(-20, 'Scan', -33, OPTIONS.scan)
+                        query_session(args.project, args.subject, args.session,
+                                      args.all)
+                else:
+                    utils.display_item(args.project, args.subject)
+                    query_subject(args.project, args.subject, args.all)
+            elif args.project:
+                utils.print_separators()
+                utils.display_item(args.project)
+                query_project(xnat, args.project, args.all)
+            elif not args.me:
+                raise XnatToolsUserError(__exe__, 'No query selected.')
 
-                if OPTIONS.all:
-                    print '#     %*s -> %*s#' %(-20, 'All', -33, 'on')
-        print '################################################################'
+    utils.print_end(__exe__)
 
-def get_proper_str(str_option, end=False):
+
+def add_to_parser(parser):
     """
-    Method to shorten a string into the proper size for display
+    Method to add arguments to default parser for xnat_tools in utils.
 
-    :param str_option: string to shorten
-    :param end: keep the end of the string visible (default beginning)
-    :return: shortened string
+    :param parser: parser object
+    :return: parser object with new arguments
     """
-    if len(str_option) > 32:
-        if end:
-            return '...'+str_option[-29:]
-        else:
-            return str_option[:29]+'...'
-    else:
-        return str_option
+    _h = "project ID on Xnat or 'all' to see all the project."
+    parser.add_argument("-p", "--project", dest="project", default=None,
+                        help=_h)
+    parser.add_argument("-s", "--subject", dest="subject", default=None,
+                        help="Subject label on Xnat")
+    parser.add_argument("-e", "--experiment", dest="session", default=None,
+                        help="Session label on Xnat")
+    _h = "Assessor/Process label on XNAT. E.G: VUSTP-x-VUSTP1-x-VUSTP1a-x-FS"
+    parser.add_argument("-a", "--assessor", dest="assessor", default=None,
+                        help=_h)
+    parser.add_argument("-c", "--scan", dest="scan", default=None,
+                        help="Scan ID on Xnat.")
+    _h = "Print all the objects on XNAT from the level you are at."
+    parser.add_argument("--all", dest="all", action="store_true",
+                        help=_h)
+    parser.add_argument("--me", dest="me", action="store_true",
+                        help="Give the projects ID that you have access.")
+    return parser
 
-def parse_args():
-    """
-    Method to parse arguments base on ArgumentParser
 
-    :return: parser object
-    """
-    from argparse import ArgumentParser, RawDescriptionHelpFormatter
-    argp = ArgumentParser(prog='Xnatquery', description=DESCRIPTION,
-                          formatter_class=RawDescriptionHelpFormatter)
-    argp.add_argument('--host', dest='host', default=None,
-                      help='Host for XNAT. Default: using $XNAT_HOST.')
-    argp.add_argument('-u', '--username', dest='username', default=None,
-                      help='Username for XNAT. Default: using $XNAT_USER.')
-    argp.add_argument("-p", "--project", dest="project", default=None,
-                      help="project ID on Xnat or 'all' to see all the project.")
-    argp.add_argument("-s", "--subject", dest="subject", default=None,
-                      help="Subject label on Xnat")
-    argp.add_argument("-e", "--experiment", dest="session", default=None,
-                      help="Session label on Xnat")
-    argp.add_argument("-a", "--assessor", dest="assessor", default=None,
-                      help="Assessor/Process label on XNAT. E.G: VUSTP-x-VUSTP1-x-VUSTP1a-x-FS")
-    argp.add_argument("-c", "--scan", dest="scan", default=None,
-                      help="Scan ID on Xnat.")
-    argp.add_argument("--all", dest="all", action="store_true",
-                      help="Print all the objects on XNAT from the level you are at.")
-    argp.add_argument("--me", dest="me", action="store_true",
-                      help="Give the projects ID that you have access.")
-    return argp
-
-########### MAIN FUNCTION ###########
 if __name__ == '__main__':
-    PARSER = parse_args()
-    OPTIONS = PARSER.parse_args()
-    main_display()
-    try:
-        if OPTIONS.host:
-            HOST = OPTIONS.host
-        else:
-            HOST = os.environ['XNAT_HOST']
-        if OPTIONS.username:
-            MSG = "Please provide the password for user <%s> on xnat(%s):" % (OPTIONS.username, HOST)
-            PWD = getpass.getpass(prompt=MSG)
-        else:
-            PWD = None
-
-        print 'INFO: connection to xnat <%s>:' % (HOST)
-        XNAT = XnatUtils.get_interface(host=OPTIONS.host, user=OPTIONS.username, pwd=PWD)
-        SHOULD_RUN = check_options()
-
-        if SHOULD_RUN:
-            if OPTIONS.me:
-                print 'List of projects on XNAT you have access to:'
-                print '---------------------------------------'
-                post_uri_project = '/REST/projects/'
-                for proj in XNAT._get_json(post_uri_project):
-                    if XnatUtils.list_subjects(XNAT, proj['ID']):
-                        print '%*s : %*s' % (-20, proj['ID'], -30, proj['name'])
-                print '---------------------------------------'
-            #level of query
-            else:
-                #check assessor and scan, if nothing choose, set them to True
-                if not OPTIONS.project and OPTIONS.all and not OPTIONS.assessor:
-                    OPTIONS.project = 'all'
-
-                #if all projects
-                if OPTIONS.assessor:
-                    LABELS = OPTIONS.assessor.split('-x-')
-                    display_item(LABELS[0], LABELS[1], LABELS[2])
-                    query_assessor(True)
-
-                elif OPTIONS.project == 'all':
-                    post_uri_project = '/REST/projects'
-                    projects_list = XNAT._get_json(post_uri_project)
-                    for proj in projects_list:
-                        print '%*s : %*s' % (-20, proj['ID'], -30, proj['name'])
-                        if not XnatUtils.list_subjects(XNAT, proj['ID']):
-                            print "  ->You don't have access to this project."
-                else:
-                    if OPTIONS.subject:
-                        if OPTIONS.session:
-                            display_item(OPTIONS.project, OPTIONS.subject, OPTIONS.session)
-                            if OPTIONS.scan:
-                                SCAN_OBJ = XnatUtils.select_obj(XNAT, OPTIONS.project, OPTIONS.subject, OPTIONS.session, OPTIONS.scan)
-                                SCANTYPE = SCAN_OBJ.attrs.get('series_description')
-                                OPTIONS.all = True
-                                query_scan(OPTIONS.project, OPTIONS.subject, OPTIONS.session, OPTIONS.scan, SCANTYPE)
-                            else:
-                                query_session(OPTIONS.project, OPTIONS.subject, OPTIONS.session)
-                        else:
-                            display_item(OPTIONS.project, OPTIONS.subject)
-                            query_subject(OPTIONS.project, OPTIONS.subject)
-                    else:
-                        display_item(OPTIONS.project)
-                        query_project(OPTIONS.project)
-
-    finally:
-        XNAT.disconnect()
-
-    print '===================================================================\n'
+    utils.run_tool(__exe__, __description__, add_to_parser, __purpose__,
+                   run_xnat_query)

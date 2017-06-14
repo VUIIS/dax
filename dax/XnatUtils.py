@@ -27,6 +27,7 @@ from dicom.dataset import Dataset, FileDataset
 import dicom
 import dicom.UID
 import fnmatch
+import getpass
 import glob
 import gzip
 from lxml import etree
@@ -184,8 +185,8 @@ class InterfaceTemp(Interface):
             self.user, self.pwd = netrc_obj.get_login(self.host)
         else:
             if not self.pwd:
-                msg = 'Please provide password for host and user <%s>: '
-                self.pwd = raw_input(msg % (self.host, self.user))
+                msg = 'Please provide password for host <%s> and user <%s>: '
+                self.pwd = getpass.getpass(msg % (self.host, self.user))
 
         if not temp_dir:
             temp_dir = tempfile.mkdtemp()
@@ -347,7 +348,8 @@ class SpiderProcessHandler:
     """Class to handle the uploading of results for a spider."""
     def __init__(self, script_name, suffix, project=None, subject=None,
                  experiment=None, scan=None, alabel=None,
-                 assessor_handler=None, time_writer=None):
+                 assessor_handler=None, time_writer=None,
+                 host=os.environ.get('XNAT_HOST', None)):
         """
         Entry point to the SpiderProcessHandler Class.
         You can generate a SpiderProcessHandler by giving:
@@ -376,30 +378,8 @@ class SpiderProcessHandler:
         self.error = 0
         self.has_pdf = 0
         self.time_writer = time_writer
-        # Get the process name and the version
-        if len(script_name.split('/')) > 1:
-            script_name = os.path.basename(script_name)
-        if script_name.endswith('.py'):
-            script_name = script_name[:-3]
-        if 'Spider' in script_name:
-            script_name = script_name[7:]
-
-        # get the processname from spider
-        if len(re.split('/*_v[0-9]/*', script_name)) > 1:
-            self.version = script_name.split('_v')[-1].replace('_', '.')
-            ptype = re.split('/*_v[0-9]/*', script_name)[0]
-            proctype = '%s_v%s' % (ptype, self.version.split('.')[0])
-        else:
-            self.version = '1.0.0'
-            proctype = script_name
-
-        if suffix:
-            if suffix[0] != '_':
-                suffix = '_%s' % suffix
-            suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
-            if suffix[-1] == '_':
-                suffix = suffix[:-1]
-            proctype = proctype + suffix
+        self.host = host
+        proctype, self.version = get_proctype(script_name, suffix=None)
 
         # Create the assessor handler
         if assessor_handler:
@@ -605,15 +585,17 @@ Wrong label.'
         """
         # Connection to Xnat
         try:
-            with get_interface() as xnat:
+            with get_interface(host=self.host) as xnat:
                 assessor = self.assr_handler.select_assessor(xnat)
-                dtype = DEFAULT_DATATYPE
-                if self.assr_handler.get_proctype() == 'FS':
-                    dtype = DEFAULT_FS_DATATYPE
-                former_status = assessor.attrs.get('%s/procstatus' % dtype)
-                if assessor.exists() and former_status == JOB_RUNNING:
-                    assessor.attrs.set('%s/procstatus' % dtype, status)
-                    self.print_msg('  - job status set to %s' % str(status))
+                if assessor.exists():
+                    dtype = DEFAULT_DATATYPE
+                    if self.assr_handler.get_proctype() == 'FS':
+                        dtype = DEFAULT_FS_DATATYPE
+                    former_status = assessor.attrs.get('%s/procstatus' % dtype)
+                    if former_status == JOB_RUNNING:
+                        assessor.attrs.set('%s/procstatus' % dtype, status)
+                        msg = '  - job status set to %s'
+                        self.print_msg(msg % str(status))
         except XnatAuthentificationError as e:
             print 'Failed to connect to XNAT. Error: ', e
             pass
@@ -661,6 +643,38 @@ Wrong label.'
         if self.has_pdf and not self.error:
             # Remove the data
             shutil.rmtree(directory)
+
+
+def get_proctype(spider, suffix=None):
+    """ Return the proctype from the spider_path
+
+    :param spider: path to the spider
+    :return: proctype, version
+    """
+    # Get the process name and the version
+    if len(spider.split('/')) > 1:
+        spider = os.path.basename(spider)
+    if spider.endswith('.py'):
+        spider = spider[:-3]
+    if 'Spider' in spider:
+        spider = spider[7:]
+
+    # get the processname from spider
+    proctype = spider
+    version = '1.0.0'
+    if len(re.split('/*_v[0-9]/*', spider)) > 1:
+        version = spider.split('_v')[-1].replace('_', '.')
+        ptype = re.split('/*_v[0-9]/*', spider)[0]
+        proctype = '%s_v%s' % (ptype, version.split('.')[0])
+
+    if suffix is not None:
+        if suffix[0] != '_':
+            suffix = '_{}'.format(suffix)
+        suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
+        if suffix[-1] == '_':
+            suffix = suffix[:-1]
+        proctype = '{}{}'.format(proctype, suffix)
+    return proctype, version
 
 
 ###############################################################################
@@ -1719,13 +1733,14 @@ def is_bad_qa(qcstatus):
     return 1
 
 
-def get_good_cscans(csess, scantypes):
+def get_good_cscans(csess, scantypes, needs_qc=True):
     """
     Given a CachedImageSession, get the list of all of the usable
      CachedImageScan objects in the session
 
     :param csess: CachedImageSession object from XnatUtils
     :param scantypes: List of scantypes to filter for
+    :param needs_qc: if we are looking for assessor with qc that passed
     :return: List of CachedImageScan objects that fit the scantypes and that
      are usable
 
@@ -1733,17 +1748,18 @@ def get_good_cscans(csess, scantypes):
     cscans_list = list()
     for cscan in csess.scans():
         if is_cscan_good_type(cscan, scantypes) and \
-           not is_cscan_unusable(cscan):
+           (not needs_qc or not is_cscan_unusable(cscan)):
             cscans_list.append(cscan)
     return cscans_list
 
 
-def get_good_scans(session_obj, scantypes):
+def get_good_scans(session_obj, scantypes, needs_qc=True):
     """
     Get usable scans from a session.
 
     :param session_obj: Pyxnat session EObject
     :param scantypes: List of scanttypes (regex) to filter for
+    :param needs_qc: if we are looking for scans that are not unusable
     :return: List of python scan EObjects that fit the scantypes and that are
      usable
 
@@ -1751,18 +1767,19 @@ def get_good_scans(session_obj, scantypes):
     scans = list()
     for scan_obj in session_obj.scans().fetchall('obj'):
         if is_scan_good_type(scan_obj, scantypes) and \
-           not is_scan_unusable(scan_obj):
+           (not needs_qc or not is_scan_unusable(scan_obj)):
             scans.append(scan_obj)
     return scans
 
 
-def get_good_cassr(csess, proctypes):
+def get_good_cassr(csess, proctypes, needs_qc=True):
     """
     Get all the assessors in the session and filter out the ones that are
      usable and that have the proctype(s) specified
 
     :param csess: CachedImageSession object from XnatUtils
     :param proctypes: List of proctypes to filter for
+    :param needs_qc: if we are looking for assessor with qc that passed
     :return: List of CachedImageAssessor objects that are usable and have
      one of the proctype(s) specified.
 
@@ -1770,18 +1787,21 @@ def get_good_cassr(csess, proctypes):
     cassr_list = list()
     for cassr in csess.assessors():
         usable_status = is_cassessor_usable(cassr)
-        if is_cassessor_good_type(cassr, proctypes) and usable_status == 1:
+        if is_cassessor_good_type(cassr, proctypes) and \
+           (not needs_qc or usable_status == 1) and \
+           cassr.info()['procstatus'] != 'NEED_INPUTS':
             cassr_list.append(cassr)
     return cassr_list
 
 
-def get_good_assr(session_obj, proctypes):
+def get_good_assr(session_obj, proctypes, needs_qc=True):
     """
     Get all the assessors in the session and filter out the ones
      that are usable and that have the proctype(s) specified
 
     :param session_obj: Session EObject from Pyxnat
     :param proctypes: List of proctype(s) to filter for
+    :param needs_qc: if we are looking for assessor with qc that passed
     :return: List of Assessor EObjects that are usable and have one of the
      proctype(s) specified.
 
@@ -1790,7 +1810,7 @@ def get_good_assr(session_obj, proctypes):
     for assessor_obj in session_obj.assessors().fetchall('obj'):
         usable_status = is_assessor_usable(assessor_obj)
         if is_assessor_good_type(assessor_obj, proctypes) and \
-           usable_status == 1:
+           (not needs_qc or usable_status == 1):
             assessors.append(assessor_obj)
     return assessors
 
@@ -2264,7 +2284,7 @@ def upload_files(filepaths, project_id=None, subject_id=None, session_id=None,
 
 
 def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False,
-                         removeall=False):
+                         removeall=False, extract=True):
     """
     Upload all of the files in a folder based on the pyxnat EObject passed
 
@@ -2275,6 +2295,7 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False,
      from resource_obj
     :param remove: Remove the file if it exists if True
     :param removeall: Remove all of the files if they exist if True
+    :param extract: extract the files if it's a zip
     :return: True if upload was OK, False otherwise
 
     """
@@ -2300,7 +2321,7 @@ already found on XNAT. No upload. Use remove/removeall." % fpath
     os.system('zip -r %s * > /dev/null' % fzip)
     # upload
     resource_obj.put_zip(os.path.join(directory, fzip), overwrite=True,
-                         extract=True)
+                         extract=extract)
     # return to the initial directory:
     os.chdir(initdir)
     return True
@@ -2308,7 +2329,7 @@ already found on XNAT. No upload. Use remove/removeall." % fpath
 
 def upload_folder(directory, project_id=None, subject_id=None, session_id=None,
                   scan_id=None, assessor_id=None, resource=None, remove=False,
-                  removeall=False):
+                  removeall=False, extract=True):
     """
     Upload a folder to some URI in XNAT based on the inputs
 
@@ -2323,6 +2344,7 @@ def upload_folder(directory, project_id=None, subject_id=None, session_id=None,
                    Otherwise don't upload if exists
     :param removeall: Remove all of the files that exist, and upload what is in
                       the local directory.
+    :param extract: extract the files if it's a zip
     :return: True if upload was OK, False otherwise
 
     """
@@ -2335,7 +2357,7 @@ def upload_folder(directory, project_id=None, subject_id=None, session_id=None,
             resource_obj = select_obj(xnat, project_id, subject_id, session_id,
                                       scan_id, assessor_id, resource)
             status = upload_folder_to_obj(directory, resource_obj, resource,
-                                          remove, removeall)
+                                          remove, removeall, extract)
 
     return status
 
@@ -2442,6 +2464,15 @@ def filter_list_dicts_regex(list_dicts, key, expressions, nor=False,
     flist = list()
     if nor:
         flist = list_dicts
+    if isinstance(expressions, str):
+        expressions = [expressions]
+    elif isinstance(expressions, list):
+        pass
+    else:
+        err = "Wrong type for 'expressions' in filter_list_dicts_regex: %s \
+found, <type 'str'> or <type 'list'> required." % type(expressions)
+        raise XnatUtilsError(err)
+
     for exp in expressions:
         regex = extract_exp(exp, full_regex)
         if nor:
@@ -2741,7 +2772,7 @@ def get_random_sessions(xnat, project_id, num_sessions):
     :return: List of session labels for the project
 
     """
-    sessions = list_experiments(xnat, project_id)
+    sessions = list_sessions(xnat, project_id)
     session_labels = [x['label'] for x in sessions]
     if num_sessions > 0 and num_sessions < 1:
         num_sessions = int(num_sessions * len(session_labels))
@@ -2819,6 +2850,17 @@ class CachedImageSession():
                     return value
 
         return ''
+
+    def has_shared_project(self):
+        """
+        Get the project if shared.
+
+        :return: project_shared_id if shared, None otherwise
+        """
+        project_id = self.sess_element.get('project')
+        if project_id != self.project:
+            return project_id
+        return None
 
     def scans(self):
         """
@@ -3153,7 +3195,8 @@ class CachedImageAssessor():
             assr_info['walltimeused'] = self.get('proc:walltimeused')
             assr_info['jobnode'] = self.get('proc:jobnode')
         else:
-            print 'WARN:unknown xsiType for assessor: %s' % assr_info['xsiType']
+            msg = 'Warning:unknown xsitype for assessor: %s'
+            print msg % assr_info['xsiType']
 
         return assr_info
 
@@ -4058,7 +4101,7 @@ download_files_from_obj().'
             Outputdir = os.path.join(directory, rlabel)
             if not os.path.exists(Outputdir):
                 os.mkdir(Outputdir)
-            print '   ->Downloading all resources for  as a zip'
+            print '   ->Downloading all resources as a zip'
             Resource.get(Outputdir, extract=False)
             print '   ->Unzipping ...'
             fpath = os.path.join(Outputdir, '%s.zip' % rlabel)

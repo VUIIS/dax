@@ -172,7 +172,7 @@ if __name__ == '__main__':
                     xnat_pass=None,
                     suffix=args.suffix,
                     subdir=args.subdir,
-                    skip_finish=args.skip_finish)
+                    skip_finish=args.skipfinish)
     # print some information before starting
     spider_obj.print_init(args, "{author}", "{email_addr}")
 
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     spider_obj.run()
 
     # Finish method to copy results
-    if not spider_obj.skip_finish:
+    if not spider_obj.skipfinish:
         spider_obj.finish()
 '''
 
@@ -309,7 +309,7 @@ if __name__ == '__main__':
                     xnat_pass=None,
                     suffix=args.suffix,
                     subdir=args.subdir,
-                    skip_finish=args.skip_finish)
+                    skip_finish=args.skipfinish)
     # print some information before starting
     spider_obj.print_init(args, "{author}", "{email_addr}")
 
@@ -320,7 +320,7 @@ if __name__ == '__main__':
     spider_obj.run()
 
     # Finish method to copy results
-    if not spider_obj.skip_finish:
+    if not spider_obj.skipfinish:
         spider_obj.finish()
 '''
 
@@ -362,12 +362,13 @@ def parse_args():
     argp.add_argument('-c', dest='on_scan', action='store_true',
                       help='Use Scan type Spider.')
     argp.add_argument('-d', dest='directory', default=None,
-                      help="Directory where the spider file will be generated. \
-Default: current directory.")
+                      help="Directory where the spider file will be \
+generated. Default: current directory.")
     return argp.parse_args()
 
 
 if __name__ == '__main__':
+    print('Deprecated executable. Use dax_generator spider instead.')
     ARGS = parse_args()
 
     # Get a proper name from the input

@@ -301,11 +301,13 @@ def parse_args():
     argp.add_argument('--onScan', dest='on_scan', action='store_true',
                       help='Use Scan type Spider.')
     argp.add_argument('-d', dest='directory', default=None,
-                      help='Directory where the module file will be generated. \
-Default: current directory.')
+                      help='Directory where the module file will be \
+generated. Default: current directory.')
     return argp.parse_args()
 
+
 if __name__ == '__main__':
+    print('Deprecated executable. Use dax_generator module instead.')
     ARGS = parse_args()
 
     # Get a proper name from the input

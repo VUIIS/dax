@@ -3,12 +3,14 @@
 import logging
 import re
 import os
+import yaml
 
 from . import XnatUtils, task
+from .errors import AutoProcessorError
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
-__all__ = ['Processor', 'ScanProcessor', 'SessionProcessor']
+__all__ = ['Processor', 'ScanProcessor', 'SessionProcessor', 'AutoProcessor']
 # Logger for logs
 LOGGER = logging.getLogger('dax')
 
@@ -145,7 +147,7 @@ class Processor(object):
 class ScanProcessor(Processor):
     """ Scan Processor class for processor on a scan on XNAT """
     def __init__(self, scan_types, walltime_str, memreq_mb, spider_path,
-                 version=None, ppn=1, suffix_proc=''):
+                 version=None, ppn=1, suffix_proc='', full_regex=False):
         """
         Entry point of the ScanProcessor Class.
 
@@ -156,12 +158,14 @@ class ScanProcessor(Processor):
         :param version: Version of the spider (taken from the file name)
         :param ppn: Number of processors per node to request
         :param suffix_proc: Processor suffix
+        :param full_regex: use full regex
         :return: None
 
         """
         super(ScanProcessor, self).__init__(walltime_str, memreq_mb,
                                             spider_path, version, ppn,
                                             suffix_proc)
+        self.full_regex = full_regex
         if isinstance(scan_types, list):
             self.scan_types = scan_types
         elif isinstance(scan_types, str):
@@ -196,8 +200,48 @@ class ScanProcessor(Processor):
         sess_label = scan_dict['session_label']
         proj_label = scan_dict['project_label']
         scan_label = scan_dict['scan_label']
-        return '-x-'.join([proj_label, subj_label, sess_label, scan_label,
-                           self.name])
+        assr_name = '-x-'.join([proj_label, subj_label, sess_label, scan_label,
+                                self.name])
+
+        # Check if shared project:
+        csess = cscan.parent()
+        proj_shared = csess.has_shared_project()
+        assr_name_shared = None
+        if proj_shared is not None:
+            assr_name_shared = '-x-'.join([proj_shared, subj_label, sess_label,
+                                           scan_label, self.name])
+
+        # Look for existing assessor
+        assr_label = assr_name
+        for assr in csess.assessors():
+            if assr_name_shared is not None and \
+               assr.info()['label'] == assr_name_shared:
+                assr_label = assr_name_shared
+                break
+            if assr.info()['label'] == assr_name:
+                break
+
+        return assr_label
+
+    def get_assessor(self, cscan):
+        """
+        Returns the assessor object depending on cscan and the assessor label.
+
+        :param cscan: CachedImageScan object from XnatUtils
+        :return: String of the assessor label
+
+        """
+        assessor_name = self.get_assessor_name(cscan)
+
+        # Look for existing assessor
+        csess = cscan.parent()
+        p_assr = None
+        for assr in csess.assessors():
+            if assr.info()['label'] == assessor_name:
+                p_assr = assr
+                break
+
+        return p_assr, assessor_name
 
     def get_task(self, intf, cscan, upload_dir):
         """
@@ -227,8 +271,8 @@ class ScanProcessor(Processor):
         if self.scan_types == 'all':
             return True
         else:
-            for exp in self.scan_types:
-                regex = re.compile(exp)
+            for expression in self.scan_types:
+                regex = XnatUtils.extract_exp(expression, self.full_regex)
                 if regex.match(scan_dict['scan_type']):
                     return True
             return False
@@ -277,17 +321,55 @@ class SessionProcessor(Processor):
 
     def get_assessor_name(self, csess):
         """
-        Get the name of the assessor
+        Returns the label of the assessor
 
-        :param csess: CachedImageSession from XnatUtils
+        :param csess: CachedImageSession object from XnatUtils
         :return: String of the assessor label
 
         """
         session_dict = csess.info()
-        proj_label = session_dict['project']
+        proj_label = session_dict['project_id']
         subj_label = session_dict['subject_label']
         sess_label = session_dict['label']
-        return '-x-'.join([proj_label, subj_label, sess_label, self.name])
+        assr_name = '-x-'.join([proj_label, subj_label, sess_label, self.name])
+
+        # Check if shared project:
+        proj_shared = csess.has_shared_project()
+        assr_name_shared = None
+        if proj_shared is not None:
+            assr_name_shared = '-x-'.join([proj_shared, subj_label, sess_label,
+                                           self.name])
+
+        # Look for existing assessor
+        assr_label = assr_name
+        for assr in csess.assessors():
+            if assr_name_shared is not None and \
+               assr.info()['label'] == assr_name_shared:
+                assr_label = assr_name_shared
+                break
+            if assr.info()['label'] == assr_name:
+                break
+
+        return assr_label
+
+    def get_assessor(self, csess):
+        """
+        Returns the assessor object depending on csess and the assessor label.
+
+        :param csess: CachedImageSession object from XnatUtils
+        :return: String of the assessor label
+
+        """
+        assessor_name = self.get_assessor_name(csess)
+
+        # Look for existing assessor
+        p_assr = None
+        for assr in csess.assessors():
+            if assr.info()['label'] == assessor_name:
+                p_assr = assr
+                break
+
+        return p_assr, assessor_name
 
     def get_task(self, intf, csess, upload_dir):
         """
@@ -306,6 +388,472 @@ class SessionProcessor(Processor):
         return task.Task(self, assessor, upload_dir)
 
 
+class AutoProcessor(Processor):
+    """ Auto Processor class for AutoSpider using YAML files"""
+    def __init__(self, yaml_file, **default_vars):
+        """
+        Entry point for the auto processor
+
+        :param yaml_file: yaml file defining the processor
+        :return: None
+
+        """
+        self.inputs = dict()
+        self.extra_inputs = dict()
+        self.read_yaml(yaml_file)
+
+        # Set the default from default_vars if set:
+        for key, value in default_vars.items():
+            if key in self.inputs.keys():
+                self.inputs[key] = default_vars[key]
+            if key in self.extra_inputs.keys():
+                self.extra_inputs[key] = default_vars[key]
+
+    def read_yaml(self, yaml_file):
+        """
+        Method to read the processor arguments and there default value.
+
+        :param yaml_file: path to yaml file defining the processor
+        """
+        if not os.path.isfile(yaml_file):
+            err = 'Path not found for {}'
+            raise AutoProcessorError(err.format(yaml_file))
+        with open(yaml_file, "r") as yaml_stream:
+            try:
+                doc = yaml.load(yaml_stream)
+            except yaml.ComposerError:
+                err = 'YAML File {} has more than one document. Please remove \
+any duplicate "---" if you have more than one. It should only be at the \
+beginning of your file.'
+                raise AutoProcessorError(err.format(yaml_file))
+
+            # Set Inputs from Yaml
+            self._check_default_keys(yaml_file, doc)
+            inputs = doc.get('inputs')
+            attrs = doc.get('attrs')
+            self.command = doc.get('command')
+            self.xnat_inputs = inputs.get('xnat')
+            for key, value in inputs.get('default').items():
+                # If value is a key in command
+                k_str = '{{{}}}'.format(key)
+                if k_str in self.command:
+                    self.inputs[key] = value
+                else:
+                    if isinstance(value, bool) and value is True:
+                        self.extra_inputs[key] = ''
+                    elif value and value != 'None':
+                        self.extra_inputs[key] = value
+
+            # Getting proctype from Yaml
+            self.proctype, self.version = XnatUtils.get_proctype(
+                self.inputs.get('spider_path'), attrs.get('suffix', None))
+
+            # Set attributs:
+            self.spider_path = self.inputs.get('spider_path')
+            self.name = self.proctype
+            self.walltime_str = attrs.get('walltime')
+            self.memreq_mb = attrs.get('memory')
+            self.ppn = attrs.get('ppn', 1)
+            self.xsitype = attrs.get('xsitype', 'proc:genProcData')
+            self.full_regex = attrs.get('fullregex', False)
+            self.suffix = attrs.get('suffix', None)
+            self.type = attrs.get('type')
+            self.scan_nb = attrs.get('scan_nb', None)
+
+            # Set scan info if scan auto processor
+            if self.type == 'scan':
+                if self.scan_nb is None:
+                    err = 'YAML File {} does not have a scan_nb defined.'
+                    raise AutoProcessorError(err.format(yaml_file))
+
+                _docs = [_doc for _doc in self.xnat_inputs.get('scans')
+                         if self.scan_nb in _doc.keys()]
+                if len(_docs) == 1:
+                    self.scaninfo = _docs[0]
+                else:
+                    err = 'YAML File {} does not have a valid scan_nb defined.\
+ No xnat.scans.{} in inputs found.'
+                    raise AutoProcessorError(err.format(yaml_file,
+                                                        self.scan_nb))
+
+    def _check_default_keys(self, yaml_file, doc):
+        """ Static method to raise error if key not found in dictionary from
+        yaml file.
+
+        :param yaml_file: path to yaml file defining the processor
+        :param doc: doc dictionary extracted from the yaml file
+        :param key: key to check in the doc
+        """
+        # first level
+        for key in ['inputs', 'command', 'attrs']:
+            self._raise_yaml_error_if_no_key(doc, yaml_file, key)
+        # Second level in inputs and attrs:
+        inputs = doc.get('inputs')
+        attrs = doc.get('attrs')
+        for _doc, key in [(inputs, 'default'), (inputs, 'xnat'),
+                          (attrs, 'type'), (attrs, 'memory'),
+                          (attrs, 'walltime')]:
+            self._raise_yaml_error_if_no_key(_doc, yaml_file, key)
+        if attrs['type'] == 'scan':
+            self._raise_yaml_error_if_no_key(attrs, yaml_file, 'scan_nb')
+        # third level for default:
+        default = doc.get('inputs').get('default')
+        for key in ['spider_path']:
+            self._raise_yaml_error_if_no_key(default, yaml_file, key)
+
+    @ staticmethod
+    def _raise_yaml_error_if_no_key(doc, yaml_file, key):
+        """Method to raise an execption if the key is not in the dict
+
+        :param doc: dict to check
+        :param yaml_file: YAMLfile path
+        :param key: key to search
+        """
+        if key not in doc.keys():
+            err = 'YAML File {} does not have {} defined. See example.'
+            raise AutoProcessorError(err.format(yaml_file, key))
+
+    def get_assessor_name(self, cobj):
+        """
+        Returns the label of the assessor
+
+        :param csobj: CachedImageSession or CachedImageScan object depending
+                      on the level
+        :return: String of the assessor label
+
+        """
+        if isinstance(cobj, XnatUtils.CachedImageSession):
+            csess = cobj
+        elif isinstance(cobj, XnatUtils.CachedImageScan):
+            csess = cobj.parent()
+
+        obj_info = cobj.info()
+        labels = [obj_info['project_id'], obj_info['subject_label'],
+                  obj_info['session_label']]
+        if self.type == 'scan':
+            labels.append(obj_info['scan_label'])
+        labels.append(self.proctype)
+        assr_name = '-x-'.join(labels)
+
+        # Check if shared project:
+        proj_shared = csess.has_shared_project()
+        assr_name_shared = None
+        if proj_shared is not None:
+            labels[0] = proj_shared
+            assr_name_shared = '-x-'.join(labels)
+
+        # Look for existing assessor
+        assr_label = assr_name
+        for assr in csess.assessors():
+            if assr_name_shared is not None and \
+               assr.info()['label'] == assr_name_shared:
+                assr_label = assr_name_shared
+                break
+            if assr.info()['label'] == assr_name:
+                break
+
+        return assr_label
+
+    def get_assessor(self, cobj):
+        """
+        Returns the assessor object depending on cobj and the assessor label.
+
+        :param cscan: CachedImageScan object from XnatUtils
+        :return: String of the assessor label
+
+        """
+        assessor_name = self.get_assessor_name(cobj)
+
+        # Look for existing assessor
+        if isinstance(cobj, XnatUtils.CachedImageSession):
+            csess = cobj
+        elif isinstance(cobj, XnatUtils.CachedImageScan):
+            csess = cobj.parent()
+        p_assr = None
+        for assr in csess.assessors():
+            if assr.info()['label'] == assessor_name:
+                p_assr = assr
+                break
+
+        return p_assr, assessor_name
+
+    def get_task(self, intf, cobj, upload_dir):
+        """
+        Return the Task object
+
+        :param intf: XNAT interface see pyxnat.Interface
+        :param cobj: CachedImageSession or Scan from XnatUtils
+        :param upload_dir: directory to put the data after run on the node
+        :return: Task object of the assessor
+
+        """
+        obj_info = cobj.info()
+        assessor_name = self.get_assessor_name(cobj)
+        obj = XnatUtils.get_full_object(intf, obj_info)
+        if isinstance(cobj, XnatUtils.CachedImageSession):
+            assessor = obj.assessor(assessor_name)
+        elif isinstance(cobj, XnatUtils.CachedImageScan):
+            assessor = obj.parent().assessor(assessor_name)
+        return task.Task(self, assessor, upload_dir)
+
+    def should_run(self, obj_dict):
+        """
+        Method to see if the assessor should appear in the session.
+
+        :param obj_dict: Dictionary of information about the scan or sesion
+        :return: True if it should run, false if it shouldn't
+
+        """
+        if 'scan_type' in obj_dict:
+            scantypes = self.scaninfo.get('types', '').split(',')
+            if scantypes == 'all':
+                return True
+            else:
+                for expression in scantypes:
+                    regex = XnatUtils.extract_exp(expression, self.full_regex)
+                    if regex.match(obj_dict['scan_type']):
+                        return True
+                return False
+        else:
+            # By definition, this should always run, so it just returns true
+            # with no checks for session
+            return True
+
+    def has_inputs(self, cobj):
+        """Method to check the inputs.
+
+        By definition:
+            status = 0  -> NEED_INPUTS,
+            status = 1  -> NEED_TO_RUN
+            status = -1 -> NO_DATA
+            qcstatus needs a value only when -1 or 0.
+        You need to set qcstatus to a short string that explain
+        why it's no ready to run. e.g: No NIFTI
+
+        :param cobj: cached object define in dax.XnatUtils (Session or Scan)
+                     (see XnatUtils in dax for information)
+        :return: status, qcstatus
+        """
+        # If Scan assessor, check that the scan has inputs
+        if isinstance(cobj, XnatUtils.CachedImageScan):
+            csess = cobj.parent()
+            if XnatUtils.is_cscan_unusable(cobj):
+                    return -1, 'Scan unusable'
+
+            for res_dict in self.scaninfo.get('resources', list()):
+                resource = res_dict.get('resource')
+                if not XnatUtils.has_resource(cobj, resource):
+                    msg = '{}: {} not found.'
+                    LOGGER.debug(msg.format(self.proctype, resource))
+                    return 0, 'No {}'.format(resource)
+        else:
+            csess = cobj
+
+        # Check xnat inputs set in YAML file:
+        # Scans:
+        for scan_in in self.xnat_inputs.get('scans', list()):
+            if self.scan_nb not in scan_in.keys():
+                scantypes = scan_in.get('types').split(',')
+                nargs = scan_in.get('nargs', False)
+                needs_qc = scan_in.get('needs_qc', True)
+                doc_res = scan_in.get('resources', list())
+                resources = [_doc.get('resource') for _doc in doc_res
+                             if _doc.get('required', True)]
+                status, qcstatus = self._check_xnat_cobj(
+                    csess, scantypes, 'scan', nargs, resources, needs_qc)
+                if status == 0 or status == -1:
+                    return status, qcstatus
+        # Assessors:
+        for assr_in in self.xnat_inputs.get('assessors', list()):
+            proctypes = assr_in.get('proctypes').split(',')
+            nargs = assr_in.get('nargs', False)
+            needs_qc = assr_in.get('needs_qc', True)
+            doc_res = assr_in.get('resources', list())
+            resources = [_doc.get('resource') for _doc in doc_res
+                         if _doc.get('required', True)]
+            status, qcstatus = self._check_xnat_cobj(
+                csess, proctypes, 'assessor', nargs, resources, needs_qc)
+            if status == 0 or status == -1:
+                return status, qcstatus
+
+        return 1, None
+
+    def _check_xnat_cobj(self, csess, sp_types, otype='scan', nargs=False,
+                         resources=list(), needs_qc=True):
+        """Method to check if in a csess you have the right inputs (scans)
+
+        :param csess: CachedImageSession to check
+        :param sp_types: list of scan types or proctypes to look for
+        :param nargs: allow more than one scans of this type
+        :param resources: resources to check on XNAT
+        :param needs_qc: if we are looking for object with qc that passed
+        :return: status, qcstatus
+        """
+        good_cobjs = list()
+        if otype == 'scan':
+            good_cobjs = XnatUtils.get_good_cscans(csess, sp_types, needs_qc)
+        else:
+            good_cobjs = XnatUtils.get_good_cassr(csess, sp_types, needs_qc)
+
+        if not good_cobjs:
+            msg = '{}: No {} {} found.'
+            LOGGER.debug(msg.format(self.name, ','.join(sp_types), otype))
+            # Return NO DATA if scan and 0 if assessor
+            if otype == 'scan':
+                return -1, 'No {} found'.format(','.join(sp_types))
+            else:
+                return 0, 'No {} found'.format(','.join(sp_types))
+        elif nargs is False and len(good_cobjs) > 1:
+            msg = '{}: Too many {} {} found.'
+            LOGGER.debug(msg.format(self.name, ','.join(sp_types),
+                                    '{}s'.format(otype)))
+            return 0, 'Too many {} found'.format(','.join(sp_types))
+
+        # Check resources if set:
+        if resources is not None and len(resources) > 0:
+            for cobj in good_cobjs:
+                for res in resources:
+                    if otype == 'scan':
+                        label = cobj.info()['ID']
+                        _type = cobj.info()['type']
+                    else:
+                        label = cobj.info()['label']
+                        _type = cobj.info()['proctype']
+                    if not XnatUtils.has_resource(cobj, res):
+                        msg = '{}: missing resource {} for {}.'
+                        LOGGER.debug(msg.format(self.proctype, res, label))
+                        return 0, 'Missing {} on {}'.format(res, _type)
+        return 1, None
+
+    def get_xnat_path(self, cobjs, resource, required=True, fpath=None):
+        """Method to get the file path on XNAT for the scans
+
+        :param cobjs: list of cobjs (assessor or scan) in dax.XnatUtils
+                      (see XnatUtils in dax for information)
+        :param resource: name of the resource
+        :param fpath: filepath to get
+        :return: list of paths
+        """
+        filepaths = list()
+        assr_tmp = 'xnat:/project/{0}/subject/{1}/experiment/{2}/assessor/{3}/\
+resource/{4}'
+        scan_tmp = 'xnat:/project/{0}/subject/{1}/experiment/{2}/scan/{3}/\
+resource/{4}'
+
+        for cobj in cobjs:
+            obj_info = cobj.info()
+            if isinstance(cobj, XnatUtils.CachedImageAssessor):
+                label = obj_info['label']
+                path_tmp = assr_tmp
+            elif isinstance(cobj, XnatUtils.CachedImageScan):
+                label = obj_info['ID']
+                path_tmp = scan_tmp
+            if resource in [res['label'] for res in cobj.get_resources()]:
+                x_path = path_tmp.format(obj_info['project_id'],
+                                         obj_info['subject_label'],
+                                         obj_info['session_label'],
+                                         label, resource)
+                if fpath:
+                    x_path = '{}/files/{}'.format(x_path, fpath)
+                filepaths.append(x_path)
+            elif required:
+                msg = 'No resource {} found for {} in session {}.'
+                LOGGER.debug(msg.format(resource, label,
+                                        obj_info['session_label']))
+        return filepaths
+
+    def get_cmds(self, assessor, jobdir):
+        """Method to generate the spider command for cluster job.
+
+        :param assessor: pyxnat assessor object
+        :param jobdir: jobdir where the job's output will be generated
+        :return: command to execute the spider in the job script
+        """
+        # Add the jobidr and the assessor label:
+        assr_label = assessor.label()
+        proj_label = assessor.parent().parent().parent().label()
+        subj_label = assessor.parent().parent().label()
+        sess_label = assessor.parent().label()
+        scan_label = assr_label.split('-x-')[3]
+
+        # Get the csess:
+        csess = XnatUtils.CachedImageSession(assessor._intf, proj_label,
+                                             subj_label, sess_label)
+
+        # Get the data from xnat for the xnat_inputs:
+        # Scans:
+        for scan_in in self.xnat_inputs.get('scans', list()):
+            scantypes = scan_in.get('types').split(',')
+            needs_qc = scan_in.get('needs_qc', True)
+            resources = scan_in.get('resources', list())
+            if self.scan_nb not in scan_in.keys():
+                self._append_xnat_cobj(csess, scantypes, resources, needs_qc,
+                                       'scan')
+            else:
+                cprocscan = [cscan for cscan in csess.scans()
+                             if cscan.info()['ID'] == scan_label]
+                self._get_xnat_procscan(cprocscan, resources)
+
+        # Assessors:
+        for assr_in in self.xnat_inputs.get('assessors', list()):
+            proctypes = assr_in.get('proctypes').split(',')
+            needs_qc = assr_in.get('needs_qc', True)
+            resources = assr_in.get('resources', list())
+            self._append_xnat_cobj(csess, proctypes, resources, needs_qc,
+                                   'assessor')
+
+        cmd = self.command.format(**self.inputs)
+
+        for key, value in self.extra_inputs.items():
+            cmd = '{} --{} {}'.format(cmd, key, value)
+
+        # Add assr and jobidr:
+        if ' -a ' not in cmd and ' --assessor ' not in cmd:
+            cmd = '{} -a {}'.format(cmd, assr_label)
+        if ' -d ' not in cmd:
+            cmd = '{} -d {}'.format(cmd, jobdir)
+
+        return [cmd]
+
+    def _append_xnat_cobj(self, csess, sp_types, resources, needs_qc=True,
+                          otype='scan'):
+        """Method to append XNAT cobj info to inputs for command.
+
+        :param csess: CachedImageSession from XnatUtils
+        :param sp_types: types of scan or assessor to look for
+        :param resources: list of resources from YAML file with var
+        :param needs_qc: if we are looking for object with qc that passed
+        """
+        good_cobjs = list()
+        if otype == 'scan':
+            good_cobjs = XnatUtils.get_good_cscans(csess, sp_types, needs_qc)
+        else:
+            good_cobjs = XnatUtils.get_good_cassr(csess, sp_types, needs_qc)
+
+        for res_l in resources:
+            if 'varname' not in res_l.keys():
+                LOGGER.warn("No Key 'varname' found for resource in YAML.")
+            else:
+                _in = self.get_xnat_path(good_cobjs, res_l.get('resource'),
+                                         required=res_l.get('required', True),
+                                         fpath=res_l.get('filepath', None))
+                self.inputs[res_l.get('varname')] = ','.join(_in)
+
+    def _get_xnat_procscan(self, cprocscan, resources):
+        """Method to append XNAT cobj info to inputs for command.
+
+        :param cscan: CachedImageScan related to the assessor
+        :param resources: list of resources from YAML file with var
+        """
+        for res_info in resources:
+            if 'varname' not in res_info.keys():
+                LOGGER.warn("No Key 'varname' found for resource in YAML.")
+            else:
+                _in = self.get_xnat_path(cprocscan, res_info.get('resource'),
+                                         fpath=res_info.get('filepath', None))
+                self.inputs[res_info.get('varname')] = ','.join(_in)
+
+
 def processors_by_type(proc_list):
     """
     Organize the processor types and return a list of session processors
@@ -319,12 +867,18 @@ def processors_by_type(proc_list):
     scan_proc_list = list()
 
     # Build list of processors by type
-    for proc in proc_list:
-        if issubclass(proc.__class__, ScanProcessor):
-            scan_proc_list.append(proc)
-        elif issubclass(proc.__class__, SessionProcessor):
-            sess_proc_list.append(proc)
-        else:
-            LOGGER.warn('unknown processor type: %s' % proc)
+    if proc_list is not None:
+        for proc in proc_list:
+            if issubclass(proc.__class__, ScanProcessor):
+                scan_proc_list.append(proc)
+            elif issubclass(proc.__class__, SessionProcessor):
+                sess_proc_list.append(proc)
+            elif isinstance(proc, AutoProcessor):
+                if proc.type == 'scan':
+                    scan_proc_list.append(proc)
+                else:
+                    sess_proc_list.append(proc)
+            else:
+                LOGGER.warn('unknown processor type: %s' % proc)
 
     return sess_proc_list, scan_proc_list
