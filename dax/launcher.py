@@ -303,8 +303,9 @@ cluster queue"
                 LOGGER.error('ERROR: failed to launch job')
                 raise ClusterLaunchException
 
-            cur_job_count = cluster.count_jobs()
-            if cur_job_count == -1:
+            cjobs = cluster.count_jobs()
+
+            if cjobs == -1:
                 LOGGER.error('ERROR: cannot get count of jobs from cluster')
                 raise ClusterCountJobsException
 

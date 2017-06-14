@@ -229,6 +229,8 @@ def filter_assessors(args, assessors, has_fs_datatypes=False,
         former_status = None
     elif args.init:
         former_status = task.NO_DATA
+    elif args.rerundiskq:
+        former_status = None
 
     proctypes = utils.get_option_list(args.proctypes)
     proctypes = edit_list_procs(proctypes, has_fs_datatypes)
@@ -322,11 +324,12 @@ def set_qc_status(assessor_obj, status, username='NULL',
         user = username
         date = '{:%d-%m-%Y}'.format(today)
         note = 'set by XnatSwitchProcessStatus'
-    assessor_obj.attrs.mset({xsitype+'/validation/status': status,
-                             xsitype+'/validation/validated_by': user,
-                             xsitype+'/validation/date': date,
-                             xsitype+'/validation/notes': note,
-                             xsitype+'/validation/method': note})
+    assessor_obj.attrs.mset({
+        xsitype + '/validation/status': status,
+        xsitype + '/validation/validated_by': user,
+        xsitype + '/validation/date': date,
+        xsitype + '/validation/notes': note,
+        xsitype + '/validation/method': note})
     sys.stdout.write('   - QC Status on Assessor %s changed to %s\n'
                      % (assessor_obj.label(), status))
 
@@ -418,6 +421,9 @@ def set_status(xnat, args, assessors, has_fs_datatypes=False):
         status = task.NEED_TO_RUN
         delete_resources = True
     elif args.init:
+        status = task.NEED_INPUTS
+        delete_resources = True
+    elif args.rerundiskq:
         status = task.NEED_INPUTS
         delete_resources = True
 
@@ -612,6 +618,10 @@ assessors that failed and delete previous resources."
     _h = "Init the assessors by switching status to NEED_INPUTS for \
 assessors that have been set to NO_DATA."
     parser.add_argument("--init", dest="init", action='store_true', help=_h)
+    _h = 'Rerun the assessor that have the status JOB_FAILED: switching \
+status to NEED_INPUTS from JOB_FAILED and delete previous resources.'
+    parser.add_argument("--rerundiskq", dest="rerundiskq", action='store_true',
+                        help=_h)
     return parser
 
 
