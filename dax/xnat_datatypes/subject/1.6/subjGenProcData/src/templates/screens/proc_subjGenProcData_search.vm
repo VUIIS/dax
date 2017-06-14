@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<TABLE VALIGN="top" style="border-right:1px solid #6D99B6;border-left:1px solid #6D99B6;border-top:1px solid #6D99B6;border-bottom:1px solid #6D99B6;">
+	<TR>
+		<TD>ID</TD>
+		<TD>
+			#xdatSearchField($schemaElement $schemaElement.getDisplayField("EXPT_ID"))
+		</TD>
+		
+		<TD>Date</TD>
+		<TD>
+			#xdatSearchField($schemaElement $schemaElement.getDisplayField("DATE"))
+		</TD>
+		
+		<TD>Project</TD>
+		<TD>
+			#xdatSearchField($schemaElement $schemaElement.getDisplayField("PROJECT"))
+		</TD>
+		
+		<TD>Inserted</TD>
+		<TD>
+			#xdatSearchField($schemaElement $schemaElement.getDisplayField("INSERT_DATE"))
+		</TD>
+		
+	</TR>
+	<TR>
+		<TD>Creator</TD>
+		<TD>
+			#xdatSearchField($schemaElement $schemaElement.getDisplayField("INSERT_USER"))
+		</TD>
+		
+		<TD>procstatus</TD>
+		<TD>
+			#xdatSearchField($schemaElement $schemaElement.getDisplayField("PROCSTATUS"))
+		</TD>
+		
+		<TD>proctype</TD>
+		<TD>
+			#xdatSearchField($schemaElement $schemaElement.getDisplayField("PROCTYPE"))
+		</TD>
+		
+	</TR>
+</TABLE>
