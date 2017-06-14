@@ -5,6 +5,8 @@
 Executable to upload processed data back to XNAT from the dax queue folder.
 """
 
+from __future__ import print_function
+
 from dax import dax_tools_utils as dax_tools
 from dax import DAX_Settings
 

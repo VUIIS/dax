@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 import re
 from dax import spiders
 
@@ -69,8 +71,8 @@ def get_exe_language(code_file):
     elif extension == 'rb':
         return 'ruby'
     else:
-        print "Warning: file %s don't have any known extension \
-(.py/.m/.sh/.rb)" % code_file
+        print("Warning: file %s don't have any known extension \
+(.py/.m/.sh/.rb)" % code_file)
         return None
 
 

@@ -8,6 +8,8 @@ Executable to test the python files you created for DAX:
     --settings path to the settings file
 """
 
+from __future__ import print_function
+
 from dax import dax_tools_utils as dax_tools
 
 

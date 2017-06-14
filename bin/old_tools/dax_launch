@@ -6,6 +6,8 @@ Executable to launch all jobs for a settings file describing which
 project on XNAT and which pipelines to run on those projects.
 """
 
+from __future__ import print_function
+
 import dax
 import sys
 from dax import DAX_Settings
