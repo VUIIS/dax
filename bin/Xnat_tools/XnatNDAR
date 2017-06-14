@@ -12,39 +12,68 @@ Script to generate the folder for a NDAR submission using one of these options:
  2) the template fmriresults01 for processed data.
 You need to specify with the csv options which one you want to upload.
 
-You can find the two templates on NDAR website at: https://ndar.nih.gov/ndar_data_dictionary.html
+You can find the two templates on NDAR website at:
+https://ndar.nih.gov/ndar_data_dictionary.html
 The Inputs changed if you choose 1) or 2).
-You can specify 1 or 2 by setting the options for the assessor csv or the scan csv.
+You can specify 1 or 2 by setting the options for the assessor csv or the scan
+csv.
 
 Other Inputs:
     directory: temp directory where the data will be downloaded
     project: id for the project on XNAT
-    subject info: CSV file with the following header subject_id_xnat,GUID,study_subject_id,interview_date,interview_age,gender
-                  This csv allows the script to know which subject to download from XNAT and what are the information like gender (not accessible on XNAT).
+    subject info: CSV file with the following header:
+
+    subject_id_xnat,GUID,study_subject_id,interview_date,interview_age,gender
+
+    This csv allows the script to know which subject to download from XNAT and
+    what are the information like gender (not accessible on XNAT).
 
 Inputs if template 1, raw data:
-    scan info: CSV with the following header: xnat_scantype,xnat_series_description,assessor_type_qc,ndar_scantype,image_num_dimensions,slice_acquisition,pulse_sequence,citation,experiment_id,image_file,image_thumbnail_file,data_file2,data_file2_definition
-               This csv allows the script to know some generic information for the template that is not on XNAT or in the DICOM.
+    scan info: CSV with the following header:
+
+    xnat_scantype,xnat_series_description,assessor_type_qc,ndar_scantype,\
+image_num_dimensions,slice_acquisition,pulse_sequence,citation,experiment_id,\
+image_file,image_thumbnail_file,data_file2,data_file2_definition
+
+    This csv allows the script to know some generic information for the
+    template that is not on XNAT or in the DICOM.
 
 Inputs if template 2, processed data:
-    assessor info: CSV with the following header: object_type,proc_types,inputs,metric_files_xnat,derived_files_xnat,pipeline,pipeline_script,pipeline_tools,pipeline_version
-                   This csv allows the script to know some generic information on processed data for the template that is not on XNAT or in the DICOM.
-                   proc_types = assessor type or scan type depending on the object_type ("assessor" or "scan")
+    assessor info: CSV with the following header:
+
+    object_type,proc_types,inputs,metric_files_xnat,derived_files_xnat,\
+pipeline,pipeline_script,pipeline_tools,pipeline_version
+
+    This csv allows the script to know some generic information on processed
+    data for the template that is not on XNAT or in the DICOM.
+    proc_types = assessor type or scan type depending on the object_type
+    ("assessor" or "scan")
 
 Example of values below for T1,fMRI,dti:
 
 xnat_scantype,xnat_series_description,assessor_type_qc,ndar_scantype,image_num_dimensions,slice_acquisition,pulse_sequence,citation,experiment_id,image_file,image_thumbnail_file,data_file2,data_file2_definition
-T1,,VBMQA,MR structural,3,,MPRAGE(GE),DOI: 10.2174/1573405054038726,,NIFTI,SNAPSHOTS,,
-fMRI,,fMRIQA,fMRI,4,4,BOLD T2* EPI (GE),DOI: 10.1002/jmri.20583,20,NIFTI,SNAPSHOTS,,
-dti,,dtiQA_v2,MR diffusion,4,4,DTI Stejskal-Tanner (SE),DOI: 10.1371/journal.pone.0061737,,NIFTI,SNAPSHOTS,"bval,bvec",bval & bvec (.zip)
+T1,,VBMQA,MR structural,3,,MPRAGE(GE),\
+DOI: 10.2174/1573405054038726,,NIFTI,SNAPSHOTS,,
+fMRI,,fMRIQA,fMRI,4,4,BOLD T2* EPI (GE),\
+DOI: 10.1002/jmri.20583,20,NIFTI,SNAPSHOTS,,
+dti,,dtiQA_v2,MR diffusion,4,4,DTI Stejskal-Tanner (SE),\
+DOI: 10.1371/journal.pone.0061737,,NIFTI,SNAPSHOTS,"bval,bvec",\
+bval & bvec (.zip)
 
-Example of values below for assessor (FS,fMRIQA,Multi_Atlas and skull strip T1):
+Example of values below for assessor (FS,fMRIQA,Multi_Atlas and skull strip
+T1):
 
 object_type,proc_types,inputs,metric_files_xnat,derived_files_xnat,pipeline,pipeline_script,pipeline_tools,pipeline_version,experiment_id,scan_type
-assessor,FreeSurfer,MR Structural (T1/MPRAGE) NIFTI,DATA, ,FreeSurfer,Spiders_FreeSurferRecon_v4.0.2.py,FreeSurfer_v5.1,4.0.2,,MR structural (T1)
-assessor,fMRIQA,fMRI NIFTI,STATS, ,fMRIQA,Spiders_fMRIQA.py,Matlab_r2013a,1.0.0,,201,fMRI
-assessor,Multi_Atlas,MR Structural (T1/MPRAGE) NIFTI,VOL_TXT, ,Multi Atlas, Spiders_Multi_Atlas.py,"Matlab_r2013a,JIST,MIPAV",1.0.0,,MR structural (T1)
-scan,T1,MR Structural (T1/MPRAGE) NIFTI and Multi Atlas Segmentation,,NIFTI_noskull,Module_T1_skull_strip, Module_T1_skull_strip.py,Matlab_2013,1.0.0,,MR structural (T1)
+assessor,FreeSurfer,MR Structural (T1/MPRAGE) NIFTI,DATA, ,\
+FreeSurfer,Spiders_FreeSurferRecon_v4.0.2.py,FreeSurfer_v5.1,4.0.2,,MR \
+structural (T1)
+assessor,fMRIQA,fMRI NIFTI,STATS, ,fMRIQA,Spiders_fMRIQA.py,Matlab_r2013a,\
+1.0.0,,201,fMRI
+assessor,Multi_Atlas,MR Structural (T1/MPRAGE) NIFTI,VOL_TXT, ,Multi Atlas, \
+Spiders_Multi_Atlas.py,"Matlab_r2013a,JIST,MIPAV",1.0.0,,MR structural (T1)
+scan,T1,MR Structural (T1/MPRAGE) NIFTI and Multi Atlas \
+Segmentation,,NIFTI_noskull,Module_T1_skull_strip, \
+Module_T1_skull_strip.py,Matlab_2013,1.0.0,,MR structural (T1)
 
 """
 
@@ -55,7 +84,6 @@ from builtins import next
 from builtins import str
 from builtins import zip
 from builtins import range
-from past.utils import old_div
 
 import os
 import csv
@@ -66,6 +94,11 @@ import shutil
 from dicom.tag import Tag
 from dax import XnatUtils
 
+
+try:
+    basestring
+except NameError:
+    basestring = str
 
 DEFAULT_SCAN_HEADER = ['xnat_scantype', 'xnat_series_description',
                        'assessor_type_qc', 'ndar_scantype',
@@ -336,7 +369,7 @@ def get_scan_row(directory, subject_record, scan_record):
                     except Exception:
                         val = ' '
                 # Specific value
-                elif isinstance(NDAR_SCAN_CSV_DICT[header], str):
+                elif isinstance(NDAR_SCAN_CSV_DICT[header], basestring):
                     val = get_value(header, subject_record, scan_record, ds)
                 else:
                     val = ''
@@ -951,14 +984,13 @@ def get_proper_str(str_option, end=False):
     """
     if len(str_option) > 32:
         if end:
-            return '...'+str_option[-29:]
+            return '...' + str_option[-29:]
         else:
-            return str_option[:29]+'...'
+            return str_option[:29] + '...'
     else:
         return str_option
 
 
-################################ OPTIONS ##################################
 def parse_args():
     """
     Method to parse arguments base on OptionParser

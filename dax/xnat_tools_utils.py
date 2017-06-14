@@ -22,6 +22,11 @@ import sys
 from .errors import XnatToolsError, XnatToolsUserError
 
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 LENGTH = 64
 DISPLAY_TEMPLATE = """#######################################################\
 #########
@@ -219,7 +224,7 @@ def edit_string_size(strings, max_length=LENGTH - 4, left_spaces=0,
     :param length: length of the string
     :return: new string of length 60
     """
-    if isinstance(strings, str):
+    if isinstance(strings, basestring):
         _lspaces = symbol * int(left_spaces)
         if symbol != ' ':
             _lspaces = '%s ' % _lspaces[:-1]

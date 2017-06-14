@@ -11,6 +11,11 @@ from . import XnatUtils, task
 from .errors import AutoProcessorError
 
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ['Processor', 'ScanProcessor', 'SessionProcessor', 'AutoProcessor']
 # Logger for logs
@@ -170,7 +175,7 @@ class ScanProcessor(Processor):
         self.full_regex = full_regex
         if isinstance(scan_types, list):
             self.scan_types = scan_types
-        elif isinstance(scan_types, str):
+        elif isinstance(scan_types, basestring):
             if scan_types == 'all':
                 self.scan_types = 'all'
             else:

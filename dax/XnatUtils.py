@@ -62,6 +62,11 @@ from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
                            DEFAULT_FS_DATATYPE)
 
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ["InterfaceTemp", "AssessorHandler", "SpiderProcessHandler",
            "CachedImageSession", "CachedImageScan", "CachedImageAssessor",
@@ -1859,7 +1864,7 @@ def islist(argument, argname, function_name):
     """
     if isinstance(argument, list):
         pass
-    elif isinstance(argument, str):
+    elif isinstance(argument, basestring):
         argument = [argument]
     else:
         err = "%s: Wrong format for %s. Format allowed: list or str."
@@ -2472,7 +2477,7 @@ def filter_list_dicts_regex(list_dicts, key, expressions, nor=False,
     flist = list()
     if nor:
         flist = list_dicts
-    if isinstance(expressions, str):
+    if isinstance(expressions, basestring):
         expressions = [expressions]
     elif isinstance(expressions, list):
         pass
@@ -2744,7 +2749,7 @@ def get_input_list(input_val, default_val):
     """
     if isinstance(input_val, list):
         return input_val
-    elif isinstance(input_val, str):
+    elif isinstance(input_val, basestring):
         return input_val.split(',')
     else:
         return default_val
@@ -2762,7 +2767,7 @@ def get_input_str(input_val, default_val):
     """
     if isinstance(input_val, list):
         return input_val[0]
-    elif isinstance(input_val, str):
+    elif isinstance(input_val, basestring):
         return input_val
     else:
         return default_val
@@ -3756,7 +3761,7 @@ download_file_from_obj(), or download_files_from_obj().')
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
         pass
-    elif isinstance(resource_list, str):
+    elif isinstance(resource_list, basestring):
         resource_list = [resource_list]
     else:
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
@@ -3805,7 +3810,7 @@ def download_ScanType(Outputdirectory, projectName, subject, experiment,
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
         pass
-    elif isinstance(resource_list, str):
+    elif isinstance(resource_list, basestring):
         resource_list = [resource_list]
     else:
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
@@ -3814,7 +3819,7 @@ resources in download_ScanType function. Not a list.")
     # check list of SD:
     if isinstance(List_scantype, list):
         pass
-    elif isinstance(List_scantype, str):
+    elif isinstance(List_scantype, basestring):
         List_scantype = [List_scantype]
     else:
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
@@ -3862,7 +3867,7 @@ def download_ScanSeriesDescription(Outputdirectory, projectName, subject,
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
         pass
-    elif isinstance(resource_list, str):
+    elif isinstance(resource_list, basestring):
         resource_list = [resource_list]
     else:
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
@@ -3871,7 +3876,7 @@ resources in download_ScanSeriesDescription function. Not a list.")
     # check list of SD:
     if isinstance(List_scanSD, list):
         pass
-    elif isinstance(List_scanSD, str):
+    elif isinstance(List_scanSD, basestring):
         List_scanSD = [List_scanSD]
     else:
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
@@ -3912,7 +3917,7 @@ def download_Assessor(Outputdirectory, assessor_label, resource_list,
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
         pass
-    elif isinstance(resource_list, str):
+    elif isinstance(resource_list, basestring):
         resource_list = [resource_list]
     else:
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
@@ -3951,7 +3956,7 @@ def download_AssessorType(Outputdirectory, projectName, subject, experiment,
     # Check input for subjects_exps_list :
     if isinstance(resource_list, list):
         pass
-    elif isinstance(resource_list, str):
+    elif isinstance(resource_list, basestring):
         resource_list = [resource_list]
     else:
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
@@ -3960,7 +3965,7 @@ resources in the download_AssessorType function. Not a list.")
     # Check input for subjects_exps_list :
     if isinstance(List_process_type, list):
         pass
-    elif isinstance(List_process_type, str):
+    elif isinstance(List_process_type, basestring):
         List_process_type = [List_process_type]
     else:
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \

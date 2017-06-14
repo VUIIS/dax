@@ -37,6 +37,11 @@ from . import XnatUtils
 from .errors import SpiderError, AutoSpiderError
 
 
+try:
+    basestring
+except NameError:
+    basestring = str
+
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ["Spider", "ScanSpider", "SessionSpider", "AutoSpider",
            "TimedWriter"]
@@ -421,7 +426,7 @@ your spider.')
         """
         self.has_spider_handler()
         for resource, fpath in list(files_dict.items()):
-            if isinstance(fpath, str):
+            if isinstance(fpath, basestring):
                 self.upload(fpath, resource)
             elif isinstance(fpath, list):
                 for ffpath in fpath:
@@ -1630,7 +1635,7 @@ Using default.")
         use_time_writer(time_writer, "Warning: vmaxs wasnt' a dictionary. \
 Using default.")
         vmaxs = {}
-    if isinstance(nii_images, str):
+    if isinstance(nii_images, basestring):
         nii_images = [nii_images]
     number_im = len(nii_images)
 

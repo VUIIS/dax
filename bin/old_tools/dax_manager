@@ -14,7 +14,6 @@ from builtins import filter
 from builtins import str
 from builtins import range
 from builtins import object
-from past.utils import old_div
 
 import os
 import sys
@@ -31,6 +30,12 @@ from subprocess import CalledProcessError
 import dax
 from dax import DAX_Settings
 from dax.launcher import BUILD_SUFFIX, UPDATE_SUFFIX, LAUNCH_SUFFIX
+
+
+try:
+    basestring
+except NameError:
+    basestring = str
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __exe__ = os.path.basename(__file__)
@@ -154,7 +159,7 @@ class Settings_File(object):
         # logs for dax path
         self.dax_logs_path = dax_logs_path
         # Maximum Number of job that can be submitted
-        if isinstance(queue_limit, str):
+        if isinstance(queue_limit, basestring):
             self.queue_limit = int(queue_limit)
         else:
             self.queue_limit = 400
