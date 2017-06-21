@@ -87,6 +87,11 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
         logger.critical('Caught exception launching jobs in bin.launch_jobs')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
                                                                 e.message))
+        flagfile = os.path.join(os.path.join(
+            DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
+            '%s_%s' % (lockfile_prefix, launcher.LAUNCH_SUFFIX))
+        _launcher_obj.unlock_flagfile(flagfile)
+
     logger.info('finished launcher, End Time: %s' % str(datetime.now()))
 
 
@@ -116,6 +121,10 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
         logger.critical('Caught exception building Project in bin.build')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
                                                                 e.message))
+        flagfile = os.path.join(os.path.join(
+            DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
+            '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
+        _launcher_obj.unlock_flagfile(flagfile)
 
     logger.info('finished build, End Time: %s' % str(datetime.now()))
 
@@ -143,6 +152,10 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
         logger.critical('Caught exception updating tasks in bin.update_tasks')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
                                                                 e.message))
+        flagfile = os.path.join(os.path.join(
+            DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
+            '%s_%s' % (lockfile_prefix, launcher.UPDATE_SUFFIX))
+        _launcher_obj.unlock_flagfile(flagfile)
 
     logger.info('finished updating tasks, End Time: %s' % str(datetime.now()))
 
