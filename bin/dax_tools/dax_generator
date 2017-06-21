@@ -1072,7 +1072,7 @@ def parse_args():
                                help='Use Scan type Spider.')
     _help = 'Directory where the module file will be generated. \
 Default: current directory.'
-    module_parser.add_argument('-d', dest='directory', default=None,
+    module_parser.add_argument('-d', dest='directory', default=os.getcwd(),
                                help=_help)
 
     # Spider:
@@ -1090,7 +1090,7 @@ Default: current directory.'
                                help='Spider purpose.')
     spider_parser.add_argument('-c', dest='on_scan', action='store_true',
                                help='Use Scan type Spider.')
-    spider_parser.add_argument('-d', dest='directory', default=None,
+    spider_parser.add_argument('-d', dest='directory', default=os.getcwd(),
                                help="Directory where the spider file will be \
 generated. Default: current directory.")
 
@@ -1112,7 +1112,7 @@ for AutoSpider"
         '-c', dest='code_file', required=True,
         help='Path to code template file')
     autospider_parser.add_argument(
-        '-d', dest='directory', default=None,
+        '-d', dest='directory', default=os.getcwd(),
         help="Directory where spider file will be written")
 
     # Processor:
@@ -1128,7 +1128,7 @@ for AutoSpider"
                              help='Processor purpose.')
     proc_parser.add_argument('--onScan', dest='on_scan', action='store_true',
                              help='Use Scan type Spider.')
-    proc_parser.add_argument('-d', dest='directory', default=None,
+    proc_parser.add_argument('-d', dest='directory', default=os.getcwd(),
                              help='Directory where the processor file will be \
 generated. Default: current directory.')
 
@@ -1138,7 +1138,7 @@ generated. Default: current directory.')
                                              help=auto_proc_desc)
     auto_proc_parser.add_argument('--name', dest='name', required=True,
                                   help='Name for your yaml file.')
-    auto_proc_parser.add_argument('-d', dest='directory', default=None,
+    auto_proc_parser.add_argument('-d', dest='directory', default=os.getcwd(),
                                   help='Directory where the processor file \
 will be generated. Default: current directory.')
     auto_proc_parser.add_argument('--spider', dest='spider_path', default=None,
@@ -1163,7 +1163,7 @@ Default: %s' % str(DEFAULT_QUEUE_LIMIT))
                                  default=DEFAULT_EMAIL_OPTS,
                                  help='Options for email in the job. \
 Default= %s' % (DEFAULT_EMAIL_OPTS))
-    settings_parser.add_argument('-d', dest='directory', default=None,
+    settings_parser.add_argument('-d', dest='directory', default=os.getcwd(),
                                  help='Directory where the processor file \
 will be generated. Default: current directory.')
     settings_parser.add_argument('--host', dest='xnat_host', default=None,
