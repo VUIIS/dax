@@ -991,7 +991,8 @@ class AutoSpider(object):
         """ Copy the inputs data for AutoSpider."""
         self.run_inputs = self.src_inputs
 
-        os.mkdir(self.input_dir)
+        if not os.path.exists(self.input_dir):
+            os.mkdir(self.input_dir)
 
         for _input in self.copy_list:
             # Split the list and handle each copy each individual file/dir
@@ -1051,7 +1052,9 @@ The format {} can not be read by the spider because {} is not an input.'
     def run(self):
         """Run method to execute the template for AutoSpider."""
         self.time_writer('AutoSpider run(): Running command from template...')
-        os.mkdir(self.script_dir)
+
+        if not os.path.exists(self.script_dir):
+            os.mkdir(self.script_dir)
 
         # Get filepath and template
         filename = 'script%s' % SCRIPT_NAME[self.exe_lang]
@@ -1174,7 +1177,8 @@ GeneratorAutoSpider.')
     def copy_xnat_input(self, src, input_name):
         """Copy xnat inputs."""
         dst_dir = os.path.join(self.input_dir, input_name)
-        os.makedirs(dst_dir)
+        if not os.path.exists(dst_dir):
+            os.makedirs(dst_dir)
 
         if '/files/' in src:
             # Handle file
