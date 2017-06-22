@@ -38,6 +38,7 @@ import subprocess as sb
 import sys
 import time
 import traceback
+import yaml
 
 from . import bin
 from . import launcher
@@ -49,7 +50,7 @@ from . import xnat_tools_utils
 from . import XnatUtils
 from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
                            DEFAULT_FS_DATATYPE)
-from .errors import DaxUploadError, AutoProcessorError, DaxSetupError
+from .errors import DaxUploadError, AutoProcessorError, DaxSetupError, DaxError
 from .task import (READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED,
                    JOB_PENDING, NEEDS_QA)
 from .task import ClusterTask
@@ -1298,10 +1299,10 @@ def load_upload_settings(f_settings, host, username, password, projects):
     """
     host_projs = list()
     # If settings file given, load it and use it:
-    if f_settings:
+    if f_settings is not None:
         up_file = os.path.abspath(f_settings)
         if not os.path.isfile(up_file):
-            raise Exception('No upload settings file found: %s' % up_file)
+            raise DaxError('No upload settings file found: %s' % up_file)
         if f_settings.endswith('.json'):
             with open(up_file) as data_file:
                 host_projs = json.load(data_file)
@@ -1313,14 +1314,24 @@ def load_upload_settings(f_settings, host, username, password, projects):
                 csvreader = csv.reader(csvfileread, delimiter=',')
                 for index, row in (csvreader):
                     if len(row) < 4:
-                        raise Exception("error: could not read the csv row. \
+                        raise DaxError("error: could not read the csv row. \
 Missing args. 4 needed, %s found at line %s." % (str(len(row)), str(index)))
                     else:
                         if row != DEFAULT_HEADER:
                             host_projs.append(dict(list(zip(DEFAULT_HEADER,
                                                         row[:4]))))
+        elif f_settings.endswith('.yaml'):
+            with open(f_settings, "r") as yaml_stream:
+                try:
+                    doc = yaml.load(yaml_stream)
+                except yaml.ComposerError:
+                    err = 'YAML File {} has more than one document. Please \
+remove any duplicate "---" if you have more than one. It should only be at \
+the beginning of your file.'
+                    raise DaxError(err.format(f_settings))
+                host_projs = doc.get('settings')
         else:
-            raise Exception("error: doesn't recognize the file format for the \
+            raise DaxError("error: doesn't recognize the file format for the \
 settings file. Please use either JSON/PYTHON/CSV format.")
     else:  # if not file, use the environment variables and options
         _host = os.environ['XNAT_HOST']
@@ -1337,7 +1348,7 @@ settings file. Please use either JSON/PYTHON/CSV format.")
                 MSG = "Please provide the password for user <%s> on xnat(%s):"
                 password = getpass.getpass(prompt=MSG % (username, _host))
                 if not password:
-                    raise Exception('error: the password entered was empty. \
+                    raise DaxError('error: the password entered was empty. \
 please provide a password')
             elif password in os.environ:
                 password = os.environ[password]
