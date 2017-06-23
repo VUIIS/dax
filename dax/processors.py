@@ -1,6 +1,7 @@
 """ Processor class define for Scan and Session."""
 
 from builtins import object
+from past.builtins import basestring
 
 import logging
 import re
@@ -447,9 +448,9 @@ No xnat.scans.{} in inputs found.'
             tags = key.split('.')
             if key.startswith('inputs.default'):
                 # change value in inputs
-                if tags[-1] in self.inputs.keys():
+                if tags[-1] in list(self.inputs.keys()):
                     self.inputs[tags[-1]] = val
-                elif tags[-1] in self.extra_inputs.keys():
+                elif tags[-1] in list(self.extra_inputs.keys()):
                     self.extra_inputs[tags[-1]] = val
                 else:
                     msg = 'key {} not found in the default inputs for \
@@ -457,11 +458,11 @@ auto processor defined by yaml file {}'
                     LOGGER.warn(msg.format(tags[-1], yaml_file))
             elif key.startswith('inputs.xnat'):
                 # change value in self.xnat_inputs
-                if tags[2] in self.xnat_inputs.keys():  # scans or assessors
+                if tags[2] in list(self.xnat_inputs.keys()):
                     # scan number or assessor number (e.g: scan1)
-                    for ind, obj in enumerate(self.xnat_inputs[tags[2]]):
-                        if tags[3] in obj.keys() and \
-                           tags[4] in obj.keys():
+                    for obj in self.xnat_inputs[tags[2]]:
+                        if tags[3] in list(obj.keys()) and \
+                           tags[4] in list(obj.keys()):
                             if tags[4] == 'resources':
                                 msg = 'You can not change the resources \
 tag from the processor yaml file {}. Unauthorised operation.'
@@ -474,7 +475,7 @@ processor defined by yaml file {}'
                     LOGGER.warn(msg.format(tags[3], yaml_file))
             elif key.startswith('attrs'):
                 # change value in self.attrs
-                if tags[-1] in self.attrs.keys():
+                if tags[-1] in list(self.attrs.keys()):
                     self.attrs[tags[-1]] = val
                 else:
                     msg = 'key {} not found in the attrs for auto processor \

@@ -27,6 +27,7 @@ from builtins import zip
 from builtins import str
 from builtins import range
 from builtins import object
+from past.builtins import basestring
 
 import collections
 import csv
