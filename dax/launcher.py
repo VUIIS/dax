@@ -115,14 +115,18 @@ project name as a key and list of processors objects as values.'
 name as a key and list of yaml filepaths as values.'
             raise DaxLauncherError(err)
         self.yaml_dict = yaml_dict if yaml_dict is not None else dict()
+
         # Add processors to project_process_dict:
-        for project, yaml_files in list(yaml_dict.items()):
-            for yaml_file in yaml_files:
-                proc = processors.AutoProcessor(yaml_file)
-                if project not in self.project_process_dict:
-                    self.project_process_dict[project] = [proc]
-                else:
-                    self.project_process_dict[project].append(proc)
+        for project, yaml_objs in list(yaml_dict.items()):
+                for yaml_obj in yaml_objs:
+                    if isinstance(yaml_obj, processors.AutoProcessor):
+                        proc = yaml_objs
+                    else:
+                        proc = processors.AutoProcessor(yaml_obj)
+                    if project not in self.project_process_dict:
+                        self.project_process_dict[project] = [proc]
+                    else:
+                        self.project_process_dict[project].append(proc)
 
         self.priority_project = priority_project
         self.job_email = job_email

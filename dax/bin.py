@@ -10,11 +10,11 @@ from builtins import str
 from datetime import datetime
 import imp
 import os
-import yaml
 
 from . import launcher
 from . import log
 from . import XnatUtils
+from . import processors
 from .dax_settings import DAX_Settings
 from .errors import DaxError
 DAX_SETTINGS = DAX_Settings()
@@ -187,69 +187,76 @@ def read_yaml_settings(yaml_file, logger):
         err = 'Path not found for {}'
         raise DaxError(err.format(yaml_file))
 
-    with open(yaml_file, "r") as yaml_stream:
-        try:
-            doc = yaml.load(yaml_stream)
-        except yaml.ComposerError:
-            err = 'YAML File {} has more than one document. Please remove \
-any duplicate "---" if you have more than one. It should only be at the \
-beginning of your file.'
-            raise DaxError(err.format(yaml_file))
+    doc = XnatUtils.read_yaml(yaml_file)
 
-        # Set Inputs from Yaml
-        check_default_keys(yaml_file, doc)
+    # Set Inputs from Yaml
+    check_default_keys(yaml_file, doc)
 
-        # Set attributs for settings:
-        attrs = doc.get('attrs')
+    # Set attributs for settings:
+    attrs = doc.get('attrs')
 
-        # Read modules and processors:
-        mods = dict()
-        modules = doc.get('modules')
-        for mod_dict in modules:
-            mods[mod_dict.get('name')] = load_from_file(
-                mod_dict.get('filepath'), mod_dict.get('arguments'), logger)
-        procs = dict()
-        processors = doc.get('processors')
-        for proc_dict in processors:
-            procs[proc_dict.get('name')] = load_from_file(
-                proc_dict.get('filepath'), proc_dict.get('arguments'), logger)
+    # Read modules and processors:
+    mods = dict()
+    modules = doc.get('modules')
+    for mod_dict in modules:
+        if mod_dict.get('filepath') is None:
+            err = 'Filepath not set for {}'.format(mod_dict.get('name'))
+            raise DaxError(err)
+        mods[mod_dict.get('name')] = load_from_file(
+            mod_dict.get('filepath'), mod_dict.get('arguments'), logger)
+    procs = dict()
+    processors = doc.get('processors')
+    for proc_dict in processors:
+        if proc_dict.get('filepath') is None:
+            err = 'Filepath not set for {}'.format(proc_dict.get('name'))
+            raise DaxError(err)
+        procs[proc_dict.get('name')] = load_from_file(
+            proc_dict.get('filepath'), proc_dict.get('arguments'), logger)
+    yamlprocs = dict()
+    yamls = doc.get('yamlprocessors')
+    for yaml_dict in yamls:
+        if yaml_dict.get('filepath') is None:
+            err = 'Filepath not set for {}'.format(yaml_dict.get('name'))
+            raise DaxError(err)
+        yamlprocs[yaml_dict.get('name')] = load_from_file(
+            yaml_dict.get('filepath'), yaml_dict.get('arguments'), logger)
 
-        # YAML processors:
-        yamlprocs = doc.get('yamlprocessors')
+    # project:
+    proj_mod = dict()
+    proj_proc = dict()
+    yaml_proc = dict()
+    projects = doc.get('projects')
+    for proj_dict in projects:
+        project = proj_dict.get('project')
+        if project:
+            # modules:
+            if proj_dict.get('modules'):
+                for mod_n in proj_dict.get('modules').split(','):
+                    if project not in list(proj_mod.keys()):
+                        proj_mod[project] = [mods[mod_n]]
+                    else:
+                        proj_mod[project].append(mods[mod_n])
 
-        # project:
-        proj_mod = dict()
-        proj_proc = dict()
-        yaml_proc = dict()
-        projects = doc.get('projects')
-        for proj_dict in projects:
-            project = proj_dict.get('project')
-            if project:
-                # modules:
-                if proj_dict.get('modules'):
-                    for mod_n in proj_dict.get('modules').split(','):
-                        if project not in list(proj_mod.keys()):
-                            proj_mod[project] = [mods[mod_n]]
-                        else:
-                            proj_mod[project].append(mods[mod_n])
-                # processors:
-                if proj_dict.get('processors'):
-                    for proc_n in proj_dict.get('processors').split(','):
-                        if project not in list(proj_proc.keys()):
-                            proj_proc[project] = [procs[proc_n]]
-                        else:
-                            proj_proc[project].append(procs[proc_n])
-                # yaml_proc:
-                if proj_dict.get('yamlprocessors'):
-                    for yaml_n in proj_dict.get('yamlprocessors').split(','):
-                        yaml_proc[project] = [_yp.get('yaml_path')
-                                              for _yp in yamlprocs
-                                              if _yp.get('name') == yaml_n]
+            # processors:
+            if proj_dict.get('processors'):
+                for proc_n in proj_dict.get('processors').split(','):
+                    if project not in list(proj_proc.keys()):
+                        proj_proc[project] = [procs[proc_n]]
+                    else:
+                        proj_proc[project].append(procs[proc_n])
 
-        # set in attrs:
-        attrs['project_process_dict'] = proj_proc
-        attrs['project_modules_dict'] = proj_mod
-        attrs['yaml_dict'] = yaml_proc
+            # yaml_proc:
+            if proj_dict.get('yamlprocessors'):
+                for yaml_n in proj_dict.get('yamlprocessors').split(','):
+                    if project not in list(yaml_proc.keys()):
+                        yaml_proc[project] = [yamlprocs[yaml_n]]
+                    else:
+                        yaml_proc[project].append(yamlprocs[yaml_n])
+
+    # set in attrs:
+    attrs['project_process_dict'] = proj_proc
+    attrs['project_modules_dict'] = proj_mod
+    attrs['yaml_dict'] = yaml_proc
 
     return launcher.Launcher(**attrs)
 
@@ -282,25 +289,28 @@ def load_from_file(filepath, args, logger):
     :param filepath: path to the file to test
     :return: True the file pass the test, False otherwise
     """
-    if not os.path.exists(filepath):
+    if not os.path.isfile(filepath):
         raise DaxError('File %s does not exists.' % filepath)
 
     if filepath.endswith('.py'):
+        _tmp = 'test.{}(**args)'
         test = imp.load_source('test', filepath)
         # Check if processor file
         try:
-            return eval('test.{}(**args)'.format(test.__processor_name__))
+            return eval(_tmp.format(test.__processor_name__))
         except AttributeError:
             pass
 
         # Check if it's a module
         try:
-            return eval('test.{}(**args)'.format(
-                os.path.basename(filepath)[:-3]))
+            return eval(_tmp.format(os.path.basename(filepath)[:-3]))
         except AttributeError:
             pass
 
-        err = '[ERROR] Module or processor or myLauncher object NOT FOUND in \
-the python file {}.'
+        err = '[ERROR] Module or processor NOT FOUND in the python file {}.'
         logger.err(err.format(filepath))
-        return None
+
+    elif filepath.endswith('.yaml'):
+        return processors.AutoProcessor(filepath, args)
+
+    return None

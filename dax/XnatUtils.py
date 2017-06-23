@@ -52,6 +52,7 @@ import tempfile
 import time
 import xlrd
 import xml.etree.cElementTree as ET
+import yaml
 import zipfile
 
 from .task import (JOB_FAILED, JOB_RUNNING, JOB_PENDING, READY_TO_UPLOAD,
@@ -3504,6 +3505,20 @@ def read_excel(excel_file, header_indexes=None):
         excel_sheets[sht.name] = sheet_info
 
     return excel_sheets
+
+
+def read_yaml(yaml_file):
+    """Functio to read a yaml file and return the document info
+
+    :param yaml_file: yaml file path
+    """
+    with open(yaml_file, "r") as yaml_stream:
+        try:
+            return yaml.load(yaml_stream)
+        except yaml.error.YAMLError as exc:
+            err = 'YAML File {} could not be loaded properly. Error: {}'
+            raise XnatUtilsError(err.format(yaml_file, exc))
+    return None
 
 
 # DICOM Utils

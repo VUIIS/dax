@@ -38,7 +38,6 @@ import subprocess as sb
 import sys
 import time
 import traceback
-import yaml
 
 from . import bin
 from . import launcher
@@ -1321,15 +1320,8 @@ Missing args. 4 needed, %s found at line %s." % (str(len(row)), str(index)))
                             host_projs.append(dict(list(zip(DEFAULT_HEADER,
                                                         row[:4]))))
         elif f_settings.endswith('.yaml'):
-            with open(f_settings, "r") as yaml_stream:
-                try:
-                    doc = yaml.load(yaml_stream)
-                except yaml.ComposerError:
-                    err = 'YAML File {} has more than one document. Please \
-remove any duplicate "---" if you have more than one. It should only be at \
-the beginning of your file.'
-                    raise DaxError(err.format(f_settings))
-                host_projs = doc.get('settings')
+            doc = XnatUtils.read_yaml(f_settings)
+            host_projs = doc.get('settings')
         else:
             raise DaxError("error: doesn't recognize the file format for the \
 settings file. Please use either JSON/PYTHON/CSV format.")
@@ -1570,7 +1562,7 @@ class test_results(object):
                             co_list.append(cscan)
 
         if len(co_list) == 0:
-            print("[WARNING] No scan found for the Processor on scans.")
+            print("[WARNING] No scan found for the processor on scans.")
             self.inc_warning()
 
         return co_list
@@ -2147,14 +2139,25 @@ the python file {}.'
         return None
 
     elif filepath.endswith('yaml'):
-        # So far only auto processor:
-        try:
-            return processors.AutoProcessor(filepath)
-        except AutoProcessorError:
-            print('[ERROR]')
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            traceback.print_exception(exc_type, exc_value, exc_traceback,
-                                      limit=2, file=sys.stdout)
+        doc = XnatUtils.read_yaml(filepath)
+
+        if 'projects' in list(doc.keys()):
+            try:
+                return bin.read_yaml_settings(filepath, LOGGER)
+            except AutoProcessorError:
+                print('[ERROR]')
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                          limit=2, file=sys.stdout)
+        else:
+            # So far only auto processor:
+            try:
+                return processors.AutoProcessor(filepath)
+            except AutoProcessorError:
+                print('[ERROR]')
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                          limit=2, file=sys.stdout)
 
     else:
         err = '[ERROR] {} format unknown. Please provide a .py or .yaml file.'
