@@ -918,7 +918,7 @@ def processors_by_type(proc_list):
                 scan_proc_list.append(proc)
             elif issubclass(proc.__class__, SessionProcessor):
                 sess_proc_list.append(proc)
-            elif isinstance(proc.__class__, AutoProcessor):
+            elif issubclass(proc.__class__, AutoProcessor):
                 if proc.type == 'scan':
                     scan_proc_list.append(proc)
                 else:
