@@ -118,15 +118,15 @@ name as a key and list of yaml filepaths as values.'
 
         # Add processors to project_process_dict:
         for project, yaml_objs in list(yaml_dict.items()):
-                for yaml_obj in yaml_objs:
-                    if isinstance(yaml_obj, processors.AutoProcessor):
-                        proc = yaml_objs
-                    else:
-                        proc = processors.AutoProcessor(yaml_obj)
-                    if project not in self.project_process_dict:
-                        self.project_process_dict[project] = [proc]
-                    else:
-                        self.project_process_dict[project].append(proc)
+            for yaml_obj in yaml_objs:
+                if isinstance(yaml_obj, processors.AutoProcessor):
+                    proc = yaml_obj
+                else:
+                    proc = processors.AutoProcessor(yaml_obj)
+                if project not in self.project_process_dict:
+                    self.project_process_dict[project] = [proc]
+                else:
+                    self.project_process_dict[project].append(proc)
 
         self.priority_project = priority_project
         self.job_email = job_email
