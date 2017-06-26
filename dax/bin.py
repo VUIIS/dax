@@ -215,7 +215,7 @@ def read_yaml_settings(yaml_file, logger):
 
     # Read modules and processors:
     mods = dict()
-    modules = doc.get('modules')
+    modules = doc.get('modules', list())
     for mod_dict in modules:
         if mod_dict.get('filepath') is None:
             err = 'Filepath not set for {}'.format(mod_dict.get('name'))
@@ -223,7 +223,7 @@ def read_yaml_settings(yaml_file, logger):
         mods[mod_dict.get('name')] = load_from_file(
             mod_dict.get('filepath'), mod_dict.get('arguments'), logger)
     procs = dict()
-    processors = doc.get('processors')
+    processors = doc.get('processors', list())
     for proc_dict in processors:
         if proc_dict.get('filepath') is None:
             err = 'Filepath not set for {}'.format(proc_dict.get('name'))
@@ -231,7 +231,7 @@ def read_yaml_settings(yaml_file, logger):
         procs[proc_dict.get('name')] = load_from_file(
             proc_dict.get('filepath'), proc_dict.get('arguments'), logger)
     yamlprocs = dict()
-    yamls = doc.get('yamlprocessors')
+    yamls = doc.get('yamlprocessors', list())
     for yaml_dict in yamls:
         if yaml_dict.get('filepath') is None:
             err = 'Filepath not set for {}'.format(yaml_dict.get('name'))
