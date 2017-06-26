@@ -83,6 +83,12 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
         _launcher_obj.launch_jobs(lockfile_prefix, projects, sessions,
                                   writeonly, pbsdir,
                                   force_no_qsub=force_no_qsub)
+    except KeyboardInterrupt:
+        logger.warn('Killed by user.')
+        flagfile = os.path.join(os.path.join(
+            DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
+            '%s_%s' % (lockfile_prefix, launcher.LAUNCH_SUFFIX))
+        _launcher_obj.unlock_flagfile(flagfile)
     except Exception as e:
         logger.critical('Caught exception launching jobs in bin.launch_jobs')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
@@ -117,6 +123,12 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
     try:
         _launcher_obj.build(lockfile_prefix, projects, sessions,
                             mod_delta=mod_delta, proj_lastrun=proj_lastrun)
+    except KeyboardInterrupt:
+        logger.warn('Killed by user.')
+        flagfile = os.path.join(os.path.join(
+            DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
+            '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
+        _launcher_obj.unlock_flagfile(flagfile)
     except Exception as e:
         logger.critical('Caught exception building Project in bin.build')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
@@ -148,6 +160,12 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
     lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
     try:
         _launcher_obj.update_tasks(lockfile_prefix, projects, sessions)
+    except KeyboardInterrupt:
+        logger.warn('Killed by user.')
+        flagfile = os.path.join(os.path.join(
+            DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
+            '%s_%s' % (lockfile_prefix, launcher.UPDATE_SUFFIX))
+        _launcher_obj.unlock_flagfile(flagfile)
     except Exception as e:
         logger.critical('Caught exception updating tasks in bin.update_tasks')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
