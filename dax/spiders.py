@@ -1693,9 +1693,9 @@ Using default.")
             if isinstance(volume_ind, int):
                 data = data[:, :, :, volume_ind]
             else:
-                data = data[:, :, :, data.shape[3] / 2]
+                data = data[:, :, :, old_div(data.shape[3], 2)]
         default_slices = [old_div(data.shape[2], 4), old_div(data.shape[2], 2),
-                          3 * data.shape[2] / 4]
+                          3 * old_div(data.shape[2], 4)]
         default_label = 'Line %s' % index
         if slices:
             if not isinstance(slices, dict):
@@ -1824,8 +1824,9 @@ def plot_stats(pdf_path, page_index, stats_dict, title,
         ax.xaxis.set_visible(False)
         ax.yaxis.set_visible(False)
         ax.axis('off')
+        csize = old_div(nb_stats, 3)
         the_table = ax.table(
-            cellText=cell_text[nb_stats / 3 * i:nb_stats / 3 * (i + 1)],
+            cellText=cell_text[csize * i:csize * (i + 1)],
             colColours=[(0.8, 0.4, 0.4), (1.0, 1.0, 0.4)],
             colLabels=columns_header,
             colWidths=[0.8, 0.32],
