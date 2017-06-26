@@ -307,19 +307,21 @@ def load_from_file(filepath, args, logger):
     :param filepath: path to the file to test
     :return: True the file pass the test, False otherwise
     """
+    if args is not None:
+        _tmp = 'test.{}(**args)'
+    else:
+        _tmp = 'test.{}()'
+
     if not os.path.isfile(filepath):
         raise DaxError('File %s does not exists.' % filepath)
 
     if filepath.endswith('.py'):
-        _tmp = 'test.{}(**args)'
         test = imp.load_source('test', filepath)
-        # Check if processor file
         try:
             return eval(_tmp.format(test.__processor_name__))
         except AttributeError:
             pass
 
-        # Check if it's a module
         try:
             return eval(_tmp.format(os.path.basename(filepath)[:-3]))
         except AttributeError:
