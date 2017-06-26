@@ -285,8 +285,8 @@ def check_default_keys(yaml_file, doc):
     :param yaml_file: path to yaml file defining the processor
     :param doc: doc dictionary extracted from the yaml file
     """
-    for key in ['projects', 'attrs', 'modules', 'processors',
-                'yamlprocessors']:
+    # processors / modules / yamlprocessors are not required
+    for key in ['projects', 'attrs']:
         raise_yaml_error_if_no_key(doc, yaml_file, key)
 
 
