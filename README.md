@@ -20,6 +20,7 @@ sudo apt-get install libxml2-dev libxslt1-dev
 sudo apt-get install libfreetype6-dev
 sudo apt-get install libffi-dev
 sudo apt-get install libssl-dev
+sudo apt-get install libatlas-base-dev gfortran
 pip install https://github.com/VUIIS/dax/archive/master.zip --upgrade
 ~~~~~~~~
 
