@@ -6,6 +6,7 @@
 from builtins import input
 from builtins import str
 from builtins import object
+from past.builtins import basestring
 
 from datetime import datetime, timedelta
 import logging
@@ -20,6 +21,11 @@ from .dax_settings import DAX_Settings, DAX_Netrc
 from .errors import (ClusterCountJobsException, ClusterLaunchException,
                      DaxXnatError, DaxLauncherError)
 
+
+try:
+    basestring
+except NameError:
+    basestring = str
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ['Launcher']
@@ -128,7 +134,12 @@ name as a key and list of yaml filepaths as values.'
                 else:
                     self.project_process_dict[project].append(proc)
 
-        self.priority_project = priority_project
+        if isinstance(priority_project, list):
+            self.priority_project = priority_project
+        elif isinstance(priority_project, basestring):
+            self.priority_project = priority_project.split(',')
+        else:
+            self.priority_project = None
         self.job_email = job_email
         self.job_email_options = job_email_options
         self.max_age = DAX_SETTINGS.get_max_age()
