@@ -110,6 +110,8 @@ REQUIRES = [
     'matplotlib>=%s' % MATPLOTLIB_MIN_VERSION,
     'pycap',
     'pyxnat',
+    'pyyaml',
+    'scipy',
     'lxml',
     'xlrd',
     'pillow',
