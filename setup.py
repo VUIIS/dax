@@ -117,6 +117,8 @@ REQUIRES = [
     'pillow',
     'pydicom',
     'httplib2',
+    'future',
+    'configparser'
 ]
 
 TESTS_REQUIRES = ['nose']
