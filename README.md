@@ -39,5 +39,8 @@ The wiki is accessible up top or by clicking [here](https://github.com/VUIIS/dax
 # Docs
 [![Documentation Status](https://readthedocs.org/projects/dax/badge/?version=master)](http://dax.readthedocs.org/en/master/?badge=master)
 
+# Build
+[![Build Status](http://masijenkins.vuse.vanderbilt.edu:8080/buildStatus/icon?job=Build DAX)](http://masijenkins.vuse.vanderbilt.edu:8080/job/Build%20DAX/)
+
 # Spiders
 All of our piplines are available on NITRC. [Come join our team!](https://www.nitrc.org/projects/masimatlab)
