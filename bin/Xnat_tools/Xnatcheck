@@ -10,6 +10,11 @@ Edited on February 22, 2017
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
+from __future__ import print_function
+
+from builtins import str
+from builtins import object
+
 import datetime
 import logging
 import os
@@ -131,7 +136,7 @@ RES_OBJ_DICT = {'assessor_res': 'proctype', 'scan_res': 'series_description',
 
 
 # Classes
-class filter_variable:
+class filter_variable(object):
     """ Class to generate a filter for variable to check on pyxnat Eobject"""
     def __init__(self, rvar, rval, operator):
         """
@@ -152,10 +157,10 @@ class filter_variable:
             # grp
             self.grp = [d['grp'] for d in VAR_FILTERS
                         if d['var'] == rvar][0]
-            print '  * regular filter:', rvar, self.operator, rval
+            print('  * regular filter:', rvar, self.operator, rval)
         else:
-            print ' WARNING: %s -- Not a variable that can be filter. \
-Unusable filter.' % (rvar)
+            print(' WARNING: %s -- Not a variable that can be filter. \
+Unusable filter.' % (rvar))
             self.goodfilter = False
 
     def filter(self, list_obj):
@@ -165,8 +170,8 @@ Unusable filter.' % (rvar)
         :param list_obj: list of object to filter
         :return: filtered list
         """
-        return filter(lambda x: operate_action(
-            self.operator, self.get_obj_value(x), self.val), list_obj)
+        return [x for x in list_obj if operate_action(
+            self.operator, self.get_obj_value(x), self.val)]
 
     def get_obj_value(self, obj_dict):
         """
@@ -181,17 +186,17 @@ Unusable filter.' % (rvar)
             elif self.var == 'jobstartdate':
                 try:
                     return int(obj_dict[self.var].replace('-', ''))
-                except:
+                except Exception:
                     return '{:%Y%m%d}'.format(datetime.datetime.now())
             elif self.var == 'version':
                 try:
                     return int(obj_dict[self.var].replace('.', ''))
-                except:
+                except Exception:
                     return '1.0.0'
             else:
                 try:
                     return int(obj_dict[self.var])
-                except:
+                except Exception:
                     return 0
         elif self.var == 'memused':  # need to convert
             return getmemory(obj_dict[self.var])
@@ -215,8 +220,8 @@ Unusable filter.' % (rvar)
         """
         if operator not in [d['operator'] for d in VAR_FILTERS
                             if d['var'] == self.var][0].split(','):
-            print ' WARNING: %s -- Not a good value for operator. Using \
-default "=".' % (self.var)
+            print(' WARNING: %s -- Not a good value for operator. Using \
+default "=".' % (self.var))
             self.operator = '='
         else:
             self.operator = operator
@@ -238,39 +243,39 @@ default "=".' % (self.var)
             if val in ['right', 'left', 'unknown', 'ambidextrous']:
                 self.val = val
             else:
-                print warning % (self.var, 'Not a good value')
+                print(warning % (self.var, 'Not a good value'))
                 self.goodfilter = False
         elif self.var == 'gender':
             if val in ['male', 'female', 'unknown']:
                 self.val = val
             else:
-                print warning % (self.var, 'Not a good value')
+                print(warning % (self.var, 'Not a good value'))
                 self.goodfilter = False
         elif self.var == 'jobstartdate':
             try:
                 self.val = int(val.replace('-', ''))
-            except:
-                print warning % (self.var, 'Not a good value')
+            except Exception:
+                print(warning % (self.var, 'Not a good value'))
                 self.goodfilter = False
         elif self.var == 'walltime':
             try:
                 self.val = int(val.replace(':', ''))
-            except:
-                print warning % (self.var, 'Not a good value')
+            except Exception:
+                print(warning % (self.var, 'Not a good value'))
                 self.goodfilter = False
         elif 'integer' in [d['format'] for d in VAR_FILTERS
                            if d['var'] == self.var][0]:
             try:
                 self.val = int(val)
-            except:
+            except Exception:
                 msg = 'value can not be converted to an int'
-                print warning % (self.var, msg)
+                print(warning % (self.var, msg))
                 self.goodfilter = False
         else:
             self.val = val
 
 
-class filter_resource:
+class filter_resource(object):
     """ Class to create filter on XNAT resources"""
     def __init__(self, filterstring, delimiter):
         """
@@ -297,17 +302,17 @@ class filter_resource:
             self.init_variables(res_vars)
             msg = '  * resource filter: %s %s %s -- size %s %s bytes -- nbf \
 %s %s -- fpaths = %s'
-            print msg % (self.var, self.operator, rval, self.sizeOp,
+            print(msg % (self.var, self.operator, rval, self.sizeOp,
                          str(self.size), self.nbfOp, str(self.nbf),
-                         str(self.fpaths))
+                         str(self.fpaths)))
             if (self.size or self.nbf or self.fpaths) \
                and self.operator == '!=':
-                print '    --> WARNING : %s -- you want to filter the resource\
+                print('    --> WARNING : %s -- you want to filter the resource\
  attributes but you used the operator !=. The script will not check resource \
-attributes only the existence of it.' % (rvar)
+attributes only the existence of it.' % (rvar))
         else:
-            print ' WARNING: %s -- Not a variable for resource that can be \
-filter. Unusable filter.' % (filterstring)
+            print(' WARNING: %s -- Not a variable for resource that can be \
+filter. Unusable filter.' % (filterstring))
             self.goodfilter = False
 
     def init_variables(self, res_vars):
@@ -339,8 +344,8 @@ filter. Unusable filter.' % (filterstring)
                 rvar, rval = rv.split('=')[:2]
                 self.set_variables(rvar, rval, '=')
             else:
-                print ' - warning - %s - no operator found in the filters \
-for resource.' % (rv)
+                print(' - warning - %s - no operator found in the filters \
+for resource.' % (rv))
 
     def set_variables(self, rvar, rval, operator):
         """
@@ -371,14 +376,14 @@ for resource.' % (rv)
         :return: None
         """
         if ',' in operator:
-            print ' WARNING: %s -- operator %s contained a comma. \
-Using default: "=".' % (self.var, operator)
+            print(' WARNING: %s -- operator %s contained a comma. \
+Using default: "=".' % (self.var, operator))
             return '='
         elif operator in ['=', '<', '>', '<=', '>=', '!=']:
             return operator
         else:
-            print (' WARNING: %s -- operator %s not found. Using default: "=".'
-                   % (self.var, operator))
+            print(' WARNING: %s -- operator %s not found. Using default: "=".'
+                  % (self.var, operator))
             return '='
 
     def is_usable_filter(self):
@@ -399,7 +404,7 @@ Using default: "=".' % (self.var, operator)
         """
         filtered_list = list()
         for object_dict in objects_list:
-            if not RES_OBJ_DICT[self.var] in object_dict.keys():
+            if not RES_OBJ_DICT[self.var] in list(object_dict.keys()):
                 filtered_list.append(object_dict)
             else:
                 if self.check_resources(xnat, object_dict):
@@ -625,24 +630,24 @@ def getmemory(memory_str):
         if memory_str == NOTFOUND:
             return 0.0
         elif memory_str.lower().endswith('t'):
-            return float(memory_str[:-1])*1024*1024*1024*1024
+            return float(memory_str[:-1]) * 1024 * 1024 * 1024 * 1024
         elif memory_str.lower().endswith('tb'):
-            return float(memory_str[:-2])*1024*1024*1024*1024
+            return float(memory_str[:-2]) * 1024 * 1024 * 1024 * 1024
         elif memory_str.lower().endswith('g'):
-            return float(memory_str[:-1])*1024*1024*1024
+            return float(memory_str[:-1]) * 1024 * 1024 * 1024
         elif memory_str.lower().endswith('gb'):
-            return float(memory_str[:-2])*1024*1024*1024
+            return float(memory_str[:-2]) * 1024 * 1024 * 1024
         elif memory_str.lower().endswith('m'):
-            return float(memory_str[:-1])*1024*1024
+            return float(memory_str[:-1]) * 1024 * 1024
         elif memory_str.lower().endswith('mb'):
-            return float(memory_str[:-2])*1024*1024
+            return float(memory_str[:-2]) * 1024 * 1024
         elif memory_str.lower().endswith('k'):
-            return float(memory_str[:-1])*1024
+            return float(memory_str[:-1]) * 1024
         elif memory_str.lower().endswith('kb'):
-            return float(memory_str[:-2])*1024
+            return float(memory_str[:-2]) * 1024
         else:
             return float(memory_str)
-    except:
+    except Exception:
         return 0.0
 
 
@@ -691,11 +696,11 @@ def get_size(size):
         return None
     elif 'g' in size.lower():
         # bring back to bytes
-        size = int(size.lower().split('g')[0])*1024*1024*1024
+        size = int(size.lower().split('g')[0]) * 1024 * 1024 * 1024
     elif 'm' in size.lower():
-        size = int(size.lower().split('m')[0])*1024*1024
+        size = int(size.lower().split('m')[0]) * 1024 * 1024
     elif 'k' in size.lower():
-        size = int(size.lower().split('k')[0])*1024
+        size = int(size.lower().split('k')[0]) * 1024
     else:
         size = int(size)
     return size
@@ -731,7 +736,7 @@ def extract_var(filterString):
         operator = '='
     else:
         msg = ' - warning - %s - no operator found in the filter for resource.'
-        print msg % (filterString)
+        print(msg % (filterString))
     return rvar, rval, operator
 
 
@@ -743,7 +748,7 @@ def create_filters(filters, res_delimiter):
     :param res_delimiter: delimiter for the filter string
     :return: list of filters, list of resource filters
     """
-    print 'INFO: Creating your filters from the options.'
+    print('INFO: Creating your filters from the options.')
     filters_list = list()
     filter_r_list = list()
     for _filter in filters:
@@ -830,17 +835,17 @@ def generate_xnat_object_list(host, username, projects, filters, filters_r):
     else:
         host = os.environ['XNAT_HOST']
     with XnatUtils.get_interface(host=host, user=username) as xnat:
-        print 'INFO: connection to xnat <%s>:' % (host)
-        print 'INFO: extracting information from XNAT'
-        print ' WARNING: extracting information from XNAT for a full project \
-might take some time. Please be patient.\n'
+        print('INFO: connection to xnat <%s>:' % (host))
+        print('INFO: extracting information from XNAT')
+        print(' WARNING: extracting information from XNAT for a full project \
+might take some time. Please be patient.\n')
         for project in projects:
             _proj = XnatUtils.select_obj(xnat, project_id=project)
             if not _proj.exists():
                 msg = ' - WARNING: Project <%s> does not exist on Xnat.'
-                print msg % (project)
+                print(msg % (project))
             else:
-                print ' - %s' % (project)
+                print(' - %s' % (project))
                 _objs = generate_project_object_list(xnat, project, filters,
                                                      filters_r)
                 object_list.extend(_objs)
@@ -885,15 +890,15 @@ def print_report(objects, header):
     """
     # Print number of object find:
     _format = '| %*s | %*s |'
-    print 'INFO: Number of XNAT object found after filters:'
-    print '-------------------------------------------'
-    print _format % (-20, 'Project ID', -17, 'Number of Objects')
-    print '-------------------------------------------'
+    print('INFO: Number of XNAT object found after filters:')
+    print('-------------------------------------------')
+    print(_format % (-20, 'Project ID', -17, 'Number of Objects'))
+    print('-------------------------------------------')
     for proj in set([_obj['project_id'] for _obj in objects]):
         _list = [_obj for _obj in objects
                  if _obj['project_id'] == proj]
-        print _format % (-20, proj, -17, len(_list))
-    print '-------------------------------------------\n'
+        print(_format % (-20, proj, -17, len(_list)))
+    print('-------------------------------------------\n')
 
     __logger__.info(','.join(header))
     # sort the list of object by the subject label if present:
@@ -913,41 +918,42 @@ def get_row(obj_dict, header):
     :return: None
     """
     row = list()
+    _okeys = list(obj_dict.keys())
     for field in header:
         if field == 'object_type':
-            if 'scan_id' in obj_dict.keys():
+            if 'scan_id' in _okeys:
                 row.append('scan')
-            elif 'assessor_label' in obj_dict.keys():
+            elif 'assessor_label' in _okeys:
                 row.append('assessor')
-            elif 'session_label' in obj_dict.keys():
+            elif 'session_label' in _okeys:
                 row.append('session')
             else:
                 row.append('subject')
         elif field == 'as_label':
-            if 'scan_id' in obj_dict.keys():
+            if 'scan_id' in _okeys:
                 row.append(obj_dict.get('scan_id', ''))
-            elif 'assessor_label' in obj_dict.keys():
+            elif 'assessor_label' in _okeys:
                 row.append(obj_dict.get('assessor_label', ''))
             else:
                 row.append('')
         elif field == 'as_type':
-            if 'scan_id' in obj_dict.keys():
+            if 'scan_id' in _okeys:
                 row.append(obj_dict.get('type'))
-            elif 'assessor_label' in obj_dict.keys():
+            elif 'assessor_label' in _okeys:
                 row.append(obj_dict.get('proctype', ''))
             else:
                 row.append('')
         elif field == 'as_description':
-            if 'scan_id' in obj_dict.keys():
+            if 'scan_id' in _okeys:
                 row.append(obj_dict.get('series_description', ''))
-            elif 'assessor_label' in obj_dict.keys():
+            elif 'assessor_label' in _okeys:
                 row.append(obj_dict.get('procstatus', ''))
             else:
                 row.append('')
         elif field == 'as_quality':
-            if 'scan_id' in obj_dict.keys():
+            if 'scan_id' in _okeys:
                 row.append(obj_dict.get('quality', ''))
-            elif 'assessor_label' in obj_dict.keys():
+            elif 'assessor_label' in _okeys:
                 row.append(obj_dict.get('qcstatus', ''))
             else:
                 row.append('')
@@ -965,50 +971,50 @@ def print_filters():
     _format = ' %*s | %*s | %*s | %*s | %*s '
     length = 116
     # Filters Header:
-    print 'INFO: Printing the filters available: '
-    print _format % (-18, 'Variable', -8, 'Level',
+    print('INFO: Printing the filters available: ')
+    print(_format % (-18, 'Variable', -8, 'Level',
                      -42, 'Description', -20, 'format',
-                     -9, 'operator')
+                     -9, 'operator'))
     utils.print_separators('-', length=length)
 
     # Filters available:
     for fdict in VAR_FILTERS:
-        print _format % (-18, fdict['var'], -8, fdict['grp'],
+        print(_format % (-18, fdict['var'], -8, fdict['grp'],
                          -42, fdict['value'], -20, fdict['format'],
-                         -9, fdict['operator'])
+                         -9, fdict['operator']))
     utils.print_separators('-', length=length)
 
     # Warning
-    print 'WARNING: Use Xnatupload --printmodality to know the different \
-choice for a Session Type\n'
+    print('WARNING: Use Xnatupload --printmodality to know the different \
+choice for a Session Type\n')
 
     _format = ' %*s | %*s | %*s '
     # Filters Resources Header:
-    print 'Resource filters available: '
-    print _format % (-12, 'Variable', -30, 'Value', -30, 'filters')
+    print('Resource filters available: ')
+    print(_format % (-12, 'Variable', -30, 'Value', -30, 'filters'))
     utils.print_separators('-', length=length)
 
     # Filters Resources available:
     info1 = 'comma separated list of label'
     info2 = 'format: Resource_variableOperatorValue separated by delimiter'
     for var in ['scan_res', 'assessor_res', 'session_res', 'subject_res']:
-        print _format % (-12, var, -30, info1, -30, info2)
+        print(_format % (-12, var, -30, info1, -30, info2))
     utils.print_separators('-', length=length)
 
-    print 'E.G for resource filters: scan_res=NIFTI,SNAPSHOTS--size>3mb--nbf=1\
---fpath=t1.nii.gz\n'
+    print('E.G for resource filters: scan_res=NIFTI,SNAPSHOTS--size>3mb--nbf=1\
+--fpath=t1.nii.gz\n')
 
 
 def print_format():
     """
     Print variables available for output.
     """
-    print 'INFO: Printing the variables available for output: '
+    print('INFO: Printing the variables available for output: ')
     for key in utils.ORDER:
-        print '%s variables:' % key
+        print('%s variables:' % key)
         for value in VARIABLES_LIST[key]:
-            print ' * %*s ' % (-30, value)
-    print '\n'
+            print(' * %*s ' % (-30, value))
+    print('\n')
 
 
 def run_xnat_check(args):
@@ -1056,7 +1062,7 @@ def run_xnat_check(args):
         if objects and (filters or filters_r):
             print_report(objects, header)
         else:
-            print '--> No object on XNAT found matching your filters.'
+            print('--> No object on XNAT found matching your filters.')
 
     utils.print_end(__exe__)
 

@@ -1,5 +1,8 @@
 """ Task object to generate / manage assessors and cluster."""
 
+from builtins import str
+from builtins import object
+
 from datetime import date
 import errno
 import logging

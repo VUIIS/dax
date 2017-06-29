@@ -3,6 +3,8 @@
 
 """dax_setup to setup variables for executables."""
 
+from __future__ import print_function
+
 from dax import dax_tools_utils as dax_tools
 
 if __name__ == '__main__':

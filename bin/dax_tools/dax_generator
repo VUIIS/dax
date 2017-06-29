@@ -6,6 +6,10 @@ Executable to build you sessions for a settings file describing which
 project on XNAT and which pipelines to run on those projects.
 """
 
+from __future__ import print_function
+
+from builtins import str
+
 import datetime
 from dax import spiders
 from dax import DAX_Settings
@@ -976,8 +980,8 @@ def get_exe_language(code_file):
     elif extension == 'rb':
         return 'ruby'
     else:
-        print "Warning: file %s don't have any known extension \
-(.py/.m/.sh/.rb)" % code_file
+        print("Warning: file %s don't have any known extension \
+(.py/.m/.sh/.rb)" % code_file)
         return None
 
 
@@ -1068,7 +1072,7 @@ def parse_args():
                                help='Use Scan type Spider.')
     _help = 'Directory where the module file will be generated. \
 Default: current directory.'
-    module_parser.add_argument('-d', dest='directory', default=None,
+    module_parser.add_argument('-d', dest='directory', default=os.getcwd(),
                                help=_help)
 
     # Spider:
@@ -1086,7 +1090,7 @@ Default: current directory.'
                                help='Spider purpose.')
     spider_parser.add_argument('-c', dest='on_scan', action='store_true',
                                help='Use Scan type Spider.')
-    spider_parser.add_argument('-d', dest='directory', default=None,
+    spider_parser.add_argument('-d', dest='directory', default=os.getcwd(),
                                help="Directory where the spider file will be \
 generated. Default: current directory.")
 
@@ -1108,7 +1112,7 @@ for AutoSpider"
         '-c', dest='code_file', required=True,
         help='Path to code template file')
     autospider_parser.add_argument(
-        '-d', dest='directory', default=None,
+        '-d', dest='directory', default=os.getcwd(),
         help="Directory where spider file will be written")
 
     # Processor:
@@ -1124,7 +1128,7 @@ for AutoSpider"
                              help='Processor purpose.')
     proc_parser.add_argument('--onScan', dest='on_scan', action='store_true',
                              help='Use Scan type Spider.')
-    proc_parser.add_argument('-d', dest='directory', default=None,
+    proc_parser.add_argument('-d', dest='directory', default=os.getcwd(),
                              help='Directory where the processor file will be \
 generated. Default: current directory.')
 
@@ -1134,7 +1138,7 @@ generated. Default: current directory.')
                                              help=auto_proc_desc)
     auto_proc_parser.add_argument('--name', dest='name', required=True,
                                   help='Name for your yaml file.')
-    auto_proc_parser.add_argument('-d', dest='directory', default=None,
+    auto_proc_parser.add_argument('-d', dest='directory', default=os.getcwd(),
                                   help='Directory where the processor file \
 will be generated. Default: current directory.')
     auto_proc_parser.add_argument('--spider', dest='spider_path', default=None,
@@ -1159,7 +1163,7 @@ Default: %s' % str(DEFAULT_QUEUE_LIMIT))
                                  default=DEFAULT_EMAIL_OPTS,
                                  help='Options for email in the job. \
 Default= %s' % (DEFAULT_EMAIL_OPTS))
-    settings_parser.add_argument('-d', dest='directory', default=None,
+    settings_parser.add_argument('-d', dest='directory', default=os.getcwd(),
                                  help='Directory where the processor file \
 will be generated. Default: current directory.')
     settings_parser.add_argument('--host', dest='xnat_host', default=None,
@@ -1191,12 +1195,12 @@ if __name__ == '__main__':
         else:
             module_path = os.path.join(os.getcwd(), module_name)
         if args.on_scan:
-            print "Generating file %s for scan module %s ..." % \
-                  (module_path, args.name)
+            print("Generating file %s for scan module %s ..."
+                  % (module_path, args.name))
             write_module(args, module_path, SCAN_MO_TEMPLATE)
         else:
-            print "Generating file %s for session module %s ..." % \
-                  (module_path, args.name)
+            print("Generating file %s for session module %s ..."
+                  % (module_path, args.name))
             write_module(args, module_path, SESSION_MO_TEMPLATE)
 
     elif args.command == 'spider':
@@ -1228,12 +1232,12 @@ information."""
         else:
             spider_path = os.path.join(os.getcwd(), spider_name)
         if args.on_scan:
-            print "Generating file %s for scan spider %s ..." % \
-                  (spider_path, args.name)
+            print("Generating file %s for scan spider %s ..."
+                  % (spider_path, args.name))
             write_spider(args, spider_path, SCAN_SP_TEMPLATE)
         else:
-            print "Generating file %s for session spider %s ..." % \
-                  (spider_path, args.name)
+            print("Generating file %s for session spider %s ..."
+                  % (spider_path, args.name))
             write_spider(args, spider_path, SESSION_SP_TEMPLATE)
 
     elif args.command == 'autospider':
@@ -1306,12 +1310,12 @@ information."""
         else:
             procpath = os.path.join(os.getcwd(), procname)
         if args.on_scan:
-            print "Generating file %s for scan processor %s ..." % \
-                  (procpath, args.name)
+            print("Generating file %s for scan processor %s ..."
+                  % (procpath, args.name))
             write_processor(args, procpath, SCAN_PR_TEMPLATE)
         else:
-            print "Generating file %s for session processor %s ..." % \
-                  (procpath, args.name)
+            print("Generating file %s for session processor %s ..."
+                  % (procpath, args.name))
             write_processor(args, procpath, SESSION_PR_TEMPLATE)
 
     elif args.command == 'autoprocessor':
@@ -1364,6 +1368,6 @@ information."""
         else:
             settings_path = os.path.join(os.getcwd(), settings_name)
 
-        print "Generating file %s for scan processor %s ..." % \
-              (settings_path, args.name)
+        print("Generating file %s for scan processor %s ..."
+              % (settings_path, args.name))
         write_settings(settings_path)

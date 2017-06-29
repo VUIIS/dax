@@ -1,5 +1,8 @@
 """ Module classes for Scan and Sessions """
 
+from builtins import str
+from builtins import object
+
 from datetime import datetime
 from email.mime.text import MIMEText
 import logging

@@ -7,6 +7,9 @@ Generate a report for a list of project on XNAT
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
+from __future__ import print_function
+
+from builtins import str
 
 from datetime import datetime
 import logging
@@ -71,8 +74,8 @@ def is_under_sessions(header):
 
     :param header: header for report
     """
-    is_scan = filter(lambda x: x in header, VARIABLES_LIST['scan'])
-    is_assr = filter(lambda x: x in header, VARIABLES_LIST['assessor'])
+    is_scan = [x for x in VARIABLES_LIST['scan'] if x in header]
+    is_assr = [x for x in VARIABLES_LIST['assessor'] if x in header]
     return is_scan or is_assr or is_default(header)
 
 
@@ -116,9 +119,9 @@ def report(xnat, projects, rformat=None):
         header = rformat.split(',')
         if is_under_sessions(header):
             report_under_sessions(xnat, project, header, is_default(header))
-        elif filter(lambda x: x in header, VARIABLES_LIST['session']):
+        elif [x for x in VARIABLES_LIST['session'] if x in header]:
             report_sessions(xnat, project, header)
-        elif filter(lambda x: x in header, VARIABLES_LIST['subject']):
+        elif [x for x in VARIABLES_LIST['subject'] if x in header]:
             report_subjects(xnat, project, header)
         else:
             display(get_row(xnat, {'project_id': project}, header))
@@ -167,9 +170,9 @@ def report_under_sessions(xnat, project, header, default=False):
         scans_list = XnatUtils.list_project_scans(xnat, project)
         assrs_list = XnatUtils.list_project_assessors(xnat, project)
         objs_list = scans_list + assrs_list
-    elif filter(lambda x: x in header, VARIABLES_LIST['scan']):
+    elif [x for x in VARIABLES_LIST['scan'] if x in header]:
         objs_list = XnatUtils.list_project_scans(xnat, project)
-    elif filter(lambda x: x in header, VARIABLES_LIST['assessor']):
+    elif [x for x in VARIABLES_LIST['assessor'] if x in header]:
         objs_list = XnatUtils.list_project_assessors(xnat, project)
 
     if not objs_list:
@@ -191,7 +194,7 @@ def get_row(xnat, obj_dict, header):
     """
     row = list()
     for field in header:
-        is_scan = 'scan_id' in obj_dict.keys()
+        is_scan = 'scan_id' in list(obj_dict.keys())
         _field = get_field(field, is_scan)
         if _field == 'object_type':
             row.append(get_object_type(obj_dict))
@@ -233,13 +236,14 @@ def get_object_type(obj_dict):
     :param obj_dict: dictionary containing information on object from XNAT
     :return: string describing the object type
     """
-    if 'scan_id' in obj_dict.keys():
+    _okeys = list(obj_dict.keys())
+    if 'scan_id' in _okeys:
         return 'scan'
-    elif 'assessor_label' in obj_dict.keys():
+    elif 'assessor_label' in _okeys:
         return 'assessor'
-    elif 'session_label' in obj_dict.keys():
+    elif 'session_label' in _okeys:
         return 'session'
-    elif 'subject_label' in obj_dict.keys():
+    elif 'subject_label' in _okeys:
         return 'subject'
     else:
         return 'project'
@@ -254,18 +258,19 @@ def get_resources(xnat, obj_dict):
     :return: string describing the resources
     """
     _res = ''
-    if 'scan_id' in obj_dict.keys() or 'assessor_label' in obj_dict.keys():
+    _okeys = list(obj_dict.keys())
+    if 'scan_id' in _okeys or 'assessor_label' in _okeys:
         _res = '/'.join(obj_dict['resources'])
-    elif 'session_label' in obj_dict.keys():
+    elif 'session_label' in _okeys:
         res_list = XnatUtils.list_experiment_resources(
             xnat, obj_dict['project_id'], obj_dict['subject_label'],
             obj_dict['session_label'])
         _res = '/'.join([r['label'] for r in res_list])
-    elif 'subject_label' in obj_dict.keys():
+    elif 'subject_label' in _okeys:
         res_list = XnatUtils.list_subject_resources(
             xnat, obj_dict['project_id'], obj_dict['subject_label'])
         _res = '/'.join([r['label'] for r in res_list])
-    elif 'project_id' in obj_dict.keys():
+    elif 'project_id' in _okeys:
         res_list = XnatUtils.list_project_resources(
             xnat, obj_dict['project_id'])
         _res = '/'.join([r['label'] for r in res_list])
@@ -298,8 +303,8 @@ def run_xnat_report(args):
     if _format and _format[-1] == ',':
         _format = _format[:-1]
 
-    var_list = [_i for _list in VARIABLES_LIST.values() for _i in _list]
-    if _format and filter(lambda x: x not in var_list, _format.split(',')):
+    var_list = [_i for _list in list(VARIABLES_LIST.values()) for _i in _list]
+    if _format and [x for x in _format.split(',') if x not in var_list]:
         err = '--format has some variables that does not exist on XNAT. \
 Please display the variables available on XNAT by using --printformat.'
         raise XnatToolsUserError(__exe__, err)
@@ -338,8 +343,8 @@ exist to create the file: %s not found.' % folder
         projects = args.projects.split(',')
 
         if _format and _format == 'resource':
-            print 'WARNING: you gave only the resource to --format \
-option. Adding object_type and project_id.'
+            print('WARNING: you gave only the resource to --format \
+option. Adding object_type and project_id.')
             _format = 'object_type,project_id,resource'
 
         if args.host:
@@ -348,20 +353,20 @@ option. Adding object_type and project_id.'
             host = os.environ['XNAT_HOST']
         user = args.username
         with XnatUtils.get_interface(host=host, user=user) as xnat:
-            print 'INFO: connection to xnat <%s>:' % (host)
-            print "Report for the following project(s):"
-            print '------------------------------------'
+            print('INFO: connection to xnat <%s>:' % (host))
+            print("Report for the following project(s):")
+            print('------------------------------------')
             for proj in projects:
                 # check if the project exists:
-                proj_obj = xnat.select('/project/'+proj)
+                proj_obj = xnat.select('/project/{}'.format(proj))
                 if not proj_obj.exists():
                     err = 'Project "%s" given to -p/--project not found on \
 XNAT.'
                     raise XnatToolsUserError(__exe__, err % proj)
-                print '  - %s' % proj
-            print '------------------------------------'
-            print 'WARNING: extracting information from XNAT for a full \
-project might take some time. Please be patient.\n'
+                print('  - %s' % proj)
+            print('------------------------------------')
+            print('WARNING: extracting information from XNAT for a full \
+project might take some time. Please be patient.\n')
             # Writing report
             report(xnat, projects, _format)
 

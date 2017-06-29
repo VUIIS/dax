@@ -6,6 +6,8 @@ Gets a list of random sessions from XNAT
 @author: Steve Daemon, Electrical Engineering, Vanderbilt University
 '''
 
+from __future__ import print_function
+
 import os
 
 from dax import XnatUtils
@@ -64,7 +66,7 @@ def main():
         sesses = XnatUtils.get_random_sessions(xnat, project_id, num_sessions)
 
     sesses = sesses.replace(",", delim)
-    print sesses
+    print(sesses)
 
 
 if __name__ == '__main__':

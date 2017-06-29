@@ -10,6 +10,10 @@ Purpose: Generate your ProjectSettingsFile.py following the template described
          in this file.
 """
 
+from __future__ import print_function
+
+from builtins import str
+
 import os
 import re
 from datetime import datetime
@@ -183,6 +187,6 @@ if __name__ == '__main__':
     else:
         SETTINGS_FPATH = os.path.join(os.getcwd(), SETTINGS_NAME)
 
-    print "Generating file %s for scan processor %s ..." % \
-          (SETTINGS_FPATH, ARGS.name)
+    print("Generating file %s for scan processor %s ..."
+          % (SETTINGS_FPATH, ARGS.name))
     write_settings()

@@ -10,6 +10,10 @@ Purpose: Generate your processor.py following the template for processor
          described in this file.
 """
 
+from __future__ import print_function
+
+from builtins import str
+
 import os
 import re
 from datetime import datetime
@@ -305,10 +309,10 @@ if __name__ == '__main__':
     else:
         PROCESSOR_FPATH = os.path.join(os.getcwd(), PROCESSOR_NAME)
     if ARGS.on_scan:
-        print "Generating file %s for scan processor %s ..." % \
-              (PROCESSOR_FPATH, ARGS.name)
+        print("Generating file %s for scan processor %s ..."
+              % (PROCESSOR_FPATH, ARGS.name))
         write_processor(SCAN_LEVEL_TEMPLATE)
     else:
-        print "Generating file %s for session processor %s ..." % \
-              (PROCESSOR_FPATH, ARGS.name)
+        print("Generating file %s for session processor %s ..."
+              % (PROCESSOR_FPATH, ARGS.name))
         write_processor(SESSION_LEVEL_TEMPLATE)

@@ -7,6 +7,10 @@ Display information on a project from Xnat
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
+from __future__ import print_function
+
+from builtins import str
+
 from datetime import datetime
 import os
 
@@ -152,7 +156,7 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
         err = 'project %s not found on XNAT'
         raise XnatToolsUserError(__exe__, err % project)
 
-    print 'INFO: query through project %s ...' % project
+    print('INFO: query through project %s ...' % project)
     # scan loop
     scans_list = XnatUtils.list_project_scans(xnat, project)
     subj_number = len(set([d['subject_label'] for d in scans_list]))
@@ -175,7 +179,7 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
     assessor_number = len(assessors_list)
     for assessor_dict in assessors_list:
         # add to dictionary of process
-        if assessor_dict['procstatus'] in STATUS_DICT.keys():
+        if assessor_dict['procstatus'] in list(STATUS_DICT.keys()):
             assessors_found = add_process_to_dict(assessors_found,
                                                   assessor_dict['proctype'],
                                                   assessor_dict['procstatus'])
@@ -280,15 +284,15 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
         if not os.path.exists(folder):
             warn = 'Warning: the path selected %s does not exist for the file \
 text.\n'
-            print warn % (folder)
-            print report_str
+            print(warn % (folder))
+            print(report_str)
         else:
             file_txt = os.path.abspath(output_file)
-            print 'INFO: Writing the report in the file: %s' % (file_txt)
+            print('INFO: Writing the report in the file: %s' % (file_txt))
             with open(file_txt, 'w') as f_write:
                 f_write.write(report_str)
     else:
-        print report_str
+        print(report_str)
 
 
 def run_xnat_info(args):
@@ -306,7 +310,7 @@ def run_xnat_info(args):
     utils.print_separators()
 
     with XnatUtils.get_interface(host=host, user=user) as xnat:
-        print 'INFO: connection to xnat <%s>:' % host
+        print('INFO: connection to xnat <%s>:' % host)
         report_project(xnat, args.project, args.ignore_scans,
                        args.ignore_unusable, args.running,
                        args.failed, args.output_file)

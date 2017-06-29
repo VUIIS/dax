@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
+from builtins import input
+from builtins import range
+
 import os
 import re
 import sys
@@ -110,7 +115,7 @@ def prompt_user_yes_no(question):
     """
     value = ''
     while value.lower() not in ['yes', 'no', 'n', 'y']:
-        value = raw_input("%s [yes/no] " % question)
+        value = input("%s [yes/no] " % question)
     if value.lower() in ['yes', 'y']:
         return True
     else:
@@ -129,12 +134,12 @@ def ask_number_inout_puts(is_out=False):
         arg = 'inputs'
         if is_out == 1:
             arg = 'outputs'
-        nb_in_out = raw_input("How many %s do you want to set? [INT] " % arg)
+        nb_in_out = input("How many %s do you want to set? [INT] " % arg)
         try:
             nb_in_out = int(nb_in_out)
             good_number = nb_in_out > 0
         except ValueError:
-            print "Wrong value. Please enter an integer."
+            print("Wrong value. Please enter an integer.")
             good_number = False
     return nb_in_out
 
@@ -153,11 +158,11 @@ def get_user_variable(question, index, not_null=False, for_type=False,
     if not_null:
         value = None
         while value is None:
-            value = raw_input("%s - %s " % (index, question))
+            value = input("%s - %s " % (index, question))
     elif for_type:
         good_type = False
         while not good_type:
-            value = raw_input("%s - %s " % (index, question))
+            value = input("%s - %s " % (index, question))
             nb = 6
             io_type = INPUTS_TYPE
             if is_out:
@@ -168,14 +173,14 @@ def get_user_variable(question, index, not_null=False, for_type=False,
                 good_type = value in range(1, nb)
                 value = io_type[value]
             except ValueError:
-                if value.upper() in io_type.values():
+                if value.upper() in list(io_type.values()):
                     value = value.upper()
                     good_type = True
                 else:
-                    print "Wrong value."
+                    print("Wrong value.")
                     good_type = False
     else:
-        value = raw_input("%s - %s " % (index, question))
+        value = input("%s - %s " % (index, question))
     return value
 
 
@@ -183,14 +188,14 @@ def generate_inputs():
     """Function to help the user generate the inputs.csv."""
     yes = prompt_user_yes_no('Do you want to write the spider inputs?')
     if not yes:
-        print 'Writing empty format inputs.csv'
+        print('Writing empty format inputs.csv')
         open(os.path.join(spider_path, INPUTS_FNAME), 'a').close()
     else:
         inputs_lines = list()
-        print INPUTS_INFO
+        print(INPUTS_INFO)
         nb_inputs = ask_number_inout_puts()
         for index in range(1, nb_inputs + 1):
-            print '\n -- setting input %s --' % index
+            print('\n -- setting input %s --' % index)
             var_name = get_user_variable('What is the variable name?', index,
                                          not_null=True)
             var_name = remove_special_char(var_name)
@@ -212,14 +217,14 @@ def generate_outputs():
     """Function to help the user generate the inputs.csv."""
     yes = prompt_user_yes_no('Do you want to write the spider outputs?')
     if not yes:
-        print 'Writing empty format outputs.csv'
+        print('Writing empty format outputs.csv')
         open(os.path.join(spider_path, OUTPUTS_FNAME), 'a').close()
     else:
         outputs_lines = list()
-        print OUTPUTS_INFO
+        print(OUTPUTS_INFO)
         nb_outputs = ask_number_inout_puts(is_out=True)
         for index in range(1, nb_outputs + 1):
-            print '\n -- setting output %s --' % index
+            print('\n -- setting output %s --' % index)
             res_path = get_user_variable(
                 'What is the output path in the jobdir?', index, not_null=True)
             mg = "What type of output? [Select integer: 1.FILE / 2.DIR] "
@@ -264,8 +269,8 @@ Must be X.Y.Z. See http://semver.org."
     else:
         spider_path = os.path.join(directory, ARGS.name, 'v%s' % ARGS.version)
         if os.path.isdir(spider_path):
-            print ('Warning: AutoSpider Folder already found: %s. exit.'
-                   % spider_path)
+            print('Warning: AutoSpider Folder already found: %s. exit.'
+                  % spider_path)
             sys.exit()
         else:
             os.makedirs(spider_path)
@@ -288,4 +293,4 @@ Must be X.Y.Z. See http://semver.org."
     generate_inputs()
     generate_outputs()
     open(os.path.join(spider_path, code_fname), 'a').close()
-    print 'Folder %s ready.' % spider_path
+    print('Folder %s ready.' % spider_path)

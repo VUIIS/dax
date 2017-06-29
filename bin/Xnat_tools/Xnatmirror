@@ -5,6 +5,12 @@ Xnatmirror - copies Subjects, Sessions (MR, PET, CT), Scans and Assessors
 '''
 
 from __future__ import print_function
+
+from past.builtins import cmp
+from builtins import zip
+from builtins import input
+from builtins import str
+
 import os
 import sys
 from datetime import datetime
@@ -282,7 +288,7 @@ def check_attributes(src_obj, dest_obj, dtype=None):
 def copy_attrs(src_obj, dest_obj, attr_list):
     """ Copies list of attributes form source to destination"""
     src_attrs = src_obj.attrs.mget(attr_list)
-    src_list = dict(zip(attr_list, src_attrs))
+    src_list = dict(list(zip(attr_list, src_attrs)))
 
     # NOTE: For some reason need to set te again b/c a bug somewhere sets te
     # to sequence name
@@ -419,8 +425,7 @@ xnat. Check your user rights. %s' % e)
 
     proj_label = src_proj.label()
     subj_list = XnatUtils.list_subjects(src_xnat, proj_label)
-    subj_list = filter(lambda x: x['label'] not in SUBJECTS_MIRRORED,
-                       subj_list)
+    subj_list = [x for x in subj_list if x['label'] not in SUBJECTS_MIRRORED]
     subj_i = 0
     for subj in subj_list:
         subj_i += 1
@@ -674,17 +679,6 @@ Warning: you need to keep the same folder than the previous Xnatmirror call.')
     return parser.parse_args()
 
 
-# def interface_xnat(host, user, pwd):
-#     """Create interface with XNAT and check connection."""
-#     intf = Interface(host, user, pwd)
-#     try:
-#         XnatUtils.list_projects(intf)
-#     except:
-#         raise Exception('ERROR: Connection to XNAT (%s) with user <%s> failed. \
-# Please check your credentials.' % (host, user))
-#     return intf
-
-
 def write_xml(xml_str, file_path, clean_tags=True):
     """Writing XML."""
     root = ET.fromstring(xml_str)
@@ -804,7 +798,7 @@ Destination XNAT (%s) to be able to upload processed data (assessors).'
             question = 'Do you want to continue and skip the processed data?'
             value = ''
             while value.lower() not in ['yes', 'no', 'n', 'y']:
-                value = raw_input("%s [yes/no] " % question)
+                value = input("%s [yes/no] " % question)
             if value.lower() in ['yes', 'y']:
                 SKIPPING_PROC_DATA = True
             else:

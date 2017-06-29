@@ -10,6 +10,10 @@ Purpose: Generate your module.py following the template for module
          described in this file.
 """
 
+from __future__ import print_function
+
+from builtins import str
+
 import os
 import re
 from datetime import datetime
@@ -329,10 +333,10 @@ if __name__ == '__main__':
     else:
         MODULE_FPATH = os.path.join(os.getcwd(), MODULE_NAME)
     if ARGS.on_scan:
-        print "Generating file %s for scan module %s ..." % \
-              (MODULE_FPATH, ARGS.name)
+        print("Generating file %s for scan module %s ..."
+              % (MODULE_FPATH, ARGS.name))
         write_module(SCAN_LEVEL_TEMPLATE)
     else:
-        print "Generating file %s for session module %s ..." % \
-              (MODULE_FPATH, ARGS.name)
+        print("Generating file %s for session module %s ..."
+              % (MODULE_FPATH, ARGS.name))
         write_module(SESSION_LEVEL_TEMPLATE)

@@ -9,12 +9,24 @@ File containing all useful functions for the different executables.
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
+from __future__ import print_function
+from __future__ import division
+
+from builtins import input
+from past.builtins import basestring
+from past.utils import old_div
+
 import logging
 import os
 import sys
 
 from .errors import XnatToolsError, XnatToolsUserError
 
+
+try:
+    basestring
+except NameError:
+    basestring = str
 
 LENGTH = 64
 DISPLAY_TEMPLATE = """#######################################################\
@@ -133,11 +145,11 @@ def main_display(name, description, extra_display=''):
     :param extra_display: extra display
     :return: None
     """
-    _spaces = (LENGTH - len(name))/2
+    _spaces = old_div((LENGTH - len(name)), 2)
     _name = edit_string_size(name, left_spaces=_spaces)
     _desc = edit_string_size(description, left_spaces=4)
-    print DISPLAY_TEMPLATE.format(name=_name, description=_desc,
-                                  extra=extra_display)
+    print(DISPLAY_TEMPLATE.format(name=_name, description=_desc,
+                                  extra=extra_display))
     print_separators(symbol='-')
 
 
@@ -150,7 +162,7 @@ def args_display(args):
     :return: None
     """
     _args = list()
-    for key, value in vars(args).items():
+    for key, value in list(vars(args).items()):
         _format = '  %*s -> %*s'
         if isinstance(value, bool):
             if value:
@@ -160,7 +172,7 @@ def args_display(args):
                 _args.append(_format % (-15, key.replace('_', ' '),
                                         -43, get_proper_str(value, True)))
 
-    print ARGS_DISPLAY.format(args='\n'.join(_args))
+    print(ARGS_DISPLAY.format(args='\n'.join(_args)))
     print_separators(symbol='-', return_line=True)
 
 
@@ -203,7 +215,7 @@ def setup_info_logger(name, log_file=None):
     return logger
 
 
-def edit_string_size(strings, max_length=LENGTH-4, left_spaces=0,
+def edit_string_size(strings, max_length=LENGTH - 4, left_spaces=0,
                      sformat='# %s%s #', symbol=' '):
     """
     Edit the string to by adding spaces at the beginning and end.
@@ -213,13 +225,13 @@ def edit_string_size(strings, max_length=LENGTH-4, left_spaces=0,
     :param length: length of the string
     :return: new string of length 60
     """
-    if isinstance(strings, str):
-        _lspaces = symbol * left_spaces
+    if isinstance(strings, basestring):
+        _lspaces = symbol * int(left_spaces)
         if symbol != ' ':
             _lspaces = '%s ' % _lspaces[:-1]
         _str = '%s%s' % (_lspaces, strings)
         _space = (max_length - len(_str))
-        return sformat % (_str, symbol * _space)
+        return sformat % (_str, symbol * int(_space))
     elif isinstance(strings, list):
         # Separate the string in several
         new_strings = list()
@@ -242,7 +254,7 @@ def read_txt(txt_file, exe_name=''):
     :return: list of REDCap variables
     """
     if txt_file:
-        print 'INFO: Export data from text file %s ...' % txt_file
+        print('INFO: Export data from text file %s ...' % txt_file)
         obj_list = list()
         if not os.path.exists(txt_file):
             err = 'file %s does not exist.'
@@ -266,7 +278,7 @@ def write_csv(csv_string, csv_file, exe_name=''):
     :param exe_name: name of executable running the function for error
     :return: None
     """
-    print 'INFO: Writing report ...'
+    print('INFO: Writing report ...')
     basedir = os.path.basedir(csv_file)
     if not os.path.exists(basedir):
         err = 'Path %s not found for report. Give an existing parent folder.'
@@ -303,9 +315,9 @@ def get_proper_str(str_option, end=False, size=43):
     """
     if len(str_option) > size:
         if end:
-            return '...%s' % str_option[-(size-3):]
+            return '...%s' % str_option[-(size - 3):]
         else:
-            return '%s...' % str_option[:(size-3)]
+            return '%s...' % str_option[:(size - 3)]
     else:
         return str_option
 
@@ -317,7 +329,7 @@ def prompt_user_yes_no(question):
     """
     value = ''
     while value.lower() not in ['yes', 'no', 'n', 'y']:
-        value = raw_input("%s [yes/no] " % question)
+        value = input("%s [yes/no] " % question)
     if value.lower() in ['yes', 'y']:
         return True
     else:
@@ -333,17 +345,17 @@ def print_separators(symbol='=', length=LENGTH, return_line=False):
     _format = '%s'
     if return_line:
         _format = '%s\n'
-    print _format % (symbol * length)
+    print(_format % (symbol * length))
 
 
 def print_end(name):
     """
     Last display when the tool script finish.
     """
-    _spaces = (LENGTH-6 - len(name))/2
-    print '%s\n' % edit_string_size(name, max_length=LENGTH-6,
+    _spaces = (LENGTH - 6 - len(name)) / 2
+    print('%s\n' % edit_string_size(name, max_length=LENGTH - 6,
                                     left_spaces=_spaces,
-                                    sformat='%s DONE %s', symbol='=')
+                                    sformat='%s DONE %s', symbol='='))
 
 
 def get_gender_from_label(gender):
@@ -403,11 +415,11 @@ def display_item(project, subject=None, session=None):
     :param session: session label on XNAT
     :return: None
     """
-    print'Project: %s' % (project)
+    print('Project: %s' % (project))
     if subject:
-        print '  +Subject: %s' % (subject)
+        print('  +Subject: %s' % (subject))
         if session:
-            print '    *Session: %s' % (session)
+            print('    *Session: %s' % (session))
 
 
 def is_assessor_type(obj_type):
@@ -417,7 +429,8 @@ def is_assessor_type(obj_type):
     :param obj_dict: dictionary to describe XNAT object parameters
     :return: boolean
     """
-    return 'xsiType' in obj_type.keys() or 'procstatus' in obj_type.keys()
+    _okeys = list(obj_type.keys())
+    return 'xsiType' in _okeys or 'procstatus' in _okeys
 
 
 def get_obj_info(ind, nb, obj):

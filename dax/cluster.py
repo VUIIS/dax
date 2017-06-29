@@ -6,6 +6,9 @@
 Cluster functionality
 """
 
+from builtins import str
+from builtins import object
+
 import os
 import time
 import logging
@@ -245,7 +248,7 @@ def command_found(cmd='qsub'):
     return False
 
 
-class PBS:   # The script file generator class
+class PBS(object):   # The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
     def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
                  ppn=1, email=None,

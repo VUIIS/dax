@@ -11,6 +11,10 @@ Edited on January 25, 2017
 @author: byvernault
 '''
 
+from __future__ import print_function
+
+from builtins import input
+
 import os
 import sys
 import getpass
@@ -45,10 +49,10 @@ def test_connection_xnat(host, user, pwd):
         xnat = Interface(host, user, pwd)
         # try deleting SESSION connection
         xnat._exec('/data/JSESSION', method='DELETE')
-        print '   --> Good login.'
+        print('   --> Good login.')
         return True
     except DatabaseError:
-        print '   --> error: Wrong login.'
+        print('   --> error: Wrong login.')
         return False
 
 
@@ -62,13 +66,13 @@ def add_host(dax_netrc, host):
     # Test connection for new XNAT host
     connection = False
     while not connection:
-        user = raw_input("Please enter your XNAT username: ")
+        user = input("Please enter your XNAT username: ")
         pwd = getpass.getpass(prompt='Please enter your XNAT password: ')
-        print 'Checking XNAT logins for host: <%s>' % host
+        print('Checking XNAT logins for host: <%s>' % host)
         connection = test_connection_xnat(host, user, pwd)
 
     dax_netrc.add_host(host, user, pwd)
-    print 'Login saved.'
+    print('Login saved.')
     qst = 'Do you want to use host <%s> as default host on your computer?'
     yes = utils.prompt_user_yes_no(qst % host)
     if yes:
@@ -89,8 +93,8 @@ def add_to_profile(host):
     elif os.path.exists(os.path.join(os.path.expanduser('~'), '.profile')):
         profile = os.path.join(os.path.expanduser('~'), '.profile')
     else:
-        print "Warning: profile file not found. Please add XNAT_HOST \
-to your environment variables manually."
+        print("Warning: profile file not found. Please add XNAT_HOST \
+to your environment variables manually.")
 
     if profile:
         # Add the line to the profile
@@ -100,8 +104,8 @@ to your environment variables manually."
                 lines = BASH_PROFILE_XNAT.format(export_cmd=line_to_add)
                 f_profile.write(lines)
         else:
-            print 'Warning: XNAT_HOST already set in your profile file. \
-Please edit it.'
+            print('Warning: XNAT_HOST already set in your profile file. \
+Please edit it.')
 
 
 def check_settings(dax_netrc, host):
@@ -118,25 +122,25 @@ def check_settings(dax_netrc, host):
         qst = 'Do you want to see the xnat host saved?'
         yes = utils.prompt_user_yes_no(qst)
         if yes:
-            print 'XNAT Hosts stored:'
+            print('XNAT Hosts stored:')
             if not dax_netrc.is_empty():
                 for saved_host in dax_netrc.get_hosts():
-                    print '  - %s' % saved_host
+                    print('  - %s' % saved_host)
             else:
                 no_host_saved = True
-                print '  No Host found.'
+                print('  No Host found.')
 
         while not host:
             msg = "Please enter the XNAT host you want to check/add: "
-            host = raw_input(msg)
+            host = input(msg)
             if not host:
-                print 'You need to provide a value.'
+                print('You need to provide a value.')
 
     if no_host_saved or not dax_netrc.has_host(host):
         host_unknown = True
 
     if host_unknown:
-        print 'Warning: no information stored for host <%s>.' % host
+        print('Warning: no information stored for host <%s>.' % host)
         qst = 'Do you want to save XNAT host <%s> information?' % host
         yes = utils.prompt_user_yes_no(qst)
         if yes:
@@ -144,7 +148,7 @@ def check_settings(dax_netrc, host):
         else:
             return
     else:
-        print 'Logins found for <%s>. Checking connection ...' % host
+        print('Logins found for <%s>. Checking connection ...' % host)
         user, pwd = dax_netrc.get_login(host)
         test_connection_xnat(host, user, pwd)
 
@@ -164,7 +168,7 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     utils.print_separators()
-    print 'Checking your settings for XNAT in xnatnetrc file:'
+    print('Checking your settings for XNAT in xnatnetrc file:')
     dax_netrc = DAX_Netrc()
     check_settings(dax_netrc, args.host)
     utils.print_separators()

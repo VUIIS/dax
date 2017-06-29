@@ -1,7 +1,11 @@
 """dax_settings class to read the INI settings file."""
 
+from future import standard_library
+standard_library.install_aliases()
+
+from builtins import object
 from collections import OrderedDict
-import ConfigParser
+import configparser
 from importlib import import_module
 import os
 import stat
@@ -74,17 +78,17 @@ write access.'
 
     def is_empty(self):
         """ Return True if no host stored."""
-        return len(self.netrc_obj.hosts.keys()) == 0
+        return len(list(self.netrc_obj.hosts.keys())) == 0
 
     def has_host(self, host):
         """ Return True if host present."""
-        return host in self.netrc_obj.hosts.keys()
+        return host in list(self.netrc_obj.hosts.keys())
 
     def add_host(self, host, user, pwd):
         """ Adding host to daxnetrc file."""
         netrc_template = """machine {host}
-                login {user}
-                password {pwd}
+    login {user}
+    password {pwd}
         """
         with open(self.netrc_file, "a") as f_netrc:
             lines = netrc_template.format(host=host, user=user, pwd=pwd)
@@ -92,7 +96,7 @@ write access.'
 
     def get_hosts(self):
         """ Rerutn list of hosts from netrc file."""
-        return self.netrc_obj.hosts.keys()
+        return list(self.netrc_obj.hosts.keys())
 
     def get_login(self, host):
         """ Getting login for an host from daxnetrc file."""
@@ -114,7 +118,7 @@ class DAX_Settings(object):
         """Entry Point for Class Dax_settings."""
         # Variables
         self.ini_settings_file = ini_settings_file
-        self.config_parser = ConfigParser.SafeConfigParser(allow_no_value=True)
+        self.config_parser = configparser.SafeConfigParser(allow_no_value=True)
 
         if self.exists():
             self.__read__()
@@ -136,7 +140,7 @@ class DAX_Settings(object):
         """
         try:
             self.config_parser.read(self.ini_settings_file)
-        except ConfigParser.MissingSectionHeaderError as MSHE:
+        except configparser.MissingSectionHeaderError as MSHE:
             self._print_error_as_warning('Missing header bracket detected. '
                                          'Please check your file.\n', MSHE)
 
@@ -201,7 +205,7 @@ class DAX_Settings(object):
         :return: True if valid settings, False otherwise
         """
         if self.config_parser.has_section('dax_manager'):
-            for option in DAX_MANAGER_DEFAULTS.keys():
+            for option in list(DAX_MANAGER_DEFAULTS.keys()):
                 if option not in self.config_parser.options('dax_manager'):
                     sys.stderr.write('Error: %s option missing in \
 ~/.dax_settings.ini.\n'
@@ -231,10 +235,10 @@ class DAX_Settings(object):
         value = None
         try:
             value = self.config_parser.get(header, key)
-        except ConfigParser.NoOptionError as NOE:
+        except configparser.NoOptionError as NOE:
             self._print_error_as_warning('No option %s found in header %s'
                                          % (key, header), NOE)
-        except ConfigParser.NoSectionError as NSE:
+        except configparser.NoSectionError as NSE:
             self._print_error_as_warning('No header %s found in config file %s'
                                          % (header, self.ini_settings_file),
                                          NSE)

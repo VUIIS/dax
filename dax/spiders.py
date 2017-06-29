@@ -8,6 +8,15 @@
         Utils for spiders
 """
 
+from __future__ import print_function
+from __future__ import division
+
+from builtins import str
+from builtins import range
+from builtins import object
+from past.builtins import basestring
+from past.utils import old_div
+
 import collections
 import csv
 from datetime import datetime
@@ -28,6 +37,11 @@ import time
 from . import XnatUtils
 from .errors import SpiderError, AutoSpiderError
 
+
+try:
+    basestring
+except NameError:
+    basestring = str
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ["Spider", "ScanSpider", "SessionSpider", "AutoSpider",
@@ -130,9 +144,9 @@ class Spider(object):
         # if data downloaded
         if self.data:
             unicode_data = '    Data:\n'
-            for label, li_inputs in self.data.items():
+            for label, li_inputs in list(self.data.items()):
                 v = "label: %s\n" % label
-                for res_name, files in li_inputs.items():
+                for res_name, files in list(li_inputs.items()):
                     v = ("%s\t  - resource: %s - files: %s\n"
                          % (v, res_name, files))
                 unicode_data = '%s        %s\n' % (unicode_data, v)
@@ -153,7 +167,7 @@ class Spider(object):
         )
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return str(self).encode('utf-8')
 
     @staticmethod
     def get_data_dict(otype, label, resource, directory, scan=None):
@@ -240,7 +254,7 @@ your spider.')
                     resources = [data_dict['resource']]
                 list_inputs = dict()
                 for res in resources:
-                    if 'dir' in data_dict.keys():
+                    if 'dir' in list(data_dict.keys()):
                         data_folder = os.path.join(input_dir,
                                                    data_dict['dir'])
                     else:
@@ -261,7 +275,7 @@ your spider.')
                         list_files.extend([os.path.join(root, filename)
                                            for filename in filenames])
                     list_inputs[res] = list_files
-                if data_dict['label'] in self.data.keys():
+                if data_dict['label'] in list(self.data.keys()):
                     self.data[data_dict['label']].update(list_inputs)
                 else:
                     self.data[data_dict['label']] = list_inputs
@@ -282,7 +296,7 @@ your spider.')
         xdict = collections.OrderedDict([('project', self.xnat_project)])
         itype = data_dict.get('type', None)
         if not itype:
-            print "Warning: 'type' not specified in inputs %s" % data_dict
+            print("Warning: 'type' not specified in inputs %s" % data_dict)
             return None
         label = data_dict.get('label', None)
         if itype == 'subject':
@@ -294,7 +308,8 @@ your spider.')
             xdict['subject'] = self.xnat_subject
             xdict['experiment'] = self.xnat_session
             if not label:
-                print "Warning: 'label' not specified in inputs %s" % data_dict
+                print("Warning: 'label' not specified in inputs %s"
+                      % data_dict)
                 return None
             else:
                 xdict['scan'] = data_dict.get('label', None)
@@ -302,7 +317,8 @@ your spider.')
             xdict['subject'] = self.xnat_subject
             xdict['experiment'] = self.xnat_session
             if not label:
-                print "Warning: 'label' not specified in inputs %s" % data_dict
+                print("Warning: 'label' not specified in inputs %s"
+                      % data_dict)
                 return None
             else:
                 scan_id = data_dict.get('scan', None)
@@ -410,8 +426,8 @@ your spider.')
 
         """
         self.has_spider_handler()
-        for resource, fpath in files_dict.items():
-            if isinstance(fpath, str):
+        for resource, fpath in list(files_dict.items()):
+            if isinstance(fpath, basestring):
                 self.upload(fpath, resource)
             elif isinstance(fpath, list):
                 for ffpath in fpath:
@@ -624,17 +640,18 @@ for resource %s : %s"
         """
         self.time_writer('-------- run_cmd_args --------')
         # Check cmd_args set by user:
+        cmd_keys = list(self.cmd_args.keys())
         if not self.cmd_args:
             raise SpiderError("self.cmd_args not defined.")
-        if 'exe' not in self.cmd_args.keys():
+        if 'exe' not in cmd_keys:
             raise SpiderError("self.cmd_args doesn't have a key 'exe'.")
         elif not XnatUtils.executable_exists(self.cmd_args['exe']):
             msg = "Executable not found: %s."
             raise SpiderError(msg % self.cmd_args['exe'])
-        if 'template' not in self.cmd_args.keys():
+        if 'template' not in cmd_keys:
             msg = "self.cmd_args doesn't have a key 'template'."
             raise SpiderError(msg)
-        if 'args' not in self.cmd_args.keys():
+        if 'args' not in cmd_keys:
             raise SpiderError("self.cmd_args doesn't have a key 'args'.")
 
         # Add options to matlab if it's not present in the exe
@@ -644,12 +661,12 @@ for resource %s : %s"
         if exe.lower() == 'matlab':
             exe = 'matlab -singleCompThread -nodesktop -nosplash < '
             # add file to run the matlab command if not set
-            if 'filename' not in self.cmd_args.keys():
+            if 'filename' not in cmd_keys:
                 self.cmd_args['filename'] = os.path.join(
                     self.jobdir, 'run_%s_matlab.m' % self.xnat_session)
 
         # Write the template in file and call the executable on the file
-        if 'filename' in self.cmd_args.keys():
+        if 'filename' in cmd_keys:
             if not os.path.exists(os.path.dirname(self.cmd_args['filename'])):
                 raise SpiderError("Folder for %s does not exist."
                                   % os.path.dirname(self.cmd_args['filename']))
@@ -690,7 +707,7 @@ for resource %s : %s"
         :return string: string path to select pyxnat object
         """
         select_str = ''
-        for key, value in xnat_dict.items():
+        for key, value in list(xnat_dict.items()):
             if value:
                 select_str += '''/{key}/{label}'''.format(key=key, label=value)
         return select_str
@@ -941,7 +958,7 @@ class AutoSpider(object):
     def __unicode__(self):
         """ Unicode for AutoSpiders."""
         unicode_inputs = list()
-        for key, value in self.src_inputs.items():
+        for key, value in list(self.src_inputs.items()):
             if key not in ['assessor_label', 'temp_dir', 'suffix', 'host',
                            'user']:
                 unicode_inputs.append("    %s: %s" % (key, value))
@@ -957,7 +974,7 @@ class AutoSpider(object):
 
     def __str__(self):
         """ Unicode for AutoSpiders."""
-        return unicode(self).encode('utf-8')
+        return str(self).encode('utf-8')
 
     def get_argparser(self):
         """Get argparser for the AutoSpider."""
@@ -975,7 +992,8 @@ class AutoSpider(object):
         """ Copy the inputs data for AutoSpider."""
         self.run_inputs = self.src_inputs
 
-        os.mkdir(self.input_dir)
+        if not os.path.exists(self.input_dir):
+            os.mkdir(self.input_dir)
 
         for _input in self.copy_list:
             # Split the list and handle each copy each individual file/dir
@@ -1001,7 +1019,7 @@ class AutoSpider(object):
             # If a argument in the string from input
             if '${' in output[0]:
                 name = output[0].partition('{')[-1].rpartition('}')[0]
-                if name in self.src_inputs.keys():
+                if name in list(self.src_inputs.keys()):
                     for val in self.src_inputs.get(name).split(','):
                         out1 = output[0].replace('${%s}' % name, val)
                         out2 = output[1]
@@ -1035,7 +1053,9 @@ The format {} can not be read by the spider because {} is not an input.'
     def run(self):
         """Run method to execute the template for AutoSpider."""
         self.time_writer('AutoSpider run(): Running command from template...')
-        os.mkdir(self.script_dir)
+
+        if not os.path.exists(self.script_dir):
+            os.mkdir(self.script_dir)
 
         # Get filepath and template
         filename = 'script%s' % SCRIPT_NAME[self.exe_lang]
@@ -1158,7 +1178,8 @@ GeneratorAutoSpider.')
     def copy_xnat_input(self, src, input_name):
         """Copy xnat inputs."""
         dst_dir = os.path.join(self.input_dir, input_name)
-        os.makedirs(dst_dir)
+        if not os.path.exists(dst_dir):
+            os.makedirs(dst_dir)
 
         if '/files/' in src:
             # Handle file
@@ -1215,14 +1236,14 @@ GeneratorAutoSpider.')
                 if not res.exists():
                     msg = 'resources specified by %s not found on XNAT.'
                     raise AutoSpiderError(msg % src)
-            except:
+            except Exception:
                 msg = 'resources can not be checked because the path given is \
 wrong for XNAT. Please check https://wiki.xnat.org/display/XNAT16/\
 XNAT+REST+API+Directory for the path.'
                 raise AutoSpiderError(msg % src)
             try:
                 results = res.file(_file).get(dst)
-            except:
+            except Exception:
                 raise AutoSpiderError('downloading files from XNAT failed.')
 
         return results
@@ -1237,7 +1258,7 @@ XNAT+REST+API+Directory for the path.'
                 if not res.exists():
                     msg = 'resources specified by %s not found on XNAT.'
                     raise AutoSpiderError(msg % src)
-            except:
+            except Exception:
                 msg = 'resources can not be checked because the path given is \
 wrong for XNAT: %s. Please check https://wiki.xnat.org/display/XNAT16/\
 XNAT+REST+API+Directory for the path.'
@@ -1251,7 +1272,7 @@ XNAT+REST+API+Directory for the path.'
                 else:
                     return results
             except Exception as err:
-                print err
+                print(err)
                 raise AutoSpiderError('downloading resource from XNAT failed.')
 
         return results
@@ -1338,7 +1359,7 @@ class TimedWriter(object):
             (mins, secs) = divmod(res, 60)
             msg = ("%s[%dd %02dh %02dm %02ds] %s"
                    % (msg, days, hours, mins, secs, text))
-        print >> pipe, msg
+        print(msg, file=pipe)
 
     def __call__(self, text, pipe=sys.stdout):
         """
@@ -1504,7 +1525,7 @@ def load_template(template_file):
 def use_time_writer(time_writer, msg):
     """Print using the time_writer or just print if not define."""
     if not time_writer:
-        print msg
+        print(msg)
     else:
         time_writer(msg)
 
@@ -1619,7 +1640,7 @@ Using default.")
         use_time_writer(time_writer, "Warning: vmaxs wasnt' a dictionary. \
 Using default.")
         vmaxs = {}
-    if isinstance(nii_images, str):
+    if isinstance(nii_images, basestring):
         nii_images = [nii_images]
     number_im = len(nii_images)
 
@@ -1672,9 +1693,9 @@ Using default.")
             if isinstance(volume_ind, int):
                 data = data[:, :, :, volume_ind]
             else:
-                data = data[:, :, :, data.shape[3] / 2]
-        default_slices = [data.shape[2] / 4, data.shape[2] / 2,
-                          3 * data.shape[2] / 4]
+                data = data[:, :, :, old_div(data.shape[3], 2)]
+        default_slices = [old_div(data.shape[2], 4), old_div(data.shape[2], 2),
+                          3 * old_div(data.shape[2], 4)]
         default_label = 'Line %s' % index
         if slices:
             if not isinstance(slices, dict):
@@ -1706,15 +1727,15 @@ dictionary. Using default.")
         else:
             # Fix Orientation:
             dslice = []
-            dslice_z = data[:, :, data.shape[2] / 2]
+            dslice_z = data[:, :, old_div(data.shape[2], 2)]
             if dslice_z.shape[0] != dslice_z.shape[1]:
                 dslice_z = imresize(dslice_z, (max(dslice_z.shape),
                                                max(dslice_z.shape)))
-            dslice_y = data[:, data.shape[1] / 2, :]
+            dslice_y = data[:, old_div(data.shape[1], 2), :]
             if dslice_y.shape[0] != dslice_y.shape[1]:
                 dslice_y = imresize(dslice_y, (max(dslice_y.shape),
                                                max(dslice_y.shape)))
-            dslice_x = data[data.shape[0] / 2, :, :]
+            dslice_x = data[old_div(data.shape[0], 2), :, :]
             if dslice_x.shape[0] != dslice_x.shape[1]:
                 dslice_x = imresize(dslice_x, (max(dslice_x.shape),
                                                max(dslice_x.shape)))
@@ -1788,7 +1809,7 @@ def plot_stats(pdf_path, page_index, stats_dict, title,
                     'INFO: generating pdf page %d with stats.' % page_index)
 
     cell_text = list()
-    for key, value in stats_dict.items():
+    for key, value in list(stats_dict.items()):
         txt = smaller_str(key.strip().replace('"', ''),
                           size=limit_size_text_column1)
         val = smaller_str(str(value),
@@ -1797,14 +1818,15 @@ def plot_stats(pdf_path, page_index, stats_dict, title,
 
     # Make the table
     fig = plt.figure(page_index, figsize=(7.5, 10))
-    nb_stats = len(stats_dict.keys())
+    nb_stats = len(list(stats_dict.keys()))
     for i in range(tables_number):
         ax = fig.add_subplot(1, tables_number, i + 1)
         ax.xaxis.set_visible(False)
         ax.yaxis.set_visible(False)
         ax.axis('off')
+        csize = old_div(nb_stats, 3)
         the_table = ax.table(
-            cellText=cell_text[nb_stats / 3 * i:nb_stats / 3 * (i + 1)],
+            cellText=cell_text[csize * i:csize * (i + 1)],
             colColours=[(0.8, 0.4, 0.4), (1.0, 1.0, 0.4)],
             colLabels=columns_header,
             colWidths=[0.8, 0.32],
@@ -1844,7 +1866,7 @@ def merge_pdfs(pdf_pages, pdf_final, time_writer=None):
     use_time_writer(time_writer, 'INFO: Concatenate all pdfs pages.')
     pages = ''
     if isinstance(pdf_pages, dict):
-        for key in sorted(pdf_pages.iterkeys()):
+        for key in sorted(pdf_pages.keys()):
             pages = '%s %s ' % (pages, pdf_pages[key])
     elif isinstance(pdf_pages, list):
         pages = ' '.join(pdf_pages)
