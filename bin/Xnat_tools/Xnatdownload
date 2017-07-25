@@ -519,14 +519,18 @@ def get_scan_path(scan_dict):
     if OPTIONS.oneDir:
         scan_path = DIRECTORY
     else:
-        st = scan_dict['type'].strip().replace('/', '_').replace(" ", "")
+        if 'type' in scan_dict.keys():
+            st = scan_dict['type'].strip().replace('/', '_').replace(" ", "")
+        else:
+            st = 'UNK'
         scan_label = '%s-x-%s' % (scan_dict['ID'], st)
-        if scan_dict['series_description'] != '':
-            sd = scan_dict['series_description'].strip()\
-                                                .replace('/', '_')\
-                                                .replace(" ", "")\
-                                                .replace(":", '_')
-            scan_label = '%s-x-%s' % (scan_label, sd)
+        if 'series_description' in scan_dict.keys():
+            if scan_dict['series_description'] != '':
+                sd = scan_dict['series_description'].strip()\
+                                                    .replace('/', '_')\
+                                                    .replace(" ", "")\
+                                                    .replace(":", '_')
+                scan_label = '%s-x-%s' % (scan_label, sd)
         scan_path = os.path.join(
             DIRECTORY, scan_dict['project_id'], scan_dict['subject_label'],
             scan_dict['session_label'], scan_label)
@@ -574,14 +578,18 @@ def download_data_xnat():
                                                           subject))
         # SCAN
         for scan_dict in extract_obj_one_subject(project, subject, SC_LIST):
-            LOGGER.info('  +session %s -- scan %s -- type: %s' % (
-                scan_dict['session_label'], scan_dict['ID'],
-                scan_dict['type']))
+            if 'type' in scan_dict.keys():
+                LOGGER.info('  +session %s -- scan %s -- type: %s' % (
+                    scan_dict['session_label'], scan_dict['ID'],
+                    scan_dict['type']))
+            else:
+                LOGGER.info('  +session %s -- scan %s --' % (
+                    scan_dict['session_label'], scan_dict['ID']))
             scan_path = get_scan_path(scan_dict)
             if OPTIONS.overwrite and os.path.exists(scan_path):
                 shutil.rmtree(scan_path)
             # Create the line for the report
-            if CSVWRITER is not None:
+            if CSVWRITER is not None and not OPTIONS.csvfile:
                 # deepcopy to start each line from this row
                 row = copy.deepcopy(['scan', scan_dict['project_id'],
                                      scan_dict['subject_label'],
@@ -601,7 +609,7 @@ def download_data_xnat():
             if OPTIONS.overwrite and os.path.exists(proc_path):
                 shutil.rmtree(proc_path)
             # Create the line for the report
-            if CSVWRITER is not None:
+            if CSVWRITER is not None and not OPTIONS.csvfile:
                 # deepcopy to start each line from this row
                 row = copy.deepcopy(['assessor', assessor_dict['project_id'],
                                      assessor_dict['subject_label'],
@@ -629,7 +637,13 @@ def download_scan(directory, scan_dict, resources_list, row, last_dl_date):
     :param last_dl_date: time at the last download call
     :return: None
     """
-    scan_obj = XnatUtils.get_full_object(XNAT, scan_dict)
+    try:
+        scan_obj = XnatUtils.get_full_object(XNAT, scan_dict)
+    except KeyError:
+        scan_obj = XNAT.select('/project/{project}/subject/{subject}/experiment/{experiment}/scan/{scan}'. format(project=scan_dict['project_id'],
+                                                                                                                  subject=scan_dict['subject_label'],
+                                                                                                                  experiment=scan_dict['session_label'],
+                                                                                                                  scan=scan_dict['ID']))
     if not scan_obj.exists():
         LOGGER.info('  ->WARNING: No scan with the ID given.')
     else:
@@ -778,7 +792,7 @@ def default_download(directory, res_obj, res_label, row, last_dl_date):
        (last_dl_date and int(get_file_timestamp(res_path)) < _ld_mod) \
        or not os.listdir(res_path):
         dl_files(res_obj, directory)
-        if CSVWRITER:
+        if CSVWRITER and not OPTIONS.csvfile:
             CSVWRITER.writerow(row)
     else:
         LOGGER.info('   >Resource %s: Skipping resource. Up-to-date.'
@@ -1198,7 +1212,7 @@ Format: a comma separated string.")
     # Download from the following csvfile
     argp.add_argument("-c", "--csvfile", dest="csvfile", default=None,
                       help="CSV file with the following header: object_type,\
-project_id,subject_label,session_label,as_label. object_type must be 'scan' \
+project_id,subject_label,session_type,session_label,as_label. object_type must be 'scan' \
 or 'assessor' and as_label the scan ID or assessor label.")
     # specific Resources
     argp.add_argument("--rs", dest="resourcesS", default=None,
