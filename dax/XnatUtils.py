@@ -2630,9 +2630,8 @@ def makedir(directory, prefix='TempDir', subdir=True):
         os.mkdir(directory)
     else:
         if subdir:
-            today = datetime.now()
-            ftime = '%s_%s_%s' % (str(today.year), str(today.month),
-                                  str(today.day))
+            ts = time.time()
+            ftime = str(ts).replace('.','_')
             directory = os.path.join(directory, '%s_%s' % (prefix, ftime))
             if not os.path.exists(directory):
                 os.mkdir(directory)
