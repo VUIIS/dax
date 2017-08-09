@@ -854,7 +854,7 @@ def get_xsitype(assessor_dict):
     :return: xsitype for the assessor_dict
     """
     proctype = assessor_dict['proctype']
-    if proctype.startswith('FS') and not proctype.startswith('FSL'):
+    if proctype == 'FS':
         return DEFAULT_FS_DATATYPE
     else:
         return DEFAULT_DATATYPE
