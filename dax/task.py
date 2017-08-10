@@ -296,7 +296,7 @@ class Task(object):
 
         """
         jobnode = self.assessor.attrs.get('%s/jobnode' % self.atype)
-        if jobnode == None:
+        if jobnode is None:
             jobnode = 'NotFound'
         return jobnode.strip()
 
@@ -455,7 +455,7 @@ undo_processing...')
 
         """
         jobid = self.assessor.attrs.get('%s/jobid' % self.atype)
-        if jobid == None:
+        if jobid is None:
             jobid = 'NotFound'
         return jobid.strip()
 
@@ -933,7 +933,7 @@ class ClusterTask(Task):
 
         """
         memused = self.get_attr('memused')
-        if memused == None:
+        if memused is None:
             memused = 'NotFound'
         return memused
 
@@ -955,7 +955,7 @@ class ClusterTask(Task):
 
         """
         walltime = self.get_attr('walltimeused')
-        if walltime == None:
+        if walltime is None:
             walltime = 'NotFound'
 
         return walltime
@@ -1100,7 +1100,7 @@ class ClusterTask(Task):
 
         """
         jobstartdate = self.get_attr('jobstartdate')
-        if jobstartdate == None:
+        if jobstartdate is None:
             jobstartdate = 'NULL'
         return jobstartdate
 
