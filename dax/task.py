@@ -296,6 +296,8 @@ class Task(object):
 
         """
         jobnode = self.assessor.attrs.get('%s/jobnode' % self.atype)
+        if jobnode is None:
+            jobnode = 'NotFound'
         return jobnode.strip()
 
     def set_jobnode(self, jobnode):
@@ -452,8 +454,10 @@ undo_processing...')
         :return: string of the jobid
 
         """
-        jobid = self.assessor.attrs.get('%s/jobid' % self.atype).strip()
-        return jobid
+        jobid = self.assessor.attrs.get('%s/jobid' % self.atype)
+        if jobid is None:
+            jobid = 'NotFound'
+        return jobid.strip()
 
     def get_job_status(self, jobid=None):
         """
@@ -929,6 +933,8 @@ class ClusterTask(Task):
 
         """
         memused = self.get_attr('memused')
+        if memused is None:
+            memused = 'NotFound'
         return memused
 
     def set_memused(self, memused):
@@ -949,6 +955,9 @@ class ClusterTask(Task):
 
         """
         walltime = self.get_attr('walltimeused')
+        if walltime is None:
+            walltime = 'NotFound'
+
         return walltime
 
     def set_walltime(self, walltime):
@@ -1090,7 +1099,10 @@ class ClusterTask(Task):
         :return: String of the date that the job started in "%Y-%m-%d" format
 
         """
-        return self.get_attr('jobstartdate')
+        jobstartdate = self.get_attr('jobstartdate')
+        if jobstartdate is None:
+            jobstartdate = 'NULL'
+        return jobstartdate
 
     def set_jobstartdate(self, date_str):
         """
@@ -1372,11 +1384,17 @@ class ClusterTask(Task):
         return JOB_FAILED
 
     def delete_attr(self, attr):
-        os.remove(self.attr_path(attr))
+        try:
+            os.remove(self.attr_path(attr))
+        except OSError:
+            pass
 
     def delete_batch(self):
         # Delete batch file
-        os.remove(self.batch_path())
+        try:
+            os.remove(self.batch_path())
+        except OSError:
+            pass
 
     def delete(self):
         # Delete attributes

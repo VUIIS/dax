@@ -1184,6 +1184,7 @@ GeneratorAutoSpider.')
         if '/files/' in src:
             # Handle file
             _res, _file = src.split('/files/')
+            _file = os.path.basename(_file)
             dst = os.path.join(dst_dir, _file)
 
             self.time_writer(' - downloading from XNAT: %s to %s' % (src, dst))

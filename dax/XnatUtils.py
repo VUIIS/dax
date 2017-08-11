@@ -394,7 +394,7 @@ class SpiderProcessHandler(object):
         self.has_pdf = 0
         self.time_writer = time_writer
         self.host = host
-        proctype, self.version = get_proctype(script_name, suffix=None)
+        proctype, self.version = get_proctype(script_name, suffix)
 
         # Create the assessor handler
         if assessor_handler:
@@ -682,7 +682,7 @@ def get_proctype(spider, suffix=None):
         ptype = re.split('/*_v[0-9]/*', spider)[0]
         proctype = '%s_v%s' % (ptype, version.split('.')[0])
 
-    if suffix is not None:
+    if suffix:
         if suffix[0] != '_':
             suffix = '_{}'.format(suffix)
         suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
