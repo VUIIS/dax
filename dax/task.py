@@ -384,8 +384,8 @@ class Task(object):
         self.undo_processing()
 
         # Delete the local copies
-        os.remove(local_zip)
-        shutil.rmtree(local_dir)
+        os.remove(os.path.join(self.upload_dir, local_zip))
+        shutil.rmtree(os.path.join(self.upload_dir, local_dir))
 
     def update_status(self):
         """
