@@ -9,6 +9,8 @@
 
 uname -a # outputs node info (name, date&time, type, OS, etc)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable to use only good amount of ppn
+export OMP_NUM_THREADS=${job_ppn} #as previous line for openmp code
+source ${job_env} #source the specified environement file
 SCREEN=$$$$$$$$
 SCREEN=${SCREEN:0:8}
 echo 'Screen display number for xvfb-run' $SCREEN

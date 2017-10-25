@@ -502,7 +502,8 @@ undo_processing...')
         outlog_dir = os.path.dirname(outlog)
         mkdirp(outlog_dir)
         pbs = PBS(pbsfile, outlog, cmds, self.processor.walltime_str,
-                  self.processor.memreq_mb, self.processor.ppn, job_email,
+                  self.processor.memreq_mb, self.processor.ppn,
+                  self.processor.env, job_email,
                   job_email_options, xnat_host)
         pbs.write()
         if writeonly:
@@ -1540,6 +1541,7 @@ undo_processing...')
                         self.processor.walltime_str,
                         self.processor.memreq_mb,
                         self.processor.ppn,
+                        self.processor.env,
                         job_email,
                         job_email_options,
                         xnat_host)
