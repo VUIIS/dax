@@ -2213,7 +2213,7 @@ def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False,
                 print("WARNING: upload_file_to_obj in XnatUtils: resource %s \
 already exists." % filename)
                 return False
-        resource_obj.file(str(filename)).put(str(filepath), overwrite=True)
+        resource_obj.file(str(filename)).put(str(filepath), overwrite=True, params={"event_reason": "DAX uploading file"})
         return True
 
 
