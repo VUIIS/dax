@@ -25,7 +25,7 @@ LOGGER = logging.getLogger('dax')
 class Processor(object):
     """ Base class for processor """
     def __init__(self, walltime_str, memreq_mb, spider_path,
-                 version=None, ppn=1, suffix_proc='',
+                 version=None, ppn=1, env=None, suffix_proc='',
                  xsitype='proc:genProcData'):
         """
         Entry point of the Base class for processor.
@@ -34,7 +34,8 @@ class Processor(object):
         :param memreq_mb: Number of megabytes of memory to use
         :param spider_path: Fully qualified path to the spider to run
         :param version: Version of the spider
-        :param ppn: Number of processors per not to use.
+        :param ppn: Number of processors per job to use.
+        :param env: Environment file to source.
         :param suffix_proc: Processor suffix (if desired)
         :param xsitype: the XNAT xsiType.
         :return: None
@@ -53,6 +54,10 @@ class Processor(object):
         self.name = None
         self.spider_path = spider_path
         self.ppn = ppn
+        if env:
+            self.env = env
+        else:
+            self.env = os.path.join(os.environ['HOME'], '.bashrc')
         self.xsitype = xsitype
         # getting name and version from spider_path
         self.set_spider_settings(spider_path, version)
@@ -154,7 +159,8 @@ class Processor(object):
 class ScanProcessor(Processor):
     """ Scan Processor class for processor on a scan on XNAT """
     def __init__(self, scan_types, walltime_str, memreq_mb, spider_path,
-                 version=None, ppn=1, suffix_proc='', full_regex=False):
+                 version=None, ppn=1, env=None, suffix_proc='',
+                 full_regex=False):
         """
         Entry point of the ScanProcessor Class.
 
@@ -164,6 +170,7 @@ class ScanProcessor(Processor):
         :param spider_path: Absolute path to the spider
         :param version: Version of the spider (taken from the file name)
         :param ppn: Number of processors per node to request
+        :param env: Environment file to source
         :param suffix_proc: Processor suffix
         :param full_regex: use full regex
         :return: None
@@ -171,7 +178,7 @@ class ScanProcessor(Processor):
         """
         super(ScanProcessor, self).__init__(walltime_str, memreq_mb,
                                             spider_path, version, ppn,
-                                            suffix_proc)
+                                            env, suffix_proc)
         self.full_regex = full_regex
         if isinstance(scan_types, list):
             self.scan_types = scan_types
@@ -288,7 +295,7 @@ class ScanProcessor(Processor):
 class SessionProcessor(Processor):
     """ Session Processor class for processor on a session on XNAT """
     def __init__(self, walltime_str, memreq_mb, spider_path, version=None,
-                 ppn=1, suffix_proc=''):
+                 ppn=1, env=None, suffix_proc=''):
         """
         Entry point for the session processor
 
@@ -297,13 +304,14 @@ class SessionProcessor(Processor):
         :param spider_path: Absolute path to the spider
         :param version: Version of the spider (taken from the file name)
         :param ppn: Number of processors per node to request
+        :param env: Environment file to source
         :param suffix_proc: Processor suffix
         :return: None
 
         """
         super(SessionProcessor, self).__init__(walltime_str, memreq_mb,
                                                spider_path, version, ppn,
-                                               suffix_proc)
+                                               env, suffix_proc)
 
     def has_inputs(self):
         """
@@ -417,6 +425,7 @@ class AutoProcessor(Processor):
         self.walltime_str = self.attrs.get('walltime')
         self.memreq_mb = self.attrs.get('memory')
         self.ppn = self.attrs.get('ppn', 1)
+        self.env = self.attrs.get('env', None)
         self.xsitype = self.attrs.get('xsitype', 'proc:genProcData')
         self.full_regex = self.attrs.get('fullregex', False)
         self.suffix = self.attrs.get('suffix', None)

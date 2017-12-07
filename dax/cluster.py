@@ -251,7 +251,7 @@ def command_found(cmd='qsub'):
 class PBS(object):   # The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
     def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
-                 ppn=1, email=None,
+                 ppn=1, env=None, email=None,
                  email_options=DAX_SETTINGS.get_email_opts(), xnat_host=None):
         """
         Entry point for the PBS class
@@ -262,6 +262,7 @@ class PBS(object):   # The script file generator class
         :param walltime_str: walltime to set for the script
         :param mem_mb: memory in mb to set for the script
         :param ppn: number of processor to set for the script
+        :param env: Environment file to source  for the script
         :param email: email address to set for the script
         :param email_options: email options to set for the script
         :param xnat_host: set the XNAT_HOST for the job (export)
@@ -275,6 +276,10 @@ class PBS(object):   # The script file generator class
         self.email = email
         self.email_options = email_options
         self.ppn = ppn
+        if env:
+            self.env = env
+        else:
+            self.env = os.path.join(os.environ['HOME'], '.bashrc')
         if xnat_host:
             self.xnat_host = xnat_host
         else:
@@ -294,6 +299,7 @@ class PBS(object):   # The script file generator class
         job_data = {'job_email': self.email,
                     'job_email_options': self.email_options,
                     'job_ppn': str(self.ppn),
+                    'job_env': str(self.env),
                     'job_walltime': str(self.walltime_str),
                     'job_memory': str(self.mem_mb),
                     'job_output_file': self.outfile,

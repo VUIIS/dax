@@ -257,6 +257,8 @@ SGE_TEMPLATE = """#!/bin/bash
 uname -a # outputs node info (name, date&time, type, OS, etc)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable \
 to use only the right amount of ppn
+export OMP_NUM_THREADS=${job_ppn} #as previous line for openmp code
+source ${job_env} #source the specified environement file
 SCREEN=$$$$$$$$
 SCREEN=${SCREEN:0:8}
 echo 'Screen display number for xvfb-run' $SCREEN
@@ -294,6 +296,8 @@ SLURM_TEMPLATE = """#!/bin/bash
 uname -a # outputs node info (name, date&time, type, OS, etc)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable \
 to use only the right amount of ppn
+export OMP_NUM_THREADS=${job_ppn} #as previous line for openmp code
+source ${job_env} #source the specified environement file
 SCREEN=$$$$$$$$
 SCREEN=${SCREEN:0:8}
 echo 'Screen display number for xvfb-run' $SCREEN
@@ -336,6 +340,8 @@ MOAB_TEMPLATE = """#!/bin/bash
 uname -a # outputs node info (name, date&time, type, OS, etc)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable \
 to use only the right amount of ppn
+export OMP_NUM_THREADS=${job_ppn} #as previous line for openmp code
+source ${job_env} #source the specified environement file
 SCREEN=$$$$$$$$
 SCREEN=${SCREEN:0:8}
 echo 'Screen display number for xvfb-run' $SCREEN
@@ -456,11 +462,12 @@ PROC_DISPLAY = """    *NAME: {name}
         memory: {memory}
         walltime: {walltime}
         Number of cores: {ppn}
+        Environment file: {env}
       OTHER ARGUMENTS:
 {other}
 """
 PROC_DEF_ARGS = ['name', 'xnat_host', 'xsitype', 'memreq_mb', 'walltime_str',
-                 'ppn', 'spider_path', 'version']
+                 'ppn', 'env', 'spider_path', 'version']
 
 MOD_DISPLAY = """    *NAME: {name}
       TEMP DIRECTORY: {temp_dir}
@@ -2061,6 +2068,7 @@ def print_processor(proc_obj):
                               memory=proc_dict['memreq_mb'],
                               walltime=proc_dict['walltime_str'],
                               ppn=proc_dict['ppn'],
+                              env=proc_dict['env'],
                               other=other_args))
 
 
