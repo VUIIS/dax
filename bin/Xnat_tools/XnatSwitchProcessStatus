@@ -186,9 +186,6 @@ set properly.\nTraceback: %s' % err
         for project in projects:
             sys.stdout.write("  * Project: %s\n" % (project))
             assessors_list = XnatUtils.list_project_assessors(xnat, project)
-            if not assessors_list:
-                err = "You don't have access to the project: %s" % project
-                raise XnatToolsUserError(__exe__, err)
             assessors.extend(assessors_list)
 
     # Filter assessors:
@@ -557,8 +554,6 @@ def run_xnat_switch_process_status(args):
 required by dax. Please install them. Check https://github.com/VUIIS/dax wiki.'
             raise XnatToolsUserError(__exe__, err)
         has_fs_datatypes = XnatUtils.has_fs_datatypes(xnat)
-
-        # get assessors to switch from options:
         assessors = get_assessors(xnat, args, has_fs_datatypes)
 
         # Switch status for assessors:
