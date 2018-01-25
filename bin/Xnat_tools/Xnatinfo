@@ -13,6 +13,7 @@ from builtins import str
 
 from datetime import datetime
 import os
+import textwrap
 
 from dax import XnatUtils, task
 from dax.errors import XnatToolsUserError
@@ -64,7 +65,7 @@ Assessors/Processes : {nb_a}
 
 Process info :
 --------------------------------------------------------------------------
-  Process type              | Count |   C   |   RC  |   U   |   RU  |\
+  Process type                                  | Count |   C   |   RC  |   U   |   RU  |\
    JF  |   JR  |  NTR  |   NI  |   ND  |   UN
   --------------------------------------------------------------------------\
 ---------------------------------------
@@ -212,15 +213,15 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
                                          scan_unusable='\n'.join(unusables))
 
     # Assessors display
-    as_len = 25
+    as_len = 45
     _format = '  %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | \
 %*s | %*s '
     assrs_info = []
     for assessor_dict in assessors_list:
         if len(assessor_dict['proctype']) > as_len:
-            as_len = len(assessor_dict['proctype'])
+            as_len = len(assessor_dict['proctype']) + 5
     for key in sorted(assessors_found):
-        assrs_info.append(
+	assrs_info.append(
             _format %
             (-1 * as_len, key,
              -5, assessors_found[key][0],
@@ -234,7 +235,7 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
              -5, assessors_found[key][STATUS_DICT['NEED_INPUTS']],
              -5, assessors_found[key][STATUS_DICT['NO_DATA']],
              -5, assessors_found[key][STATUS_DICT['UNKNOWN']]))
-
+    
     extras = list()
     if unknown_status:
         unknown_status = list(set(unknown_status))
