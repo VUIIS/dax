@@ -1,9 +1,9 @@
-def pluginVersion = 'genProcData-1.0.0'
+def pluginVersion = 'genProcData-1.1.0'
 
 group 'org.nrg.xnat.dax'
 version pluginVersion
 
-def vXnat = '1.7.0-SNAPSHOT'
+def vXnat = '1.7.4'
 def vJunit = '4.12'
 def vSpring = '4.2.5.RELEASE'
 def vSlf4j = '1.7.15'
@@ -32,7 +32,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.0-SNAPSHOT"
+        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.4"
     }
     configurations {
         all*.exclude group: 'avalon-framework'
@@ -157,7 +157,8 @@ configurations {
 
 dependencies {
 
-    compile("org.nrg:framework:1.7.0-SNAPSHOT") {
+    //compile("org.nrg:framework:1.7.0-SNAPSHOT") {
+    compile("org.nrg:framework:1.7.4") {
         transitive = false
     }
     compile("org.nrg.xnat:web:${vXnat}") {
@@ -166,7 +167,6 @@ dependencies {
     compile("org.nrg.xnat:xnat-data-models:${vXnat}") {
         exclude group: '*'
     }
-    compile "org.nrg.xdat:tasks:${vXnat}"
     compile("org.nrg.xdat:core:${vXnat}") {
         exclude group: '*'
     }
@@ -218,39 +218,6 @@ dependencies {
     testCompile "org.springframework:spring-test:${vSpring}"
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-
-            pom.withXml {
-                def root = asNode()
-                root.appendNode('name', 'XNAT Workshop 2016 Plugin')
-                root.appendNode('url', 'https://github.com/XnatWorkshop/xnat-workshop-plugin')
-                root.appendNode('inceptionYear', '2016')
-
-                def scm = root.appendNode('scm')
-                scm.appendNode('url', 'https://github.com/XnatWorkshop/xnat-workshop-plugin')
-                scm.appendNode('connection', 'scm:https://github.com/XnatWorkshop/xnat-workshop-plugin.git')
-                scm.appendNode('developerConnection', 'scm:git://github.com/XnatWorkshop/xnat-workshop-plugin.git')
-
-                def license = root.appendNode('licenses').appendNode('license')
-                license.appendNode('name', 'Simplified BSD 2-Clause License')
-                license.appendNode('url', 'http://xnat.org/about/license.php')
-                license.appendNode('distribution', 'repo')
-
-                def developers = root.appendNode('developers')
-
-                def tolsen = developers.appendNode('developer')
-                tolsen.appendNode('id', 'timolsen23')
-                tolsen.appendNode('name', 'Tim Olsen')
-                tolsen.appendNode('email', 'tim@deck5consulting.com')
-            }
-        }
-    }
-}
-
-
 sourceSets {
     main {
             java {
@@ -289,3 +256,4 @@ artifacts {
     archives mainJar
     archives beanJar
 }
+
