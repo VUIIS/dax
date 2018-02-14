@@ -63,6 +63,7 @@ def query_subject(xnat, project, subject, qall=False):
     :param subject: subject label on XNAT
     :return: None
     """
+    print("Testing KR %s" %(subject))
     if not project:
         err = 'argument project not provided.'
         raise XnatToolsUserError(__exe__, err)
@@ -182,6 +183,8 @@ def run_xnat_query(args):
             projects_list = xnat._get_json(XnatUtils.PROJECTS_URI)
             for project in projects_list:
                 query_project(xnat, project['ID'], qall=True)
+
+	#subject, session and scan
         else:
             if args.subject:
                 utils.print_separators()
@@ -196,11 +199,12 @@ def run_xnat_query(args):
                         query_scan(args.project, args.subject, args.session,
                                    args.scan, scan_type, qall=True)
                     else:
-                        query_session(args.project, args.subject, args.session,
+                        query_session(xnat, args.project, args.subject, args.session,
                                       args.all)
+			print(args.subject)    #trying to debug
                 else:
                     utils.display_item(args.project, args.subject)
-                    query_subject(args.project, args.subject, args.all)
+                    query_subject(xnat, args.project, args.subject, args.all)
             elif args.project:
                 utils.print_separators()
                 utils.display_item(args.project)
@@ -221,10 +225,12 @@ def add_to_parser(parser):
     _h = "project ID on Xnat or 'all' to see all the project."
     parser.add_argument("-p", "--project", dest="project", default=None,
                         help=_h)
+    _h = "Subject label on Xnat"
     parser.add_argument("-s", "--subject", dest="subject", default=None,
-                        help="Subject label on Xnat")
+                        help=_h)
+    _h = "Session label on Xnat"
     parser.add_argument("-e", "--experiment", dest="session", default=None,
-                        help="Session label on Xnat")
+                        help=_h)
     _h = "Assessor/Process label on XNAT. E.G: VUSTP-x-VUSTP1-x-VUSTP1a-x-FS"
     parser.add_argument("-a", "--assessor", dest="assessor", default=None,
                         help=_h)
