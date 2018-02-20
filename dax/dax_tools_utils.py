@@ -2160,7 +2160,7 @@ the python file {}.'
         else:
             # So far only auto processor:
             try:
-                return processors.AutoProcessor(filepath)
+                return processors.load_from_yaml(filepath)
             except AutoProcessorError:
                 print('[ERROR]')
                 exc_type, exc_value, exc_traceback = sys.exc_info()

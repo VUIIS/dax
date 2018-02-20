@@ -9,6 +9,8 @@ import os
 
 from . import XnatUtils, task
 from .errors import AutoProcessorError
+from .dax_settings import DAX_Settings
+from .task import NeedInputsException, NoDataException
 
 
 try:
@@ -908,6 +910,365 @@ resource/{4}'
                 self.inputs[res_info.get('varname')] = ','.join(_in)
 
 
+class MoreAutoProcessor(AutoProcessor):
+    """ More Auto Processor class for AutoSpider using YAML files"""
+
+    def __init__(self, yaml_file, user_inputs=None):
+        """
+        Entry point for the auto processor
+
+        :param yaml_file: yaml file defining the processor
+        :return: None
+
+        """
+
+        # Load outputs
+        self.outputs = dict()
+
+        super(MoreAutoProcessor, self).__init__(yaml_file, user_inputs)
+
+    def read_yaml(self, yaml_file):
+        """
+        Method to read the processor arguments and there default value.
+
+        :param yaml_file: path to yaml file defining the processor
+        """
+
+        if not os.path.isfile(yaml_file):
+            err = 'Path not found for {}'
+            raise AutoProcessorError(err.format(yaml_file))
+
+        # Read YAML into a dictionary
+        doc = XnatUtils.read_yaml(yaml_file)
+
+        # Check for required keys
+        self._check_default_keys(yaml_file, doc)
+
+        self.attrs = doc.get('attrs')
+        self.command = doc.get('command')
+
+        # Set Inputs from Yaml
+        inputs = doc.get('inputs')
+        self.xnat_inputs = inputs.get('xnat')
+        for key, value in list(inputs.get('default').items()):
+            # If value is a key in command
+            k_str = '{{{}}}'.format(key)
+            if k_str in self.command:
+                self.inputs[key] = value
+            else:
+                if isinstance(value, bool) and value is True:
+                    self.extra_inputs[key] = ''
+                elif value and value != 'None':
+                    self.extra_inputs[key] = value
+
+        # Getting proctype and version from Yaml
+        self.container_path = self.inputs.get('container_path')
+
+        if doc.get(('procversion')):
+            self.version = doc.get('procversion')
+        else:
+            self.version = self.parse_procversion()
+
+        if doc.get(('procname')):
+            procname = doc.get('procname')
+        else:
+            procname = self.parse_procname()
+
+        if doc.get(('proctype')):
+            self.proctype = doc.get('proctype')
+        else:
+            self.proctype = '{}_v{}'.format(
+                procname, self.version.split('.')[0]
+            )
+
+        suffix = self.attrs.get('suffix', None)
+        if suffix:
+            if suffix[0] != '_':
+                suffix = '_{}'.format(suffix)
+
+            suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
+
+            if suffix[-1] == '_':
+                suffix = suffix[:-1]
+
+            self.proctype = '{}{}'.format(self.proctype, suffix)
+
+        # Set attributes:
+        self.name = self.proctype
+        self.type = self.attrs.get('type')
+        self.scan_nb = self.attrs.get('scan_nb', None)
+
+        # Set Outputs from Yaml
+        self.outputs = doc.get('outputs')
+
+    def _check_default_keys(self, yaml_file, doc):
+        """ Static method to raise error if key not found in dictionary from
+        yaml file.
+
+        :param yaml_file: path to yaml file defining the processor
+        :param doc: doc dictionary extracted from the yaml file
+        :param key: key to check in the doc
+        """
+        # first level
+        for key in ['inputs', 'command', 'attrs', 'outputs']:
+            self._raise_yaml_error_if_no_key(doc, yaml_file, key)
+
+        # Second level in inputs and attrs:
+        inputs = doc.get('inputs')
+        attrs = doc.get('attrs')
+        for _doc, key in [(inputs, 'default'), (inputs, 'xnat'),
+                          (attrs, 'type'), (attrs, 'memory'),
+                          (attrs, 'walltime')]:
+            self._raise_yaml_error_if_no_key(_doc, yaml_file, key)
+        if attrs['type'] == 'scan':
+            self._raise_yaml_error_if_no_key(attrs, yaml_file, 'scan_nb')
+
+        # third level for default:
+        default = doc.get('inputs').get('default')
+
+        for key in ['container_path']:
+            self._raise_yaml_error_if_no_key(default, yaml_file, key)
+
+    def parse_procname(self):
+        tmp = self.container_path
+        tmp = tmp.split('://')[-1]
+        tmp = tmp.rsplit('/')[-1]
+
+        if len(re.split('/*[_:]v[0-9]/*', tmp)) > 1:
+            tmp = re.split('/*[_:]v[0-9]/*', tmp)[0]
+
+        return tmp
+
+    def parse_procversion(self):
+        tmp = self.container_path
+
+        tmp = tmp.split('://')[-1]
+        tmp = tmp.rsplit('/')[-1]
+
+        if tmp.endswith('.img'):
+            tmp = tmp.split('.img')[0]
+        elif tmp.endswith('.simg'):
+            tmp = tmp.split('.img')[0]
+
+        if len(re.split('/*_v[0-9]/*', tmp)) > 1:
+            tmp = tmp.split('_v')[-1].replace('_', '.')
+        elif len(re.split('/*:v[0-9]/*', tmp)) > 1:
+            tmp = tmp.split(':v')[-1].replace('_', '.')
+
+        return tmp
+
+    def build_cmds(self, cobj, jobdir):
+        """Method to generate the spider command for cluster job.
+        :param cobj: pyxnat cached session or scan object
+        :param jobdir: jobdir where the job's output will be generated
+        :return: command to execute the spider in the job script
+        """
+        assr_label = self.get_assessor_name(cobj)
+        dstdir = os.path.join(DAX_Settings().get_results_dir(), assr_label)
+
+        # Find values for the xnat inputs
+        var2val, input_list = self.find_inputs(cobj)
+
+        # Append other inputs
+        var2val.update(self.inputs)
+
+        # Include the assessor label
+        var2val['assessor'] = assr_label
+
+        # Build the command text
+        cmd = self.build_text(var2val, input_list, jobdir, dstdir)
+
+        return [cmd]
+
+
+    def get_xnat_uri(self, cobj, resource, required=True, fpath=None, fmatch=None):
+        """Method to get the file URI on XNAT
+
+        :param cobjs: list of cobjs (assessor or scan) in dax.XnatUtils
+                      (see XnatUtils in dax for information)
+        :param resource: name of the resource
+        :param fpath: filepath to get
+        :return: list of paths
+        """
+        xnat_uri = ''
+        assr_tmp = '{0}/data/projects/{1}/subjects/{2}/experiments/{3}/assessors/{4}/out/resources/{5}'
+        scan_tmp = '{0}/data/projects/{1}/subjects/{2}/experiments/{3}/scans/{4}/resources/{5}'
+
+        if resource in [res['label'] for res in cobj.get_resources()]:
+            obj_info = cobj.info()
+
+            if isinstance(cobj, XnatUtils.CachedImageAssessor):
+                label = obj_info['label']
+                path_tmp = assr_tmp
+            elif isinstance(cobj, XnatUtils.CachedImageScan):
+                label = obj_info['ID']
+                path_tmp = scan_tmp
+
+            x_path = path_tmp.format(
+                cobj.parent().xnat.host,
+                obj_info['project_id'],
+                obj_info['subject_label'],
+                obj_info['session_label'],
+                label,
+                resource
+            )
+
+            if fmatch:
+                sess = cobj.parent().full_object()
+                if isinstance(cobj, XnatUtils.CachedImageAssessor):
+                    robj = sess.assessor(obj_info['label']).out_resource(resource)
+
+                elif isinstance(cobj, XnatUtils.CachedImageScan):
+                    robj = sess.scan(obj_info['ID']).resource(resource)
+
+                # Get list of all files in the resource
+                file_list = robj.files().get()
+
+                # TODO: Filter list based on regex matching
+                regex = XnatUtils.extract_exp(fmatch, full_regex=False)
+                file_list = [x for x in file_list if regex.match(x)]
+
+                # Make a comma separated list of files
+                uri_list = ['{}/files/{}'.format(x_path, f) for f in file_list]
+                xnat_uri = ','.join(uri_list)
+            elif fpath:
+                xnat_uri = '{}/files/{}'.format(x_path, fpath)
+            else:
+                xnat_uri = '{}/files'.format(x_path, fpath)
+
+
+        elif required:
+            msg = 'No resource {} found for {} in session {}.'
+            LOGGER.debug(msg.format(resource, label, obj_info['session_label']))
+
+        print(xnat_uri)
+        return xnat_uri
+
+    def find_inputs(self, cobj):
+        input_list = []
+        var2val = {}
+
+        if isinstance(cobj, XnatUtils.CachedImageScan):
+            csess = cobj.parent()
+            scan_label = cobj.label()
+        else:
+            csess = cobj
+
+        # For each input scan descriptor
+        for scan_in in self.xnat_inputs.get('scans', list()):
+            scantypes = scan_in.get('types').split(',')
+            needs_qc = scan_in.get('needs_qc', True)
+
+            # First get matching scan(s)
+            matched_cscans = XnatUtils.get_good_cscans(csess, scantypes, needs_qc)
+
+            # Check count of matches scans (should only one if scan_nb)
+            if len(matched_cscans) == 0:
+                print('error failed to find a scan')
+                raise NoDataException('No Scan')
+            elif len(matched_cscans) > 1:
+                print('error too many matching scans found')
+                raise NeedInputsException('Multiple Scans')
+
+            # Now match resources of matched scans
+            resources = scan_in.get('resources', list())
+            for res in resources:
+                xnat_uri_list = []
+                for cscan in matched_cscans:
+                    xnat_uri = self.get_xnat_uri(
+                        cscan, res.get('resource'),
+                        fpath=res.get('filepath', None),
+                        fmatch=res.get('fmatch')
+                    )
+                    if not xnat_uri:
+                        print('error failed to find a file path')
+                        raise NeedInputsException('No Resource')
+
+
+                    xnat_uri_list.append(xnat_uri)
+
+                fdest = res.get('fdest')
+                ftype = res.get('ftype')
+                input_list.append({'fdest':fdest, 'ftype': ftype, 'fpath': ','.join(xnat_uri_list)})
+                if 'varname' in res:
+                    varname = res['varname']
+                    var2val[varname] = fdest
+
+        # For each input assessor descriptor
+        for assr_in in self.xnat_inputs.get('assessors', list()):
+            proctypes = assr_in.get('proctypes').split(',')
+            needs_qc = assr_in.get('needs_qc', True)
+
+            # First get matching assessor(s)
+            matched_cassrs = XnatUtils.get_good_cassr(csess, proctypes, needs_qc)
+
+            # Check counts of matched assessors
+            if len(matched_cassrs) == 0:
+                print('error failed to find an assessor')
+                raise NoDataException('No Assr')
+            elif len(matched_cassrs) > 1:
+                print('error too many matching assessors found')
+                raise NeedInputsException('Multiple Assr')
+
+            # Now match resources of matched assessors
+            resources = assr_in.get('resources', list())
+            for res in resources:
+                xnat_uri_list = []
+                for cassr in matched_cassrs:
+                    xnat_uri = self.get_xnat_uri(
+                        cassr, res.get('resource'),
+                        required=res.get('required', True),
+                        fpath=res.get('filepath', None),
+                        fmatch=res.get('fmatch')
+                    )
+                    if not xnat_uri:
+                        print('error failed to find a file path')
+                        raise NeedInputsException('No Resource')
+
+                    xnat_uri_list.append(xnat_uri)
+
+                fdest = res.get('fdest')
+                ftype = res.get('ftype')
+                input_list.append({'fdest': fdest, 'ftype': ftype, 'fpath': ','.join(xnat_uri_list)})
+                if 'varname' in res:
+                    varname = res['varname']
+                    var2val[varname] = fdest
+
+        return var2val, input_list
+
+    def build_text(self, var2val, input_list, jobdir, dstdir):
+        # Initialize commands
+        cmd = '\n\n'
+
+        # Append the list of inputs
+        cmd += 'INLIST=(\n'
+        for cur in input_list:
+            cmd += '{fdest},{ftype},{fpath}\n'.format(**cur)
+
+        cmd += ')\n\n'
+
+        # Append the list on outputs
+        cmd += 'OUTLIST=(\n'
+        for cur in self.outputs:
+            cmd += '{path},{type},{resource}\n'.format(**cur)
+
+        cmd += ')\n\n'
+
+        # Append other other paths and the command
+        cmd += 'VERSION={}\n'.format(self.version)
+        cmd += 'JOBDIR=$(mktemp -d "{}.XXXXXXXXX") || {{ echo "mktemp failed"; exit 1; }}\n'.format(jobdir)
+        cmd += 'INDIR=$JOBDIR/INPUTS\n'
+        cmd += 'OUTDIR=$JOBDIR/OUTPUTS\n'
+        cmd += 'DSTDIR={}\n\n'.format(dstdir)
+
+        # Append the main command
+        cmd += 'MAINCMD=\"'
+        cmd += self.command.format(**var2val)
+        cmd += '\"\n'
+
+        return cmd
+
+
 def processors_by_type(proc_list):
     """
     Organize the processor types and return a list of session processors
@@ -936,3 +1297,20 @@ def processors_by_type(proc_list):
                 LOGGER.warn('unknown processor type: %s' % proc)
 
     return sess_proc_list, scan_proc_list
+
+
+def load_from_yaml(filepath, user_inputs=None):
+    """
+    Load processor from yaml
+    :param filepath: path to yaml file
+    :return: processor
+    """
+
+    # Set Outputs from Yaml
+    doc = XnatUtils.read_yaml(filepath)
+    if doc.get('moreauto'):
+        return MoreAutoProcessor(filepath, user_inputs)
+
+    else:
+        return AutoProcessor(filepath, user_inputs)
+

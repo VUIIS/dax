@@ -331,6 +331,6 @@ def load_from_file(filepath, args, logger):
         logger.err(err.format(filepath))
 
     elif filepath.endswith('.yaml'):
-        return processors.AutoProcessor(filepath, args)
+        return processors.load_from_yaml(filepath, args)
 
     return None
