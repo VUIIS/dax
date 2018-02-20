@@ -1131,8 +1131,8 @@ def list_assessors(intf, projectid, subjectid, sessionid):
             anew['project_id'] = projectid
             anew['project_label'] = projectid
             anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
-            anew['session_id'] = asse['session_ID']
-            anew['session_label'] = asse['session_label']
+            anew['session_id'] = asse['xnat:imagesessiondata/id']
+            anew['session_label'] = asse['xnat:imagesessiondata/label']
             anew['procstatus'] = asse['%s/procstatus' % pfix]
             anew['proctype'] = asse['%s/proctype' % pfix]
             anew['qcstatus'] = asse['%s/validation/status' % pfix]
@@ -1358,8 +1358,8 @@ def get_full_object(intf, obj_dict):
     """
     if 'scan_id' in obj_dict:
         xpath = C_XPATH.format(project=obj_dict['project_id'],
-                               subject=obj_dict['subject_id'],
-                               session=obj_dict['session_id'],
+                               subject=obj_dict['subject_label'],
+                               session=obj_dict['session_label'],
                                scan=obj_dict['scan_id'])
     elif 'xsiType' in obj_dict and \
          obj_dict['xsiType'] in [DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE]:
@@ -2253,7 +2253,6 @@ def upload_files_to_obj(filepaths, resource_obj, remove=False,
                         removeall=False):
     """
     Upload a list of files to a resource on XNAT
-
     :param filepaths: list of files to upload
     :param resource_obj: pyxnat EObject to upload all of the files to
     :param remove: remove files that already exist for the resource.
