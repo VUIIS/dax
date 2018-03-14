@@ -331,6 +331,12 @@ def load_from_file(filepath, args, logger):
         logger.err(err.format(filepath))
 
     elif filepath.endswith('.yaml'):
-        return processors.AutoProcessor(filepath, args)
+        doc = XnatUtils.read_yaml(filepath)
+        yaml_source = {
+            'source_type': 'file',
+            'source_id': filepath,
+            'document': doc
+        }
+        return processors.AutoProcessor(XnatUtils, yaml_source, args)
 
     return None

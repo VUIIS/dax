@@ -405,21 +405,31 @@ class SessionProcessor(Processor):
 
 class AutoProcessor(Processor):
     """ Auto Processor class for AutoSpider using YAML files"""
-    def __init__(self, yaml_file, user_inputs=None):
+    def __init__(self, xnat, yaml_source, user_inputs=None):
         """
         Entry point for the auto processor
-
-        :param yaml_file: yaml file defining the processor
+        :param xnat: xnat context object (XnatUtils in production contexts)
+        :param yaml_source: dictionary containing source_type -> string,\
+                            source_id -> string, document -> yaml document
+        :param user_inputs: a dictionary of user overrides to the yaml\
+                            source document
         :return: None
 
         """
+        if not xnat:
+            raise AutoProcessorError("Parameter 'xnat' must be provided")
+        if not yaml_source:
+            raise AutoProcessorError("Parameter 'yaml_source' must be provided")
+
+        self.xnat = xnat
         self.inputs = dict()
         self.extra_inputs = dict()
-        self.read_yaml(yaml_file)
+
+        self._parse_yaml(yaml_source)
 
         # Edit the values from user inputs:
         if user_inputs is not None:
-            self.edit_inputs(user_inputs, yaml_file)
+            self._edit_inputs(user_inputs, yaml_source)
 
         # Set up attrs:
         self.walltime_str = self.attrs.get('walltime')
@@ -433,25 +443,27 @@ class AutoProcessor(Processor):
         # Set scan info if scan auto processor
         if self.type == 'scan':
             if self.scan_nb is None:
-                err = 'YAML File {} does not have a scan_nb defined.'
-                raise AutoProcessorError(err.format(yaml_file))
+                err = 'YAML document {} does not have a scan_nb defined.'
+                raise AutoProcessorError(err.format(yaml_source['source_id']))
 
             _docs = [_doc for _doc in self.xnat_inputs.get('scans')
                      if self.scan_nb in list(_doc.keys())]
             if len(_docs) == 1:
                 self.scaninfo = _docs[0]
             else:
-                err = 'YAML File {} does not have a valid scan_nb defined.\
+                err = 'YAML document {} does not have a valid scan_nb defined.\
 No xnat.scans.{} in inputs found.'
-                raise AutoProcessorError(err.format(yaml_file,
+                raise AutoProcessorError(err.format(yaml_source['source_id'],
                                                     self.scan_nb))
 
-    def edit_inputs(self, user_inputs, yaml_file):
+    def _edit_inputs(self, user_inputs, yaml_source):
         """
         Method to edit the inputs from the YAML file by the user inputs.
 
         :param user_inputs: dictionary of tag, value. E.G:
             user_inputs = {'default.spider_path': /.../Spider....py'}
+        :param yaml_source: dictionary of source_type -> string,\
+                            source_id -> string, and document -> yaml document
         """
         for key, val in list(user_inputs.items()):
             tags = key.split('.')
@@ -464,7 +476,7 @@ No xnat.scans.{} in inputs found.'
                 else:
                     msg = 'key {} not found in the default inputs for \
 auto processor defined by yaml file {}'
-                    LOGGER.warn(msg.format(tags[-1], yaml_file))
+                    LOGGER.warn(msg.format(tags[-1], yaml_source.source_id))
             elif key.startswith('inputs.xnat'):
                 # change value in self.xnat_inputs
                 if tags[2] in list(self.xnat_inputs.keys()):
@@ -475,13 +487,13 @@ auto processor defined by yaml file {}'
                             if tags[4] == 'resources':
                                 msg = 'You can not change the resources \
 tag from the processor yaml file {}. Unauthorised operation.'
-                                LOGGER.warn(msg.format(yaml_file))
+                                LOGGER.warn(msg.format(yaml_source.source_id))
                             else:
                                 obj[tags[4]] = val
                 else:
                     msg = 'key {} not found in the xnat inputs for auto \
 processor defined by yaml file {}'
-                    LOGGER.warn(msg.format(tags[3], yaml_file))
+                    LOGGER.warn(msg.format(tags[3], yaml_source.source_id))
             elif key.startswith('attrs'):
                 # change value in self.attrs
                 if tags[-1] in list(self.attrs.keys()):
@@ -489,22 +501,19 @@ processor defined by yaml file {}'
                 else:
                     msg = 'key {} not found in the attrs for auto processor \
 defined by yaml file {}'
-                    LOGGER.warn(msg.format(tags[-1], yaml_file))
+                    LOGGER.warn(msg.format(tags[-1], yaml_source.source_id))
 
-    def read_yaml(self, yaml_file):
+    def _parse_yaml(self, yaml_source):
         """
-        Method to read the processor arguments and there default value.
+        Method to parse the processor arguments and their default values.
 
-        :param yaml_file: path to yaml file defining the processor
+        :param yaml_source: a dictionary of source_type -> string,\
+                            source_id -> string, document -> yaml document
         """
-        if not os.path.isfile(yaml_file):
-            err = 'Path not found for {}'
-            raise AutoProcessorError(err.format(yaml_file))
-
-        doc = XnatUtils.read_yaml(yaml_file)
 
         # Set Inputs from Yaml
-        self._check_default_keys(yaml_file, doc)
+        self._check_default_keys(yaml_source)
+        doc = yaml_source['document']
         self.attrs = doc.get('attrs')
         self.command = doc.get('command')
         inputs = doc.get('inputs')
@@ -521,7 +530,7 @@ defined by yaml file {}'
                     self.extra_inputs[key] = value
 
         # Getting proctype from Yaml
-        self.proctype, self.version = XnatUtils.get_proctype(
+        self.proctype, self.version = self.xnat.get_proctype(
             self.inputs.get('spider_path'), self.attrs.get('suffix', None))
 
         # Set attributs:
@@ -530,42 +539,44 @@ defined by yaml file {}'
         self.type = self.attrs.get('type')
         self.scan_nb = self.attrs.get('scan_nb', None)
 
-    def _check_default_keys(self, yaml_file, doc):
+    def _check_default_keys(self, yaml_source):
         """ Static method to raise error if key not found in dictionary from
         yaml file.
 
-        :param yaml_file: path to yaml file defining the processor
-        :param doc: doc dictionary extracted from the yaml file
+        :param yaml_source: dictionary containing source_type -> string,\
+                            source_id -> string, document -> yaml document
         :param key: key to check in the doc
         """
+        id = yaml_source['source_id']
+        doc = yaml_source['document']
         # first level
         for key in ['inputs', 'command', 'attrs']:
-            self._raise_yaml_error_if_no_key(doc, yaml_file, key)
+            self._raise_yaml_error_if_no_key(doc, id, key)
         # Second level in inputs and attrs:
         inputs = doc.get('inputs')
         attrs = doc.get('attrs')
         for _doc, key in [(inputs, 'default'), (inputs, 'xnat'),
                           (attrs, 'type'), (attrs, 'memory'),
                           (attrs, 'walltime')]:
-            self._raise_yaml_error_if_no_key(_doc, yaml_file, key)
+            self._raise_yaml_error_if_no_key(_doc, id, key)
         if attrs['type'] == 'scan':
-            self._raise_yaml_error_if_no_key(attrs, yaml_file, 'scan_nb')
+            self._raise_yaml_error_if_no_key(attrs, id, 'scan_nb')
         # third level for default:
         default = doc.get('inputs').get('default')
         for key in ['spider_path']:
-            self._raise_yaml_error_if_no_key(default, yaml_file, key)
+            self._raise_yaml_error_if_no_key(default, id, key)
 
     @ staticmethod
-    def _raise_yaml_error_if_no_key(doc, yaml_file, key):
+    def _raise_yaml_error_if_no_key(doc, id, key):
         """Method to raise an execption if the key is not in the dict
 
         :param doc: dict to check
-        :param yaml_file: YAMLfile path
+        :param id: YAML source identifier string for logging
         :param key: key to search
         """
         if key not in list(doc.keys()):
-            err = 'YAML File {} does not have {} defined. See example.'
-            raise AutoProcessorError(err.format(yaml_file, key))
+            err = 'YAML source {} does not have {} defined. See example.'
+            raise AutoProcessorError(err.format(id, key))
 
     def get_assessor_name(self, cobj):
         """
@@ -576,10 +587,7 @@ defined by yaml file {}'
         :return: String of the assessor label
 
         """
-        if isinstance(cobj, XnatUtils.CachedImageSession):
-            csess = cobj
-        elif isinstance(cobj, XnatUtils.CachedImageScan):
-            csess = cobj.parent()
+        csess = cobj.session()
 
         obj_info = cobj.info()
         labels = [obj_info['project_id'], obj_info['subject_label'],
@@ -619,10 +627,7 @@ defined by yaml file {}'
         assessor_name = self.get_assessor_name(cobj)
 
         # Look for existing assessor
-        if isinstance(cobj, XnatUtils.CachedImageSession):
-            csess = cobj
-        elif isinstance(cobj, XnatUtils.CachedImageScan):
-            csess = cobj.parent()
+        csess = cobj.session()
         p_assr = None
         for assr in csess.assessors():
             if assr.info()['label'] == assessor_name:
@@ -643,10 +648,10 @@ defined by yaml file {}'
         """
         obj_info = cobj.info()
         assessor_name = self.get_assessor_name(cobj)
-        obj = XnatUtils.get_full_object(intf, obj_info)
-        if isinstance(cobj, XnatUtils.CachedImageSession):
+        obj = self.xnat.get_full_object(intf, obj_info)
+        if cobj.entity_type() == 'session':
             assessor = obj.assessor(assessor_name)
-        elif isinstance(cobj, XnatUtils.CachedImageScan):
+        elif cobj.entity_type() == 'scan':
             assessor = obj.parent().assessor(assessor_name)
         return task.Task(self, assessor, upload_dir)
 
@@ -664,7 +669,7 @@ defined by yaml file {}'
                 return True
             else:
                 for expression in scantypes:
-                    regex = XnatUtils.extract_exp(expression, self.full_regex)
+                    regex = self.xnat.extract_exp(expression, self.full_regex)
                     if regex.match(obj_dict['scan_type']):
                         return True
                 return False
@@ -689,19 +694,17 @@ defined by yaml file {}'
         :return: status, qcstatus
         """
         # If Scan assessor, check that the scan has inputs
-        if isinstance(cobj, XnatUtils.CachedImageScan):
-            csess = cobj.parent()
-            if XnatUtils.is_cscan_unusable(cobj):
+        csess = cobj.session()
+        if cobj.entity_type() == 'scan':
+            if self.xnat.is_cscan_unusable(cobj):
                     return -1, 'Scan unusable'
 
             for res_dict in self.scaninfo.get('resources', list()):
                 resource = res_dict.get('resource')
-                if not XnatUtils.has_resource(cobj, resource):
+                if not self.xnat.has_resource(cobj, resource):
                     msg = '{}: {} not found.'
                     LOGGER.debug(msg.format(self.proctype, resource))
                     return 0, 'No {}'.format(resource)
-        else:
-            csess = cobj
 
         # Check xnat inputs set in YAML file:
         # Scans:
@@ -745,9 +748,9 @@ defined by yaml file {}'
         """
         good_cobjs = list()
         if otype == 'scan':
-            good_cobjs = XnatUtils.get_good_cscans(csess, sp_types, needs_qc)
+            good_cobjs = self.xnat.get_good_cscans(csess, sp_types, needs_qc)
         else:
-            good_cobjs = XnatUtils.get_good_cassr(csess, sp_types, needs_qc)
+            good_cobjs = self.xnat.get_good_cassr(csess, sp_types, needs_qc)
 
         if not good_cobjs:
             msg = '{}: No {} {} found.'
@@ -773,7 +776,7 @@ defined by yaml file {}'
                     else:
                         label = cobj.info()['label']
                         _type = cobj.info()['proctype']
-                    if not XnatUtils.has_resource(cobj, res):
+                    if not self.xnat.has_resource(cobj, res):
                         msg = '{}: missing resource {} for {}.'
                         LOGGER.debug(msg.format(self.proctype, res, label))
                         return 0, 'Missing {} on {}'.format(res, _type)
@@ -796,10 +799,10 @@ resource/{4}'
 
         for cobj in cobjs:
             obj_info = cobj.info()
-            if isinstance(cobj, XnatUtils.CachedImageAssessor):
+            if cobj.entity_type() == 'assessor':
                 label = obj_info['label']
                 path_tmp = assr_tmp
-            elif isinstance(cobj, XnatUtils.CachedImageScan):
+            elif cobj.entity_type() == 'scan':
                 label = obj_info['ID']
                 path_tmp = scan_tmp
             if resource in [res['label'] for res in cobj.get_resources()]:
@@ -880,9 +883,9 @@ resource/{4}'
         """
         good_cobjs = list()
         if otype == 'scan':
-            good_cobjs = XnatUtils.get_good_cscans(csess, sp_types, needs_qc)
+            good_cobjs = self.xnat.get_good_cscans(csess, sp_types, needs_qc)
         else:
-            good_cobjs = XnatUtils.get_good_cassr(csess, sp_types, needs_qc)
+            good_cobjs = self.xnat.get_good_cassr(csess, sp_types, needs_qc)
 
         for res_l in resources:
             if 'varname' not in list(res_l.keys()):

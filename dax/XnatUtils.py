@@ -1131,8 +1131,8 @@ def list_assessors(intf, projectid, subjectid, sessionid):
             anew['project_id'] = projectid
             anew['project_label'] = projectid
             anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
-            anew['session_id'] = asse['xnat:imagesessiondata/id']
-            anew['session_label'] = asse['xnat:imagesessiondata/label']
+            anew['session_id'] = asse['session_ID']
+            anew['session_label'] = asse['session_label']
             anew['procstatus'] = asse['%s/procstatus' % pfix]
             anew['proctype'] = asse['%s/proctype' % pfix]
             anew['qcstatus'] = asse['%s/validation/status' % pfix]
@@ -1358,8 +1358,8 @@ def get_full_object(intf, obj_dict):
     """
     if 'scan_id' in obj_dict:
         xpath = C_XPATH.format(project=obj_dict['project_id'],
-                               subject=obj_dict['subject_label'],
-                               session=obj_dict['session_label'],
+                               subject=obj_dict['subject_id'],
+                               session=obj_dict['session_id'],
                                scan=obj_dict['scan_id'])
     elif 'xsiType' in obj_dict and \
          obj_dict['xsiType'] in [DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE]:
@@ -2826,6 +2826,9 @@ class CachedImageSession(object):
         self.xnat = xnat  # cache for later usage
         self.session = sess
 
+    def entity_type(self):
+        return 'session'
+
     def reload(self):
         xpath = E_XPATH.format(project=self.project,
                                subject=self.subject,
@@ -2868,6 +2871,13 @@ class CachedImageSession(object):
                     return value
 
         return ''
+
+    def session(self):
+        """
+        Get the session associated with this object
+        :return: session asscoiated with this object
+        """
+        return self
 
     def has_shared_project(self):
         """
@@ -2994,6 +3004,9 @@ class CachedImageScan(object):
         self.scan_parent = parent
         self.scan_element = scan_element
 
+    def entity_type(self):
+        return 'scan'
+
     def parent(self):
         """
         Get the parent of the scan
@@ -3037,6 +3050,13 @@ class CachedImageScan(object):
                     return value
 
         return ''
+
+    def session(self):
+        """
+        Get the session associated with this object
+        :return: session asscoiated with this object
+        """
+        return self.parent()
 
     def info(self):
         """
@@ -3114,6 +3134,9 @@ class CachedImageAssessor(object):
         """
         self.assr_parent = parent
         self.assr_element = assr_element
+
+    def entity_type(self):
+        return 'assessor'
 
     def parent(self):
         """
@@ -3297,6 +3320,9 @@ class CachedResource(object):
         """
         self.res_parent = parent
         self.res_element = element
+
+    def entity_type(self):
+        return 'resource'
 
     def parent(self):
         """

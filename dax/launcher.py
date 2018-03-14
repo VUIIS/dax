@@ -127,8 +127,11 @@ name as a key and list of yaml filepaths as values.'
             for yaml_obj in yaml_objs:
                 if isinstance(yaml_obj, processors.AutoProcessor):
                     proc = yaml_obj
+                elif isinstance(yaml_obj, str):
+                    proc = processors.AutoProcessor(XnatUtils, yaml_obj)
                 else:
-                    proc = processors.AutoProcessor(yaml_obj)
+                    err = 'yaml_obj of type {} is unsupported'
+                    raise DaxLauncherError(err.format(type(yaml_obj)))
                 if project not in self.project_process_dict:
                     self.project_process_dict[project] = [proc]
                 else:

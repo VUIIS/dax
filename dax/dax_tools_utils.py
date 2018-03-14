@@ -2160,7 +2160,17 @@ the python file {}.'
         else:
             # So far only auto processor:
             try:
-                return processors.AutoProcessor(filepath)
+                source = {}
+                source['source_type'] = 'file'
+                source['source_id'] = filepath
+                try:
+                    source['document'] = XnatUtils.read_yaml(filepath)
+                except XnatUtilsError:
+                    print('[ERROR]')
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                              limit=2, file=sys.stdout)
+                return processors.AutoProcessor(XnatUtils, source)
             except AutoProcessorError:
                 print('[ERROR]')
                 exc_type, exc_value, exc_traceback = sys.exc_info()
