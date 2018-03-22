@@ -2464,11 +2464,11 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail):
     assessor_obj.out_resource('SNAPSHOTS')\
                 .file(os.path.basename(thumbnail))\
                 .put(thumbnail, thumbnail.split('.')[1].upper(), 'THUMBNAIL',
-                     overwrite=True)
+                     overwrite=True, params={"event_reason": "DAX uploading file"})
     assessor_obj.out_resource('SNAPSHOTS')\
                 .file(os.path.basename(original))\
                 .put(original, original.split('.')[1].upper(), 'ORIGINAL',
-                     overwrite=True)
+                     overwrite=True, params={"event_reason": "DAX uploading file"})
     return True
 
 
