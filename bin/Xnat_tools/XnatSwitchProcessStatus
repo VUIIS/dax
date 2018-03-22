@@ -263,7 +263,13 @@ def filter_assessors(args, assessors, has_fs_datatypes=False,
                     assess1.append(XnatUtils.filter_list_dicts_regex(
                         assessor, 'proctype', proctypes, args.full_regex))
 
-            assess_carry_1 = assess1
+                for assess in assess1:
+                    if(len(assess) > 1):
+                        for asse in assess:
+                            assess_carry_1.append(asse)
+                    else:
+                        assess_carry_1.append(assess)
+
 
             """
             for session in sessions:
