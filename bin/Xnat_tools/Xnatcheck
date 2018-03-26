@@ -563,8 +563,7 @@ def get_resource_list(xnat, object_dict, variable_name):
             object_dict['session_label'],
             object_dict['ID'])
     elif 'assessor' in variable_name:
-        return XnatUtils.list_assessor_out_resources(
-            xnat,
+        return xnat.get_assessor_out_resources(
             object_dict['project_id'],
             object_dict['subject_label'],
             object_dict['session_label'],
@@ -576,10 +575,8 @@ def get_resource_list(xnat, object_dict, variable_name):
             object_dict['subject_label'],
             object_dict['session_label'])
     else:
-        return XnatUtils.list_subject_resources(
-            xnat,
-            object_dict['project_id'],
-            object_dict['subject_label'])
+        return xnat.get_subject_resources(object_dict['project_id'],
+                                          object_dict['subject_label'])
 
 
 def get_resource(xnat, object_dict, variable_name, resource_label):
@@ -780,25 +777,25 @@ def filter_project(xnat, project, filters, levels):
     """
     if 'scan' in levels and 'assessor' in levels:
         scans_filtered = filter_list(
-            xnat, project, XnatUtils.list_project_scans,
+            project, xnat.get_project_scans,
             [_filter for _filter in filters if _filter.grp == 'scan'])
         asses_filtered = filter_list(
-            xnat, project, XnatUtils.list_project_assessors,
+            project, xnat.get_project_assessors,
             [_filter for _filter in filters if _filter.grp == 'assessor'])
         return scans_filtered + asses_filtered
     elif 'scan' in levels and 'assessor' not in levels:
-        return filter_list(xnat, project, XnatUtils.list_project_scans,
+        return filter_list(project, xnat.get_project_scans,
                            filters)
     elif 'scan' not in levels and 'assessor' in levels:
-        return filter_list(xnat, project, XnatUtils.list_project_assessors,
+        return filter_list(project, xnat.get_project_assessors,
                            filters)
     elif 'session' in levels:
-        return filter_list(xnat, project, XnatUtils.list_sessions, filters)
+        return filter_list(project, xnat.get_sessions, filters)
     else:
-        return filter_list(xnat, project, XnatUtils.list_subjects, filters)
+        return filter_list(project, xnat.get_subjects, filters)
 
 
-def filter_list(xnat, project, get_list, filters_list):
+def filter_list(project, get_list, filters_list):
     """
     Method to filter object from a project on XNAT using the list of filters
 
@@ -809,7 +806,7 @@ def filter_list(xnat, project, get_list, filters_list):
     :return: list of filters, list of resource filters
     """
     # Get full object list
-    objects_list = get_list(xnat, project)
+    objects_list = get_list(project)
     # filter
     for _filter in filters_list:
         if _filter.is_usable_filter():

@@ -2,6 +2,8 @@ import dax.XnatUtils as XnatUtils
 
 from unittest import TestCase
 
+import unit_test_common_processor_yamls as processor_yamls
+
 
 class FakeXnat:
 
@@ -44,53 +46,111 @@ class TestResource:
 
 
 
-class TestAssessorObject:
+# class TestAssessorObject:
+#
+#     def __init__(self, label):
+#         self.label = label
+#
+#
+#     def info(self):
+#         return {'label': self.label}
 
-    def __init__(self, label):
-        self.label = label
 
 
-    def info(self):
-        return {'label': self.label}
-
-
-
-class TestSessionObject:
-    def __init__(self, project_id, subject_id, session):
+class TestProjectObject:
+    def __init__(self, project_dict):
+        project_id = project_dict['ID']
         self.project_id_ = project_id
-        self.subject_id_ = subject_id
-        session_id = session['ID']
-        self.session_id_ = session_id
-        self.scan_objects_ = {
-            s['ID']: TestScanObject(project_id, subject_id, self, s)
-            for s in session['scans']
-        }
-        self.assessor_objects_ = {
-            a['ID']: TestAssessorObject(project_id, subject_id, self, a)
-            for a in session['assessors']
+        self.label_ = project_dict['label']
+        self.subject_objects_ = {
+            subj['ID']: TestSubjectObject(project_id, self, subj)
+            for subj in project_dict['subjects']
         }
 
+    def subjects(self):
+        return self.subject_objects_
 
     def project_id(self):
         return self.project_id_
 
+    def label(self):
+        return self.label_
+
+
+
+class TestSubjectObject:
+    def __init__(self, project_id, project, subject_dict):
+        self.project_ = project
+        self.project_id_ = project_id
+        subject_id = subject_dict['ID']
+        self.subject_id_ = subject_id
+        self.label_ = subject_dict['label']
+        self.session_objects_ = {
+            sess['ID']: TestSessionObject(self, sess)
+            for sess in subject_dict['sessions']
+        }
+
+    def sessions(self):
+        return self.session_objects_
+
+    def project_id(self):
+        return self.project_.project_id()
 
     def subject_id(self):
         return self.subject_id_
+
+    def parent(self):
+        return self.project_
+
+    def label(self):
+        return self.label_
+
+
+
+class TestSessionObject:
+    def __init__(self, subject, session_dict):
+        self.subject_ = subject
+        session_id = session_dict['ID']
+        self.session_id_ = session_id
+        self.label_ = session_dict['label']
+        self.scan_objects_ = {
+            scan['ID']: TestScanObject(self, scan)
+            for scan in session_dict['scans']
+        }
+        self.assessor_objects_ = {
+            assr['ID']: TestAssessorObject(self, assr)
+            for assr in session_dict['assessors']
+        }
+
+
+    def project_id(self):
+        return self.subject_.project_id()
+
+
+    def subject_id(self):
+        return self.subject_.subject_id()
 
 
     def session_id(self):
         return self.session_id_
 
 
+    def label(self):
+        return self.label_
+
+
     def session(self):
         return self
 
 
+    def parent(self):
+        return self.subject_
+
+
     def info(self):
         return {
-            'project_id': self.project_id_,
-            'subject_label': self.subject_id_,
+            'project_id': self.subject.project_id(),
+            'subject_label': self.subject.subject_id(),
             'session_label': self.session_id_
         }
 
@@ -104,8 +164,15 @@ class TestSessionObject:
         return None
 
 
-    def __getitem__(self, key):
+    def scan_by_key(self, key):
         return self.scan_objects_[key]
+
+    def assessor_by_key(self, key):
+        return self.assessor_objects_[key]
+
+
+    def scans(self):
+        return self.scans_.values()
 
 
     def assessors(self):
@@ -115,26 +182,23 @@ class TestSessionObject:
 
 class TestScanObject:
 
-    def __init__(self, project_id, subject_id, session, scan, quality='usable'):
-        self.project_id_ = project_id
-        self.subject_id_ = subject_id
+    def __init__(self, session, scan):
+        self.quality_ = scan['quality']
         self.session_ = session
         scan_id = scan['ID']
         self.scan_id_ = scan_id
         self.resource_objects_ = {
-            r['label']: TestResourceObject(
-                project_id, subject_id, session.session_id(), scan_id, r)
+            r['label']: TestResourceObject(self, r)
             for r in scan['resources']
         }
-        self.quality_ = quality
 
 
     def project_id(self):
-        return self.project_id_
+        return self.session_.project_id()
 
 
     def subject_id(self):
-        return self.subject_id_
+        return self.session_.subject_id()
 
 
     def session_id(self):
@@ -149,10 +213,14 @@ class TestScanObject:
         return self.session_
 
 
+    def parent(self):
+        return self.session_
+
+
     def info(self):
         return {
-            'project_id': self.project_id_,
-            'subject_label': self.subject_id_,
+            'project_id': self.session_.project_id(),
+            'subject_label': self.session_.subject_id(),
             'session_label': self.session_.session_id(),
             'scan_label': self.scan_id_,
             'quality': self.quality_
@@ -175,29 +243,26 @@ class TestScanObject:
 
 class TestAssessorObject:
 
-    def __init__(self, project_id, subject_id, session, assessor, qcstatus='usable'):
-        self.project_id_ = project_id
-        self.subject_id_ = subject_id
+    def __init__(self, session, assessor_dict):
         self.session_ = session
-        assessor_id = assessor['ID']
+        assessor_id = assessor_dict['ID']
         self.assessor_id_ = assessor_id
-        self.label_ = assessor['label']
+        self.label_ = assessor_dict['label']
         self.resource_objects_ = {
-            r['label']: TestResourceObject(
-                project_id, subject_id, session.session_id(), assessor_id, r)
-            for r in assessor['resources']
+            r['label']: TestResourceObject(assessor_id, r)
+            for r in assessor_dict['resources']
         }
-        self.proctypes_ = assessor['proctypes']
-        self.qcstatus_ = qcstatus
-        self.procstatus_ = assessor['procstatus']
+        self.proctypes_ = assessor_dict['proctypes']
+        self.qcstatus_ = assessor_dict['qcstatus']
+        self.procstatus_ = assessor_dict['procstatus']
 
 
     def project_id(self):
-        return self.project_id_
+        return self.session_.project_id()
 
 
     def subject_id(self):
-        return self.subject_id_
+        return self.session_.subject_id()
 
 
     def session_id(self):
@@ -208,19 +273,27 @@ class TestAssessorObject:
         return self.assessor_id_
 
 
+    def label(self):
+        return self.label_
+
+
     def session(self):
+        return self.session_
+
+
+    def parent(self):
         return self.session_
 
 
     def info(self):
         return {
-            'project_id': self.project_id_,
-            'subject_label': self.subject_id_,
+            'project_id': self.session_.project_id(),
+            'subject_label': self.session_.subject_id(),
             'session_label': self.session_.session_id(),
             'label': self.label_,
             'proctype': self.proctypes_,
             'qcstatus': self.qcstatus_,
-            'procstatus': 'NEED_TO_RUN'
+            'procstatus': self.procstatus_
         }
 
 
@@ -239,32 +312,29 @@ class TestAssessorObject:
 
 
 class TestResourceObject:
-    def __init__(self, project_id, subject_id, session_id, scan_id, values):
-        self.project_id_ = project_id
-        self.subject_id_ = subject_id
-        self.session_id_ = session_id
-        self.scan_id_ = scan_id
-        self.values_ = values
+    def __init__(self, scan, resource_dict):
+        self.scan_ = scan
+        self.resource_dict_ = resource_dict
 
 
     def project_id(self):
-        return self.project_id_
+        return self.scan_.project_id()
 
 
     def subject_id(self):
-        return self.subject_id_
+        return self.scan_.subject_id()
 
 
     def session_id(self):
-        return self.session_id_
+        return self.scan_.session_id()
 
 
     def scan_id(self):
-        return self.scan_id_
+        return self.scan_.scan_id()
 
 
     def __getitem__(self, key):
-        return self.values_[key]
+        return self.resource_dict_[key]
 
 
 
@@ -277,53 +347,39 @@ class TestObjectsTest(TestCase):
         print(t['1'])
 
 
+# second attempt; cut at xnatutils, assessorhandler and interfacetemp
+
+#TODO: refactor calls to InterfaceTemp.select: move to methods on InterfaceTemp
+#TODO: create FakeAssessorHandler
+#TODO: create FakeXnatInterface
+
+
+
+# class processor_yamls:
+#     scan_gif_parcellation = processor_yamls.scan_gif_parcellation_yaml
+#     scan_brain_tiv_from_gif = processor_yamls.scan_brain_tiv_from_gif_yaml
+
+
 
 spider_tiv_from_gif = '/home/dax/Xnat-management/comic100_dax_config/pipelines/BrainTivFromGIF/v1.0.0/Spider_BrainTivFromGIF_v1_0_0.py'
 
-scan_brain_tiv_from_gif_yaml = """
----
-inputs:
-  default:
-    spider_path: /home/dax/Xnat-management/comic100_dax_config/pipelines/BrainTivFromGIF/v1.0.0/Spider_BrainTivFromGIF_v1_0_0.py
-    working_dir: /scratch0/dax/
-    nipype_exe: perform_brain_tiv_from_gif.py
-  xnat:
-    scans:
-      - scan1:
-        types: T1W,T1w,MPRAGE 
-        resources:
-          - resource: NIFTI
-            varname: T1
-    assessors:
-      - assessor1:
-        proctypes: GIF_Parcellation_v3
-        resources:
-          - resource: SEG
-            varname: seg
-            required: True
-command: python {spider_path} --exe {nipype_exe} --seg {seg}
-attrs:
-  suffix:
-  xsitype: proc:genProcData
-  walltime: 01:00:00
-  memory: 4096
-  ppn: 1
-  env: /share/apps/cmic/NiftyPipe/v2.0/setup_v2.0.sh
-  type: scan
-  scan_nb: scan1 
-"""
+
 
 
 brain_tiv_from_gif_xnat_contents = {
     'projects': [{
         'ID': 'proj1',
+        'label': 'project 1',
         'subjects': [{
             'ID': 'subj1',
+            'label': 'subject 1',
             'sessions': [{
                 'ID': 'sess1',
+                'label': 'session 1',
                 'scans': [{
                     'ID': '1',
                     'type': 'T1',
+                    'quality': 'usable',
                     'resources': [{
                         'label': 'SNAPSHOTS',
                         'file_count': 2
@@ -334,6 +390,7 @@ brain_tiv_from_gif_xnat_contents = {
                 }, {
                     'ID': '2',
                     'type': 'T1',
+                    'quality': 'usable',
                     'resources': [{
                         'label': 'SNAPSHOTS',
                         'file_count': 1
@@ -347,6 +404,7 @@ brain_tiv_from_gif_xnat_contents = {
                     'label': 'proj1-x-subj1-x-sess1-x-1-proc1',
                     'proctypes': 'GIF_Parcellation_v3',
                     'procstatus': 'COMPLETE',
+                    'qcstatus': 'Passed QA',
                     # 'resources': [{
                     #     'label': 'PDF',
                     #     'file_count': 1

@@ -184,8 +184,7 @@ download_report.csv if you want to start from scratch."""
 
             # list of scans and assessors for the all the project cat together.
             for project in projects_list:
-                self.scans.extend(XnatUtils.list_project_scans(
-                    self.xnat, project))
+                self.scans.extend(self.xnat.get_project_scans(project))
                 if XnatUtils.has_dax_datatypes(self.xnat):
                     self.assessors.extend(XnatUtils.list_project_assessors(
                         self.xnat, project))
@@ -385,8 +384,8 @@ scratch.'
                 if 'resources' in obj_dict:
                     return obj_dict['resources']
                 else:
-                    _list = XnatUtils.list_assessor_out_resources(
-                        self.xnat, obj_dict['project_id'],
+                    _list = self.xnat.get_assessor_out_resources(
+                        obj_dict['project_id'],
                         obj_dict['subject_label'], obj_dict['session_label'],
                         obj_dict['label'])
                     return [_o['label'] for _o in _list]
@@ -450,17 +449,15 @@ scratch.'
         :return: Pyxnat Scan or Assessor Eobject
         """
         if utils.is_assessor_type(obj_dict):
-            xpath = XnatUtils.A_XPATH.format(project=obj_dict['project_id'],
-                                             subject=obj_dict['subject_label'],
-                                             session=obj_dict['session_label'],
-                                             assessor=obj_dict['label'])
+            return self.xnat.select_assessor(obj_dict['project_id'],
+                                             obj_dict['subject_label'],
+                                             obj_dict['session_label'],
+                                             obj_dict['label'])
         else:
-            xpath = XnatUtils.C_XPATH.format(project=obj_dict['project_id'],
-                                             subject=obj_dict['subject_label'],
-                                             session=obj_dict['session_label'],
-                                             scan=obj_dict['ID'])
-
-        return self.xnat.select(xpath)
+            self.xnat.select_scan(obj_dict['project_id'],
+                                  obj_dict['subject_label'],
+                                  obj_dict['session_label'],
+                                  obj_dict['ID'])
 
     def download(self, args):
         """
@@ -734,7 +731,7 @@ def check_projects(xnat, projects_list):
             err = 'Project %s does not exists on XNAT.'
             raise XnatToolsUserError(__exe__, err % project)
         else:
-            if not len(XnatUtils.list_subjects(xnat, project)) > 0:
+            if not len(xnat.get_subjects(project)) > 0:
                 err = "You don't have access to the project: %s" % project
                 raise XnatToolsUserError(__exe__, err)
     return projects_list

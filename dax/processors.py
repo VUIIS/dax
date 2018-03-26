@@ -270,7 +270,8 @@ class ScanProcessor(Processor):
         """
         scan_dict = cscan.info()
         assessor_name = self.get_assessor_name(cscan)
-        scan = XnatUtils.get_full_object(intf, scan_dict)
+        #scan = XnatUtils.get_full_object(intf, scan_dict)
+        scan = cscan.get_full_object()
         assessor = scan.parent().assessor(assessor_name)
         return task.Task(self, assessor, upload_dir)
 
@@ -386,19 +387,17 @@ class SessionProcessor(Processor):
 
         return p_assr, assessor_name
 
-    def get_task(self, intf, csess, upload_dir):
+    def get_task(self, csess, upload_dir):
         """
         Return the Task object
 
-        :param intf: XNAT interface see pyxnat.Interface
         :param csess: CachedImageSession from XnatUtils
         :param upload_dir: directory to put the data after run on the node
         :return: Task object of the assessor
 
         """
-        sess_info = csess.info()
         assessor_name = self.get_assessor_name(csess)
-        session = XnatUtils.get_full_object(intf, sess_info)
+        session = csess.full_object()
         assessor = session.assessor(assessor_name)
         return task.Task(self, assessor, upload_dir)
 
@@ -425,6 +424,8 @@ class AutoProcessor(Processor):
         self.inputs = dict()
         self.extra_inputs = dict()
 
+        # TODO: BenM/xnat refactor/yaml_source dictionary is an ugly fix to the
+        # problem; refactor before PR back to vuiis/dax
         self._parse_yaml(yaml_source)
 
         # Edit the values from user inputs:

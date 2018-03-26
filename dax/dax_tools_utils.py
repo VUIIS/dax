@@ -1546,7 +1546,7 @@ class test_results(object):
         :return: None
         """
         co_list = list()
-        sess_list = XnatUtils.list_sessions(self.xnat, project)
+        sess_list = self.xnat.get_sessions(project)
         sess_list = [sess for sess in sess_list if sess['label'] in sessions]
 
         # Loop through the sessions
@@ -1585,7 +1585,7 @@ class test_results(object):
         :return: None
         """
         co_list = list()
-        sess_list = XnatUtils.list_sessions(self.xnat, project)
+        sess_list = self.xnat.get_sessions(project)
         sess_list = [sess for sess in sess_list if sess['label'] in sessions]
 
         # Loop through the sessions
@@ -1825,14 +1825,13 @@ unknown (-1/0/1): %s" % state)
             print("Run on sessions: %s ..." % ','.join(sessions))
             for cobj in cobj_list:
                 cinfo = cobj.info()
-                self.tobj.run(cinfo, XnatUtils.get_full_object(self.xnat,
-                                                               cinfo))
+                self.tobj.run(cinfo, cobj.full_object())
                 if isinstance(self.tobj, modules.SessionModule):
                     result = self.tobj.has_flag_resource(
                         cobj, self.tobj.mod_name)
                     if not result:
                         print("[FAIL] Session Module didn't create the \
-flagfile for %s." % (cobj.info()['label']))
+flagfile for %s." % (cinfo['label']))
 
             return True
         except Exception:
@@ -2080,7 +2079,7 @@ def randomly_get_sessions(xnat, project, nb_sess=5):
     :return: list of sessions label
     """
     sessions = list()
-    list_sess = XnatUtils.list_sessions(xnat, project)
+    list_sess = xnat.get_sessions(project)
     if len(list_sess) < int(nb_sess):
         sessions = [sess['label'] for sess in list_sess]
     else:

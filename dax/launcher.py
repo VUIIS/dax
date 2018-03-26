@@ -618,6 +618,8 @@ cluster queue"
                     LOGGER.debug('+SCAN: ' + cscan.info()['scan_id'])
                     self.build_scan_modules(xnat, cscan, scan_mod_list)
 
+            # TODO: BenM/xnat refactor/this test should be encapsulated into a
+            # session object
             if not sess_was_modified(xnat, sess_info, start_time):
                 break
 
@@ -679,7 +681,7 @@ cluster queue"
             else:
                 if p_assr is None or \
                    p_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    sess_task = sess_proc.get_task(xnat, csess, res_dir)
+                    sess_task = sess_proc.get_task(csess, res_dir)
                     log_updating_status(sess_proc.name,
                                         sess_task.assessor_label)
                     has_inputs, qcstatus = sess_proc.has_inputs(csess)
@@ -755,7 +757,7 @@ setting assessor status'
                                                    task.NEED_TO_RUN] or \
                    p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
                     # TODO: get session object directly
-                    scan = XnatUtils.get_full_object(xnat, scan_info)
+                    scan = cscan.full_object()
                     assessor = scan.parent().assessor(assr_name)
                     xtask = XnatTask(scan_proc, assessor, res_dir,
                                      os.path.join(res_dir, 'DISKQ'))
@@ -778,7 +780,7 @@ setting assessor status'
             else:
                 if p_assr is None or \
                    p_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    scan_task = scan_proc.get_task(xnat, cscan, res_dir)
+                    scan_task = scan_proc.get_task(cscan, res_dir)
                     log_updating_status(scan_proc.name,
                                         scan_task.assessor_label)
                     has_inputs, qcstatus = scan_proc.has_inputs(cscan)
@@ -817,7 +819,7 @@ setting assessor status'
             LOGGER.debug('* Module: ' + scan_mod.getname())
             if scan_mod.needs_run(cscan, xnat):
                 if scan_obj is None:
-                    scan_obj = XnatUtils.get_full_object(xnat, scan_info)
+                    scan_obj = cscan.full_object()
 
                 try:
                     scan_mod.run(scan_info, scan_obj)
@@ -1062,7 +1064,10 @@ The project is not part of the settings."""
             return None
         else:
             # Get a new task with the matched processor
-            assr = XnatUtils.get_full_object(xnat, assr_info)
+            assr = xnat.select_assessor(assr_info['project_id'],
+                                        assr_info['subject_id'],
+                                        assr_info['session_id'],
+                                        assr_info['ID'])
             cur_task = Task(task_proc, assr, DAX_SETTINGS.get_results_dir())
             return cur_task
 
@@ -1102,7 +1107,7 @@ The project is not part of the settings."""
         :param slocal: session selected by user
         :return: list of sessions sorted for a project
         """
-        list_sessions = XnatUtils.list_sessions(xnat, project_id)
+        list_sessions = xnat.get_sessions(project_id)
         if slocal and slocal.lower() != 'all':
             # filter the list and keep the match between both list:
             val = slocal.split(',')
@@ -1158,7 +1163,10 @@ The project is not part of the settings."""
                  True otherwise
         """
         xsi_type = sess_info['xsiType']
-        sess_obj = XnatUtils.get_full_object(xnat, sess_info)
+        #sess_obj = XnatUtils.get_full_object(xnat, sess_info)
+        sess_obj = xnat.select_session(sess_info['project_id'],
+                                       sess_info['subject_id'],
+                                       sess_info['session_id'])
         xsi_uri = '%s/meta/last_modified' % xsi_type
         last_modified_xnat = sess_obj.attrs.get(xsi_uri)
         d_format = '%Y-%m-%d %H:%M:%S'
@@ -1238,7 +1246,9 @@ def load_task_queue(status=None, proj_filter=None):
 def get_sess_lastmod(xnat, sess_info):
     """ Get the session last modified date."""
     xsi_type = sess_info['xsiType']
-    sess_obj = XnatUtils.get_full_object(xnat, sess_info)
+    sess_obj = xnat.select_session(sess_info['project_label'],
+                                   sess_info['subject_label'],
+                                   sess_info['session_label'])
     last_modified_xnat = sess_obj.attrs.get('%s/meta/last_modified' % xsi_type)
     last_mod = datetime.strptime(last_modified_xnat[0:19], '%Y-%m-%d %H:%M:%S')
     return last_mod

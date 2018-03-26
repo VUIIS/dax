@@ -79,15 +79,6 @@ NS = {'xnat': 'http://nrg.wustl.edu/xnat',
       'fs': 'http://nrg.wustl.edu/fs',
       'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
 
-# Select XNAT Path
-P_XPATH = '/project/{project}'
-S_XPATH = '%s/subject/{subject}' % P_XPATH
-E_XPATH = '%s/experiment/{session}' % S_XPATH
-C_XPATH = '%s/scan/{scan}' % E_XPATH
-A_XPATH = '%s/assessor/{assessor}' % E_XPATH
-R_XPATH = '{xpath}/resource/{resource}'
-AR_XPATH = '%s/out/resource/{resource}' % A_XPATH
-
 # REST URI for XNAT
 PROJECTS_URI = '/REST/projects'
 PROJECT_URI = '%s/{project}' % PROJECTS_URI
@@ -165,7 +156,6 @@ xnat:imagesessiondata/id,xnat:imagesessiondata/label,{pstype}/procstatus,\
 EXPERIMENT_POST_URI = '''?columns=ID,URI,subject_label,subject_ID,modality,\
 project,date,xsiType,label,xnat:subjectdata/meta/last_modified'''
 
-
 ###############################################################################
 #                                    1) CLASS                                 #
 ###############################################################################
@@ -177,6 +167,17 @@ class InterfaceTemp(Interface):
 
     Using netrc to get username password if not given.
     """
+
+
+    # Select XNAT Path
+    P_XPATH = '/project/{project}'
+    S_XPATH = '%s/subject/{subject}' % P_XPATH
+    E_XPATH = '%s/experiment/{session}' % S_XPATH
+    C_XPATH = '%s/scan/{scan}' % E_XPATH
+    A_XPATH = '%s/assessor/{assessor}' % E_XPATH
+    R_XPATH = '{xpath}/resource/{resource}'  # TODO: BenM/xnatutils refactor/this isn't used; remove it
+    AR_XPATH = '%s/out/resource/{resource}' % A_XPATH
+
     def __init__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
                  temp_dir=None):
         """Entry point for the InterfaceTemp class.
@@ -252,6 +253,346 @@ class InterfaceTemp(Interface):
         except DatabaseError as e:
             print(e)
             raise XnatAuthentificationError(self.host, self.user)
+
+    # TODO: string.format wants well-formed strings and will, for example, throw
+    #a KeyError if any named variables in the format string are missing. Put
+    #proper validation in place for these methods
+    def select_project(self, project):
+        xpath = InterfaceTemp.P_XPATH.format(project=project)
+        return self.select(xpath)
+
+    def select_subject(self, project, subject):
+        xpath = InterfaceTemp.S_XPATH.format(project=project,
+                                             subject=subject)
+        return self.select(xpath)
+
+    def select_experiment(self, project, subject, session):
+        xpath = InterfaceTemp.E_XPATH.format(project=project,
+                                             subject=subject,
+                                             session=session)
+        return self.select(xpath)
+
+    def select_scan(self, project, subject, session, scan):
+        xpath = InterfaceTemp.C_XPATH.format(project=project,
+                                             subject=subject,
+                                             session=session,
+                                             scan=scan)
+        return self.select(xpath)
+
+    def select_assessor(self, project, subject, session, assessor):
+        xpath = InterfaceTemp.A_XPATH.format(project=project,
+                                             subject=subject,
+                                             session=session,
+                                             assessor=assessor)
+        return self.select(xpath)
+
+    def select_assessor_resource(self, project, subject, session, assessor, resource):
+        xpath = InterfaceTemp.AR_XPATH.format(project=project,
+                                              subject=subject,
+                                              session=session,
+                                              assessor=assessor,
+                                              resource=resource)
+        return self.select(xpath)
+
+    def select_all_projects(self, intf):
+        return intf.select('/project/')
+
+    def get_projects(self):
+        return self._getjson(PROJECTS_URI)
+
+    def get_project_scans(self, project_id, include_shared=True):
+        """
+        List all the scans that you have access to based on passed project.
+
+        :param intf: pyxnat.Interface object
+        :param projectid: ID of a project on XNAT
+        :param include_shared: include the shared data in this project
+        :return: List of all the scans for the project
+        """
+        scans_dict = dict()
+
+        # Get the sessions list to get the modality:
+        session_list = self.get_sessions(self, project_id)
+        sess_id2mod = dict((sess['session_id'], [sess['handedness'],
+                                                 sess['gender'], sess['yob'], sess['age'],
+                                                 sess['last_modified'], sess['last_updated']])
+                           for sess in session_list)
+
+        post_uri = SE_ARCHIVE_URI
+        post_uri += SCAN_PROJ_POST_URI.format(project=project_id)
+        scan_list = self._get_json(post_uri)
+
+        pfix = 'xnat:imagescandata'
+        for scan in scan_list:
+            key = '%s-x-%s' % (scan['ID'], scan['%s/id' % pfix])
+            if scans_dict.get(key):
+                res = '%s/file/label' % pfix
+                scans_dict[key]['resources'].append(scan[res])
+            else:
+                snew = {}
+                snew['scan_id'] = scan['%s/id' % pfix]
+                snew['scan_label'] = scan['%s/id' % pfix]
+                snew['scan_quality'] = scan['%s/quality' % pfix]
+                snew['scan_note'] = scan['%s/note' % pfix]
+                snew['scan_frames'] = scan['%s/frames' % pfix]
+                snew['scan_description'] = scan['%s/series_description' % pfix]
+                snew['scan_type'] = scan['%s/type' % pfix]
+                snew['ID'] = scan['%s/id' % pfix]
+                snew['label'] = scan['%s/id' % pfix]
+                snew['quality'] = scan['%s/quality' % pfix]
+                snew['note'] = scan['%s/note' % pfix]
+                snew['frames'] = scan['%s/frames' % pfix]
+                snew['series_description'] = scan['%s/series_description' % pfix]
+                snew['type'] = scan['%s/type' % pfix]
+                snew['project_id'] = project_id
+                snew['project_label'] = project_id
+                snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
+                snew['subject_label'] = scan['subject_label']
+                snew['session_type'] = scan['xsiType'].split('xnat:')[1] \
+                    .split('Session')[0] \
+                    .upper()
+                snew['session_id'] = scan['ID']
+                snew['session_label'] = scan['label']
+                snew['session_uri'] = scan['URI']
+                snew['handedness'] = sess_id2mod[scan['ID']][0]
+                snew['gender'] = sess_id2mod[scan['ID']][1]
+                snew['yob'] = sess_id2mod[scan['ID']][2]
+                snew['age'] = sess_id2mod[scan['ID']][3]
+                snew['last_modified'] = sess_id2mod[scan['ID']][4]
+                snew['last_updated'] = sess_id2mod[scan['ID']][5]
+                snew['resources'] = [scan['%s/file/label' % pfix]]
+                # make a dictionary of dictionaries
+                scans_dict[key] = (snew)
+
+        if include_shared:
+            post_uri = SE_ARCHIVE_URI
+            post_uri += SCAN_PROJ_INCLUDED_POST_URI.format(project=project_id)
+            scan_list = self._get_json(post_uri)
+
+            for scan in scan_list:
+                key = '%s-x-%s' % (scan['ID'], scan['%s/id' % pfix])
+                if scans_dict.get(key):
+                    res = '%s/file/label' % pfix
+                    scans_dict[key]['resources'].append(scan[res])
+                else:
+                    snew = {}
+                    snew['scan_id'] = scan['%s/id' % pfix]
+                    snew['scan_label'] = scan['%s/id' % pfix]
+                    snew['scan_quality'] = scan['%s/quality' % pfix]
+                    snew['scan_note'] = scan['%s/note' % pfix]
+                    snew['scan_frames'] = scan['%s/frames' % pfix]
+                    snew['scan_description'] = scan['%s/series_description' % pfix]
+                    snew['scan_type'] = scan['%s/type' % pfix]
+                    snew['ID'] = scan['%s/id' % pfix]
+                    snew['label'] = scan['%s/id' % pfix]
+                    snew['quality'] = scan['%s/quality' % pfix]
+                    snew['note'] = scan['%s/note' % pfix]
+                    snew['frames'] = scan['%s/frames' % pfix]
+                    snew['series_description'] = scan['%s/series_description'
+                                                      % pfix]
+                    snew['type'] = scan['%s/type' % pfix]
+                    snew['project_id'] = project_id
+                    snew['project_label'] = project_id
+                    snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
+                    snew['subject_label'] = scan['subject_label']
+                    snew['session_type'] = scan['xsiType'].split('xnat:')[1] \
+                        .split('Session')[0] \
+                        .upper()
+                    snew['session_id'] = scan['ID']
+                    snew['session_label'] = scan['label']
+                    snew['session_uri'] = scan['URI']
+                    snew['handedness'] = sess_id2mod[scan['ID']][0]
+                    snew['gender'] = sess_id2mod[scan['ID']][1]
+                    snew['yob'] = sess_id2mod[scan['ID']][2]
+                    snew['age'] = sess_id2mod[scan['ID']][3]
+                    snew['last_modified'] = sess_id2mod[scan['ID']][4]
+                    snew['last_updated'] = sess_id2mod[scan['ID']][5]
+                    snew['resources'] = [scan['%s/file/label' % pfix]]
+                    # make a dictionary of dictionaries
+                    scans_dict[key] = (snew)
+
+        return sorted(list(scans_dict.values()), key=lambda k: k['session_label'])
+
+    def get_subjects(self, project_id):
+        if project_id:
+            post_uri = SUBJECTS_URI.format(project=project_id)
+        else:
+            post_uri = ALL_SUBJ_URI
+
+        post_uri += SUBJECT_POST_URI
+
+        subject_list = self._get_json(post_uri)
+
+        for subj in subject_list:
+            if project_id:
+                # Override the project returned to be the one we queried
+                subj['project'] = project_id
+
+            subj['project_id'] = subj['project']
+            subj['project_label'] = subj['project']
+            subj['subject_id'] = subj['ID']
+            subj['subject_label'] = subj['label']
+            subj['last_updated'] = subj['src']
+
+        return sorted(subject_list, key=lambda k: k['subject_label'])
+
+    def get_subject_resources(self, project_id, subject_id):
+        post_uri = SU_RESOURCES_URI.format(project=project_id, subject=subject_id)
+        resource_list = self._get_json(post_uri)
+        return resource_list
+
+    def get_resources(self, project_id):
+        return self._getjson(P_RESOURCES_URI.format(project=project_id))
+
+    def get_sessions(self, projectid=None, subjectid=None):
+        """
+        List all the sessions either:
+            1) that you have access to
+         or
+            2) in a single project (and single subject) based on kargs
+
+        :param intf: pyxnat.Interface object
+        :param projectid: ID of a project on XNAT
+        :param subjectid: ID/label of a subject
+        :return: List of sessions
+        """
+        type_list = []
+        full_sess_list = []
+
+        if projectid and subjectid:
+            post_uri = SESSIONS_URI.format(project=projectid, subject=subjectid)
+        elif projectid is None and subjectid is None:
+            post_uri = ALL_SESS_URI
+        elif projectid and subjectid is None:
+            post_uri = ALL_SESS_PROJ_URI.format(project=projectid)
+        else:
+            return None
+
+        # First get a list of all experiment types
+        post_uri_types = '%s?columns=xsiType' % post_uri
+        sess_list = self._get_json(post_uri_types)
+        for sess in sess_list:
+            sess_type = sess['xsiType'].lower()
+            if sess_type not in type_list:
+                type_list.append(sess_type)
+
+        # Get the subjects list to get the subject ID:
+        subj_list = self.get_subjects(projectid)
+        subj_id2lab = dict((subj['ID'], [subj['handedness'], subj['gender'],
+                                         subj['yob'], subj['dob']]) for subj in subj_list)
+
+        # Get list of sessions for each type since we have to specific
+        # about last_modified field
+        for sess_type in type_list:
+            if sess_type.startswith('xnat:') and 'session' in sess_type:
+                add_uri_str = SESSION_POST_URI.format(stype=sess_type)
+            else:
+                add_uri_str = NO_MOD_SESSION_POST_URI.format(stype=sess_type)
+            post_uri_type = '%s%s' % (post_uri, add_uri_str)
+            sess_list = self._get_json(post_uri_type)
+
+            for sess in sess_list:
+                # Override the project returned to be the one we queried
+                if projectid:
+                    sess['project'] = projectid
+
+                sess['project_id'] = sess['project']
+                sess['project_label'] = sess['project']
+                sess['subject_id'] = sess['subject_ID']
+                sess['session_id'] = sess['ID']
+                sess['session_label'] = sess['label']
+                if sess_type.startswith('xnat:') and 'session' in sess_type:
+                    sess['session_type'] = sess_type.split('xnat:')[1] \
+                        .split('session')[0] \
+                        .upper()
+                    sess['type'] = sess_type.split('xnat:')[1] \
+                        .split('session')[0] \
+                        .upper()
+                else:
+                    sess['session_type'] = sess_type
+                    sess['type'] = sess_type
+                last_modified_str = '%s/meta/last_modified' % sess_type
+                sess['last_modified'] = sess.get(last_modified_str, None)
+                sess['last_updated'] = sess.get('%s/original' % sess_type, None)
+                sess['age'] = sess.get('%s/age' % sess_type, None)
+                try:
+                    sess['handedness'] = subj_id2lab[sess['subject_ID']][0]
+                    sess['gender'] = subj_id2lab[sess['subject_ID']][1]
+                    sess['yob'] = subj_id2lab[sess['subject_ID']][2]
+                    sess['dob'] = subj_id2lab[sess['subject_ID']][3]
+                except KeyError as KE:
+                    sess['handedness'] = 'UNK'
+                    sess['gender'] = 'UNK'
+                    sess['yob'] = 'UNK'
+                    sess['dob'] = 'UNK'
+
+            # Add sessions of this type to full list
+            full_sess_list.extend(sess_list)
+
+        # Return list sorted by label
+        return sorted(full_sess_list, key=lambda k: k['session_label'])
+
+    def get_session_resources(self, projectid, subjectid, sessionid):
+        """
+        Gets a list of all of the resources for a session associated to a
+         subject/project requested by the user
+
+        :param intf: pyxnat.Interface object
+        :param projectid: ID of a project on XNAT
+        :param subjectid: ID/label of a subject
+        :param sessionid: ID/label of a session to get resources for
+        :return: List of resources for the session
+
+        """
+        post_uri = SE_RESOURCES_URI.format(project=projectid, subject=subjectid,
+                                           session=sessionid)
+        resource_list = self._get_json(post_uri)
+        return resource_list
+
+    def get_scans(self, projectid, subjectid, sessionid):
+        """
+        List all the scans that you have access to based on passed
+         session/subject/project.
+
+        :param intf: pyxnat.Interface object
+        :param projectid: ID of a project on XNAT
+        :param subjectid: ID/label of a subject
+        :param sessionid: ID/label of a session
+        :return: List of all the scans
+        """
+        post_uri = SESSIONS_URI.format(project=projectid, subject=subjectid)
+        post_uri += SCAN_POST_URI
+        scan_list = self._get_json(post_uri)
+        new_list = []
+
+        for scan in scan_list:
+            if scan['ID'] == sessionid or scan['label'] == sessionid:
+                snew = {}
+                pfix = 'xnat:imagesessiondata/scans/scan'
+                snew['scan_id'] = scan['%s/id' % pfix]
+                snew['scan_label'] = scan['%s/id' % pfix]
+                snew['scan_quality'] = scan['%s/quality' % pfix]
+                snew['scan_note'] = scan['%s/note' % pfix]
+                snew['scan_frames'] = scan['%s/frames' % pfix]
+                snew['scan_description'] = scan['%s/series_description' % pfix]
+                snew['scan_type'] = scan['%s/type' % pfix]
+                snew['ID'] = scan['%s/id' % pfix]
+                snew['label'] = scan['%s/id' % pfix]
+                snew['quality'] = scan['%s/quality' % pfix]
+                snew['note'] = scan['%s/note' % pfix]
+                snew['frames'] = scan['%s/frames' % pfix]
+                snew['series_description'] = scan['%s/series_description' % pfix]
+                snew['type'] = scan['%s/type' % pfix]
+                snew['project_id'] = projectid
+                snew['project_label'] = projectid
+                snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
+                snew['subject_label'] = scan['subject_label']
+                snew['session_id'] = scan['ID']
+                snew['session_label'] = scan['label']
+                snew['session_uri'] = scan['URI']
+                new_list.append(snew)
+
+        return sorted(new_list, key=lambda k: k['label'])
 
 
 class AssessorHandler(object):
@@ -352,11 +693,10 @@ class AssessorHandler(object):
         :return: The pyxnat EObject of the assessor
 
         """
-        xpath = A_XPATH.format(project=self.project_id,
-                               subject=self.subject_label,
-                               session=self.session_label,
-                               assessor=self.assessor_label)
-        return intf.select(xpath)
+        return intf.select(self.project_id,
+                           self.subject_id,
+                           self.session_label,
+                           self.assessor_label)
 
 
 class SpiderProcessHandler(object):
@@ -708,347 +1048,6 @@ def get_interface(host=None, user=None, pwd=None):
     return InterfaceTemp(host, user, pwd)
 
 
-def list_projects(intf):
-    """
-    Gets a list of all of the projects that you have access to
-
-    :param intf: pyxnat.Interface object
-    :return: list of dictionaries of projects you have access to
-
-    """
-    projects_list = intf._get_json(PROJECTS_URI)
-    return projects_list
-
-
-def list_project_resources(intf, projectid):
-    """
-    Gets a list of all of the project resources for the project ID you want.
-
-    :param intf: pyxnat.Interface object
-    :param projectid: ID of a project on XNAT
-    :return: list of resources for the specificed project
-    """
-    post_uri = P_RESOURCES_URI.format(project=projectid)
-    resource_list = intf._get_json(post_uri)
-    return resource_list
-
-
-def list_subjects(intf, projectid=None):
-    """
-    List all the subjects that you have access to. Or, alternatively, list
-     the subjects in a single project based on passed project ID
-
-    :param intf: pyxnat.Interface object
-    :param projectid: ID of a project on XNAT
-    :return: list of dictionaries of subjects in the project or projects.
-
-    """
-    if projectid:
-        post_uri = SUBJECTS_URI.format(project=projectid)
-    else:
-        post_uri = ALL_SUBJ_URI
-
-    post_uri += SUBJECT_POST_URI
-
-    subject_list = intf._get_json(post_uri)
-
-    for subj in subject_list:
-        if projectid:
-            # Override the project returned to be the one we queried
-            subj['project'] = projectid
-
-        subj['project_id'] = subj['project']
-        subj['project_label'] = subj['project']
-        subj['subject_id'] = subj['ID']
-        subj['subject_label'] = subj['label']
-        subj['last_updated'] = subj['src']
-
-    return sorted(subject_list, key=lambda k: k['subject_label'])
-
-
-def list_subject_resources(intf, projectid, subjectid):
-    """
-    Gets a list of all of the resources for a subject for a project
-     requested by the user.
-
-    :param intf: pyxnat.Interface object
-    :param projectid: ID of a project on XNAT
-    :param subjectid: ID/label of a subject to get resources for
-    :return: List of resources for the subject
-
-    """
-    post_uri = SU_RESOURCES_URI.format(project=projectid, subject=subjectid)
-    resource_list = intf._get_json(post_uri)
-    return resource_list
-
-
-def list_sessions(intf, projectid=None, subjectid=None):
-    """
-    List all the sessions either:
-        1) that you have access to
-     or
-        2) in a single project (and single subject) based on kargs
-
-    :param intf: pyxnat.Interface object
-    :param projectid: ID of a project on XNAT
-    :param subjectid: ID/label of a subject
-    :return: List of sessions
-    """
-    type_list = []
-    full_sess_list = []
-
-    if projectid and subjectid:
-        post_uri = SESSIONS_URI.format(project=projectid, subject=subjectid)
-    elif projectid is None and subjectid is None:
-        post_uri = ALL_SESS_URI
-    elif projectid and subjectid is None:
-        post_uri = ALL_SESS_PROJ_URI.format(project=projectid)
-    else:
-        return None
-
-    # First get a list of all experiment types
-    post_uri_types = '%s?columns=xsiType' % post_uri
-    sess_list = intf._get_json(post_uri_types)
-    for sess in sess_list:
-        sess_type = sess['xsiType'].lower()
-        if sess_type not in type_list:
-            type_list.append(sess_type)
-
-    # Get the subjects list to get the subject ID:
-    subj_list = list_subjects(intf, projectid)
-    subj_id2lab = dict((subj['ID'], [subj['handedness'], subj['gender'],
-                        subj['yob'], subj['dob']]) for subj in subj_list)
-
-    # Get list of sessions for each type since we have to specific
-    # about last_modified field
-    for sess_type in type_list:
-        if sess_type.startswith('xnat:') and 'session' in sess_type:
-            add_uri_str = SESSION_POST_URI.format(stype=sess_type)
-        else:
-            add_uri_str = NO_MOD_SESSION_POST_URI.format(stype=sess_type)
-        post_uri_type = '%s%s' % (post_uri, add_uri_str)
-        sess_list = intf._get_json(post_uri_type)
-
-        for sess in sess_list:
-            # Override the project returned to be the one we queried
-            if projectid:
-                sess['project'] = projectid
-
-            sess['project_id'] = sess['project']
-            sess['project_label'] = sess['project']
-            sess['subject_id'] = sess['subject_ID']
-            sess['session_id'] = sess['ID']
-            sess['session_label'] = sess['label']
-            if sess_type.startswith('xnat:') and 'session' in sess_type:
-                sess['session_type'] = sess_type.split('xnat:')[1]\
-                                                .split('session')[0]\
-                                                .upper()
-                sess['type'] = sess_type.split('xnat:')[1]\
-                                        .split('session')[0]\
-                                        .upper()
-            else:
-                sess['session_type'] = sess_type
-                sess['type'] = sess_type
-            last_modified_str = '%s/meta/last_modified' % sess_type
-            sess['last_modified'] = sess.get(last_modified_str, None)
-            sess['last_updated'] = sess.get('%s/original' % sess_type, None)
-            sess['age'] = sess.get('%s/age' % sess_type, None)
-            try:
-                sess['handedness'] = subj_id2lab[sess['subject_ID']][0]
-                sess['gender'] = subj_id2lab[sess['subject_ID']][1]
-                sess['yob'] = subj_id2lab[sess['subject_ID']][2]
-                sess['dob'] = subj_id2lab[sess['subject_ID']][3]
-            except KeyError as KE:
-                sess['handedness'] = 'UNK'
-                sess['gender'] = 'UNK'
-                sess['yob'] = 'UNK'
-                sess['dob'] = 'UNK'
-
-        # Add sessions of this type to full list
-        full_sess_list.extend(sess_list)
-
-    # Return list sorted by label
-    return sorted(full_sess_list, key=lambda k: k['session_label'])
-
-
-def list_session_resources(intf, projectid, subjectid, sessionid):
-    """
-    Gets a list of all of the resources for a session associated to a
-     subject/project requested by the user
-
-    :param intf: pyxnat.Interface object
-    :param projectid: ID of a project on XNAT
-    :param subjectid: ID/label of a subject
-    :param sessionid: ID/label of a session to get resources for
-    :return: List of resources for the session
-
-    """
-    post_uri = SE_RESOURCES_URI.format(project=projectid, subject=subjectid,
-                                       session=sessionid)
-    resource_list = intf._get_json(post_uri)
-    return resource_list
-
-
-def list_scans(intf, projectid, subjectid, sessionid):
-    """
-    List all the scans that you have access to based on passed
-     session/subject/project.
-
-    :param intf: pyxnat.Interface object
-    :param projectid: ID of a project on XNAT
-    :param subjectid: ID/label of a subject
-    :param sessionid: ID/label of a session
-    :return: List of all the scans
-    """
-    post_uri = SESSIONS_URI.format(project=projectid, subject=subjectid)
-    post_uri += SCAN_POST_URI
-    scan_list = intf._get_json(post_uri)
-    new_list = []
-
-    for scan in scan_list:
-        if scan['ID'] == sessionid or scan['label'] == sessionid:
-            snew = {}
-            pfix = 'xnat:imagesessiondata/scans/scan'
-            snew['scan_id'] = scan['%s/id' % pfix]
-            snew['scan_label'] = scan['%s/id' % pfix]
-            snew['scan_quality'] = scan['%s/quality' % pfix]
-            snew['scan_note'] = scan['%s/note' % pfix]
-            snew['scan_frames'] = scan['%s/frames' % pfix]
-            snew['scan_description'] = scan['%s/series_description' % pfix]
-            snew['scan_type'] = scan['%s/type' % pfix]
-            snew['ID'] = scan['%s/id' % pfix]
-            snew['label'] = scan['%s/id' % pfix]
-            snew['quality'] = scan['%s/quality' % pfix]
-            snew['note'] = scan['%s/note' % pfix]
-            snew['frames'] = scan['%s/frames' % pfix]
-            snew['series_description'] = scan['%s/series_description' % pfix]
-            snew['type'] = scan['%s/type' % pfix]
-            snew['project_id'] = projectid
-            snew['project_label'] = projectid
-            snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
-            snew['subject_label'] = scan['subject_label']
-            snew['session_id'] = scan['ID']
-            snew['session_label'] = scan['label']
-            snew['session_uri'] = scan['URI']
-            new_list.append(snew)
-
-    return sorted(new_list, key=lambda k: k['label'])
-
-
-def list_project_scans(intf, projectid, include_shared=True):
-    """
-    List all the scans that you have access to based on passed project.
-
-    :param intf: pyxnat.Interface object
-    :param projectid: ID of a project on XNAT
-    :param include_shared: include the shared data in this project
-    :return: List of all the scans for the project
-    """
-    scans_dict = dict()
-
-    # Get the sessions list to get the modality:
-    session_list = list_sessions(intf, projectid)
-    sess_id2mod = dict((sess['session_id'], [sess['handedness'],
-                        sess['gender'], sess['yob'], sess['age'],
-                        sess['last_modified'], sess['last_updated']])
-                       for sess in session_list)
-
-    post_uri = SE_ARCHIVE_URI
-    post_uri += SCAN_PROJ_POST_URI.format(project=projectid)
-    scan_list = intf._get_json(post_uri)
-
-    pfix = 'xnat:imagescandata'
-    for scan in scan_list:
-        key = '%s-x-%s' % (scan['ID'], scan['%s/id' % pfix])
-        if scans_dict.get(key):
-            res = '%s/file/label' % pfix
-            scans_dict[key]['resources'].append(scan[res])
-        else:
-            snew = {}
-            snew['scan_id'] = scan['%s/id' % pfix]
-            snew['scan_label'] = scan['%s/id' % pfix]
-            snew['scan_quality'] = scan['%s/quality' % pfix]
-            snew['scan_note'] = scan['%s/note' % pfix]
-            snew['scan_frames'] = scan['%s/frames' % pfix]
-            snew['scan_description'] = scan['%s/series_description' % pfix]
-            snew['scan_type'] = scan['%s/type' % pfix]
-            snew['ID'] = scan['%s/id' % pfix]
-            snew['label'] = scan['%s/id' % pfix]
-            snew['quality'] = scan['%s/quality' % pfix]
-            snew['note'] = scan['%s/note' % pfix]
-            snew['frames'] = scan['%s/frames' % pfix]
-            snew['series_description'] = scan['%s/series_description' % pfix]
-            snew['type'] = scan['%s/type' % pfix]
-            snew['project_id'] = projectid
-            snew['project_label'] = projectid
-            snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
-            snew['subject_label'] = scan['subject_label']
-            snew['session_type'] = scan['xsiType'].split('xnat:')[1]\
-                                                  .split('Session')[0]\
-                                                  .upper()
-            snew['session_id'] = scan['ID']
-            snew['session_label'] = scan['label']
-            snew['session_uri'] = scan['URI']
-            snew['handedness'] = sess_id2mod[scan['ID']][0]
-            snew['gender'] = sess_id2mod[scan['ID']][1]
-            snew['yob'] = sess_id2mod[scan['ID']][2]
-            snew['age'] = sess_id2mod[scan['ID']][3]
-            snew['last_modified'] = sess_id2mod[scan['ID']][4]
-            snew['last_updated'] = sess_id2mod[scan['ID']][5]
-            snew['resources'] = [scan['%s/file/label' % pfix]]
-            # make a dictionary of dictionaries
-            scans_dict[key] = (snew)
-
-    if include_shared:
-        post_uri = SE_ARCHIVE_URI
-        post_uri += SCAN_PROJ_INCLUDED_POST_URI.format(project=projectid)
-        scan_list = intf._get_json(post_uri)
-
-        for scan in scan_list:
-            key = '%s-x-%s' % (scan['ID'], scan['%s/id' % pfix])
-            if scans_dict.get(key):
-                res = '%s/file/label' % pfix
-                scans_dict[key]['resources'].append(scan[res])
-            else:
-                snew = {}
-                snew['scan_id'] = scan['%s/id' % pfix]
-                snew['scan_label'] = scan['%s/id' % pfix]
-                snew['scan_quality'] = scan['%s/quality' % pfix]
-                snew['scan_note'] = scan['%s/note' % pfix]
-                snew['scan_frames'] = scan['%s/frames' % pfix]
-                snew['scan_description'] = scan['%s/series_description' % pfix]
-                snew['scan_type'] = scan['%s/type' % pfix]
-                snew['ID'] = scan['%s/id' % pfix]
-                snew['label'] = scan['%s/id' % pfix]
-                snew['quality'] = scan['%s/quality' % pfix]
-                snew['note'] = scan['%s/note' % pfix]
-                snew['frames'] = scan['%s/frames' % pfix]
-                snew['series_description'] = scan['%s/series_description'
-                                                  % pfix]
-                snew['type'] = scan['%s/type' % pfix]
-                snew['project_id'] = projectid
-                snew['project_label'] = projectid
-                snew['subject_id'] = scan['xnat:imagesessiondata/subject_id']
-                snew['subject_label'] = scan['subject_label']
-                snew['session_type'] = scan['xsiType'].split('xnat:')[1]\
-                                                      .split('Session')[0]\
-                                                      .upper()
-                snew['session_id'] = scan['ID']
-                snew['session_label'] = scan['label']
-                snew['session_uri'] = scan['URI']
-                snew['handedness'] = sess_id2mod[scan['ID']][0]
-                snew['gender'] = sess_id2mod[scan['ID']][1]
-                snew['yob'] = sess_id2mod[scan['ID']][2]
-                snew['age'] = sess_id2mod[scan['ID']][3]
-                snew['last_modified'] = sess_id2mod[scan['ID']][4]
-                snew['last_updated'] = sess_id2mod[scan['ID']][5]
-                snew['resources'] = [scan['%s/file/label' % pfix]]
-                # make a dictionary of dictionaries
-                scans_dict[key] = (snew)
-
-    return sorted(list(scans_dict.values()), key=lambda k: k['session_label'])
-
-
 def list_scan_resources(intf, projectid, subjectid, sessionid, scanid):
     """
     Gets a list of all of the resources for a scan associated to a
@@ -1153,7 +1152,7 @@ def list_project_assessors(intf, projectid):
     assessors_dict = dict()
 
     # Get the sessions list to get the different variables needed:
-    session_list = list_sessions(intf, projectid)
+    session_list = intf.get_sessions(projectid)
     sess_id2mod = dict((sess['session_id'], [sess['subject_label'],
                         sess['type'], sess['handedness'], sess['gender'],
                         sess['yob'], sess['age'], sess['last_modified'],
@@ -1330,6 +1329,11 @@ def get_resource_lastdate_modified(intf, resource_obj):
     return res_date
 
 
+# TODO: BenM/xnatutils refactor/select_assessor and get_assessor are doing
+# essentially the same thing
+# TODO: BenM/xnatutils refactor/we really should know the context we are
+# working in wrt project,subject, etc. It shouldn't be necessary to get this
+# from the label
 def select_assessor(intf, assessor_label):
     """
     Select assessor from his label
@@ -1338,11 +1342,10 @@ def select_assessor(intf, assessor_label):
     :return: pyxnat EObject for the assessor selected
     """
     labels = assessor_label.split('-x-')
-    xpath = A_XPATH.format(project=labels[0],
-                           subject=labels[1],
-                           session=labels[2],
-                           assessor=assessor_label)
-    return intf.select(xpath)
+    return intf.select_assessor(labels[0],
+                                labels[1],
+                                labels[2],
+                                assessor_label)
 
 
 def get_full_object(intf, obj_dict):
@@ -1357,36 +1360,41 @@ def get_full_object(intf, obj_dict):
 
     """
     if 'scan_id' in obj_dict:
-        xpath = C_XPATH.format(project=obj_dict['project_id'],
-                               subject=obj_dict['subject_id'],
-                               session=obj_dict['session_id'],
-                               scan=obj_dict['scan_id'])
+        return intf.select_scan(obj_dict['project_id'],
+                                obj_dict['subject_id'],
+                                obj_dict['session_id'],
+                                obj_dict['scan_id'])
     elif 'xsiType' in obj_dict and \
-         obj_dict['xsiType'] in [DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE]:
-        xpath = A_XPATH.format(project=obj_dict['project_id'],
-                               subject=obj_dict['subject_id'],
-                               session=obj_dict['session_id'],
-                               assessor=obj_dict['assessor_id'])
+            obj_dict['xsiType'] in [DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE]:
+        return intf.select_assessor(obj_dict['project_id'],
+                                    obj_dict['subject_id'],
+                                    obj_dict['session_id'],
+                                    obj_dict['assessor_id'])
     elif 'experiments' in obj_dict['URI']:
-        xpath = E_XPATH.format(project=obj_dict['project'],
-                               subject=obj_dict['subject_ID'],
-                               session=obj_dict['ID'])
+        # TODO: BenM/xnatutils refactor/ids should be consistent
+        return intf.select_experiment(obj_dict['project'],
+                                      obj_dict['subject_ID'],
+                                      obj_dict['ID'])
     elif 'subjects' in obj_dict['URI']:
-        xpath = S_XPATH.format(project=obj_dict['project'],
-                               subject=obj_dict['ID'])
+        # TODO: BenM/xnatutils refactor/ids should be consistent
+        return intf.select_subject(obj_dict['project'],
+                                   obj_dict['ID'])
     elif 'projects' in obj_dict['URI']:
-        xpath = A_XPATH.format(project=obj_dict['project'])
+        return intf.select_project(obj_dict['project'])
     else:
-        xpath = '/project/'
+        return intf.select_all_projects()
+        # xpath = '/project/'
         # Return non existing object: obj.exists() -> False
-    return intf.select(xpath)
+    # return intf.select(xpath)
 
 
-def get_assessor(xnat, projid, subjid, sessid, assrid):
+# TODO: BenM/xnatutils refactor/this method isn't really needed, why not just
+# call interface directory?
+def get_assessor(intf, projid, subjid, sessid, assrid):
     """
     Run Interface.select down to the assessor level
 
-    :param xnat: pyxnat.Interface Object
+    :param intf: pyxnat.Interface Object
     :param projid: XNAT Project ID
     :param subjid: XNAT Subject ID
     :param sessid: XNAT Session ID
@@ -1394,11 +1402,7 @@ def get_assessor(xnat, projid, subjid, sessid, assrid):
     :return: pyxnat EObject of the assessor
 
     """
-    xpath = A_XPATH.format(project=projid,
-                           subject=subjid,
-                           session=sessid,
-                           assessor=assrid)
-    return xnat.select(xpath)
+    return intf.select_assessor(projid, subjid, sessid, assrid)
 
 
 def select_obj(intf, project_id=None, subject_id=None, session_id=None,
@@ -2101,7 +2105,7 @@ def download_scan_types(directory, project_id, subject_id, session_id,
     fpaths = list()
     scantypes = islist(scantypes, 'scantypes', 'download_scan_types')
     with get_interface() as xnat:
-        for scan in list_scans(xnat, project_id, subject_id, session_id):
+        for scan in xnat.get_scans(project_id, subject_id, session_id):
             if scan['type'] in scantypes:
                 scan_obj = select_obj(xnat, project_id, subject_id, session_id,
                                       scan['ID'])
@@ -2134,7 +2138,7 @@ def download_scan_seriesdescriptions(directory, project_id, subject_id,
                                 'download_scan_seriesdescriptions')
 
     with get_interface() as xnat:
-        for scan in list_scans(xnat, project_id, subject_id, session_id):
+        for scan in xnat.get_scans(project_id, subject_id, session_id):
             if scan['series_description'] in seriesdescriptions:
                 scan_obj = select_obj(xnat, project_id, subject_id, session_id,
                                       scan['ID'])
@@ -2790,7 +2794,7 @@ def get_random_sessions(xnat, project_id, num_sessions):
     :return: List of session labels for the project
 
     """
-    sessions = list_sessions(xnat, project_id)
+    sessions = xnat.get_sessions(project_id)
     session_labels = [x['label'] for x in sessions]
     if num_sessions > 0 and num_sessions < 1:
         num_sessions = int(num_sessions * len(session_labels))
@@ -2804,36 +2808,32 @@ class CachedImageSession(object):
     """
     Class to cache the XML information for a session on XNAT
     """
-    def __init__(self, xnat, proj, subj, sess):
+    def __init__(self, intf, proj, subj, sess):
         """
         Entry point for the CachedImageSession class
 
-        :param xnat: pyxnat Interface object
+        :param intf: pyxnat Interface object
         :param proj: XNAT project ID
         :param subj: XNAT subject ID/label
         :param sess: XNAT session ID/label
         :return: None
 
         """
-        # self.sess_element = ET.fromstring(xnat.session_xml(proj,sess))
-        xpath = E_XPATH.format(project=proj,
-                               subject=subj,
-                               session=sess)
-        xml_str = xnat.select(xpath).get()
+        experiment = intf.select_experiment(proj, subj, sess)
+        xml_str = experiment.get()
         self.sess_element = ET.fromstring(xml_str)
         self.project = proj
         self.subject = subj
-        self.xnat = xnat  # cache for later usage
         self.session = sess
+        self.intf = intf  # cache for later usage
 
     def entity_type(self):
         return 'session'
 
     def reload(self):
-        xpath = E_XPATH.format(project=self.project,
-                               subject=self.subject,
-                               session=self.session)
-        xml_str = self.xnat.select(xpath).get()
+        xml_str = self.intf.select_experiment(self.project,
+                                              self.subject,
+                                              self.session)
         self.sess_element = ET.fromstring(xml_str)
 
     def label(self):
@@ -2861,6 +2861,7 @@ class CachedImageSession(object):
         if element is not None:
             return element.text
 
+        # TODO:BenM/xnat refactor/according to the lxml spec, find does this anyway
         split_array = name.rsplit('/', 1)
         if len(split_array) == 2:
             tag, attr = split_array
@@ -2901,7 +2902,7 @@ class CachedImageSession(object):
         scan_elements = self.sess_element.find('xnat:scans', NS)
         if scan_elements:
             for scan in scan_elements:
-                scan_list.append(CachedImageScan(scan, self))
+                scan_list.append(CachedImageScan(self.intf, scan, self))
 
         return scan_list
 
@@ -2917,7 +2918,7 @@ class CachedImageSession(object):
         assr_elements = self.sess_element.find('xnat:assessors', NS)
         if assr_elements:
             for assr in assr_elements:
-                assr_list.append(CachedImageAssessor(assr, self))
+                assr_list.append(CachedImageAssessor(self.intf, assr, self))
 
         return assr_list
 
@@ -2985,14 +2986,14 @@ class CachedImageSession(object):
         :return: pyxnat Session object
 
         """
-        return get_full_object(self.xnat, self.info())
+        return self.intf.select_experiment(self.project, self.subject, self.session)
 
 
 class CachedImageScan(object):
     """
     Class to cache the XML information for a scan on XNAT
     """
-    def __init__(self, scan_element, parent):
+    def __init__(self, intf, scan_element, parent):
         """
         Entry point for the CachedImageScan class
 
@@ -3001,6 +3002,7 @@ class CachedImageScan(object):
         :return: None
 
         """
+        self.intf = intf
         self.scan_parent = parent
         self.scan_element = scan_element
 
@@ -3118,12 +3120,19 @@ class CachedImageScan(object):
         """
         return [res.info() for res in self.resources()]
 
+    def full_object(self):
+        info = self.info()
+        return self.intf.select_scan(info['project_id'],
+                                     info['subject_id'],
+                                     info['session_id'],
+                                     info['scan_id'])
+
 
 class CachedImageAssessor(object):
     """
     Class to cache the XML information for an assessor on XNAT
     """
-    def __init__(self, assr_element, parent):
+    def __init__(self, intf, assr_element, parent):
         """
         Entry point for the CachedImageAssessor class on XNAT
 
@@ -3132,6 +3141,7 @@ class CachedImageAssessor(object):
         :return: None
 
         """
+        self.intf = intf
         self.assr_parent = parent
         self.assr_element = assr_element
 
@@ -3304,6 +3314,13 @@ class CachedImageAssessor(object):
 
         """
         return self.get_out_resources()
+
+    def full_object(self):
+        info = self.info()
+        return self.intf.select_assessor(info['project_id'],
+                                         info['subject_id'],
+                                         info['session_id'],
+                                         info['assessor_id'])
 
 
 class CachedResource(object):
@@ -3725,6 +3742,7 @@ def convert_nifti_2_dicoms(nifti_path, dicom_targets, dicom_source,
 
 
 # DEPRECATED Methods still in used in different Spiders
+#======================================================
 # It will need to be removed when the spiders are updated
 def list_experiments(intf, projectid=None, subjectid=None):
     """
@@ -3737,7 +3755,7 @@ def list_experiments(intf, projectid=None, subjectid=None):
     :param subjectid: ID/label of a subject
     :return: List of experiments
     """
-    print('Warning: Deprecated method. Use list_sessions().')
+    print('Warning: Deprecated method. Use InterfaceTemp.get_sessions().')
     if projectid and subjectid:
         post_uri = SESSIONS_URI.format(project=projectid, subject=subjectid)
     elif projectid is None and subjectid is None:
@@ -3776,13 +3794,14 @@ def list_experiment_resources(intf, projectid, subjectid, experimentid):
     :param subjectid: ID/label of a session to get resources for
     :return: List of resources for the session
     """
-    print('Warning: Deprecated method. Use list_session_resources().')
+    print('Warning: Deprecated method. Use InterfaceTemp.get_session_resources().')
     post_uri = SE_RESOURCES_URI.format(project=projectid, subject=subjectid,
                                        session=experimentid)
     resource_list = intf._get_json(post_uri)
     return resource_list
 
 
+# TODO: BenM/xnatutils refactor/Why isn't an intf instance passed to this method?
 def download_Scan(Outputdirectory, projectName, subject, experiment, scan,
                   resource_list, all_resources=0):
     """
@@ -3813,12 +3832,8 @@ download_file_from_obj(), or download_files_from_obj().')
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
 resources in download_Scan function. Not a list.")
 
-    with get_interface() as xnat:
-        xpath = C_XPATH.format(project=projectName,
-                               subject=subject,
-                               session=experiment,
-                               scan=scan)
-        SCAN = xnat.select(xpath)
+    with get_interface() as intf:
+        SCAN = intf.select_scan(projectName, subject, experiment, scan)
         if SCAN.exists():
             if SCAN.attrs.get('quality') != 'unusable':
                 dl_good_resources_scan(SCAN, resource_list, Outputdirectory,
@@ -3827,7 +3842,7 @@ resources in download_Scan function. Not a list.")
                 print('DOWNLOAD WARNING: Scan unusable!')
         else:
             err = '%s: xnat object for <%s> does not exist on XNAT.'
-            raise XnatAccessError(err % ('download_Scan', xpath))
+            raise XnatAccessError(err % ('download_Scan', intf))
 
     print('================================================================\n')
 
@@ -3871,15 +3886,11 @@ resources in download_ScanType function. Not a list.")
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
 scantypes in download_ScanType function. Not a list.")
 
-    with get_interface() as xnat:
-        for scan in list_scans(xnat, projectName, subject, experiment):
+    with get_interface() as intf:
+        for scan in intf.get_scans(projectName, subject, experiment):
             if scan['type'] in List_scantype:
                 if scan['quality'] != 'unusable':
-                    xpath = C_XPATH.format(project=projectName,
-                                           subject=subject,
-                                           session=experiment,
-                                           scan=scan['ID'])
-                    SCAN = xnat.select(xpath)
+                    SCAN = intf.select_scan(projectName, subject, experiment, scan['ID'])
                     dl_good_resources_scan(SCAN, resource_list,
                                            Outputdirectory, all_resources)
                 else:
@@ -3928,13 +3939,9 @@ resources in download_ScanSeriesDescription function. Not a list.")
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
 series_description in download_ScanSeriesDescription function. Not a list.")
 
-    with get_interface() as xnat:
-        for scan in list_scans(xnat, projectName, subject, experiment):
-            xpath = C_XPATH.format(project=projectName,
-                                   subject=subject,
-                                   session=experiment,
-                                   scan=scan['ID'])
-            SCAN = xnat.select(xpath)
+    with get_interface() as intf:
+        for scan in intf.get_scans(projectName, subject, experiment):
+            SCAN = intf.select_scan(projectName, subject, experiment, scan['ID'])
             if SCAN.attrs.get('series_description') in List_scanSD:
                 if scan['quality'] != 'unusable':
                     dl_good_resources_scan(SCAN, resource_list,
@@ -4228,13 +4235,13 @@ def upload_zip(Resource, directory):
     Upload_folder_to_resource(Resource, directory)
 
 
-def download_resource_assessor(directory, xnat, project, subject, experiment,
+def download_resource_assessor(directory, intf, project, subject, experiment,
                                assessor_label, resources_list, quiet):
     """
     Deprecated method to download resource(s) from an assessor.
 
     :param directory: The directory to download data to
-    :param xnat: pyxnat Interface object
+    :param intf: pyxnat Interface object
     :param project: Project ID on XNAT
     :param subject: Subject ID/label on XNAT
     :param experiment: Session ID/label on XNAT
@@ -4249,18 +4256,14 @@ download_files_from_obj().')
     if not quiet:
         print('    +Process: %s' % assessor_label)
 
-    assessor = select_assessor(xnat, assessor_label)
+    assessor = select_assessor(intf, assessor_label)
     if not assessor.exists():
         print('      !!WARNING: No assessor with the ID selected.')
         return
 
     if 'fMRIQA' in assessor_label:
         labels = assessor_label.split('-x-')
-        xpath = C_XPATH.format(project=project,
-                               subject=subject,
-                               session=experiment,
-                               scan=labels[3])
-        SCAN = xnat.select(xpath)
+        SCAN = intf.select_scan(project, subject, experiment, labels[3])
         SD = SCAN.attrs.get('series_description')
         SD = SD.replace('/', '_')
         SD = SD.replace(" ", "")
@@ -4273,16 +4276,16 @@ download_files_from_obj().')
 
     # all resources
     if resources_list[0] == 'all':
-        resources_list = list_assessor_out_resources(xnat, project, subject,
-                                                     experiment,
-                                                     assessor_label)
+        resources_list = intf.get_assessor_out_resources(project,
+                                                         subject,
+                                                         experiment,
+                                                         assessor_label)
         for resource in resources_list:
-            xpath = AR_XPATH.format(project=project,
-                                    subject=subject,
-                                    session=experiment,
-                                    assessor=assessor_label,
-                                    resource=resource['label'])
-            Resource = xnat.select(xpath)
+            Resource = intf.select_assessor_resource(project,
+                                                     subject,
+                                                     experiment,
+                                                     assessor_label,
+                                                     resource['label'])
             if Resource.exists():
                 if not quiet:
                     print('      *download resource %s' % resource['label'])
@@ -4311,12 +4314,11 @@ download_files_from_obj().')
     # resources in the options
     else:
         for resource in resources_list:
-            xpath = AR_XPATH.format(project=project,
-                                    subject=subject,
-                                    session=experiment,
-                                    assessor=assessor_label,
-                                    resource=resource)
-            Resource = xnat.select(xpath)
+            Resource = intf.select_assessor_resource(project,
+                                                     subject,
+                                                     experiment,
+                                                     assessor_label,
+                                                     resource)
             if Resource.exists():
                 if not quiet:
                     print('      *download resource %s' % resource)
