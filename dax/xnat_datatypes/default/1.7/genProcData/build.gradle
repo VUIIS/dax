@@ -1,4 +1,4 @@
-def pluginVersion = 'genProcData-1.1.0'
+def pluginVersion = 'genProcData-1.2.0'
 
 group 'org.nrg.xnat.dax'
 version pluginVersion
