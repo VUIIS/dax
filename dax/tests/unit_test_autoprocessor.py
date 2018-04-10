@@ -40,7 +40,8 @@ class AutoProcessorUnitTest(TestCase):
 
 
     def test_scan_processor_construction(self):
-        yaml_source = self._make_yaml_source(common.scan_brain_tiv_from_gif_yaml)
+        yaml_source = self._make_yaml_source(
+            common.processor_yamls.scan_brain_tiv_from_gif_yaml)
         ap = AutoProcessor(common.FakeXnat, yaml_source)
 
         yaml_source = self._make_yaml_source(common.git_pct_t1_yaml)
@@ -52,22 +53,39 @@ class AutoProcessorUnitTest(TestCase):
         tseo = self._construct_session('brain_tiv_from_gif')
         tsco = tseo.scan_by_key('1')
 
-        yaml_source = self._make_yaml_source(common.scan_brain_tiv_from_gif_yaml)
+        yaml_source = self._make_yaml_source(
+            common.processor_yamls.scan_brain_tiv_from_gif_yaml)
         ap = AutoProcessor(common.FakeXnat, yaml_source)
 
         actual = ap.get_assessor_name(tsco)
-        self.assertEquals(actual, "proj1-x-subj1-x-sess1-x-1-x-BrainTivFromGIF_v1")
+        self.assertEquals(actual,
+                          "proj1-x-subj1-x-sess1-x-1-x-BrainTivFromGIF_v1")
 
 
     def test_scan_assessor_get_assessor(self):
         tseo = self._construct_session('brain_tiv_from_gif')
         tsco = tseo.scan_by_key('1')
 
-        yaml_source = self._make_yaml_source(common.processor_yamls.scan_brain_tiv_from_gif_yaml)
+        yaml_source = self._make_yaml_source(
+            common.processor_yamls.scan_brain_tiv_from_gif_yaml)
         ap = AutoProcessor(common.FakeXnat, yaml_source)
 
         actual = ap.get_assessor(tsco)
-        self.assertEquals(actual, "proj1-x-subj1-x-sess1-x-1-x-BrainTivFromGIF_v1")
+        self.assertEquals(actual,
+                          "proj1-x-subj1-x-sess1-x-1-x-BrainTivFromGIF_v1")
+
+
+
+    def test_scan_assessor_should_run(self):
+        tseo = self._construct_session('brain_tiv_from_gif')
+        tsco = tseo.scan_by_key('1')
+
+        yaml_source = self._make_yaml_source(
+            common.processor_yamls.scan_brain_tiv_from_gif_yaml)
+        ap = AutoProcessor(common.FakeXnat, yaml_source)
+
+        ret = ap.should_run(tseo.info())
+        self.assertEqual(ret, 1)
 
 
 
@@ -75,7 +93,8 @@ class AutoProcessorUnitTest(TestCase):
         tseo = self._construct_session('brain_tiv_from_gif')
         tsco = tseo.scan_by_key('1')
 
-        yaml_source = self._make_yaml_source(common.processor_yamls.scan_brain_tiv_from_gif_yaml)
+        yaml_source = self._make_yaml_source(
+            common.processor_yamls.scan_brain_tiv_from_gif_yaml)
         ap = AutoProcessor(common.FakeXnat, yaml_source)
 
         ret, comment = ap.has_inputs(tsco)
@@ -86,7 +105,8 @@ class AutoProcessorUnitTest(TestCase):
         tseo = self._construct_session('brain_tiv_from_gif')
         tsco = tseo.assessor_by_key('proc1')
 
-        yaml_source = self._make_yaml_source(common.processor_yamls.scan_brain_tiv_from_gif_yaml)
+        yaml_source = self._make_yaml_source(
+            common.processor_yamls.scan_brain_tiv_from_gif_yaml)
         ap = AutoProcessor(common.FakeXnat, yaml_source)
 
         tsao = tseo.assessors()

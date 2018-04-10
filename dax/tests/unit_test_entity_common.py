@@ -149,8 +149,8 @@ class TestSessionObject:
 
     def info(self):
         return {
-            'project_id': self.subject.project_id(),
-            'subject_label': self.subject.subject_id(),
+            'project_id': self.subject_.project_id(),
+            'subject_label': self.subject_.subject_id(),
             'session_label': self.session_id_
         }
 
