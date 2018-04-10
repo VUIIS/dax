@@ -2113,7 +2113,7 @@ def load_test(filepath):
         print('[ERROR] %s does not exists.' % filepath)
         return None
 
-    if filepath.endswith('.py') or is_python_file(filepath):
+    if filepath.endswith('.py') oris_python_file(filepath):
         test = imp.load_source('test', filepath)
         # Check if processor file
         try:

@@ -375,6 +375,10 @@ class SessionProcessor(Processor):
         :return: String of the assessor label
 
         """
+        # TODO: BenM/id_refactor/currently returns null if the assessor doesn't
+        # exist; this adds unnecessary complexity downstream - consider adding
+        # a method that returns assessors that need construction and one for
+        # assessors that exist
         assessor_name = self.get_assessor_name(csess)
 
         # Look for existing assessor
@@ -608,6 +612,7 @@ defined by yaml file {}'
 
         return assr_label
 
+    # TODO: BenM/assessor_of_assessor/refactor to return multiple assessors if the processor describes it
     def get_assessor(self, cobj):
         """
         Returns the assessor object depending on cobj and the assessor label.
@@ -644,6 +649,7 @@ defined by yaml file {}'
         obj_info = cobj.info()
         assessor_name = self.get_assessor_name(cobj)
         obj = XnatUtils.get_full_object(intf, obj_info)
+
         if isinstance(cobj, XnatUtils.CachedImageSession):
             assessor = obj.assessor(assessor_name)
         elif isinstance(cobj, XnatUtils.CachedImageScan):
@@ -658,6 +664,8 @@ defined by yaml file {}'
         :return: True if it should run, false if it shouldn't
 
         """
+        # TODO: BenM/assessor_of_assessor/
+        # this method checks
         if 'scan_type' in obj_dict:
             scantypes = self.scaninfo.get('types', '').split(',')
             if scantypes == 'all':
