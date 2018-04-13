@@ -252,7 +252,8 @@ class PBS(object):   # The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
     def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
                  ppn=1, env=None, email=None,
-                 email_options=DAX_SETTINGS.get_email_opts(), xnat_host=None):
+                 email_options=DAX_SETTINGS.get_email_opts(), xnat_host=None,
+                 job_template=None):
         """
         Entry point for the PBS class
 
@@ -276,6 +277,7 @@ class PBS(object):   # The script file generator class
         self.email = email
         self.email_options = email_options
         self.ppn = ppn
+        self.job_template = job_template
         if env:
             self.env = env
         else:
@@ -308,8 +310,8 @@ class PBS(object):   # The script file generator class
                     'xnat_host': self.xnat_host}
 
         with open(self.filename, 'w') as f_obj:
-            f_obj.write(DAX_SETTINGS.get_job_template()
-                                    .safe_substitute(job_data))
+            f_obj.write(DAX_SETTINGS.get_job_template(
+                self.job_template).safe_substitute(job_data))
 
     def submit(self, outlog=None, force_no_qsub=False):
         """

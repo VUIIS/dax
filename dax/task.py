@@ -504,7 +504,8 @@ undo_processing...')
         pbs = PBS(pbsfile, outlog, cmds, self.processor.walltime_str,
                   self.processor.memreq_mb, self.processor.ppn,
                   self.processor.env, job_email,
-                  job_email_options, xnat_host)
+                  job_email_options, xnat_host,
+                  self.processor.job_template)
         pbs.write()
         if writeonly:
             mes_format = """   filepath: {path}"""
@@ -1544,7 +1545,8 @@ undo_processing...')
                         self.processor.env,
                         job_email,
                         job_email_options,
-                        xnat_host)
+                        xnat_host,
+                        self.processor.job_template)
             LOGGER.info('writing:' + batch_file)
             batch.write()
 

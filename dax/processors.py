@@ -964,17 +964,17 @@ class MoreAutoProcessor(AutoProcessor):
         # Getting proctype and version from Yaml
         self.container_path = self.inputs.get('container_path')
 
-        if doc.get(('procversion')):
+        if doc.get('procversion'):
             self.version = doc.get('procversion')
         else:
             self.version = self.parse_procversion()
 
-        if doc.get(('procname')):
+        if doc.get('procname'):
             procname = doc.get('procname')
         else:
             procname = self.parse_procname()
 
-        if doc.get(('proctype')):
+        if doc.get('proctype'):
             self.proctype = doc.get('proctype')
         else:
             self.proctype = '{}_v{}'.format(
@@ -1000,6 +1000,11 @@ class MoreAutoProcessor(AutoProcessor):
 
         # Set Outputs from Yaml
         self.outputs = doc.get('outputs')
+
+        # Set template if in Yaml
+        if doc.get('jobtemplate'):
+            self.job_template = doc.get('jobtemplate')
+
 
     def _check_default_keys(self, yaml_file, doc):
         """ Static method to raise error if key not found in dictionary from
@@ -1048,7 +1053,7 @@ class MoreAutoProcessor(AutoProcessor):
         if tmp.endswith('.img'):
             tmp = tmp.split('.img')[0]
         elif tmp.endswith('.simg'):
-            tmp = tmp.split('.img')[0]
+            tmp = tmp.split('.simg')[0]
 
         if len(re.split('/*_v[0-9]/*', tmp)) > 1:
             tmp = tmp.split('_v')[-1].replace('_', '.')
@@ -1136,12 +1141,10 @@ class MoreAutoProcessor(AutoProcessor):
             else:
                 xnat_uri = '{}/files'.format(x_path, fpath)
 
-
         elif required:
             msg = 'No resource {} found for {} in session {}.'
             LOGGER.debug(msg.format(resource, label, obj_info['session_label']))
 
-        print(xnat_uri)
         return xnat_uri
 
     def find_inputs(self, cobj):
