@@ -74,7 +74,7 @@ class Launcher(object):
                  priority_project=None,
                  queue_limit=DAX_SETTINGS.get_queue_limit(),
                  root_job_dir=DAX_SETTINGS.get_root_job_dir(),
-                 xnat_user=None, xnat_pass=None, xnat_host=None,
+                 xnat_user=None, xnat_pass=None, xnat_host=None, cr=None,
                  job_email=None, job_email_options='bae', max_age=7,
                  launcher_type=DAX_SETTINGS.get_launcher_type(),
                  skip_lastupdate=None):
@@ -88,6 +88,7 @@ class Launcher(object):
         :param queue_limit: maximum number of jobs in the queue
         :param root_job_dir: root directory for jobs
         :param xnat_host: XNAT Host url. By default, use env variable.
+        :param cr: True if the host is an XNAT CR instance (will default to False if not specified)
         :param xnat_user: XNAT User ID. By default, use env variable.
         :param xnat_pass: XNAT Password. By default, use env variable.
         :param job_email: job email address for report
@@ -176,6 +177,15 @@ name as a key and list of yaml filepaths as values.'
         self.xnat_host = xnat_host
         if not self.xnat_host:
             self.xnat_host = os.environ['XNAT_HOST']
+
+        # CR flag: don't want something like 'cr: blah blah' in the settings file turning the cr flag on
+        if str(cr).upper()=='TRUE': 
+            self.cr=True
+        else:
+            self.cr=False
+
+        LOGGER.info('XNAT CR status: cr=%s, self.cr=%s'%(str(cr),str(self.cr)))
+    
         # User:
         if not xnat_user:
             netrc_obj = DAX_Netrc()
@@ -574,7 +584,7 @@ cluster queue"
 
             try:
                 if not self.skip_lastupdate:
-                    self.set_session_lastupdated(xnat, sess_info,
+                    self.set_session_lastupdated(xnat, self.cr, sess_info,
                                                  update_start_time)
             except Exception as E:
                 err1 = 'Caught exception setting session timestamp %s'
@@ -1167,11 +1177,12 @@ The project is not part of the settings."""
             return datetime.strptime(update_time, UPDATE_FORMAT)
 
     @staticmethod
-    def set_session_lastupdated(xnat, sess_info, update_start_time):
+    def set_session_lastupdated(xnat, cr, sess_info, update_start_time):
         """
         Set the last session update on XNAT
 
         :param xnat: pyxnat.Interface object
+        :param cr: True if the host is an XNAT CR instance
         :param sess_info: dictionary of session information
         :param update_start_time: date when the update started
         :return: False if the session change(don't set the last update date),
@@ -1196,8 +1207,11 @@ The project is not part of the settings."""
         deg = 'setting last_updated for: %s to %s'
         LOGGER.debug(deg % (sess_info['label'], update_str))
         try:
-            sess_obj.attrs.set('%s/original' % xsi_type,
-                               UPDATE_PREFIX + update_str)
+            if cr:
+                LOGGER.critical('CR does not seem to allow changing of session timestamp, what do we do?')
+            else:
+                sess_obj.attrs.set('%s/original' % xsi_type,
+                               UPDATE_PREFIX + update_str, params={"event_reason": "DAX setting session_lastupdated"})
         except Exception as E:
             err1 = 'Caught exception setting update timestamp for session %s'
             err2 = 'Exception class %s caught with message %s'
