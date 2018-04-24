@@ -245,7 +245,7 @@ def read_yaml_settings(yaml_file, logger):
     yaml_proc = dict()
     projects = doc.get('projects')
     for proj_dict in projects:
-        project = proj_dict.get('project')
+        project = str(proj_dict.get('project'))
         if project:
             # modules:
             if proj_dict.get('modules'):
