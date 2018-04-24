@@ -101,6 +101,7 @@ SPHINX_MIN_VERSION = '1.4'
 NIBABEL_MIN_VERSION = '2.0.1'
 NUMPY_MIN_VERSION = '1.6.2'
 MATPLOTLIB_MIN_VERSION = '1.4.3'
+PYXNAT_MIN_VERSION = '1.0.1.0'
 
 
 REQUIRES = [
@@ -109,7 +110,7 @@ REQUIRES = [
     'numpy>=%s' % NUMPY_MIN_VERSION,
     'matplotlib>=%s' % MATPLOTLIB_MIN_VERSION,
     'pycap',
-    'pyxnat',
+    'pyxnat>=%s' % PYXNAT_MIN_VERSION,
     'pyyaml',
     'scipy',
     'lxml',
