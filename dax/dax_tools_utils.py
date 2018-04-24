@@ -257,8 +257,6 @@ SGE_TEMPLATE = """#!/bin/bash
 uname -a # outputs node info (name, date&time, type, OS, etc)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable \
 to use only the right amount of ppn
-export OMP_NUM_THREADS=${job_ppn} #as previous line for openmp code
-source ${job_env} #source the specified environement file
 SCREEN=$$$$$$$$
 SCREEN=${SCREEN:0:8}
 echo 'Screen display number for xvfb-run' $SCREEN
@@ -296,8 +294,6 @@ SLURM_TEMPLATE = """#!/bin/bash
 uname -a # outputs node info (name, date&time, type, OS, etc)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable \
 to use only the right amount of ppn
-export OMP_NUM_THREADS=${job_ppn} #as previous line for openmp code
-source ${job_env} #source the specified environement file
 SCREEN=$$$$$$$$
 SCREEN=${SCREEN:0:8}
 echo 'Screen display number for xvfb-run' $SCREEN
@@ -340,8 +336,6 @@ MOAB_TEMPLATE = """#!/bin/bash
 uname -a # outputs node info (name, date&time, type, OS, etc)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable \
 to use only the right amount of ppn
-export OMP_NUM_THREADS=${job_ppn} #as previous line for openmp code
-source ${job_env} #source the specified environement file
 SCREEN=$$$$$$$$
 SCREEN=${SCREEN:0:8}
 echo 'Screen display number for xvfb-run' $SCREEN
@@ -462,12 +456,11 @@ PROC_DISPLAY = """    *NAME: {name}
         memory: {memory}
         walltime: {walltime}
         Number of cores: {ppn}
-        Environment file: {env}
       OTHER ARGUMENTS:
 {other}
 """
 PROC_DEF_ARGS = ['name', 'xnat_host', 'xsitype', 'memreq_mb', 'walltime_str',
-                 'ppn', 'env', 'spider_path', 'version']
+                 'ppn', 'spider_path', 'version']
 
 MOD_DISPLAY = """    *NAME: {name}
       TEMP DIRECTORY: {temp_dir}
@@ -507,21 +500,21 @@ def upload_tasks(logfile, debug, upload_settings=None,
 
     # Check if folders exist
     check_folders()
-    flagfile = "%s%s.txt" % (FLAGFILE_TEMPLATE, suffix)
+    ##flagfile = "%s%s.txt" % (FLAGFILE_TEMPLATE, suffix)
 
     # Load the settings for upload
-    upload_settings = load_upload_settings(upload_settings, host, username,
-                                           password, projects)
-    print_upload_settings(upload_settings)
+    #upload_settings = load_upload_settings(upload_settings, host, username,
+    #                                       password, projects)
+    #print_upload_settings(upload_settings)
     # create the flag file showing that the spider is running
-    if is_dax_upload_running(flagfile):
-        pass
-    else:
-        try:
-            upload_results(upload_settings, emailaddress)
-        finally:
+    ##if is_dax_upload_running(flagfile):
+    ##    pass
+    ##else:
+    ##    try:
+    #upload_results(upload_settings, emailaddress)
+    ##    finally:
             # remove flagfile
-            os.remove(flagfile)
+    ##        os.remove(flagfile)
 
 
 def testing(test_file, project, sessions, host=None, username=None, hide=False,
@@ -855,7 +848,7 @@ def copy_outlog(assessor_dict):
 
 def get_xsitype(assessor_dict):
     """
-    Copy the oulog files to the assessor folder if we are uploading.
+    Copy the outlog files to the assessor folder if we are uploading.
 
     :param assessor_dict: dictionary for the assessor
     :return: xsitype for the assessor_dict
@@ -2067,7 +2060,6 @@ def print_processor(proc_obj):
                               memory=proc_dict['memreq_mb'],
                               walltime=proc_dict['walltime_str'],
                               ppn=proc_dict['ppn'],
-                              env=proc_dict['env'],
                               other=other_args))
 
 
@@ -2120,7 +2112,7 @@ def load_test(filepath):
         print('[ERROR] %s does not exists.' % filepath)
         return None
 
-    if filepath.endswith('.py') or is_python_file(filepath):
+    if filepath.endswith('.py') oris_python_file(filepath):
         test = imp.load_source('test', filepath)
         # Check if processor file
         try:

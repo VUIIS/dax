@@ -101,6 +101,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
     logger.info('finished launcher, End Time: %s' % str(datetime.now()))
 
 
+# TODO:BenM/assessor_of_assessor/starting point
 def build(settings_path, logfile, debug, projects=None, sessions=None,
           mod_delta=None, proj_lastrun=None):
     """

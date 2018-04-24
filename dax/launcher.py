@@ -496,6 +496,7 @@ cluster queue"
         proj_mods = self.project_modules_dict.get(project_id, None)
         proj_procs = self.project_process_dict.get(project_id, None)
         exp_mods, scan_mods = modules.modules_by_type(proj_mods)
+        # TODO: BenM/assessor_of_assessor/extend here for subject-level processors
         exp_procs, scan_procs = processors.processors_by_type(proj_procs)
 
         if mod_delta:
@@ -586,6 +587,8 @@ cluster queue"
                 LOGGER.critical(err2 % (E.__class__, E.message))
                 LOGGER.critical(traceback.format_exc())
 
+    # TODO:BenM/assessor_of_assessor/modify from here for one to many
+    # processor to assessor mapping
     def build_session(self, xnat, sess_info, sess_proc_list,
                       scan_proc_list, sess_mod_list, scan_mod_list):
         """
@@ -653,12 +656,17 @@ cluster queue"
             if not sess_proc.should_run(sess_info):
                 continue
 
+            # TODO: BenM/assessor_of_assessor/return list of assessors
+            # TODO: BenM/assessor_of_assessor/session processors can return
+            # scan-level assessors
             p_assr, assr_name = sess_proc.get_assessor(csess)
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
                 if p_assr is None or \
                    p_assr.info()['procstatus'] == task.NEED_INPUTS or \
                    p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
+                    # TODO: BenM/assessor_of_assessor/how can p_assr be none if
+                    # it exists in the session?
                     assessor = csess.full_object().assessor(assr_name)
                     xtask = XnatTask(sess_proc, assessor, res_dir,
                                      os.path.join(res_dir, 'DISKQ'))

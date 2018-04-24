@@ -152,7 +152,7 @@ def read_csv_for_upload(csv_file, session_type, report=False):
                     elif row[0] == 'assessor':
                         assessor = read_row(row, session_type, ind + 1,
                                             header=ASSESSOR_HEADER)
-                        if scan:
+                        if assessor:
                             assessors.append(assessor)
                             # Resource:
                             aresources = add_resource(aresources,
