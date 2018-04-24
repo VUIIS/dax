@@ -15,6 +15,7 @@ from . import launcher
 from . import log
 from . import XnatUtils
 from . import processors
+from . import yaml_doc
 from .dax_settings import DAX_Settings
 from .errors import DaxError
 DAX_SETTINGS = DAX_Settings()
@@ -332,12 +333,7 @@ def load_from_file(filepath, args, logger):
         logger.err(err.format(filepath))
 
     elif filepath.endswith('.yaml'):
-        doc = XnatUtils.read_yaml(filepath)
-        yaml_source = {
-            'source_type': 'file',
-            'source_id': filepath,
-            'document': doc
-        }
-        return processors.AutoProcessor(XnatUtils, yaml_source, args)
+        yaml_obj = yaml_doc.YamlDoc().from_file(filepath)
+        return processors.AutoProcessor(yaml_obj, args)
 
     return None

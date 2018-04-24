@@ -47,6 +47,7 @@ from . import processors
 from . import task
 from . import xnat_tools_utils
 from . import XnatUtils
+from . import yaml_doc
 from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
                            DEFAULT_FS_DATATYPE)
 from .errors import DaxUploadError, AutoProcessorError, DaxSetupError, DaxError
@@ -2112,7 +2113,28 @@ def load_test(filepath):
         print('[ERROR] %s does not exists.' % filepath)
         return None
 
-    if filepath.endswith('.py') oris_python_file(filepath):
+    if filepath.endswith('yaml'):
+        doc = XnatUtils.read_yaml(filepath)
+
+        if 'projects' in list(doc.keys()):
+            try:
+                return bin.read_yaml_settings(filepath, LOGGER)
+            except AutoProcessorError:
+                print('[ERROR]')
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                          limit=2, file=sys.stdout)
+        else:
+            # So far only auto processor:
+            try:
+                yaml_obj = yaml_doc.YamlDoc().from_file(filepath)
+                return processors.AutoProcessor(yaml_obj)
+            except AutoProcessorError:
+                print('[ERROR]')
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                          limit=2, file=sys.stdout)
+    elif filepath.endswith('.py') or is_python_file(filepath):
         test = imp.load_source('test', filepath)
         # Check if processor file
         try:
@@ -2136,37 +2158,6 @@ def load_test(filepath):
 the python file {}.'
         print(err.format(filepath))
         return None
-
-    elif filepath.endswith('yaml'):
-        doc = XnatUtils.read_yaml(filepath)
-
-        if 'projects' in list(doc.keys()):
-            try:
-                return bin.read_yaml_settings(filepath, LOGGER)
-            except AutoProcessorError:
-                print('[ERROR]')
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                traceback.print_exception(exc_type, exc_value, exc_traceback,
-                                          limit=2, file=sys.stdout)
-        else:
-            # So far only auto processor:
-            try:
-                source = {}
-                source['source_type'] = 'file'
-                source['source_id'] = filepath
-                try:
-                    source['document'] = XnatUtils.read_yaml(filepath)
-                except XnatUtilsError:
-                    print('[ERROR]')
-                    exc_type, exc_value, exc_traceback = sys.exc_info()
-                    traceback.print_exception(exc_type, exc_value, exc_traceback,
-                                              limit=2, file=sys.stdout)
-                return processors.AutoProcessor(XnatUtils, source)
-            except AutoProcessorError:
-                print('[ERROR]')
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                traceback.print_exception(exc_type, exc_value, exc_traceback,
-                                          limit=2, file=sys.stdout)
 
     else:
         err = '[ERROR] {} format unknown. Please provide a .py or .yaml file.'

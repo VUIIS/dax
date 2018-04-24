@@ -20,6 +20,7 @@ from .task import Task, ClusterTask, XnatTask
 from .dax_settings import DAX_Settings, DAX_Netrc
 from .errors import (ClusterCountJobsException, ClusterLaunchException,
                      DaxXnatError, DaxLauncherError)
+from . import yaml_doc
 
 
 try:
@@ -128,6 +129,12 @@ name as a key and list of yaml filepaths as values.'
                 if isinstance(yaml_obj, processors.AutoProcessor):
                     proc = yaml_obj
                 elif isinstance(yaml_obj, str):
+                    # TODO: BenM/general_refactor/this logic should be handled
+                    # further up the call stack - launchers should be provided
+                    # AutoProcessors rather than strings for yaml files
+                    yaml_obj = yaml_doc.YamlDoc().from_file(yaml_obj)
+                    proc = processors.AutoProcessor(yaml_obj)
+                elif isinstance(yaml_obj. yaml_doc.YamlDoc):
                     proc = processors.AutoProcessor(XnatUtils, yaml_obj)
                 else:
                     err = 'yaml_obj of type {} is unsupported'
@@ -1171,7 +1178,6 @@ The project is not part of the settings."""
                  True otherwise
         """
         xsi_type = sess_info['xsiType']
-        #sess_obj = XnatUtils.get_full_object(xnat, sess_info)
         sess_obj = xnat.select_session(sess_info['project_id'],
                                        sess_info['subject_id'],
                                        sess_info['session_id'])

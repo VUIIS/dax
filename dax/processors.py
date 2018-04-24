@@ -257,7 +257,7 @@ class ScanProcessor(Processor):
 
         return p_assr, assessor_name
 
-    def get_task(self, intf, cscan, upload_dir):
+    def get_task(self, cscan, upload_dir):
         """
         Get the Task object
 
@@ -268,10 +268,8 @@ class ScanProcessor(Processor):
         :return: Task object
 
         """
-        scan_dict = cscan.info()
         assessor_name = self.get_assessor_name(cscan)
-        #scan = XnatUtils.get_full_object(intf, scan_dict)
-        scan = cscan.get_full_object()
+        scan = cscan.full_object()
         assessor = scan.parent().assessor(assessor_name)
         return task.Task(self, assessor, upload_dir)
 
@@ -467,8 +465,6 @@ No xnat.scans.{} in inputs found.'
 
         :param user_inputs: dictionary of tag, value. E.G:
             user_inputs = {'default.spider_path': /.../Spider....py'}
-        :param yaml_source: dictionary of source_type -> string,\
-                            source_id -> string, and document -> yaml document
         """
         for key, val in list(user_inputs.items()):
             tags = key.split('.')
@@ -512,13 +508,15 @@ defined by yaml file {}'
         """
         Method to parse the processor arguments and their default values.
 
-        :param yaml_source: a dictionary of source_type -> string,\
-                            source_id -> string, document -> yaml document
+        :param yaml_source: YamlDoc object containing the yaml file contents
         """
+        if yaml_source.source_type is None:
+            raise AutoProcessorError('Empty yaml source provided')
+
+        doc = yaml_source.contents
 
         # Set Inputs from Yaml
-        self._check_default_keys(yaml_source)
-        doc = yaml_source['document']
+        self._check_default_keys(yaml_source.source_id, doc)
         self.attrs = doc.get('attrs')
         self.command = doc.get('command')
         inputs = doc.get('inputs')
@@ -544,44 +542,42 @@ defined by yaml file {}'
         self.type = self.attrs.get('type')
         self.scan_nb = self.attrs.get('scan_nb', None)
 
-    def _check_default_keys(self, yaml_source):
+    def _check_default_keys(self, source_id, doc):
         """ Static method to raise error if key not found in dictionary from
         yaml file.
 
-        :param yaml_source: dictionary containing source_type -> string,\
+        :param source_id: dictionary containing source_type -> string,\
                             source_id -> string, document -> yaml document
         :param key: key to check in the doc
         """
-        id = yaml_source['source_id']
-        doc = yaml_source['document']
         # first level
         for key in ['inputs', 'command', 'attrs']:
-            self._raise_yaml_error_if_no_key(doc, id, key)
+            self._raise_yaml_error_if_no_key(doc, source_id, key)
         # Second level in inputs and attrs:
         inputs = doc.get('inputs')
         attrs = doc.get('attrs')
         for _doc, key in [(inputs, 'default'), (inputs, 'xnat'),
                           (attrs, 'type'), (attrs, 'memory'),
                           (attrs, 'walltime')]:
-            self._raise_yaml_error_if_no_key(_doc, id, key)
+            self._raise_yaml_error_if_no_key(_doc, source_id, key)
         if attrs['type'] == 'scan':
-            self._raise_yaml_error_if_no_key(attrs, id, 'scan_nb')
+            self._raise_yaml_error_if_no_key(attrs, source_id, 'scan_nb')
         # third level for default:
         default = doc.get('inputs').get('default')
         for key in ['spider_path']:
-            self._raise_yaml_error_if_no_key(default, id, key)
+            self._raise_yaml_error_if_no_key(default, source_id, key)
 
     @ staticmethod
-    def _raise_yaml_error_if_no_key(doc, id, key):
+    def _raise_yaml_error_if_no_key(doc, source_id, key):
         """Method to raise an execption if the key is not in the dict
 
         :param doc: dict to check
-        :param id: YAML source identifier string for logging
+        :param source_id: YAML source identifier string for logging
         :param key: key to search
         """
         if key not in list(doc.keys()):
             err = 'YAML source {} does not have {} defined. See example.'
-            raise AutoProcessorError(err.format(id, key))
+            raise AutoProcessorError(err.format(source_id, key))
 
     def get_assessor_name(self, cobj):
         """
@@ -642,7 +638,7 @@ defined by yaml file {}'
 
         return p_assr, assessor_name
 
-    def get_task(self, intf, cobj, upload_dir):
+    def get_task(self, cobj, upload_dir):
         """
         Return the Task object
 
@@ -652,9 +648,8 @@ defined by yaml file {}'
         :return: Task object of the assessor
 
         """
-        obj_info = cobj.info()
         assessor_name = self.get_assessor_name(cobj)
-        obj = self.xnat.get_full_object(intf, obj_info)
+        obj = cobj.full_object()
         if cobj.entity_type() == 'session':
             assessor = obj.assessor(assessor_name)
         elif cobj.entity_type() == 'scan':
@@ -844,6 +839,9 @@ resource/{4}'
         # Get the csess:
         csess = XnatUtils.CachedImageSession(assessor._intf, proj_label,
                                              subj_label, sess_label)
+
+        # TODO: BenM/assessor_of_assessors/parse each scan / assessor and
+        # any select statements and generate one or more corresponding commands
 
         # Get the data from xnat for the xnat_inputs:
         # Scans:

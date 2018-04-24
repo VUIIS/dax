@@ -3094,6 +3094,14 @@ class CachedImageScan(object):
 
         return scan_info
 
+    def type(self):
+        return self.info()['type']
+
+    def usable(self):
+        return self.info()['quality'] == 'usable'
+
+    def unusable(self):
+        return self.info()['quality'] == 'unusable'
     def resources(self):
         """
         Get a list of the CachedResource (s) associated with this scan.
@@ -3358,6 +3366,10 @@ class CachedResource(object):
 
         """
         return self.res_element.get('label')
+
+    def file_count(self):
+        file_count = self.get('filecount')
+        return file_count if file_count != '' else 0
 
     def get(self, name):
         """
