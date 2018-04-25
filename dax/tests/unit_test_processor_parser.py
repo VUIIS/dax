@@ -23,11 +23,12 @@ class TestResource:
 
 class TestArtefact:
 
-    def __init__(self, id, artefact_type, quality, resources):
+    def __init__(self, id, artefact_type, quality, resources, inputs):
         self.id_ = id
         self.artefact_type = artefact_type
         self.quality_ = quality
         self.resources = [TestResource(r[0], r[1]) for r in resources]
+        self.inputs = inputs
 
     def id(self):
         return self.id_
@@ -47,12 +48,15 @@ class TestArtefact:
     def get_resources(self):
         return self.resources
 
+    def get_inputs(self):
+        return self.inputs
+
 
 class TestSession:
 
     def __init__(self, scans, asrs):
-        self.scans_ = [TestArtefact(s[0], s[1], s[2], s[3]) for s in scans]
-        self.assessors_ = [TestArtefact(a[0], a[1], a[2], a[3]) for a in asrs]
+        self.scans_ = [TestArtefact(s[0], s[1], s[2], s[3], {}) for s in scans]
+        self.assessors_ = [TestArtefact(a[0], a[1], a[2], a[3], a[4]) for a in asrs]
 
     def scans(self):
         return self.scans_
@@ -84,22 +88,29 @@ asr_files = [
     ('STATS', 1), ('SNAPSHOTS', 2), ('OUTLOG', 1), ('PBS', 1)
 ]
 
-xnat_assessor_contents = [
-    (asr_prefix + "proc1-asr1", "proc1", "usable", copy.deepcopy(asr_files)),
-    #(asr_prefix + "proc1-asr2", "proc1", "usable", copy.deepcopy(asr_files))
-]
-
 scan_path = 'xnat:/project/{}/subject/{}/experiment/{}/scan/{}/resource/{}'
 assessor_path =\
     'xnat:/project/{}/subject/{}/experiment/{}/assessor/{}/resource/{}'
 
 xnat_assessor_inputs = {
+    'proc1-asr1': {
+        't1': scan_path.format(proj, subj, sess, '1', 'NIFTI')
+    },
+    'proc1-asr2': {
+        't1': scan_path.format(proj, subj, sess, '1', 'NIFTI')
+    },
     'proc2-asr1': {
         't1': scan_path.format(proj, subj, sess, '1', 'NIFTI'),
         'fl': scan_path.format(proj, subj, sess, '11', 'NIFTI'),
         'seg': assessor_path.format(proj, subj, sess, 'proc1-asr1', 'SEG')
     }
 }
+
+xnat_assessor_contents = [
+    ("proc1-asr1", "proc1", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc1-asr1']),
+    ("proc1-asr2", "proc1", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc1-asr2'])
+]
+
 
 
 scan_gif_parcellation_yaml = """
