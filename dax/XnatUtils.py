@@ -1620,6 +1620,7 @@ def get_cassr_on_same_session(cobj, proctype, is_scan_proc=False):
     return cassr_list
 
 
+# TODO: BenM/assessor_of_assessor/unused; can be removed
 def is_assessor_on_same_session_usable(cobj, proctype, is_scan_proc=False):
     """
     Check to see if the assessor matching the user passed proctype has
@@ -3258,6 +3259,11 @@ class CachedImageAssessor(object):
             print(msg % assr_info['xsiType'])
 
         return assr_info
+
+
+    def get_inputs(self):
+        raise NotImplementedError()
+
 
     def in_resources(self):
         """

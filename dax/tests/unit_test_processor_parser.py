@@ -61,6 +61,10 @@ class TestSession:
         return self.assessors_
 
 
+proj = 'proj1'
+subj = 'subj1'
+sess = 'sess1'
+
 scan_files = [('SNAPSHOTS', 2), ('NIFTI', 1)]
 
 xnat_scan_contents = [
@@ -73,7 +77,7 @@ xnat_scan_contents = [
 ]
 
 
-asr_prefix = "proj1-x-subj1-x-sess1-x-"
+asr_prefix = '-x-'.join((proj, subj, sess, ''))
 
 asr_files = [
     ('LABELS', 1), ('PDF', 1), ('BIAS_COR', 1), ('PRIOR', 1), ('SEG', 1),
@@ -81,9 +85,21 @@ asr_files = [
 ]
 
 xnat_assessor_contents = [
-    (asr_prefix + "1-x-proc1", "proc1", "usable", copy.deepcopy(asr_files)),
-    (asr_prefix + "2-x-proc1", "proc1", "usable", copy.deepcopy(asr_files))
+    (asr_prefix + "proc1-asr1", "proc1", "usable", copy.deepcopy(asr_files)),
+    #(asr_prefix + "proc1-asr2", "proc1", "usable", copy.deepcopy(asr_files))
 ]
+
+scan_path = 'xnat:/project/{}/subject/{}/experiment/{}/scan/{}/resource/{}'
+assessor_path =\
+    'xnat:/project/{}/subject/{}/experiment/{}/assessor/{}/resource/{}'
+
+xnat_assessor_inputs = {
+    'proc2-asr1': {
+        't1': scan_path.format(proj, subj, sess, '1', 'NIFTI'),
+        'fl': scan_path.format(proj, subj, sess, '11', 'NIFTI'),
+        'seg': assessor_path.format(proj, subj, sess, 'proc1-asr1', 'SEG')
+    }
+}
 
 
 scan_gif_parcellation_yaml = """
@@ -108,6 +124,9 @@ inputs:
       - scan3:
         types: FLAIR
         select: foreach(scan1)
+        resources:
+          - resource: NIFTI
+            varname: fl
       - scan4:
         types: X3
         select: one
@@ -127,7 +146,7 @@ inputs:
         resources:
           - resource: SEG
           - varname: seg
-command: python {spider_path} --t1 {t1} --dbt {db} --exe {nipype_exe}
+command: python {spider_path} --t1 {t1} --fl {fl} --seg {seg} --dbt {db} --exe {nipype_exe}
 attrs:
   suffix:
   xsitype: proc:genProcData
@@ -163,17 +182,19 @@ class MyTestCase(TestCase):
                                                      inputs_by_type)
         print "artefacts_by_input =", artefacts_by_input
 
-        # status, errors = processor_parser.has_inputs(inputs,
-        #                                              artefacts,
-        #                                              artefacts_by_input)
-
         filtered_artefacts_by_input =\
             processor_parser.filter_artefacts_by_quality(inputs,
                                                          artefacts,
                                                          artefacts_by_input)
         print "filter_artefacts_by_input =", filtered_artefacts_by_input
 
-        commands =\
+        parameter_matrix =\
             processor_parser.generate_parameter_matrix(
                 iteration_sources, iteration_map, filtered_artefacts_by_input)
-        print "commands =", commands
+        print "parameter_matrix =", parameter_matrix
+
+        stuff =\
+            processor_parser.compare_to_existing(csess, 'proc2'
+                                                 parameter_matrix)
+
+        print "stuff = ", stuff

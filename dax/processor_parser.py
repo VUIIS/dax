@@ -263,5 +263,11 @@ def generate_parameter_matrix(iteration_sources,
     print input_dimension_map
 
 
+def compare_to_existing(csess, processor_type, parameter_matrix):
+    for cass in csess.assessors():
+        inputs = cass.get_inputs()
+
+
+
 def generate_commands(command_template, artefacts, input_dimension_map):
     pass

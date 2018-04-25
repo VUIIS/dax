@@ -8,6 +8,7 @@ import re
 import os
 
 from . import XnatUtils, task
+from . import processor_parser
 from .errors import AutoProcessorError
 
 
@@ -423,16 +424,19 @@ class AutoProcessor(Processor):
             raise AutoProcessorError("Parameter 'yaml_source' must be provided")
 
         self.xnat = xnat
-        self.inputs = dict()
-        self.extra_inputs = dict()
+        self.user_overrides = dict()
+        self.extra_user_overrides = dict()
 
-        # TODO: BenM/xnat refactor/yaml_source dictionary is an ugly fix to the
-        # problem; refactor before PR back to vuiis/dax
-        self._parse_yaml(yaml_source)
+        self._read_yaml(yaml_source)
 
         # Edit the values from user inputs:
         if user_inputs is not None:
             self._edit_inputs(user_inputs, yaml_source)
+
+        self.inputs,\
+        self.inputs_by_type,\
+        self.iteration_sources,\
+        self.iteration_map = self._parse_yaml(yaml_source.document)
 
         # Set up attrs:
         self.walltime_str = self.attrs.get('walltime')
@@ -470,10 +474,10 @@ No xnat.scans.{} in inputs found.'
             tags = key.split('.')
             if key.startswith('inputs.default'):
                 # change value in inputs
-                if tags[-1] in list(self.inputs.keys()):
-                    self.inputs[tags[-1]] = val
-                elif tags[-1] in list(self.extra_inputs.keys()):
-                    self.extra_inputs[tags[-1]] = val
+                if tags[-1] in list(self.user_overrides.keys()):
+                    self.user_overrides[tags[-1]] = val
+                elif tags[-1] in list(self.extra_user_overrides.keys()):
+                    self.extra_user_overrides[tags[-1]] = val
                 else:
                     msg = 'key {} not found in the default inputs for \
 auto processor defined by yaml file {}'
@@ -504,7 +508,7 @@ processor defined by yaml file {}'
 defined by yaml file {}'
                     LOGGER.warn(msg.format(tags[-1], yaml_source.source_id))
 
-    def _parse_yaml(self, yaml_source):
+    def _read_yaml(self, yaml_source):
         """
         Method to parse the processor arguments and their default values.
 
@@ -525,22 +529,28 @@ defined by yaml file {}'
             # If value is a key in command
             k_str = '{{{}}}'.format(key)
             if k_str in self.command:
-                self.inputs[key] = value
+                self.user_overrides[key] = value
             else:
                 if isinstance(value, bool) and value is True:
-                    self.extra_inputs[key] = ''
+                    self.extra_user_overrides[key] = ''
                 elif value and value != 'None':
-                    self.extra_inputs[key] = value
+                    self.extra_user_overrides[key] = value
 
         # Getting proctype from Yaml
         self.proctype, self.version = self.xnat.get_proctype(
-            self.inputs.get('spider_path'), self.attrs.get('suffix', None))
+            self.user_overrides.get('spider_path'),
+            self.attrs.get('suffix', None))
 
         # Set attributs:
-        self.spider_path = self.inputs.get('spider_path')
+        self.spider_path = self.user_overrides.get('spider_path')
         self.name = self.proctype
         self.type = self.attrs.get('type')
         self.scan_nb = self.attrs.get('scan_nb', None)
+
+
+    def _parse_yaml(self, yaml_source):
+        return processor_parser.parse_inputs(yaml_source)
+
 
     def _check_default_keys(self, source_id, doc):
         """ Static method to raise error if key not found in dictionary from
@@ -579,6 +589,33 @@ defined by yaml file {}'
             err = 'YAML source {} does not have {} defined. See example.'
             raise AutoProcessorError(err.format(source_id, key))
 
+
+    def _parse_session(self,
+                       csess,
+                       inputs,
+                       inputs_by_type,
+                       iteration_sources,
+                       iteration_map):
+        artefacts = processor_parser.parse_artefacts(csess)
+        artefacts_by_input =\
+            processor_parser.map_artefacts_to_inputs(csess,
+                                                     inputs,
+                                                     inputs_by_type)
+        artefacts_by_input =\
+            processor_parser.filtered_artefacts_by_quality(inputs,
+                                                           artefacts,
+                                                           artefacts_by_input)
+
+        parameter_matrix =\
+            processor_parser.generate_parameter_matrix(iteration_sources,
+                                                       iteration_map,
+                                                       artefacts_by_input)
+        return parameter_matrix
+
+
+    # TODO:BenM/assessor_of_assessor/deprecated/keep this method around until we
+    # have removed/refactored any backwards-compatibility code for the old
+    # naming mechanism
     def get_assessor_name(self, cobj):
         """
         Returns the label of the assessor
@@ -617,8 +654,24 @@ defined by yaml file {}'
 
         return assr_label
 
-    # TODO: BenM/assessor_of_assessor/refactor to return multiple assessors if the processor describes it
-    def get_assessor(self, cobj):
+
+    # TODO: BenM/assessor_of_assessor/assessors are described by a type/inputs
+    # tuple now, so we need to check the inputs of each assessor of the
+    # appropriate type
+    def get_assessor_descriptions(self, csess):
+        # parse the contents of the session and determine what assessors need to
+        # be constructed
+        parameter_matrix = self._parse_session(csess,
+                                               self.inputs,
+                                               self.inputs_by_type,
+                                               self.iteration_sources,
+                                               self.iteration_map)
+        return None, None
+
+
+    # TODO: BenM/assessor_of_assessor/remove once upgrade strategy (if any) has
+    # been determined and this code is no longer needed
+    def old_get_assessor(self, cobj):
         """
         Returns the assessor object depending on cobj and the assessor label.
 
@@ -865,9 +918,9 @@ resource/{4}'
             self._append_xnat_cobj(csess, proctypes, resources, needs_qc,
                                    'assessor')
 
-        cmd = self.command.format(**self.inputs)
+        cmd = self.command.format(**self.user_overrides)
 
-        for key, value in list(self.extra_inputs.items()):
+        for key, value in list(self.extra_user_overrides.items()):
             cmd = '{} --{} {}'.format(cmd, key, value)
 
         # Add assr and jobidr:
@@ -900,7 +953,7 @@ resource/{4}'
                 _in = self.get_xnat_path(good_cobjs, res_l.get('resource'),
                                          required=res_l.get('required', True),
                                          fpath=res_l.get('filepath', None))
-                self.inputs[res_l.get('varname')] = ','.join(_in)
+                self.user_overrides[res_l.get('varname')] = ','.join(_in)
 
     def _get_xnat_procscan(self, cprocscan, resources):
         """Method to append XNAT cobj info to inputs for command.
@@ -914,7 +967,7 @@ resource/{4}'
             else:
                 _in = self.get_xnat_path(cprocscan, res_info.get('resource'),
                                          fpath=res_info.get('filepath', None))
-                self.inputs[res_info.get('varname')] = ','.join(_in)
+                self.user_overrides[res_info.get('varname')] = ','.join(_in)
 
 
 def processors_by_type(proc_list):
