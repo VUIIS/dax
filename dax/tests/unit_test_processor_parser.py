@@ -194,7 +194,7 @@ class MyTestCase(TestCase):
         print "parameter_matrix =", parameter_matrix
 
         stuff =\
-            processor_parser.compare_to_existing(csess, 'proc2'
+            processor_parser.compare_to_existing(csess, 'proc2',
                                                  parameter_matrix)
 
         print "stuff = ", stuff
