@@ -97,7 +97,7 @@ xnat_assessor_inputs = {
         't1': scan_path.format(proj, subj, sess, '1', 'NIFTI')
     },
     'proc1-asr2': {
-        't1': scan_path.format(proj, subj, sess, '1', 'NIFTI')
+        't1': scan_path.format(proj, subj, sess, '2', 'NIFTI')
     },
     'proc2-asr1': {
         't1': scan_path.format(proj, subj, sess, '1', 'NIFTI'),
@@ -108,7 +108,8 @@ xnat_assessor_inputs = {
 
 xnat_assessor_contents = [
     ("proc1-asr1", "proc1", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc1-asr1']),
-    ("proc1-asr2", "proc1", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc1-asr2'])
+    ("proc1-asr2", "proc1", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc1-asr2']),
+    ("proc2-asr1", "proc2", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc2-asr1'])
 ]
 
 
@@ -156,7 +157,7 @@ inputs:
         select: foreach(scan1)
         resources:
           - resource: SEG
-          - varname: seg
+            varname: seg
 command: python {spider_path} --t1 {t1} --fl {fl} --seg {seg} --dbt {db} --exe {nipype_exe}
 attrs:
   suffix:

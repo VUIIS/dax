@@ -125,6 +125,51 @@ def parse_inputs(yaml_source):
             'resources': s.get('resources', [])
         }
 
+    vars = {}
+    # get scans
+    scans = xnat.get('scans', list())
+    for s in scans:
+        for r in s.get('resources', list()):
+            name = _input_name(s)
+            select = s.get('select', None)
+
+            _register_iteration_references(name, _parse_select(select),
+                                           iteration_sources, iteration_map)
+
+            types = [_.strip() for _ in s['types'].split(',')]
+            #_register_input_types(types, inputs_by_type, name)
+
+            vars[r['varname']] = {
+                'input_name': name,
+                'types': types,
+                'artefact_type': 'scan',
+                'needs_qc': s.get('needs_qc', False),
+                'resource': r['resource']
+            }
+
+    # get assessors
+    asrs = xnat.get('assessors', list())
+    for a in asrs:
+        for r in a.get('resources', list()):
+            name = _input_name(a)
+            select = a.get('select', None)
+
+            _register_iteration_references(name, _parse_select(select),
+                                           iteration_sources, iteration_map)
+
+            types = [_.strip() for _ in a['proctypes'].split(',')]
+            #_register_input_types(types, inputs_by_type, name)
+            print 'r =', r
+
+            vars[r['varname']] = {
+                'input_name': name,
+                'types': types,
+                'artefact_type': 'scan',
+                'needs_qc': a.get('needs_qc', False),
+                'resource': r['resource']
+            }
+
+    print 'vars = ', vars
     return inputs, inputs_by_type, iteration_sources, iteration_map
 
 
@@ -261,12 +306,20 @@ def generate_parameter_matrix(iteration_sources,
         input_dimension_map[i] = (mapped_inputs, mapped_input_vector)
 
     print input_dimension_map
+    return input_dimension_map
 
 
 def compare_to_existing(csess, processor_type, parameter_matrix):
-    for cass in csess.assessors():
+    for cass in filter(lambda a: a.type() == processor_type, csess.assessors()):
+        print cass.id()
         inputs = cass.get_inputs()
+        print "assessor inputs =", inputs
 
+        # for each entry in the parameter matrix, see if it matches with
+        # an existing assessor in terms of inputs
+        asr_artefacts =\
+            sorted(map(lambda v: v[1].split('/')[-3], inputs.iteritems()))
+        print asr_artefacts
 
 
 def generate_commands(command_template, artefacts, input_dimension_map):

@@ -3153,6 +3153,7 @@ class CachedImageAssessor(object):
         self.intf = intf
         self.assr_parent = parent
         self.assr_element = assr_element
+        self.proctype = None
 
     def entity_type(self):
         return 'assessor'
@@ -3208,6 +3209,10 @@ class CachedImageAssessor(object):
                     return value
 
         return ''
+
+    def type(self):
+        if self.proctype is None:
+            self.proctype = self.info()['proctype']
 
     def info(self):
         """
