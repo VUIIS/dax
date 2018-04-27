@@ -22,7 +22,6 @@ from .errors import (ClusterCountJobsException, ClusterLaunchException,
                      DaxXnatError, DaxLauncherError)
 from . import yaml_doc
 
-
 try:
     basestring
 except NameError:
@@ -67,6 +66,7 @@ def check_dir(dir_path):
 
 class Launcher(object):
     """ Launcher object to manage a list of projects from a settings file """
+
     def __init__(self,
                  project_process_dict=dict(),
                  project_modules_dict=dict(),
@@ -135,7 +135,7 @@ name as a key and list of yaml filepaths as values.'
                     # AutoProcessors rather than strings for yaml files
                     yaml_obj = yaml_doc.YamlDoc().from_file(yaml_obj)
                     proc = processors.AutoProcessor(yaml_obj)
-                elif isinstance(yaml_obj. yaml_doc.YamlDoc):
+                elif isinstance(yaml_obj.yaml_doc.YamlDoc):
                     proc = processors.AutoProcessor(XnatUtils, yaml_obj)
                 else:
                     err = 'yaml_obj of type {} is unsupported'
@@ -179,13 +179,14 @@ name as a key and list of yaml filepaths as values.'
             self.xnat_host = os.environ['XNAT_HOST']
 
         # CR flag: don't want something like 'cr: blah blah' in the settings file turning the cr flag on
-        if str(cr).upper()=='TRUE': 
-            self.cr=True
+        if str(cr).upper() == 'TRUE':
+            self.cr = True
         else:
-            self.cr=False
+            self.cr = False
 
-        LOGGER.info('XNAT CR status: cr=%s, self.cr=%s'%(str(cr),str(self.cr)))
-    
+        LOGGER.info(
+            'XNAT CR status: cr=%s, self.cr=%s' % (str(cr), str(self.cr)))
+
         # User:
         if not xnat_user:
             netrc_obj = DAX_Netrc()
@@ -237,7 +238,8 @@ name as a key and list of yaml filepaths as values.'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
             task_list = load_task_queue(
                 status=task.NEED_TO_RUN,
-                proj_filter=list(set(self.project_process_dict.keys()+self.project_modules_dict.keys())))
+                proj_filter=list(set(
+                    self.project_process_dict.keys() + self.project_modules_dict.keys())))
 
             msg = '%s tasks that need to be launched found'
             LOGGER.info(msg % str(len(task_list)))
@@ -470,8 +472,8 @@ cluster queue"
                 LOGGER.info('===== PROJECT: %s =====' % project_id)
                 try:
                     if ((proj_lastrun) and
-                       (project_id in proj_lastrun) and
-                       (proj_lastrun[project_id] is not None)):
+                            (project_id in proj_lastrun) and
+                            (proj_lastrun[project_id] is not None)):
                         lastrun = proj_lastrun[project_id]
                     else:
                         lastrun = None
@@ -536,8 +538,8 @@ cluster queue"
                 now_date = datetime.today()
                 last_up = self.get_lastupdated(sess_info)
                 if last_up is not None and \
-                   last_mod < last_up and \
-                   now_date < last_mod + timedelta(days=int(self.max_age)):
+                        last_mod < last_up and \
+                        now_date < last_mod + timedelta(days=int(self.max_age)):
                     mess = "  + Session %s: skipping, last_mod=%s,last_up=%s"
                     mess_str = mess % (sess_info['label'], str(last_mod),
                                        str(last_up))
@@ -668,6 +670,7 @@ cluster queue"
         """
         sess_info = csess.info()
         res_dir = DAX_SETTINGS.get_results_dir()
+        full_session_object = csess.full_object()
 
         for sess_proc in sess_proc_list:
             if not sess_proc.should_run(sess_info):
@@ -676,56 +679,59 @@ cluster queue"
             # TODO: BenM/assessor_of_assessor/return list of assessors
             # TODO: BenM/assessor_of_assessor/session processors can return
             # scan-level assessors
-            p_assr, assr_name = sess_proc.get_assessor(csess)
+            mapping = sess_proc.get_assessor_mapping(csess)
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
-                if p_assr is None or \
-                   p_assr.info()['procstatus'] == task.NEED_INPUTS or \
-                   p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
-                    # TODO: BenM/assessor_of_assessor/how can p_assr be none if
-                    # it exists in the session?
-                    assessor = csess.full_object().assessor(assr_name)
-                    xtask = XnatTask(sess_proc, assessor, res_dir,
-                                     os.path.join(res_dir, 'DISKQ'))
+                for p_assr, assr_inputs in mapping[1]:
+                    assr_name = p_assr.label()
+                    if p_assr is None or \
+                            p_assr.info()['procstatus'] == task.NEED_INPUTS or \
+                            p_assr.info()['qcstatus'] in [task.RERUN,
+                                                          task.REPROC]:
+                        assessor = full_session_object.assessor(assr_name)
+                        xtask = XnatTask(sess_proc, assessor, res_dir,
+                                         os.path.join(res_dir, 'DISKQ'))
 
-                    if p_assr is not None and \
-                       p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
-                        xtask.update_status()
+                        if p_assr is not None and \
+                                p_assr.info()['qcstatus'] in [task.RERUN,
+                                                              task.REPROC]:
+                            xtask.update_status()
 
-                    LOGGER.debug('building task:' + assr_name)
-                    (proc_status, qc_status) = xtask.build_task(
-                        csess,
-                        self.root_job_dir,
-                        self.job_email,
-                        self.job_email_options)
-                    deg = 'proc_status=%s, qc_status=%s'
-                    LOGGER.debug(deg % (proc_status, qc_status))
-                else:
-                    # TODO: check that it actually exists in QUEUE
-                    LOGGER.debug('skipping, already built: %s' % assr_name)
+                        LOGGER.debug('building task:' + assr_name)
+                        (proc_status, qc_status) = xtask.build_task(
+                            csess,
+                            self.root_job_dir,
+                            self.job_email,
+                            self.job_email_options)
+                        deg = 'proc_status=%s, qc_status=%s'
+                        LOGGER.debug(deg % (proc_status, qc_status))
+                    else:
+                        # TODO: check that it actually exists in QUEUE
+                        LOGGER.debug('skipping, already built: %s' % assr_name)
             else:
-                if p_assr is None or \
-                   p_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    sess_task = sess_proc.get_task(csess, res_dir)
-                    log_updating_status(sess_proc.name,
-                                        sess_task.assessor_label)
-                    has_inputs, qcstatus = sess_proc.has_inputs(csess)
-                    try:
-                        if has_inputs == 1:
-                            sess_task.set_status(task.NEED_TO_RUN)
-                            sess_task.set_qcstatus(task.JOB_PENDING)
-                        elif has_inputs == -1:
-                            sess_task.set_status(task.NO_DATA)
-                            sess_task.set_qcstatus(qcstatus)
-                        else:
-                            sess_task.set_qcstatus(qcstatus)
-                    except Exception as E:
-                        err1 = 'Caught exception building session %s while \
-setting assessor status'
-                        err2 = 'Exception class %s caught with message %s'
-                        LOGGER.critical(err1 % sess_info['session_label'])
-                        LOGGER.critical(err2 % (E.__class__, E.message))
-                        LOGGER.critical(traceback.format_exc())
+                for p_assr, assr_inputs in mapping[1]:
+                    if p_assr is None or \
+                            p_assr.info()['procstatus'] == task.NEED_INPUTS:
+                        sess_task = sess_proc.get_task(csess, res_dir)
+                        log_updating_status(sess_proc.name,
+                                            sess_task.assessor_label)
+                        has_inputs, qcstatus = sess_proc.has_inputs(csess)
+                        try:
+                            if has_inputs == 1:
+                                sess_task.set_status(task.NEED_TO_RUN)
+                                sess_task.set_qcstatus(task.JOB_PENDING)
+                            elif has_inputs == -1:
+                                sess_task.set_status(task.NO_DATA)
+                                sess_task.set_qcstatus(qcstatus)
+                            else:
+                                sess_task.set_qcstatus(qcstatus)
+                        except Exception as E:
+                            err1 = 'Caught exception building session %s while \
+    setting assessor status'
+                            err2 = 'Exception class %s caught with message %s'
+                            LOGGER.critical(err1 % sess_info['session_label'])
+                            LOGGER.critical(err2 % (E.__class__, E.message))
+                            LOGGER.critical(traceback.format_exc())
                 else:
                     # Other statuses handled by dax_update_tasks
                     pass
@@ -778,9 +784,9 @@ setting assessor status'
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
                 if p_assr is None or \
-                   p_assr.info()['procstatus'] in [task.NEED_INPUTS,
-                                                   task.NEED_TO_RUN] or \
-                   p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
+                        p_assr.info()['procstatus'] in [task.NEED_INPUTS,
+                                                        task.NEED_TO_RUN] or \
+                        p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
                     # TODO: get session object directly
                     scan = cscan.full_object()
                     assessor = scan.parent().assessor(assr_name)
@@ -788,7 +794,8 @@ setting assessor status'
                                      os.path.join(res_dir, 'DISKQ'))
 
                     if p_assr is not None and \
-                       p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
+                            p_assr.info()['qcstatus'] in [task.RERUN,
+                                                          task.REPROC]:
                         xtask.update_status()
 
                     LOGGER.debug('building task:' + assr_name)
@@ -804,7 +811,7 @@ setting assessor status'
                     LOGGER.debug('skipping, already built:' + assr_name)
             else:
                 if p_assr is None or \
-                   p_assr.info()['procstatus'] == task.NEED_INPUTS:
+                        p_assr.info()['procstatus'] == task.NEED_INPUTS:
                     scan_task = scan_proc.get_task(cscan, res_dir)
                     log_updating_status(scan_proc.name,
                                         scan_task.assessor_label)
@@ -1058,14 +1065,14 @@ The project is not part of the settings."""
         """
         # Look for a match in sess processors
         for sess_proc in sess_proc_list:
-            if sess_proc.xsitype == assr_info['xsiType'] and\
-               sess_proc.name == assr_info['proctype']:
+            if sess_proc.xsitype == assr_info['xsiType'] and \
+                    sess_proc.name == assr_info['proctype']:
                 return sess_proc
 
         # Look for a match in scan processors
         for scan_proc in scan_proc_list:
-            if scan_proc.xsitype == assr_info['xsiType'] and\
-               scan_proc.name == assr_info['proctype']:
+            if scan_proc.xsitype == assr_info['xsiType'] and \
+                    scan_proc.name == assr_info['proctype']:
                 return scan_proc
 
         return None
@@ -1208,10 +1215,12 @@ The project is not part of the settings."""
         LOGGER.debug(deg % (sess_info['label'], update_str))
         try:
             if cr:
-                LOGGER.critical('CR does not seem to allow changing of session timestamp, what do we do?')
+                LOGGER.critical(
+                    'CR does not seem to allow changing of session timestamp, what do we do?')
             else:
                 sess_obj.attrs.set('%s/original' % xsi_type,
-                               UPDATE_PREFIX + update_str, params={"event_reason": "DAX setting session_lastupdated"})
+                                   UPDATE_PREFIX + update_str, params={
+                        "event_reason": "DAX setting session_lastupdated"})
         except Exception as E:
             err1 = 'Caught exception setting update timestamp for session %s'
             err2 = 'Exception class %s caught with message %s'
@@ -1321,8 +1330,8 @@ def upload_update_date_redcap(project_list, type_update, start_end):
     dax_config = DAX_SETTINGS.get_dax_manager_config()
     logger = logging.getLogger('dax')
     if DAX_SETTINGS.get_api_url() and \
-       DAX_SETTINGS.get_api_key_dax() and \
-       dax_config:
+            DAX_SETTINGS.get_api_key_dax() and \
+            dax_config:
         redcap_project = None
         try:
             redcap_project = redcap.Project(DAX_SETTINGS.get_api_url(),

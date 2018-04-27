@@ -551,7 +551,6 @@ defined by yaml file {}'
     def _parse_yaml(self, yaml_source):
         return processor_parser.parse_inputs(yaml_source)
 
-
     def _check_default_keys(self, source_id, doc):
         """ Static method to raise error if key not found in dictionary from
         yaml file.
@@ -589,7 +588,6 @@ defined by yaml file {}'
             err = 'YAML source {} does not have {} defined. See example.'
             raise AutoProcessorError(err.format(source_id, key))
 
-
     def _parse_session(self,
                        csess,
                        inputs,
@@ -610,8 +608,13 @@ defined by yaml file {}'
             processor_parser.generate_parameter_matrix(iteration_sources,
                                                        iteration_map,
                                                        artefacts_by_input)
-        return parameter_matrix
 
+        input_to_assessor_mapping =\
+            processor_parser.compare_to_existing(csess,
+                                                 self.proctype,
+                                                 parameter_matrix)
+
+        return input_to_assessor_mapping
 
     # TODO:BenM/assessor_of_assessor/deprecated/keep this method around until we
     # have removed/refactored any backwards-compatibility code for the old
@@ -654,24 +657,22 @@ defined by yaml file {}'
 
         return assr_label
 
-
     # TODO: BenM/assessor_of_assessor/assessors are described by a type/inputs
     # tuple now, so we need to check the inputs of each assessor of the
     # appropriate type
-    def get_assessor_descriptions(self, csess):
+    def get_assessor_mapping(self, csess):
         # parse the contents of the session and determine what assessors need to
         # be constructed
-        parameter_matrix = self._parse_session(csess,
-                                               self.inputs,
-                                               self.inputs_by_type,
-                                               self.iteration_sources,
-                                               self.iteration_map)
-        return None, None
-
+        input_to_assessor_mapping = self._parse_session(csess,
+                                                        self.inputs,
+                                                        self.inputs_by_type,
+                                                        self.iteration_sources,
+                                                        self.iteration_map)
+        return input_to_assessor_mapping
 
     # TODO: BenM/assessor_of_assessor/remove once upgrade strategy (if any) has
     # been determined and this code is no longer needed
-    def old_get_assessor(self, cobj):
+    def get_assessor(self, cobj):
         """
         Returns the assessor object depending on cobj and the assessor label.
 

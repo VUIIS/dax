@@ -351,7 +351,7 @@ def compare_to_existing(csess, processor_type, parameter_matrix):
         # with a given set of inputs
 
     return (parameter_matrix[0],
-            zip(copy.deep_copy(parameter_matrix[1]), assessors))
+            zip(copy.deepcopy(parameter_matrix[1]), assessors))
 
 
 def generate_commands(command_template, artefacts, para):

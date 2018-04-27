@@ -109,19 +109,6 @@ assessor_path = 'xnat:/project/{}/subject/{}/experiment/{}/assessor/{}'
 scan_path_r = scan_path + '/resource/{}'
 assessor_path_r = assessor_path + '/resource/{}'
 
-# xnat_assessor_inputs = {
-#     'proc1-asr1': {
-#         't1': scan_path_r.format(proj, subj, sess, '1', 'NIFTI')
-#     },
-#     'proc1-asr2': {
-#         't1': scan_path_r.format(proj, subj, sess, '2', 'NIFTI')
-#     },
-#     'proc2-asr1': {
-#         't1': scan_path_r.format(proj, subj, sess, '1', 'NIFTI'),
-#         'fl': scan_path_r.format(proj, subj, sess, '11', 'NIFTI'),
-#         'seg': assessor_path_r.format(proj, subj, sess, 'proc1-asr1', 'SEG')
-#     }
-# }
 xnat_assessor_inputs = {
     'proc1-asr1': {'scan1': scan_path.format(proj, subj, sess, '1')},
     'proc1-asr2': {'scan1': scan_path.format(proj, subj, sess, '2')},
@@ -137,8 +124,6 @@ xnat_assessor_contents = [
     ("proc1-asr2", "proc1", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc1-asr2']),
     ("proc2-asr1", "proc2", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc2-asr1'])
 ]
-
-
 
 scan_gif_parcellation_yaml = """
 ---
