@@ -8,6 +8,22 @@ import yaml
 from dax import processor_parser
 
 
+# test matrix
+# ===========
+
+# select keywords
+# . foreach, foreach(i), one, some(n), all, malformed
+# resources
+# . well-formed
+#   . one, many
+# . malformed
+#   . none, duplicates (intra), duplicates (inter)
+# . present / not present
+# assessor statuses
+# . all statuses
+
+
+
 class TestResource:
 
     def __init__(self, label, file_count):
@@ -88,21 +104,31 @@ asr_files = [
     ('STATS', 1), ('SNAPSHOTS', 2), ('OUTLOG', 1), ('PBS', 1)
 ]
 
-scan_path = 'xnat:/project/{}/subject/{}/experiment/{}/scan/{}/resource/{}'
-assessor_path =\
-    'xnat:/project/{}/subject/{}/experiment/{}/assessor/{}/resource/{}'
+scan_path = 'xnat:/project/{}/subject/{}/experiment/{}/scan/{}'
+assessor_path = 'xnat:/project/{}/subject/{}/experiment/{}/assessor/{}'
+scan_path_r = scan_path + '/resource/{}'
+assessor_path_r = assessor_path + '/resource/{}'
 
+# xnat_assessor_inputs = {
+#     'proc1-asr1': {
+#         't1': scan_path_r.format(proj, subj, sess, '1', 'NIFTI')
+#     },
+#     'proc1-asr2': {
+#         't1': scan_path_r.format(proj, subj, sess, '2', 'NIFTI')
+#     },
+#     'proc2-asr1': {
+#         't1': scan_path_r.format(proj, subj, sess, '1', 'NIFTI'),
+#         'fl': scan_path_r.format(proj, subj, sess, '11', 'NIFTI'),
+#         'seg': assessor_path_r.format(proj, subj, sess, 'proc1-asr1', 'SEG')
+#     }
+# }
 xnat_assessor_inputs = {
-    'proc1-asr1': {
-        't1': scan_path.format(proj, subj, sess, '1', 'NIFTI')
-    },
-    'proc1-asr2': {
-        't1': scan_path.format(proj, subj, sess, '2', 'NIFTI')
-    },
+    'proc1-asr1': {'scan1': scan_path.format(proj, subj, sess, '1')},
+    'proc1-asr2': {'scan1': scan_path.format(proj, subj, sess, '2')},
     'proc2-asr1': {
-        't1': scan_path.format(proj, subj, sess, '1', 'NIFTI'),
-        'fl': scan_path.format(proj, subj, sess, '11', 'NIFTI'),
-        'seg': assessor_path.format(proj, subj, sess, 'proc1-asr1', 'SEG')
+        'scan1': scan_path.format(proj, subj, sess, '1'),
+        'scan2': scan_path.format(proj, subj, sess, '11'),
+        'asr1': assessor_path.format(proj, subj, sess, 'proc1-asr1')
     }
 }
 
@@ -131,11 +157,8 @@ inputs:
           - resource: NIFTI
             varname: t1
       - scan2:
-        types: X1
-        select: foreach
-      - scan3:
         types: FLAIR
-        select: foreach(scan1)
+        select: foreach
         resources:
           - resource: NIFTI
             varname: fl
@@ -205,8 +228,8 @@ class MyTestCase(TestCase):
                 iteration_sources, iteration_map, filtered_artefacts_by_input)
         print "parameter_matrix =", parameter_matrix
 
-        stuff =\
+        assessor_parameter_map =\
             processor_parser.compare_to_existing(csess, 'proc2',
                                                  parameter_matrix)
 
-        print "stuff = ", stuff
+        print "assessor_parameter_map = ", assessor_parameter_map

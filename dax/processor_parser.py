@@ -1,4 +1,7 @@
 
+import copy
+import itertools
+
 session_namespace = {
     'foreach': {'args': [{'optional': True, 'type': str}]},
     'one': {'args': []},
@@ -280,7 +283,8 @@ def generate_parameter_matrix(iteration_sources,
                               artefacts_by_input):
 
     # generate n dimensional input matrix based on iteration sources
-    input_dimension_map = {}
+    all_inputs = []
+    input_dimension_map = [] #{}
     for i in iteration_sources:
         # find other inputs that map to this iteration source
         mapped_inputs = []
@@ -290,8 +294,6 @@ def generate_parameter_matrix(iteration_sources,
             for k, v in iteration_map.iteritems():
                 if v == i and len(artefacts_by_input.get(k, [])) > 0:
                     mapped_inputs.append(k)
-
-            print "mapped_inputs =", mapped_inputs
 
             # generate 'zip' of inputs that are all attached to iteration source
 
@@ -303,24 +305,54 @@ def generate_parameter_matrix(iteration_sources,
                     )
                 mapped_input_vector.append(cur)
 
-        input_dimension_map[i] = (mapped_inputs, mapped_input_vector)
+        #input_dimension_map[i] = (mapped_inputs, mapped_input_vector)
+        all_inputs.append(mapped_inputs)
+        input_dimension_map.append(mapped_input_vector)
 
-    print input_dimension_map
-    return input_dimension_map
+    # perform a cartesian product of the dimension map entries to get the final
+    # input combinations
+
+    matrix = map(lambda x: list(itertools.chain.from_iterable(x)),
+                 itertools.product(*input_dimension_map))
+    return list(itertools.chain.from_iterable(all_inputs)), matrix
 
 
 def compare_to_existing(csess, processor_type, parameter_matrix):
-    for cass in filter(lambda a: a.type() == processor_type, csess.assessors()):
-        print cass.id()
-        inputs = cass.get_inputs()
-        print "assessor inputs =", inputs
+
+    for casr in filter(lambda a: a.type() == processor_type, csess.assessors()):
+        inputs = casr.get_inputs()
+
+        #get an index map from the inputs to the parameter matrix
+        index_map = {}
+        for index, input in enumerate(parameter_matrix[0]):
+            index_map[input] = index
+        indices = []
+        for i in inputs:
+            indices.append(index_map[i])
 
         # for each entry in the parameter matrix, see if it matches with
         # an existing assessor in terms of inputs
         asr_artefacts =\
-            sorted(map(lambda v: v[1].split('/')[-3], inputs.iteritems()))
-        print asr_artefacts
+            map(lambda v: v[1].split('/')[-1], inputs.iteritems())
+
+        assessors = [[] for _ in range(len(parameter_matrix[1]))]
+        for pi, p in enumerate(parameter_matrix[1]):
+            # ia[0] is an index, ia[1] is the artefact name; artefact names in
+            # p are in a different order to artefact names in the inputs, so use
+            # 'indices' to find the index of the ith input artefact in the
+            # parameter map and then perform the comparison. If all match, p
+            # matches the current assessor
+            if all((p[indices[ia[0]]] == ia[1]
+                    for ia in enumerate(asr_artefacts))):
+                assessors[pi].append(casr)
+                break
+
+        # TODO: BenM/assessor_of_assessor/handle multiple assessors associated
+        # with a given set of inputs
+
+    return (parameter_matrix[0],
+            zip(copy.deep_copy(parameter_matrix[1]), assessors))
 
 
-def generate_commands(command_template, artefacts, input_dimension_map):
+def generate_commands(command_template, artefacts, para):
     pass
