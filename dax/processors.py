@@ -436,7 +436,7 @@ class AutoProcessor(Processor):
         self.inputs,\
         self.inputs_by_type,\
         self.iteration_sources,\
-        self.iteration_map = self._parse_yaml(yaml_source.document)
+        self.iteration_map = self._parse_yaml(yaml_source.contents)
 
         # Set up attrs:
         self.walltime_str = self.attrs.get('walltime')

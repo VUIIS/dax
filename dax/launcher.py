@@ -682,7 +682,7 @@ cluster queue"
             mapping = sess_proc.get_assessor_mapping(csess)
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
-                for p_assr, assr_inputs in mapping[1]:
+                for assr_inputs, p_assr in mapping[1]:
                     assr_name = p_assr.label()
                     if p_assr is None or \
                             p_assr.info()['procstatus'] == task.NEED_INPUTS or \

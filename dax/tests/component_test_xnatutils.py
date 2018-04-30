@@ -80,8 +80,8 @@ class SanityChecks(TestCase):
                 'document': yaml.load((StringIO.StringIO(yamls.scan_gif_parcellation_yaml)))
             }
             ap = AutoProcessor(xnat, yaml_source)
-            cassr = intf.select_assessor(proj_id, subj_id, sess_id, assr_id)
-            print(ap.get_cmds(cassr, 'ajobdir'))
+            assr = intf.select_assessor(proj_id, subj_id, sess_id, assr_id)
+            print(ap.get_cmds(assr, 'ajobdir'))
 
     def test_list_project_scans(self):
         with SanityChecks.__get_connection() as intf:

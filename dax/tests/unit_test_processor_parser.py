@@ -6,6 +6,9 @@ import StringIO
 import yaml
 
 from dax import processor_parser
+from dax.processors import AutoProcessor
+from dax.tests import unit_test_entity_common as common
+from dax import yaml_doc
 
 
 # test matrix
@@ -178,6 +181,11 @@ attrs:
   scan_nb: scan1
 """
 
+class ProcessorTest(TestCase):
+
+    def test_new_processor(self):
+        yd = yaml_doc.YamlDoc().from_string(scan_gif_parcellation_yaml)
+        ap = AutoProcessor(common.FakeXnat, yd)
 
 class MyTestCase(TestCase):
 
@@ -202,6 +210,10 @@ class MyTestCase(TestCase):
                                                      inputs_by_type)
         print "artefacts_by_input =", artefacts_by_input
 
+        variables_to_inputs =\
+            processor_parser.parse_variables(inputs)
+        print "variables_to_inputs =", variables_to_inputs
+
         filtered_artefacts_by_input =\
             processor_parser.filter_artefacts_by_quality(inputs,
                                                          artefacts,
@@ -216,5 +228,4 @@ class MyTestCase(TestCase):
         assessor_parameter_map =\
             processor_parser.compare_to_existing(csess, 'proc2',
                                                  parameter_matrix)
-
         print "assessor_parameter_map = ", assessor_parameter_map

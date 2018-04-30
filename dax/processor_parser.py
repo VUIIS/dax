@@ -124,56 +124,23 @@ def parse_inputs(yaml_source):
         inputs[name] = {
             'types': types,
             'artefact_type': 'assessor',
-            'needs_qc': s.get('needs_qc', False),
-            'resources': s.get('resources', [])
+            'needs_qc': a.get('needs_qc', False),
+            'resources': a.get('resources', [])
         }
 
-    vars = {}
-    # get scans
-    scans = xnat.get('scans', list())
-    for s in scans:
-        for r in s.get('resources', list()):
-            name = _input_name(s)
-            select = s.get('select', None)
-
-            _register_iteration_references(name, _parse_select(select),
-                                           iteration_sources, iteration_map)
-
-            types = [_.strip() for _ in s['types'].split(',')]
-            #_register_input_types(types, inputs_by_type, name)
-
-            vars[r['varname']] = {
-                'input_name': name,
-                'types': types,
-                'artefact_type': 'scan',
-                'needs_qc': s.get('needs_qc', False),
-                'resource': r['resource']
-            }
-
-    # get assessors
-    asrs = xnat.get('assessors', list())
-    for a in asrs:
-        for r in a.get('resources', list()):
-            name = _input_name(a)
-            select = a.get('select', None)
-
-            _register_iteration_references(name, _parse_select(select),
-                                           iteration_sources, iteration_map)
-
-            types = [_.strip() for _ in a['proctypes'].split(',')]
-            #_register_input_types(types, inputs_by_type, name)
-            print 'r =', r
-
-            vars[r['varname']] = {
-                'input_name': name,
-                'types': types,
-                'artefact_type': 'scan',
-                'needs_qc': a.get('needs_qc', False),
-                'resource': r['resource']
-            }
-
-    print 'vars = ', vars
     return inputs, inputs_by_type, iteration_sources, iteration_map
+
+
+def parse_variables(inputs):
+    variables_to_inputs = {}
+    for ik, iv in inputs.iteritems():
+        for r in iv['resources']:
+            v = r.get('varname', '')
+            if v is not None and len(v) > 0:
+                variables_to_inputs[v] =\
+                    {'input': ik, 'resource': r['resource']}
+
+    return variables_to_inputs
 
 
 def parse_artefacts(csess):
@@ -354,5 +321,11 @@ def compare_to_existing(csess, processor_type, parameter_matrix):
             zip(copy.deepcopy(parameter_matrix[1]), assessors))
 
 
-def generate_commands(command_template, artefacts, para):
-    pass
+def generate_commands(command_template,
+                      inputs,
+                      variables_to_inputs,
+                      parameter_matrix):
+    # map from parameters to input resources
+
+    for p in parameter_matrix[1]:
+        command_template.format()

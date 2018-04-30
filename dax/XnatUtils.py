@@ -595,6 +595,7 @@ class InterfaceTemp(Interface):
         return sorted(new_list, key=lambda k: k['label'])
 
 
+# TODO: BenM/assessor_of_assessor/should be able to go
 class AssessorHandler(object):
     """
     Class to intelligently deal with the Assessor labels.
@@ -1333,7 +1334,7 @@ def get_resource_lastdate_modified(intf, resource_obj):
 # essentially the same thing
 # TODO: BenM/xnatutils refactor/we really should know the context we are
 # working in wrt project,subject, etc. It shouldn't be necessary to get this
-# from the label
+# from the label - NOTE: this can go
 def select_assessor(intf, assessor_label):
     """
     Select assessor from his label
@@ -1442,6 +1443,7 @@ assessor_id at the same time.")
     return intf.select(select_str)
 
 
+# TODO: BenM/assessor_of_assessor/this can go
 def generate_assessor_handler(project, subject, session, proctype, scan=None):
     """
     Generate an assessorHandler object corresponding to the labels in the
@@ -1620,7 +1622,8 @@ def get_cassr_on_same_session(cobj, proctype, is_scan_proc=False):
     return cassr_list
 
 
-# TODO: BenM/assessor_of_assessor/unused; can be removed
+# TODO: BenM/assessor_of_assessor/unused; can be removed - DANGER, this is
+# probably being used by third party code
 def is_assessor_on_same_session_usable(cobj, proctype, is_scan_proc=False):
     """
     Check to see if the assessor matching the user passed proctype has

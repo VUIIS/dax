@@ -21,15 +21,9 @@ class ConnectionStringUnitTest(TestCase):
 
 class AutoProcessorUnitTest(TestCase):
 
-    def _make_yaml_source(self, resource):
-        # doc = yaml.load((StringIO.StringIO(resource)))
-        # yaml_source = {}
-        # yaml_source['source_type'] = 'string'
-        # yaml_source['source_id'] = 'unit test string'
-        # yaml_source['document'] = doc
-        # return yaml_source
+    @staticmethod
+    def _make_yaml_source(resource):
         return yaml_doc.YamlDoc().from_string(resource)
-
 
 
     def _construct_session(self, name):
@@ -39,16 +33,17 @@ class AutoProcessorUnitTest(TestCase):
         return tpo.subjects()['subj1'].sessions()['sess1']
 
 
-
-
     def test_scan_processor_construction(self):
         yaml_source = self._make_yaml_source(
-            common.processor_yamls.scan_brain_tiv_from_gif_yaml)
+           common.processor_yamls.scan_brain_tiv_from_gif_yaml)
         ap = AutoProcessor(common.FakeXnat, yaml_source)
 
         yaml_source = self._make_yaml_source(common.git_pct_t1_yaml)
         ap = AutoProcessor(common.FakeXnat, yaml_source)
 
+
+    def test_test(self):
+        print("hello world")
 
 
     def test_scan_assessor_get_assessor_name(self):
@@ -77,7 +72,6 @@ class AutoProcessorUnitTest(TestCase):
                           "proj1-x-subj1-x-sess1-x-1-x-BrainTivFromGIF_v1")
 
 
-
     def test_scan_assessor_should_run(self):
         tseo = self._construct_session('brain_tiv_from_gif')
         tsco = tseo.scan_by_key('1')
@@ -88,7 +82,6 @@ class AutoProcessorUnitTest(TestCase):
 
         ret = ap.should_run(tseo.info())
         self.assertEqual(ret, 1)
-
 
 
     def test_scan_assessor_has_inputs(self):
@@ -115,4 +108,4 @@ class AutoProcessorUnitTest(TestCase):
         print(tsao)
         # TODO:BenM/assessor_of_assessor/we are passing an interface object
         # rather than a cached object. Fix and then re-enable
-        # ap.get_cmds(tsco, '/testdir')
+        ap.get_cmds(tsco, '/testdir')
