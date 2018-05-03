@@ -189,8 +189,8 @@ def pi_from_project(project):
 
     """
     pi_name = ''
-    with XnatUtils.get_interface() as xnat:
-        proj = xnat.select.project(project)
+    with XnatUtils.get_interface() as intf:
+        proj = intf.select.project(project)
         pi_name = proj.attrs.get('xnat:projectdata/pi/lastname')
 
     return pi_name
@@ -334,6 +334,6 @@ def load_from_file(filepath, args, logger):
 
     elif filepath.endswith('.yaml'):
         yaml_obj = yaml_doc.YamlDoc().from_file(filepath)
-        return processors.AutoProcessor(yaml_obj, args)
+        return processors.AutoProcessor(XnatUtils, yaml_obj, args)
 
     return None

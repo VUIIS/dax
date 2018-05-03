@@ -941,8 +941,8 @@ Wrong label.'
         """
         # Connection to Xnat
         try:
-            with get_interface(host=self.host) as xnat:
-                assessor = self.assr_handler.select_assessor(xnat)
+            with get_interface(host=self.host) as intf:
+                assessor = self.assr_handler.select_assessor(intf)
                 if assessor.exists():
                     dtype = DEFAULT_DATATYPE
                     if self.assr_handler.get_proctype() == 'FS':
@@ -1929,8 +1929,8 @@ def download_file(directory, resource, project_id=None, subject_id=None,
     :return: Path to the file downloaded.
 
     """
-    with get_interface() as xnat:
-        resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+    with get_interface() as intf:
+        resource_obj = select_obj(intf, project_id, subject_id, session_id,
                                   scan_id, assessor_id, resource)
         fpath = download_file_from_obj(directory, resource_obj, fname)
 
@@ -1972,8 +1972,8 @@ def download_files(directory, resource, project_id=None, subject_id=None,
     :return: List of all the files downloaded
 
     """
-    with get_interface() as xnat:
-        resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+    with get_interface() as intf:
+        resource_obj = select_obj(intf, project_id, subject_id, session_id,
                                   scan_id, assessor_id, resource)
         fpaths = download_files_from_obj(directory, resource_obj)
 
@@ -2027,8 +2027,8 @@ def download_biggest_file(directory, resource, project_id=None,
     :return: File path of the file downloaded
 
     """
-    with get_interface() as xnat:
-        resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+    with get_interface() as intf:
+        resource_obj = select_obj(intf, project_id, subject_id, session_id,
                                   scan_id, assessor_id, resource)
         fpath = download_biggest_file_from_obj(directory, resource_obj)
 
@@ -2083,8 +2083,8 @@ def download(directory, resources, project_id=None, subject_id=None,
     :return: List of filepaths for the downloaded files
 
     """
-    with get_interface() as xnat:
-        xnat_obj = select_obj(xnat, project_id, subject_id, session_id,
+    with get_interface() as intf:
+        xnat_obj = select_obj(intf, project_id, subject_id, session_id,
                               scan_id, assessor_id)
         fpaths = download_from_obj(directory, xnat_obj, resources, all_files)
     return fpaths
@@ -2108,10 +2108,10 @@ def download_scan_types(directory, project_id, subject_id, session_id,
     """
     fpaths = list()
     scantypes = islist(scantypes, 'scantypes', 'download_scan_types')
-    with get_interface() as xnat:
-        for scan in xnat.get_scans(project_id, subject_id, session_id):
+    with get_interface() as intf:
+        for scan in intf.get_scans(project_id, subject_id, session_id):
             if scan['type'] in scantypes:
-                scan_obj = select_obj(xnat, project_id, subject_id, session_id,
+                scan_obj = select_obj(intf, project_id, subject_id, session_id,
                                       scan['ID'])
                 fpaths.extend(download_from_obj(directory, scan_obj, resources,
                                                 all_files))
@@ -2141,10 +2141,10 @@ def download_scan_seriesdescriptions(directory, project_id, subject_id,
     seriesdescriptions = islist(seriesdescriptions, 'seriesdescription',
                                 'download_scan_seriesdescriptions')
 
-    with get_interface() as xnat:
-        for scan in xnat.get_scans(project_id, subject_id, session_id):
+    with get_interface() as intf:
+        for scan in intf.get_scans(project_id, subject_id, session_id):
             if scan['series_description'] in seriesdescriptions:
-                scan_obj = select_obj(xnat, project_id, subject_id, session_id,
+                scan_obj = select_obj(intf, project_id, subject_id, session_id,
                                       scan['ID'])
                 fpaths.extend(download_from_obj(directory, scan_obj, resources,
                                                 all_files))
@@ -2173,11 +2173,11 @@ def download_assessor_proctypes(directory, project_id, subject_id, session_id,
     proctypes = set([proctype.replace('FreeSurfer', 'FS')
                      for proctype in proctypes])
 
-    with get_interface() as xnat:
-        li_assrs = list_assessors(xnat, project_id, subject_id, session_id)
+    with get_interface() as intf:
+        li_assrs = list_assessors(intf, project_id, subject_id, session_id)
         for assessor in li_assrs:
             if assessor['proctype'] in proctypes:
-                assessor_obj = select_obj(xnat, project_id, subject_id,
+                assessor_obj = select_obj(intf, project_id, subject_id,
                                           session_id,
                                           assessor_id=assessor['label'])
                 fpaths.extend(download_from_obj(directory, assessor_obj,
@@ -2248,8 +2248,8 @@ def upload_file(filepath, project_id=None, subject_id=None, session_id=None,
         err = '%s: resource argument not provided.'
         raise XnatUtilsError(err % ('upload_file'))
     else:
-        with get_interface() as xnat:
-            resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+        with get_interface() as intf:
+            resource_obj = select_obj(intf, project_id, subject_id, session_id,
                                       scan_id, assessor_id, resource)
             status = upload_file_to_obj(filepath, resource_obj, remove,
                                         removeall, fname)
@@ -2302,8 +2302,8 @@ def upload_files(filepaths, project_id=None, subject_id=None, session_id=None,
         err = '%s: resource argument not provided.'
         raise XnatUtilsError(err % ('upload_files'))
     else:
-        with get_interface() as xnat:
-            resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+        with get_interface() as intf:
+            resource_obj = select_obj(intf, project_id, subject_id, session_id,
                                       scan_id, assessor_id, resource)
             status = upload_files_to_obj(filepaths, resource_obj, remove,
                                          removeall)
@@ -2381,8 +2381,8 @@ def upload_folder(directory, project_id=None, subject_id=None, session_id=None,
         err = '%s: resource argument not provided.'
         raise XnatUtilsError(err % ('upload_folder'))
     else:
-        with get_interface() as xnat:
-            resource_obj = select_obj(xnat, project_id, subject_id, session_id,
+        with get_interface() as intf:
+            resource_obj = select_obj(intf, project_id, subject_id, session_id,
                                       scan_id, assessor_id, resource)
             status = upload_folder_to_obj(directory, resource_obj, resource,
                                           remove, removeall, extract)
@@ -2444,8 +2444,8 @@ def copy_resource(directory, project_id=None, subject_id=None, session_id=None,
         err = '%s: old_res or new_res argument not provided.'
         raise XnatUtilsError(err % ('copy_resource'))
     else:
-        with get_interface() as xnat:
-            xnat_obj = select_obj(xnat, project_id, subject_id, session_id,
+        with get_interface() as intf:
+            xnat_obj = select_obj(intf, project_id, subject_id, session_id,
                                   scan_id, assessor_id)
             status = copy_resource_from_obj(directory, xnat_obj, old_res,
                                             new_res)
@@ -2877,6 +2877,15 @@ class CachedImageSession(object):
 
         return ''
 
+    def project_id(self):
+        return self.project
+
+    def subject_id(self):
+        return self.subject
+
+    def session_id(self):
+        return self.session
+
     def session(self):
         """
         Get the session associated with this object
@@ -3106,6 +3115,7 @@ class CachedImageScan(object):
 
     def unusable(self):
         return self.info()['quality'] == 'unusable'
+
     def resources(self):
         """
         Get a list of the CachedResource (s) associated with this scan.
@@ -4002,8 +4012,8 @@ def download_Assessor(Outputdirectory, assessor_label, resource_list,
         raise XnatUtilsError("INPUTS ERROR: Check the format of the list of \
 resources in the download_Assessor function. Not a list.")
 
-    with get_interface() as xnat:
-        ASSESSOR = select_assessor(xnat, assessor_label)
+    with get_interface() as intf:
+        ASSESSOR = select_assessor(intf, assessor_label)
         dl_good_resources_assessor(ASSESSOR, resource_list, Outputdirectory,
                                    all_resources)
 
@@ -4054,11 +4064,11 @@ process type in the download_AssessorType function. Not a list.")
     List_process_type = [process_type.replace('FreeSurfer', 'FS')
                          for process_type in List_process_type]
 
-    with get_interface() as xnat:
-        for assessor in list_assessors(xnat, projectName, subject, experiment):
+    with get_interface() as intf:
+        for assessor in list_assessors(intf, projectName, subject, experiment):
             for proc_type in List_process_type:
                 if proc_type == assessor['label'].split('-x-')[-1]:
-                    ASSESSOR = select_assessor(xnat, assessor['label'])
+                    ASSESSOR = select_assessor(intf, assessor['label'])
                     dl_good_resources_assessor(ASSESSOR, resource_list,
                                                Outputdirectory, all_resources)
 

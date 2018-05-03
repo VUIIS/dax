@@ -433,10 +433,7 @@ class AutoProcessor(Processor):
         if user_inputs is not None:
             self._edit_inputs(user_inputs, yaml_source)
 
-        self.inputs,\
-        self.inputs_by_type,\
-        self.iteration_sources,\
-        self.iteration_map = self._parse_yaml(yaml_source.contents)
+        self.parser = processor_parser.ProcessorParser(yaml_source.contents)
 
         # Set up attrs:
         self.walltime_str = self.attrs.get('walltime')
@@ -462,6 +459,7 @@ class AutoProcessor(Processor):
 No xnat.scans.{} in inputs found.'
                 raise AutoProcessorError(err.format(yaml_source['source_id'],
                                                     self.scan_nb))
+
 
     def _edit_inputs(self, user_inputs, yaml_source):
         """
@@ -508,6 +506,7 @@ processor defined by yaml file {}'
 defined by yaml file {}'
                     LOGGER.warn(msg.format(tags[-1], yaml_source.source_id))
 
+
     def _read_yaml(self, yaml_source):
         """
         Method to parse the processor arguments and their default values.
@@ -548,9 +547,6 @@ defined by yaml file {}'
         self.scan_nb = self.attrs.get('scan_nb', None)
 
 
-    def _parse_yaml(self, yaml_source):
-        return processor_parser.parse_inputs(yaml_source)
-
     def _check_default_keys(self, source_id, doc):
         """ Static method to raise error if key not found in dictionary from
         yaml file.
@@ -576,6 +572,7 @@ defined by yaml file {}'
         for key in ['spider_path']:
             self._raise_yaml_error_if_no_key(default, source_id, key)
 
+
     @ staticmethod
     def _raise_yaml_error_if_no_key(doc, source_id, key):
         """Method to raise an execption if the key is not in the dict
@@ -588,33 +585,6 @@ defined by yaml file {}'
             err = 'YAML source {} does not have {} defined. See example.'
             raise AutoProcessorError(err.format(source_id, key))
 
-    def _parse_session(self,
-                       csess,
-                       inputs,
-                       inputs_by_type,
-                       iteration_sources,
-                       iteration_map):
-        artefacts = processor_parser.parse_artefacts(csess)
-        artefacts_by_input =\
-            processor_parser.map_artefacts_to_inputs(csess,
-                                                     inputs,
-                                                     inputs_by_type)
-        artefacts_by_input =\
-            processor_parser.filtered_artefacts_by_quality(inputs,
-                                                           artefacts,
-                                                           artefacts_by_input)
-
-        parameter_matrix =\
-            processor_parser.generate_parameter_matrix(iteration_sources,
-                                                       iteration_map,
-                                                       artefacts_by_input)
-
-        input_to_assessor_mapping =\
-            processor_parser.compare_to_existing(csess,
-                                                 self.proctype,
-                                                 parameter_matrix)
-
-        return input_to_assessor_mapping
 
     # TODO:BenM/assessor_of_assessor/deprecated/keep this method around until we
     # have removed/refactored any backwards-compatibility code for the old
@@ -750,6 +720,8 @@ defined by yaml file {}'
                      (see XnatUtils in dax for information)
         :return: status, qcstatus
         """
+        # TODO: BenM/assessor_of_assessor/replace with processor_parser
+        # functionality
         # If Scan assessor, check that the scan has inputs
         csess = cobj.session()
         if cobj.entity_type() == 'scan':
@@ -876,7 +848,7 @@ resource/{4}'
                                         obj_info['session_label']))
         return filepaths
 
-    def get_cmds(self, assessor, jobdir):
+    def get_cmds(self, cassr, jobdir):
         """Method to generate the spider command for cluster job.
 
         :param assessor: pyxnat assessor object
@@ -884,54 +856,86 @@ resource/{4}'
         :return: command to execute the spider in the job script
         """
         # Add the jobidr and the assessor label:
-        assr_label = assessor.label()
-        proj_label = assessor.parent().parent().parent().label()
-        subj_label = assessor.parent().parent().label()
-        sess_label = assessor.parent().label()
+        assr_label = cassr.label()
+        proj_label = cassr.project_id()
+        subj_label = cassr.subject_id()
+        sess_label = cassr.session_id()
+        # TODO: BenM/assessor_of_assessors/replace with processor_parser
+        # functionality
         scan_label = assr_label.split('-x-')[3]
 
         # Get the csess:
-        csess = XnatUtils.CachedImageSession(assessor._intf, proj_label,
-                                             subj_label, sess_label)
+        csess = cassr.session()
 
         # TODO: BenM/assessor_of_assessors/parse each scan / assessor and
         # any select statements and generate one or more corresponding commands
 
+        self.parser.parse_session(csess)
+        self.parser.command_params
+
+        commands = []
+        for variable_set in self.parser.command_params:
+
+            combined_params = {}
+            for k, v in variable_set.iteritems():
+                combined_params[k] = v
+            for k, v in self.user_overrides.iteritems():
+                combined_params[k] = v
+
+            cmd = self.command.format(combined_params)
+
+            for key, value in list(self.extra_user_overrides.items()):
+                cmd = '{} --{} {}'.format(cmd, key, value)
+
+            # Add assr and jobidr:
+            if ' -a ' not in cmd and ' --assessor ' not in cmd:
+                cmd = '{} -a {}'.format(cmd, assr_label)
+            if ' -d ' not in cmd:
+                cmd = '{} -d {}'.format(cmd, jobdir)
+
+            commands.append(cmd)
+
+        return commands
+
+        # TODO: BenM/assessor_of_assessor / replace with processor_parser
+        # functionality - one per row in the parameter matrix
         # Get the data from xnat for the xnat_inputs:
         # Scans:
-        for scan_in in self.xnat_inputs.get('scans', list()):
-            scantypes = scan_in.get('types').split(',')
-            needs_qc = scan_in.get('needs_qc', True)
-            resources = scan_in.get('resources', list())
-            if self.scan_nb not in list(scan_in.keys()):
-                self._append_xnat_cobj(csess, scantypes, resources, needs_qc,
-                                       'scan')
-            else:
-                cprocscan = [cscan for cscan in csess.scans()
-                             if cscan.info()['ID'] == scan_label]
-                self._get_xnat_procscan(cprocscan, resources)
+        # for scan_in in self.xnat_inputs.get('scans', list()):
+        #     scantypes = scan_in.get('types').split(',')
+        #     needs_qc = scan_in.get('needs_qc', True)
+        #     resources = scan_in.get('resources', list())
+        #     if self.scan_nb not in list(scan_in.keys()):
+        #         self._append_xnat_cobj(csess, scantypes, resources, needs_qc,
+        #                                'scan')
+        #     else:
+        #         cprocscan = [cscan for cscan in csess.scans()
+        #                      if cscan.info()['ID'] == scan_label]
+        #         self._get_xnat_procscan(cprocscan, resources)
+        #
+        # # Assessors:
+        # for assr_in in self.xnat_inputs.get('assessors', list()):
+        #     proctypes = assr_in.get('proctypes').split(',')
+        #     needs_qc = assr_in.get('needs_qc', True)
+        #     resources = assr_in.get('resources', list())
+        #     self._append_xnat_cobj(csess, proctypes, resources, needs_qc,
+        #                            'assessor')
+        #
+        # cmd = self.command.format(**self.user_overrides)
+        #
+        # for key, value in list(self.extra_user_overrides.items()):
+        #     cmd = '{} --{} {}'.format(cmd, key, value)
+        #
+        # # Add assr and jobidr:
+        # if ' -a ' not in cmd and ' --assessor ' not in cmd:
+        #     cmd = '{} -a {}'.format(cmd, assr_label)
+        # if ' -d ' not in cmd:
+        #     cmd = '{} -d {}'.format(cmd, jobdir)
+        #
+        # return [cmd]
 
-        # Assessors:
-        for assr_in in self.xnat_inputs.get('assessors', list()):
-            proctypes = assr_in.get('proctypes').split(',')
-            needs_qc = assr_in.get('needs_qc', True)
-            resources = assr_in.get('resources', list())
-            self._append_xnat_cobj(csess, proctypes, resources, needs_qc,
-                                   'assessor')
-
-        cmd = self.command.format(**self.user_overrides)
-
-        for key, value in list(self.extra_user_overrides.items()):
-            cmd = '{} --{} {}'.format(cmd, key, value)
-
-        # Add assr and jobidr:
-        if ' -a ' not in cmd and ' --assessor ' not in cmd:
-            cmd = '{} -a {}'.format(cmd, assr_label)
-        if ' -d ' not in cmd:
-            cmd = '{} -d {}'.format(cmd, jobdir)
-
-        return [cmd]
-
+    # TODO: BenM/assessor_of_assessor/replace with processor_parser
+    # functionality; one call per variable per row of parameter matrix
     def _append_xnat_cobj(self, csess, sp_types, resources, needs_qc=True,
                           otype='scan'):
         """Method to append XNAT cobj info to inputs for command.

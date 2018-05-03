@@ -108,4 +108,5 @@ class AutoProcessorUnitTest(TestCase):
         print(tsao)
         # TODO:BenM/assessor_of_assessor/we are passing an interface object
         # rather than a cached object. Fix and then re-enable
-        ap.get_cmds(tsco, '/testdir')
+        cmds = ap.get_cmds(tsco, '/testdir')
+        print "cmds =", cmds

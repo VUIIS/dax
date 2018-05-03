@@ -565,8 +565,8 @@ def testing(test_file, project, sessions, host=None, username=None, hide=False,
             logfile = None
         log.setup_debug_logger('dax', logfile)
 
-        with XnatUtils.get_interface(host=_host, user=username) as xnat:
-            tests.set_xnat(xnat)
+        with XnatUtils.get_interface(host=_host, user=username) as intf:
+            tests.set_xnat(intf)
             tests.run_test(project, sessions, nb_sess)
 
     print(TD_END.format(nb_test=tests.get_number(),
@@ -1250,31 +1250,31 @@ def upload_results(upload_settings, emailaddress):
     for upload_dict in upload_settings:
         with XnatUtils.get_interface(host=upload_dict['host'],
                                      user=upload_dict['username'],
-                                     pwd=upload_dict['password']) as xnat:
+                                     pwd=upload_dict['password']) as intf:
             LOGGER.info('===================================================\
 ================')
             proj_str = (upload_dict['projects'] if upload_dict['projects']
                         else 'all')
             LOGGER.info('Connecting to XNAT <%s> to start uploading processes \
 for projects: %s' % (upload_dict['host'], proj_str))
-            if not XnatUtils.has_dax_datatypes(xnat):
+            if not XnatUtils.has_dax_datatypes(intf):
                 msg = 'Error: dax datatypes are not installed on xnat <%s>.'
                 raise DaxUploadError(msg % (upload_dict['host']))
 
             # 1) Upload the assessor data
             # For each assessor label that need to be upload :
             LOGGER.info(' - Uploading results for assessors')
-            warnings.extend(upload_assessors(xnat, upload_dict['projects']))
+            warnings.extend(upload_assessors(intf, upload_dict['projects']))
 
             # 2) Upload the PBS files
             # For each file, upload it to the PBS resource
             LOGGER.info(' - Uploading PBS files ...')
-            upload_pbs(xnat, upload_dict['projects'])
+            upload_pbs(intf, upload_dict['projects'])
 
             # 3) Upload the OUTLOG files not uploaded with processes
             LOGGER.info(' - Checking OUTLOG files to upload them for JOB_FAILED \
 jobs ...')
-            upload_outlog(xnat, upload_dict['projects'])
+            upload_outlog(intf, upload_dict['projects'])
 
     send_warning_emails(warnings, emailaddress)
 
@@ -1545,7 +1545,7 @@ class test_results(object):
 
         # Loop through the sessions
         for sess in sess_list:
-            csess = XnatUtils.CachedImageSession(self.xnat, project,
+            csess = XnatUtils.CachedImageSession(self.intf, project,
                                                  sess['subject_label'],
                                                  sess['label'])
             if isinstance(proc_obj, processors.ScanProcessor):
@@ -2128,7 +2128,7 @@ def load_test(filepath):
             # So far only auto processor:
             try:
                 yaml_obj = yaml_doc.YamlDoc().from_file(filepath)
-                return processors.AutoProcessor(yaml_obj)
+                return processors.AutoProcessor(XnatUtils, yaml_obj)
             except AutoProcessorError:
                 print('[ERROR]')
                 exc_type, exc_value, exc_traceback = sys.exc_info()

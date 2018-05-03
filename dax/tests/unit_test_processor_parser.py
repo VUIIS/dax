@@ -5,7 +5,7 @@ import copy
 import StringIO
 import yaml
 
-from dax import processor_parser
+from dax.processor_parser import ProcessorParser
 from dax.processors import AutoProcessor
 from dax.tests import unit_test_entity_common as common
 from dax import yaml_doc
@@ -42,15 +42,15 @@ class TestResource:
 
 class TestArtefact:
 
-    def __init__(self, id, artefact_type, quality, resources, inputs):
-        self.id_ = id
+    def __init__(self, label, artefact_type, quality, resources, inputs):
+        self.label_ = label
         self.artefact_type = artefact_type
         self.quality_ = quality
         self.resources = [TestResource(r[0], r[1]) for r in resources]
         self.inputs = inputs
 
-    def id(self):
-        return self.id_
+    def label(self):
+        return self.label_
 
     def type(self):
         return self.artefact_type
@@ -71,6 +71,11 @@ class TestArtefact:
         return self.inputs
 
 
+proj = 'proj1'
+subj = 'subj1'
+sess = 'sess1'
+
+
 class TestSession:
 
     def __init__(self, scans, asrs):
@@ -83,10 +88,15 @@ class TestSession:
     def assessors(self):
         return self.assessors_
 
+    def project_id(self):
+        return proj
 
-proj = 'proj1'
-subj = 'subj1'
-sess = 'sess1'
+    def subject_id(self):
+        return subj
+
+    def session_id(self):
+        return sess
+
 
 scan_files = [('SNAPSHOTS', 2), ('NIFTI', 1)]
 
@@ -195,37 +205,45 @@ class MyTestCase(TestCase):
         doc = yaml.load((StringIO.StringIO(scan_gif_parcellation_yaml)))
 
         inputs, inputs_by_type, iteration_sources, iteration_map =\
-            processor_parser.parse_inputs(doc)
+            ProcessorParser.parse_inputs(doc)
         print "inputs =", inputs
         print "inputs_by_type =", inputs_by_type
         print "iteration_sources =", iteration_sources
         print "iteration_map =", iteration_map
 
-        artefacts = processor_parser.parse_artefacts(csess)
+        artefacts = ProcessorParser.parse_artefacts(csess)
         print "artefacts =", artefacts
 
-        artefacts_by_input =\
-            processor_parser.map_artefacts_to_inputs(csess,
-                                                     inputs,
-                                                     inputs_by_type)
+        artefacts_by_input = \
+            ProcessorParser.map_artefacts_to_inputs(csess,
+                                                    inputs,
+                                                    inputs_by_type)
         print "artefacts_by_input =", artefacts_by_input
 
-        variables_to_inputs =\
-            processor_parser.parse_variables(inputs)
+        variables_to_inputs = \
+            ProcessorParser.parse_variables(inputs)
         print "variables_to_inputs =", variables_to_inputs
 
-        filtered_artefacts_by_input =\
-            processor_parser.filter_artefacts_by_quality(inputs,
-                                                         artefacts,
-                                                         artefacts_by_input)
+        filtered_artefacts_by_input = \
+            ProcessorParser.filter_artefacts_by_quality(inputs,
+                                                        artefacts,
+                                                        artefacts_by_input)
         print "filter_artefacts_by_input =", filtered_artefacts_by_input
 
-        parameter_matrix =\
-            processor_parser.generate_parameter_matrix(
+        parameter_matrix = \
+            ProcessorParser.generate_parameter_matrix(
                 iteration_sources, iteration_map, filtered_artefacts_by_input)
         print "parameter_matrix =", parameter_matrix
 
-        assessor_parameter_map =\
-            processor_parser.compare_to_existing(csess, 'proc2',
-                                                 parameter_matrix)
+        assessor_parameter_map = \
+            ProcessorParser.compare_to_existing(csess,
+                                                'proc2',
+                                                parameter_matrix)
         print "assessor_parameter_map = ", assessor_parameter_map
+
+        commands = \
+            ProcessorParser.generate_commands(csess,
+                                              inputs,
+                                              variables_to_inputs,
+                                              parameter_matrix)
+        print "commands = ", commands

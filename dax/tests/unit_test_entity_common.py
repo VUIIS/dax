@@ -2,8 +2,12 @@ import dax.XnatUtils as XnatUtils
 
 from unittest import TestCase
 
+from dax.task import (JOB_FAILED, JOB_RUNNING, JOB_PENDING, READY_TO_UPLOAD,
+                   NEEDS_QA, RERUN, REPROC, FAILED_NEEDS_REPROC, BAD_QA_STATUS)
+
 import unit_test_common_processor_yamls as processor_yamls
 
+bad_qa_status = [JOB_PENDING, NEEDS_QA, REPROC, RERUN, FAILED_NEEDS_REPROC]
 
 class FakeXnat:
 
@@ -172,7 +176,7 @@ class TestSessionObject:
 
 
     def scans(self):
-        return self.scans_.values()
+        return self.scan_objects_.values()
 
 
     def assessors(self):
@@ -191,34 +195,35 @@ class TestScanObject:
             r['label']: TestResourceObject(self, r)
             for r in scan['resources']
         }
-
+        self.type_ = scan['type']
 
     def project_id(self):
         return self.session_.project_id()
 
-
     def subject_id(self):
         return self.session_.subject_id()
-
 
     def session_id(self):
         return self.session_.session_id()
 
-
     def scan_id(self):
         return self.scan_id_
 
+    def label(self):
+        return self.scan_id_
+
+    def type(self):
+        return self.type_
 
     def session(self):
         return self.session_
 
-
     def parent(self):
         return self.session_
 
-
     def info(self):
         return {
+            'ID': self.scan_id_,
             'project_id': self.session_.project_id(),
             'subject_label': self.session_.subject_id(),
             'session_label': self.session_.session_id(),
@@ -226,19 +231,15 @@ class TestScanObject:
             'quality': self.quality_
         }
 
-
     @staticmethod
     def entity_type():
         return 'scan'
 
-
     def get_resources(self):
         return self.resource_objects_.values()
 
-
     def __getitem__(self, key):
         return self.resource_objects_[key]
-
 
 
 class TestAssessorObject:
@@ -256,34 +257,29 @@ class TestAssessorObject:
         self.qcstatus_ = assessor_dict['qcstatus']
         self.procstatus_ = assessor_dict['procstatus']
 
-
     def project_id(self):
         return self.session_.project_id()
-
 
     def subject_id(self):
         return self.session_.subject_id()
 
-
     def session_id(self):
         return self.session_.session_id()
-
 
     def assessor_id(self):
         return self.assessor_id_
 
-
     def label(self):
         return self.label_
 
+    def type(self):
+        return self.proctypes_
 
     def session(self):
         return self.session_
 
-
     def parent(self):
         return self.session_
-
 
     def info(self):
         return {
@@ -296,19 +292,21 @@ class TestAssessorObject:
             'procstatus': self.procstatus_
         }
 
+    def usable(self):
+        return not self.qcstatus_ in bad_qa_status
+
+    def unusable(self):
+        return self.qcstatus_ in bad_qa_status
 
     def get_resources(self):
         return self.resource_objects_.values()
-
 
     @staticmethod
     def entity_type():
         return 'assessor'
 
-
     def __getitem__(self, key):
         return self.resource_objects_[key]
-
 
 
 class TestResourceObject:
@@ -316,22 +314,20 @@ class TestResourceObject:
         self.scan_ = scan
         self.resource_dict_ = resource_dict
 
-
     def project_id(self):
         return self.scan_.project_id()
-
 
     def subject_id(self):
         return self.scan_.subject_id()
 
-
     def session_id(self):
         return self.scan_.session_id()
-
 
     def scan_id(self):
         return self.scan_.scan_id()
 
+    def label(self):
+        return self.resource_dict_['label']
 
     def __getitem__(self, key):
         return self.resource_dict_[key]
@@ -401,7 +397,7 @@ brain_tiv_from_gif_xnat_contents = {
                 }],
                 'assessors': [{
                     'ID': 'proc1',
-                    'label': 'proj1-x-subj1-x-sess1-x-1-proc1',
+                    'label': 'proj1-x-subj1-x-sess1-x-1-x-proc1',
                     'proctypes': 'GIF_Parcellation_v3',
                     'procstatus': 'COMPLETE',
                     'qcstatus': 'Passed QA',
