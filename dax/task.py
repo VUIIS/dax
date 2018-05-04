@@ -119,7 +119,7 @@ class Task(object):
         Init of class Task
 
         :param processor: processor used
-        :param assessor: assessor dict ?
+        :param assessor: pyxnat assessor object
         :param upload_dir: upload directory to copy data after job finished.
         :return: None
 

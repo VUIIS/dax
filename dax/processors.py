@@ -633,12 +633,8 @@ defined by yaml file {}'
     def get_assessor_mapping(self, csess):
         # parse the contents of the session and determine what assessors need to
         # be constructed
-        input_to_assessor_mapping = self._parse_session(csess,
-                                                        self.inputs,
-                                                        self.inputs_by_type,
-                                                        self.iteration_sources,
-                                                        self.iteration_map)
-        return input_to_assessor_mapping
+        self.parser.parse_session(csess)
+        return self.parser.assessor_parameter_map
 
     # TODO: BenM/assessor_of_assessor/remove once upgrade strategy (if any) has
     # been determined and this code is no longer needed
@@ -662,23 +658,23 @@ defined by yaml file {}'
 
         return p_assr, assessor_name
 
-    def get_task(self, cobj, upload_dir):
-        """
-        Return the Task object
-
-        :param intf: XNAT interface see pyxnat.Interface
-        :param cobj: CachedImageSession or Scan from XnatUtils
-        :param upload_dir: directory to put the data after run on the node
-        :return: Task object of the assessor
-
-        """
-        assessor_name = self.get_assessor_name(cobj)
-        obj = cobj.full_object()
-        if cobj.entity_type() == 'session':
-            assessor = obj.assessor(assessor_name)
-        elif cobj.entity_type() == 'scan':
-            assessor = obj.parent().assessor(assessor_name)
-        return task.Task(self, assessor, upload_dir)
+    # def get_task(self, cobj, upload_dir):
+    #     """
+    #     Return the Task object
+    #
+    #     :param intf: XNAT interface see pyxnat.Interface
+    #     :param cobj: CachedImageSession or Scan from XnatUtils
+    #     :param upload_dir: directory to put the data after run on the node
+    #     :return: Task object of the assessor
+    #
+    #     """
+    #     assessor_name = self.get_assessor_name(cobj)
+    #     obj = cobj.full_object()
+    #     if cobj.entity_type() == 'session':
+    #         assessor = obj.assessor(assessor_name)
+    #     elif cobj.entity_type() == 'scan':
+    #         assessor = obj.parent().assessor(assessor_name)
+    #     return task.Task(self, assessor, upload_dir)
 
     def should_run(self, obj_dict):
         """
@@ -811,43 +807,48 @@ defined by yaml file {}'
                         return 0, 'Missing {} on {}'.format(res, _type)
         return 1, None
 
-    def get_xnat_path(self, cobjs, resource, required=True, fpath=None):
-        """Method to get the file path on XNAT for the scans
+#     def get_xnat_path(self, cobjs, resource, required=True, fpath=None):
+#         """Method to get the file path on XNAT for the scans
+#
+#         :param cobjs: list of cobjs (assessor or scan) in dax.XnatUtils
+#                       (see XnatUtils in dax for information)
+#         :param resource: name of the resource
+#         :param fpath: filepath to get
+#         :return: list of paths
+#         """
+#         filepaths = list()
+#         assr_tmp = 'xnat:/project/{0}/subject/{1}/experiment/{2}/assessor/{3}/\
+# resource/{4}'
+#         scan_tmp = 'xnat:/project/{0}/subject/{1}/experiment/{2}/scan/{3}/\
+# resource/{4}'
+#
+#         for cobj in cobjs:
+#             obj_info = cobj.info()
+#             if cobj.entity_type() == 'assessor':
+#                 label = obj_info['label']
+#                 path_tmp = assr_tmp
+#             elif cobj.entity_type() == 'scan':
+#                 label = obj_info['ID']
+#                 path_tmp = scan_tmp
+#             if resource in [res['label'] for res in cobj.get_resources()]:
+#                 x_path = path_tmp.format(obj_info['project_id'],
+#                                          obj_info['subject_label'],
+#                                          obj_info['session_label'],
+#                                          label, resource)
+#                 if fpath:
+#                     x_path = '{}/files/{}'.format(x_path, fpath)
+#                 filepaths.append(x_path)
+#             elif required:
+#                 msg = 'No resource {} found for {} in session {}.'
+#                 LOGGER.debug(msg.format(resource, label,
+#                                         obj_info['session_label']))
+#         return filepaths
 
-        :param cobjs: list of cobjs (assessor or scan) in dax.XnatUtils
-                      (see XnatUtils in dax for information)
-        :param resource: name of the resource
-        :param fpath: filepath to get
-        :return: list of paths
-        """
-        filepaths = list()
-        assr_tmp = 'xnat:/project/{0}/subject/{1}/experiment/{2}/assessor/{3}/\
-resource/{4}'
-        scan_tmp = 'xnat:/project/{0}/subject/{1}/experiment/{2}/scan/{3}/\
-resource/{4}'
-
-        for cobj in cobjs:
-            obj_info = cobj.info()
-            if cobj.entity_type() == 'assessor':
-                label = obj_info['label']
-                path_tmp = assr_tmp
-            elif cobj.entity_type() == 'scan':
-                label = obj_info['ID']
-                path_tmp = scan_tmp
-            if resource in [res['label'] for res in cobj.get_resources()]:
-                x_path = path_tmp.format(obj_info['project_id'],
-                                         obj_info['subject_label'],
-                                         obj_info['session_label'],
-                                         label, resource)
-                if fpath:
-                    x_path = '{}/files/{}'.format(x_path, fpath)
-                filepaths.append(x_path)
-            elif required:
-                msg = 'No resource {} found for {} in session {}.'
-                LOGGER.debug(msg.format(resource, label,
-                                        obj_info['session_label']))
-        return filepaths
-
+    # TODO: BenM/assessor_of_assessor/this method is no longer suitable for
+    # execution on a single assessor, as it generates commands for the whole
+    # session. In any case, the command should be written out to the xnat
+    # assessor schema so that it can simply be launched, rather than performing
+    # this reconstruction each time the dax launch command is called
     def get_cmds(self, cassr, jobdir):
         """Method to generate the spider command for cluster job.
 
@@ -857,12 +858,6 @@ resource/{4}'
         """
         # Add the jobidr and the assessor label:
         assr_label = cassr.label()
-        proj_label = cassr.project_id()
-        subj_label = cassr.subject_id()
-        sess_label = cassr.session_id()
-        # TODO: BenM/assessor_of_assessors/replace with processor_parser
-        # functionality
-        scan_label = assr_label.split('-x-')[3]
 
         # Get the csess:
         csess = cassr.session()
@@ -873,9 +868,10 @@ resource/{4}'
         self.parser.parse_session(csess)
         self.parser.command_params
 
+        # combine the user overrides with the input parameters for each
+        # distinct command
         commands = []
         for variable_set in self.parser.command_params:
-
             combined_params = {}
             for k, v in variable_set.iteritems():
                 combined_params[k] = v
@@ -887,6 +883,9 @@ resource/{4}'
             for key, value in list(self.extra_user_overrides.items()):
                 cmd = '{} --{} {}'.format(cmd, key, value)
 
+            # TODO: BenM/assessor_of_assessor/each assessor is separate and
+            # has a different label; change the code to fetch the label from
+            # the assessor
             # Add assr and jobidr:
             if ' -a ' not in cmd and ' --assessor ' not in cmd:
                 cmd = '{} -a {}'.format(cmd, assr_label)
@@ -936,43 +935,43 @@ resource/{4}'
 
     # TODO: BenM/assessor_of_assessor/replace with processor_parser
     # functionality; one call per variable per row of parameter matrix
-    def _append_xnat_cobj(self, csess, sp_types, resources, needs_qc=True,
-                          otype='scan'):
-        """Method to append XNAT cobj info to inputs for command.
+    # def _append_xnat_cobj(self, csess, sp_types, resources, needs_qc=True,
+    #                       otype='scan'):
+    #     """Method to append XNAT cobj info to inputs for command.
+    #
+    #     :param csess: CachedImageSession from XnatUtils
+    #     :param sp_types: types of scan or assessor to look for
+    #     :param resources: list of resources from YAML file with var
+    #     :param needs_qc: if we are looking for object with qc that passed
+    #     """
+    #     good_cobjs = list()
+    #     if otype == 'scan':
+    #         good_cobjs = self.xnat.get_good_cscans(csess, sp_types, needs_qc)
+    #     else:
+    #         good_cobjs = self.xnat.get_good_cassr(csess, sp_types, needs_qc)
+    #
+    #     for res_l in resources:
+    #         if 'varname' not in list(res_l.keys()):
+    #             LOGGER.warn("No Key 'varname' found for resource in YAML.")
+    #         else:
+    #             _in = self.get_xnat_path(good_cobjs, res_l.get('resource'),
+    #                                      required=res_l.get('required', True),
+    #                                      fpath=res_l.get('filepath', None))
+    #             self.user_overrides[res_l.get('varname')] = ','.join(_in)
 
-        :param csess: CachedImageSession from XnatUtils
-        :param sp_types: types of scan or assessor to look for
-        :param resources: list of resources from YAML file with var
-        :param needs_qc: if we are looking for object with qc that passed
-        """
-        good_cobjs = list()
-        if otype == 'scan':
-            good_cobjs = self.xnat.get_good_cscans(csess, sp_types, needs_qc)
-        else:
-            good_cobjs = self.xnat.get_good_cassr(csess, sp_types, needs_qc)
-
-        for res_l in resources:
-            if 'varname' not in list(res_l.keys()):
-                LOGGER.warn("No Key 'varname' found for resource in YAML.")
-            else:
-                _in = self.get_xnat_path(good_cobjs, res_l.get('resource'),
-                                         required=res_l.get('required', True),
-                                         fpath=res_l.get('filepath', None))
-                self.user_overrides[res_l.get('varname')] = ','.join(_in)
-
-    def _get_xnat_procscan(self, cprocscan, resources):
-        """Method to append XNAT cobj info to inputs for command.
-
-        :param cscan: CachedImageScan related to the assessor
-        :param resources: list of resources from YAML file with var
-        """
-        for res_info in resources:
-            if 'varname' not in list(res_info.keys()):
-                LOGGER.warn("No Key 'varname' found for resource in YAML.")
-            else:
-                _in = self.get_xnat_path(cprocscan, res_info.get('resource'),
-                                         fpath=res_info.get('filepath', None))
-                self.user_overrides[res_info.get('varname')] = ','.join(_in)
+    # def _get_xnat_procscan(self, cprocscan, resources):
+    #     """Method to append XNAT cobj info to inputs for command.
+    #
+    #     :param cscan: CachedImageScan related to the assessor
+    #     :param resources: list of resources from YAML file with var
+    #     """
+    #     for res_info in resources:
+    #         if 'varname' not in list(res_info.keys()):
+    #             LOGGER.warn("No Key 'varname' found for resource in YAML.")
+    #         else:
+    #             _in = self.get_xnat_path(cprocscan, res_info.get('resource'),
+    #                                      fpath=res_info.get('filepath', None))
+    #             self.user_overrides[res_info.get('varname')] = ','.join(_in)
 
 
 def processors_by_type(proc_list):

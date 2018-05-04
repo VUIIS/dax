@@ -3279,6 +3279,8 @@ class CachedImageAssessor(object):
         return assr_info
 
 
+    # TODO: BenM/assessor_of_assessor/implment this once the schema is
+    # extended
     def get_inputs(self):
         raise NotImplementedError()
 

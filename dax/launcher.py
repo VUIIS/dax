@@ -677,19 +677,17 @@ cluster queue"
             if not sess_proc.should_run(sess_info):
                 continue
 
-            # TODO: BenM/assessor_of_assessor/return list of assessors
-            # TODO: BenM/assessor_of_assessor/session processors can return
-            # scan-level assessors
+            # return a mapping between the assessor input sets and existing
+            # assessors that map to those input sets
             mapping = sess_proc.get_assessor_mapping(csess)
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
                 for assr_inputs, p_assr in mapping[1]:
-                    assr_name = p_assr.label()
                     if p_assr is None or \
                             p_assr.info()['procstatus'] == task.NEED_INPUTS or \
                             p_assr.info()['qcstatus'] in [task.RERUN,
                                                           task.REPROC]:
-                        assessor = full_session_object.assessor(assr_name)
+                        assessor = full_session_object.assessor()
                         xtask = XnatTask(sess_proc, assessor, res_dir,
                                          os.path.join(res_dir, 'DISKQ'))
 
@@ -698,7 +696,7 @@ cluster queue"
                                                               task.REPROC]:
                             xtask.update_status()
 
-                        LOGGER.debug('building task:' + assr_name)
+                        LOGGER.debug('building task:' + assessor.label())
                         (proc_status, qc_status) = xtask.build_task(
                             csess,
                             self.root_job_dir,
@@ -708,12 +706,15 @@ cluster queue"
                         LOGGER.debug(deg % (proc_status, qc_status))
                     else:
                         # TODO: check that it actually exists in QUEUE
-                        LOGGER.debug('skipping, already built: %s' % assr_name)
+                        LOGGER.debug(
+                            'skipping, already built: %s' % p_assr.label())
             else:
                 for p_assr, assr_inputs in mapping[1]:
                     if p_assr is None or \
                             p_assr.info()['procstatus'] == task.NEED_INPUTS:
-                        sess_task = sess_proc.get_task(csess, res_dir)
+                        assessor = full_session_object.assessor()
+                        sess_task = task.Task(self, assessor, res_dir)
+
                         log_updating_status(sess_proc.name,
                                             sess_task.assessor_label)
                         has_inputs, qcstatus = sess_proc.has_inputs(csess)
@@ -763,6 +764,9 @@ cluster queue"
                     LOGGER.critical(err2 % (E.__class__, E.message))
                     LOGGER.critical(traceback.format_exc())
 
+    # TODO: BenM/assessor_of_assessors/likely to be issues here; sanity
+    # check how assessor names get generated when an assessor is created
+    # without a name
     def build_scan_processors(self, xnat, cscan, scan_proc_list):
         """
         Build the scan
@@ -781,60 +785,66 @@ cluster queue"
             if not scan_proc.should_run(scan_info):
                 continue
 
-            p_assr, assr_name = scan_proc.get_assessor(cscan)
+            # p_assr, assr_name = scan_proc.get_assessor(cscan)
+            mapping = scan_proc.get_assessor_mapping(cscan.parent())
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
-                if p_assr is None or \
-                        p_assr.info()['procstatus'] in [task.NEED_INPUTS,
-                                                        task.NEED_TO_RUN] or \
-                        p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
-                    # TODO: get session object directly
-                    scan = cscan.full_object()
-                    assessor = scan.parent().assessor(assr_name)
-                    xtask = XnatTask(scan_proc, assessor, res_dir,
-                                     os.path.join(res_dir, 'DISKQ'))
+                for assr_inputs, p_assr in mapping[1]:
+                    if p_assr is None or \
+                            p_assr.info()['procstatus'] in [task.NEED_INPUTS,
+                                                            task.NEED_TO_RUN] or \
+                            p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
+                        # TODO: get session object directly
+                        scan = cscan.full_object()
+                        assessor = scan.parent().assessor()
+                        xtask = XnatTask(scan_proc, assessor, res_dir,
+                                         os.path.join(res_dir, 'DISKQ'))
 
-                    if p_assr is not None and \
-                            p_assr.info()['qcstatus'] in [task.RERUN,
-                                                          task.REPROC]:
-                        xtask.update_status()
+                        if p_assr is not None and \
+                                p_assr.info()['qcstatus'] in [task.RERUN,
+                                                              task.REPROC]:
+                            xtask.update_status()
 
-                    LOGGER.debug('building task:' + assr_name)
-                    (proc_status, qc_status) = xtask.build_task(
-                        cscan,
-                        self.root_job_dir,
-                        self.job_email,
-                        self.job_email_options)
-                    deg = 'proc_status=%s, qc_status=%s'
-                    LOGGER.debug(deg % (proc_status, qc_status))
-                else:
-                    # TODO: check that it actually exists in QUEUE
-                    LOGGER.debug('skipping, already built:' + assr_name)
+                        LOGGER.debug('building task:' + assessor.label())
+                        (proc_status, qc_status) = xtask.build_task(
+                            cscan,
+                            self.root_job_dir,
+                            self.job_email,
+                            self.job_email_options)
+                        deg = 'proc_status=%s, qc_status=%s'
+                        LOGGER.debug(deg % (proc_status, qc_status))
+                    else:
+                        # TODO: check that it actually exists in QUEUE
+                        LOGGER.debug(
+                            'skipping, already built:' + assessor.label())
             else:
-                if p_assr is None or \
-                        p_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    scan_task = scan_proc.get_task(cscan, res_dir)
-                    log_updating_status(scan_proc.name,
-                                        scan_task.assessor_label)
-                    has_inputs, qcstatus = scan_proc.has_inputs(cscan)
-                    try:
-                        if has_inputs == 1:
-                            scan_task.set_status(task.NEED_TO_RUN)
-                            scan_task.set_qcstatus(task.JOB_PENDING)
-                        elif has_inputs == -1:
-                            scan_task.set_status(task.NO_DATA)
-                            scan_task.set_qcstatus(qcstatus)
-                        else:
-                            scan_task.set_qcstatus(qcstatus)
-                    except Exception as E:
-                        err1 = 'Caught exception building sessions %s'
-                        err2 = 'Exception class %s caught with message %s'
-                        LOGGER.critical(err1 % scan_info['session_label'])
-                        LOGGER.critical(err2 % (E.__class__, E.message))
-                        LOGGER.critical(traceback.format_exc())
-                else:
-                    # Other statuses handled by dax_update_open_tasks
-                    pass
+                for assr_inputs, p_assr in mapping[1]:
+                    if p_assr is None or \
+                            p_assr.info()['procstatus'] == task.NEED_INPUTS:
+                        assessor = scan.parent().assessor(p_assr.label())
+                        scan_task = task.Task(self, assessor, res_dir)
+
+                        log_updating_status(scan_proc.name,
+                                            scan_task.assessor_label)
+                        has_inputs, qcstatus = scan_proc.has_inputs(cscan)
+                        try:
+                            if has_inputs == 1:
+                                scan_task.set_status(task.NEED_TO_RUN)
+                                scan_task.set_qcstatus(task.JOB_PENDING)
+                            elif has_inputs == -1:
+                                scan_task.set_status(task.NO_DATA)
+                                scan_task.set_qcstatus(qcstatus)
+                            else:
+                                scan_task.set_qcstatus(qcstatus)
+                        except Exception as E:
+                            err1 = 'Caught exception building sessions %s'
+                            err2 = 'Exception class %s caught with message %s'
+                            LOGGER.critical(err1 % scan_info['session_label'])
+                            LOGGER.critical(err2 % (E.__class__, E.message))
+                            LOGGER.critical(traceback.format_exc())
+                    else:
+                        # Other statuses handled by dax_update_open_tasks
+                        pass
 
     def build_scan_modules(self, xnat, cscan, scan_mod_list):
         """ Build Scan modules.
