@@ -6,10 +6,12 @@ from past.builtins import basestring
 import logging
 import re
 import os
+from uuid import uuid4
 
 from . import XnatUtils, task
 from . import processor_parser
 from .errors import AutoProcessorError
+from .dax_settings import DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE
 
 
 try:
@@ -895,6 +897,30 @@ defined by yaml file {}'
             commands.append(cmd)
 
         return commands
+
+    def create_assessor(self, xnatsession, inputs):
+        while True:
+            guid = str(uuid4())
+            assessor = xnatsession.assessor(guid)
+            if not assessor.exists():
+                kwargs = {}
+                if self.xsitype.lower() == DEFAULT_FS_DATATYPE.lower():
+                    fsversion = '{}/fsversion'.format(self.xsitype.lower())
+                    kwargs[fsversion] = 0
+                elif self.xsitype.lower() == DEFAULT_DATATYPE.lower():
+                    proctype = '{}/proctype'.format(self.xsitype.lower())
+                    kwargs[proctype] = self.name
+                    procversion = '{}/procversion'.format(self.xsitype.lower())
+                    kwargs[procversion] = self.version
+                assessor.create(assessors=self.xsitype.lower(),
+                                ID=guid,
+                                **kwargs)
+                break
+
+    def _inputs_to_document(self, inputs):
+        
+
+
 
         # TODO: BenM/assessor_of_assessor / replace with processor_parser
         # functionality - one per row in the parameter matrix
