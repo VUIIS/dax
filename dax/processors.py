@@ -918,7 +918,7 @@ defined by yaml file {}'
                 break
 
     def _inputs_to_document(self, inputs):
-        
+        pass
 
 
 
