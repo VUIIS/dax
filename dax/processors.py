@@ -6,7 +6,9 @@ from past.builtins import basestring
 import logging
 import re
 import os
+import json
 from uuid import uuid4
+
 
 from . import XnatUtils, task
 from . import processor_parser
@@ -157,6 +159,38 @@ class Processor(object):
         :return: None
         """
         raise NotImplementedError()
+
+    def create_assessor(self, xnatsession, inputs):
+        attempts = 0
+        while attempts < 100:
+            guid = str(uuid4())
+            assessor = xnatsession.assessor(guid)
+            if not assessor.exists():
+                kwargs = {}
+                if self.xsitype.lower() == DEFAULT_FS_DATATYPE.lower():
+                    fsversion = '{}/fsversion'.format(self.xsitype.lower())
+                    kwargs[fsversion] = 0
+                elif self.xsitype.lower() == DEFAULT_DATATYPE.lower():
+                    proctype = '{}/proctype'.format(self.xsitype.lower())
+                    kwargs[proctype] = self.name
+                    procversion = '{}/procversion'.format(self.xsitype.lower())
+                    kwargs[procversion] = self.version
+
+                input_key = '{}/inputs'.format(self.xsitype.lower())
+                kwargs[input_key] = self._serialize_inputs(inputs)
+                assessor.create(assessors=self.xsitype.lower(),
+                                ID=guid,
+                                **kwargs)
+                return assessor
+
+            attempts += 1
+
+    def _serialize_inputs(self, inputs):
+        return json.dumps(inputs)
+
+    def _deserialize_inputs(self, assessor):
+        input_key = '{}/inputs'.format(self.xsitype.lower())
+        return json.loads(assessor.attrs.get('inputs'))
 
 
 class ScanProcessor(Processor):
@@ -590,7 +624,7 @@ defined by yaml file {}'
 
     # TODO:BenM/assessor_of_assessor/deprecated/keep this method around until we
     # have removed/refactored any backwards-compatibility code for the old
-    # naming mechanism
+    # naming mechanism. Note; now only used by processor.get_assessor
     def get_assessor_name(self, cobj):
         """
         Returns the label of the assessor
@@ -639,7 +673,7 @@ defined by yaml file {}'
         return self.parser.assessor_parameter_map
 
     # TODO: BenM/assessor_of_assessor/remove once upgrade strategy (if any) has
-    # been determined and this code is no longer needed
+    # been determined and this code is no longer needed. Now only used by test
     def get_assessor(self, cobj):
         """
         Returns the assessor object depending on cobj and the assessor label.
@@ -897,29 +931,6 @@ defined by yaml file {}'
             commands.append(cmd)
 
         return commands
-
-    def create_assessor(self, xnatsession, inputs):
-        while True:
-            guid = str(uuid4())
-            assessor = xnatsession.assessor(guid)
-            if not assessor.exists():
-                kwargs = {}
-                if self.xsitype.lower() == DEFAULT_FS_DATATYPE.lower():
-                    fsversion = '{}/fsversion'.format(self.xsitype.lower())
-                    kwargs[fsversion] = 0
-                elif self.xsitype.lower() == DEFAULT_DATATYPE.lower():
-                    proctype = '{}/proctype'.format(self.xsitype.lower())
-                    kwargs[proctype] = self.name
-                    procversion = '{}/procversion'.format(self.xsitype.lower())
-                    kwargs[procversion] = self.version
-                assessor.create(assessors=self.xsitype.lower(),
-                                ID=guid,
-                                **kwargs)
-                break
-
-    def _inputs_to_document(self, inputs):
-        pass
-
 
 
         # TODO: BenM/assessor_of_assessor / replace with processor_parser

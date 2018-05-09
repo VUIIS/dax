@@ -85,7 +85,7 @@
 		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/proctype"/>
 	</DisplayField>
     <DisplayField id="PROCVERSION" header="procversion" visible="true" searchable="true">
-        <DisplayFieldElement name="Field1" schema-element="proc:genProcData/procversion"/>
+    	<DisplayFieldElement name="Field1" schema-element="proc:genProcData/procversion"/>
     </DisplayField>
     <DisplayField id="JOBID" header="jobid" visible="true" searchable="true">
 		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/jobid"/>
@@ -123,8 +123,8 @@
 		<DisplayFieldRef id="DATE"/>
 		<DisplayFieldRef id="PROCSTATUS"/>
 		<DisplayFieldRef id="PROCTYPE"/>
-        <DisplayFieldRef id="PROCVERSION"/>
-        <DisplayFieldRef id="JOBID"/>
+    <DisplayFieldRef id="PROCVERSION"/>
+    <DisplayFieldRef id="JOBID"/>
 		<DisplayFieldRef id="JOBSTARTDATE"/>
 		<DisplayFieldRef id="JOBNODE"/>
 		<DisplayFieldRef id="WALLTIMEUSED"/>
@@ -139,8 +139,8 @@
 		<DisplayFieldRef id="LABEL"/>
 		<DisplayFieldRef id="DATE"/>
 		<DisplayFieldRef id="PROCSTATUS"/>
-        <DisplayFieldRef id="PROCTYPE"/>
-        <DisplayFieldRef id="PROCVERSION"/>
+    <DisplayFieldRef id="PROCTYPE"/>
+    <DisplayFieldRef id="PROCVERSION"/>
 		<DisplayFieldRef id="JOBID"/>
 		<DisplayFieldRef id="JOBSTARTDATE"/>
 		<DisplayFieldRef id="JOBNODE"/>
@@ -156,8 +156,8 @@
 		<DisplayFieldRef id="EXPT_ID"/>
 		<DisplayFieldRef id="DATE"/>
 		<DisplayFieldRef id="PROCSTATUS"/>
-        <DisplayFieldRef id="PROCTYPE"/>
-        <DisplayFieldRef id="PROCVERSION"/>
+    <DisplayFieldRef id="PROCTYPE"/>
+    <DisplayFieldRef id="PROCVERSION"/>
 		<DisplayFieldRef id="JOBID"/>
 		<DisplayFieldRef id="JOBSTARTDATE"/>
 		<DisplayFieldRef id="JOBNODE"/>
@@ -173,8 +173,8 @@
 		<DisplayFieldRef id="EXPT_ID"/>
 		<DisplayFieldRef id="DATE"/>
 		<DisplayFieldRef id="PROCSTATUS"/>
-        <DisplayFieldRef id="PROCTYPE"/>
-        <DisplayFieldRef id="PROCVERSION"/>
+    <DisplayFieldRef id="PROCTYPE"/>
+    <DisplayFieldRef id="PROCVERSION"/>
 		<DisplayFieldRef id="JOBID"/>
 		<DisplayFieldRef id="JOBSTARTDATE"/>
 		<DisplayFieldRef id="JOBNODE"/>
@@ -190,8 +190,8 @@
 		<DisplayFieldRef id="PROC_GENPROCDATA_PROJECT_IDENTIFIER"/>
 		<DisplayFieldRef id="DATE"/>
 		<DisplayFieldRef id="PROCSTATUS"/>
-        <DisplayFieldRef id="PROCTYPE"/>
-        <DisplayFieldRef id="PROCVERSION"/>
+    <DisplayFieldRef id="PROCTYPE"/>
+    <DisplayFieldRef id="PROCVERSION"/>
 		<DisplayFieldRef id="JOBID"/>
 		<DisplayFieldRef id="JOBSTARTDATE"/>
 		<DisplayFieldRef id="JOBNODE"/>
