@@ -15,8 +15,8 @@ no_asrs_error = 'No assessors of the require type/s ({}) found for input {}'
 scan_unusable_error = 'Scan {} is unusable for input {}'
 asr_unusable_error = 'Assessor {} is unusable for input {}'
 
-base_path = 'xnat:/project/{0}/subject/{1}/experiment/{2}/'
-assr_path = base_path + 'assessor/{3}/resource/{4}'
+base_path = '/project/{0}/subject/{1}/experiment/{2}/'
+assr_path = base_path + 'assessor/{3}/out/resource/{4}'
 scan_path = base_path + 'scan/{3}/resource/{4}'
 artefact_paths = {'assessor': assr_path, 'scan': scan_path}
 
@@ -31,6 +31,18 @@ artefact_paths = {'assessor': assr_path, 'scan': scan_path}
 # . for each set of command parameters generated, create an assessor depending
 #   on the state of the artefacts listed in the command parameters
 #   . if one or more artefacts are of inappropriate quality
+
+class ParserArtefact:
+    def __init__(self, path, resources, entity):
+        self.name = path.split('/')[-1]
+        self.path = path
+        self.resources = resources,
+        self.entity = entity
+
+    def __repr__(self):
+        return '{}(path = {}, resources = {}, entity = {})'.format(
+            self.__class__.__name__, self.path, self.resources, self.entity
+        )
 
 class ProcessorParser:
 
@@ -51,6 +63,8 @@ class ProcessorParser:
         self.parameter_matrix = None
         self.assessor_parameter_map = None
         self.command_params = None
+
+        self.xsitype = yaml_source['attrs'].get('xsitype', 'proc:genProcDatax')
 
 
     def parse_session(self, csess):
@@ -229,13 +243,17 @@ class ProcessorParser:
     def parse_artefacts(csess):
         def parse(carts, arts):
             for cart in carts:
-                artefact = {}
+                # artefact = {}
                 resources = {}
-                artefact['entity'] = cart
-                artefact['resources'] = resources
+                # artefact['entity'] = cart
+                # artefact['resources'] = resources
                 for cres in cart.get_resources():
                     resources[cres.label()] = cres
-                arts[cart.label()] = artefact
+                full_path = cart.full_path()
+                arts[full_path] = ParserArtefact(full_path,
+                                                 resources,
+                                                 cart)
+                # arts[cart.label()] = artefact
 
         artefacts = {}
         parse(csess.scans(), artefacts)
@@ -261,7 +279,7 @@ class ProcessorParser:
                             matched += 1
                             break
                 if matched == len(inputs[i]['resources']):
-                    artefacts.append(artefact.label())
+                    artefacts.append(artefact.full_path())
                     artefacts_by_input[i] = artefacts
 
 
@@ -295,7 +313,7 @@ class ProcessorParser:
             filtered_artefacts = []
             for a in artefacts_by_input.get(k, {}):
                 artefact = artefacts[a]
-                if not artefact['entity'].unusable() or v['needs_qc'] is False:
+                if not artefact.entity.unusable() or v['needs_qc'] is False:
                     filtered_artefacts.append(a)
 
             if len(filtered_artefacts) > 0:
@@ -328,6 +346,15 @@ class ProcessorParser:
     #     return len(errors) == 0, errors
 
 
+    def has_inputs(self, cassr):
+        assr = cassr.full_object()
+        inputs = assr.attrs.get(self.xsitype+'/inputs')
+        for k, v in inputs.iteritems:
+            # check whether any inputs are missing, unusable or lacking the
+            # required resource files
+            pass
+
+
     # TODO: BenM/assessor_of_assessors/improve name of generate_parameter_matrix
     # TODO: BenM/assessor_of_assessors/handle multiple args disallowed / allowed
     # scenarios
@@ -349,7 +376,8 @@ class ProcessorParser:
                     if v == i and len(artefacts_by_input.get(k, [])) > 0:
                         mapped_inputs.append(k)
 
-                # generate 'zip' of inputs that are all attached to iteration source
+                # generate 'zip' of inputs that are all attached to iteration
+                # source
 
                 for ind in range(len(artefacts_by_input[i])):
                     cur = []
@@ -359,12 +387,12 @@ class ProcessorParser:
                         )
                     mapped_input_vector.append(cur)
 
-            #input_dimension_map[i] = (mapped_inputs, mapped_input_vector)
+            # input_dimension_map[i] = (mapped_inputs, mapped_input_vector)
             all_inputs.append(mapped_inputs)
             input_dimension_map.append(mapped_input_vector)
 
-        # perform a cartesian product of the dimension map entries to get the final
-        # input combinations
+        # perform a cartesian product of the dimension map entries to get the
+        # final input combinations
 
         matrix = map(lambda x: list(itertools.chain.from_iterable(x)),
                      itertools.product(*input_dimension_map))
@@ -390,6 +418,8 @@ class ProcessorParser:
             # an existing assessor in terms of inputs
             asr_artefacts =\
                 map(lambda v: v[1].split('/')[-1], inputs.iteritems())
+            asr_artefacts = [v for _,v in inputs.iteritems()]
+            print 'asr_artefacts =', asr_artefacts
 
             for pi, p in enumerate(parameter_matrix[1]):
                 # ia[0] is an index, ia[1] is the artefact name; artefact names in

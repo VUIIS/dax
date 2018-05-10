@@ -46,30 +46,30 @@ class AutoProcessorUnitTest(TestCase):
         print("hello world")
 
 
-    def test_scan_assessor_get_assessor_name(self):
-        tseo = self._construct_session('brain_tiv_from_gif')
-        tsco = tseo.scan_by_key('1')
+    # def test_scan_assessor_get_assessor_name(self):
+    #     tseo = self._construct_session('brain_tiv_from_gif')
+    #     tsco = tseo.scan_by_key('1')
+    #
+    #     yaml_source = self._make_yaml_source(
+    #         common.processor_yamls.scan_brain_tiv_from_gif_yaml)
+    #     ap = AutoProcessor(common.FakeXnat, yaml_source)
+    #
+    #     actual = ap.get_assessor_name(tsco)
+    #     self.assertEquals(actual,
+    #                       "proj1-x-subj1-x-sess1-x-1-x-BrainTivFromGIF_v1")
 
-        yaml_source = self._make_yaml_source(
-            common.processor_yamls.scan_brain_tiv_from_gif_yaml)
-        ap = AutoProcessor(common.FakeXnat, yaml_source)
 
-        actual = ap.get_assessor_name(tsco)
-        self.assertEquals(actual,
-                          "proj1-x-subj1-x-sess1-x-1-x-BrainTivFromGIF_v1")
-
-
-    def test_scan_assessor_get_assessor(self):
-        tseo = self._construct_session('brain_tiv_from_gif')
-        tsco = tseo.scan_by_key('1')
-
-        yaml_source = self._make_yaml_source(
-            common.processor_yamls.scan_brain_tiv_from_gif_yaml)
-        ap = AutoProcessor(common.FakeXnat, yaml_source)
-
-        actual, name = ap.get_assessor(tsco)
-        self.assertEquals(name,
-                          "proj1-x-subj1-x-sess1-x-1-x-BrainTivFromGIF_v1")
+    # def test_scan_assessor_get_assessor(self):
+    #     tseo = self._construct_session('brain_tiv_from_gif')
+    #     tsco = tseo.scan_by_key('1')
+    #
+    #     yaml_source = self._make_yaml_source(
+    #         common.processor_yamls.scan_brain_tiv_from_gif_yaml)
+    #     ap = AutoProcessor(common.FakeXnat, yaml_source)
+    #
+    #     actual, name = ap.get_assessor(tsco)
+    #     self.assertEquals(name,
+    #                       "proj1-x-subj1-x-sess1-x-1-x-BrainTivFromGIF_v1")
 
 
     def test_scan_assessor_should_run(self):

@@ -174,6 +174,7 @@ class InterfaceTemp(Interface):
     S_XPATH = '%s/subject/{subject}' % P_XPATH
     E_XPATH = '%s/experiment/{session}' % S_XPATH
     C_XPATH = '%s/scan/{scan}' % E_XPATH
+    CR_XPATH = '%s/resource/{resource}' % C_XPATH
     A_XPATH = '%s/assessor/{assessor}' % E_XPATH
     R_XPATH = '{xpath}/resource/{resource}'  # TODO: BenM/xnatutils refactor/this isn't used; remove it
     AR_XPATH = '%s/out/resource/{resource}' % A_XPATH
@@ -257,41 +258,80 @@ class InterfaceTemp(Interface):
     # TODO: string.format wants well-formed strings and will, for example, throw
     #a KeyError if any named variables in the format string are missing. Put
     #proper validation in place for these methods
+    def get_project_path(self, project):
+        return InterfaceTemp.P_XPATH.format(project=project)
+
     def select_project(self, project):
-        xpath = InterfaceTemp.P_XPATH.format(project=project)
+        xpath = self.get_project_path(project)
         return self.select(xpath)
+
+
+    def get_subject_path(self, project, subject):
+        return InterfaceTemp.S_XPATH.format(project=project,
+                                            subject=subject)
 
     def select_subject(self, project, subject):
-        xpath = InterfaceTemp.S_XPATH.format(project=project,
-                                             subject=subject)
+        xpath = self.get_subject_path(project, subject)
         return self.select(xpath)
+
+
+    def get_experiment_path(self, project, subject, session):
+        return InterfaceTemp.E_XPATH.format(project=project,
+                                            subject=subject,
+                                            session=session)
 
     def select_experiment(self, project, subject, session):
-        xpath = InterfaceTemp.E_XPATH.format(project=project,
-                                             subject=subject,
-                                             session=session)
+        xpath = self.get_experiment_path(project, subject, session)
         return self.select(xpath)
+
+
+    def get_scan_path(self, project, subject, session, scan):
+        return InterfaceTemp.C_XPATH.format(project=project,
+                                            subject=subject,
+                                            session=session,
+                                            scan=scan)
 
     def select_scan(self, project, subject, session, scan):
-        xpath = InterfaceTemp.C_XPATH.format(project=project,
+        xpath = self.get_scan_path(project, subject, session, scan)
+        return self.select(xpath)
+
+
+    def get_scan_resource_path(self, project, subject, session, scan, resource):
+        return InterfaceTemp.CR_XPATH.format(project=project,
                                              subject=subject,
                                              session=session,
-                                             scan=scan)
+                                             scan=scan,
+                                             resource=resource)
+
+    def select_scan_resource(self, project, subject, session, scan, resource):
+        xpath = self.get_scan_resource_path(
+            self, project, subject, session, scan, resource)
         return self.select(xpath)
+
+
+    def get_assessor_path(self, project, subject, session, assessor):
+        return InterfaceTemp.A_XPATH.format(project=project,
+                                            subject=subject,
+                                            session=session,
+                                            assessor=assessor)
 
     def select_assessor(self, project, subject, session, assessor):
-        xpath = InterfaceTemp.A_XPATH.format(project=project,
-                                             subject=subject,
-                                             session=session,
-                                             assessor=assessor)
+        xpath = self.get_assessor_path(project, subject, session, assessor)
         return self.select(xpath)
 
-    def select_assessor_resource(self, project, subject, session, assessor, resource):
-        xpath = InterfaceTemp.AR_XPATH.format(project=project,
-                                              subject=subject,
-                                              session=session,
-                                              assessor=assessor,
-                                              resource=resource)
+
+    def get_assessor_resource_path(
+            self, project, subject, session, assessor, resource):
+        return InterfaceTemp.AR_XPATH.format(project=project,
+                                             subject=subject,
+                                             session=session,
+                                             assessor=assessor,
+                                             resource=resource)
+
+    def select_assessor_resource(
+            self, project, subject, session, assessor, resource):
+        xpath = self.get_assessor_resource_path(
+            project, subject, session, assessor, resource)
         return self.select(xpath)
 
     def select_all_projects(self, intf):
@@ -2849,6 +2889,9 @@ class CachedImageSession(object):
         """
         return self.sess_element.get('label')
 
+    def full_path(self):
+        self.intf.get_session_path(self.project, self.subject, self.session)
+
     def get(self, name):
         """
         Get the value of a variable name in the session
@@ -3040,6 +3083,10 @@ class CachedImageScan(object):
         """
         return self.scan_element.get('ID')
 
+    def full_path(self):
+        self.intf.get_scan_path(
+            self.project, self.subject, self.session, self.scan)
+
     def get(self, name):
         """
         Get the value of a variable associated with a scan.
@@ -3188,6 +3235,10 @@ class CachedImageAssessor(object):
 
         """
         return self.assr_element.get('label')
+
+    def full_path(self):
+        self.intf.get_assessor_path(
+            self.project, self.subject, self.session, self.assessor)
 
     def get(self, name):
         """

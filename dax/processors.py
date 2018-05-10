@@ -480,21 +480,22 @@ class AutoProcessor(Processor):
         self.full_regex = self.attrs.get('fullregex', False)
         self.suffix = self.attrs.get('suffix', None)
 
+        # TODO: BenM/assessor_of_assessor/ no need to define this any more
         # Set scan info if scan auto processor
-        if self.type == 'scan':
-            if self.scan_nb is None:
-                err = 'YAML document {} does not have a scan_nb defined.'
-                raise AutoProcessorError(err.format(yaml_source['source_id']))
-
-            _docs = [_doc for _doc in self.xnat_inputs.get('scans')
-                     if self.scan_nb in list(_doc.keys())]
-            if len(_docs) == 1:
-                self.scaninfo = _docs[0]
-            else:
-                err = 'YAML document {} does not have a valid scan_nb defined.\
-No xnat.scans.{} in inputs found.'
-                raise AutoProcessorError(err.format(yaml_source['source_id'],
-                                                    self.scan_nb))
+#         if self.type == 'scan':
+#             if self.scan_nb is None:
+#                 err = 'YAML document {} does not have a scan_nb defined.'
+#                 raise AutoProcessorError(err.format(yaml_source['source_id']))
+#
+#             _docs = [_doc for _doc in self.xnat_inputs.get('scans')
+#                      if self.scan_nb in list(_doc.keys())]
+#             if len(_docs) == 1:
+#                 self.scaninfo = _docs[0]
+#             else:
+#                 err = 'YAML document {} does not have a valid scan_nb defined.\
+# No xnat.scans.{} in inputs found.'
+#                 raise AutoProcessorError(err.format(yaml_source['source_id'],
+#                                                     self.scan_nb))
 
 
     def _edit_inputs(self, user_inputs, yaml_source):
@@ -580,7 +581,8 @@ defined by yaml file {}'
         self.spider_path = self.user_overrides.get('spider_path')
         self.name = self.proctype
         self.type = self.attrs.get('type')
-        self.scan_nb = self.attrs.get('scan_nb', None)
+        # TODO: BenM/assessor_of_assessor/scan_nb is no longer required
+        # self.scan_nb = self.attrs.get('scan_nb', None)
 
 
     def _check_default_keys(self, source_id, doc):
@@ -625,74 +627,74 @@ defined by yaml file {}'
     # TODO:BenM/assessor_of_assessor/deprecated/keep this method around until we
     # have removed/refactored any backwards-compatibility code for the old
     # naming mechanism. Note; now only used by processor.get_assessor
-    def get_assessor_name(self, cobj):
-        """
-        Returns the label of the assessor
+    # def get_assessor_name(self, cobj):
+    #     """
+    #     Returns the label of the assessor
+    #
+    #     :param csobj: CachedImageSession or CachedImageScan object depending
+    #                   on the level
+    #     :return: String of the assessor label
+    #
+    #     """
+    #     csess = cobj.session()
+    #
+    #     obj_info = cobj.info()
+    #     labels = [obj_info['project_id'], obj_info['subject_label'],
+    #               obj_info['session_label']]
+    #     if self.type == 'scan':
+    #         labels.append(obj_info['scan_label'])
+    #     labels.append(self.proctype)
+    #     assr_name = '-x-'.join(labels)
+    #
+    #     # Check if shared project:
+    #     proj_shared = csess.has_shared_project()
+    #     assr_name_shared = None
+    #     if proj_shared is not None:
+    #         labels[0] = proj_shared
+    #         assr_name_shared = '-x-'.join(labels)
+    #
+    #     # Look for existing assessor
+    #     assr_label = assr_name
+    #     for assr in csess.assessors():
+    #         if assr_name_shared is not None and \
+    #            assr.info()['label'] == assr_name_shared:
+    #             assr_label = assr_name_shared
+    #             break
+    #         if assr.info()['label'] == assr_name:
+    #             break
+    #
+    #     return assr_label
 
-        :param csobj: CachedImageSession or CachedImageScan object depending
-                      on the level
-        :return: String of the assessor label
-
-        """
-        csess = cobj.session()
-
-        obj_info = cobj.info()
-        labels = [obj_info['project_id'], obj_info['subject_label'],
-                  obj_info['session_label']]
-        if self.type == 'scan':
-            labels.append(obj_info['scan_label'])
-        labels.append(self.proctype)
-        assr_name = '-x-'.join(labels)
-
-        # Check if shared project:
-        proj_shared = csess.has_shared_project()
-        assr_name_shared = None
-        if proj_shared is not None:
-            labels[0] = proj_shared
-            assr_name_shared = '-x-'.join(labels)
-
-        # Look for existing assessor
-        assr_label = assr_name
-        for assr in csess.assessors():
-            if assr_name_shared is not None and \
-               assr.info()['label'] == assr_name_shared:
-                assr_label = assr_name_shared
-                break
-            if assr.info()['label'] == assr_name:
-                break
-
-        return assr_label
 
     # TODO: BenM/assessor_of_assessor/assessors are described by a type/inputs
     # tuple now, so we need to check the inputs of each assessor of the
     # appropriate type
-    def get_assessor_mapping(self, csess):
-        # parse the contents of the session and determine what assessors need to
-        # be constructed
-        self.parser.parse_session(csess)
+    def get_assessor_mapping(self):
         return self.parser.assessor_parameter_map
+
 
     # TODO: BenM/assessor_of_assessor/remove once upgrade strategy (if any) has
     # been determined and this code is no longer needed. Now only used by test
-    def get_assessor(self, cobj):
-        """
-        Returns the assessor object depending on cobj and the assessor label.
+    # def get_assessor(self, cobj):
+    #     """
+    #     Returns the assessor object depending on cobj and the assessor label.
+    #
+    #     :param cscan: CachedImageScan object from XnatUtils
+    #     :return: String of the assessor label
+    #
+    #     """
+    #     assessor_name = self.get_assessor_name(cobj)
+    #
+    #     # Look for existing assessor
+    #     csess = cobj.session()
+    #     p_assr = None
+    #     for assr in csess.assessors():
+    #         if assr.info()['label'] == assessor_name:
+    #             p_assr = assr
+    #             break
+    #
+    #     return p_assr, assessor_name
 
-        :param cscan: CachedImageScan object from XnatUtils
-        :return: String of the assessor label
-
-        """
-        assessor_name = self.get_assessor_name(cobj)
-
-        # Look for existing assessor
-        csess = cobj.session()
-        p_assr = None
-        for assr in csess.assessors():
-            if assr.info()['label'] == assessor_name:
-                p_assr = assr
-                break
-
-        return p_assr, assessor_name
 
     # def get_task(self, cobj, upload_dir):
     #     """
@@ -712,6 +714,10 @@ defined by yaml file {}'
     #         assessor = obj.parent().assessor(assessor_name)
     #     return task.Task(self, assessor, upload_dir)
 
+    def parse_session(self, csess):
+        self.parser.parse_session(csess)
+
+
     def should_run(self, obj_dict):
         """
         Method to see if the assessor should appear in the session.
@@ -720,8 +726,9 @@ defined by yaml file {}'
         :return: True if it should run, false if it shouldn't
 
         """
-        # TODO: BenM/assessor_of_assessor/
-        # this method checks
+        # TODO: BenM/assessor_of_assessor/this method checks whether a given
+        # processor type runs on a session - figure out if this is still
+        # necessary
         if 'scan_type' in obj_dict:
             scantypes = self.scaninfo.get('types', '').split(',')
             if scantypes == 'all':
@@ -737,13 +744,15 @@ defined by yaml file {}'
             # with no checks for session
             return True
 
+    # TODO: BenM/assessor_of_assessor/replace with processor_parser
+    # functionality
     def has_inputs(self, cobj):
         """Method to check the inputs.
 
         By definition:
-            status = 0  -> NEED_INPUTS,
+            status = 0  -> NEED_INPUTS, for session asr inputs and resources
             status = 1  -> NEED_TO_RUN
-            status = -1 -> NO_DATA
+            status = -1 -> NO_DATA, for scan primary input isn't usable
             qcstatus needs a value only when -1 or 0.
         You need to set qcstatus to a short string that explain
         why it's no ready to run. e.g: No NIFTI
@@ -752,8 +761,7 @@ defined by yaml file {}'
                      (see XnatUtils in dax for information)
         :return: status, qcstatus
         """
-        # TODO: BenM/assessor_of_assessor/replace with processor_parser
-        # functionality
+
         # If Scan assessor, check that the scan has inputs
         csess = cobj.session()
         if cobj.entity_type() == 'scan':
@@ -901,7 +909,6 @@ defined by yaml file {}'
         # TODO: BenM/assessor_of_assessors/parse each scan / assessor and
         # any select statements and generate one or more corresponding commands
 
-        self.parser.parse_session(csess)
         self.parser.command_params
 
         # combine the user overrides with the input parameters for each

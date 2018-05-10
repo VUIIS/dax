@@ -26,6 +26,11 @@ from dax import yaml_doc
 # . all statuses
 
 
+sess_path = '/project/{}/subject/{}/experiment/{}'
+scan_path = '/project/{}/subject/{}/experiment/{}/scan/{}'
+assessor_path = '/project/{}/subject/{}/experiment/{}/assessor/{}'
+scan_path_r = scan_path + '/resource/{}'
+assessor_path_r = assessor_path + '/out/resource/{}'
 
 class TestResource:
 
@@ -42,7 +47,13 @@ class TestResource:
 
 class TestArtefact:
 
-    def __init__(self, label, artefact_type, quality, resources, inputs):
+    def __init__(
+            self, test_obj_type, proj, subj, sess, label, artefact_type,
+            quality, resources, inputs = None):
+        self.test_obj_type = test_obj_type
+        self.proj = proj
+        self.subj = subj
+        self.sess = sess
         self.label_ = label
         self.artefact_type = artefact_type
         self.quality_ = quality
@@ -51,6 +62,16 @@ class TestArtefact:
 
     def label(self):
         return self.label_
+
+    def full_path(self):
+        if self.test_obj_type == 'scan':
+            return scan_path.format(
+                self.proj, self.subj, self.sess, self.label_)
+        elif self.test_obj_type == 'assessor':
+            return assessor_path.format(
+                self.proj, self.subj, self.sess, self.label_)
+        else:
+            raise RuntimeError('invalid artefact type')
 
     def type(self):
         return self.artefact_type
@@ -79,8 +100,12 @@ sess = 'sess1'
 class TestSession:
 
     def __init__(self, scans, asrs):
-        self.scans_ = [TestArtefact(s[0], s[1], s[2], s[3], {}) for s in scans]
-        self.assessors_ = [TestArtefact(a[0], a[1], a[2], a[3], a[4]) for a in asrs]
+        self.scans_ = [
+            TestArtefact("scan", s[0], s[1], s[2], s[3], s[4], s[5], s[6])
+            for s in scans]
+        self.assessors_ = [
+            TestArtefact("assessor", a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7])
+            for a in asrs]
 
     def scans(self):
         return self.scans_
@@ -97,16 +122,19 @@ class TestSession:
     def session_id(self):
         return sess
 
+    def full_path(self):
+        sess_path.format(self.proj, self.subj, self.sess)
+
 
 scan_files = [('SNAPSHOTS', 2), ('NIFTI', 1)]
 
 xnat_scan_contents = [
-    ("1", "T1W", "usable", copy.deepcopy(scan_files)),
-    ("2", "T1w", "unusable", copy.deepcopy(scan_files)),
-    ("3", "T1", "usable", copy.deepcopy(scan_files)),
-    ("4", "T1", "usable", copy.deepcopy(scan_files)),
-    ("10", "FLAIR", "usable", copy.deepcopy(scan_files)),
-    ("11", "FLAIR", "usable", copy.deepcopy(scan_files)),
+    (proj, subj, sess, "1", "T1W", "usable", copy.deepcopy(scan_files)),
+    (proj, subj, sess, "2", "T1w", "unusable", copy.deepcopy(scan_files)),
+    (proj, subj, sess, "3", "T1", "usable", copy.deepcopy(scan_files)),
+    (proj, subj, sess, "4", "T1", "usable", copy.deepcopy(scan_files)),
+    (proj, subj, sess, "10", "FLAIR", "usable", copy.deepcopy(scan_files)),
+    (proj, subj, sess, "11", "FLAIR", "usable", copy.deepcopy(scan_files)),
 ]
 
 
@@ -116,11 +144,6 @@ asr_files = [
     ('LABELS', 1), ('PDF', 1), ('BIAS_COR', 1), ('PRIOR', 1), ('SEG', 1),
     ('STATS', 1), ('SNAPSHOTS', 2), ('OUTLOG', 1), ('PBS', 1)
 ]
-
-scan_path = 'xnat:/project/{}/subject/{}/experiment/{}/scan/{}'
-assessor_path = 'xnat:/project/{}/subject/{}/experiment/{}/assessor/{}'
-scan_path_r = scan_path + '/resource/{}'
-assessor_path_r = assessor_path + '/resource/{}'
 
 xnat_assessor_inputs = {
     'proc1-asr1': {'scan1': scan_path.format(proj, subj, sess, '1')},
@@ -133,9 +156,9 @@ xnat_assessor_inputs = {
 }
 
 xnat_assessor_contents = [
-    ("proc1-asr1", "proc1", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc1-asr1']),
-    ("proc1-asr2", "proc1", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc1-asr2']),
-    ("proc2-asr1", "proc2", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc2-asr1'])
+    (proj, subj, sess, "proc1-asr1", "proc1", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc1-asr1']),
+    (proj, subj, sess, "proc1-asr2", "proc1", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc1-asr2']),
+    (proj, subj, sess, "proc2-asr1", "proc2", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc2-asr1'])
 ]
 
 scan_gif_parcellation_yaml = """
@@ -247,3 +270,5 @@ class MyTestCase(TestCase):
                                               variables_to_inputs,
                                               parameter_matrix)
         print "commands = ", commands
+
+        pp = ProcessorParser(doc)
