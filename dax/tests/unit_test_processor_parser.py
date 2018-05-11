@@ -272,3 +272,17 @@ class MyTestCase(TestCase):
         print "commands = ", commands
 
         pp = ProcessorParser(doc)
+
+
+
+    def test_object_type_from_path(self):
+        tests = [
+            ('/project/pr1/subject/subj1/experiment/sess1/scan/scan1', 'scan')
+            ('/project/pr1/subject/subj1/experiment/sess1/scan/scan1',
+             'scan')
+        ]
+
+        for t in tests:
+            self.assertEqual(t[1],
+                             ProcessorParser._object_type_from_path(t[0]),
+                             'unexpected object type')

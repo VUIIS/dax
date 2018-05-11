@@ -2,6 +2,13 @@
 import copy
 import itertools
 
+
+# TODO: BenM/assessor_of_assessor/
+# support lack of input field on old assessors
+# support lack of schema number & schema number (maybe on processor)
+# support the ability to fix broken inputs
+# support partial node ordering of processor dependencies
+
 session_namespace = {
     'foreach': {'args': [{'optional': True, 'type': str}]},
     'one': {'args': []},
@@ -348,11 +355,51 @@ class ProcessorParser:
 
     def has_inputs(self, cassr):
         assr = cassr.full_object()
+        intf = cassr.intf
         inputs = assr.attrs.get(self.xsitype+'/inputs')
+        errors = {}
+        statuses = {}
         for k, v in inputs.iteritems:
             # check whether any inputs are missing, unusable or lacking the
             # required resource files
-            pass
+            input_entry = self.inputs[k]
+            artefact = intf.select(v)
+
+            if not artefact.exists():
+                errors.append((k, 'Artefact {} does not exist'.format(v)))
+                continue
+
+            #if artefact.attrs.get()
+
+
+    @staticmethod
+    def _object_type_from_path(path):
+        elems = path.split('/')
+        if elems[0] == 'xnat:':
+            elems = elems[1:]
+        elems = filter(lambda e: len(e) > 0, elems)
+        if elems[0] not in ['project', 'projects']:
+            raise RuntimeError('badly formed path')
+        if len(elems) == 2:
+            return 'project'
+        elems = elems[2:]
+        if elems[0] not in ['subject', 'subjects']:
+            raise RuntimeError('badly formed path')
+        if len(elems) == 2:
+            return 'subject'
+        elems = elems[2:]
+        if elems[0] not in ['experiment', 'experiments']:
+            raise RuntimeError('badly formed path')
+        if len(elems) < 2:
+            return 'experiment'
+        elems = elems[2:]
+        if elems[0] in ['scan', 'scans']:
+            if len(elems) == 2:
+                return 'scan'
+        if elems[0] in ['assessor', 'assessors']:
+            if len(elems) == 2:
+                return 'assessor'
+        return 'resource'
 
 
     # TODO: BenM/assessor_of_assessors/improve name of generate_parameter_matrix
