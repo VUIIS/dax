@@ -305,7 +305,7 @@ class InterfaceTemp(Interface):
 
     def select_scan_resource(self, project, subject, session, scan, resource):
         xpath = self.get_scan_resource_path(
-            self, project, subject, session, scan, resource)
+            project, subject, session, scan, resource)
         return self.select(xpath)
 
 
@@ -634,6 +634,40 @@ class InterfaceTemp(Interface):
 
         return sorted(new_list, key=lambda k: k['label'])
 
+    @staticmethod
+    def object_type_from_path(path):
+        elems = path.split('/')
+        if elems[0] == 'xnat:':
+            elems = elems[1:]
+        elems = filter(lambda e: len(e) > 0, elems)
+        if elems[0] == 'data':
+            elems = elems[1:]
+        if elems[0] not in ['project', 'projects']:
+            raise RuntimeError('badly formed path')
+        if len(elems) == 2:
+            return 'project'
+        elems = elems[2:]
+        if elems[0] not in ['subject', 'subjects']:
+            raise RuntimeError('badly formed path')
+        if len(elems) == 2:
+            return 'subject'
+        elems = elems[2:]
+        if elems[0] not in ['experiment', 'experiments']:
+            raise RuntimeError('badly formed path')
+        if len(elems) == 2:
+            return 'experiment'
+        elems = elems[2:]
+        if elems[0] in ['scan', 'scans']:
+            if len(elems) == 2:
+                return 'scan'
+        if elems[0] in ['assessor', 'assessors']:
+            if len(elems) == 2:
+                return 'assessor'
+        return 'resource'
+
+
+
+
 
 # TODO: BenM/assessor_of_assessor/should be able to go
 class AssessorHandler(object):
@@ -740,6 +774,8 @@ class AssessorHandler(object):
                            self.assessor_label)
 
 
+# TODO: BenM/assessor_of_assessor/use path.txt here to associate results with
+# xnat assessors
 class SpiderProcessHandler(object):
     """Class to handle the uploading of results for a spider."""
     def __init__(self, script_name, suffix, project=None, subject=None,

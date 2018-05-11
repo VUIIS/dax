@@ -2,6 +2,8 @@
 import copy
 import itertools
 
+from .XnatUtils import InterfaceTemp
+
 
 # TODO: BenM/assessor_of_assessor/
 # support lack of input field on old assessors
@@ -51,6 +53,8 @@ class ParserArtefact:
             self.__class__.__name__, self.path, self.resources, self.entity
         )
 
+
+
 class ProcessorParser:
 
     def __init__(self, yaml_source):
@@ -71,7 +75,7 @@ class ProcessorParser:
         self.assessor_parameter_map = None
         self.command_params = None
 
-        self.xsitype = yaml_source['attrs'].get('xsitype', 'proc:genProcDatax')
+        self.xsitype = yaml_source['attrs'].get('xsitype', 'proc:genProcData')
 
 
     def parse_session(self, csess):
@@ -356,50 +360,34 @@ class ProcessorParser:
     def has_inputs(self, cassr):
         assr = cassr.full_object()
         intf = cassr.intf
-        inputs = assr.attrs.get(self.xsitype+'/inputs')
+        input_artefacts = assr.attrs.get(self.xsitype + '/inputs')
         errors = {}
         statuses = {}
-        for k, v in inputs.iteritems:
+        for artefact_input_k, artefact_input_path in input_artefacts.iteritems:
             # check whether any inputs are missing, unusable or lacking the
             # required resource files
-            input_entry = self.inputs[k]
-            artefact = intf.select(v)
+            input_entry = self.inputs[artefact_input_k]
+            artefact = intf.select(artefact_input_path)
 
             if not artefact.exists():
-                errors.append((k, 'Artefact {} does not exist'.format(v)))
+                errors.append(
+                    (artefact_input_k,
+                     'Artefact {} does not exist'.format(
+                        artefact_input_path)))
                 continue
 
-            #if artefact.attrs.get()
+            artefact_type = intf.object_type_from_path(
+                artefact_input_path)
 
+            if artefact_type not in ['scan', 'assessor']:
+                errors.append(
+                    (artefact_input_k,
+                     'Artefact {} must be a scan or assessor'.format(
+                         artefact_input_path)))
+                continue
 
-    @staticmethod
-    def _object_type_from_path(path):
-        elems = path.split('/')
-        if elems[0] == 'xnat:':
-            elems = elems[1:]
-        elems = filter(lambda e: len(e) > 0, elems)
-        if elems[0] not in ['project', 'projects']:
-            raise RuntimeError('badly formed path')
-        if len(elems) == 2:
-            return 'project'
-        elems = elems[2:]
-        if elems[0] not in ['subject', 'subjects']:
-            raise RuntimeError('badly formed path')
-        if len(elems) == 2:
-            return 'subject'
-        elems = elems[2:]
-        if elems[0] not in ['experiment', 'experiments']:
-            raise RuntimeError('badly formed path')
-        if len(elems) < 2:
-            return 'experiment'
-        elems = elems[2:]
-        if elems[0] in ['scan', 'scans']:
-            if len(elems) == 2:
-                return 'scan'
-        if elems[0] in ['assessor', 'assessors']:
-            if len(elems) == 2:
-                return 'assessor'
-        return 'resource'
+            if artefact_type == 'scan':
+                artefact_type = a.attrs.get('')
 
 
     # TODO: BenM/assessor_of_assessors/improve name of generate_parameter_matrix

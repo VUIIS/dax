@@ -175,7 +175,6 @@ class Processor(object):
                     kwargs[proctype] = self.name
                     procversion = '{}/procversion'.format(self.xsitype.lower())
                     kwargs[procversion] = self.version
-
                 input_key = '{}/inputs'.format(self.xsitype.lower())
                 kwargs[input_key] = self._serialize_inputs(inputs)
                 assessor.create(assessors=self.xsitype.lower(),
@@ -761,95 +760,96 @@ defined by yaml file {}'
                      (see XnatUtils in dax for information)
         :return: status, qcstatus
         """
+        return self.parser.has_inputs(cobj)
 
-        # If Scan assessor, check that the scan has inputs
-        csess = cobj.session()
-        if cobj.entity_type() == 'scan':
-            if self.xnat.is_cscan_unusable(cobj):
-                    return -1, 'Scan unusable'
+        # # If Scan assessor, check that the scan has inputs
+        # csess = cobj.session()
+        # if cobj.entity_type() == 'scan':
+        #     if self.xnat.is_cscan_unusable(cobj):
+        #             return -1, 'Scan unusable'
+        #
+        #     for res_dict in self.scaninfo.get('resources', list()):
+        #         resource = res_dict.get('resource')
+        #         if not self.xnat.has_resource(cobj, resource):
+        #             msg = '{}: {} not found.'
+        #             LOGGER.debug(msg.format(self.proctype, resource))
+        #             return 0, 'No {}'.format(resource)
+        #
+        # # Check xnat inputs set in YAML file:
+        # # Scans:
+        # for scan_in in self.xnat_inputs.get('scans', list()):
+        #     if self.scan_nb not in list(scan_in.keys()):
+        #         scantypes = scan_in.get('types').split(',')
+        #         nargs = scan_in.get('nargs', False)
+        #         needs_qc = scan_in.get('needs_qc', True)
+        #         doc_res = scan_in.get('resources', list())
+        #         resources = [_doc.get('resource') for _doc in doc_res
+        #                      if _doc.get('required', True)]
+        #         status, qcstatus = self._check_xnat_cobj(
+        #             csess, scantypes, 'scan', nargs, resources, needs_qc)
+        #         if status == 0 or status == -1:
+        #             return status, qcstatus
+        # # Assessors:
+        # for assr_in in self.xnat_inputs.get('assessors', list()):
+        #     proctypes = assr_in.get('proctypes').split(',')
+        #     nargs = assr_in.get('nargs', False)
+        #     needs_qc = assr_in.get('needs_qc', True)
+        #     doc_res = assr_in.get('resources', list())
+        #     resources = [_doc.get('resource') for _doc in doc_res
+        #                  if _doc.get('required', True)]
+        #     status, qcstatus = self._check_xnat_cobj(
+        #         csess, proctypes, 'assessor', nargs, resources, needs_qc)
+        #     if status == 0 or status == -1:
+        #         return status, qcstatus
+        #
+        # return 1, None
 
-            for res_dict in self.scaninfo.get('resources', list()):
-                resource = res_dict.get('resource')
-                if not self.xnat.has_resource(cobj, resource):
-                    msg = '{}: {} not found.'
-                    LOGGER.debug(msg.format(self.proctype, resource))
-                    return 0, 'No {}'.format(resource)
-
-        # Check xnat inputs set in YAML file:
-        # Scans:
-        for scan_in in self.xnat_inputs.get('scans', list()):
-            if self.scan_nb not in list(scan_in.keys()):
-                scantypes = scan_in.get('types').split(',')
-                nargs = scan_in.get('nargs', False)
-                needs_qc = scan_in.get('needs_qc', True)
-                doc_res = scan_in.get('resources', list())
-                resources = [_doc.get('resource') for _doc in doc_res
-                             if _doc.get('required', True)]
-                status, qcstatus = self._check_xnat_cobj(
-                    csess, scantypes, 'scan', nargs, resources, needs_qc)
-                if status == 0 or status == -1:
-                    return status, qcstatus
-        # Assessors:
-        for assr_in in self.xnat_inputs.get('assessors', list()):
-            proctypes = assr_in.get('proctypes').split(',')
-            nargs = assr_in.get('nargs', False)
-            needs_qc = assr_in.get('needs_qc', True)
-            doc_res = assr_in.get('resources', list())
-            resources = [_doc.get('resource') for _doc in doc_res
-                         if _doc.get('required', True)]
-            status, qcstatus = self._check_xnat_cobj(
-                csess, proctypes, 'assessor', nargs, resources, needs_qc)
-            if status == 0 or status == -1:
-                return status, qcstatus
-
-        return 1, None
-
-    def _check_xnat_cobj(self, csess, sp_types, otype='scan', nargs=False,
-                         resources=list(), needs_qc=True):
-        """Method to check if in a csess you have the right inputs (scans)
-
-        :param csess: CachedImageSession to check
-        :param sp_types: list of scan types or proctypes to look for
-        :param nargs: allow more than one scans of this type
-        :param resources: resources to check on XNAT
-        :param needs_qc: if we are looking for object with qc that passed
-        :return: status, qcstatus
-        """
-        good_cobjs = list()
-        if otype == 'scan':
-            good_cobjs = self.xnat.get_good_cscans(csess, sp_types, needs_qc)
-        else:
-            good_cobjs = self.xnat.get_good_cassr(csess, sp_types, needs_qc)
-
-        if not good_cobjs:
-            msg = '{}: No {} {} found.'
-            LOGGER.debug(msg.format(self.name, ','.join(sp_types), otype))
-            # Return NO DATA if scan and 0 if assessor
-            if otype == 'scan':
-                return -1, 'No {} found'.format(','.join(sp_types))
-            else:
-                return 0, 'No {} found'.format(','.join(sp_types))
-        elif nargs is False and len(good_cobjs) > 1:
-            msg = '{}: Too many {} {} found.'
-            LOGGER.debug(msg.format(self.name, ','.join(sp_types),
-                                    '{}s'.format(otype)))
-            return 0, 'Too many {} found'.format(','.join(sp_types))
-
-        # Check resources if set:
-        if resources is not None and len(resources) > 0:
-            for cobj in good_cobjs:
-                for res in resources:
-                    if otype == 'scan':
-                        label = cobj.info()['ID']
-                        _type = cobj.info()['type']
-                    else:
-                        label = cobj.info()['label']
-                        _type = cobj.info()['proctype']
-                    if not self.xnat.has_resource(cobj, res):
-                        msg = '{}: missing resource {} for {}.'
-                        LOGGER.debug(msg.format(self.proctype, res, label))
-                        return 0, 'Missing {} on {}'.format(res, _type)
-        return 1, None
+    # def _check_xnat_cobj(self, csess, sp_types, otype='scan', nargs=False,
+    #                      resources=list(), needs_qc=True):
+    #     """Method to check if in a csess you have the right inputs (scans)
+    #
+    #     :param csess: CachedImageSession to check
+    #     :param sp_types: list of scan types or proctypes to look for
+    #     :param nargs: allow more than one scans of this type
+    #     :param resources: resources to check on XNAT
+    #     :param needs_qc: if we are looking for object with qc that passed
+    #     :return: status, qcstatus
+    #     """
+    #     good_cobjs = list()
+    #     if otype == 'scan':
+    #         good_cobjs = self.xnat.get_good_cscans(csess, sp_types, needs_qc)
+    #     else:
+    #         good_cobjs = self.xnat.get_good_cassr(csess, sp_types, needs_qc)
+    #
+    #     if not good_cobjs:
+    #         msg = '{}: No {} {} found.'
+    #         LOGGER.debug(msg.format(self.name, ','.join(sp_types), otype))
+    #         # Return NO DATA if scan and 0 if assessor
+    #         if otype == 'scan':
+    #             return -1, 'No {} found'.format(','.join(sp_types))
+    #         else:
+    #             return 0, 'No {} found'.format(','.join(sp_types))
+    #     elif nargs is False and len(good_cobjs) > 1:
+    #         msg = '{}: Too many {} {} found.'
+    #         LOGGER.debug(msg.format(self.name, ','.join(sp_types),
+    #                                 '{}s'.format(otype)))
+    #         return 0, 'Too many {} found'.format(','.join(sp_types))
+    #
+    #     # Check resources if set:
+    #     if resources is not None and len(resources) > 0:
+    #         for cobj in good_cobjs:
+    #             for res in resources:
+    #                 if otype == 'scan':
+    #                     label = cobj.info()['ID']
+    #                     _type = cobj.info()['type']
+    #                 else:
+    #                     label = cobj.info()['label']
+    #                     _type = cobj.info()['proctype']
+    #                 if not self.xnat.has_resource(cobj, res):
+    #                     msg = '{}: missing resource {} for {}.'
+    #                     LOGGER.debug(msg.format(self.proctype, res, label))
+    #                     return 0, 'Missing {} on {}'.format(res, _type)
+    #     return 1, None
 
 #     def get_xnat_path(self, cobjs, resource, required=True, fpath=None):
 #         """Method to get the file path on XNAT for the scans
@@ -887,6 +887,7 @@ defined by yaml file {}'
 #                 LOGGER.debug(msg.format(resource, label,
 #                                         obj_info['session_label']))
 #         return filepaths
+
 
     # TODO: BenM/assessor_of_assessor/this method is no longer suitable for
     # execution on a single assessor, as it generates commands for the whole

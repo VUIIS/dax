@@ -1282,6 +1282,7 @@ The project is not part of the settings."""
         return len(diff_list) > 0
 
 
+# TODO: BenM/assessor_of_assessor/check path.txt to get the project_id
 def load_task_queue(status=None, proj_filter=None):
     """ Load the task queue for DiskQ"""
     task_list = list()
