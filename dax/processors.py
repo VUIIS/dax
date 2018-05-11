@@ -43,6 +43,7 @@ class Processor(object):
         :return: None
 
         """
+        self.job_template = None
         self.walltime_str = walltime_str  # 00:00:00 format
         self.memreq_mb = memreq_mb   # memory required in megabytes
         # default values:
@@ -933,7 +934,6 @@ class MoreAutoProcessor(AutoProcessor):
 
         :param yaml_file: path to yaml file defining the processor
         """
-
         if not os.path.isfile(yaml_file):
             err = 'Path not found for {}'
             raise AutoProcessorError(err.format(yaml_file))
@@ -1142,8 +1142,8 @@ class MoreAutoProcessor(AutoProcessor):
                 xnat_uri = '{}/files'.format(x_path, fpath)
 
         elif required:
-            msg = 'No resource {} found for {} in session {}.'
-            LOGGER.debug(msg.format(resource, label, obj_info['session_label']))
+            msg = 'No resource {} found in {}.'
+            LOGGER.debug(msg.format(resource, cobj.label()))
 
         return xnat_uri
 
@@ -1167,10 +1167,10 @@ class MoreAutoProcessor(AutoProcessor):
 
             # Check count of matches scans (should only one if scan_nb)
             if len(matched_cscans) == 0:
-                print('error failed to find a scan')
+                LOGGER.debug('failed to find a scan')
                 raise NoDataException('No Scan')
             elif len(matched_cscans) > 1:
-                print('error too many matching scans found')
+                LOGGER.debug('too many matching scans found')
                 raise NeedInputsException('Multiple Scans')
 
             # Now match resources of matched scans
@@ -1184,9 +1184,8 @@ class MoreAutoProcessor(AutoProcessor):
                         fmatch=res.get('fmatch')
                     )
                     if not xnat_uri:
-                        print('error failed to find a file path')
+                        LOGGER.debug('failed to find a file path')
                         raise NeedInputsException('No Resource')
-
 
                     xnat_uri_list.append(xnat_uri)
 
@@ -1206,11 +1205,12 @@ class MoreAutoProcessor(AutoProcessor):
             matched_cassrs = XnatUtils.get_good_cassr(csess, proctypes, needs_qc)
 
             # Check counts of matched assessors
+            # TODO: figure out how to determine NoDataException
             if len(matched_cassrs) == 0:
-                print('error failed to find an assessor')
-                raise NoDataException('No Assr')
+                LOGGER.debug('failed to find an assessor')
+                raise NeedInputsException('Need Assr')
             elif len(matched_cassrs) > 1:
-                print('error too many matching assessors found')
+                LOGGER.debug('too many matching assessors found')
                 raise NeedInputsException('Multiple Assr')
 
             # Now match resources of matched assessors
@@ -1225,17 +1225,45 @@ class MoreAutoProcessor(AutoProcessor):
                         fmatch=res.get('fmatch')
                     )
                     if not xnat_uri:
-                        print('error failed to find a file path')
+                        LOGGER.debug('failed to find a file path')
                         raise NeedInputsException('No Resource')
 
                     xnat_uri_list.append(xnat_uri)
 
                 fdest = res.get('fdest')
                 ftype = res.get('ftype')
-                input_list.append({'fdest': fdest, 'ftype': ftype, 'fpath': ','.join(xnat_uri_list)})
+                input_list.append({
+                    'fdest': fdest,
+                    'ftype': ftype,
+                    'fpath': ','.join(xnat_uri_list)
+                })
                 if 'varname' in res:
                     varname = res['varname']
                     var2val[varname] = fdest
+
+        # Handle xnat attributes
+        for attr_in in self.xnat_inputs.get('attrs', list()):
+            _var = attr_in['varname']
+            _attr = attr_in['attr']
+            _obj = attr_in['object']
+            _val = ''
+
+            if _obj == 'subject':
+                _val = csess.full_object().parent().attrs.get(_attr)
+            elif _obj == 'session':
+                _val = csess.full_object().attrs.get(_attr)
+            elif _obj == 'scan' and scan_label:
+                _val = csess.full_object().scan(scan_label).attrs.get(_attr)
+            else:
+                # TODO: throw invalid YAML error
+                LOGGER.error('invalid YAML')
+                err = 'YAML File:contains invalid attribute:{}'
+                raise AutoProcessorError(err.format(_attr))
+
+            if _val == '':
+                raise NeedInputsException('Missing ' + _attr)
+            else:
+                var2val[_var] = _val
 
         return var2val, input_list
 
