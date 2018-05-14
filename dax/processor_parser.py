@@ -2,6 +2,7 @@
 import copy
 import itertools
 
+from . import XnatUtils
 from .XnatUtils import InterfaceTemp
 
 
@@ -362,32 +363,79 @@ class ProcessorParser:
         intf = cassr.intf
         input_artefacts = assr.attrs.get(self.xsitype + '/inputs')
         errors = {}
-        statuses = {}
         for artefact_input_k, artefact_input_path in input_artefacts.iteritems:
+            xsitype = assr.attrs.get('xsitype')
             # check whether any inputs are missing, unusable or lacking the
             # required resource files
             input_entry = self.inputs[artefact_input_k]
             artefact = intf.select(artefact_input_path)
 
+            # check for existence. Note, an assessor is created if the
+            # appropriate combination of inputs is present. If one or more of
+            # those inputs is subsequently removed from the session, the
+            # assessor now has a missing input
             if not artefact.exists():
                 errors.append(
-                    (artefact_input_k,
-                     'Artefact {} does not exist'.format(
-                        artefact_input_path)))
+                    (
+                        artefact_input_k,
+                        'Artefact {} does not exist'.format(
+                            artefact_input_path)
+                    )
+                )
                 continue
 
             artefact_type = intf.object_type_from_path(
                 artefact_input_path)
-
             if artefact_type not in ['scan', 'assessor']:
                 errors.append(
-                    (artefact_input_k,
-                     'Artefact {} must be a scan or assessor'.format(
-                         artefact_input_path)))
+                    (
+                        artefact_input_k,
+                        'Artefact {} must be a scan or assessor'.format(
+                            artefact_input_path))
+                    )
                 continue
 
-            if artefact_type == 'scan':
-                artefact_type = a.attrs.get('')
+            if input_entry['needs_qc'] == True:
+                if artefact_type == 'scan':
+                    usable =\
+                        artefact.attrs.get(xsitype + '/quality') == 'usable'
+                else:
+                    status =\
+                        artefact.attrs.get(xsitype + '/validation/status')
+                    usable = XnatUtils.is_bad_qa(status) == 1
+
+                if not usable:
+                    errors.append(
+                        (
+                            artefact_input_k,
+                            'Artefact {} is not usable'.format(
+                                artefact_input_path)
+                        )
+                    )
+
+            resource_dict = {}
+            for robj in artefact.out_resources():
+                resource_dict[robj.label()] = len(list(r.files()))
+
+            for r in input_entry['resources']:
+                if r['resource'] not in resource_dict:
+                    errors.append(
+                        (
+                            artefact_input_k,
+                            'Artefact {} is missing {} resource'.format(
+                                artefact_input_path, r.label())
+                        )
+                    )
+                elif resource_dict[r['resource']] < 1:
+                    errors.append(
+                        (
+                            artefact_input_k,
+                            'Artefact {} is missing files from resource {}'
+                            .format(artefact_input_path, r.label())
+                        )
+                    )
+
+        return 1 if len(errors) == 0 else 0, errors
 
 
     # TODO: BenM/assessor_of_assessors/improve name of generate_parameter_matrix
@@ -453,7 +501,7 @@ class ProcessorParser:
             # an existing assessor in terms of inputs
             asr_artefacts =\
                 map(lambda v: v[1].split('/')[-1], inputs.iteritems())
-            asr_artefacts = [v for _,v in inputs.iteritems()]
+            asr_artefacts = [v for _, v in inputs.iteritems()]
             print 'asr_artefacts =', asr_artefacts
 
             for pi, p in enumerate(parameter_matrix[1]):

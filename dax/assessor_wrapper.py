@@ -1,4 +1,5 @@
-
+# TODO BenM/assessor_of_assessor/pick this up later; it isn't required for the
+# initial working solution
 class ArtefactWrapper:
 
     @staticmethod
@@ -25,7 +26,7 @@ class ArtefactWrapper:
         self.path = path
         self.artefact = artefact
         self.artefact_type = artefact_type
-        # self.xsitype =
+        self.xsitype = artefact.attrs._get_datatype()
 
     def _from_object(self, artefact):
         intf = artefact._intf
@@ -35,10 +36,25 @@ class ArtefactWrapper:
         self.path = path
         self.artefact = artefact
         self.artefact_type = artefact_type
+        self.xsitype = artefact.attrs._get_datatype()
 
     def exists(self):
         self.exists()
 
     def type(self):
-        if self.artefact_type == 'scan':
-            return self
+        if self.artefact_type in ['scan', 'assessor']:
+            return self.artefact_type
+        else:
+            return None
+
+    def xsitype(self):
+        return self.xsitype
+
+    def get_attribute(self, attribute):
+        return self.artefact.attrs.get(self.xsitype + '/' + attribute)
+
+    def try_get_attribute(self, attribute, default):
+        try:
+            return self.artefact.attrs.get(self.xsitype + '/' + attribute)
+        except IndexError:
+            return default

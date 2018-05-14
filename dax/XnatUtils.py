@@ -352,7 +352,7 @@ class InterfaceTemp(Interface):
         scans_dict = dict()
 
         # Get the sessions list to get the modality:
-        session_list = self.get_sessions(self, project_id)
+        session_list = self.get_sessions(project_id)
         sess_id2mod = dict((sess['session_id'], [sess['handedness'],
                                                  sess['gender'], sess['yob'], sess['age'],
                                                  sess['last_modified'], sess['last_updated']])

@@ -17,18 +17,25 @@ from dax import AutoProcessor
 # Remove everything that doesn't make it into an integration test _before_
 # the pull request back to vuiis/dax!
 
-host = ''
-proj_id = ''
-subj_id = ''
-sess_id = ''
-scan_id = ''
-assr_id = ''
+host = 'http://10.1.1.17'
+proj_id = 'testproj1'
+subj_id = 'subj1'
+sess_id = 'sess1'
+scan_id = '1'
+assr_id = 'asr1'
 
 class SanityChecks(TestCase):
 
     @staticmethod
     def __get_connection():
         return XnatUtils.get_interface(host=host)
+
+    @staticmethod
+    def __prep_project(intf):
+        sess = intf.select_experiment(proj_id, subj_id, sess_id)
+        print sess.exists()
+
+
 
     def test_interface_select_project(self):
         with SanityChecks.__get_connection() as intf:
@@ -85,7 +92,7 @@ class SanityChecks(TestCase):
 
     def test_list_project_scans(self):
         with SanityChecks.__get_connection() as intf:
-            scans = intf.get_project_scans(intf, proj_id, False)
+            scans = intf.get_project_scans(proj_id, False)
             print(len(scans))
 
 
@@ -145,9 +152,9 @@ class SanityChecks(TestCase):
     def test_assessor_out_resources(self):
         with XnatUtils.get_interface(host=host) as intf:
             cisess = XnatUtils.CachedImageSession(intf, proj_id, subj_id, sess_id)
-            for assr in cisess.assessors():
-                assrobj = intf.select_assessor(proj_id, subj_id, sess_id, assr.label())
-                print(assrobj.out_resources())
+            for asr in cisess.assessors():
+                asrobj = intf.select_assessor(proj_id, subj_id, sess_id, asr.label())
+                print(asrobj.out_resources())
 
 
 
@@ -162,3 +169,10 @@ class SanityChecks(TestCase):
             subj = intf.select(XnatUtils.InterfaceTemp.S_XPATH.format(project=proj_id, subject=subj_id))
             print(subj.label())
             print(subj.parent().label())
+
+
+    def test_xnat_has_inputs(self):
+        with XnatUtils.get_interface(host=host) as intf:
+            intf.connect()
+
+            SanityChecks.__prep_project(intf)
