@@ -2,6 +2,7 @@
 import copy
 import itertools
 
+from . import utilities
 from . import XnatUtils
 from .XnatUtils import InterfaceTemp
 
@@ -361,10 +362,12 @@ class ProcessorParser:
     def has_inputs(self, cassr):
         assr = cassr.full_object()
         intf = cassr.intf
-        input_artefacts = assr.attrs.get(self.xsitype + '/inputs')
-        errors = {}
-        for artefact_input_k, artefact_input_path in input_artefacts.iteritems:
-            xsitype = assr.attrs.get('xsitype')
+        input_artefacts = utilities.decode_url_json_string(
+            assr.attrs.get(self.xsitype + '/inputs'))
+        errors = []
+        for artefact_input_k, artefact_input_path\
+            in input_artefacts.iteritems():
+            xsitype = assr.attrs.get('xsiType')
             # check whether any inputs are missing, unusable or lacking the
             # required resource files
             input_entry = self.inputs[artefact_input_k]
@@ -398,7 +401,7 @@ class ProcessorParser:
             if input_entry['needs_qc'] == True:
                 if artefact_type == 'scan':
                     usable =\
-                        artefact.attrs.get(xsitype + '/quality') == 'usable'
+                        artefact.attrs.get('quality') == 'usable'
                 else:
                     status =\
                         artefact.attrs.get(xsitype + '/validation/status')
@@ -414,8 +417,9 @@ class ProcessorParser:
                     )
 
             resource_dict = {}
-            for robj in artefact.out_resources():
-                resource_dict[robj.label()] = len(list(r.files()))
+
+            for robj in artefact.resources():
+                resource_dict[robj.label()] = len(list(robj.files()))
 
             for r in input_entry['resources']:
                 if r['resource'] not in resource_dict:

@@ -1,7 +1,13 @@
 import json
+import HTMLParser
 
+h = HTMLParser.HTMLParser()
 
 def decode_url_json_string(json_string):
+    print json_string
+    json_string = h.unescape(json_string)
+    print json_string
+    json_string = str(json_string)
     return json.loads(json_string, object_pairs_hook=parse_json_pairs)
 
 # TODO: BenM/assessor_of_assessor/document me!

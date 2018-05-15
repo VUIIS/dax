@@ -1,5 +1,34 @@
 
 
+minimal_scan_processor = """
+---
+inputs:
+  default:
+    spider_path: ./spiderpath/not_a_real_script.py
+    working_dir: ./workingdir
+    nipype_exe: not_a_real_script.py
+    db: ./not_a_real_db_path/no.db
+  xnat:
+    scans:
+      - scan1:
+        types: T1
+        needs_qc: True
+        resources:
+          - resource: NIFTI
+            varname: t1
+command: python {spider_path} --t1 {t1} --dbt {db} --exe {nipype_exe}
+attrs:
+  suffix:
+  xsitype: proc:genProcData
+  walltime: 24:00:00
+  memory: 3850
+  ppn: 4
+  env: /envpath/not_a_real_env_path.sh
+  type: scan
+  scan_nb: scan1
+"""
+
+
 scan_gif_parcellation_yaml = """
 ---
 inputs:

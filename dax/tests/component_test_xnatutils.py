@@ -2,12 +2,14 @@
 from unittest import TestCase
 
 import StringIO
+import json
 import yaml
 import xml.etree.cElementTree as xmlet
 
 
 from dax import XnatUtils
 from dax.tests import unit_test_common_processor_yamls as yamls
+from dax.yaml_doc import YamlDoc
 from dax import AutoProcessor
 
 
@@ -24,6 +26,14 @@ sess_id = 'sess1'
 scan_id = '1'
 assr_id = 'asr1'
 
+asrxsitype = 'proc:genProcData'
+scanxsitype = 'xnat:mrScanData'
+
+expstr = '/data/projects/{}/subjects/{}/experiments/{}'.format(
+    proj_id, subj_id, sess_id)
+scanstr = '/scans/{}'
+
+
 class SanityChecks(TestCase):
 
     @staticmethod
@@ -31,10 +41,58 @@ class SanityChecks(TestCase):
         return XnatUtils.get_interface(host=host)
 
     @staticmethod
+    def __add_scan(name, sess, outputs, types="T1", quality="usable"):
+        scn = sess.scan(name)
+        if scn.exists():
+            scn.delete()
+            scn = sess.scan(name)
+        kwargs = dict()
+        kwargs[scanxsitype + '/type'] = types
+        kwargs[scanxsitype + '/quality'] = quality
+        scn.create(scans=scanxsitype, **kwargs)
+        for k, v in outputs.iteritems():
+            for vv in v:
+                scn.resource(k).file(vv[0]).insert(vv[1])
+        return scn
+
+
+    @staticmethod
+    def __add_assessor(name, sess, inputs, outputs):
+        asr = sess.assessor(name)
+        if asr.exists():
+            asr.delete()
+            asr = sess.assessor(name)
+        kwargs = dict()
+        kwargs[asrxsitype + '/proctype'] = 'proc1'
+        kwargs[asrxsitype + '/procversion'] = '1.0.0'
+        kwargs[asrxsitype + '/validation/status'] = "Needs QA"
+        kwargs[asrxsitype + '/inputs'] = json.dumps(inputs)
+        asr.create(assessors=asrxsitype, **kwargs)
+        for k, v in outputs.iteritems():
+            for vv in v:
+                asr.resource(k).file(vv[0]).insert(vv[1])
+        return asr
+
+    @staticmethod
     def __prep_project(intf):
         sess = intf.select_experiment(proj_id, subj_id, sess_id)
         print sess.exists()
+        scn1_outputs = {
+            'NIFTI': [('images.nii', './file.txt')],
+            'SNAPSHOTS': [
+                ('snapshot.gif', './file.txt'),
+                ('snapshot(1).gif', './file.txt')
+            ]
+        }
+        scn1 = SanityChecks.__add_scan(
+            '1', sess, scn1_outputs, quality="unusable")
 
+        asr1_outputs = {
+            'SEG': [('seg.nii.gz', './file.txt')]
+        }
+        asr1 = SanityChecks.__add_assessor('asr1', sess, {
+            'scan1': expstr + scanstr.format('1')
+        }, asr1_outputs)
 
 
     def test_interface_select_project(self):
@@ -171,8 +229,35 @@ class SanityChecks(TestCase):
             print(subj.parent().label())
 
 
+    def test_xnat_parse_session(self):
+        with XnatUtils.get_interface(host=host) as intf:
+            intf.connect()
+
+            SanityChecks.__prep_project(intf)
+
+            yamldoc = YamlDoc().from_string(yamls.minimal_scan_processor)
+            csess = XnatUtils.CachedImageSession(
+                intf, proj_id, subj_id, sess_id)
+
+            ap = AutoProcessor(XnatUtils, yamldoc)
+            ap.parse_session(ap)
+
+
+
     def test_xnat_has_inputs(self):
         with XnatUtils.get_interface(host=host) as intf:
             intf.connect()
 
             SanityChecks.__prep_project(intf)
+
+            yamldoc = YamlDoc().from_string(yamls.minimal_scan_processor)
+            ap = AutoProcessor(XnatUtils, yamldoc)
+            csess = XnatUtils.CachedImageSession(
+                intf, proj_id, subj_id, sess_id)
+
+            results = []
+            for cassr in csess.assessors():
+                has, errors = ap.has_inputs(cassr)
+                results.append((has, errors))
+
+            print results
