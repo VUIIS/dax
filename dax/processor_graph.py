@@ -4,7 +4,20 @@ class ProcessorGraph:
 
     @staticmethod
     def processor_inputs_from_sources(yaml_sources):
-        pass
+        sources = dict()
+        for name, source in yaml_sources:
+            xnat = source.contents.get('inputs', {}).get('xnat', {})
+
+            asrs = xnat.get('assessors', {})
+            inputs = set()
+            print 'asrs =', asrs
+            for a in asrs:
+                types = a.get('proctypes', '').split(',')
+
+                inputs = inputs.union(types)
+            sources[name] = list(inputs)
+        print sources
+
 
 
     # TODO: BenM/assessor_of_assessor/ideally, this would operate on a list of
@@ -12,6 +25,7 @@ class ProcessorGraph:
     # refactor of existing processors
     @staticmethod
     def ordered_processors(artefact_type_map):
+        print artefact_type_map
         # artefact_type_map is a list of artefacts to their *inputs*.
         # consider the following graph:
         # a --> b --> d

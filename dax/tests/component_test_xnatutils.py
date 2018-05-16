@@ -237,7 +237,7 @@ class SanityChecks(TestCase):
 
             SanityChecks.__prep_project(intf)
 
-            yamldoc = YamlDoc().from_string(yamls.minimal_scan_processor)
+            yamldoc = YamlDoc().from_string(yamls.proc_a)
             csess = XnatUtils.CachedImageSession(
                 intf, proj_id, subj_id, sess_id)
 
@@ -252,7 +252,7 @@ class SanityChecks(TestCase):
 
             SanityChecks.__prep_project(intf)
 
-            yamldoc = YamlDoc().from_string(yamls.minimal_scan_processor)
+            yamldoc = YamlDoc().from_string(yamls.proc_a)
             ap = AutoProcessor(XnatUtils, yamldoc)
             csess = XnatUtils.CachedImageSession(
                 intf, proj_id, subj_id, sess_id)
