@@ -221,6 +221,7 @@ class ProcessorTest(TestCase):
         yd = yaml_doc.YamlDoc().from_string(scan_gif_parcellation_yaml)
         ap = AutoProcessor(common.FakeXnat, yd)
 
+
 class MyTestCase(TestCase):
 
     def test_processor_parser1(self):

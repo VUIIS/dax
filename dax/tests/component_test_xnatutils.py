@@ -245,11 +245,11 @@ class SanityChecks(TestCase):
             ap.parse_session(ap)
 
 
-
     def test_xnat_has_inputs(self):
         with XnatUtils.get_interface(host=host) as intf:
             intf.connect()
 
+            print yamls.proc_a
             SanityChecks.__prep_project(intf)
 
             yamldoc = YamlDoc().from_string(yamls.proc_a)
