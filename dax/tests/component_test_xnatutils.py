@@ -42,6 +42,7 @@ class SanityChecks(TestCase):
     def __get_connection():
         return XnatUtils.get_interface(host=host)
 
+
     @staticmethod
     def __add_scan(name, sess, outputs, types="T1", quality="usable"):
         scn = sess.scan(name)
@@ -95,7 +96,6 @@ class SanityChecks(TestCase):
         asr1 = SanityChecks.__add_assessor('asr1', sess, {
             'scan1': expstr + scanstr.format('1')
         }, asr1_outputs)
-
 
     def test_interface_select_project(self):
         with SanityChecks.__get_connection() as intf:
