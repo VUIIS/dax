@@ -1,4 +1,5 @@
 
+
 def generate_yaml(scans=[], assessors=[]):
     processor_text_ = ('---\n'
                        'inputs:\n'
@@ -43,9 +44,9 @@ def generate_yaml(scans=[], assessors=[]):
                  '            varname: {var_name}\n'
                  '{required}')
 
-    req_text_ = '            required: {req_value}\n'
+    req_text_ = '            required: {}\n'
 
-    qc_text_ = '        needs_qc: {qc}\n'
+    qc_text_ = '        needs_qc: {}\n'
 
     select_text_ = '        select: {}\n'
 
@@ -60,10 +61,18 @@ def generate_yaml(scans=[], assessors=[]):
                         '          - resource: NIFTI\n'
                         '            varname: t1\n')
 
-    def input_block(inputs,
-                    input_block_, input_text_,
-                    select_text_,
-                    res_block_, res_text_):
+    def generate_input_block(artefact_type, inputs):
+
+        if not artefact_type in ['scan', 'assessor']:
+            raise RuntimeError(
+                'artefact_type must be one of ''scan'' or ''assessor''')
+
+        if artefact_type == 'scan':
+            input_block_ = scans_text_
+            input_text_ = scan_text_
+        else:
+            input_block_ = asrs_text_
+            input_text_ = asr_text_
 
         # create the input block
         if len(inputs) == 0:
@@ -97,26 +106,33 @@ def generate_yaml(scans=[], assessors=[]):
                         res_block_.format(''.join(res_entries))
 
                 if i['qc'] == True:
-                    scan_qc = qc_text_.format(qc='True')
+                    qc_text = qc_text_.format('True')
                 elif i['qc'] == False:
-                    scan_qc = qc_text_.format(qc='False')
+                    qc_text = qc_text_.format('False')
                 else:
-                    scan_qc = ''
+                    qc_text = ''
 
-                input_entries.append(input_text_.format(name=i['name'],
-                                                        types=i['types'],
-                                                        select=select,
-                                                        qc=scan_qc,
-                                                        res_block=res_block))
+                if artefact_type == 'scan':
+                    input_entries.append(
+                        input_text_.format(name=i['name'],
+                                           types=i['types'],
+                                           select=select,
+                                           qc=qc_text,
+                                           res_block=res_block))
+                else:
+                    input_entries.append(
+                        input_text_.format(name=i['name'],
+                                           types=i['types'],
+                                           select=select,
+                                           qc=qc_text,
+                                           res_block=res_block))
 
             input_block = input_block_.format(''.join(input_entries))
 
         return input_block
 
-    scan_block = input_block(
-        scans, scans_text_, scan_text_, select_text_, res_block_, res_text_)
-    asr_block = input_block(
-        assessors, asrs_text_, asr_text_, select_text_, res_block_, res_text_)
+    scan_block = generate_input_block('scan', scans)
+    asr_block = generate_input_block('assessor', assessors)
 
     processor = processor_text_.format(scans_block=scan_block,
                                        assessors_block=asr_block,

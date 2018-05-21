@@ -9,6 +9,7 @@ import itertools
 from dax.processor_parser import ProcessorParser
 from dax.processors import AutoProcessor
 from dax.tests import unit_test_entity_common as common
+from dax.tests import unit_test_common_processor_yamls as yamls
 from dax import yaml_doc
 
 
@@ -48,9 +49,19 @@ class TestResource:
 
 class TestArtefact:
 
-    def __init__(
-            self, test_obj_type, proj, subj, sess, label, artefact_type,
-            quality, resources, inputs = None):
+    def __init__(self):
+        self.test_obj_type = None
+        self.proj = None
+        self.subj = None
+        self.sess = None
+        self.label_ = None
+        self.artefact_type = None
+        self.quality_ = None
+        self.resources = None
+        self.inputs = None
+
+    def OldInit(self, test_obj_type, proj, subj, sess, label, artefact_type,
+                quality, resources, inputs=None):
         self.test_obj_type = test_obj_type
         self.proj = proj
         self.subj = subj
@@ -60,6 +71,26 @@ class TestArtefact:
         self.quality_ = quality
         self.resources = [TestResource(r[0], r[1]) for r in resources]
         self.inputs = inputs
+        return self
+
+
+    def NewInit(self, proj, subj, sess, artefact):
+        if artefact['category'] not in ['scan', 'assessor']:
+            raise RuntimeError(
+                'Artefact category must be one of scan or assessor')
+        self.test_obj_type = artefact['category']
+        self.proj = proj
+        self.subj = subj
+        self.sess = sess
+        self.label_ = artefact['name']
+        self.artefact_type = artefact['type']
+        self.quality_ = artefact['quality']
+        self.resources =\
+            [TestResource(r[0], len(r[1])) for r in artefact['resources']]
+        if artefact['category'] == 'assessor':
+            self.inputs = artefact['inputs']
+        return self
+
 
     def label(self):
         return self.label_
@@ -100,13 +131,32 @@ sess = 'sess1'
 
 class TestSession:
 
-    def __init__(self, scans, asrs):
+    def __init__(self):
+        self.scans_ = None
+        self.assessors_ = None
+
+    def OldInit(self, scans, asrs):
         self.scans_ = [
-            TestArtefact("scan", s[0], s[1], s[2], s[3], s[4], s[5], s[6])
+            TestArtefact().OldInit("scan", s[0], s[1], s[2], s[3], s[4], s[5], s[6])
             for s in scans]
         self.assessors_ = [
-            TestArtefact("assessor", a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7])
+            TestArtefact().OldInit("assessor", a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7])
             for a in asrs]
+        return self
+
+    def NewInit(self, proj, subj, sess, artefacts):
+        self.project_id = proj
+        self.subject_id = subj
+        self.session_id = sess
+        self.scans_ = []
+        self.assessors_ = []
+        for a in artefacts:
+            artefact = TestArtefact().NewInit(proj, subj, sess, a)
+            if a['category'] == 'scan':
+                self.scans_.append(artefact)
+            else:
+                self.assessors_.append(artefact)
+        return self
 
     def scans(self):
         return self.scans_
@@ -212,8 +262,16 @@ attrs:
   ppn: 4
   env: /share/apps/cmic/NiftyPipe/v2.0/setup_v2.0.sh
   type: scan
-  scan_nb: scan1
+  scan_nb: scan11
 """
+
+class ScenarioVariable:
+    def __init__(self, vartype, varname, required, files):
+        self.vartype = vartype
+        self.varname = varname
+        self.required = required
+        self.files = files
+
 
 class ProcessorTest(TestCase):
 
@@ -222,10 +280,13 @@ class ProcessorTest(TestCase):
         ap = AutoProcessor(common.FakeXnat, yd)
 
 
-class MyTestCase(TestCase):
+class ProcessorParserUnitTests(TestCase):
 
-    def test_processor_parser1(self):
-        csess = TestSession(xnat_scan_contents, xnat_assessor_contents)
+
+    def test_processor_parser_experimental(self):
+        print 'xnat_scan_contents =', xnat_scan_contents
+        print 'xnat_assessor_contents =', xnat_assessor_contents
+        csess = TestSession().OldInit(xnat_scan_contents, xnat_assessor_contents)
 
         doc = yaml.load((StringIO.StringIO(scan_gif_parcellation_yaml)))
 
@@ -274,3 +335,99 @@ class MyTestCase(TestCase):
         print "commands = ", commands
 
         pp = ProcessorParser(doc)
+
+
+
+    @staticmethod
+    def __generate_test_matrix(headers, values):
+        table_values = itertools.product(*values)
+        table = map(lambda r: dict(itertools.izip(headers, r)), table_values)
+        return table
+
+
+    @staticmethod
+    def __generate_yaml(entry):
+        print 'entry =', entry
+        scans = []
+        artefacts = []
+        for input in entry['inputs']:
+            resources = []
+            for r in input['resources']:
+                resources.append({
+                    'type': r.vartype,
+                    'name': r.varname,
+                    'required': r.required
+                })
+            if input['category'] == 'scan':
+                scans.append({
+                    'name': 'scan1',
+                    'types': input['type'],
+                    'select': entry['select'],
+                    'qc': entry['quality'],
+                    'resources': resources
+                })
+        yaml_src = yamls.generate_yaml(scans=scans)
+        return yaml_doc.YamlDoc().from_string(yaml_src)
+
+
+    @staticmethod
+    def __generate_one_scan_scenarios():
+        input_headers = ['xsitype', 'category', 'name', 'quality', 'type',
+                         'select', 'resources']
+        input_xsitype = ['xnat:mrScanData']
+        input_category = ['scan']
+        input_name = ['1']
+        input_quality = ['unusable', 'usable', 'preferred']
+        input_type = ['T1', 'T2']
+        input_resources = [
+            [],
+            [ScenarioVariable('NIFTI', 't1', None, ['images.nii'])],
+            [ScenarioVariable('NIFTI', 't1', False, ['images.nii'])],
+            [ScenarioVariable('NIFTI', 't1', True, ['images.nii'])]
+            #[('NIFTI', ['images.nii']), ('SNAPSHOTS', ['snapshot.jpg.gz', 'snapshot(1).jpg.gz'])]
+        ]
+        input_values = [input_xsitype, input_category, input_name,
+                        input_quality, input_type, input_resources]
+        inputs = ProcessorParserUnitTests.__generate_test_matrix(
+            input_headers, input_values)
+        inputs = map(lambda i: [i], inputs)
+
+        headers = ['select', 'quality', 'inputs']
+        select = [None, 'foreach']
+        quality = [None, False, True]
+        input_fields = [[]] + [i for i in inputs]
+        values = [select, quality, input_fields]
+        matrix = ProcessorParserUnitTests.__generate_test_matrix(
+            headers, values)
+
+        return matrix
+
+
+    @staticmethod
+    def __create_mocked_xnat(scenario):
+        pass
+
+
+
+    def test_one_input(self):
+        matrix = ProcessorParserUnitTests.__generate_one_scan_scenarios()
+
+        for m in matrix:
+            print m
+            #ProcessorParserUnitTests.__create_mocked_xnat(m[''])
+            csess = TestSession().NewInit('proj1',
+                                          'subj1',
+                                          'sess1',
+                                          m['inputs'])
+
+
+            yaml_source = ProcessorParserUnitTests.__generate_yaml(m)
+
+            print 'yaml_source =', yaml_source.contents
+            try:
+                parser = ProcessorParser(yaml_source.contents)
+            except ValueError as err:
+                if err.message not in [
+                    'yaml processor is missing xnat keyword contents'
+                    ]:
+                    raise

@@ -684,7 +684,8 @@ cluster queue"
 
             # return a mapping between the assessor input sets and existing
             # assessors that map to those input sets
-            mapping = sess_proc.get_assessor_mapping(csess)
+            sess_proc.parse_session(csess)
+            mapping = sess_proc.get_assessor_mapping()
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
                 for inputs, p_assr in mapping[1]:
@@ -797,7 +798,8 @@ cluster queue"
             if not scan_proc.should_run(scan_info):
                 continue
 
-            mapping = scan_proc.get_assessor_mapping(csess)
+            scan_proc.parse_session(csess)
+            mapping = scan_proc.get_assessor_mapping()
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
                 for inputs, p_assr in mapping[1]:

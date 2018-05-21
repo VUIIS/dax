@@ -9,6 +9,7 @@ import xml.etree.cElementTree as xmlet
 
 from dax import XnatUtils
 from dax.tests import unit_test_common_processor_yamls as yamls
+from dax.tests import common_session_tools as session_tools
 from dax.yaml_doc import YamlDoc
 from dax import AutoProcessor
 

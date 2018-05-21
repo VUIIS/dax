@@ -191,7 +191,9 @@ class ProcessorParser:
         # get inputs: pass 1
         input_dict = yaml_source['inputs']
         xnat = input_dict['xnat']
-        print 'xnat =', xnat
+        if xnat == None:
+            raise ValueError(
+                'yaml processor is missing xnat keyword contents')
 
         inputs = {}
         # get scans
