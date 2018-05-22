@@ -86,9 +86,11 @@ class TestArtefact:
         self.artefact_type = artefact['type']
         self.quality_ = artefact['quality']
         self.resources =\
-            [TestResource(r[0], len(r[1])) for r in artefact['resources']]
+            [TestResource(r.restype, len(r.files))
+             for r in artefact['resources']]
+
         if artefact['category'] == 'assessor':
-            self.inputs = artefact['inputs']
+            self.inputs = artefact['artefacts']
         return self
 
 
@@ -145,9 +147,9 @@ class TestSession:
         return self
 
     def NewInit(self, proj, subj, sess, artefacts):
-        self.project_id = proj
-        self.subject_id = subj
-        self.session_id = sess
+        self.project_id_ = proj
+        self.subject_id_ = subj
+        self.session_id_ = sess
         self.scans_ = []
         self.assessors_ = []
         for a in artefacts:
@@ -165,13 +167,13 @@ class TestSession:
         return self.assessors_
 
     def project_id(self):
-        return proj
+        return self.project_id_
 
     def subject_id(self):
-        return subj
+        return self.subject_id_
 
     def session_id(self):
-        return sess
+        return self.session_id_
 
     def full_path(self):
         sess_path.format(self.proj, self.subj, self.sess)
@@ -265,12 +267,34 @@ attrs:
   scan_nb: scan11
 """
 
-class ScenarioVariable:
-    def __init__(self, vartype, varname, required, files):
-        self.vartype = vartype
-        self.varname = varname
+class ArtefactResource:
+    def __init__(self, restype, required, files):
+        self.restype = restype
         self.required = required
         self.files = files
+
+    def __repr__(self):
+        return "{} ({}: {}, {}: {}, {}: {}".format(
+            self.__class__.__name__,
+            'restype', self.restype,
+            'required', self.required,
+            'files', self.files
+        )
+
+
+class YamlVariable:
+    def __init__(self, restype, varname, required):
+        self.restype = restype
+        self.varname = varname
+        self.required = required
+
+    def __repr__(self):
+        return "{} ({}: {}, {}: {}, {}: {})".format(
+            self.__class__.__name__,
+            'restype', self.restype,
+            'varname', self.varname,
+            'required', self.required
+        )
 
 
 class ProcessorTest(TestCase):
@@ -347,14 +371,13 @@ class ProcessorParserUnitTests(TestCase):
 
     @staticmethod
     def __generate_yaml(entry):
-        print 'entry =', entry
         scans = []
-        artefacts = []
-        for input in entry['inputs']:
+        assessors = []
+        for input in entry['yaml_inputs']:
             resources = []
             for r in input['resources']:
                 resources.append({
-                    'type': r.vartype,
+                    'type': r.restype,
                     'name': r.varname,
                     'required': r.required
                 })
@@ -362,8 +385,8 @@ class ProcessorParserUnitTests(TestCase):
                 scans.append({
                     'name': 'scan1',
                     'types': input['type'],
-                    'select': entry['select'],
-                    'qc': entry['quality'],
+                    'select': input['select'],
+                    'qc': input['needs_qc'],
                     'resources': resources
                 })
         yaml_src = yamls.generate_yaml(scans=scans)
@@ -372,35 +395,60 @@ class ProcessorParserUnitTests(TestCase):
 
     @staticmethod
     def __generate_one_scan_scenarios():
-        input_headers = ['xsitype', 'category', 'name', 'quality', 'type',
-                         'select', 'resources']
-        input_xsitype = ['xnat:mrScanData']
-        input_category = ['scan']
-        input_name = ['1']
-        input_quality = ['unusable', 'usable', 'preferred']
-        input_type = ['T1', 'T2']
-        input_resources = [
+        artefact_headers = ['xsitype', 'category', 'name', 'quality', 'type',
+                            'resources']
+        artefact_xsitype = ['xnat:mrScanData']
+        artefact_category = ['scan']
+        artefact_name = ['1']
+        artefact_quality = ['unusable', 'usable', 'preferred']
+        artefact_type = ['T1', 'T2']
+        artefact_resources = [
             [],
-            [ScenarioVariable('NIFTI', 't1', None, ['images.nii'])],
-            [ScenarioVariable('NIFTI', 't1', False, ['images.nii'])],
-            [ScenarioVariable('NIFTI', 't1', True, ['images.nii'])]
+            [ArtefactResource('NIFTI', None, ['images.nii'])],
+            [ArtefactResource('NIFTI', False, ['images.nii'])],
+            [ArtefactResource('NIFTI', True, ['images.nii'])]
             #[('NIFTI', ['images.nii']), ('SNAPSHOTS', ['snapshot.jpg.gz', 'snapshot(1).jpg.gz'])]
         ]
-        input_values = [input_xsitype, input_category, input_name,
-                        input_quality, input_type, input_resources]
-        inputs = ProcessorParserUnitTests.__generate_test_matrix(
-            input_headers, input_values)
-        inputs = map(lambda i: [i], inputs)
+        artefact_values = [artefact_xsitype, artefact_category, artefact_name,
+                           artefact_quality, artefact_type, artefact_resources]
+        artefact_matrix = ProcessorParserUnitTests.__generate_test_matrix(
+            artefact_headers, artefact_values)
+        artefact_matrix = map(lambda i: [i], artefact_matrix)
 
-        headers = ['select', 'quality', 'inputs']
-        select = [None, 'foreach']
-        quality = [None, False, True]
-        input_fields = [[]] + [i for i in inputs]
-        values = [select, quality, input_fields]
-        matrix = ProcessorParserUnitTests.__generate_test_matrix(
-            headers, values)
+        yaml_headers = ['category', 'label', 'type', 'select', 'needs_qc',
+                        'resources']
+        yaml_categories = ['scan']
+        yaml_labels = ['scan1']
+        yaml_type = ['T1']
+        yaml_select = [None, 'foreach']
+        yaml_needs_qc = [None, False, True]
+        yaml_resources = [[YamlVariable('NIFTI', 't1', None)],
+                          [YamlVariable('NIFTI', 't1', False)],
+                          [YamlVariable('NIFTI', 't1', True)]]
+        yaml_elems = [yaml_categories, yaml_labels, yaml_type, yaml_select,
+                      yaml_needs_qc, yaml_resources]
+        yaml_matrix = ProcessorParserUnitTests.__generate_test_matrix(
+            yaml_headers, yaml_elems
+        )
+        yaml_matrix = map(lambda i: [i], yaml_matrix)
 
-        return matrix
+        combined_headers = ['artefacts', 'yaml_inputs']
+        combined_values = [artefact_matrix, yaml_matrix]
+        combined_matrix = ProcessorParserUnitTests.__generate_test_matrix(
+            combined_headers, combined_values
+        )
+
+        return combined_matrix
+
+        # headers = ['select', 'needs_qc', 'artefacts']
+        # select = [None, 'foreach']
+        # needs_qc = [None, False, True]
+        # input_fields = [[]] + [i for i in inputs]
+        # values = [select, needs_qc, input_fields]
+        # matrix = ProcessorParserUnitTests.__generate_test_matrix(
+        #     headers, values)
+        #
+        # return matrix
 
 
     @staticmethod
@@ -413,21 +461,21 @@ class ProcessorParserUnitTests(TestCase):
         matrix = ProcessorParserUnitTests.__generate_one_scan_scenarios()
 
         for m in matrix:
-            print m
+            print 'm =', m
             #ProcessorParserUnitTests.__create_mocked_xnat(m[''])
             csess = TestSession().NewInit('proj1',
                                           'subj1',
                                           'sess1',
-                                          m['inputs'])
+                                          m['artefacts'])
 
 
             yaml_source = ProcessorParserUnitTests.__generate_yaml(m)
-
-            print 'yaml_source =', yaml_source.contents
             try:
                 parser = ProcessorParser(yaml_source.contents)
+                print "csess =", csess
+                parser.parse_session(csess)
             except ValueError as err:
-                if err.message not in [
-                    'yaml processor is missing xnat keyword contents'
-                    ]:
+                if err.message not in\
+                    ['yaml processor is missing xnat keyword contents']:
                     raise
+        print 'scenario count = ', len(matrix)
