@@ -1,6 +1,7 @@
 
 import copy
 import itertools
+import numpy as np
 
 from . import utilities
 from . import XnatUtils
@@ -102,6 +103,7 @@ class ProcessorParser:
 
         parameter_matrix = \
             ProcessorParser.generate_parameter_matrix(
+                self.inputs,
                 self.iteration_sources,
                 self.iteration_map,
                 filtered_artefacts_by_input)
@@ -154,7 +156,10 @@ class ProcessorParser:
                 iteration_sources.add(name)
             else:
                 iteration_map[name] = iteration_args[1]
-        #elif iteration_args[0] = 'one':
+        elif iteration_args[0] == 'one':
+            iteration_sources.add(name)
+        elif iteration_args[0] == 'all':
+            iteration_sources.add(name)
 
 
 
@@ -201,10 +206,10 @@ class ProcessorParser:
         for s in scans:
             name = ProcessorParser._input_name(s)
             select = s.get('select', None)
-
+            parsed_select = ProcessorParser._parse_select(select)
             ProcessorParser._register_iteration_references(
                 name,
-                ProcessorParser._parse_select(select),
+                parsed_select,
                 iteration_sources,
                 iteration_map)
 
@@ -213,6 +218,7 @@ class ProcessorParser:
 
             inputs[name] = {
                 'types': types,
+                'select': parsed_select,
                 'artefact_type': 'scan',
                 'needs_qc': s.get('needs_qc', False),
                 'resources': s.get('resources', [])
@@ -223,10 +229,11 @@ class ProcessorParser:
         for a in asrs:
             name = ProcessorParser._input_name(a)
             select = a.get('select', None)
+            parsed_select = ProcessorParser._parse_select(select)
 
             ProcessorParser._register_iteration_references(
                 name,
-                ProcessorParser._parse_select(select),
+                parsed_select,
                 iteration_sources,
                 iteration_map)
 
@@ -235,6 +242,7 @@ class ProcessorParser:
 
             inputs[name] = {
                 'types': types,
+                'select': parsed_select,
                 'artefact_type': 'assessor',
                 'needs_qc': a.get('needs_qc', False),
                 'resources': a.get('resources', [])
@@ -450,11 +458,16 @@ class ProcessorParser:
     # TODO: BenM/assessor_of_assessors/handle multiple args disallowed / allowed
     # scenarios
     @staticmethod
-    def generate_parameter_matrix(iteration_sources,
+    def generate_parameter_matrix(inputs,
+                                  iteration_sources,
                                   iteration_map,
                                   artefacts_by_input):
 
         # generate n dimensional input matrix based on iteration sources
+        input_headers = []
+        for i in inputs:
+            input_headers.append(i)
+        input_headers = sorted(input_headers)
         all_inputs = []
         input_dimension_map = [] #{}
         for i in iteration_sources:
@@ -463,20 +476,28 @@ class ProcessorParser:
             mapped_input_vector = []
             if len(artefacts_by_input.get(i, [])) > 0:
                 mapped_inputs.append(i)
-                for k, v in iteration_map.iteritems():
-                    if v == i and len(artefacts_by_input.get(k, [])) > 0:
-                        mapped_inputs.append(k)
+                select_fn = inputs[i]['select'][0]
+                if select_fn == 'foreach':
+                    for k, v in iteration_map.iteritems():
+                        if v == i and len(artefacts_by_input.get(k, [])) > 0:
+                            mapped_inputs.append(k)
 
-                # generate 'zip' of inputs that are all attached to iteration
-                # source
+                    # generate 'zip' of inputs that are all attached to iteration
+                    # source
 
-                for ind in range(len(artefacts_by_input[i])):
-                    cur = []
-                    for m in mapped_inputs:
-                        cur.append(
-                            artefacts_by_input[m][ind % len(artefacts_by_input[m])]
-                        )
-                    mapped_input_vector.append(cur)
+                    for ind in range(len(artefacts_by_input[i])):
+                        cur = []
+                        for m in mapped_inputs:
+                            cur.append(
+                                artefacts_by_input[m][ind % len(artefacts_by_input[m])]
+                            )
+                        mapped_input_vector.append(cur)
+                elif select_fn == 'all':
+                    combined_vector = []
+                    for artefact in artefacts_by_input.get(i, []):
+                        combined_vector.append(artefact)
+                    mapped_input_vector = [combined_vector]
+
 
             # input_dimension_map[i] = (mapped_inputs, mapped_input_vector)
             all_inputs.append(mapped_inputs)
@@ -484,9 +505,26 @@ class ProcessorParser:
 
         # perform a cartesian product of the dimension map entries to get the
         # final input combinations
-
         matrix = map(lambda x: list(itertools.chain.from_iterable(x)),
                      itertools.product(*input_dimension_map))
+
+        matrix_headers = list(itertools.chain.from_iterable(all_inputs))
+
+        # rebuild the matrix to order the inputs consistently
+        final_matrix = [[None for _ in range(len(input_headers))]
+                        for _ in range(len(matrix))]
+        for i, input in enumerate(input_headers):
+            try:
+                mi = matrix_headers.index(input)
+                for mj in range(len(matrix)):
+                    final_matrix[mj][i] = matrix[mj][mi]
+            except ValueError:
+                pass
+        return input_headers, final_matrix
+
+
+
+
         return list(itertools.chain.from_iterable(all_inputs)), matrix
 
 

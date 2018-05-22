@@ -28,11 +28,12 @@ from dax import yaml_doc
 # . all statuses
 
 
-sess_path = '/project/{}/subject/{}/experiment/{}'
-scan_path = '/project/{}/subject/{}/experiment/{}/scan/{}'
-assessor_path = '/project/{}/subject/{}/experiment/{}/assessor/{}'
-scan_path_r = scan_path + '/resource/{}'
-assessor_path_r = assessor_path + '/out/resource/{}'
+sess_path = '/projects/{}/subjects/{}/experiments/{}'
+scan_path = '/projects/{}/subjects/{}/experiments/{}/scans/{}'
+assessor_path = '/projects/{}/subjects/{}/experiments/{}/assessors/{}'
+scan_path_r = scan_path + '/resources/{}'
+assessor_path_r = assessor_path + '/out/resources/{}'
+
 
 class TestResource:
 
@@ -137,7 +138,10 @@ class TestSession:
         self.scans_ = None
         self.assessors_ = None
 
-    def OldInit(self, scans, asrs):
+    def OldInit(self, proj, subj, sess, scans, asrs):
+        self.project_id_ = proj
+        self.subject_id_ = subj
+        self.session_id_ = sess
         self.scans_ = [
             TestArtefact().OldInit("scan", s[0], s[1], s[2], s[3], s[4], s[5], s[6])
             for s in scans]
@@ -188,6 +192,8 @@ xnat_scan_contents = [
     (proj, subj, sess, "4", "T1", "usable", copy.deepcopy(scan_files)),
     (proj, subj, sess, "10", "FLAIR", "usable", copy.deepcopy(scan_files)),
     (proj, subj, sess, "11", "FLAIR", "usable", copy.deepcopy(scan_files)),
+    (proj, subj, sess, "21", "X3", "usable", copy.deepcopy(scan_files)),
+    (proj, subj, sess, "22", "X3", "usable", copy.deepcopy(scan_files))
 ]
 
 
@@ -236,22 +242,16 @@ inputs:
         resources:
           - resource: NIFTI
             varname: fl
-      - scan4:
+      - scan3:
         types: X3
-        select: one
-      - scan5:
-        types: X4
-        select: some
-      - scan6:
-        types: X5
-        select: some(3)
-      - scan7:
-        types: X6
         select: all
+      - scan4:
+        types: X4
+        select: one
     assessors:
       - asr1:
         proctypes: proc1
-        select: foreach(scan1)
+        select: foreach(scan2)
         resources:
           - resource: SEG
             varname: seg
@@ -310,7 +310,8 @@ class ProcessorParserUnitTests(TestCase):
     def test_processor_parser_experimental(self):
         print 'xnat_scan_contents =', xnat_scan_contents
         print 'xnat_assessor_contents =', xnat_assessor_contents
-        csess = TestSession().OldInit(xnat_scan_contents, xnat_assessor_contents)
+        csess = TestSession().OldInit(proj, subj, sess, xnat_scan_contents,
+                                      xnat_assessor_contents)
 
         doc = yaml.load((StringIO.StringIO(scan_gif_parcellation_yaml)))
 
@@ -342,7 +343,8 @@ class ProcessorParserUnitTests(TestCase):
 
         parameter_matrix = \
             ProcessorParser.generate_parameter_matrix(
-                iteration_sources, iteration_map, filtered_artefacts_by_input)
+                inputs, iteration_sources, iteration_map,
+                filtered_artefacts_by_input)
         print "parameter_matrix =", parameter_matrix
 
         assessor_parameter_map = \
@@ -461,8 +463,9 @@ class ProcessorParserUnitTests(TestCase):
         matrix = ProcessorParserUnitTests.__generate_one_scan_scenarios()
 
         for m in matrix:
-            print 'm =', m
-            #ProcessorParserUnitTests.__create_mocked_xnat(m[''])
+            print 'm[artefacts] =', m['artefacts']
+            print 'm[yaml_inputs] =', m['yaml_inputs']
+            # ProcessorParserUnitTests.__create_mocked_xnat(m[''])
             csess = TestSession().NewInit('proj1',
                                           'subj1',
                                           'sess1',
@@ -474,6 +477,7 @@ class ProcessorParserUnitTests(TestCase):
                 parser = ProcessorParser(yaml_source.contents)
                 print "csess =", csess
                 parser.parse_session(csess)
+                print parser.assessor_parameter_map
             except ValueError as err:
                 if err.message not in\
                     ['yaml processor is missing xnat keyword contents']:
