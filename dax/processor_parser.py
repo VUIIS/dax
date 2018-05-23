@@ -216,12 +216,19 @@ class ProcessorParser:
             types = [_.strip() for _ in s['types'].split(',')]
             ProcessorParser._register_input_types(types, inputs_by_type, name)
 
+            resources = s.get('resources', [])
+            artefact_required = False
+            for r in resources:
+                r['required'] = r.get('required', True)
+                artefact_required = artefact_required or r['required']
+
             inputs[name] = {
                 'types': types,
                 'select': parsed_select,
                 'artefact_type': 'scan',
                 'needs_qc': s.get('needs_qc', False),
-                'resources': s.get('resources', [])
+                'resources': s.get('resources', []),
+                'required': artefact_required
             }
 
         # get assessors
@@ -240,12 +247,19 @@ class ProcessorParser:
             types = [_.strip() for _ in a['proctypes'].split(',')]
             ProcessorParser._register_input_types(types, inputs_by_type, name)
 
+            resources = s.get('resources', [])
+            artefact_required = False
+            for r in resources:
+                r['required'] = r.get('required', True)
+            artefact_required = artefact_required or r['required']
+
             inputs[name] = {
                 'types': types,
                 'select': parsed_select,
                 'artefact_type': 'assessor',
                 'needs_qc': a.get('needs_qc', False),
-                'resources': a.get('resources', [])
+                'resources': a.get('resources', []),
+                'required': artefact_required
             }
 
         return inputs, inputs_by_type, iteration_sources, iteration_map
@@ -470,33 +484,49 @@ class ProcessorParser:
         input_headers = sorted(input_headers)
         all_inputs = []
         input_dimension_map = [] #{}
+
+        # check whether all inputs are present
+        for i, iv in inputs.iteritems():
+            if i not in artefacts_by_input and iv['required'] == True:
+                return input_headers, []
+
+        # add in None for optional inputs so that the matrix can be generated
+        # without artefacts present for those inputs
+        sanitised_inputs = {}
+        for i, iv in inputs.iteritems():
+            if i not in artefacts_by_input:
+                sanitised_inputs[i] = [[None]]
+            else:
+                sanitised_inputs[i] = artefacts_by_input[i]
+
         for i in iteration_sources:
             # find other inputs that map to this iteration source
-            mapped_inputs = []
+            mapped_inputs = [i]
             mapped_input_vector = []
-            if len(artefacts_by_input.get(i, [])) > 0:
-                mapped_inputs.append(i)
-                select_fn = inputs[i]['select'][0]
-                if select_fn == 'foreach':
-                    for k, v in iteration_map.iteritems():
-                        if v == i and len(artefacts_by_input.get(k, [])) > 0:
-                            mapped_inputs.append(k)
+            select_fn = inputs[i]['select'][0]
+            if select_fn == 'foreach':
+                min_artefact_count = len(sanitised_inputs[i])
+                for k, v in iteration_map.iteritems():
+                    if v == i:
+                        min_artefact_count = min(min_artefact_count,
+                                                 sanitised_inputs[k])
+                        mapped_inputs.append(k)
 
-                    # generate 'zip' of inputs that are all attached to iteration
-                    # source
-
-                    for ind in range(len(artefacts_by_input[i])):
+                if min_artefact_count > 0:
+                    for ind in range(min_artefact_count):
                         cur = []
                         for m in mapped_inputs:
-                            cur.append(
-                                artefacts_by_input[m][ind % len(artefacts_by_input[m])]
-                            )
+                            cur.append(sanitised_inputs[m][ind])
                         mapped_input_vector.append(cur)
-                elif select_fn == 'all':
-                    combined_vector = []
-                    for artefact in artefacts_by_input.get(i, []):
-                        combined_vector.append(artefact)
-                    mapped_input_vector = [combined_vector]
+
+            elif select_fn == 'all':
+                combined_vector = []
+                for artefact in sanitised_inputs[i]:
+                    combined_vector.append(artefact)
+                mapped_input_vector = [[combined_vector]]
+
+            elif select_fn == 'one':
+                mapped_input_vector = [sanitised_inputs[i][0]]
 
 
             # input_dimension_map[i] = (mapped_inputs, mapped_input_vector)
@@ -521,11 +551,6 @@ class ProcessorParser:
             except ValueError:
                 pass
         return input_headers, final_matrix
-
-
-
-
-        return list(itertools.chain.from_iterable(all_inputs)), matrix
 
 
     @staticmethod
