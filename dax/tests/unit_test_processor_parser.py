@@ -385,7 +385,15 @@ class ProcessorParserUnitTests(TestCase):
                 })
             if input['category'] == 'scan':
                 scans.append({
-                    'name': 'scan1',
+                    'name': input['label'],
+                    'types': input['type'],
+                    'select': input['select'],
+                    'qc': input['needs_qc'],
+                    'resources': resources
+                })
+            if input['category'] == 'assessor':
+                assessors.append({
+                    'name': input['label'],
                     'types': input['type'],
                     'select': input['select'],
                     'qc': input['needs_qc'],
@@ -442,16 +450,6 @@ class ProcessorParserUnitTests(TestCase):
 
         return combined_matrix
 
-        # headers = ['select', 'needs_qc', 'artefacts']
-        # select = [None, 'foreach']
-        # needs_qc = [None, False, True]
-        # input_fields = [[]] + [i for i in inputs]
-        # values = [select, needs_qc, input_fields]
-        # matrix = ProcessorParserUnitTests.__generate_test_matrix(
-        #     headers, values)
-        #
-        # return matrix
-
 
     @staticmethod
     def __create_mocked_xnat(scenario):
@@ -463,9 +461,8 @@ class ProcessorParserUnitTests(TestCase):
         matrix = ProcessorParserUnitTests.__generate_one_scan_scenarios()
 
         for m in matrix:
-            print 'm[artefacts] =', m['artefacts']
-            print 'm[yaml_inputs] =', m['yaml_inputs']
-            # ProcessorParserUnitTests.__create_mocked_xnat(m[''])
+            # print 'm[artefacts] =', m['artefacts']
+            # print 'm[yaml_inputs] =', m['yaml_inputs']
             csess = TestSession().NewInit('proj1',
                                           'subj1',
                                           'sess1',
@@ -475,7 +472,6 @@ class ProcessorParserUnitTests(TestCase):
             yaml_source = ProcessorParserUnitTests.__generate_yaml(m)
             try:
                 parser = ProcessorParser(yaml_source.contents)
-                print "csess =", csess
                 parser.parse_session(csess)
                 print parser.assessor_parameter_map
             except ValueError as err:
