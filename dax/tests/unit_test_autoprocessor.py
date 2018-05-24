@@ -46,6 +46,13 @@ class AutoProcessorUnitTest(TestCase):
         print("hello world")
 
 
+    def test_get_assessor_input_types(self):
+        yaml_source = self._make_yaml_source(
+            common.processor_yamls.scan_brain_tiv_from_gif_yaml)
+        ap = AutoProcessor(common.FakeXnat, yaml_source)
+        print ap.get_assessor_input_types()
+
+
     # def test_scan_assessor_get_assessor_name(self):
     #     tseo = self._construct_session('brain_tiv_from_gif')
     #     tsco = tseo.scan_by_key('1')

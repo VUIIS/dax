@@ -1,10 +1,14 @@
 
 
-def generate_yaml(scans=[], assessors=[]):
+def generate_yaml(procname="Proc",
+                  procversion="1_0_0",
+                  scans=[],
+                  assessors=[]):
+
     processor_text_ = ('---\n'
                        'inputs:\n'
                        '  default:\n'
-                       '    spider_path: ./spiderpath/not_a_real_script.py\n'
+                       '    spider_path: ./spiderpath/Spider_{procname}_{procversion}.py\n'
                        '    working_dir: ./workingdir\n'
                        '    nypype_exe: not_a_real_script.py\n'
                        '    db: not_a_real_db_path/no.db\n'
@@ -82,8 +86,9 @@ def generate_yaml(scans=[], assessors=[]):
             for i in inputs:
 
                 # create the select keyword text
-                if i['select'] != None:
-                    select = select_text_.format(i['select'])
+                select_value = i.get('select', None)
+                if select_value != None:
+                    select = select_text_.format(select_value)
                 else:
                     select = ''
 
@@ -93,9 +98,10 @@ def generate_yaml(scans=[], assessors=[]):
                 else:
                     res_entries = []
                     for r in i['resources']:
-                        if r['required'] == True:
+                        required_value = r.get('required', None)
+                        if required_value == True:
                             req_text = req_text_.format('True')
-                        elif r['required'] == False:
+                        elif required_value == False:
                             req_text = req_text_.format('False')
                         else:
                             req_text = ''
@@ -105,9 +111,10 @@ def generate_yaml(scans=[], assessors=[]):
                     res_block =\
                         res_block_.format(''.join(res_entries))
 
-                if i['qc'] == True:
+                qc_value = i.get('qc', None)
+                if qc_value == True:
                     qc_text = qc_text_.format('True')
-                elif i['qc'] == False:
+                elif qc_value == False:
                     qc_text = qc_text_.format('False')
                 else:
                     qc_text = ''
@@ -131,15 +138,24 @@ def generate_yaml(scans=[], assessors=[]):
 
         return input_block
 
+    if not isinstance(scans, list):
+        raise ValueError('scans must be a list')
+    if not isinstance(assessors, list):
+        raise ValueError('assessors must be a list')
+
     scan_block = generate_input_block('scan', scans)
     asr_block = generate_input_block('assessor', assessors)
 
-    processor = processor_text_.format(scans_block=scan_block,
+    processor = processor_text_.format(procname=procname,
+                                       procversion=procversion,
+                                       scans_block=scan_block,
                                        assessors_block=asr_block,
                                        command=cmd_text_,
                                        scan_type='scan',
                                        scan_nb='scan1')
     return processor
+
+
 
 proc_a = generate_yaml(
     scans=[

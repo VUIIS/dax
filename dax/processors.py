@@ -7,6 +7,7 @@ import logging
 import re
 import os
 import json
+import itertools
 from uuid import uuid4
 
 
@@ -119,6 +120,24 @@ class Processor(object):
                 version=self.version.split('.')[0], suffix=self.suffix_proc)
         else:
             self.name = os.path.basename(spider_path)[7:-3] + self.suffix_proc
+
+    def get_proctype(self):
+        """
+        Return the processor name for this processor. Override this method if
+        you are inheriting from a non-yaml processor.
+        :return: the name of the processor type
+        """
+
+        return ""
+
+    def get_assessor_input_types(self):
+        """
+        Enumerate the assessor input types for this. The default implementation
+        returns an empty collection; override this method if you are inheriting
+        from a non-yaml processor.
+        :return: a list of input assessor types
+        """
+        return []
 
     # has_inputs - does this object have the required inputs?
     # e.g. NIFTI format of the required scan type and quality
@@ -742,6 +761,25 @@ defined by yaml file {}'
             # By definition, this should always run, so it just returns true
             # with no checks for session
             return True
+
+
+    def get_proctype(self):
+        return self.name
+
+
+    def get_assessor_input_types(self):
+        """
+        Enumerate the assessor input types for this. The default implementation
+        returns an empty collection; override this method if you are inheriting
+        from a non-yaml processor.
+        :return: a list of input assessor types
+        """
+        assessor_inputs = filter(lambda i: i['artefact_type'] == 'assessor',
+                                 self.parser.inputs.itervalues())
+        assessors = map(lambda i: i['types'], assessor_inputs)
+
+        return list(itertools.chain.from_iterable(assessors))
+
 
     # TODO: BenM/assessor_of_assessor/replace with processor_parser
     # functionality

@@ -247,7 +247,7 @@ class ProcessorParser:
             types = [_.strip() for _ in a['proctypes'].split(',')]
             ProcessorParser._register_input_types(types, inputs_by_type, name)
 
-            resources = s.get('resources', [])
+            resources = a.get('resources', [])
             artefact_required = False
             for r in resources:
                 r['required'] = r.get('required', True)

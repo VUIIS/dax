@@ -16,7 +16,17 @@ class ProcessorGraph:
 
                 inputs = inputs.union(types)
             sources[name] = list(inputs)
-        print sources
+        return sources
+
+
+
+    @staticmethod
+    def order_processors(processors):
+        assessor_inputs = {}
+        for p in processors:
+            assessor_inputs[p.get_proctype()] = p.get_assessor_input_types()
+        return ProcessorGraph.order_from_inputs(assessor_inputs)
+
 
 
 
@@ -24,10 +34,10 @@ class ProcessorGraph:
     # processors rather than a list of yaml_sources, but this would require a
     # refactor of existing processors
     @staticmethod
-    def ordered_processors(artefact_type_map):
+    def order_from_inputs(artefact_type_map):
         print artefact_type_map
         # artefact_type_map is a list of artefacts to their *inputs*.
-        # consider the following graph:
+            # consider the following graph:
         # a --> b --> d
         #   \     \     \
         #    \     \     \

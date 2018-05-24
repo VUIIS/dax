@@ -22,6 +22,7 @@ from .dax_settings import DAX_Settings, DAX_Netrc
 from .errors import (ClusterCountJobsException, ClusterLaunchException,
                      DaxXnatError, DaxLauncherError)
 from . import yaml_doc
+from .processor_graph import ProcessorGraph
 
 try:
     basestring
@@ -518,6 +519,7 @@ cluster queue"
         exp_mods, scan_mods = modules.modules_by_type(proj_mods)
         # TODO: BenM/assessor_of_assessor/extend here for subject-level processors
         exp_procs, scan_procs = processors.processors_by_type(proj_procs)
+
 
         if mod_delta:
             lastmod_delta = str_to_timedelta(mod_delta)
