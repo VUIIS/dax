@@ -56,6 +56,7 @@ import xml.etree.cElementTree as ET
 import yaml
 import zipfile
 
+from . import utilities
 from .task import (JOB_FAILED, JOB_RUNNING, JOB_PENDING, READY_TO_UPLOAD,
                    NEEDS_QA, RERUN, REPROC, FAILED_NEEDS_REPROC, BAD_QA_STATUS)
 from .errors import (XnatUtilsError, XnatAccessError,
@@ -170,14 +171,14 @@ class InterfaceTemp(Interface):
 
 
     # Select XNAT Path
-    P_XPATH = '/project/{project}'
-    S_XPATH = '%s/subject/{subject}' % P_XPATH
-    E_XPATH = '%s/experiment/{session}' % S_XPATH
-    C_XPATH = '%s/scan/{scan}' % E_XPATH
-    CR_XPATH = '%s/resource/{resource}' % C_XPATH
-    A_XPATH = '%s/assessor/{assessor}' % E_XPATH
-    R_XPATH = '{xpath}/resource/{resource}'  # TODO: BenM/xnatutils refactor/this isn't used; remove it
-    AR_XPATH = '%s/out/resource/{resource}' % A_XPATH
+    P_XPATH = '/projects/{project}'
+    S_XPATH = '%s/subjects/{subject}' % P_XPATH
+    E_XPATH = '%s/experiments/{session}' % S_XPATH
+    C_XPATH = '%s/scans/{scan}' % E_XPATH
+    CR_XPATH = '%s/resources/{resource}' % C_XPATH
+    A_XPATH = '%s/assessors/{assessor}' % E_XPATH
+    R_XPATH = '{xpath}/resources/{resource}'  # TODO: BenM/xnatutils refactor/this isn't used; remove it
+    AR_XPATH = '%s/out/resources/{resource}' % A_XPATH
 
     def __init__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
                  temp_dir=None):
@@ -3097,6 +3098,7 @@ class CachedImageScan(object):
         self.intf = intf
         self.scan_parent = parent
         self.scan_element = scan_element
+        self.scan_label = self.label()
 
     def entity_type(self):
         return 'scan'
@@ -3110,6 +3112,15 @@ class CachedImageScan(object):
         """
         return self.scan_parent
 
+    def project_id(self):
+        return self.scan_parent.project_id()
+
+    def subject_id(self):
+        return self.scan_parent.subject_id()
+
+    def session_id(self):
+        return self.scan_parent.session_id()
+
     def label(self):
         """
         Get the ID of the scan
@@ -3120,8 +3131,10 @@ class CachedImageScan(object):
         return self.scan_element.get('ID')
 
     def full_path(self):
-        self.intf.get_scan_path(
-            self.project, self.subject, self.session, self.scan)
+        return self.intf.get_scan_path(self.scan_parent.project_id(),
+                                       self.scan_parent.subject_id(),
+                                       self.scan_parent.session_id(),
+                                       self.scan_label)
 
     def get(self, name):
         """
@@ -3263,6 +3276,15 @@ class CachedImageAssessor(object):
         """
         return self.assr_parent
 
+    def project_id(self):
+        return self.assr_parent.project_id()
+
+    def subject_id(self):
+        return self.assr_parent.subject_id()
+
+    def session_id(self):
+        return self.assr_parent.session_id()
+
     def label(self):
         """
         Get the label of the assessor
@@ -3273,8 +3295,10 @@ class CachedImageAssessor(object):
         return self.assr_element.get('label')
 
     def full_path(self):
-        self.intf.get_assessor_path(
-            self.project, self.subject, self.session, self.assessor)
+        return self.intf.get_assessor_path(self.project_id(),
+                                           self.subject_id(),
+                                           self.session_id(),
+                                           self.label())
 
     def get(self, name):
         """
@@ -3313,6 +3337,7 @@ class CachedImageAssessor(object):
     def type(self):
         if self.proctype is None:
             self.proctype = self.info()['proctype']
+        return self.proctype
 
     def info(self):
         """
@@ -3369,7 +3394,7 @@ class CachedImageAssessor(object):
     # TODO: BenM/assessor_of_assessor/implment this once the schema is
     # extended
     def get_inputs(self):
-        raise NotImplementedError()
+        return utilities.decode_url_json_string(self.get('proc:inputs'))
 
 
     def in_resources(self):
@@ -3403,6 +3428,9 @@ class CachedImageAssessor(object):
                 res_list.append(CachedResource(file_element, self))
 
         return res_list
+
+    def resources(self):
+        return self.out_resources()
 
     def get_in_resources(self):
         """

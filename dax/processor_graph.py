@@ -22,10 +22,20 @@ class ProcessorGraph:
 
     @staticmethod
     def order_processors(processors):
+        processor_map = dict(map(lambda p: (p.get_proctype(), p), processors))
+        named_processors = []
+        unnamed_processors = []
         assessor_inputs = {}
         for p in processors:
-            assessor_inputs[p.get_proctype()] = p.get_assessor_input_types()
-        return ProcessorGraph.order_from_inputs(assessor_inputs)
+            proctype = p.get_proctype()
+            if not proctype:
+                unnamed_processors.append(p)
+            else:
+                assessor_inputs[p.get_proctype()] = p.get_assessor_input_types()
+        ordered_names = ProcessorGraph.order_from_inputs(assessor_inputs)
+        for n in ordered_names:
+            named_processors.append(processor_map[n])
+        return named_processors + unnamed_processors
 
 
 

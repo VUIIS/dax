@@ -128,7 +128,7 @@ class Processor(object):
         :return: the name of the processor type
         """
 
-        return ""
+        return None
 
     def get_assessor_input_types(self):
         """
@@ -765,6 +765,7 @@ defined by yaml file {}'
 
     def get_proctype(self):
         return self.name
+    # ***** Names still need fixing! *****
 
 
     def get_assessor_input_types(self):

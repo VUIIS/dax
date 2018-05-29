@@ -235,7 +235,7 @@ class TestScanObject:
     def entity_type():
         return 'scan'
 
-    def get_resources(self):
+    def resources(self):
         return self.resource_objects_.values()
 
     def __getitem__(self, key):
@@ -298,7 +298,7 @@ class TestAssessorObject:
     def unusable(self):
         return self.qcstatus_ in bad_qa_status
 
-    def get_resources(self):
+    def resources(self):
         return self.resource_objects_.values()
 
     @staticmethod

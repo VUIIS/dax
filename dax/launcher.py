@@ -65,6 +65,13 @@ def check_dir(dir_path):
         if not os.path.isdir(dir_path):
             raise
 
+def task_needs_to_run(procstatus, qcstatus):
+    return\
+        procstatus in [task.NEED_TO_RUN, task.NEED_INPUTS] or\
+        qcstatus in [task.RERUN, task.REPROC, task.DOES_NOT_EXIST]
+
+def task_needs_status_update(qcstatus):
+    return qcstatus in [task.RERUN, task.REPROC]
 
 class Launcher(object):
     """ Launcher object to manage a list of projects from a settings file """
@@ -518,7 +525,9 @@ cluster queue"
         proj_procs = self.project_process_dict.get(project_id, None)
         exp_mods, scan_mods = modules.modules_by_type(proj_mods)
         # TODO: BenM/assessor_of_assessor/extend here for subject-level processors
-        exp_procs, scan_procs = processors.processors_by_type(proj_procs)
+        # exp_procs, scan_procs = processors.processors_by_type(proj_procs)
+        exp_procs = ProcessorGraph.order_processors(proj_procs)
+        scan_procs = []
 
 
         if mod_delta:
@@ -578,7 +587,7 @@ cluster queue"
                 update_start_time = datetime.now()
 
             try:
-                self.build_session(intf, intf, sess_info, exp_procs, scan_procs,
+                self.build_session(intf, sess_info, exp_procs, scan_procs,
                                    exp_mods, scan_mods)
             except Exception as E:
                 err1 = 'Caught exception building sessions %s'
@@ -679,6 +688,7 @@ cluster queue"
         """
         sess_info = csess.info()
         res_dir = DAX_SETTINGS.get_results_dir()
+        xnat_session = csess.full_object()
 
         for sess_proc in sess_proc_list:
             if not sess_proc.should_run(sess_info):
@@ -690,65 +700,91 @@ cluster queue"
             mapping = sess_proc.get_assessor_mapping()
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
-                for inputs, p_assr in mapping[1]:
-                    if p_assr is None:
-                        assessor = sess_proc.create_assessor(csess, inputs)
+                for inputs, p_assrs in mapping[1]:
+                    if len(p_assrs) == 0:
+                        assessor = sess_proc.create_assessor(xnat_session,
+                                                             inputs)
+                        assessors =\
+                            [(assessor, task.NEED_TO_RUN, task.DOES_NOT_EXIST)]
                     else:
-                        assessor = p_assr.full_object()
+                        assessors = []
+                        for p in p_assrs:
+                            info = p.info()
+                            procstatus = info['procstatus']
+                            qcstatus = info['qcstatus']
+                            assessors.append(
+                                (p.full_object(), procstatus, qcstatus))
 
-                    if p_assr.info()['procstatus'] == task.NEED_INPUTS or \
-                       p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
-                        xtask = XnatTask(sess_proc, assessor, res_dir,
-                                         os.path.join(res_dir, 'DISKQ'))
+                    for assessor in assessors:
+                        procstatus = assessor[1]
+                        qcstatus = assessor[2]
+                        if task_needs_to_run(procstatus, qcstatus):
+                            xtask = XnatTask(sess_proc, assessor[0], res_dir,
+                                             os.path.join(res_dir, 'DISKQ'))
 
-                        if p_assr.info()['qcstatus'] in [task.RERUN,
-                                                         task.REPROC]:
-                            xtask.update_status()
+                            if task_needs_status_update(qcstatus):
+                                xtask.update_status()
 
-                        LOGGER.debug('building task:' + assessor.label())
-                        (proc_status, qc_status) = xtask.build_task(
-                            csess,
-                            self.root_job_dir,
-                            self.job_email,
-                            self.job_email_options)
-                        deg = 'proc_status=%s, qc_status=%s'
-                        LOGGER.debug(deg % (proc_status, qc_status))
-                    else:
-                        # TODO: check that it actually exists in QUEUE
-                        LOGGER.debug(
-                            'skipping, already built: %s' % p_assr.label())
+                            LOGGER.debug(
+                                'building task: ' + assessor[0].label())
+                            (proc_status, qc_status) = xtask.build_task(
+                                csess,
+                                self.root_job_dir,
+                                self.job_email,
+                                self.job_email_options)
+                            deg = 'proc_status=%s, qc_status=%s'
+                            LOGGER.debug(deg % (proc_status, qc_status))
+                        else:
+                            # TODO: check that it actually exists in QUEUE
+                            LOGGER.debug(
+                                'skipping, already built: ' +
+                                assessor[0].label())
             else:
-                for inputs, p_assr in mapping[1]:
-                    if p_assr is None:
-                        assessor = sess_proc.create_assessor(csess, inputs)
+                for inputs, p_assrs in mapping[1]:
+                    if len(p_assrs) == 0:
+                        assessor = sess_proc.create_assessor(xnat_session,
+                                                             inputs)
+                        assessors =\
+                            [(assessor, task.NEED_TO_RUN, task.DOES_NOT_EXIST)]
                     else:
-                        assessor = p_assr.full_object()
+                        assessors = []
+                        for p in p_assrs:
+                            info = p.info()
+                            procstatus = info['procstatus']
+                            qcstatus = info['qcstatus']
+                            assessors.append(
+                                (p.full_object(), procstatus, qcstatus))
 
-                    if p_assr.info()['procstatus'] == task.NEED_INPUTS:
-                        sess_task = task.Task(self, assessor, res_dir)
+                    for assessor in assessors:
+                        procstatus = assessor[1]
+                        qcstatus = assessor[2]
+                        if task_needs_to_run(procstatus, qcstatus):
+                            sess_task =\
+                                task.Task(sess_proc, assessor[0], res_dir)
 
-                        log_updating_status(sess_proc.name,
-                                            sess_task.assessor_label)
-                        has_inputs, qcstatus = sess_proc.has_inputs(csess)
-                        try:
-                            if has_inputs == 1:
-                                sess_task.set_status(task.NEED_TO_RUN)
-                                sess_task.set_qcstatus(task.JOB_PENDING)
-                            elif has_inputs == -1:
-                                sess_task.set_status(task.NO_DATA)
-                                sess_task.set_qcstatus(qcstatus)
-                            else:
-                                sess_task.set_qcstatus(qcstatus)
-                        except Exception as E:
-                            err1 = 'Caught exception building session %s while \
-    setting assessor status'
-                            err2 = 'Exception class %s caught with message %s'
-                            LOGGER.critical(err1 % sess_info['session_label'])
-                            LOGGER.critical(err2 % (E.__class__, E.message))
-                            LOGGER.critical(traceback.format_exc())
-                else:
-                    # Other statuses handled by dax_update_tasks
-                    pass
+                            log_updating_status(sess_proc.name,
+                                                sess_task.assessor_label)
+                            has_inputs, qcstatus = sess_proc.has_inputs(csess)
+                            try:
+                                if has_inputs == 1:
+                                    sess_task.set_status(task.NEED_TO_RUN)
+                                    sess_task.set_qcstatus(task.JOB_PENDING)
+                                elif has_inputs == -1:
+                                    sess_task.set_status(task.NO_DATA)
+                                    sess_task.set_qcstatus(qcstatus)
+                                else:
+                                    sess_task.set_qcstatus(qcstatus)
+                            except Exception as E:
+                                err1 = 'Caught exception building session %s while \
+        setting assessor status'
+                                err2 = 'Exception class %s caught with message %s'
+                                LOGGER.critical(err1 % sess_info['session_label'])
+                                LOGGER.critical(err2 % (E.__class__, E.message))
+                                LOGGER.critical(traceback.format_exc())
+                        else:
+                            # Other statuses handled by dax_update_tasks
+                            pass
+
 
     def build_session_modules(self, xnat, csess, sess_mod_list):
         """
@@ -1227,9 +1263,9 @@ The project is not part of the settings."""
                  True otherwise
         """
         xsi_type = sess_info['xsiType']
-        sess_obj = xnat.select_session(sess_info['project_id'],
-                                       sess_info['subject_id'],
-                                       sess_info['session_id'])
+        sess_obj = xnat.select_experiment(sess_info['project_id'],
+                                          sess_info['subject_id'],
+                                          sess_info['session_id'])
         xsi_uri = '%s/meta/last_modified' % xsi_type
         last_modified_xnat = sess_obj.attrs.get(xsi_uri)
         d_format = '%Y-%m-%d %H:%M:%S'
@@ -1315,9 +1351,9 @@ def load_task_queue(status=None, proj_filter=None):
 def get_sess_lastmod(xnat, sess_info):
     """ Get the session last modified date."""
     xsi_type = sess_info['xsiType']
-    sess_obj = xnat.select_session(sess_info['project_label'],
-                                   sess_info['subject_label'],
-                                   sess_info['session_label'])
+    sess_obj = xnat.select_experiment(sess_info['project_label'],
+                                      sess_info['subject_label'],
+                                      sess_info['session_label'])
     last_modified_xnat = sess_obj.attrs.get('%s/meta/last_modified' % xsi_type)
     last_mod = datetime.strptime(last_modified_xnat[0:19], '%Y-%m-%d %H:%M:%S')
     return last_mod

@@ -8,7 +8,7 @@ def generate_yaml(procname="Proc",
     processor_text_ = ('---\n'
                        'inputs:\n'
                        '  default:\n'
-                       '    spider_path: ./spiderpath/Spider_{procname}_{procversion}.py\n'
+                       '    spider_path: ./spiderpath/Spider_{procname}_v{procversion}.py\n'
                        '    working_dir: ./workingdir\n'
                        '    nypype_exe: not_a_real_script.py\n'
                        '    db: not_a_real_db_path/no.db\n'

@@ -58,7 +58,7 @@ class TestArtefact:
         self.label_ = None
         self.artefact_type = None
         self.quality_ = None
-        self.resources = None
+        self.resources_ = None
         self.inputs = None
 
     def OldInit(self, test_obj_type, proj, subj, sess, label, artefact_type,
@@ -70,7 +70,7 @@ class TestArtefact:
         self.label_ = label
         self.artefact_type = artefact_type
         self.quality_ = quality
-        self.resources = [TestResource(r[0], r[1]) for r in resources]
+        self.resources_ = [TestResource(r[0], r[1]) for r in resources]
         self.inputs = inputs
         return self
 
@@ -86,7 +86,7 @@ class TestArtefact:
         self.label_ = artefact['name']
         self.artefact_type = artefact['type']
         self.quality_ = artefact['quality']
-        self.resources =\
+        self.resources_ =\
             [TestResource(r.restype, len(r.files))
              for r in artefact['resources']]
 
@@ -94,6 +94,14 @@ class TestArtefact:
             self.inputs = artefact['artefacts']
         return self
 
+    def project_id(self):
+        return self.proj
+
+    def subject_id(self):
+        return self.subj
+
+    def session_id(self):
+        return self.sess
 
     def label(self):
         return self.label_
@@ -120,8 +128,8 @@ class TestArtefact:
     def unusable(self):
         return self.quality() == 'unusable'
 
-    def get_resources(self):
-        return self.resources
+    def resources(self):
+        return self.resources_
 
     def get_inputs(self):
         return self.inputs

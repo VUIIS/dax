@@ -123,7 +123,37 @@ class ComponentTestBuild(TestCase):
         #__add_scan()
 
 
+    def test_setup_session(self):
+        host = 'http://10.1.1.17'
+        proj_id = 'testproj1'
+        subj_id = 'subj1'
+        sess_id = 'sess1'
+        intf = XnatUtils.get_interface(host=host)
+        session = intf.select_experiment(proj_id, subj_id, sess_id)
+        if not session.exists():
+            self.assertTrue(False, "no such session")
 
+        t1_params = {
+            'xsitype': scanxsitype,
+            'type': "T1",
+            'quality': "usable",
+            'files': [
+                ('NIFTI', ['images.nii']),
+                ('SNAPSHOTS', ['snapshot.gif', 'snapshot(1).gif'])
+            ]
+        }
+        SessionTools.add_scan(session, '1', t1_params)
+        SessionTools.add_scan(session, '2', t1_params)
+        flair_params = {
+            'xsitype': scanxsitype,
+            'type': "FLAIR",
+            'quality': "usable",
+            'files': [
+                ('NIFTI', ['images.nii']),
+                ('SNAPSHOTS', ['snapshot.gif', 'snapshot(1).gif'])
+            ]
+        }
+        SessionTools.add_scan(session, '11', flair_params)
 
     def test_build_matrix(self):
 

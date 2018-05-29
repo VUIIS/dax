@@ -2,6 +2,7 @@
 import copy
 import itertools
 import numpy as np
+from xml.etree import ElementTree
 
 from . import utilities
 from . import XnatUtils
@@ -27,9 +28,9 @@ no_asrs_error = 'No assessors of the require type/s ({}) found for input {}'
 scan_unusable_error = 'Scan {} is unusable for input {}'
 asr_unusable_error = 'Assessor {} is unusable for input {}'
 
-base_path = '/project/{0}/subject/{1}/experiment/{2}/'
-assr_path = base_path + 'assessor/{3}/out/resource/{4}'
-scan_path = base_path + 'scan/{3}/resource/{4}'
+base_path = '/projects/{0}/subjects/{1}/experiments/{2}/'
+assr_path = base_path + 'assessors/{3}/out/resources/{4}'
+scan_path = base_path + 'scans/{3}/resources/{4}'
 artefact_paths = {'assessor': assr_path, 'scan': scan_path}
 
 # parser pipeline
@@ -79,6 +80,8 @@ class ProcessorParser:
         self.command_params = None
 
         self.xsitype = yaml_source['attrs'].get('xsitype', 'proc:genProcData')
+        self.proctype = XnatUtils.get_proctype(
+            yaml_source['inputs']['default']['spider_path'])[0]
 
 
     def parse_session(self, csess):
@@ -96,20 +99,21 @@ class ProcessorParser:
                                                     self.inputs,
                                                     self.inputs_by_type)
 
-        filtered_artefacts_by_input = \
-            ProcessorParser.filter_artefacts_by_quality(self.inputs,
-                                                        artefacts,
-                                                        artefacts_by_input)
+        # filtered_artefacts_by_input = \
+        #     ProcessorParser.filter_artefacts_by_quality(self.inputs,
+        #                                                 artefacts,
+        #                                                 artefacts_by_input)
 
         parameter_matrix = \
             ProcessorParser.generate_parameter_matrix(
                 self.inputs,
                 self.iteration_sources,
                 self.iteration_map,
-                filtered_artefacts_by_input)
+                artefacts_by_input)
 
         assessor_parameter_map = \
-            ProcessorParser.compare_to_existing(csess, 'proc2',
+            ProcessorParser.compare_to_existing(csess,
+                                                self.proctype,
                                                 parameter_matrix)
 
         command_params = ProcessorParser.generate_commands(
@@ -286,7 +290,7 @@ class ProcessorParser:
                 resources = {}
                 # artefact['entity'] = cart
                 # artefact['resources'] = resources
-                for cres in cart.get_resources():
+                for cres in cart.resources():
                     resources[cres.label()] = cres
                 full_path = cart.full_path()
                 arts[full_path] = ParserArtefact(full_path,
@@ -313,7 +317,7 @@ class ProcessorParser:
                 artefacts = artefacts_by_input.get(i, [])
                 matched = 0
                 for ir in (r['resource'] for r in inputs[i]['resources']):
-                    for ar in artefact.get_resources():
+                    for ar in artefact.resources():
                         if ir == ar.label():
                             matched += 1
                             break
@@ -559,6 +563,7 @@ class ProcessorParser:
         assessors = [[] for _ in range(len(parameter_matrix[1]))]
         for casr in filter(lambda a: a.type() == processor_type, csess.assessors()):
             inputs = casr.get_inputs()
+            print "inputs =", inputs
 
             #get an index map from the inputs to the parameter matrix
             index_map = {}
