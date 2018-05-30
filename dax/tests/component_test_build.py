@@ -155,6 +155,21 @@ class ComponentTestBuild(TestCase):
         }
         SessionTools.add_scan(session, '11', flair_params)
 
+
+    def test_clean_assessors_from_test_session(self):
+        host = 'http://10.1.1.17'
+        proj_id = 'testproj1'
+        subj_id = 'subj1'
+        sess_id = 'sess1'
+        intf = XnatUtils.get_interface(host=host)
+        session = intf.select_experiment(proj_id, subj_id, sess_id)
+        if not session.exists():
+            self.assertTrue(False, "no such session")
+
+        for asr in session.assessors():
+            asr.delete()
+
+
     def test_build_matrix(self):
 
         input_headers = ['xsitype', 'quality', 'type', 'files']

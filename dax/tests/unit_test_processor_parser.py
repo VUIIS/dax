@@ -198,8 +198,8 @@ xnat_scan_contents = [
     (proj, subj, sess, "2", "T1w", "unusable", copy.deepcopy(scan_files)),
     (proj, subj, sess, "3", "T1", "usable", copy.deepcopy(scan_files)),
     (proj, subj, sess, "4", "T1", "usable", copy.deepcopy(scan_files)),
-    (proj, subj, sess, "10", "FLAIR", "usable", copy.deepcopy(scan_files)),
     (proj, subj, sess, "11", "FLAIR", "usable", copy.deepcopy(scan_files)),
+    (proj, subj, sess, "12", "FLAIR", "usable", copy.deepcopy(scan_files)),
     (proj, subj, sess, "21", "X3", "usable", copy.deepcopy(scan_files)),
     (proj, subj, sess, "22", "X3", "usable", copy.deepcopy(scan_files))
 ]
@@ -218,6 +218,11 @@ xnat_assessor_inputs = {
     'proc2-asr1': {
         'scan1': scan_path.format(proj, subj, sess, '1'),
         'scan2': scan_path.format(proj, subj, sess, '11'),
+        'scan3': [
+                    scan_path.format(proj, subj, sess, '21'),
+                    scan_path.format(proj, subj, sess, '22')
+        ],
+        'scan4': None,
         'asr1': assessor_path.format(proj, subj, sess, 'proc1-asr1')
     }
 }
@@ -343,16 +348,10 @@ class ProcessorParserUnitTests(TestCase):
             ProcessorParser.parse_variables(inputs)
         print "variables_to_inputs =", variables_to_inputs
 
-        filtered_artefacts_by_input = \
-            ProcessorParser.filter_artefacts_by_quality(inputs,
-                                                        artefacts,
-                                                        artefacts_by_input)
-        print "filter_artefacts_by_input =", filtered_artefacts_by_input
-
         parameter_matrix = \
             ProcessorParser.generate_parameter_matrix(
                 inputs, iteration_sources, iteration_map,
-                filtered_artefacts_by_input)
+                artefacts_by_input)
         print "parameter_matrix =", parameter_matrix
 
         assessor_parameter_map = \

@@ -1,12 +1,9 @@
 
 import copy
 import itertools
-import numpy as np
-from xml.etree import ElementTree
 
 from . import utilities
 from . import XnatUtils
-from .XnatUtils import InterfaceTemp
 
 
 # TODO: BenM/assessor_of_assessor/
@@ -98,11 +95,6 @@ class ProcessorParser:
             ProcessorParser.map_artefacts_to_inputs(csess,
                                                     self.inputs,
                                                     self.inputs_by_type)
-
-        # filtered_artefacts_by_input = \
-        #     ProcessorParser.filter_artefacts_by_quality(self.inputs,
-        #                                                 artefacts,
-        #                                                 artefacts_by_input)
 
         parameter_matrix = \
             ProcessorParser.generate_parameter_matrix(
@@ -286,17 +278,13 @@ class ProcessorParser:
     def parse_artefacts(csess):
         def parse(carts, arts):
             for cart in carts:
-                # artefact = {}
                 resources = {}
-                # artefact['entity'] = cart
-                # artefact['resources'] = resources
                 for cres in cart.resources():
                     resources[cres.label()] = cres
                 full_path = cart.full_path()
                 arts[full_path] = ParserArtefact(full_path,
                                                  resources,
                                                  cart)
-                # arts[cart.label()] = artefact
 
         artefacts = {}
         parse(csess.scans(), artefacts)
@@ -315,15 +303,8 @@ class ProcessorParser:
             # this artefact type is relevant to the assessor
             for i in inputs_of_type:
                 artefacts = artefacts_by_input.get(i, [])
-                matched = 0
-                for ir in (r['resource'] for r in inputs[i]['resources']):
-                    for ar in artefact.resources():
-                        if ir == ar.label():
-                            matched += 1
-                            break
-                if matched == len(inputs[i]['resources']):
-                    artefacts.append(artefact.full_path())
-                    artefacts_by_input[i] = artefacts
+                artefacts.append(artefact.full_path())
+                artefacts_by_input[i] = artefacts
 
 
     @staticmethod
@@ -347,53 +328,10 @@ class ProcessorParser:
         return artefacts_by_input
 
 
-    @staticmethod
-    def filter_artefacts_by_quality(inputs, artefacts, artefacts_by_input):
+    def has_inputs(self, assr):
 
-        filtered_artefacts_by_input = {}
-
-        for k, v in inputs.iteritems():
-            filtered_artefacts = []
-            for a in artefacts_by_input.get(k, {}):
-                artefact = artefacts[a]
-                if not artefact.entity.unusable() or v['needs_qc'] is False:
-                    filtered_artefacts.append(a)
-
-            if len(filtered_artefacts) > 0:
-                filtered_artefacts_by_input[k] = filtered_artefacts
-
-        return filtered_artefacts_by_input
-
-
-    # TODO: BenM/assessor_of_assessor/has_inputs needs to be run on a particular
-    # combination of inputs; this method isn't doing that!
-    # This method really should just be checking if there are inputs of the proper
-    # type in the first place; another method should check the status of individual
-    # combinations of inputs. Remember, we always create an assessor if a given
-    # combination if inputs is present, even if it can't yet run
-    # def has_inputs(inputs, artefacts, artefacts_by_input):
-    #     errors = []
-    #     for k, v in inputs.iteritems():
-    #         print "k, v =", k, v
-    #         is_scan = v['artefact_type'] == 'scan'
-    #         if k not in artefacts_by_input:
-    #             # there are no available artefacts of this input type
-    #             error_msg = no_scans_error if is_scan else no_asrs_error
-    #             errors.append(error_msg.format(','.join(v['types']), k))
-    #         elif artefacts[k]['entity'].unusable() and v['needs_qc']:
-    #             error_msg = scan_unusable_error if is_scan else asr_unusable_error
-    #             errors.append(error_msg.format(','.join(k)))
-    #         else:
-    #             print k, 'can use',
-    #
-    #     return len(errors) == 0, errors
-
-
-    def has_inputs(self, cassr):
-        assr = cassr.full_object()
-        intf = cassr.intf
         input_artefacts = utilities.decode_url_json_string(
-            assr.attrs.get(self.xsitype + '/inputs'))
+            assr.attrs.get(self.xsitype.lower() + '/inputs'))
         errors = []
         for artefact_input_k, artefact_input_path\
             in input_artefacts.iteritems():
@@ -401,7 +339,7 @@ class ProcessorParser:
             # check whether any inputs are missing, unusable or lacking the
             # required resource files
             input_entry = self.inputs[artefact_input_k]
-            artefact = intf.select(artefact_input_path)
+            artefact = assr._intf.select(artefact_input_path)
 
             # check for existence. Note, an assessor is created if the
             # appropriate combination of inputs is present. If one or more of
@@ -417,7 +355,7 @@ class ProcessorParser:
                 )
                 continue
 
-            artefact_type = intf.object_type_from_path(
+            artefact_type = assr._intf.object_type_from_path(
                 artefact_input_path)
             if artefact_type not in ['scan', 'assessor']:
                 errors.append(
@@ -457,7 +395,7 @@ class ProcessorParser:
                         (
                             artefact_input_k,
                             'Artefact {} is missing {} resource'.format(
-                                artefact_input_path, r.label())
+                                artefact_input_path, r['resource'])
                         )
                     )
                 elif resource_dict[r['resource']] < 1:
@@ -465,7 +403,7 @@ class ProcessorParser:
                         (
                             artefact_input_k,
                             'Artefact {} is missing files from resource {}'
-                            .format(artefact_input_path, r.label())
+                            .format(artefact_input_path, r['resource'])
                         )
                     )
 
@@ -492,7 +430,7 @@ class ProcessorParser:
         # check whether all inputs are present
         for i, iv in inputs.iteritems():
             if i not in artefacts_by_input and iv['required'] == True:
-                return input_headers, []
+                return []
 
         # add in None for optional inputs so that the matrix can be generated
         # without artefacts present for those inputs
@@ -545,57 +483,29 @@ class ProcessorParser:
         matrix_headers = list(itertools.chain.from_iterable(all_inputs))
 
         # rebuild the matrix to order the inputs consistently
-        final_matrix = [[None for _ in range(len(input_headers))]
-                        for _ in range(len(matrix))]
-        for i, input in enumerate(input_headers):
-            try:
-                mi = matrix_headers.index(input)
-                for mj in range(len(matrix)):
-                    final_matrix[mj][i] = matrix[mj][mi]
-            except ValueError:
-                pass
-        return input_headers, final_matrix
+        final_matrix = []
+        for r in matrix:
+            row = dict()
+            for i in range(len(matrix_headers)):
+                row[matrix_headers[i]] = r[i]
+            final_matrix.append(row)
+
+        return final_matrix
 
 
     @staticmethod
     def compare_to_existing(csess, processor_type, parameter_matrix):
 
-        assessors = [[] for _ in range(len(parameter_matrix[1]))]
+        assessors = [[] for _ in range(len(parameter_matrix))]
         for casr in filter(lambda a: a.type() == processor_type, csess.assessors()):
             inputs = casr.get_inputs()
             print "inputs =", inputs
 
-            #get an index map from the inputs to the parameter matrix
-            index_map = {}
-            for index, input in enumerate(parameter_matrix[0]):
-                index_map[input] = index
-            indices = []
-            for i in inputs:
-                indices.append(index_map[i])
-
-            # for each entry in the parameter matrix, see if it matches with
-            # an existing assessor in terms of inputs
-            asr_artefacts =\
-                map(lambda v: v[1].split('/')[-1], inputs.iteritems())
-            asr_artefacts = [v for _, v in inputs.iteritems()]
-            print 'asr_artefacts =', asr_artefacts
-
-            for pi, p in enumerate(parameter_matrix[1]):
-                # ia[0] is an index, ia[1] is the artefact name; artefact names in
-                # p are in a different order to artefact names in the inputs, so use
-                # 'indices' to find the index of the ith input artefact in the
-                # parameter map and then perform the comparison. If all match, p
-                # matches the current assessor
-                if all((p[indices[ia[0]]] == ia[1]
-                        for ia in enumerate(asr_artefacts))):
+            for pi, p in enumerate(parameter_matrix):
+                if inputs == p:
                     assessors[pi].append(casr)
-                    break
 
-            # TODO: BenM/assessor_of_assessor/handle multiple assessors associated
-            # with a given set of inputs
-
-        return (parameter_matrix[0],
-                zip(copy.deepcopy(parameter_matrix[1]), assessors))
+        return zip(copy.deepcopy(parameter_matrix), assessors)
 
 
     @staticmethod
@@ -605,16 +515,6 @@ class ProcessorParser:
                           parameter_matrix):
         # map from parameters to input resources
 
-        parameter_matrix_indices = {}
-        for k, v in variables_to_inputs.iteritems():
-            index = None
-            for i, p in enumerate(parameter_matrix[0]):
-                if p == v['input']:
-                    index = i
-                    break
-            parameter_matrix_indices[k] = index
-        print "parameter_matrix_indices =", parameter_matrix_indices
-
         path_elements = [
             csess.project_id(),
             csess.subject_id(),
@@ -623,15 +523,14 @@ class ProcessorParser:
             None]
 
         command_sets = []
-        for p in parameter_matrix[1]:
-            command_set = {}
+        for p in parameter_matrix:
+            command_set = dict()
             for k, v in variables_to_inputs.iteritems():
-                parameter_index = parameter_matrix_indices[k]
-                inp = inputs[parameter_matrix[0][parameter_index]]
+                inp = inputs[v['input']]
                 artefact_type = inp['artefact_type']
                 resource = v['resource']
 
-                path_elements[-2] = parameter_matrix[0][parameter_index]
+                path_elements[-2] = p[v['input']]
                 path_elements[-1] = resource
 
                 command_set[k] =\
@@ -640,4 +539,3 @@ class ProcessorParser:
             command_sets.append(command_set)
 
         return command_sets
-

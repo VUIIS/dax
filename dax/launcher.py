@@ -14,7 +14,6 @@ import redcap
 import sys
 import os
 import traceback
-from uuid import uuid4
 
 from . import processors, modules, XnatUtils, task, cluster
 from .task import Task, ClusterTask, XnatTask
@@ -700,7 +699,7 @@ cluster queue"
             mapping = sess_proc.get_assessor_mapping()
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
-                for inputs, p_assrs in mapping[1]:
+                for inputs, p_assrs in mapping:
                     if len(p_assrs) == 0:
                         assessor = sess_proc.create_assessor(xnat_session,
                                                              inputs)
@@ -740,7 +739,7 @@ cluster queue"
                                 'skipping, already built: ' +
                                 assessor[0].label())
             else:
-                for inputs, p_assrs in mapping[1]:
+                for inputs, p_assrs in mapping:
                     if len(p_assrs) == 0:
                         assessor = sess_proc.create_assessor(xnat_session,
                                                              inputs)
@@ -764,16 +763,18 @@ cluster queue"
 
                             log_updating_status(sess_proc.name,
                                                 sess_task.assessor_label)
-                            has_inputs, qcstatus = sess_proc.has_inputs(csess)
+                            has_inputs, qcerrors =\
+                                sess_proc.has_inputs(assessor[0])
                             try:
                                 if has_inputs == 1:
                                     sess_task.set_status(task.NEED_TO_RUN)
                                     sess_task.set_qcstatus(task.JOB_PENDING)
-                                elif has_inputs == -1:
-                                    sess_task.set_status(task.NO_DATA)
-                                    sess_task.set_qcstatus(qcstatus)
                                 else:
-                                    sess_task.set_qcstatus(qcstatus)
+                                    errorstr =\
+                                        '\n'.join((q[1] for q in qcerrors))
+                                    sess_task.set_qcstatus(errorstr)
+                                    if has_inputs == -1:
+                                        sess_task.set_status(task.NO_DATA)
                             except Exception as E:
                                 err1 = 'Caught exception building session %s while \
         setting assessor status'
@@ -840,7 +841,7 @@ cluster queue"
             mapping = scan_proc.get_assessor_mapping()
 
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
-                for inputs, p_assr in mapping[1]:
+                for inputs, p_assr in mapping:
                     if p_assr is None:
                         assessor = scan_proc.create_assessor(csess, inputs)
                     else:
@@ -871,7 +872,7 @@ cluster queue"
                         LOGGER.debug(
                             'skipping, already built:' + assessor.label())
             else:
-                for inputs, p_assr in mapping[1]:
+                for inputs, p_assr in mapping:
                     if p_assr is None:
                         assessor = scan_proc.create_assessor(csess, inputs)
                     else:

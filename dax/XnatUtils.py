@@ -3394,7 +3394,8 @@ class CachedImageAssessor(object):
     # TODO: BenM/assessor_of_assessor/implment this once the schema is
     # extended
     def get_inputs(self):
-        return utilities.decode_url_json_string(self.get('proc:inputs'))
+        inputstr = self.get('proc:inputs')
+        return utilities.decode_url_json_string(inputstr)
 
 
     def in_resources(self):
