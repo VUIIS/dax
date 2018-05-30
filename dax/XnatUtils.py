@@ -2912,10 +2912,10 @@ class CachedImageSession(object):
         return 'session'
 
     def reload(self):
-        xml_str = self.intf.select_experiment(self.project,
+        experiment = self.intf.select_experiment(self.project,
                                               self.subject,
                                               self.session)
-        self.sess_element = ET.fromstring(xml_str)
+        self.sess_element = ET.fromstring(experiment.get())
 
     def label(self):
         """

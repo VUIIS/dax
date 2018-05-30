@@ -693,6 +693,8 @@ cluster queue"
             if not sess_proc.should_run(sess_info):
                 continue
 
+            csess.reload()
+
             # return a mapping between the assessor input sets and existing
             # assessors that map to those input sets
             sess_proc.parse_session(csess)
