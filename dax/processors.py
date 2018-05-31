@@ -1005,7 +1005,6 @@ class MoreAutoProcessor(AutoProcessor):
         if doc.get('jobtemplate'):
             self.job_template = doc.get('jobtemplate')
 
-
     def _check_default_keys(self, yaml_file, doc):
         """ Static method to raise error if key not found in dictionary from
         yaml file.
@@ -1042,6 +1041,9 @@ class MoreAutoProcessor(AutoProcessor):
         if len(re.split('/*[_:]v[0-9]/*', tmp)) > 1:
             tmp = re.split('/*[_:]v[0-9]/*', tmp)[0]
 
+        if tmp.startswith('Spider_'):
+            tmp = tmp[len('Spider_'):]
+
         return tmp
 
     def parse_procversion(self):
@@ -1054,6 +1056,8 @@ class MoreAutoProcessor(AutoProcessor):
             tmp = tmp.split('.img')[0]
         elif tmp.endswith('.simg'):
             tmp = tmp.split('.simg')[0]
+        elif tmp.endswith('.py'):
+            tmp = tmp.split('.py')[0]
 
         if len(re.split('/*_v[0-9]/*', tmp)) > 1:
             tmp = tmp.split('_v')[-1].replace('_', '.')
@@ -1085,8 +1089,8 @@ class MoreAutoProcessor(AutoProcessor):
 
         return [cmd]
 
-
-    def get_xnat_uri(self, cobj, resource, required=True, fpath=None, fmatch=None):
+    def get_xnat_uri(
+            self, cobj, resource, required=True, fpath=None, fmatch=None):
         """Method to get the file URI on XNAT
 
         :param cobjs: list of cobjs (assessor or scan) in dax.XnatUtils
@@ -1121,7 +1125,8 @@ class MoreAutoProcessor(AutoProcessor):
             if fmatch:
                 sess = cobj.parent().full_object()
                 if isinstance(cobj, XnatUtils.CachedImageAssessor):
-                    robj = sess.assessor(obj_info['label']).out_resource(resource)
+                    robj = sess.assessor(
+                        obj_info['label']).out_resource(resource)
 
                 elif isinstance(cobj, XnatUtils.CachedImageScan):
                     robj = sess.scan(obj_info['ID']).resource(resource)
@@ -1159,19 +1164,25 @@ class MoreAutoProcessor(AutoProcessor):
 
         # For each input scan descriptor
         for scan_in in self.xnat_inputs.get('scans', list()):
-            scantypes = scan_in.get('types').split(',')
-            needs_qc = scan_in.get('needs_qc', True)
+            if self.scan_nb in list(scan_in.keys()):
+                # Handle scan_nb
+                matched_cscans = [cobj]
+            else:
+                # Handle other scans
+                scantypes = scan_in.get('types').split(',')
+                needs_qc = scan_in.get('needs_qc', True)
 
-            # First get matching scan(s)
-            matched_cscans = XnatUtils.get_good_cscans(csess, scantypes, needs_qc)
+                # First get matching scan(s)
+                matched_cscans = XnatUtils.get_good_cscans(
+                    csess, scantypes, needs_qc)
 
-            # Check count of matches scans (should only one if scan_nb)
-            if len(matched_cscans) == 0:
-                LOGGER.debug('failed to find a scan')
-                raise NoDataException('No Scan')
-            elif len(matched_cscans) > 1:
-                LOGGER.debug('too many matching scans found')
-                raise NeedInputsException('Multiple Scans')
+                # Check count of matches scans
+                if len(matched_cscans) == 0:
+                    LOGGER.debug('failed to find a scan')
+                    raise NoDataException('No Scan')
+                elif len(matched_cscans) > 1:
+                    LOGGER.debug('too many matching scans found')
+                    raise NeedInputsException('Multiple Scans')
 
             # Now match resources of matched scans
             resources = scan_in.get('resources', list())
@@ -1191,7 +1202,9 @@ class MoreAutoProcessor(AutoProcessor):
 
                 fdest = res.get('fdest')
                 ftype = res.get('ftype')
-                input_list.append({'fdest':fdest, 'ftype': ftype, 'fpath': ','.join(xnat_uri_list)})
+                input_list.append({
+                    'fdest': fdest, 'ftype': ftype,
+                    'fpath': ','.join(xnat_uri_list)})
                 if 'varname' in res:
                     varname = res['varname']
                     var2val[varname] = fdest
@@ -1202,7 +1215,8 @@ class MoreAutoProcessor(AutoProcessor):
             needs_qc = assr_in.get('needs_qc', True)
 
             # First get matching assessor(s)
-            matched_cassrs = XnatUtils.get_good_cassr(csess, proctypes, needs_qc)
+            matched_cassrs = XnatUtils.get_good_cassr(
+                csess, proctypes, needs_qc)
 
             # Check counts of matched assessors
             # TODO: figure out how to determine NoDataException
