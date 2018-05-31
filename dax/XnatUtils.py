@@ -2195,6 +2195,9 @@ def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False,
     if not os.path.isfile(filepath):  # Check existence of the file
         err = "%s: file %s doesn't exist."
         raise XnatUtilsError(err % ('upload_file_to_obj', filepath))
+    elif os.path.getsize(filepath) == 0:  # Check for empty file
+        err = "%s: empty file, not uploading %s."
+        raise XnatUtilsError(err % ('upload_file_to_obj', filepath))
     else:
         # Remove previous resource to upload the new one
         if removeall and resource_obj.exists():
