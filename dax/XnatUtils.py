@@ -1131,8 +1131,8 @@ def list_assessors(intf, projectid, subjectid, sessionid):
             anew['project_id'] = projectid
             anew['project_label'] = projectid
             anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
-            anew['session_id'] = asse['xnat:imagesessiondata/id']
-            anew['session_label'] = asse['xnat:imagesessiondata/label']
+            anew['session_id'] = asse['session_ID']
+            anew['session_label'] = asse['session_label']
             anew['procstatus'] = asse['%s/procstatus' % pfix]
             anew['proctype'] = asse['%s/proctype' % pfix]
             anew['qcstatus'] = asse['%s/validation/status' % pfix]
