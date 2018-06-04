@@ -16,7 +16,8 @@ session_namespace = {
     'foreach': {'args': [{'optional': True, 'type': str}]},
     'one': {'args': []},
     'some': {'args': [{'optional': False, 'type': int}]},
-    'all': {'args': []}
+    'all': {'args': []},
+    'from': {'args': [{'optional': False, 'type': str}]}
 }
 
 
@@ -156,6 +157,8 @@ class ProcessorParser:
             iteration_sources.add(name)
         elif iteration_args[0] == 'all':
             iteration_sources.add(name)
+        elif iteration_args[0] == 'from':
+            iteration_map[name] = iteration_args[1].split('/')[0]
 
 
 
@@ -417,6 +420,7 @@ class ProcessorParser:
     def generate_parameter_matrix(inputs,
                                   iteration_sources,
                                   iteration_map,
+                                  artefacts,
                                   artefacts_by_input):
 
         # generate n dimensional input matrix based on iteration sources
@@ -454,12 +458,33 @@ class ProcessorParser:
                                                  sanitised_inputs[k])
                         mapped_inputs.append(k)
 
-                if min_artefact_count > 0:
-                    for ind in range(min_artefact_count):
-                        cur = []
-                        for m in mapped_inputs:
-                            cur.append(sanitised_inputs[m][ind])
-                        mapped_input_vector.append(cur)
+                if inputs[k]['select'][0] == 'foreach':
+                    if min_artefact_count > 0:
+                        for ind in range(min_artefact_count):
+                            cur = []
+                            for m in mapped_inputs:
+                                cur.append(sanitised_inputs[m][ind])
+                            mapped_input_vector.append(cur)
+                else:
+                    for k, v in iteration_map.iteritems():
+                        if v == i:
+                            parts = inputs[k]['select'][1].split('/')
+                            from_artefacts = artefacts_by_input[parts[0]]
+                            print "from artefacts =", from_artefacts
+                            for fa in from_artefacts:
+                                cur = [fa]
+                                # get the named input from each assessor
+                                a = artefacts[fa]
+                                print a
+                                from_inputs = a.entity.get_inputs()
+                                for m in mapped_inputs[1:]:
+                                    cur.append(from_inputs[m])
+                                print cur
+                                mapped_input_vector.append(cur)
+
+
+
+
 
             elif select_fn == 'all':
                 combined_vector = []
@@ -469,6 +494,11 @@ class ProcessorParser:
 
             elif select_fn == 'one':
                 mapped_input_vector = [sanitised_inputs[i][0]]
+            #
+            # elif select_fn == 'from':
+            #     parts = inputs[i]['select'][1].split()
+            #     artefact = artefacts[artefacts_by_input[parts[1]]]
+
 
 
             # input_dimension_map[i] = (mapped_inputs, mapped_input_vector)
@@ -497,7 +527,8 @@ class ProcessorParser:
     def compare_to_existing(csess, processor_type, parameter_matrix):
 
         assessors = [[] for _ in range(len(parameter_matrix))]
-        for casr in filter(lambda a: a.type() == processor_type, csess.assessors()):
+        for casr in filter(lambda a: a.type() == processor_type,
+                           csess.assessors()):
             inputs = casr.get_inputs()
             print "inputs =", inputs
 

@@ -193,7 +193,16 @@ class TestSession:
 
 scan_files = [('SNAPSHOTS', 2), ('NIFTI', 1)]
 
-xnat_scan_contents = [
+
+asr_prefix = '-x-'.join((proj, subj, sess, ''))
+
+asr_files = [
+    ('LABELS', 1), ('PDF', 1), ('BIAS_COR', 1), ('PRIOR', 1), ('SEG', 1),
+    ('STATS', 1), ('SNAPSHOTS', 2), ('OUTLOG', 1), ('PBS', 1)
+]
+
+# unit test 1
+xnat_scan_contents_1 = [
     (proj, subj, sess, "1", "T1W", "usable", copy.deepcopy(scan_files)),
     (proj, subj, sess, "2", "T1w", "unusable", copy.deepcopy(scan_files)),
     (proj, subj, sess, "3", "T1", "usable", copy.deepcopy(scan_files)),
@@ -204,15 +213,7 @@ xnat_scan_contents = [
     (proj, subj, sess, "22", "X3", "usable", copy.deepcopy(scan_files))
 ]
 
-
-asr_prefix = '-x-'.join((proj, subj, sess, ''))
-
-asr_files = [
-    ('LABELS', 1), ('PDF', 1), ('BIAS_COR', 1), ('PRIOR', 1), ('SEG', 1),
-    ('STATS', 1), ('SNAPSHOTS', 2), ('OUTLOG', 1), ('PBS', 1)
-]
-
-xnat_assessor_inputs = {
+xnat_assessor_inputs_1 = {
     'proc1-asr1': {'scan1': scan_path.format(proj, subj, sess, '1')},
     'proc1-asr2': {'scan1': scan_path.format(proj, subj, sess, '2')},
     'proc2-asr1': {
@@ -227,10 +228,13 @@ xnat_assessor_inputs = {
     }
 }
 
-xnat_assessor_contents = [
-    (proj, subj, sess, "proc1-asr1", "proc1", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc1-asr1']),
-    (proj, subj, sess, "proc1-asr2", "proc1", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc1-asr2']),
-    (proj, subj, sess, "proc2-asr1", "proc2", "usable", copy.deepcopy(asr_files), xnat_assessor_inputs['proc2-asr1'])
+xnat_assessor_contents_1 = [
+    (proj, subj, sess, "proc1-asr1", "proc1", "usable",
+     copy.deepcopy(asr_files), xnat_assessor_inputs_1['proc1-asr1']),
+    (proj, subj, sess, "proc1-asr2", "proc1", "usable",
+     copy.deepcopy(asr_files), xnat_assessor_inputs_1['proc1-asr2']),
+    (proj, subj, sess, "proc2-asr1", "proc2", "usable",
+     copy.deepcopy(asr_files), xnat_assessor_inputs_1['proc2-asr1'])
 ]
 
 scan_gif_parcellation_yaml = """
@@ -280,6 +284,42 @@ attrs:
   scan_nb: scan11
 """
 
+# unit test 2
+
+xnat_scan_contents_2 = [
+    (proj, subj, sess, "1", "T1", "usable", copy.deepcopy(scan_files)),
+    (proj, subj, sess, "2", "T1", "usable", copy.deepcopy(scan_files))
+]
+
+xnat_assessor_inputs_2 = {
+    'proc1-asr1': {'scan1': scan_path.format(proj, subj, sess, '1')},
+    'proc1-asr2': {'scan1': scan_path.format(proj, subj, sess, '2')}
+}
+
+xnat_assessor_contents_2 = [
+    (proj, subj, sess, "proc1-asr1", "proc1", "usable",
+     copy.deepcopy(asr_files), xnat_assessor_inputs_2['proc1-asr1']),
+    (proj, subj, sess, "proc1-asr2", "proc1", "usable",
+     copy.deepcopy(asr_files), xnat_assessor_inputs_2['proc1-asr2']),
+]
+
+processor_yaml_2 = yamls.generate_yaml(
+    'proc2',
+    scans=[{
+        'name': 'scan1', 'types': 'T1',
+        'select': 'from(asr1/scan1)',
+        'resources': [
+            {'type': 'NIFTI', 'name': 't1'}
+        ]
+    }],
+    assessors=[{
+        'name': 'asr1', 'types': 'proc1',
+        'resources': [
+            {'type': 'SEG', 'name': 'seg'}
+        ]
+    }]
+)
+
 class ArtefactResource:
     def __init__(self, restype, required, files):
         self.restype = restype
@@ -320,13 +360,15 @@ class ProcessorTest(TestCase):
 class ProcessorParserUnitTests(TestCase):
 
 
-    def test_processor_parser_experimental(self):
-        print 'xnat_scan_contents =', xnat_scan_contents
-        print 'xnat_assessor_contents =', xnat_assessor_contents
-        csess = TestSession().OldInit(proj, subj, sess, xnat_scan_contents,
-                                      xnat_assessor_contents)
+    def __run_processor_parser_unit_tests(self,
+                                          scan_contents,
+                                          assessor_contents,
+                                          processor_yaml):
 
-        doc = yaml.load((StringIO.StringIO(scan_gif_parcellation_yaml)))
+        csess = TestSession().OldInit(proj, subj, sess, scan_contents,
+                                      assessor_contents)
+
+        doc = yaml.load((StringIO.StringIO(processor_yaml)))
 
         inputs, inputs_by_type, iteration_sources, iteration_map =\
             ProcessorParser.parse_inputs(doc)
@@ -351,7 +393,7 @@ class ProcessorParserUnitTests(TestCase):
         parameter_matrix = \
             ProcessorParser.generate_parameter_matrix(
                 inputs, iteration_sources, iteration_map,
-                artefacts_by_input)
+                artefacts, artefacts_by_input)
         print "parameter_matrix =", parameter_matrix
 
         assessor_parameter_map = \
@@ -370,6 +412,18 @@ class ProcessorParserUnitTests(TestCase):
         pp = ProcessorParser(doc)
 
 
+    def test_processor_parser_experimental_1(self):
+
+        self.__run_processor_parser_unit_tests(xnat_scan_contents_1,
+                                               xnat_assessor_contents_1,
+                                               scan_gif_parcellation_yaml)
+
+
+    def test_processor_parser_experimental_2(self):
+
+        self.__run_processor_parser_unit_tests(xnat_scan_contents_2,
+                                               xnat_assessor_contents_2,
+                                               processor_yaml_2)
 
     @staticmethod
     def __generate_test_matrix(headers, values):
