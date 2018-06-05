@@ -26,10 +26,14 @@ no_asrs_error = 'No assessors of the require type/s ({}) found for input {}'
 scan_unusable_error = 'Scan {} is unusable for input {}'
 asr_unusable_error = 'Assessor {} is unusable for input {}'
 
-base_path = '/projects/{0}/subjects/{1}/experiments/{2}/'
-assr_path = base_path + 'assessors/{3}/out/resources/{4}'
-scan_path = base_path + 'scans/{3}/resources/{4}'
-artefact_paths = {'assessor': assr_path, 'scan': scan_path}
+# base_path = '/projects/{0}/subjects/{1}/experiments/{2}/'
+# assr_path = base_path + 'assessors/{3}/out/resources/{4}'
+# scan_path = base_path + 'scans/{3}/resources/{4}'
+# artefact_paths = {'assessor': assr_path, 'scan': scan_path}
+resource_paths = {
+    'assessor': '{0}/out/resources/{1}',
+    'scan': '{0}/resources/{1}'
+}
 
 # parser pipeline
 # . check whether artefacts of the appropriate type are present for a given
@@ -424,12 +428,8 @@ class ProcessorParser:
                                   artefacts_by_input):
 
         # generate n dimensional input matrix based on iteration sources
-        input_headers = []
-        for i in inputs:
-            input_headers.append(i)
-        input_headers = sorted(input_headers)
         all_inputs = []
-        input_dimension_map = [] #{}
+        input_dimension_map = []
 
         # check whether all inputs are present
         for i, iv in inputs.iteritems():
@@ -450,6 +450,7 @@ class ProcessorParser:
             mapped_inputs = [i]
             mapped_input_vector = []
             select_fn = inputs[i]['select'][0]
+
             if select_fn == 'foreach':
                 min_artefact_count = len(sanitised_inputs[i])
                 for k, v in iteration_map.iteritems():
@@ -466,54 +467,27 @@ class ProcessorParser:
                                 cur.append(sanitised_inputs[m][ind])
                             mapped_input_vector.append(cur)
                 else:
-                    # for k, v in iteration_map.iteritems():
-                    #     if v == i:
-                    #         parts = inputs[k]['select'][1].split('/')
-                    #         from_artefacts = artefacts_by_input[parts[0]]
-                    #         print "from artefacts =", from_artefacts
-                    #         for fa in from_artefacts:
-                    #             cur = [fa]
-                    #             # get the named input from each assessor
-                    #             a = artefacts[fa]
-                    #             print a
-                    #             from_inputs = a.entity.get_inputs()
-                    #             for m in mapped_inputs[1:]:
-                    #                 cur.append(from_inputs[m])
-                    #             print cur
-                    #             mapped_input_vector.append(cur)
                     from_artefacts = artefacts_by_input[v]
-                    print "from artefacts =", from_artefacts
                     for fa in from_artefacts:
                         cur = [fa]
                         # get the named input from each assessor
                         a = artefacts[fa]
-                        print a
                         from_inputs = a.entity.get_inputs()
                         for m in mapped_inputs[1:]:
                             cur.append(from_inputs[m])
-                        print cur
                         mapped_input_vector.append(cur)
 
-
-
-
-
             elif select_fn == 'all':
-                combined_vector = []
-                for artefact in sanitised_inputs[i]:
-                    combined_vector.append(artefact)
-                mapped_input_vector = [[combined_vector]]
+                mapped_input_vector = [[sanitised_inputs[i][:]]]
+
+            elif select_fn == 'some':
+                input_count = min(len(sanitised_inputs[i]),
+                                  inputs[i]['select'][1])
+                mapped_input_vector = [[sanitised_inputs[i][input_count:]]]
 
             elif select_fn == 'one':
                 mapped_input_vector = [sanitised_inputs[i][0]]
-            #
-            # elif select_fn == 'from':
-            #     parts = inputs[i]['select'][1].split()
-            #     artefact = artefacts[artefacts_by_input[parts[1]]]
 
-
-
-            # input_dimension_map[i] = (mapped_inputs, mapped_input_vector)
             all_inputs.append(mapped_inputs)
             input_dimension_map.append(mapped_input_vector)
 
@@ -542,7 +516,6 @@ class ProcessorParser:
         for casr in filter(lambda a: a.type() == processor_type,
                            csess.assessors()):
             inputs = casr.get_inputs()
-            print "inputs =", inputs
 
             for pi, p in enumerate(parameter_matrix):
                 if inputs == p:
@@ -573,11 +546,12 @@ class ProcessorParser:
                 artefact_type = inp['artefact_type']
                 resource = v['resource']
 
-                path_elements[-2] = p[v['input']]
-                path_elements[-1] = resource
+                path_elements = [p[v['input']], resource]
 
+                # command_set[k] =\
+                #     artefact_paths[artefact_type].format(*path_elements)
                 command_set[k] =\
-                    artefact_paths[artefact_type].format(*path_elements)
+                    resource_paths[artefact_type].format(*path_elements)
 
             command_sets.append(command_set)
 
