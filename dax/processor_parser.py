@@ -466,21 +466,33 @@ class ProcessorParser:
                                 cur.append(sanitised_inputs[m][ind])
                             mapped_input_vector.append(cur)
                 else:
-                    for k, v in iteration_map.iteritems():
-                        if v == i:
-                            parts = inputs[k]['select'][1].split('/')
-                            from_artefacts = artefacts_by_input[parts[0]]
-                            print "from artefacts =", from_artefacts
-                            for fa in from_artefacts:
-                                cur = [fa]
-                                # get the named input from each assessor
-                                a = artefacts[fa]
-                                print a
-                                from_inputs = a.entity.get_inputs()
-                                for m in mapped_inputs[1:]:
-                                    cur.append(from_inputs[m])
-                                print cur
-                                mapped_input_vector.append(cur)
+                    # for k, v in iteration_map.iteritems():
+                    #     if v == i:
+                    #         parts = inputs[k]['select'][1].split('/')
+                    #         from_artefacts = artefacts_by_input[parts[0]]
+                    #         print "from artefacts =", from_artefacts
+                    #         for fa in from_artefacts:
+                    #             cur = [fa]
+                    #             # get the named input from each assessor
+                    #             a = artefacts[fa]
+                    #             print a
+                    #             from_inputs = a.entity.get_inputs()
+                    #             for m in mapped_inputs[1:]:
+                    #                 cur.append(from_inputs[m])
+                    #             print cur
+                    #             mapped_input_vector.append(cur)
+                    from_artefacts = artefacts_by_input[v]
+                    print "from artefacts =", from_artefacts
+                    for fa in from_artefacts:
+                        cur = [fa]
+                        # get the named input from each assessor
+                        a = artefacts[fa]
+                        print a
+                        from_inputs = a.entity.get_inputs()
+                        for m in mapped_inputs[1:]:
+                            cur.append(from_inputs[m])
+                        print cur
+                        mapped_input_vector.append(cur)
 
 
 

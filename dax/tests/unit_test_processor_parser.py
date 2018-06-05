@@ -288,12 +288,20 @@ attrs:
 
 xnat_scan_contents_2 = [
     (proj, subj, sess, "1", "T1", "usable", copy.deepcopy(scan_files)),
-    (proj, subj, sess, "2", "T1", "usable", copy.deepcopy(scan_files))
+    (proj, subj, sess, "2", "T1", "usable", copy.deepcopy(scan_files)),
+    (proj, subj, sess, "11", "FLAIR", "usable", copy.deepcopy(scan_files)),
+    (proj, subj, sess, "12", "FLAIR", "usable", copy.deepcopy(scan_files))
 ]
 
 xnat_assessor_inputs_2 = {
-    'proc1-asr1': {'scan1': scan_path.format(proj, subj, sess, '1')},
-    'proc1-asr2': {'scan1': scan_path.format(proj, subj, sess, '2')}
+    'proc1-asr1': {
+        'scan1': scan_path.format(proj, subj, sess, '1'),
+        'scan2': scan_path.format(proj, subj, sess, '11')
+    },
+    'proc1-asr2': {
+        'scan1': scan_path.format(proj, subj, sess, '2'),
+        'scan2': scan_path.format(proj, subj, sess, '12')
+    }
 }
 
 xnat_assessor_contents_2 = [
@@ -305,13 +313,22 @@ xnat_assessor_contents_2 = [
 
 processor_yaml_2 = yamls.generate_yaml(
     'proc2',
-    scans=[{
-        'name': 'scan1', 'types': 'T1',
-        'select': 'from(asr1/scan1)',
-        'resources': [
-            {'type': 'NIFTI', 'name': 't1'}
-        ]
-    }],
+    scans=[
+        {
+            'name': 'scan1', 'types': 'T1',
+            'select': 'from(asr1/scan1)',
+            'resources': [
+                {'type': 'NIFTI', 'name': 't1'}
+            ]
+        },
+        {
+            'name': 'scan2', 'types': 'FLAIR',
+            'select': 'from(asr1/scan2)',
+            'resources': [
+                {'type': 'NIFTI', 'name': 'fl'}
+            ]
+        }
+    ],
     assessors=[{
         'name': 'asr1', 'types': 'proc1',
         'resources': [
