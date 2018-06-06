@@ -582,8 +582,6 @@ defined by yaml file {}'
         self.spider_path = self.user_overrides.get('spider_path')
         self.name = self.proctype
         self.type = self.attrs.get('type')
-        # TODO: BenM/assessor_of_assessor/scan_nb is no longer required
-        # self.scan_nb = self.attrs.get('scan_nb', None)
 
 
     def _check_default_keys(self, source_id, doc):
@@ -604,8 +602,6 @@ defined by yaml file {}'
                           (attrs, 'type'), (attrs, 'memory'),
                           (attrs, 'walltime')]:
             self._raise_yaml_error_if_no_key(_doc, source_id, key)
-        if attrs['type'] == 'scan':
-            self._raise_yaml_error_if_no_key(attrs, source_id, 'scan_nb')
         # third level for default:
         default = doc.get('inputs').get('default')
         for key in ['spider_path']:
