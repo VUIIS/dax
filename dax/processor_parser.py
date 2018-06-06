@@ -491,48 +491,56 @@ class ProcessorParser:
         for i in iteration_sources:
             # find other inputs that map to this iteration source
             mapped_inputs = [i]
-            mapped_input_vector = []
             select_fn = inputs[i]['select'][0]
 
+            cur_input_vector = None
             if select_fn == 'foreach':
-                min_artefact_count = len(sanitised_inputs[i])
-                for k, v in iteration_map.iteritems():
-                    if v == i:
-                        min_artefact_count = min(min_artefact_count,
-                                                 sanitised_inputs[k])
-                        mapped_inputs.append(k)
-
-                if inputs[k]['select'][0] == 'foreach':
-                    if min_artefact_count > 0:
-                        for ind in range(min_artefact_count):
-                            cur = []
-                            for m in mapped_inputs:
-                                cur.append(sanitised_inputs[m][ind])
-                            mapped_input_vector.append(cur)
-                else:
-                    from_artefacts = artefacts_by_input[v]
-                    for fa in from_artefacts:
-                        cur = [fa]
-                        # get the named input from each assessor
-                        a = artefacts[fa]
-                        from_inputs = a.entity.get_inputs()
-                        for m in mapped_inputs[1:]:
-                            cur.append(from_inputs[m])
-                        mapped_input_vector.append(cur)
+                cur_input_vector = sanitised_inputs[i][:]
 
             elif select_fn == 'all':
-                mapped_input_vector = [[sanitised_inputs[i][:]]]
+                cur_input_vector = [[sanitised_inputs[i][:]]]
 
             elif select_fn == 'some':
                 input_count = min(len(sanitised_inputs[i]),
                                   inputs[i]['select'][1])
-                mapped_input_vector = [[sanitised_inputs[i][input_count:]]]
+                cur_input_vector = [[sanitised_inputs[i][input_count:]]]
 
             elif select_fn == 'one':
-                mapped_input_vector = [sanitised_inputs[i][0]]
+                cur_input_vector = [sanitised_inputs[i][0]]
 
-            all_inputs.append(mapped_inputs)
-            input_dimension_map.append(mapped_input_vector)
+            if select_fn in ['foreach', 'from']:
+                # build up the set of mapped input vectors one by one based on
+                # the select mode of the mapped input
+                combined_input_vector = [cur_input_vector]
+                for k, v in iteration_map.iteritems():
+                    mapped_inputs.append(k)
+                    if inputs[k]['select'][0] == 'foreach':
+                        combined_input_vector.append(sanitised_inputs[k][:])
+                    else: # from
+                        from_artefacts = sanitised_inputs[v]
+                        mapped_input_vector = []
+                        for fa in from_artefacts:
+                            a = artefacts[fa]
+                            from_inputs = a.entity.get_inputs()
+                            mapped_input_vector.append(from_inputs[k])
+                        combined_input_vector.append(mapped_input_vector)
+
+                min_entry_count = min((len(e) for e in combined_input_vector))
+
+                merged_input_vector = [
+                    [None for col in range(len(combined_input_vector))]
+                    for row in range(min_entry_count)]
+                for row in range(min_entry_count):
+                    for col in range(len(combined_input_vector)):
+                        merged_input_vector[row][col] =\
+                            combined_input_vector[col][row]
+
+                all_inputs.append(mapped_inputs)
+                input_dimension_map.append(merged_input_vector)
+
+            else:
+                all_inputs.append(mapped_inputs)
+                input_dimension_map.append(cur_input_vector)
 
         # perform a cartesian product of the dimension map entries to get the
         # final input combinations
