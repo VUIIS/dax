@@ -30,14 +30,14 @@ def generate_yaml(procname="Proc",
         'command: python {spider_path} --t1 {t1} --dbt {db} --exe {nipype_exe}'
 
     scans_text_ = '    scans:\n{}'
-    scan_text_ = ('      - {name}:\n'
+    scan_text_ = ('      - name: {name}\n'
                   '        types: {types}\n'
                   '{qc}'
                   '{select}'
                   '{res_block}')
 
     asrs_text_ = '    assessors:\n{}'
-    asr_text_ = ('      - {name}:\n'
+    asr_text_ = ('      - name: {name}\n'
                  '        proctypes: {types}\n'
                  '{qc}'
                  '{select}'
@@ -58,7 +58,7 @@ def generate_yaml(procname="Proc",
         'command: python {spider_path} --t1 {t1} --dbt {db} --exe {nipype_exe}'
 
     proc_a_scan_text = ('    scans:\n'
-                        '      - scan1:\n'
+                        '      - name: scan1\n'
                         '        types: T1\n'
                         '{qc}'
                         '        resources:\n'
@@ -192,7 +192,7 @@ inputs:
     db: /share/apps/cmic/GIF/db/db.xml
   xnat:
     scans:
-      - scan1:
+      - name: scan1
         types: T1w,MPRAGE,T1,T1W
         resources:
           - resource: NIFTI
@@ -219,13 +219,13 @@ inputs:
     nipype_exe: perform_brain_tiv_from_gif.py
   xnat:
     scans:
-      - scan1:
+      - name: scan1
         types: T1W,T1w,MPRAGE 
         resources:
           - resource: NIFTI
             varname: T1
     assessors:
-      - assessor1:
+      - name: assessor1
         proctypes: GIF_Parcellation_v3
         resources:
           - resource: SEG

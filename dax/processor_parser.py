@@ -35,6 +35,7 @@ resource_paths = {
     'scan': '{0}/resources/{1}'
 }
 
+
 # parser pipeline
 # . check whether artefacts of the appropriate type are present for a given
 #   assessor
@@ -62,6 +63,15 @@ class ParserArtefact:
 
 
 class ProcessorParser:
+
+    __schema_dict_v1 = {
+        'top': set(['schema', 'inputs', 'xnat', 'attrs']),
+        'xnat': set(['scans', 'assessors']),
+        'scans': set(['select', 'types', 'nargs', 'resources', 'needs_qc']),
+        'assessors': set(['select', 'proctypes', 'nargs', 'resources',
+                         'needs_qc']),
+        'resources': set(['resource', 'varname', 'required'])
+    }
 
     def __init__(self, yaml_source):
         self.yaml_source = yaml_source
@@ -97,9 +107,7 @@ class ProcessorParser:
         artefacts = ProcessorParser.parse_artefacts(csess)
 
         artefacts_by_input = \
-            ProcessorParser.map_artefacts_to_inputs(csess,
-                                                    self.inputs,
-                                                    self.inputs_by_type)
+            ProcessorParser.map_artefacts_to_inputs(csess, self.inputs_by_type)
 
         parameter_matrix = \
             ProcessorParser.generate_parameter_matrix(
@@ -125,6 +133,37 @@ class ProcessorParser:
         self.parameter_matrix = parameter_matrix
         self.assessor_parameter_map = assessor_parameter_map
         self.command_params = command_params
+
+
+    @staticmethod
+    def _get_yaml_checker(version):
+        if version == '1':
+            return ProcessorParser.__check_yaml_v1
+        return None
+
+    @staticmethod
+    def _get_schema_dictionary(version):
+        if version == '1':
+            return ProcessorParser.__schema_dict_v1
+
+    @staticmethod
+    def __check_yaml_v1(yaml_source):
+        errors = []
+        schema_number = yaml_source.get('schema', '1')
+        if schema_number != '1':
+            errors.append('Error: Invalid schema number {}'.format(schema_number))
+
+        if 'xnat' not in yaml_source:
+            errors.append('Error: Missing xnat section')
+        xnat_section = yaml_source['xnat']
+        scan_section = xnat_section.get('scans', {})
+        for k, v in scan_section.iteritems():
+            pass
+
+        assr_section = xnat_section.get('assessors', {})
+        for k, v in assr_section.iteritems():
+            pass
+
 
 
     @staticmethod
@@ -177,12 +216,13 @@ class ProcessorParser:
     # TODO: BenM/general refactor/update yaml schema so scan name is an explicit
     # field
     @staticmethod
-    def _input_name(scan):
-        candidates = list(filter(lambda v: v[1] is None, scan.iteritems()))
-        if len(candidates) != 1:
-            raise ValueError(
-                "invalid scan entry format; scan name cannot be determined")
-        return candidates[0][0]
+    def _input_name(artefact):
+        # candidates = list(filter(lambda v: v[1] is None, scan.iteritems()))
+        # if len(candidates) != 1:
+        #     raise ValueError(
+        #         "invalid scan entry format; scan name cannot be determined")
+        # return candidates[0][0]
+        return artefact['name']
 
 
     @staticmethod
@@ -301,7 +341,6 @@ class ProcessorParser:
 
     @staticmethod
     def map_artefact_to_inputs(artefact,
-                               inputs,
                                inputs_by_type,
                                artefacts_by_input):
         artefact_type = artefact.type()
@@ -315,20 +354,18 @@ class ProcessorParser:
 
 
     @staticmethod
-    def map_artefacts_to_inputs(csess, inputs, inputs_by_type):
+    def map_artefacts_to_inputs(csess, inputs_by_type):
 
         # a dictionary of input names to artefacts
         artefacts_by_input = {}
 
         for cscan in csess.scans():
             ProcessorParser.map_artefact_to_inputs(cscan,
-                                                   inputs,
                                                    inputs_by_type,
                                                    artefacts_by_input)
 
         for cassr in csess.assessors():
             ProcessorParser.map_artefact_to_inputs(cassr,
-                                                   inputs,
                                                    inputs_by_type,
                                                    artefacts_by_input)
 

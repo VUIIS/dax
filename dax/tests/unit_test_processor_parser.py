@@ -247,26 +247,26 @@ inputs:
     db: /share/apps/cmic/GIF/db/db.xml
   xnat:
     scans:
-      - scan1:
+      - name: scan1
         types: T1w,MPRAGE,T1,T1W
         needs_qc: True
         resources:
           - resource: NIFTI
             varname: t1
-      - scan2:
+      - name: scan2
         types: FLAIR
         select: foreach
         resources:
           - resource: NIFTI
             varname: fl
-      - scan3:
+      - name: scan3
         types: X3
         select: all
-      - scan4:
+      - name: scan4
         types: X4
         select: one
     assessors:
-      - asr1:
+      - name: asr1
         proctypes: proc1
         select: foreach(scan2)
         resources:
@@ -398,9 +398,7 @@ class ProcessorParserUnitTests(TestCase):
         print "artefacts =", artefacts
 
         artefacts_by_input = \
-            ProcessorParser.map_artefacts_to_inputs(csess,
-                                                    inputs,
-                                                    inputs_by_type)
+            ProcessorParser.map_artefacts_to_inputs(csess, inputs_by_type)
         print "artefacts_by_input =", artefacts_by_input
 
         variables_to_inputs = \
