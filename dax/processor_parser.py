@@ -114,6 +114,7 @@ class ProcessorParser:
                 self.inputs,
                 self.iteration_sources,
                 self.iteration_map,
+                artefacts,
                 artefacts_by_input)
 
         assessor_parameter_map = \
@@ -133,6 +134,11 @@ class ProcessorParser:
         self.parameter_matrix = parameter_matrix
         self.assessor_parameter_map = assessor_parameter_map
         self.command_params = command_params
+
+
+        # assr = csess.full_object()
+        # vals = assr.assrs.get(self.xsitype.lower() + '/inputx')
+        # print "vals =", vals
 
 
     @staticmethod
