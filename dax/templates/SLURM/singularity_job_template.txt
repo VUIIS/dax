@@ -25,8 +25,6 @@ date
 #MAINCMD=
 ${job_cmds}
 #=============================================================================
-NETRC=$HOME/.daxnetrc
-
 echo $DSTDIR
 echo $INDIR
 echo $OUTDIR
@@ -38,11 +36,11 @@ mkdir -p $OUTDIR
 for IN in "${INLIST[@]}"; do
     IFS=',' read -r col1 col2 col3 <<< "$IN"
     if [ $col2 == "FILE" ]; then
-        CMD="curl -s --netrc-file $NETRC $col3 -o $INDIR/$col1"
+        CMD="curl -s -n $col3 -o $INDIR/$col1"
     elif [ $col2 == "DIRJ" ]; then
-        CMD="curl -s --netrc-file $NETRC $col3?format=zip -o $INDIR/${col1}.zip && unzip -j $INDIR/${col1}.zip -d $INDIR/$col1"
+        CMD="curl -s -n $col3?format=zip -o $INDIR/${col1}.zip && unzip -j $INDIR/${col1}.zip -d $INDIR/$col1"
     else
-        CMD="curl -s --netrc-file $NETRC $col3?format=zip -o $INDIR/${col1}.zip && unzip $INDIR/${col1}.zip -d $INDIR/$col1"
+        CMD="curl -s -n $col3?format=zip -o $INDIR/${col1}.zip && unzip $INDIR/${col1}.zip -d $INDIR/$col1"
     fi
     echo $CMD
     eval $CMD
