@@ -380,12 +380,10 @@ class ProcessorParser:
 
     def has_inputs(self, assr):
 
-        input_artefacts = utilities.decode_url_json_string(
-            assr.attrs.get(self.xsitype.lower() + '/inputs'))
+        input_artefacts = XnatUtils.get_assessor_inputs(assr)
         errors = []
         for artefact_input_k, artefact_input_path\
             in input_artefacts.iteritems():
-            xsitype = assr.attrs.get('xsiType')
             # check whether any inputs are missing, unusable or lacking the
             # required resource files
             input_entry = self.inputs[artefact_input_k]
@@ -422,7 +420,8 @@ class ProcessorParser:
                         artefact.attrs.get('quality') == 'usable'
                 else:
                     status =\
-                        artefact.attrs.get(xsitype + '/validation/status')
+                        artefact.attrs.get(artefact.datatype()
+                                           + '/validation/status')
                     usable = XnatUtils.is_bad_qa(status) == 1
 
                 if not usable:
@@ -493,6 +492,8 @@ class ProcessorParser:
             mapped_inputs = [i]
             select_fn = inputs[i]['select'][0]
 
+            # first, check iteration source and get the appropriate list of
+            # artefacts
             cur_input_vector = None
             if select_fn == 'foreach':
                 cur_input_vector = sanitised_inputs[i][:]
@@ -525,8 +526,13 @@ class ProcessorParser:
                             mapped_input_vector.append(from_inputs[k])
                         combined_input_vector.append(mapped_input_vector)
 
+                # 'trim' the input vectors to the number of entries of the
+                # shortest vector. We don't actually truncate the datasets but
+                # just use the number when transposing, below
                 min_entry_count = min((len(e) for e in combined_input_vector))
 
+                # transpose from list of input vectors to input entry lists, one
+                # per combination of inputs
                 merged_input_vector = [
                     [None for col in range(len(combined_input_vector))]
                     for row in range(min_entry_count)]

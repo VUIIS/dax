@@ -167,6 +167,8 @@ class ComponentTestBuild(TestCase):
             self.assertTrue(False, "no such session")
 
         for asr in session.assessors():
+            inputs = XnatUtils.get_assessor_inputs(asr)
+            print inputs
             asr.delete()
 
 

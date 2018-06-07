@@ -259,7 +259,8 @@ def read_yaml_settings(yaml_file, logger):
 
             # processors:
             if proj_dict.get('processors'):
-                for proc_n in proj_dict.get('processors').split(','):
+                for proc_n in map(lambda s: s.strip(),
+                                  proj_dict.get('processors').split(',')):
                     if project not in list(proj_proc.keys()):
                         proj_proc[project] = [procs[proc_n]]
                     else:
@@ -267,7 +268,8 @@ def read_yaml_settings(yaml_file, logger):
 
             # yaml_proc:
             if proj_dict.get('yamlprocessors'):
-                for yaml_n in proj_dict.get('yamlprocessors').split(','):
+                for yaml_n in map(lambda s: s.strip(),
+                                  proj_dict.get('yamlprocessors').split(',')):
                     if project not in list(yaml_proc.keys()):
                         yaml_proc[project] = [yamlprocs[yaml_n]]
                     else:

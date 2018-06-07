@@ -621,9 +621,6 @@ defined by yaml file {}'
             raise AutoProcessorError(err.format(source_id, key))
 
 
-    # TODO: BenM/assessor_of_assessor/assessors are described by a type/inputs
-    # tuple now, so we need to check the inputs of each assessor of the
-    # appropriate type
     def get_assessor_mapping(self):
         return self.parser.assessor_parameter_map
 

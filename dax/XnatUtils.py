@@ -1649,6 +1649,12 @@ def is_scan_good_type(scan_obj, types_list, full_regex=False):
     return False
 
 
+def get_assessor_inputs(assessor):
+    return utilities.decode_url_json_string(
+        assessor.attrs.get(assessor.datatype() + '/inputs')
+    )
+
+
 def has_resource(cobj, resource_label):
     """
     Check to see if a CachedImageObject has a specified resource
