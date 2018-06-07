@@ -1218,6 +1218,13 @@ class MoreAutoProcessor(AutoProcessor):
             matched_cassrs = XnatUtils.get_good_cassr(
                 csess, proctypes, needs_qc)
 
+            if 'scan_nb' in list(assr_in.keys()):
+                # Filter to only include those tied to scan_nb
+                matched_cassrs = [
+                    a for a in matched_cassrs if
+                    XnatUtils.AssessorHandler(
+                        a.label()).get_scan_id() == scan_label]
+
             # Check counts of matched assessors
             # TODO: figure out how to determine NoDataException
             if len(matched_cassrs) == 0:
