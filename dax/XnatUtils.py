@@ -1650,9 +1650,12 @@ def is_scan_good_type(scan_obj, types_list, full_regex=False):
 
 
 def get_assessor_inputs(assessor):
-    return utilities.decode_url_json_string(
-        assessor.attrs.get(assessor.datatype() + '/inputs')
-    )
+    try:
+        return utilities.decode_url_json_string(
+            assessor.attrs.get(assessor.datatype() + '/inputs')
+        )
+    except IndexError:
+        return None
 
 
 def has_resource(cobj, resource_label):

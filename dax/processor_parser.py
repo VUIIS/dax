@@ -122,23 +122,38 @@ class ProcessorParser:
                                                 self.proctype,
                                                 parameter_matrix)
 
-        command_params = ProcessorParser.generate_commands(
-            csess,
-            self.inputs,
-            self.variables_to_inputs,
-            parameter_matrix)
+        # command_params = ProcessorParser.generate_commands(
+        #     csess,
+        #     self.inputs,
+        #     self.variables_to_inputs,
+        #     parameter_matrix)
 
         self.csess = csess
         self.artefacts = artefacts
         self.artefacts_by_input = artefacts_by_input
         self.parameter_matrix = parameter_matrix
         self.assessor_parameter_map = assessor_parameter_map
-        self.command_params = command_params
+        # self.command_params = command_params
 
 
-        # assr = csess.full_object()
-        # vals = assr.assrs.get(self.xsitype.lower() + '/inputx')
-        # print "vals =", vals
+    def get_variable_set(self, assr):
+        assr_inputs = XnatUtils.get_assessor_inputs(assr)
+
+        # map from parameters to input resources
+        command_set = dict()
+        for k, v in self.variables_to_inputs.iteritems():
+            inp = self.inputs[v['input']]
+            artefact_type = inp['artefact_type']
+            resource = v['resource']
+
+            path_elements = [assr_inputs[v['input']], resource]
+
+            # command_set[k] =\
+            #     artefact_paths[artefact_type].format(*path_elements)
+            command_set[k] =\
+                resource_paths[artefact_type].format(*path_elements)
+
+        return command_set
 
 
     @staticmethod

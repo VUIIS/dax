@@ -700,7 +700,7 @@ defined by yaml file {}'
     # session. In any case, the command should be written out to the xnat
     # assessor schema so that it can simply be launched, rather than performing
     # this reconstruction each time the dax launch command is called
-    def get_cmds(self, cassr, jobdir):
+    def get_cmds(self, assr, jobdir):
         """Method to generate the spider command for cluster job.
 
         :param assessor: pyxnat assessor object
@@ -708,41 +708,38 @@ defined by yaml file {}'
         :return: command to execute the spider in the job script
         """
         # Add the jobidr and the assessor label:
-        assr_label = cassr.label()
-
-        # Get the csess:
-        csess = cassr.session()
+        assr_label = assr.label()
 
         # TODO: BenM/assessor_of_assessors/parse each scan / assessor and
         # any select statements and generate one or more corresponding commands
 
-        self.parser.command_params
+        # self.parser.generate_command(cassr, )
 
         # combine the user overrides with the input parameters for each
         # distinct command
         commands = []
-        for variable_set in self.parser.command_params:
-            combined_params = {}
-            for k, v in variable_set.iteritems():
-                combined_params[k] = v
-            for k, v in self.user_overrides.iteritems():
-                combined_params[k] = v
+        variable_set = self.parser.get_variable_set(assr)
+        combined_params = {}
+        for k, v in variable_set.iteritems():
+            combined_params[k] = v
+        for k, v in self.user_overrides.iteritems():
+            combined_params[k] = v
 
-            cmd = self.command.format(combined_params)
+        cmd = self.command.format(**combined_params)
 
-            for key, value in list(self.extra_user_overrides.items()):
-                cmd = '{} --{} {}'.format(cmd, key, value)
+        for key, value in list(self.extra_user_overrides.items()):
+            cmd = '{} --{} {}'.format(cmd, key, value)
 
-            # TODO: BenM/assessor_of_assessor/each assessor is separate and
-            # has a different label; change the code to fetch the label from
-            # the assessor
-            # Add assr and jobidr:
-            if ' -a ' not in cmd and ' --assessor ' not in cmd:
-                cmd = '{} -a {}'.format(cmd, assr_label)
-            if ' -d ' not in cmd:
-                cmd = '{} -d {}'.format(cmd, jobdir)
+        # TODO: BenM/assessor_of_assessor/each assessor is separate and
+        # has a different label; change the code to fetch the label from
+        # the assessor
+        # Add assr and jobidr:
+        if ' -a ' not in cmd and ' --assessor ' not in cmd:
+            cmd = '{} -a {}'.format(cmd, assr_label)
+        if ' -d ' not in cmd:
+            cmd = '{} -d {}'.format(cmd, jobdir)
 
-            commands.append(cmd)
+        commands.append(cmd)
 
         return commands
 
