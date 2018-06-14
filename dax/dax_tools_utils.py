@@ -511,7 +511,7 @@ def upload_tasks(logfile, debug, upload_settings=None,
     ##    pass
     ##else:
     ##    try:
-    #upload_results(upload_settings, emailaddress)
+    upload_results(upload_settings, emailaddress)
     ##    finally:
             # remove flagfile
     ##        os.remove(flagfile)
