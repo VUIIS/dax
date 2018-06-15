@@ -503,7 +503,7 @@ def upload_tasks(logfile, debug, upload_settings=None,
     ##flagfile = "%s%s.txt" % (FLAGFILE_TEMPLATE, suffix)
 
     # Load the settings for upload
-    #upload_settings = load_upload_settings(upload_settings, host, username,
+    upload_settings = load_upload_settings(upload_settings, host, username,
     #                                       password, projects)
     #print_upload_settings(upload_settings)
     # create the flag file showing that the spider is running
