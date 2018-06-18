@@ -57,6 +57,7 @@ import yaml
 import zipfile
 
 from . import utilities
+from . import assessor_utils
 from .task import (JOB_FAILED, JOB_RUNNING, JOB_PENDING, READY_TO_UPLOAD,
                    NEEDS_QA, RERUN, REPROC, FAILED_NEEDS_REPROC, BAD_QA_STATUS)
 from .errors import (XnatUtilsError, XnatAccessError,
@@ -1410,8 +1411,9 @@ def get_resource_lastdate_modified(intf, resource_obj):
 # TODO: BenM/xnatutils refactor/select_assessor and get_assessor are doing
 # essentially the same thing
 # TODO: BenM/xnatutils refactor/we really should know the context we are
-# working in wrt project,subject, etc. It shouldn't be necessary to get this
-# from the label - NOTE: this can go
+# working in wrt project,subject, etc. The only valid scenario for this
+# method is if we are loading a task from file rather than going back to xnat
+# for assessors
 def select_assessor(intf, assessor_label):
     """
     Select assessor from his label
@@ -1520,7 +1522,8 @@ assessor_id at the same time.")
     return intf.select(select_str)
 
 
-# TODO: BenM/assessor_of_assessor/this can go
+# TODO: BenM/assessor_of_assessor/assessor handler should be removable in the
+# medium term
 def generate_assessor_handler(project, subject, session, proctype, scan=None):
     """
     Generate an assessorHandler object corresponding to the labels in the
@@ -1649,13 +1652,19 @@ def is_scan_good_type(scan_obj, types_list, full_regex=False):
     return False
 
 
-def get_assessor_inputs(assessor):
+def parse_assessor_inputs(inputs):
     try:
-        return utilities.decode_url_json_string(
-            assessor.attrs.get(assessor.datatype() + '/inputs')
-        )
+        if inputs == '':
+            return None
+        return utilities.decode_url_json_string(inputs)
     except IndexError:
         return None
+
+
+def get_assessor_inputs(assessor):
+    datatype = assessor.datatype()
+    inputs = assessor.attrs.get(datatype + '/inputs')
+    return parse_assessor_inputs(inputs)
 
 
 def has_resource(cobj, resource_label):
@@ -2896,6 +2905,17 @@ def get_random_sessions(xnat, project_id, num_sessions):
 ###############################################################################
 class CachedImageSession(object):
     """
+    Enumeration for assessors function, to control what assessors are returned
+    """
+    class AssessorSelect:
+        all_inputs = 0,
+        with_inputs = 1
+
+        @classmethod
+        def valid(cls, value):
+            return value in [cls.all_inputs, cls.with_inputs]
+
+    """
     Class to cache the XML information for a session on XNAT
     """
     def __init__(self, intf, proj, subj, sess):
@@ -3008,19 +3028,28 @@ class CachedImageSession(object):
 
         return scan_list
 
-    def assessors(self):
+    def assessors(self, select=AssessorSelect.all_inputs):
         """
         Get a list of CachedImageAssessor objects for the XNAT session
 
         :return: List of CachedImageAssessor objects for the session.
 
         """
+        if not self.AssessorSelect.valid(select):
+            raise ValueError("'select' must be a valid AssessorSelect.value")
+
+
         assr_list = []
 
         assr_elements = self.sess_element.find('xnat:assessors', NS)
         if assr_elements:
             for assr in assr_elements:
                 assr_list.append(CachedImageAssessor(self.intf, assr, self))
+
+            if select == CachedImageSession.AssessorSelect.with_inputs:
+                assr_list = assr_list.filter(
+                    parse_assessor_inputs(self.get("proc:inputs") is not None)
+                )
 
         return assr_list
 
@@ -3303,6 +3332,16 @@ class CachedImageAssessor(object):
         """
         return self.assr_element.get('label')
 
+    # TODO: BenM/legacy_assessor_support/full label needs to support legacy
+    # naming convention assessors
+    def full_label(self):
+        return '-x-'.join([self.project_id(),
+                           self.subject_id(),
+                           self.session_id(),
+                           self.label()])
+
+    # TODO: BenM/legacy_assessor_support/full_path needs to support legacy
+    # naming convention assessors
     def full_path(self):
         return self.intf.get_assessor_path(self.project_id(),
                                            self.subject_id(),
@@ -3357,6 +3396,7 @@ class CachedImageAssessor(object):
         """
         assr_info = {}
 
+        assr_info['inputs'] = parse_assessor_inputs(self.get('proc:inputs'))
         assr_info['ID'] = self.get('ID')
         assr_info['label'] = self.get('label')
         assr_info['assessor_id'] = assr_info['ID']
@@ -3403,8 +3443,7 @@ class CachedImageAssessor(object):
     # TODO: BenM/assessor_of_assessor/implment this once the schema is
     # extended
     def get_inputs(self):
-        inputstr = self.get('proc:inputs')
-        return utilities.decode_url_json_string(inputstr)
+        return parse_assessor_inputs(self.get('proc:inputs'))
 
 
     def in_resources(self):

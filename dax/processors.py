@@ -12,6 +12,7 @@ from uuid import uuid4
 
 
 from . import XnatUtils, task
+from . import assessor_utils
 from . import processor_parser
 from .errors import AutoProcessorError
 from .dax_settings import DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE
@@ -208,7 +209,8 @@ class Processor(object):
 
     def _deserialize_inputs(self, assessor):
         input_key = '{}/inputs'.format(self.xsitype.lower())
-        return json.loads(assessor.attrs.get('inputs'))
+        return json.loads(
+            XnatUtils.parse_assessor_inputs(assessor.attrs.get('inputs')))
 
 
 class ScanProcessor(Processor):
@@ -707,7 +709,7 @@ defined by yaml file {}'
         :param jobdir: jobdir where the job's output will be generated
         :return: command to execute the spider in the job script
         """
-        # Add the jobidr and the assessor label:
+        # Add the jobdir and the assessor label:
         assr_label = assr.label()
 
         # TODO: BenM/assessor_of_assessors/parse each scan / assessor and
@@ -734,8 +736,10 @@ defined by yaml file {}'
         # has a different label; change the code to fetch the label from
         # the assessor
         # Add assr and jobidr:
+        assr_full_name =\
+            assessor_utils.full_label_from_assessor(assr)
         if ' -a ' not in cmd and ' --assessor ' not in cmd:
-            cmd = '{} -a {}'.format(cmd, assr_label)
+            cmd = '{} -a {}'.format(cmd, assr_full_name)
         if ' -d ' not in cmd:
             cmd = '{} -d {}'.format(cmd, jobdir)
 

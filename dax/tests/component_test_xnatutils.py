@@ -12,6 +12,7 @@ from dax.tests import unit_test_common_processor_yamls as yamls
 from dax.tests import common_session_tools as session_tools
 from dax.yaml_doc import YamlDoc
 from dax import AutoProcessor
+from dax.tests.common_session_tools import SessionTools
 
 
 # TODO: BenM/xnat refactor/ these sanity checks should be refactored into
@@ -21,7 +22,7 @@ from dax import AutoProcessor
 # the pull request back to vuiis/dax!
 
 host = 'http://10.1.1.17'
-proj_id = 'testproj1'
+proj_id = 'proj1'
 subj_id = 'subj1'
 sess_id = 'sess1'
 scan_id = '1'
@@ -264,3 +265,27 @@ class SanityChecks(TestCase):
                 results.append((has, errors))
 
             print results
+
+    def test_create_assessor_with_no_input(self):
+        with XnatUtils.get_interface(host=host) as intf:
+            intf.connect()
+
+            e = intf.select_experiment(proj_id, subj_id, sess_id)
+            if not e.exists():
+                self.assertTrue(
+                    False,
+                    "Unexpected: {}//{}//{} does not exist".format(
+                        proj_id, subj_id, sess_id
+                    ))
+
+            proc_a_params = {
+                'xsitype': asrxsitype,
+                'proctype': 'Proc_A_v1',
+                'files': [
+                    ('SEG', ['seg.gz'])
+                ]
+            }
+            SessionTools.add_assessor(e,
+                                      'proc1-x-subj1-x-sess1-x-2-Proc_A_v1',
+                                      proc_a_params,
+                                      'no_inputs')

@@ -357,6 +357,9 @@ class ProcessorParser:
         artefacts = {}
         parse(csess.scans(), artefacts)
         parse(csess.assessors(), artefacts)
+
+        for cassr in csess.assessors():
+            print cassr.get_inputs()
         return artefacts
 
 

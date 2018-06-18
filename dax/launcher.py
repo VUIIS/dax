@@ -16,6 +16,7 @@ import os
 import traceback
 
 from . import processors, modules, XnatUtils, task, cluster
+from . import assessor_utils
 from .task import Task, ClusterTask, XnatTask
 from .dax_settings import DAX_Settings, DAX_Netrc
 from .errors import (ClusterCountJobsException, ClusterLaunchException,
@@ -750,6 +751,7 @@ cluster queue"
                     else:
                         assessors = []
                         for p in p_assrs:
+                            print "cassr full name =", assessor_utils.full_label_from_cassessor(p)
                             info = p.info()
                             procstatus = info['procstatus']
                             qcstatus = info['qcstatus']

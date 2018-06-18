@@ -50,7 +50,9 @@ from . import XnatUtils
 from . import yaml_doc
 from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
                            DEFAULT_FS_DATATYPE)
-from .errors import DaxUploadError, AutoProcessorError, DaxSetupError, DaxError
+from .errors import (DaxUploadError, AutoProcessorError, DaxSetupError,
+                     DaxError, DaxNetrcError)
+
 from .task import (READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED,
                    JOB_PENDING, NEEDS_QA)
 from .task import ClusterTask
@@ -504,15 +506,15 @@ def upload_tasks(logfile, debug, upload_settings=None,
     ##flagfile = "%s%s.txt" % (FLAGFILE_TEMPLATE, suffix)
 
     # Load the settings for upload
-    #upload_settings = load_upload_settings(upload_settings, host, username,
-    #                                       password, projects)
+    upload_settings = load_upload_settings(upload_settings, host, username,
+                                           password, projects)
     #print_upload_settings(upload_settings)
     # create the flag file showing that the spider is running
     ##if is_dax_upload_running(flagfile):
     ##    pass
     ##else:
     ##    try:
-    #upload_results(upload_settings, emailaddress)
+    upload_results(upload_settings, emailaddress)
     ##    finally:
             # remove flagfile
     ##        os.remove(flagfile)
@@ -1248,33 +1250,38 @@ def upload_results(upload_settings, emailaddress):
     warnings = list()
 
     for upload_dict in upload_settings:
-        with XnatUtils.get_interface(host=upload_dict['host'],
-                                     user=upload_dict['username'],
-                                     pwd=upload_dict['password']) as intf:
-            LOGGER.info('===================================================\
-================')
-            proj_str = (upload_dict['projects'] if upload_dict['projects']
-                        else 'all')
-            LOGGER.info('Connecting to XNAT <%s> to start uploading processes \
-for projects: %s' % (upload_dict['host'], proj_str))
-            if not XnatUtils.has_dax_datatypes(intf):
-                msg = 'Error: dax datatypes are not installed on xnat <%s>.'
-                raise DaxUploadError(msg % (upload_dict['host']))
+        try:
+            with XnatUtils.get_interface(host=upload_dict['host'],
+                                         user=upload_dict['username'],
+                                         pwd=upload_dict['password']) as intf:
+                LOGGER.info('===================================================\
+    ================')
+                proj_str = (upload_dict['projects'] if upload_dict['projects']
+                            else 'all')
+                LOGGER.info('Connecting to XNAT <%s> to start uploading processes \
+    for projects: %s' % (upload_dict['host'], proj_str))
+                if not XnatUtils.has_dax_datatypes(intf):
+                    msg = 'Error: dax datatypes are not installed on xnat <%s>.'
+                    raise DaxUploadError(msg % (upload_dict['host']))
 
-            # 1) Upload the assessor data
-            # For each assessor label that need to be upload :
-            LOGGER.info(' - Uploading results for assessors')
-            warnings.extend(upload_assessors(intf, upload_dict['projects']))
+                # 1) Upload the assessor data
+                # For each assessor label that need to be upload :
+                LOGGER.info(' - Uploading results for assessors')
+                warnings.extend(upload_assessors(intf, upload_dict['projects']))
 
-            # 2) Upload the PBS files
-            # For each file, upload it to the PBS resource
-            LOGGER.info(' - Uploading PBS files ...')
-            upload_pbs(intf, upload_dict['projects'])
+                # 2) Upload the PBS files
+                # For each file, upload it to the PBS resource
+                LOGGER.info(' - Uploading PBS files ...')
+                upload_pbs(intf, upload_dict['projects'])
 
-            # 3) Upload the OUTLOG files not uploaded with processes
-            LOGGER.info(' - Checking OUTLOG files to upload them for JOB_FAILED \
-jobs ...')
-            upload_outlog(intf, upload_dict['projects'])
+                # 3) Upload the OUTLOG files not uploaded with processes
+                LOGGER.info(' - Checking OUTLOG files to upload them for JOB_FAILED \
+    jobs ...')
+                upload_outlog(intf, upload_dict['projects'])
+        except DaxNetrcError as e:
+            msg = e.msg
+            LOGGER.error(e.msg)
+
 
     send_warning_emails(warnings, emailaddress)
 

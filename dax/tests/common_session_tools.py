@@ -49,17 +49,21 @@ class SessionTools:
 
 
     @staticmethod
-    def add_assessor(sess, name, parameters):
+    def add_assessor(sess, name, parameters, inputs_policy="empty_if_not_set"):
         asr = sess.assessor(name)
         if asr.exists():
             asr.delete()
             asr = sess.assessor(name)
         kwargs = dict()
-        kwargs[parameters['xsitype'] + '/proctype'] = 'proc1'
+        kwargs[parameters['xsitype'] + '/proctype'] = parameters['proctype']
         kwargs[parameters['xsitype'] + '/procversion'] = '1.0.0'
         kwargs[parameters['xsitype'] + '/validation/status'] = "Needs QA"
-        kwargs[parameters['xsitype'] + '/inputs'] =\
-            json.dumps(parameters['inputs'])
+        if inputs_policy == "empty_if_not_set":
+            kwargs[parameters['xsitype'] + '/inputs'] =\
+                json.dumps(parameters.get('inputs', {}))
+        elif inputs_policy == "not_inputs":
+            pass
+
         asr.create(assessors=parameters['xsitype'], **kwargs)
         for output in parameters['files']:
             for f in output[1]:

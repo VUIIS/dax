@@ -15,6 +15,7 @@ from .cluster import PBS
 from .errors import (NeedInputsException, NoDataException,
                      ClusterLaunchException)
 from .dax_settings import DAX_Settings, DEFAULT_DATATYPE, DEFAULT_FS_DATATYPE
+from . import assessor_utils
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
@@ -149,7 +150,7 @@ class Task(object):
 
         # Cache for convenience
         self.assessor_id = assessor.id()
-        self.assessor_label = assessor.label()
+        self.assessor_label = assessor_utils.full_label_from_assessor(assessor)
 
     def get_processor_name(self):
         """
@@ -765,7 +766,9 @@ undo_processing...')
         """
         res_dir = os.path.join(DAX_SETTINGS.get_results_dir())
         j_ext = DAX_SETTINGS.get_job_extension_file()
-        filename = '%s%s' % (self.assessor_label, j_ext)
+        assessor_label = assessor_utils.full_label_from_assessor(
+            self.assessor)
+        filename = '%s%s' % (assessor_label, j_ext)
         if writeonly:
             if pbsdir and os.path.isdir(pbsdir):
                 return os.path.join(pbsdir, filename)

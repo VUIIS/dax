@@ -9,6 +9,7 @@ import itertools
 
 
 from dax import XnatUtils
+from dax import assessor_utils
 from dax.tests import unit_test_common_processor_yamls as yamls
 from dax.tests.common_session_tools import SessionTools
 from dax.yaml_doc import YamlDoc
@@ -21,7 +22,9 @@ from dax import AutoProcessor
 # Remove everything that doesn't make it into an integration test _before_
 # the pull request back to vuiis/dax!
 
-host = 'http://10.1.1.17'
+host165 = 'http://10.1.1.165'
+host17 = 'http://10.1.1.17'
+host = host17
 proj_id = 'testproj1'
 subj_id = 'subj1'
 sess_id = 'sess1'
@@ -73,6 +76,54 @@ scanstr = '/scans/{}'
 # select
 # not set, foreach, foreach(other), one, some, all
 
+t1_params = {
+    'xsitype': scanxsitype,
+    'type': "T1",
+    'quality': "usable",
+    'files': [
+        ('NIFTI', ['images.nii']),
+        ('SNAPSHOTS', ['snapshot.gif', 'snapshot(1).gif'])
+    ]
+}
+
+t2_params = {
+    'xsitype': scanxsitype,
+    'type': "T2",
+    'quality': "usable",
+    'files': [
+        ('NIFTI', ['images.nii']),
+        ('SNAPSHOTS', ['snapshot.gif', 'snapshot(1).gif'])
+    ]
+}
+
+flair_params = {
+    'xsitype': scanxsitype,
+    'type': "FLAIR",
+    'quality': "usable",
+    'files': [
+        ('NIFTI', ['images.nii']),
+        ('SNAPSHOTS', ['snapshot.gif', 'snapshot(1).gif'])
+    ]
+}
+
+scan_presets = {
+    't1': t1_params,
+    't2': t2_params,
+    'flair' : flair_params
+}
+
+
+proc_a_params = {
+    'xsitype': asrxsitype,
+    'proctype': 'Proc_A_v1',
+    'files': [
+        ('SEG', ['seg.gz'])
+    ]
+}
+
+assessor_presets = {
+    'Proc_A_v1': proc_a_params
+}
 
 
 class ComponentTestBuild(TestCase):
@@ -117,15 +168,51 @@ class ComponentTestBuild(TestCase):
                 )
             )
 
+
     @staticmethod
-    def __setup_session(session, parameters):
-        intf = session._intf
-        #__add_scan()
+    def _setup_scans(self, session):
+        SessionTools.add_scan(session, '1', scan_presets['t1'])
+        SessionTools.add_scan(session, '2', scan_presets['t1'])
+        SessionTools.add_scan(session, '11', scan_presets['flair'])
+
+    @staticmethod
+    def _setup_assessors(self, session):
+        SessionTools.add_assessor(session,
+                                  'proc1-x-subj1-x-sess1-x-1-Proc_A_v1',
+                                  assessor_presets['Proc_A_v1'],
+                                  'no_inputs')
+        SessionTools.add_assessor(session,
+                                  'proc1-x-subj1-x-sess1-x-2-Proc_A_v1',
+                                  assessor_presets['Proc_A_v1'],
+                                  'no_inputs')
+
+
+    def test_setup_old_assessors(self):
+        intf = XnatUtils.get_interface(host)
+        proj_id = 'proj1'
+        project = intf.select_project(proj_id)
+        if not project.exists():
+            self.assertTrue(False, 'proj1 should be pre-created for this test')
+
+        subj_id = 'subj1'
+        subject = intf.select_subject(proj_id, subj_id)
+        if not subject.exists():
+            self.assertTrue(False, 'subj1 should be pre-created for this test')
+
+        sess_id = 'sess1'
+        session = intf.select_experiment(proj_id, subj_id, sess_id)
+        if not session.exists():
+            self.assertTrue(False, 'sess1 should be pre-created for this test')
+
+        # delete and recreate scans
+        ComponentTestBuild._setup_scans(session)
+
+        # delete and recreate old assessors
+        ComponentTestBuild._setup_assessors(session)
 
 
     def test_setup_session(self):
-        host = 'http://10.1.1.17'
-        proj_id = 'testproj1'
+        proj_id = 'proj1'
         subj_id = 'subj1'
         sess_id = 'sess1'
         intf = XnatUtils.get_interface(host=host)
@@ -133,32 +220,11 @@ class ComponentTestBuild(TestCase):
         if not session.exists():
             self.assertTrue(False, "no such session")
 
-        t1_params = {
-            'xsitype': scanxsitype,
-            'type': "T1",
-            'quality': "usable",
-            'files': [
-                ('NIFTI', ['images.nii']),
-                ('SNAPSHOTS', ['snapshot.gif', 'snapshot(1).gif'])
-            ]
-        }
-        SessionTools.add_scan(session, '1', t1_params)
-        SessionTools.add_scan(session, '2', t1_params)
-        flair_params = {
-            'xsitype': scanxsitype,
-            'type': "FLAIR",
-            'quality': "usable",
-            'files': [
-                ('NIFTI', ['images.nii']),
-                ('SNAPSHOTS', ['snapshot.gif', 'snapshot(1).gif'])
-            ]
-        }
-        SessionTools.add_scan(session, '11', flair_params)
+        ComponentTestBuild._setup_scans(session)
 
 
     def test_clean_assessors_from_test_session(self):
-        host = 'http://10.1.1.17'
-        proj_id = 'testproj1'
+        proj_id = 'proj1'
         subj_id = 'subj1'
         sess_id = 'sess1'
         intf = XnatUtils.get_interface(host=host)
@@ -167,11 +233,12 @@ class ComponentTestBuild(TestCase):
             self.assertTrue(False, "no such session")
 
         for asr in session.assessors():
-            inputs = XnatUtils.get_assessor_inputs(asr)
-            print inputs
+            print assessor_utils.full_label_from_assessor(asr)
             asr.delete()
 
 
+    # TODO: the text matrix that we run at the component level should be only
+    # a small subset of the unit test processor parser test matrix
     def test_build_matrix(self):
 
         input_headers = ['xsitype', 'quality', 'type', 'files']
