@@ -504,8 +504,8 @@ def upload_tasks(logfile, debug, upload_settings=None,
 
     # Load the settings for upload
     upload_settings = load_upload_settings(upload_settings, host, username,
-    #                                       password, projects)
-    #print_upload_settings(upload_settings)
+                                           password, projects)
+    print_upload_settings(upload_settings)
     # create the flag file showing that the spider is running
     ##if is_dax_upload_running(flagfile):
     ##    pass
