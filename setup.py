@@ -116,7 +116,7 @@ REQUIRES = [
     'lxml',
     'xlrd',
     'pillow',
-    'pydicom',
+    'dicom',
     'httplib2',
     'future',
     'configparser'
