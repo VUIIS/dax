@@ -1547,7 +1547,7 @@ def run_cmd(exe_lang, fpath, time_writer=None, matlab_bin='matlab'):
     else:
         os.chmod(fpath, os.stat(fpath)[ST_MODE] | S_IXUSR)
         exe = exe_lang
-    cmd = '%s %s' % (exe, fpath)
+    cmd = '%s "%s"' % (exe, fpath)
 
     use_time_writer(time_writer, "Running command: %s" % cmd)
     result = execute_cmd(cmd, time_writer=time_writer)
