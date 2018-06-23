@@ -105,8 +105,8 @@
 							#set ($procType = $!proc.getProperty("proctype"))
 							<a href="$url">$procType</A>
 						#else
-							<a href="$url">$user.getDisplayManager().getDisplayNameForElement($proc.getXSIType())</A>
-						#end
+						        <a href="$url" title="$proc.getIdentifier($project)">$displayManager.getSingularDisplayNameForElement($proc.getXSIType())</A>
+                                                #end
 					#else
 						#if($proc.getHeader())
 							<a>$!proc.getHeader()</A>
@@ -117,7 +117,7 @@
 							#set ($procType = $!proc.getProperty("proctype"))
 							<a>$procType</A>
 						#else
-							<a>$user.getDisplayManager().getDisplayNameForElement($proc.getXSIType())</A>
+						        <a title="$proc.getIdentifier($project)">$displayManager.getSingularDisplayNameForElement($proc.getXSIType())</A>
 						#end
 					#end
 				</TD>
@@ -130,7 +130,7 @@
 				#if($xsiType == 'proc:genProcData')
 					#if($qcStatus == 'Needs QA')
 						<td NOWRAP><a href="$editprocurl">$!qcStatus</a></td>
-					#elseif ($qcStatus.toLowerCase().startswith('passed'))
+					#elseif ($qcStatus.toLowerCase().contains('passed'))
 						<td NOWRAP class="quality-usable">$!qcStatus</td>
 					#elseif ($qcStatus.toLowerCase().contains('fail'))
 						<td NOWRAP class="quality-unusable">$!qcStatus</td>
@@ -140,7 +140,7 @@
 				#elseif ($xsiType == 'fs:fsData')
 					#if($qcStatus == 'Needs QA')
 						<td NOWRAP><a href="$editfsprocurl">$!qcStatus</a></td>
-					#elseif ($qcStatus.toLowerCase().startswith('passed'))
+					#elseif ($qcStatus.toLowerCase().contains('passed'))
 						<td NOWRAP class="quality-usable">$!qcStatus</td>
 					#elseif ($qcStatus.toLowerCase().contains('fail'))
 						<td NOWRAP class="quality-unusable">$!qcStatus</td>
