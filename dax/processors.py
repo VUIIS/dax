@@ -41,6 +41,7 @@ class Processor(object):
         :return: None
 
         """
+        self.job_template = None
         self.walltime_str = walltime_str  # 00:00:00 format
         self.memreq_mb = memreq_mb   # memory required in megabytes
         # default values:
