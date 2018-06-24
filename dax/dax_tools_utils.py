@@ -487,7 +487,8 @@ DEL_UP = "=================================================================\
 
 def upload_tasks(logfile, debug, upload_settings=None,
                  host=None, username=None, password=None,
-                 projects=None, suffix=None, emailaddress=None):
+                 projects=None, suffix=None, emailaddress=None,
+                 uselocking=True):
     """
     Upload tasks from the queue folder.
 
@@ -514,7 +515,7 @@ def upload_tasks(logfile, debug, upload_settings=None,
                                            password, projects)
     print_upload_settings(upload_settings)
     # create the flag file showing that the spider is running
-    if is_dax_upload_running(flagfile):
+    if uselocking and is_dax_upload_running(flagfile):
         pass
     else:
         try:
@@ -855,7 +856,7 @@ def copy_outlog(assessor_dict):
 
 def get_xsitype(assessor_dict):
     """
-    Copy the oulog files to the assessor folder if we are uploading.
+    Copy the outlog files to the assessor folder if we are uploading.
 
     :param assessor_dict: dictionary for the assessor
     :return: xsitype for the assessor_dict

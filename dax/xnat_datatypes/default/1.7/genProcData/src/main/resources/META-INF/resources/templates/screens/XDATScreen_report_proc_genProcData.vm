@@ -31,6 +31,14 @@ $page.setVlinkColor($ui.vlink)
                             <TR><TD>ID</TD><TD>$!item.getStringProperty("proc:genProcData/ID")</TD></TR>
 							<TR><TD>Note</TD><TD>$!item.getStringProperty("proc:genProcData/note")</TD></TR>
 							<TR><TD>Version</TD><TD>$!item.getIntegerProperty("proc:genProcData/version")</TD></TR>
+							<TR><TD>DAX Processor Version</TD><TD>$!item.getStringProperty("proc:genProcData/dax_processor_version")</TD></TR>
+							<TR><TD>DAX Processor Name</TD><TD>$!item.getStringProperty("proc:genProcData/dax_processor_name")</TD></TR>
+							<TR><TD>DAX Spider Version</TD><TD>$!item.getStringProperty("proc:genProcData/dax_spider_version")</TD></TR>
+							<TR><TD>DAX Spider Name</TD><TD>$!item.getStringProperty("proc:genProcData/dax_spider_name")</TD></TR>
+							<TR><TD>DAX Code Version</TD><TD>$!item.getStringProperty("proc:genProcData/dax_code_version")</TD></TR>
+							<TR><TD>DAX Docker Version</TD><TD>$!item.getStringProperty("proc:genProcData/dax_docker_version")</TD></TR>
+							<TR><TD>DAX Version</TD><TD>$!item.getStringProperty("proc:genProcData/dax_version")</TD></TR>
+							<TR><TD>DAX Version Hash</TD><TD>$!item.getStringProperty("proc:genProcData/dax_version_hash")</TD></TR>
 						</table>
 						<BR />
 						<table>
