@@ -1084,6 +1084,7 @@ def upload_snapshots(assessor_obj, resource_path):
         assessor_obj.out_resource('SNAPSHOTS').delete()
     original = os.path.join(resource_path, SNAPSHOTS_ORIGINAL)
     thumbnail = os.path.join(resource_path, SNAPSHOTS_PREVIEW)
+    status = None
     try:
         status = XnatUtils.upload_assessor_snapshots(
             assessor_obj, original, thumbnail)

@@ -914,7 +914,7 @@ resource/{4}'
 class MoreAutoProcessor(AutoProcessor):
     """ More Auto Processor class for AutoSpider using YAML files"""
 
-    def __init__(self, yaml_file, user_inputs=None):
+    def __init__(self, yaml_file, user_inputs=None, singularity_imagedir=None):
         """
         Entry point for the auto processor
 
@@ -925,6 +925,9 @@ class MoreAutoProcessor(AutoProcessor):
 
         # Load outputs
         self.outputs = dict()
+
+        # Save location of singularity imagedir
+        self.singularity_imagedir = singularity_imagedir
 
         super(MoreAutoProcessor, self).__init__(yaml_file, user_inputs)
 
@@ -961,9 +964,19 @@ class MoreAutoProcessor(AutoProcessor):
                 elif value and value != 'None':
                     self.extra_inputs[key] = value
 
-        # Getting proctype and version from Yaml
+        # Container path, prepend singularity imagedir
         self.container_path = self.inputs.get('container_path')
+        if ((self.container_path.endswith('.simg') or
+                self.container_path.endswith('.img')) and
+                not os.path.isabs(self.container_path) and
+                self.singularity_imagedir):
+            self.container_path = os.path.join(
+                self.singularity_imagedir, self.container_path)
 
+        # Overwrite container_path for building script
+        self.inputs['container_path'] = self.container_path
+
+        # Getting proctype and version from Yaml
         if doc.get('procversion'):
             self.version = doc.get('procversion')
         else:
@@ -1351,7 +1364,7 @@ def processors_by_type(proc_list):
     return sess_proc_list, scan_proc_list
 
 
-def load_from_yaml(filepath, user_inputs=None):
+def load_from_yaml(filepath, user_inputs=None, singularity_imagedir=None):
     """
     Load processor from yaml
     :param filepath: path to yaml file
@@ -1361,8 +1374,6 @@ def load_from_yaml(filepath, user_inputs=None):
     # Set Outputs from Yaml
     doc = XnatUtils.read_yaml(filepath)
     if doc.get('moreauto'):
-        return MoreAutoProcessor(filepath, user_inputs)
-
+        return MoreAutoProcessor(filepath, user_inputs, singularity_imagedir)
     else:
         return AutoProcessor(filepath, user_inputs)
-
