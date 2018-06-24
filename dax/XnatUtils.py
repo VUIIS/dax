@@ -1358,8 +1358,8 @@ def get_full_object(intf, obj_dict):
     """
     if 'scan_id' in obj_dict:
         xpath = C_XPATH.format(project=obj_dict['project_id'],
-                               subject=obj_dict['subject_id'],
-                               session=obj_dict['session_id'],
+                               subject=obj_dict['subject_label'],
+                               session=obj_dict['session_label'],
                                scan=obj_dict['scan_id'])
     elif 'xsiType' in obj_dict and \
          obj_dict['xsiType'] in [DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE]:
@@ -2216,7 +2216,7 @@ def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False,
                 print("WARNING: upload_file_to_obj in XnatUtils: resource %s \
 already exists." % filename)
                 return False
-        resource_obj.file(str(filename)).put(str(filepath), overwrite=True)
+        resource_obj.file(str(filename)).put(str(filepath), overwrite=True, params={"event_reason": "DAX uploading file"})
         return True
 
 
@@ -2256,7 +2256,6 @@ def upload_files_to_obj(filepaths, resource_obj, remove=False,
                         removeall=False):
     """
     Upload a list of files to a resource on XNAT
-
     :param filepaths: list of files to upload
     :param resource_obj: pyxnat EObject to upload all of the files to
     :param remove: remove files that already exist for the resource.
@@ -2467,11 +2466,11 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail):
     assessor_obj.out_resource('SNAPSHOTS')\
                 .file(os.path.basename(thumbnail))\
                 .put(thumbnail, thumbnail.split('.')[1].upper(), 'THUMBNAIL',
-                     overwrite=True)
+                     overwrite=True, params={"event_reason": "DAX uploading file"})
     assessor_obj.out_resource('SNAPSHOTS')\
                 .file(os.path.basename(original))\
                 .put(original, original.split('.')[1].upper(), 'ORIGINAL',
-                     overwrite=True)
+                     overwrite=True, params={"event_reason": "DAX uploading file"})
     return True
 
 

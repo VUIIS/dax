@@ -5,6 +5,6 @@ pyxnat
 matplotlib
 numpy
 nibabel
-pydicom
+dicom
 xlrd
 scipy

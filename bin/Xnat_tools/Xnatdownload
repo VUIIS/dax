@@ -259,6 +259,9 @@ given as a parameter or it does not exist on XNAT.')
             if OPTIONS.assessortype:
                 asses_list.extend(XnatUtils.list_project_assessors(
                     XNAT, project))
+         #   if OPTIONS.subject:
+          #      scans_list.extend(XnatUtils.list_project_scans(XNAT, project))
+           #     asses_list.extend(XnatUtils.list_assessors(XNAT, project, get_option_list(OPTIONS.subject), get_option_list(OPTIONS.session)))
         # Read previous report
         scans_dl_dict, asses_dl_dict, last_dl_date, old_rows = read_report()
         if OPTIONS.overwrite:
@@ -857,7 +860,10 @@ def download_specific_scan():
     if OPTIONS.resourcesS:
         LOGGER.info('Selected Scan: %s' % (OPTIONS.selectionScan))
         # Variables:
-        scan_path = os.path.join(DIRECTORY, OPTIONS.selectionScan)
+        if not OPTIONS.oneDir:
+            scan_path = os.path.join(DIRECTORY, OPTIONS.selectionScan)
+        else:
+            scan_path = DIRECTORY
         scan_resources = get_option_list(OPTIONS.resourcesS)
         qualities = get_option_list(OPTIONS.qualities)
         # Get scan obj dict:
@@ -876,7 +882,8 @@ def download_specific_scan():
                                       scan_dict['subject_label'],
                                       scan_dict['session_label'],
                                       scan_dict['ID']])
-                scan_path = os.path.join(DIRECTORY, sub_dir)
+                if not OPTIONS.oneDir:
+                    scan_path = os.path.join(DIRECTORY, sub_dir)
                 download_scan(scan_path, scan_dict, scan_resources,
                               None, last_dl_date=None)
     else:

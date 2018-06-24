@@ -188,24 +188,23 @@ set properly.\nTraceback: %s' % err
             assessors_list = XnatUtils.list_project_assessors(xnat, project)
             assessors.extend(assessors_list)
 
-    # Filter assessors:
-    assessors = filter_assessors(args, assessors, has_fs_datatypes,
-                                 full_project=True if projects else False)
+            #Filter assessors:
+            assessors =filter_assessors(args, assessors, has_fs_datatypes,
+                                               full_project=True if projects else False)
 
-    # Print number of assessors found:
-    if projects and assessors:
-        print('INFO: Number of XNAT assessors found after filtering:')
-        if assessors:
-            _format = '| %*s | %*s |'
-            _sep = ' ---------------------------------------------'
-            print(_sep)
-            print(_format % (-20, 'Project ID', -20, 'Number of Assessors'))
-            print(_sep)
-            for project in projects:
-                print(_format % (-20, project,
-                                 -20, len([_a for _a in assessors
-                                           if _a['project_id'] == project])))
-            print('%s\n' % _sep)
+            # Print number of assessors found:
+            if projects and assessors:
+                print('INFO: Number of XNAT assessors found after filtering:')
+                if assessors:
+                    _format = '| %*s | %*s |'
+                    _sep = ' ---------------------------------------------'
+                    print(_sep)
+                    print(_format % (-20, 'Project ID', -20, 'Number of Assessors'))
+                    print(_sep)
+                    for project in projects:
+                        print(_format % (-20, project,
+                                         -20, len(assessors)))
+                    print('%s\n' % _sep)
 
     return assessors
 
@@ -214,11 +213,12 @@ def filter_assessors(args, assessors, has_fs_datatypes=False,
                      full_project=False):
     """
     Function to filter the list of assessors to keep the ones respecting
-    the options specified by the user.
+    the options specified by the user. Multiple variables used in method
+    to avoid overwrite while looping.
 
     :param args: arguments from argparse
     :param assessors: list of assessors to filter
-    :param has_fs_datatypes: if FS datatypes installed on XNAT
+    :param has_fs_datatypes: if FS datatypes installed on XNAT/
     :param full_project: checking full project
     :return: list of assessors dictionaries filtered
     """
@@ -233,6 +233,7 @@ def filter_assessors(args, assessors, has_fs_datatypes=False,
     elif args.rerundiskq:
         former_status = None
 
+    assess = list()
     proctypes = utils.get_option_list(args.proctypes)
     proctypes = edit_list_procs(proctypes, has_fs_datatypes)
 
@@ -245,22 +246,72 @@ def filter_assessors(args, assessors, has_fs_datatypes=False,
             assessors, 'subject_label', args.subjects, args.full_regex)
 
     if args.sessions and args.sessions != 'all':
-        assessors = XnatUtils.filter_list_dicts_regex(
-            assessors, 'session_label', args.sessions, args.full_regex)
+        sessions = utils.get_option_list(args.sessions)
+        for session in sessions:
+            assess.append(XnatUtils.filter_list_dicts_regex(assessors, 'session_label', session, args.full_regex))
+        assessors = assess
 
-    if proctypes and proctypes != 'all':
-        assessors = XnatUtils.filter_list_dicts_regex(
-            assessors, 'proctype', proctypes, args.full_regex)
+        if(args.sessions):
+            assess1 = list()
+            assessor_fin = list()
+            assess_carry_1 = list()
 
-    if former_status and former_status != 'all':
-        if args.qcstatus:
-            field_name = 'qcstatus'
+            if proctypes and proctypes != 'all':
+
+                for assessor in assessors:
+                    assess1.append(XnatUtils.filter_list_dicts_regex(
+                        assessor, 'proctype', proctypes, args.full_regex))
+
+                for assess in assess1:
+                    if(len(assess) > 1):
+                        for asse in assess:
+                            assess_carry_1.append(asse)
+                    else:
+                        assess_carry_1.append(assess)
+
+            assess_carry_1 = list_flatten(assess_carry_1)
+
+            if former_status and former_status != 'all':
+                if args.qcstatus:
+                    field_name = 'qcstatus'
+                else:
+                    field_name = 'procstatus'
+                assessors = XnatUtils.filter_list_dicts_regex(
+                    assess_carry_1, field_name, former_status, args.full_regex)
+            assessors = list_flatten(assessors)
+            return assessors
+
+    if not args.sessions:
+        if proctypes and proctypes != 'all':
+            assessors = XnatUtils.filter_list_dicts_regex(
+                assessors, 'proctype', proctypes, args.full_regex)
+
+        if former_status and former_status != 'all':
+            if args.qcstatus:
+                field_name = 'qcstatus'
+            else:
+                field_name = 'procstatus'
+            assessors = XnatUtils.filter_list_dicts_regex(
+                assessors, field_name, former_status, args.full_regex)
+        return assessors
+
+def list_flatten(l, assessor=None):
+    """
+    Method used to flatten a list.
+    :param l: list<list>
+    :param assessor: empty list
+    :return: list object
+    """
+    if assessor is None:
+        #initialize with empty list
+        assessor = []
+
+    for i in l:
+        if isinstance(i, list):
+            list_flatten(i, assessor)
         else:
-            field_name = 'procstatus'
-        assessors = XnatUtils.filter_list_dicts_regex(
-            assessors, field_name, former_status, args.full_regex)
-
-    return assessors
+            assessor.append(i)
+    return assessor
 
 
 def delete_assr_resource(assessor_obj, resource):
