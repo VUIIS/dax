@@ -26,7 +26,8 @@ class Processor(object):
     """ Base class for processor """
     def __init__(self, walltime_str, memreq_mb, spider_path,
                  version=None, ppn=1, env=None, suffix_proc='',
-                 xsitype='proc:genProcData'):
+                 xsitype='proc:genProcData',
+                 job_template=None):
         """
         Entry point of the Base class for processor.
 
@@ -41,7 +42,7 @@ class Processor(object):
         :return: None
 
         """
-        self.job_template = None
+        self.job_template = job_template
         self.walltime_str = walltime_str  # 00:00:00 format
         self.memreq_mb = memreq_mb   # memory required in megabytes
         # default values:
@@ -161,7 +162,7 @@ class ScanProcessor(Processor):
     """ Scan Processor class for processor on a scan on XNAT """
     def __init__(self, scan_types, walltime_str, memreq_mb, spider_path,
                  version=None, ppn=1, env=None, suffix_proc='',
-                 full_regex=False):
+                 full_regex=False, job_template=None):
         """
         Entry point of the ScanProcessor Class.
 
@@ -179,7 +180,8 @@ class ScanProcessor(Processor):
         """
         super(ScanProcessor, self).__init__(walltime_str, memreq_mb,
                                             spider_path, version, ppn,
-                                            env, suffix_proc)
+                                            env, suffix_proc,
+                                            job_template=job_template)
         self.full_regex = full_regex
         if isinstance(scan_types, list):
             self.scan_types = scan_types
@@ -296,7 +298,7 @@ class ScanProcessor(Processor):
 class SessionProcessor(Processor):
     """ Session Processor class for processor on a session on XNAT """
     def __init__(self, walltime_str, memreq_mb, spider_path, version=None,
-                 ppn=1, env=None, suffix_proc=''):
+                 ppn=1, env=None, suffix_proc='', job_template=None):
         """
         Entry point for the session processor
 
@@ -312,7 +314,8 @@ class SessionProcessor(Processor):
         """
         super(SessionProcessor, self).__init__(walltime_str, memreq_mb,
                                                spider_path, version, ppn,
-                                               env, suffix_proc)
+                                               env, suffix_proc,
+                                               job_template=job_template)
 
     def has_inputs(self):
         """
@@ -530,6 +533,10 @@ defined by yaml file {}'
         self.name = self.proctype
         self.type = self.attrs.get('type')
         self.scan_nb = self.attrs.get('scan_nb', None)
+
+        # Set template if in Yaml
+        if doc.get('jobtemplate'):
+            self.job_template = doc.get('jobtemplate')
 
     def _check_default_keys(self, yaml_file, doc):
         """ Static method to raise error if key not found in dictionary from
