@@ -1,2 +1,4 @@
 include README.rst LICENSE
 include dax_settings.ini
+
+graft docs
