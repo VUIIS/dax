@@ -522,7 +522,6 @@ class DAX_Settings(object):
             # If only filename, we assume it is same folder as default
             def_filepath = self.get('cluster', 'job_template')
             filepath = os.path.join(os.path.dirname(def_filepath), filepath)
-
         if filepath is None:
             return ''
         if filepath.startswith('~/'):
