@@ -217,6 +217,7 @@ def read_yaml_settings(yaml_file, logger):
     singularity_imagedir = doc.get('singularity_imagedir')
 
     # Read modules
+    modulelib = doc.get('modulelib'),
     mods = dict()
     modules = doc.get('modules', list())
     for mod_dict in modules:
@@ -225,8 +226,10 @@ def read_yaml_settings(yaml_file, logger):
             raise DaxError(err)
 
         mod_path = mod_dict.get('filepath')
-        if(not os.path.isabs(mod_path)):
-            mod_path = os.path.join(doc.get('modulelib'), mod_path)
+        if not os.path.isabs(mod_path) and modulelib:
+            # Preprend lib location
+            mod_path = os.path.join(modulelib, mod_path)
+
         mods[mod_dict.get('name')] = load_from_file(
             mod_path, mod_dict.get('arguments'), logger)
 
@@ -241,6 +244,7 @@ def read_yaml_settings(yaml_file, logger):
             proc_dict.get('filepath'), proc_dict.get('arguments'), logger)
 
     # Read yaml processors
+    processorlib = doc.get('processorlib')
     yamlprocs = dict()
     yamls = doc.get('yamlprocessors', list())
     for yaml_dict in yamls:
@@ -249,8 +253,9 @@ def read_yaml_settings(yaml_file, logger):
             raise DaxError(err)
 
         yaml_path = yaml_dict.get('filepath')
-        if(not os.path.isabs(yaml_path)):
-            yaml_path = os.path.join(doc.get('processorlib'), yaml_path)
+        if not os.path.isabs(yaml_path) and processorlib:
+            # Preprend lib location
+            yaml_path = os.path.join(processorlib, yaml_path)
 
         yamlprocs[yaml_dict.get('name')] = load_from_file(
             yaml_path, yaml_dict.get('arguments'),
