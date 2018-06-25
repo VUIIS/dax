@@ -60,6 +60,8 @@ and errors.')
                     help='Logs file path if needed.', default=None)
     ap.add_argument('--nodebug', dest='debug', action='store_false',
                     help='Avoid printing DEBUG information.')
+    ap.add_argument('--nolock', dest='uselocking', action='store_false',
+                    help='Disable use of locking flag file.')
     return ap.parse_args()
 
 
@@ -69,4 +71,5 @@ if __name__ == '__main__':
     print('Deprecated executable. Use dax upload instead.')
     dax_tools.upload_tasks(args.logfile, args.debug, args.upload_settings,
                            args.host, args.username, args.password,
-                           args.projects, args.suffix, args.emailaddress)
+                           args.projects, args.suffix, args.emailaddress,
+                           args.uselocking)

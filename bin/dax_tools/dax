@@ -123,6 +123,9 @@ option if you use different XNAT_HOST).'
                                help='Logs file path if needed.', default=None)
     upload_parser.add_argument('--nodebug', dest='debug', action='store_false',
                                help='Avoid printing DEBUG information.')
+    upload_parser.add_argument('--nolock', dest='uselocking',
+                               action='store_false',
+                               help='Disable use of locking flag file.')
 
     # test:
     test_desc = "Test any dax files that the user created (processor.py/\
@@ -190,7 +193,7 @@ cluster section\n.')
         dax_tools.upload_tasks(
             args.logfile, args.debug, args.upload_settings, args.host,
             args.username, args.password, args.projects, args.suffix,
-            args.emailaddress)
+            args.emailaddress, args.uselocking)
 
     elif args.command == 'test':
         dax_tools.testing(args.test_file, args.project, args.sessions,
