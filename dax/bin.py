@@ -217,7 +217,7 @@ def read_yaml_settings(yaml_file, logger):
     singularity_imagedir = doc.get('singularity_imagedir')
 
     # Read modules
-    modulelib = doc.get('modulelib'),
+    modulelib = doc.get('modulelib')
     mods = dict()
     modules = doc.get('modules', list())
     for mod_dict in modules:
