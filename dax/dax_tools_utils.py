@@ -521,8 +521,9 @@ def upload_tasks(logfile, debug, upload_settings=None,
         try:
             upload_results(upload_settings, emailaddress)
         finally:
-            # remove flagfile
-            os.remove(flagfile)
+            if uselocking:
+                # remove flagfile
+                os.remove(flagfile)
 
 
 def testing(test_file, project, sessions, host=None, username=None, hide=False,
