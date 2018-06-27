@@ -31,11 +31,11 @@ def full_label_from_assessor(assessor):
 
 def parse_full_assessor_name(assessor_name):
     elements = assessor_name.split('-x-')
-    if len(elements != 4):
+    if len(elements) != 4:
         raise ValueError(("'assessor_name' parameter '{}' is not a valid full "
                           "assessor name".format(assessor_name)))
     return dict(zip(
-        ['project_id', 'subject_id', 'session_id', 'assessor_label'],
+        ['project_id', 'subject_label', 'session_label', 'label'],
         elements))
 
 
