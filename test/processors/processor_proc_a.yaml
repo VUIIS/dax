@@ -1,0 +1,30 @@
+---
+inputs:
+  default:
+    spider_path: /home/ben/git/comic100_dax_config/pipelines/Proc_A/v1.0.0/Proc_A_v1_0_0.py
+    working_dir: /home/ben/dax/scratch
+    nipype_exe: proc_a.py
+    #gmatrix: /cluster/project0/SegBiASM/DataToTryBaMoS/GMatrix4_Low3.txt
+    #rule: /cluster/project0/SegBiASM/DataToTryBaMoS/GenericRule_CSF.txt
+    #icbm: /cluster/project0/SegBiASM/ICBM_Priors
+  xnat:
+    scans:
+      - name: scan1
+        types: T1
+        resources:
+          - resource: NIFTI
+            varname: t1
+      - name: scan2
+        types: FLAIR
+        resources:
+          - resource: NIFTI
+            varname: flair
+command: python {spider_path} --t1 {t1} --flair {flair}
+attrs:
+  suffix:
+  xsitype: proc:genProcData
+  walltime: 24:00:00
+  memory: 8048
+  ppn: 4
+  #env: /share/apps/cmic/NiftyPipe/v2.0/setup_v2.0.sh
+  type: session
