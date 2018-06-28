@@ -3,17 +3,21 @@ import os
 import sys
 import time
 
+from dax import dax_settings
+
 
 if __name__ == '__main__':
-  print sys.argv
-  print os.getcwd()
+
+
   with open('./log_test_job_runner.txt', 'a') as f:
     ts = datetime.datetime.fromtimestamp(time.time())
     f.write('{}: {}\n'.format(ts, sys.argv))
 
+    settings = dax_settings.DAX_Settings()
+    results_dir = settings.get_results_dir()
     try:
       i = sys.argv.index('-a')
-      folder_to_create = os.path.join('/home/ben/dax/upload', sys.argv[i+1])
+      folder_to_create = os.path.join(results_dir, sys.argv[i+1])
       if not os.path.exists(folder_to_create):
         os.makedirs(folder_to_create)
       file_to_create = os.path.join(folder_to_create, 'READY_TO_UPLOAD.txt')
