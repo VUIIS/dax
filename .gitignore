@@ -56,3 +56,6 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# Test directory
+test/log_test_job_runner.txt
+
