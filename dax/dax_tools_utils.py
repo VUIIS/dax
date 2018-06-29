@@ -24,6 +24,7 @@ from email.mime.text import MIMEText
 import getpass
 import glob
 import imp
+import itertools
 import json
 import logging
 import os
@@ -1244,6 +1245,79 @@ def upload_outlog(xnat, projects):
                             print(ERR_MSG % err)
                         if status:
                             os.remove(outlog_fpath)
+
+
+def new_upload_results(upload_settings, emailaddress):
+
+    # get the list of assessors from the results directory
+    if len(os.listdir(RESULTS_DIR)) == 0:
+        LOGGER.warn('No data to be uploaded.\n')
+        sys.exit()
+
+    warnings = list()
+
+    for project in upload_settings:
+        try:
+            with XnatUtils.get_interface(host=project['host'],
+                                         user=project['username'],
+                                         pwd=project['password']) as intf:
+                LOGGER.info('=' * 60)
+
+                assessors = get_assessor_list(project['projects'])
+                x = [assessor_utils.parse_full_assessor_name(a)
+                     for a in assessors]
+
+                # create a nested dictionary of assessor result directories by
+                # project id then subject label then session label
+                z = {}
+                for a in x:
+                    if not a['project_id'] in z:
+                        z[a['project_id']] = dict()
+                    zp = z[a['project_id']]
+
+                    if not a['subject_label'] in zp:
+                        zp[a['subject_label']] = dict()
+                    zs = zp[a['subject_label']]
+
+                    if not a['session_label'] in zs:
+                        zs[a['session_label']] = list()
+                    ze = zs[a['session_label']]
+
+                    ze.append(a)
+
+
+                for kp, vp in z.iteritems():
+                    for ks, vs in vp.iteritems():
+                        for ke, ve in vs.iteritems():
+                            # handle all assessors from this session
+                            session = intf.select_experiment(kp, ks, ke)
+                            if not session.exists():
+                                # flag the experiment as missing
+                                LOGGER.warning(
+                                    "session {}/{}/{} does not exist".format(
+                                        kp, ks, ke
+                                    )
+                                )
+                            else:
+                                # handle assessors
+                                for a in ve:
+                                    print(a)
+                                    assessor = intf.select_assessor(
+                                        kp, ks, ke, a['label'])
+                                    if not assessor.exists():
+                                        # flag the assessor as missing
+                                        LOGGER.warning(
+                                            "assessor {}/{}/{}/{} does not exist".format(
+                                                kp, ks, ke, a['label']
+                                            )
+                                        )
+                                    else:
+                                        # upload this assessor
+                                        pass
+
+        except Exception as e:
+            LOGGER.error(e.msg)
+
 
 
 def upload_results(upload_settings, emailaddress):
