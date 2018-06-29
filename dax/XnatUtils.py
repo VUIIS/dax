@@ -32,9 +32,8 @@ from past.builtins import basestring
 import collections
 import csv
 from datetime import datetime
-from dicom.dataset import Dataset, FileDataset
-import dicom
-import dicom.UID
+from pydicom.dataset import Dataset, FileDataset
+import pydicom
 import fnmatch
 import getpass
 import glob
@@ -1131,8 +1130,8 @@ def list_assessors(intf, projectid, subjectid, sessionid):
             anew['project_id'] = projectid
             anew['project_label'] = projectid
             anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
-            anew['session_id'] = asse['xnat:imagesessiondata/id']
-            anew['session_label'] = asse['xnat:imagesessiondata/label']
+            anew['session_id'] = asse['session_ID']
+            anew['session_label'] = asse['session_label']
             anew['procstatus'] = asse['%s/procstatus' % pfix]
             anew['proctype'] = asse['%s/proctype' % pfix]
             anew['qcstatus'] = asse['%s/validation/status' % pfix]
@@ -2194,6 +2193,9 @@ def upload_file_to_obj(filepath, resource_obj, remove=False, removeall=False,
     """
     if not os.path.isfile(filepath):  # Check existence of the file
         err = "%s: file %s doesn't exist."
+        raise XnatUtilsError(err % ('upload_file_to_obj', filepath))
+    elif os.path.getsize(filepath) == 0:  # Check for empty file
+        err = "%s: empty file, not uploading %s."
         raise XnatUtilsError(err % ('upload_file_to_obj', filepath))
     else:
         # Remove previous resource to upload the new one
@@ -3553,7 +3555,7 @@ def order_dicoms(folder):
         raise XnatUtilsError('Folder not found: %s' % folder)
     dcm_files = dict()
     for dc in glob.glob(os.path.join(folder, '*.dcm')):
-        dst = dicom.read_file(dc)
+        dst = pydicom.read_file(dc)
         dcm_files[float(dst.SliceLocation)] = dc
     return collections.OrderedDict(sorted(dcm_files.items()))
 
@@ -3660,7 +3662,7 @@ def convert_nifti_2_dicoms(nifti_path, dicom_targets, dicom_source,
     # Load dicom headers
     if not os.path.isfile(dicom_source):
         raise XnatUtilsError("DICOM File %s not found ." % dicom_source)
-    adc_dcm_obj = dicom.read_file(dicom_source)
+    adc_dcm_obj = pydicom.read_file(dicom_source)
 
     # Make output_folder:
     if not os.path.exists(output_folder):
@@ -3678,7 +3680,7 @@ def convert_nifti_2_dicoms(nifti_path, dicom_targets, dicom_source,
         # Load dicom headers
         if not os.path.isfile(dcm_file):
             raise XnatUtilsError("DICOM File %s not found." % dcm_file)
-        t2_dcm_obj = dicom.read_file(dcm_file)
+        t2_dcm_obj = pydicom.read_file(dcm_file)
         dcm_obj_sorted[t2_dcm_obj.InstanceNumber] = t2_dcm_obj
 
     for vol_i in range(f_img_data.shape[2]):

@@ -257,6 +257,8 @@ SGE_TEMPLATE = """#!/bin/bash
 uname -a # outputs node info (name, date&time, type, OS, etc)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable \
 to use only the right amount of ppn
+export OMP_NUM_THREADS=${job_ppn} #as previous line for openmp code
+source ${job_env} #source the specified environement file
 SCREEN=$$$$$$$$
 SCREEN=${SCREEN:0:8}
 echo 'Screen display number for xvfb-run' $SCREEN
@@ -294,6 +296,8 @@ SLURM_TEMPLATE = """#!/bin/bash
 uname -a # outputs node info (name, date&time, type, OS, etc)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable \
 to use only the right amount of ppn
+export OMP_NUM_THREADS=${job_ppn} #as previous line for openmp code
+source ${job_env} #source the specified environement file
 SCREEN=$$$$$$$$
 SCREEN=${SCREEN:0:8}
 echo 'Screen display number for xvfb-run' $SCREEN
@@ -336,6 +340,8 @@ MOAB_TEMPLATE = """#!/bin/bash
 uname -a # outputs node info (name, date&time, type, OS, etc)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${job_ppn} #set the variable \
 to use only the right amount of ppn
+export OMP_NUM_THREADS=${job_ppn} #as previous line for openmp code
+source ${job_env} #source the specified environement file
 SCREEN=$$$$$$$$
 SCREEN=${SCREEN:0:8}
 echo 'Screen display number for xvfb-run' $SCREEN
@@ -456,11 +462,12 @@ PROC_DISPLAY = """    *NAME: {name}
         memory: {memory}
         walltime: {walltime}
         Number of cores: {ppn}
+        Environment file: {env}
       OTHER ARGUMENTS:
 {other}
 """
 PROC_DEF_ARGS = ['name', 'xnat_host', 'xsitype', 'memreq_mb', 'walltime_str',
-                 'ppn', 'spider_path', 'version']
+                 'ppn', 'env', 'spider_path', 'version']
 
 MOD_DISPLAY = """    *NAME: {name}
       TEMP DIRECTORY: {temp_dir}
@@ -480,7 +487,8 @@ DEL_UP = "=================================================================\
 
 def upload_tasks(logfile, debug, upload_settings=None,
                  host=None, username=None, password=None,
-                 projects=None, suffix=None, emailaddress=None):
+                 projects=None, suffix=None, emailaddress=None,
+                 uselocking=True):
     """
     Upload tasks from the queue folder.
 
@@ -500,21 +508,22 @@ def upload_tasks(logfile, debug, upload_settings=None,
 
     # Check if folders exist
     check_folders()
-    ##flagfile = "%s%s.txt" % (FLAGFILE_TEMPLATE, suffix)
+    flagfile = "%s%s.txt" % (FLAGFILE_TEMPLATE, suffix)
 
     # Load the settings for upload
     upload_settings = load_upload_settings(upload_settings, host, username,
                                            password, projects)
     print_upload_settings(upload_settings)
     # create the flag file showing that the spider is running
-    ##if is_dax_upload_running(flagfile):
-    ##    pass
-    ##else:
-    ##    try:
-    upload_results(upload_settings, emailaddress)
-    ##    finally:
-            # remove flagfile
-    ##        os.remove(flagfile)
+    if uselocking and is_dax_upload_running(flagfile):
+        pass
+    else:
+        try:
+            upload_results(upload_settings, emailaddress)
+        finally:
+            if uselocking:
+                # remove flagfile
+                os.remove(flagfile)
 
 
 def testing(test_file, project, sessions, host=None, username=None, hide=False,
@@ -1077,6 +1086,7 @@ def upload_snapshots(assessor_obj, resource_path):
         assessor_obj.out_resource('SNAPSHOTS').delete()
     original = os.path.join(resource_path, SNAPSHOTS_ORIGINAL)
     thumbnail = os.path.join(resource_path, SNAPSHOTS_PREVIEW)
+    status = None
     try:
         status = XnatUtils.upload_assessor_snapshots(
             assessor_obj, original, thumbnail)
@@ -1329,11 +1339,12 @@ settings file. Please use either JSON/PYTHON/CSV format.")
         _host = os.environ['XNAT_HOST']
         username = None
         password = None
-        projects = []
         if host:
             _host = host
         if projects:
             projects = projects.split(',')
+        else:
+            projects = []
         if username:
             username = username
             if not password:
@@ -2061,6 +2072,7 @@ def print_processor(proc_obj):
                               memory=proc_dict['memreq_mb'],
                               walltime=proc_dict['walltime_str'],
                               ppn=proc_dict['ppn'],
+                              env=proc_dict['env'],
                               other=other_args))
 
 
@@ -2152,7 +2164,7 @@ the python file {}.'
         else:
             # So far only auto processor:
             try:
-                return processors.AutoProcessor(filepath)
+                return processors.load_from_yaml(filepath)
             except AutoProcessorError:
                 print('[ERROR]')
                 exc_type, exc_value, exc_traceback = sys.exc_info()

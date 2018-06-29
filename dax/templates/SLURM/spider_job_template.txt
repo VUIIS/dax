@@ -1,0 +1,86 @@
+#!/bin/bash
+#SBATCH --mail-user=${job_email}
+#SBATCH --mail-type=${job_email_options}
+#SBATCH --nodes=1
+#SBATCH --ntasks=${job_ppn}
+#SBATCH --time=${job_walltime}
+#SBATCH --mem=${job_memory}mb
+#SBATCH -o ${job_output_file}
+
+uname -a # outputs node info (name, date&time, type, OS, etc)
+date
+
+#=============================================================================
+#VERSION=
+#JOBDIR=
+#INDIR=
+#OUTDIR=
+#DSTDIR=
+#INLIST=
+#OUTLIST=
+#MAINCMD=
+${job_cmds}
+#=============================================================================
+NETRC=$HOME/.daxnetrc
+
+echo $DSTDIR
+echo $INDIR
+echo $OUTDIR
+
+mkdir -p $INDIR
+mkdir -p $OUTDIR
+
+# Collect inputs
+for IN in "${INLIST[@]}"; do
+    IFS=',' read -r col1 col2 col3 <<< "$IN"
+    if [ $col2 == "FILE" ]; then
+        CMD="curl -s --netrc-file $NETRC $col3 -o $INDIR/$col1"
+    elif [ $col2 == "DIRJ" ]; then
+        CMD="curl -s --netrc-file $NETRC $col3?format=zip -o $INDIR/${col1}.zip && unzip -j $INDIR/${col1}.zip -d $INDIR/$col1"
+    else
+        CMD="curl -s --netrc-file $NETRC $col3?format=zip -o $INDIR/${col1}.zip && unzip $INDIR/${col1}.zip -d $INDIR/$col1"
+    fi
+    echo $CMD
+    eval $CMD
+done
+
+# Run main command
+SCREEN=$$$$$$$$
+SCREEN=${SCREEN:0:8}
+MAINCMD="xvfb-run --wait=5 -a -e /tmp/xvfb_$SCREEN.err -f /tmp/xvfb_$SCREEN.auth --server-num=$SCREEN --server-args='-screen 0 1920x1200x24 -ac +extension GLX' ${MAINCMD}"
+echo $MAINCMD
+eval $MAINCMD
+
+# Write version file
+mkdir -p $DSTDIR
+echo $VERSION > $DSTDIR/version.txt
+
+# Handle outputs
+errors=0
+haspdf=0
+for OUT in "${OUTLIST[@]}"; do
+    IFS=',' read -r col1 col2 col3 col4 <<< "$OUT"
+    pathlist=(${OUTDIR}/${col1})
+    
+    # Check for missing output
+    if [[ ${#pathlist[@]} == 1 && ! -e $pathlist ]]; then
+        if [[ $col4 != "F" ]]; then errors=1 && echo "ERROR:missing required output:$col1"
+        else echo "WARN:output not required"; fi
+        continue
+    fi
+
+    # Copy output based on type
+    mkdir -p "$DSTDIR/$col3"
+    if [ $col3 == "PDF" ]; then
+        if [ $col2 != "FILE" ]; then errors=1 && echo "ERROR:illegal type for PDF";
+        elif [[ ${#pathlist[@]} != 1 ]]; then errors=1 && echo "ERROR:multiple PDFs";
+        else cp $OUTDIR/$col1 $DSTDIR/$col3 && haspdf=1; fi
+    elif [ $col2 == "FILE" ]; then cp $OUTDIR/$col1 $DSTDIR/$col3;
+    elif [ $col2 == "DIR" ]; then cp -r $OUTDIR/$col1/* $DSTDIR/$col3;
+    else errors=1 && echo "ERROR:invalid type:$col2"; fi
+done
+
+if [ $errors -gt 0 ] || [ $haspdf != 1 ]; then echo "JOB_FAILED" && touch $DSTDIR/JOB_FAILED.txt;
+else echo "COMPLETE" && touch $DSTDIR/READY_TO_UPLOAD.txt; fi
+
+echo "DONE"

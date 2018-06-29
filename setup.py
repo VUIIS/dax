@@ -102,7 +102,7 @@ NIBABEL_MIN_VERSION = '2.0.1'
 NUMPY_MIN_VERSION = '1.6.2'
 MATPLOTLIB_MIN_VERSION = '1.4.3'
 PYXNAT_MIN_VERSION = '1.0.1.0'
-
+PYDICOM_MIN_VERSION = '1.0.0'
 
 REQUIRES = [
     'Sphinx>=%s' % SPHINX_MIN_VERSION,
@@ -116,7 +116,7 @@ REQUIRES = [
     'lxml',
     'xlrd',
     'pillow',
-    'pydicom',
+    'pydicom>=%s' % PYDICOM_MIN_VERSION,
     'httplib2',
     'future',
     'configparser'

@@ -129,7 +129,7 @@ name as a key and list of yaml filepaths as values.'
                 if isinstance(yaml_obj, processors.AutoProcessor):
                     proc = yaml_obj
                 else:
-                    proc = processors.AutoProcessor(yaml_obj)
+                    proc = processors.load(yaml_obj)
                 if project not in self.project_process_dict:
                     self.project_process_dict[project] = [proc]
                 else:

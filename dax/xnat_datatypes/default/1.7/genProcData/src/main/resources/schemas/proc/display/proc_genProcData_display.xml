@@ -84,10 +84,10 @@
 	<DisplayField id="PROCTYPE" header="proctype" visible="true" searchable="true">
 		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/proctype"/>
 	</DisplayField>
-    <DisplayField id="PROCVERSION" header="procversion" visible="true" searchable="true">
-        <DisplayFieldElement name="Field1" schema-element="proc:genProcData/procversion"/>
-    </DisplayField>
-    <DisplayField id="JOBID" header="jobid" visible="true" searchable="true">
+	<DisplayField id="PROCVERSION" header="procversion" visible="true" searchable="true">
+		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/procversion"/>
+	</DisplayField>
+	<DisplayField id="JOBID" header="jobid" visible="true" searchable="true">
 		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/jobid"/>
 	</DisplayField>
 	<DisplayField id="WALLTIMEUSED" header="walltimeused" visible="true" searchable="true">
@@ -115,8 +115,32 @@
 		<DisplayFieldElement name="Field1" schema-element="proc:genProcData.validation.date"/>
 	</DisplayField>
 	 <DisplayField id="JOBNODE" header="jobnode" visible="true" searchable="true">
-        <DisplayFieldElement name="Field1" schema-element="proc:genProcData/jobnode"/>
-    </DisplayField>
+		 <DisplayFieldElement name="Field1" schema-element="proc:genProcData/jobnode"/>
+	</DisplayField>
+	<DisplayField id="DAX_PROCESSOR_VERSION" header="DAX_PROCESSOR_VERSION" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/dax_processor_version" />
+	</DisplayField>
+	<DisplayField id="DAX_PROCESSOR_NAME" header="DAX_PROCESSOR_NAME" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/dax_processor_name" />
+	</DisplayField>
+	<DisplayField id="DAX_SPIDER_VERSION" header="DAX_SPIDER_VERSION" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/dax_spider_version" />
+	</DisplayField>
+	<DisplayField id="DAX_SPIDER_NAME" header="DAX_SPIDER_NAME" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/dax_spider_name" />
+	</DisplayField>
+	<DisplayField id="DAX_CODE_VERSION" header="DAX_CODE_VERSION" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/dax_code_version" />
+	</DisplayField>
+	<DisplayField id="DAX_DOCKER_VERSION" header="DAX_DOCKER_VERSION" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/dax_docker_version" />
+	</DisplayField>
+	<DisplayField id="DAX_VERSION" header="DAX_VERSION" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/dax_version" />
+	</DisplayField>
+	<DisplayField id="DAX_VERSION_HASH" header="DAX_VERSION_HASH" visible="true" searchable="true" data-type="string">
+		<DisplayFieldElement name="Field1" schema-element="proc:genProcData/dax_version_hash" />
+	</DisplayField>
 	<DisplayVersion versionName="listing" default-order-by="DATE" default-sort-order="DESC" brief-description="Processing" dark-color="9999CC" light-color="CCCCFF">
 		<DisplayFieldRef id="RPT"/>
 		<DisplayFieldRef id="LABEL"/>
@@ -130,6 +154,14 @@
 		<DisplayFieldRef id="WALLTIMEUSED"/>
 		<DisplayFieldRef id="MEMUSEDMB"/>
 		<DisplayFieldRef id="MEMUSED"/>
+		<DisplayFieldRef id="DAX_PROCESSOR_VERSION"/>
+		<DisplayFieldRef id="DAX_PROCESSOR_NAME"/>
+		<DisplayFieldRef id="DAX_SPIDER_VERSION"/>
+		<DisplayFieldRef id="DAX_SPIDER_NAME"/>
+		<DisplayFieldRef id="DAX_CODE_VERSION"/>
+		<DisplayFieldRef id="DAX_DOCKER_VERSION"/>
+		<DisplayFieldRef id="DAX_VERSION"/>
+		<DisplayFieldRef id="DAX_VERSION_HASH"/>
 		<DisplayFieldRef id="QC_STATUS"/>
 		<DisplayFieldRef id="QC_USER"/>
 		<DisplayFieldRef id="QC_DATE"/>
@@ -139,14 +171,22 @@
 		<DisplayFieldRef id="LABEL"/>
 		<DisplayFieldRef id="DATE"/>
 		<DisplayFieldRef id="PROCSTATUS"/>
-        <DisplayFieldRef id="PROCTYPE"/>
-        <DisplayFieldRef id="PROCVERSION"/>
+		<DisplayFieldRef id="PROCTYPE"/>
+		<DisplayFieldRef id="PROCVERSION"/>
 		<DisplayFieldRef id="JOBID"/>
 		<DisplayFieldRef id="JOBSTARTDATE"/>
 		<DisplayFieldRef id="JOBNODE"/>
 		<DisplayFieldRef id="WALLTIMEUSED"/>
 		<DisplayFieldRef id="MEMUSEDMB"/>
 		<DisplayFieldRef id="MEMUSED"/>
+		<DisplayFieldRef id="DAX_PROCESSOR_VERSION"/>
+		<DisplayFieldRef id="DAX_PROCESSOR_NAME"/>
+		<DisplayFieldRef id="DAX_SPIDER_VERSION"/>
+		<DisplayFieldRef id="DAX_SPIDER_NAME"/>
+		<DisplayFieldRef id="DAX_CODE_VERSION"/>
+		<DisplayFieldRef id="DAX_DOCKER_VERSION"/>
+		<DisplayFieldRef id="DAX_VERSION"/>
+		<DisplayFieldRef id="DAX_VERSION_HASH"/>
 		<DisplayFieldRef id="QC_STATUS"/>
 		<DisplayFieldRef id="QC_USER"/>
 		<DisplayFieldRef id="QC_DATE"/>
@@ -156,14 +196,22 @@
 		<DisplayFieldRef id="EXPT_ID"/>
 		<DisplayFieldRef id="DATE"/>
 		<DisplayFieldRef id="PROCSTATUS"/>
-        <DisplayFieldRef id="PROCTYPE"/>
-        <DisplayFieldRef id="PROCVERSION"/>
+		<DisplayFieldRef id="PROCTYPE"/>
+		<DisplayFieldRef id="PROCVERSION"/>
 		<DisplayFieldRef id="JOBID"/>
 		<DisplayFieldRef id="JOBSTARTDATE"/>
 		<DisplayFieldRef id="JOBNODE"/>
 		<DisplayFieldRef id="WALLTIMEUSED"/>
 		<DisplayFieldRef id="MEMUSEDMB"/>
 		<DisplayFieldRef id="MEMUSED"/>
+		<DisplayFieldRef id="DAX_PROCESSOR_VERSION"/>
+		<DisplayFieldRef id="DAX_PROCESSOR_NAME"/>
+		<DisplayFieldRef id="DAX_SPIDER_VERSION"/>
+		<DisplayFieldRef id="DAX_SPIDER_NAME"/>
+		<DisplayFieldRef id="DAX_CODE_VERSION"/>
+		<DisplayFieldRef id="DAX_DOCKER_VERSION"/>
+		<DisplayFieldRef id="DAX_VERSION"/>
+		<DisplayFieldRef id="DAX_VERSION_HASH"/>
 		<DisplayFieldRef id="QC_STATUS"/>
 		<DisplayFieldRef id="QC_USER"/>
 		<DisplayFieldRef id="QC_DATE"/>
@@ -173,14 +221,22 @@
 		<DisplayFieldRef id="EXPT_ID"/>
 		<DisplayFieldRef id="DATE"/>
 		<DisplayFieldRef id="PROCSTATUS"/>
-        <DisplayFieldRef id="PROCTYPE"/>
-        <DisplayFieldRef id="PROCVERSION"/>
+		<DisplayFieldRef id="PROCTYPE"/>
+		<DisplayFieldRef id="PROCVERSION"/>
 		<DisplayFieldRef id="JOBID"/>
 		<DisplayFieldRef id="JOBSTARTDATE"/>
 		<DisplayFieldRef id="JOBNODE"/>
 		<DisplayFieldRef id="WALLTIMEUSED"/>
 		<DisplayFieldRef id="MEMUSEDMB"/>
 		<DisplayFieldRef id="MEMUSED"/>
+		<DisplayFieldRef id="DAX_PROCESSOR_VERSION"/>
+		<DisplayFieldRef id="DAX_PROCESSOR_NAME"/>
+		<DisplayFieldRef id="DAX_SPIDER_VERSION"/>
+		<DisplayFieldRef id="DAX_SPIDER_NAME"/>
+		<DisplayFieldRef id="DAX_CODE_VERSION"/>
+		<DisplayFieldRef id="DAX_DOCKER_VERSION"/>
+		<DisplayFieldRef id="DAX_VERSION"/>
+		<DisplayFieldRef id="DAX_VERSION_HASH"/>
 		<DisplayFieldRef id="QC_STATUS"/>
 		<DisplayFieldRef id="QC_USER"/>
 		<DisplayFieldRef id="QC_DATE"/>
@@ -190,14 +246,22 @@
 		<DisplayFieldRef id="PROC_GENPROCDATA_PROJECT_IDENTIFIER"/>
 		<DisplayFieldRef id="DATE"/>
 		<DisplayFieldRef id="PROCSTATUS"/>
-        <DisplayFieldRef id="PROCTYPE"/>
-        <DisplayFieldRef id="PROCVERSION"/>
+		<DisplayFieldRef id="PROCTYPE"/>
+		<DisplayFieldRef id="PROCVERSION"/>
 		<DisplayFieldRef id="JOBID"/>
 		<DisplayFieldRef id="JOBSTARTDATE"/>
 		<DisplayFieldRef id="JOBNODE"/>
 		<DisplayFieldRef id="WALLTIMEUSED"/>
 		<DisplayFieldRef id="MEMUSEDMB"/>
 		<DisplayFieldRef id="MEMUSED"/>
+		<DisplayFieldRef id="DAX_PROCESSOR_VERSION"/>
+		<DisplayFieldRef id="DAX_PROCESSOR_NAME"/>
+		<DisplayFieldRef id="DAX_SPIDER_VERSION"/>
+		<DisplayFieldRef id="DAX_SPIDER_NAME"/>
+		<DisplayFieldRef id="DAX_CODE_VERSION"/>
+		<DisplayFieldRef id="DAX_DOCKER_VERSION"/>
+		<DisplayFieldRef id="DAX_VERSION"/>
+		<DisplayFieldRef id="DAX_VERSION_HASH"/>
 		<DisplayFieldRef id="QC_STATUS"/>
 		<DisplayFieldRef id="QC_USER"/>
 		<DisplayFieldRef id="QC_DATE"/>

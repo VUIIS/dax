@@ -507,7 +507,7 @@ class DAX_Settings(object):
         """
         return self.get('cluster', 'job_extension_file')
 
-    def get_job_template(self):
+    def get_job_template(self, filepath=None):
         """Get the job_template value from the cluster section.
 
         NOTE: This should be a relative path to a file up a directory
@@ -516,7 +516,12 @@ class DAX_Settings(object):
         :raise: OSError if the field is empty or if the file doesn't exist
         :return: Template class of the file containing the command
         """
-        filepath = self.get('cluster', 'job_template')
+        if filepath is None:
+            filepath = self.get('cluster', 'job_template')
+        elif not os.path.isabs(filepath):
+            # If only filename, we assume it is same folder as default
+            def_filepath = self.get('cluster', 'job_template')
+            filepath = os.path.join(os.path.dirname(def_filepath), filepath)
         if filepath is None:
             return ''
         if filepath.startswith('~/'):
