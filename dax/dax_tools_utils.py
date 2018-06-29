@@ -1339,11 +1339,12 @@ settings file. Please use either JSON/PYTHON/CSV format.")
         _host = os.environ['XNAT_HOST']
         username = None
         password = None
-        projects = []
         if host:
             _host = host
         if projects:
             projects = projects.split(',')
+        else:
+            projects = []
         if username:
             username = username
             if not password:
