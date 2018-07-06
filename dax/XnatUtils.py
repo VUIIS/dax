@@ -57,7 +57,6 @@ import yaml
 import zipfile
 
 from . import utilities
-from . import assessor_utils
 from .task import (JOB_FAILED, JOB_RUNNING, JOB_PENDING, READY_TO_UPLOAD,
                    NEEDS_QA, RERUN, REPROC, FAILED_NEEDS_REPROC, BAD_QA_STATUS)
 from .errors import (XnatUtilsError, XnatAccessError,

@@ -128,6 +128,7 @@ class ProcessorGraphUnitTests(TestCase):
             def get_assessor_input_types(self):
                 return self.inputs
 
+
         a = TestProcessor('a', [])
         b = TestProcessor('b', [])
         c = TestProcessor('c', ['a', 'b'])
@@ -140,3 +141,36 @@ class ProcessorGraphUnitTests(TestCase):
         self.assertListEqual(
             actual, [a, b, c, e, d]
         )
+
+
+        a = TestProcessor('a', [])
+        b = TestProcessor('b', ['a', 'd'])
+        c = TestProcessor('c', ['b'])
+        d = TestProcessor('d', ['c'])
+        e = TestProcessor('e', ['b'])
+
+        processors = [a, b, c, d, e]
+
+        actual = ProcessorGraph.order_processors(processors)
+
+
+
+    def test_tarjan(self):
+        g = {
+            'a': ['b', 'c'],
+            'b': ['d'],
+            'c': ['e'],
+            'd': ['f'],
+            'e': ['f'],
+            'f': []
+        }
+        print ProcessorGraph.tarjan(g)
+
+        g = {
+            'a': ['b'],
+            'b': ['c', 'e'],
+            'c': ['d'],
+            'd': ['b'],
+            'e': []
+        }
+        print ProcessorGraph.tarjan(g)

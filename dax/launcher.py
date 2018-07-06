@@ -16,7 +16,6 @@ import os
 import traceback
 
 from . import processors, modules, XnatUtils, task, cluster
-from . import assessor_utils
 from .task import Task, ClusterTask, XnatTask
 from .dax_settings import DAX_Settings, DAX_Netrc
 from .errors import (ClusterCountJobsException, ClusterLaunchException,

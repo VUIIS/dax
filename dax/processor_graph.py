@@ -1,4 +1,9 @@
 
+import logging
+LOGGER = logging.getLogger('dax')
+
+# TODO: BenM/asr_of_asr/should detect / report cycles
+# TODO: BenM/asr_of_asr/needs proper unittesting
 
 class ProcessorGraph:
 
@@ -10,7 +15,6 @@ class ProcessorGraph:
 
             asrs = xnat.get('assessors', {})
             inputs = set()
-            print 'asrs =', asrs
             for a in asrs:
                 types = a.get('proctypes', '').split(',')
 
@@ -22,6 +26,18 @@ class ProcessorGraph:
 
     @staticmethod
     def order_processors(processors):
+        """
+        Order a list of processors in dependency order.
+        This method takes a list of processors and orders them so that:
+        . if processor type b takes an input of processor type a, processor a
+          appears in the list before processor b
+        . processors without a well-formed name are placed at the end of the
+          list in no particular order
+
+
+        :param processors:
+        :return:
+        """
         processor_map = dict(map(lambda p: (p.get_proctype(), p), processors))
         named_processors = []
         unnamed_processors = []
@@ -45,7 +61,6 @@ class ProcessorGraph:
     # refactor of existing processors
     @staticmethod
     def order_from_inputs(artefact_type_map):
-        print artefact_type_map
         # artefact_type_map is a list of artefacts to their *inputs*.
             # consider the following graph:
         # a --> b --> d
@@ -65,7 +80,7 @@ class ProcessorGraph:
         #    the current node is added to the ordered list
         open_nodes = dict()
         satisfied = list()
-        ordering = list()
+        ordered = list()
         fwd_edges = dict()
 
         # calculate a list of nodes to sink edges
@@ -94,15 +109,104 @@ class ProcessorGraph:
         # added to the end of the satisfied list
         while len(satisfied) > 0:
             cur = satisfied[0]
-            ordering.append(cur)
+            ordered.append(cur)
             satisfied = satisfied[1:]
             for sink in fwd_edges[cur]:
                 open_nodes[sink] -= 1
                 if open_nodes[sink] == 0:
                     satisfied.append(sink)
 
+        unordered = list()
         for k, v in open_nodes.iteritems():
             if v > 0:
-                ordering.append(k)
+                unordered.append(k)
 
-        return ordering
+        if len(unordered) > 0:
+            regions = ProcessorGraph.tarjan(fwd_edges)
+            LOGGER.warning('Cyclic processor dependencies detected:')
+            for r in filter(lambda x: len(x) > 1, regions):
+                print "Cycle: " + r
+
+        return ordered + unordered
+
+
+    @staticmethod
+    def tarjan(graph):
+
+        class Vertex:
+            def __init__(self, v, e):
+                self.v = v
+                self.e = e
+                self.index = None
+                self.onstack = False
+                self.lowLink = None
+
+        class TarjanImpl:
+            """
+            Expecting graph to be in the form of:
+            {
+                a: [b, c],
+                b: [d],
+                c: [e],
+                d: [f],
+                e: [f],
+                f: []
+            }
+            :param graph:
+            :return:
+            """
+
+            def __init__(self):
+                self.V = dict()
+                self.S = list()
+                self.index = 0
+                self.scrs = list()
+
+            def go(self, graph):
+                self.V = dict()
+                self.S = list()
+                self.index = 0
+                self.scrs = list()
+                self.V = {v: Vertex(v, w) for (v, w) in graph.iteritems()}
+
+                self.index = 0
+                self.S = list()
+
+                for v in self.V.itervalues():
+                    if v.index is None:
+                        self.strongconnect(v)
+
+                return self.scrs
+
+            def strongconnect(self, v):
+                v.index = self.index
+                v.lowlink = self.index
+                self.index += 1
+                self.S.append(v)
+                v.onstack = True
+
+                for d in v.e:
+                    w = self.V[d]
+                    if w.index is None:
+                        self.strongconnect(w)
+                        v.lowlink = min(v.lowlink, w.lowlink)
+                    elif w.onstack is True:
+                        v.lowlink = min(v.lowlink, w.index)
+
+                if v.lowlink == v.index:
+                    scr = []
+                    while True:
+                        w = self.S.pop()
+                        w.onstack = False
+                        scr.append(w.v)
+                        if w is v:
+                            break
+                    self.scrs.append(scr)
+
+        t = TarjanImpl()
+        results = t.go(graph)
+        # print results, len(results) < len(graph)
+        return results
+
+
+

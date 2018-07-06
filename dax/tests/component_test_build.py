@@ -25,7 +25,7 @@ from dax import AutoProcessor
 host165 = 'http://10.1.1.165'
 host17 = 'http://10.1.1.17'
 host = host17
-proj_id = 'testproj1'
+proj_id = 'proj1'
 subj_id = 'subj1'
 sess_id = 'sess1'
 scan_id = '1'
@@ -128,14 +128,6 @@ assessor_presets = {
 
 class ComponentTestBuild(TestCase):
 
-    asrxsitype = 'proc:genProcData'
-    scanxsitype = 'xnat:mrScanData'
-
-    expstr = '/data/projects/{}/subjects/{}/experiments/{}'.format(
-        proj_id, subj_id, sess_id)
-    scanstr = '/scans/{}'
-
-
     scan1_yaml = yamls.generate_yaml(
         scans=[
             {
@@ -174,6 +166,7 @@ class ComponentTestBuild(TestCase):
         SessionTools.add_scan(session, '1', scan_presets['t1'])
         SessionTools.add_scan(session, '2', scan_presets['t1'])
         SessionTools.add_scan(session, '11', scan_presets['flair'])
+
 
     @staticmethod
     def _setup_assessors(self, session):

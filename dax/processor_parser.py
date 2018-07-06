@@ -1,8 +1,9 @@
 
 import copy
 import itertools
+import logging
+LOGGER = logging.getLogger('dax')
 
-from . import utilities
 from . import XnatUtils
 
 
@@ -26,10 +27,6 @@ no_asrs_error = 'No assessors of the require type/s ({}) found for input {}'
 scan_unusable_error = 'Scan {} is unusable for input {}'
 asr_unusable_error = 'Assessor {} is unusable for input {}'
 
-# base_path = '/projects/{0}/subjects/{1}/experiments/{2}/'
-# assr_path = base_path + 'assessors/{3}/out/resources/{4}'
-# scan_path = base_path + 'scans/{3}/resources/{4}'
-# artefact_paths = {'assessor': assr_path, 'scan': scan_path}
 resource_paths = {
     'assessor': '{0}/out/resources/{1}',
     'scan': '{0}/resources/{1}'
@@ -122,18 +119,11 @@ class ProcessorParser:
                                                 self.proctype,
                                                 parameter_matrix)
 
-        # command_params = ProcessorParser.generate_commands(
-        #     csess,
-        #     self.inputs,
-        #     self.variables_to_inputs,
-        #     parameter_matrix)
-
         self.csess = csess
         self.artefacts = artefacts
         self.artefacts_by_input = artefacts_by_input
         self.parameter_matrix = parameter_matrix
         self.assessor_parameter_map = assessor_parameter_map
-        # self.command_params = command_params
 
 
     def get_variable_set(self, assr):
@@ -148,8 +138,6 @@ class ProcessorParser:
 
             path_elements = [assr_inputs[v['input']], resource]
 
-            # command_set[k] =\
-            #     artefact_paths[artefact_type].format(*path_elements)
             command_set[k] =\
                 resource_paths[artefact_type].format(*path_elements)
 
@@ -162,10 +150,12 @@ class ProcessorParser:
             return ProcessorParser.__check_yaml_v1
         return None
 
+
     @staticmethod
     def _get_schema_dictionary(version):
         if version == '1':
             return ProcessorParser.__schema_dict_v1
+
 
     @staticmethod
     def __check_yaml_v1(yaml_source):
@@ -184,7 +174,6 @@ class ProcessorParser:
         assr_section = xnat_section.get('assessors', {})
         for k, v in assr_section.iteritems():
             pass
-
 
 
     @staticmethod
@@ -225,7 +214,6 @@ class ProcessorParser:
             iteration_map[name] = iteration_args[1].split('/')[0]
 
 
-
     @staticmethod
     def _register_input_types(input_types, inputs_by_type, name):
         for t in input_types:
@@ -234,8 +222,6 @@ class ProcessorParser:
             inputs_by_type[t] = ts
 
 
-    # TODO: BenM/general refactor/update yaml schema so scan name is an explicit
-    # field
     @staticmethod
     def _input_name(artefact):
         # candidates = list(filter(lambda v: v[1] is None, scan.iteritems()))
@@ -358,8 +344,10 @@ class ProcessorParser:
         parse(csess.scans(), artefacts)
         parse(csess.assessors(), artefacts)
 
+        LOGGER.info('inputs by assessor:')
         for cassr in csess.assessors():
-            print cassr.get_inputs()
+            LOGGER.info(' - ' + cassr.label())
+            LOGGER.info('   - ' + str(cassr.get_inputs()))
         return artefacts
 
 
@@ -598,36 +586,3 @@ class ProcessorParser:
 
         return zip(copy.deepcopy(parameter_matrix), assessors)
 
-
-    @staticmethod
-    def generate_commands(csess,
-                          inputs,
-                          variables_to_inputs,
-                          parameter_matrix):
-        # map from parameters to input resources
-
-        path_elements = [
-            csess.project_id(),
-            csess.subject_id(),
-            csess.session_id(),
-            None,
-            None]
-
-        command_sets = []
-        for p in parameter_matrix:
-            command_set = dict()
-            for k, v in variables_to_inputs.iteritems():
-                inp = inputs[v['input']]
-                artefact_type = inp['artefact_type']
-                resource = v['resource']
-
-                path_elements = [p[v['input']], resource]
-
-                # command_set[k] =\
-                #     artefact_paths[artefact_type].format(*path_elements)
-                command_set[k] =\
-                    resource_paths[artefact_type].format(*path_elements)
-
-            command_sets.append(command_set)
-
-        return command_sets

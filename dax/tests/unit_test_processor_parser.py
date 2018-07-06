@@ -417,14 +417,6 @@ class ProcessorParserUnitTests(TestCase):
                                                 parameter_matrix)
         print "assessor_parameter_map = ", assessor_parameter_map
 
-        commands = \
-            ProcessorParser.generate_commands(csess,
-                                              inputs,
-                                              variables_to_inputs,
-                                              parameter_matrix)
-        print "commands = ", commands
-
-        pp = ProcessorParser(doc)
 
 
     def test_processor_parser_experimental_1(self):
@@ -537,8 +529,6 @@ class ProcessorParserUnitTests(TestCase):
         matrix = ProcessorParserUnitTests.__generate_one_scan_scenarios()
 
         for m in matrix:
-            # print 'm[artefacts] =', m['artefacts']
-            # print 'm[yaml_inputs] =', m['yaml_inputs']
             csess = TestSession().NewInit('proj1',
                                           'subj1',
                                           'sess1',
