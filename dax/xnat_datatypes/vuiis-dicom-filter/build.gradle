@@ -37,7 +37,7 @@ buildscript {
 
 // TODO: Change the group and version to values appropriate for your plugin project.
 group 'edu.vanderbilt.vuiis.plugins'
-version '1.0.0'
+version '1.1.0'
 
 // TODO: This is the minimum set of Gradle plugins required to build most XNAT plugins. You may include many others, including plugins for testing and test coverage, IDE integration, and more.
 apply plugin: 'io.spring.dependency-management'
