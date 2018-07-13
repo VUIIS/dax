@@ -23,9 +23,25 @@ class ProcessorGraph:
         return sources
 
 
+    @staticmethod
+    def get_forward_edges(nodes_to_src_edges):
+        sink_edges = dict()
+        # calculate a list of nodes to sink edges
+        for k, v in nodes_to_src_edges.iteritems():
+            if k not in sink_edges:
+                sink_edges[k] = []
+            for src in v:
+                if src not in sink_edges:
+                    sink_edges[src] = []
+                sink_edges[src].append(k)
+        for v in sink_edges:
+            sink_edges[v] = sorted(sink_edges[v])
+
+        return sink_edges
+
 
     @staticmethod
-    def order_processors(processors):
+    def order_processors(processors, log=None):
         """
         Order a list of processors in dependency order.
         This method takes a list of processors and orders them so that:
@@ -48,7 +64,8 @@ class ProcessorGraph:
                 unnamed_processors.append(p)
             else:
                 assessor_inputs[p.get_proctype()] = p.get_assessor_input_types()
-        ordered_names = ProcessorGraph.order_from_inputs(assessor_inputs)
+
+        ordered_names = ProcessorGraph.order_from_inputs(assessor_inputs, log)
         for n in ordered_names:
             named_processors.append(processor_map[n])
         return named_processors + unnamed_processors
@@ -60,7 +77,7 @@ class ProcessorGraph:
     # processors rather than a list of yaml_sources, but this would require a
     # refactor of existing processors
     @staticmethod
-    def order_from_inputs(artefact_type_map):
+    def order_from_inputs(artefacts_to_inputs, log=None):
         # artefact_type_map is a list of artefacts to their *inputs*.
             # consider the following graph:
         # a --> b --> d
@@ -81,24 +98,13 @@ class ProcessorGraph:
         open_nodes = dict()
         satisfied = list()
         ordered = list()
-        fwd_edges = dict()
-
-        # calculate a list of nodes to sink edges
-        for k, v in artefact_type_map.iteritems():
-            if k not in fwd_edges:
-                fwd_edges[k] = []
-            for src in v:
-                if src not in fwd_edges:
-                    fwd_edges[src] = []
-                fwd_edges[src].append(k)
-        for v in fwd_edges:
-            fwd_edges[v] = sorted(fwd_edges[v])
+        fwd_edges = ProcessorGraph.get_forward_edges(artefacts_to_inputs)
 
         # calculate the 'in-degree' (number of incoming edges) for each
         # node; this is more easily done using the mapping of nodes to inputs.
         # if a node has an in-degree of zero then it can go onto the satisfied
         # list
-        for k, v in artefact_type_map.iteritems():
+        for k, v in artefacts_to_inputs.iteritems():
             open_nodes[k] = len(v)
             if len(v) == 0:
                 satisfied.append(k)
@@ -120,12 +126,17 @@ class ProcessorGraph:
         for k, v in open_nodes.iteritems():
             if v > 0:
                 unordered.append(k)
+        unordered = sorted(unordered)
 
-        if len(unordered) > 0:
+        if len(unordered) > 0 and log is not None:
+            log.warning('Unable to order all processors:')
+            log.warning('  Unordered: ' + ', '.join(unordered))
             regions = ProcessorGraph.tarjan(fwd_edges)
-            LOGGER.warning('Cyclic processor dependencies detected:')
+            if len(regions) < len(artefacts_to_inputs):
+                log.warning('Cyclic processor dependencies detected:')
+            regions.reverse()
             for r in filter(lambda x: len(x) > 1, regions):
-                print "Cycle: " + r
+                log.warning('  Cycle: ' + ', '.join(r))
 
         return ordered + unordered
 

@@ -8,7 +8,19 @@ from dax.tests import unit_test_entity_common as common
 from dax.processors import AutoProcessor
 
 
+class TestLog:
+    def __init__(self):
+        self.warnings = list()
+
+    def warning(self, message):
+        self.warnings.append(message)
+
+    def clear(self):
+        self.warnings = list()
+
+
 class ProcessorGraphUnitTests(TestCase):
+
 
     @staticmethod
     def __getabcdscenario():
@@ -70,7 +82,13 @@ class ProcessorGraphUnitTests(TestCase):
         ]
 
 
+    #def _getTestGraph1(self):
+
+
+
     def test_ordered_processors(self):
+        log = TestLog()
+
         graph_description = {
             'a': [],
             'b': ['a'],
@@ -79,11 +97,13 @@ class ProcessorGraphUnitTests(TestCase):
             'e': ['b', 'c'],
             'f': ['d', 'e']
         }
-        actual = ProcessorGraph.order_from_inputs(graph_description)
+        actual = ProcessorGraph.order_from_inputs(graph_description, log)
         print actual
 
 
     def test_ordered_processors_has_cycle(self):
+        log = TestLog()
+
         graph_description = {
             'a': [],
             'b': ['a', 'e'],
@@ -92,7 +112,7 @@ class ProcessorGraphUnitTests(TestCase):
             'e': ['c', 'd'],
             'f': ['d', 'e']
         }
-        actual = ProcessorGraph.order_from_inputs(graph_description)
+        actual = ProcessorGraph.order_from_inputs(graph_description, log)
         print actual
 
 
@@ -104,17 +124,22 @@ class ProcessorGraphUnitTests(TestCase):
 
 
     def test_ordering_from_sources(self):
+        log = TestLog()
         print ProcessorGraph.order_from_inputs(
             ProcessorGraph.processor_inputs_from_sources(
                 ProcessorGraphUnitTests.__getabcdscenario()
-            )
+            ),
+            log
         )
+
 
     def test_order_processors(self):
         yamldocs = map(lambda p: p[1],
                        ProcessorGraphUnitTests.__getabcdscenario())
         processors = map(lambda p: AutoProcessor(common.FakeXnat, p), yamldocs)
-        print ProcessorGraph.order_processors(processors)
+        log = TestLog()
+        print ProcessorGraph.order_processors(processors, log)
+
 
     def test_order_processors_mocked(self):
         class TestProcessor:
@@ -128,34 +153,85 @@ class ProcessorGraphUnitTests(TestCase):
             def get_assessor_input_types(self):
                 return self.inputs
 
+        log = TestLog()
+        p = [
+            TestProcessor('a', []),
+            TestProcessor('b', []),
+            TestProcessor('c', ['a', 'b']),
+            TestProcessor(None, ['b']),
+            TestProcessor('e', ['c', 'd']),
+        ]
 
-        a = TestProcessor('a', [])
-        b = TestProcessor('b', [])
-        c = TestProcessor('c', ['a', 'b'])
-        d = TestProcessor(None, ['b'])
-        e = TestProcessor('e', ['c', 'd'])
-
-        processors = [a, b, c, d, e]
-
-        actual = ProcessorGraph.order_processors(processors)
+        actual = ProcessorGraph.order_processors(p, log)
         self.assertListEqual(
-            actual, [a, b, c, e, d]
+            actual, [p[0], p[1], p[2], p[4], p[3]]
+        )
+        self.assertListEqual(
+            log.warnings,
+            [
+                'Unable to order all processors:',
+                '  Unordered: e'
+            ]
+        )
+
+        log = TestLog()
+        p = [
+            TestProcessor('a', []),
+            TestProcessor('b', ['a', 'd']),
+            TestProcessor('c', ['b']),
+            TestProcessor('d', ['c']),
+            TestProcessor('e', ['b'])
+        ]
+
+        actual = ProcessorGraph.order_processors(p, log)
+        self.assertListEqual(
+            actual,  [p[0], p[1], p[2], p[3], p[4]]
+        )
+        self.assertListEqual(
+            log.warnings,
+            [
+                'Unable to order all processors:',
+                '  Unordered: b, c, d, e',
+                'Cyclic processor dependencies detected:',
+                '  Cycle: d, c, b'
+            ]
+        )
+
+        log = TestLog()
+        p = [
+            TestProcessor('a', []),
+            TestProcessor('b', ['a', 'd']),
+            TestProcessor('c', ['b']),
+            TestProcessor('d', ['c']),
+            TestProcessor('e', ['b', 'g']),
+            TestProcessor('f', ['e']),
+            TestProcessor('g', ['f']),
+            TestProcessor('h', ['e'])
+        ]
+
+        actual = ProcessorGraph.order_processors(p, log)
+        self.assertListEqual(
+            actual,  [p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]]
+        )
+        self.assertListEqual(
+            log.warnings,
+            [
+                'Unable to order all processors:',
+                '  Unordered: b, c, d, e, f, g, h',
+                'Cyclic processor dependencies detected:',
+                '  Cycle: d, c, b',
+                '  Cycle: g, f, e'
+            ]
         )
 
 
-        a = TestProcessor('a', [])
-        b = TestProcessor('b', ['a', 'd'])
-        c = TestProcessor('c', ['b'])
-        d = TestProcessor('d', ['c'])
-        e = TestProcessor('e', ['b'])
-
-        processors = [a, b, c, d, e]
-
-        actual = ProcessorGraph.order_processors(processors)
-
-
-
     def test_tarjan(self):
+
+        def impl(g, expected):
+            actual = ProcessorGraph.tarjan(g)
+            print actual
+            self.assertListEqual(actual, expected)
+
         g = {
             'a': ['b', 'c'],
             'b': ['d'],
@@ -164,7 +240,7 @@ class ProcessorGraphUnitTests(TestCase):
             'e': ['f'],
             'f': []
         }
-        print ProcessorGraph.tarjan(g)
+        impl(g, [['f'], ['d'], ['b'], ['e'], ['c'], ['a']])
 
         g = {
             'a': ['b'],
@@ -173,4 +249,23 @@ class ProcessorGraphUnitTests(TestCase):
             'd': ['b'],
             'e': []
         }
-        print ProcessorGraph.tarjan(g)
+        impl(g, [['e'], ['d', 'c', 'b'], ['a']])
+
+        g = {
+            'a': ['b'],
+            'b': ['c'],
+            'c': ['a']
+        }
+        impl(g, [['c', 'b', 'a']])
+
+        g = {
+            'a': ['b'],
+            'b': ['c', 'e'],
+            'c': ['d'],
+            'd': ['b'],
+            'e': ['f', 'h'],
+            'f': ['g'],
+            'g': ['e'],
+            'h': []
+        }
+        impl(g, [['h'], ['g', 'f', 'e'], ['d', 'c', 'b'], ['a']])

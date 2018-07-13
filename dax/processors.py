@@ -759,6 +759,7 @@ def processors_by_type(proc_list):
     """
     sess_proc_list = list()
     scan_proc_list = list()
+    auto_proc_list = list()
 
     # Build list of processors by type
     if proc_list is not None:
@@ -768,11 +769,12 @@ def processors_by_type(proc_list):
             elif issubclass(proc.__class__, SessionProcessor):
                 sess_proc_list.append(proc)
             elif issubclass(proc.__class__, AutoProcessor):
-                if proc.type == 'scan':
-                    scan_proc_list.append(proc)
-                else:
-                    sess_proc_list.append(proc)
+                auto_proc_list.append(proc)
+                # if proc.type == 'scan':
+                #     scan_proc_list.append(proc)
+                # else:
+                #     sess_proc_list.append(proc)
             else:
                 LOGGER.warn('unknown processor type: %s' % proc)
 
-    return sess_proc_list, scan_proc_list
+    return scan_proc_list, sess_proc_list, auto_proc_list

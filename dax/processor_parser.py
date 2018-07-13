@@ -13,12 +13,20 @@ from . import XnatUtils
 # support the ability to fix broken inputs
 # support partial node ordering of processor dependencies
 
-session_namespace = {
+select_namespace = {
     'foreach': {'args': [{'optional': True, 'type': str}]},
     'one': {'args': []},
     'some': {'args': [{'optional': False, 'type': int}]},
     'all': {'args': []},
     'from': {'args': [{'optional': False, 'type': str}]}
+}
+
+select_session_namespace = {
+    'current': { 'args': []},
+    'prior': { 'args': [{'optional': False, 'type': int}]},
+    'prior-with': { 'args': [{'optional': False, 'type': int}]},
+    'first': {'args': []},
+    'first-with': {'args': []}
 }
 
 
@@ -250,12 +258,17 @@ class ProcessorParser:
             raise ValueError(
                 'yaml processor is missing xnat keyword contents')
 
+        processor_level = yaml_source['attrs'].get('type', 'session')
+
+        #session_select =
+
         inputs = {}
         # get scans
         scans = xnat.get('scans', list())
         for s in scans:
             name = ProcessorParser._input_name(s)
             select = s.get('select', None)
+
             parsed_select = ProcessorParser._parse_select(select)
             ProcessorParser._register_iteration_references(
                 name,

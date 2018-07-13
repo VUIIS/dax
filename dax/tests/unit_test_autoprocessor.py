@@ -14,8 +14,6 @@ from dax import yaml_doc
 class ConnectionStringUnitTest(TestCase):
 
     def test_a_xpath(self):
-        #print(XnatUtils.A_XPATH.format(project='proj1')) # throws KeyError
-        print('a{a}b{b}'.format(a='a', b=None))
         print(XnatUtils.InterfaceTemp.A_XPATH.format(project='proj1', subject='subj1', session='sess1', assessor='assr1'))
 
 
@@ -91,6 +89,8 @@ class AutoProcessorUnitTest(TestCase):
         self.assertEqual(ret, 1)
 
 
+    # TODO: BenM/asr_of_asr/this method needs to run off pyxnat assessor
+    # objects, so create a mocked pyxnat assessor for this (and other) tests
     def test_scan_assessor_has_inputs(self):
         tseo = self._construct_session('brain_tiv_from_gif')
         tsco = tseo.scan_by_key('1')

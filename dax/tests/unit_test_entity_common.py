@@ -67,7 +67,7 @@ class TestProjectObject:
         self.project_id_ = project_id
         self.label_ = project_dict['label']
         self.subject_objects_ = {
-            subj['ID']: TestSubjectObject(project_id, self, subj)
+            subj['ID']: TestSubjectObject(self, subj)
             for subj in project_dict['subjects']
         }
 
@@ -83,9 +83,9 @@ class TestProjectObject:
 
 
 class TestSubjectObject:
-    def __init__(self, project_id, project, subject_dict):
+    def __init__(self, project, subject_dict):
         self.project_ = project
-        self.project_id_ = project_id
+        #self.project_id_ = project_id
         subject_id = subject_dict['ID']
         self.subject_id_ = subject_id
         self.label_ = subject_dict['label']
@@ -176,11 +176,11 @@ class TestSessionObject:
 
 
     def scans(self):
-        return self.scan_objects_.values()
+        return self.scan_objects_
 
 
     def assessors(self):
-        return self.assessor_objects_.values()
+        return self.assessor_objects_
 
 
 
@@ -337,10 +337,19 @@ class TestResourceObject:
 class TestObjectsTest(TestCase):
 
     def test_make_repo(self):
-        t = TestSessionObject(
-            'proj1', 'subj1',
-            brain_tiv_from_gif_xnat_contents['projects'][0]['subjects'][0]['sessions'][0])
-        print(t['1'])
+        # t = TestSessionObject(
+        #     'proj1', 'subj1',
+        #     brain_tiv_from_gif_xnat_contents['projects'][0]['subjects'][0]['sessions'][0])
+        tp = TestProjectObject(brain_tiv_from_gif_xnat_contents['projects'][0])
+        print tp.label()
+        for tsb in tp.subjects().itervalues():
+            print '', tsb.label()
+            for tse in tsb.sessions().itervalues():
+                print ' ', tse.label()
+                for tsc in tse.scans().itervalues():
+                    print '  ', tsc.label()
+                for tas in tse.assessors().itervalues():
+                    print '  ', tas.label()
 
 
 # second attempt; cut at xnatutils, assessorhandler and interfacetemp
@@ -446,22 +455,22 @@ inputs:
     db: /share/apps/cmic/GIF/1946_database_pCT/db_t1.xml
   xnat:
     scans:
-      - scan1:
+      - name: scan1
         types: T1w,MPRAGE,T1,T1W,1946_3DT1
         resources:
           - resource: NIFTI
             varname: t1
-      - scan2:
+      - name: scan2
         types: 1946_MRAC_UTE
         resources:
           - resource: NIFTI
             varname: ute_echo2
-      - scan3:
+      - name: scan3
         types: 1946_MRAC_UTE_UMAP
         resources:
           - resource: DICOM
             varname: ute_umap
-      - scan4:
+      - name: scan4
         types: RECON_PRR_NAC Images
         resources:
           - resource: DICOM
