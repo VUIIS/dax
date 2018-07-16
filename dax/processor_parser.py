@@ -166,18 +166,28 @@ class ProcessorParser:
 
 
     @staticmethod
-    def __check_yaml_v1(yaml_source):
+    def __check_yaml_v1(log, yaml_source):
+        missing_field = 'Error: scan at position {} is missing {} field'
+        bad_mode = 'Error: scan at position {} has an invalid {} mode'
+        # TODO: BenM/asr_of_asr/finish this!
         errors = []
-        schema_number = yaml_source.get('schema', '1')
-        if schema_number != '1':
+        schema_number = yaml_source.get('yaml_processor_version', None)
+        if schema_number != '0.1':
             errors.append('Error: Invalid schema number {}'.format(schema_number))
 
         if 'xnat' not in yaml_source:
             errors.append('Error: Missing xnat section')
         xnat_section = yaml_source['xnat']
         scan_section = xnat_section.get('scans', {})
-        for k, v in scan_section.iteritems():
-            pass
+        for s, i in enumerate(scan_section):
+            if 'name' not in s:
+                errors.append(missing_field.format(i, 'scan'))
+            if 'types' not in s:
+                errors.append(missing_field.format(i, 'types'))
+            if 'select' in s:
+              select_mode = s.get('select')
+              if select_mode not in select_namespace:
+                errors.append(bad_mode.format(i, 'select'))
 
         assr_section = xnat_section.get('assessors', {})
         for k, v in assr_section.iteritems():
@@ -598,4 +608,3 @@ class ProcessorParser:
                     assessors[pi].append(casr)
 
         return zip(copy.deepcopy(parameter_matrix), assessors)
-
