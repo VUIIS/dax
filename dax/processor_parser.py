@@ -2,6 +2,9 @@
 import copy
 import itertools
 import logging
+import sys
+from collections import namedtuple
+
 LOGGER = logging.getLogger('dax')
 
 from . import XnatUtils
@@ -35,6 +38,18 @@ no_asrs_error = 'No assessors of the require type/s ({}) found for input {}'
 scan_unusable_error = 'Scan {} is unusable for input {}'
 asr_unusable_error = 'Assessor {} is unusable for input {}'
 
+missing_field_unnamed = 'Error: {} at position {} is missing {} field'
+missing_field_named = "Error: {} '{}' is missing '{}' field"
+#bad_mode = "Error: {} '{}' has an invalid {} mode"
+bad_mode = ("Error: {} '{}': '{}' has an invalid value '{}'. "
+            "It must be one of {}")
+missing_resource_field_unnamed = \
+    "Error in {} '{}': missing {} from resource at position {}"
+missing_resource_field_named = \
+    "Error in {} '{}': missing {} from resource field '{}'"
+bad_resource_mode = \
+    "Error in {} '{}'; resource field '{}' has an invalid value"
+
 resource_paths = {
     'assessor': '{0}/out/resources/{1}',
     'scan': '{0}/resources/{1}'
@@ -67,16 +82,33 @@ class ParserArtefact:
 
 
 
+class SelectSessionParameters:
+    def __init__(self, mode, delta):
+        self.mode = mode
+        self.delta = delta
+
+    def __repr__(self):
+        return '{}(mode = {}, delta = {})'.format(self.__class__.__name__,
+                                                  self.mode,
+                                                  self.delta)
+
+
+TimestampSession = namedtuple('TimestampSession', 'timestamp, session')
+
+
+ArtefactEntry = namedtuple('ArtefactEntry', 'path, type, object')
+
+
 class ProcessorParser:
 
     __schema_dict_v1 = {
         'top': set(['schema', 'inputs', 'xnat', 'attrs']),
         'xnat': set(['scans', 'assessors']),
         'scans': set(['select', 'types', 'nargs', 'resources', 'needs_qc']),
-        'assessors': set(['select', 'proctypes', 'nargs', 'resources',
-                         'needs_qc']),
+        'assessors': set(['select', 'types', 'nargs', 'resources', 'needs_qc']),
         'resources': set(['resource', 'varname', 'required'])
     }
+
 
     def __init__(self, yaml_source):
         self.yaml_source = yaml_source
@@ -84,7 +116,8 @@ class ProcessorParser:
         self.inputs,\
         self.inputs_by_type,\
         self.iteration_sources,\
-        self.iteration_map =\
+        self.iteration_map,\
+        self.prior_session_count =\
             ProcessorParser.parse_inputs(yaml_source)
 
         self.variables_to_inputs = ProcessorParser.parse_variables(self.inputs)
@@ -109,10 +142,31 @@ class ProcessorParser:
         self.assessor_parameter_map = None
         self.command_params = None
 
-        artefacts = ProcessorParser.parse_artefacts(csess)
+        # build a list of sessions starting from the current session backwards
+        intf = csess.intf
+        subj = intf.select_subject(csess.project_id(), csess.subject_id())
+        x = [XnatUtils.CachedImageSession(intf,
+                                          csess.project_id(),
+                                          csess.subject_id(),
+                                          s.label())
+             for s in subj.experiments()]
+        x = [TimestampSession(s.creation_timestamp(), s) for s in x]
+        ordered_sessions = map(lambda y: y.session,
+                               sorted(x,
+                                      key=lambda v: v.timestamp,
+                                      reverse=True))
+
+        ordered_sessions =\
+            filter(
+                lambda y: y.creation_timestamp() <= csess.creation_timestamp(),
+                ordered_sessions)
+
+        artefacts = ProcessorParser.parse_artefacts(ordered_sessions)
 
         artefacts_by_input = \
-            ProcessorParser.map_artefacts_to_inputs(csess, self.inputs_by_type)
+            ProcessorParser.map_artefacts_to_inputs(ordered_sessions,
+                                                    self.inputs,
+                                                    self.inputs_by_type)
 
         parameter_matrix = \
             ProcessorParser.generate_parameter_matrix(
@@ -123,7 +177,7 @@ class ProcessorParser:
                 artefacts_by_input)
 
         assessor_parameter_map = \
-            ProcessorParser.compare_to_existing(csess,
+            ProcessorParser.compare_to_existing(ordered_sessions,
                                                 self.proctype,
                                                 parameter_matrix)
 
@@ -166,9 +220,48 @@ class ProcessorParser:
 
 
     @staticmethod
+    def _check_valid_mode(input_category, input_name, keyword, valid_modes,
+                          keyword_yaml):
+        errors = []
+        if keyword in keyword_yaml:
+            mode = keyword_yaml[keyword]
+            if mode not in valid_modes:
+                valid_mode_str =\
+                    ', '.join(map(lambda x: "'" + x + "'", valid_modes))
+                errors.append(
+                    bad_mode.format(input_category, input_name, keyword, mode,
+                                    valid_mode_str))
+        return errors
+
+
+    @staticmethod
+    def __check_resources_yaml_v1(input_category, input_name, resources_yaml):
+        errors = []
+        if 'resources' not in resources_yaml:
+            errors.append(
+                missing_field_named.format(
+                    input_category, input_name, 'resources'))
+
+            for r, j in enumerate(resources_yaml['resources']):
+                if 'varname' not in r:
+                    errors.append(
+                        missing_resource_field_unnamed.format(
+                            input_category, input_name, j, 'varname'))
+                if 'resource' not in r:
+                    errors.append(
+                        missing_resource_field_named.format(
+                            input_category, input_name, r['varname'], 'resource'))
+                if 'required' in r:
+                    if r['required'] not in [True, False]:
+                        errors.append(
+                            bad_resource_mode.format(
+                                input_category, input_name, 'required'))
+        return errors
+
+
+    @staticmethod
     def __check_yaml_v1(log, yaml_source):
-        missing_field = 'Error: scan at position {} is missing {} field'
-        bad_mode = 'Error: scan at position {} has an invalid {} mode'
+
         # TODO: BenM/asr_of_asr/finish this!
         errors = []
         schema_number = yaml_source.get('yaml_processor_version', None)
@@ -178,20 +271,48 @@ class ProcessorParser:
         if 'xnat' not in yaml_source:
             errors.append('Error: Missing xnat section')
         xnat_section = yaml_source['xnat']
+
         scan_section = xnat_section.get('scans', {})
         for s, i in enumerate(scan_section):
             if 'name' not in s:
-                errors.append(missing_field.format(i, 'scan'))
+                errors.append(missing_field_unnamed.format('scan', i, 'name'))
+            name = s['name']
+
             if 'types' not in s:
-                errors.append(missing_field.format(i, 'types'))
-            if 'select' in s:
-              select_mode = s.get('select')
-              if select_mode not in select_namespace:
-                errors.append(bad_mode.format(i, 'select'))
+                errors.append(missing_field_named.format('scan', name, 'types'))
+
+            errors.extend(
+                ProcessorParser._check_valid_mode(
+                    'scan', name, 'select', select_namespace, s))
+
+            errors.extend(
+                ProcessorParser._check_valid_mode(
+                    'scan', name, 'select-session', select_session_namespace,
+                    s))
+
+            errors.extend(
+                ProcessorParser.__check_resources_yaml_v1('scan', name, s))
 
         assr_section = xnat_section.get('assessors', {})
-        for k, v in assr_section.iteritems():
-            pass
+        for a, i in enumerate(assr_section):
+
+            if 'name' not in a:
+                errors.append(missing_field_unnamed.format('scan', i, 'name'))
+            name = a['name']
+
+            if 'types' not in a:
+                errors.append(missing_field_named.format('scan', name, 'types'))
+
+            errors.extend(
+                ProcessorParser._check_valid_mode(
+                    'assessor', name, 'select', select_namespace, a))
+
+            errors.extend(
+                ProcessorParser._check_valid_mode(
+                    'assessor', name, 'select-session',
+                    select_session_namespace, a))
+
+            ProcessorParser.__check_resources_yaml_v1('assessor', name, a)
 
 
     @staticmethod
@@ -214,6 +335,21 @@ class ProcessorParser:
             statement = 'foreach'
         statement = statement.strip()
         return ProcessorParser._get_args(statement)
+
+
+    @staticmethod
+    def _parse_session_select(statement):
+        if statement is None:
+            statement = 'current'
+        statement = statement.strip()
+        args = ProcessorParser._get_args(statement)
+        if args[0] == 'current':
+            delta = 0
+        elif args[0] in ['prior', 'prior-with']:
+            delta = int(args[1])
+        elif args[0] in ['first', 'first-with']:
+            delta = sys.maxint
+        return SelectSessionParameters(args[0], delta)
 
 
     @staticmethod
@@ -268,18 +404,22 @@ class ProcessorParser:
             raise ValueError(
                 'yaml processor is missing xnat keyword contents')
 
-        processor_level = yaml_source['attrs'].get('type', 'session')
-
-        #session_select =
-
         inputs = {}
+
+        prior_session_count = 0
+
         # get scans
         scans = xnat.get('scans', list())
         for s in scans:
             name = ProcessorParser._input_name(s)
-            select = s.get('select', None)
 
+            select = s.get('select', None)
             parsed_select = ProcessorParser._parse_select(select)
+
+            session_select = s.get('select-session', None)
+            parsed_session_select =\
+                ProcessorParser._parse_session_select(session_select)
+
             ProcessorParser._register_iteration_references(
                 name,
                 parsed_select,
@@ -298,18 +438,27 @@ class ProcessorParser:
             inputs[name] = {
                 'types': types,
                 'select': parsed_select,
+                'select-session': parsed_session_select,
                 'artefact_type': 'scan',
                 'needs_qc': s.get('needs_qc', False),
                 'resources': s.get('resources', []),
                 'required': artefact_required
             }
 
+            prior_session_count =\
+                max(prior_session_count, parsed_session_select.delta)
+
         # get assessors
         asrs = xnat.get('assessors', list())
         for a in asrs:
             name = ProcessorParser._input_name(a)
+
             select = a.get('select', None)
             parsed_select = ProcessorParser._parse_select(select)
+
+            session_select = a.get('select-session', None)
+            parsed_session_select =\
+                ProcessorParser._parse_session_select(session_select)
 
             ProcessorParser._register_iteration_references(
                 name,
@@ -329,13 +478,19 @@ class ProcessorParser:
             inputs[name] = {
                 'types': types,
                 'select': parsed_select,
+                'select-session': parsed_session_select,
                 'artefact_type': 'assessor',
                 'needs_qc': a.get('needs_qc', False),
                 'resources': a.get('resources', []),
                 'required': artefact_required
             }
 
-        return inputs, inputs_by_type, iteration_sources, iteration_map
+            prior_session_count =\
+                max(prior_session_count, parsed_session_select.delta)
+
+
+        return (inputs, inputs_by_type, iteration_sources, iteration_map,
+                prior_session_count)
 
 
     @staticmethod
@@ -352,7 +507,7 @@ class ProcessorParser:
 
 
     @staticmethod
-    def parse_artefacts(csess):
+    def parse_artefacts(csesses):
         def parse(carts, arts):
             for cart in carts:
                 resources = {}
@@ -364,126 +519,125 @@ class ProcessorParser:
                                                  cart)
 
         artefacts = {}
-        parse(csess.scans(), artefacts)
-        parse(csess.assessors(), artefacts)
+        for csess in csesses:
+            parse(csess.scans(), artefacts)
+            parse(csess.assessors(), artefacts)
 
-        LOGGER.info('inputs by assessor:')
-        for cassr in csess.assessors():
-            LOGGER.info(' - ' + cassr.label())
-            LOGGER.info('   - ' + str(cassr.get_inputs()))
+            LOGGER.info('inputs by assessor:')
+            for cassr in csess.assessors():
+                LOGGER.info(' - ' + cassr.label())
+                LOGGER.info('   - ' + str(cassr.get_inputs()))
         return artefacts
 
 
     @staticmethod
-    def map_artefact_to_inputs(artefact,
-                               inputs_by_type,
-                               artefacts_by_input):
-        artefact_type = artefact.type()
-        inputs_of_type = inputs_by_type.get(artefact_type, set())
-        if len(inputs_of_type) > 0:
-            # this artefact type is relevant to the assessor
-            for i in inputs_of_type:
-                artefacts = artefacts_by_input.get(i, [])
-                artefacts.append(artefact.full_path())
-                artefacts_by_input[i] = artefacts
+    def map_artefacts_to_inputs(csesses, inputs, inputs_by_type):
 
+        artefacts_by_input = {k: [] for k in inputs}
+        for i, iv in inputs.iteritems():
+            if iv['select-session'].mode in ['prior', 'prior-with']:
+                if iv['select-session'].delta >= len(csesses):
+                    csess = None
+                else:
+                    csess = csesses[iv['select-session'].delta]
+            elif iv['select-session'].mode in ['first', 'first-with']:
+                csess = csesses[-1]
+            else:
+                csess = csesses[0]
 
-    @staticmethod
-    def map_artefacts_to_inputs(csess, inputs_by_type):
+            if csess is not None:
+                for cscan in csess.scans():
+                    if cscan.type() in iv['types']:
+                        artefacts_by_input[i].append(cscan.full_path())
 
-        # a dictionary of input names to artefacts
-        artefacts_by_input = {}
-
-        for cscan in csess.scans():
-            ProcessorParser.map_artefact_to_inputs(cscan,
-                                                   inputs_by_type,
-                                                   artefacts_by_input)
-
-        for cassr in csess.assessors():
-            ProcessorParser.map_artefact_to_inputs(cassr,
-                                                   inputs_by_type,
-                                                   artefacts_by_input)
+                for cassr in csess.assessors():
+                    if cassr.type() in iv['types']:
+                        artefacts_by_input[i].append(cassr.full_path())
 
         return artefacts_by_input
 
 
     def has_inputs(self, assr):
 
-        input_artefacts = XnatUtils.get_assessor_inputs(assr)
+        input_entries = XnatUtils.get_assessor_inputs(assr)
         errors = []
-        for artefact_input_k, artefact_input_path\
-            in input_artefacts.iteritems():
+        for artefact_input_k, input_entry\
+            in input_entries.iteritems():
             # check whether any inputs are missing, unusable or lacking the
             # required resource files
-            input_entry = self.inputs[artefact_input_k]
-            artefact = assr._intf.select(artefact_input_path)
+            processor_inputs = self.inputs[artefact_input_k]
+            # input can be a list for some modes of 'select'
 
-            # check for existence. Note, an assessor is created if the
-            # appropriate combination of inputs is present. If one or more of
-            # those inputs is subsequently removed from the session, the
-            # assessor now has a missing input
-            if not artefact.exists():
-                errors.append(
-                    (
-                        artefact_input_k,
-                        'Artefact {} does not exist'.format(
-                            artefact_input_path)
-                    )
-                )
-                continue
+            if isinstance(input_entry, list):
+                artefact_input_paths = input_entry
+            else:
+                artefact_input_paths = [input_entry]
 
-            artefact_type = assr._intf.object_type_from_path(
-                artefact_input_path)
-            if artefact_type not in ['scan', 'assessor']:
-                errors.append(
-                    (
-                        artefact_input_k,
-                        'Artefact {} must be a scan or assessor'.format(
-                            artefact_input_path))
-                    )
-                continue
-
-            if input_entry['needs_qc'] == True:
-                if artefact_type == 'scan':
-                    usable =\
-                        artefact.attrs.get('quality') == 'usable'
-                else:
-                    status =\
-                        artefact.attrs.get(artefact.datatype()
-                                           + '/validation/status')
-                    usable = XnatUtils.is_bad_qa(status) == 1
-
-                if not usable:
+            for artefact_input_path in artefact_input_paths:
+                a = assr._intf.select(artefact_input_path)
+                # check for existence. Note, an assessor is created if the
+                # appropriate combination of inputs is present. If one or more of
+                # those inputs is subsequently removed from the session, the
+                # assessor now has a missing input
+                if not a.exists():
                     errors.append(
                         (
                             artefact_input_k,
-                            'Artefact {} is not usable'.format(
+                            'Artefact {} does not exist'.format(
                                 artefact_input_path)
                         )
                     )
+                    continue
 
-            resource_dict = {}
-
-            for robj in artefact.resources():
-                resource_dict[robj.label()] = len(list(robj.files()))
-
-            for r in input_entry['resources']:
-                if r['resource'] not in resource_dict:
+                artefact_type = assr._intf.object_type_from_path(
+                    artefact_input_path)
+                if artefact_type not in ['scan', 'assessor']:
                     errors.append(
                         (
                             artefact_input_k,
-                            'Artefact {} is missing {} resource'.format(
-                                artefact_input_path, r['resource'])
+                            'Artefact {} must be a scan or assessor'.format(
+                                artefact_input_path))
                         )
-                    )
-                elif resource_dict[r['resource']] < 1:
-                    errors.append(
-                        (
-                            artefact_input_k,
-                            'Artefact {} is missing files from resource {}'
-                            .format(artefact_input_path, r['resource'])
+                    continue
+
+                if processor_inputs['needs_qc'] == True:
+                    if artefact_type == 'scan':
+                        usable = a.attrs.get('quality') == 'usable'
+                    else:
+                        status = a.attrs.get(a.datatype()+'/validation/status')
+                        usable = XnatUtils.is_bad_qa(status) == 1
+
+                    if not usable:
+                        errors.append(
+                            (
+                                artefact_input_k,
+                                'Artefact {} is not usable'.format(
+                                    artefact_input_path)
+                            )
                         )
-                    )
+
+                resource_dict = {}
+
+                for robj in a.resources():
+                    resource_dict[robj.label()] = len(list(robj.files()))
+
+                for r in processor_inputs['resources']:
+                    if r['resource'] not in resource_dict:
+                        errors.append(
+                            (
+                                artefact_input_k,
+                                'Artefact {} is missing {} resource'.format(
+                                    artefact_input_path, r['resource'])
+                            )
+                        )
+                    elif resource_dict[r['resource']] < 1:
+                        errors.append(
+                            (
+                                artefact_input_k,
+                                'Artefact {} is missing files from resource {}'
+                                .format(artefact_input_path, r['resource'])
+                            )
+                        )
 
         return 1 if len(errors) == 0 else 0, errors
 
@@ -596,7 +750,9 @@ class ProcessorParser:
 
 
     @staticmethod
-    def compare_to_existing(csess, processor_type, parameter_matrix):
+    def compare_to_existing(csesses, processor_type, parameter_matrix):
+
+        csess = csesses[0]
 
         assessors = [[] for _ in range(len(parameter_matrix))]
         for casr in filter(lambda a: a.type() == processor_type,

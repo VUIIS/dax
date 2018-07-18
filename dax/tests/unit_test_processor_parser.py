@@ -382,17 +382,20 @@ class ProcessorParserUnitTests(TestCase):
                                           assessor_contents,
                                           processor_yaml):
 
-        csess = TestSession().OldInit(proj, subj, sess, scan_contents,
-                                      assessor_contents)
+        csess = [TestSession().OldInit(proj, subj, sess, scan_contents,
+                                      assessor_contents)]
 
         doc = yaml.load((StringIO.StringIO(processor_yaml)))
 
-        inputs, inputs_by_type, iteration_sources, iteration_map =\
+        inputs, inputs_by_type, iteration_sources, iteration_map,\
+            prior_session_count =\
             ProcessorParser.parse_inputs(doc)
+
         print "inputs =", inputs
         print "inputs_by_type =", inputs_by_type
         print "iteration_sources =", iteration_sources
         print "iteration_map =", iteration_map
+        print "prior_session_count =", prior_session_count
 
         artefacts = ProcessorParser.parse_artefacts(csess)
         print "artefacts =", artefacts
@@ -418,7 +421,6 @@ class ProcessorParserUnitTests(TestCase):
         print "assessor_parameter_map = ", assessor_parameter_map
 
 
-
     def test_processor_parser_experimental_1(self):
 
         self.__run_processor_parser_unit_tests(xnat_scan_contents_1,
@@ -431,6 +433,7 @@ class ProcessorParserUnitTests(TestCase):
         self.__run_processor_parser_unit_tests(xnat_scan_contents_2,
                                                xnat_assessor_contents_2,
                                                processor_yaml_2)
+
 
     @staticmethod
     def __generate_test_matrix(headers, values):
@@ -456,6 +459,7 @@ class ProcessorParserUnitTests(TestCase):
                     'name': input['label'],
                     'types': input['type'],
                     'select': input['select'],
+                    'select-session': input['select-session'],
                     'qc': input['needs_qc'],
                     'resources': resources
                 })
@@ -464,6 +468,7 @@ class ProcessorParserUnitTests(TestCase):
                     'name': input['label'],
                     'types': input['type'],
                     'select': input['select'],
+                    'select-session': input['select-session'],
                     'qc': input['needs_qc'],
                     'resources': resources
                 })
@@ -493,18 +498,19 @@ class ProcessorParserUnitTests(TestCase):
             artefact_headers, artefact_values)
         artefact_matrix = map(lambda i: [i], artefact_matrix)
 
-        yaml_headers = ['category', 'label', 'type', 'select', 'needs_qc',
-                        'resources']
+        yaml_headers = ['category', 'label', 'type', 'select', 'select-session',
+                        'needs_qc', 'resources']
         yaml_categories = ['scan']
         yaml_labels = ['scan1']
         yaml_type = ['T1']
         yaml_select = [None, 'foreach']
+        yaml_select_session = [None, 'current', 'prior(1)']
         yaml_needs_qc = [None, False, True]
         yaml_resources = [[YamlVariable('NIFTI', 't1', None)],
                           [YamlVariable('NIFTI', 't1', False)],
                           [YamlVariable('NIFTI', 't1', True)]]
         yaml_elems = [yaml_categories, yaml_labels, yaml_type, yaml_select,
-                      yaml_needs_qc, yaml_resources]
+                      yaml_select_session, yaml_needs_qc, yaml_resources]
         yaml_matrix = ProcessorParserUnitTests.__generate_test_matrix(
             yaml_headers, yaml_elems
         )
@@ -524,7 +530,6 @@ class ProcessorParserUnitTests(TestCase):
         pass
 
 
-
     def test_one_input(self):
         matrix = ProcessorParserUnitTests.__generate_one_scan_scenarios()
 
@@ -539,9 +544,35 @@ class ProcessorParserUnitTests(TestCase):
             try:
                 parser = ProcessorParser(yaml_source.contents)
                 parser.parse_session(csess)
-                print parser.assessor_parameter_map
+                print m, '->', parser.assessor_parameter_map
             except ValueError as err:
                 if err.message not in\
                     ['yaml processor is missing xnat keyword contents']:
                     raise
         print 'scenario count = ', len(matrix)
+
+
+    def test_check_valid_mode(self):
+        input_category = 'scan'
+        input_name = 'a_scan'
+        keyword = 'select'
+        valid_keywords = ['all', 'some']
+
+        errors = ProcessorParser._check_valid_mode(
+            input_category, input_name, keyword, valid_keywords,
+            {'select': 'all'})
+        self.assertEqual(errors, [])
+
+        errors = ProcessorParser._check_valid_mode(
+            input_category, input_name, keyword, valid_keywords,
+            {'select': 'some'})
+        self.assertEqual(errors, [])
+
+        errors = ProcessorParser._check_valid_mode(
+            input_category, input_name, keyword, valid_keywords,
+            {'select': 'fish'})
+        expected =\
+            [("Error: scan 'a_scan': 'select' has an invalid value 'fish'. "
+              "It must be one of 'all', 'some'")]
+        self.assertEqual(errors, expected)
+

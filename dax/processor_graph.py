@@ -16,7 +16,7 @@ class ProcessorGraph:
             asrs = xnat.get('assessors', {})
             inputs = set()
             for a in asrs:
-                types = a.get('proctypes', '').split(',')
+                types = a.get('types', '').split(',')
 
                 inputs = inputs.union(types)
             sources[name] = list(inputs)

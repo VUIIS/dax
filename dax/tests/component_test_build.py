@@ -162,14 +162,14 @@ class ComponentTestBuild(TestCase):
 
 
     @staticmethod
-    def _setup_scans(self, session):
+    def _setup_scans(session):
         SessionTools.add_scan(session, '1', scan_presets['t1'])
         SessionTools.add_scan(session, '2', scan_presets['t1'])
         SessionTools.add_scan(session, '11', scan_presets['flair'])
 
 
     @staticmethod
-    def _setup_assessors(self, session):
+    def _setup_assessors(session):
         SessionTools.add_assessor(session,
                                   'proc1-x-subj1-x-sess1-x-1-Proc_A_v1',
                                   assessor_presets['Proc_A_v1'],
@@ -207,27 +207,29 @@ class ComponentTestBuild(TestCase):
     def test_setup_session(self):
         proj_id = 'proj1'
         subj_id = 'subj1'
-        sess_id = 'sess1'
+        sess_ids = ['sess1', 'sess2']
         intf = XnatUtils.get_interface(host=host)
-        session = intf.select_experiment(proj_id, subj_id, sess_id)
-        if not session.exists():
-            self.assertTrue(False, "no such session")
+        for sess_id in sess_ids:
+            session = intf.select_experiment(proj_id, subj_id, sess_id)
+            if not session.exists():
+                self.assertTrue(False, "no such session")
 
-        ComponentTestBuild._setup_scans(session)
+            ComponentTestBuild._setup_scans(session)
 
 
     def test_clean_assessors_from_test_session(self):
         proj_id = 'proj1'
         subj_id = 'subj1'
-        sess_id = 'sess1'
+        sess_ids = ['sess1', 'sess2']
         intf = XnatUtils.get_interface(host=host)
-        session = intf.select_experiment(proj_id, subj_id, sess_id)
-        if not session.exists():
-            self.assertTrue(False, "no such session")
+        for sess_id in sess_ids:
+            session = intf.select_experiment(proj_id, subj_id, sess_id)
+            if not session.exists():
+                self.assertTrue(False, "no such session")
 
-        for asr in session.assessors():
-            print assessor_utils.full_label_from_assessor(asr)
-            asr.delete()
+            for asr in session.assessors():
+                print assessor_utils.full_label_from_assessor(asr)
+                asr.delete()
 
 
     # TODO: the text matrix that we run at the component level should be only

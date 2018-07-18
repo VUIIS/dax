@@ -2929,7 +2929,10 @@ class CachedImageSession(object):
 
         """
         experiment = intf.select_experiment(proj, subj, sess)
+        self.datatype_ = experiment.datatype()
         xml_str = experiment.get()
+        self.creation_timestamp_ =\
+            experiment.attrs.get(self.datatype_+'/meta/insert_date')
         self.sess_element = ET.fromstring(xml_str)
         self.project = proj
         self.subject = subj
@@ -3119,6 +3122,14 @@ class CachedImageSession(object):
         return self.intf.select_experiment(self.project, self.subject, self.session)
 
 
+    def creation_timestamp(self):
+        return self.creation_timestamp_
+
+
+    def datatype(self):
+        return self.datatype_
+
+
 class CachedImageScan(object):
     """
     Class to cache the XML information for a scan on XNAT
@@ -3136,9 +3147,13 @@ class CachedImageScan(object):
         self.scan_parent = parent
         self.scan_element = scan_element
         self.scan_label = self.label()
+        self.type_ = self.get('type')
 
     def entity_type(self):
         return 'scan'
+
+    def type(self):
+        return self.type_
 
     def parent(self):
         """

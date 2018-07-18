@@ -1481,8 +1481,8 @@ def upload_update_date_redcap(project_list, type_update, start_end):
     dax_config = DAX_SETTINGS.get_dax_manager_config()
     logger = logging.getLogger('dax')
     if DAX_SETTINGS.get_api_url() and \
-            DAX_SETTINGS.get_api_key_dax() and \
-            dax_config:
+       DAX_SETTINGS.get_api_key_dax() and \
+       dax_config:
         redcap_project = None
         try:
             redcap_project = redcap.Project(DAX_SETTINGS.get_api_url(),

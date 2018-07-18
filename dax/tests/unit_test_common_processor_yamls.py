@@ -34,6 +34,7 @@ def generate_yaml(procname="Proc",
                   '        types: {types}\n'
                   '{qc}'
                   '{select}'
+                  '{select_session}'
                   '{res_block}')
 
     asrs_text_ = '    assessors:\n{}'
@@ -41,6 +42,7 @@ def generate_yaml(procname="Proc",
                  '        proctypes: {types}\n'
                  '{qc}'
                  '{select}'
+                 '{select_session}'
                  '{res_block}')
 
     res_block_ = '        resources:\n{}'
@@ -53,6 +55,7 @@ def generate_yaml(procname="Proc",
     qc_text_ = '        needs_qc: {}\n'
 
     select_text_ = '        select: {}\n'
+    select_session_text_ = '        select-session: {}\n'
 
     proc_a_cmd_ =\
         'command: python {spider_path} --t1 {t1} --dbt {db} --exe {nipype_exe}'
@@ -92,6 +95,14 @@ def generate_yaml(procname="Proc",
                 else:
                     select = ''
 
+                # create the select-session keyword text
+                select_session_value = i.get('select-session', None)
+                if select_session_value != None:
+                    select_session =\
+                        select_session_text_.format(select_session_value)
+                else:
+                    select_session = ''
+
                 # create the resource block
                 if len(i['resources']) == 0:
                     res_block = ''
@@ -124,6 +135,7 @@ def generate_yaml(procname="Proc",
                         input_text_.format(name=i['name'],
                                            types=i['types'],
                                            select=select,
+                                           select_session=select_session,
                                            qc=qc_text,
                                            res_block=res_block))
                 else:
@@ -131,6 +143,7 @@ def generate_yaml(procname="Proc",
                         input_text_.format(name=i['name'],
                                            types=i['types'],
                                            select=select,
+                                           select_session=select_session,
                                            qc=qc_text,
                                            res_block=res_block))
 
