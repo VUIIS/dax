@@ -9,15 +9,15 @@ attrs:
 #processors:
 yamlprocessors:
   - name: Proc_A
-    filepath: /home/ben/git/comic100_dax_config/yaml_processors/processor_proc_a.yaml
+    filepath: processors/processor_proc_a.yaml
   - name: Proc_B
-    filepath: /home/ben/git/comic100_dax_config/yaml_processors/processor_proc_b.yaml
+    filepath: processors/processor_proc_b.yaml
   - name: Proc_C
-    filepath: /home/ben/git/comic100_dax_config/yaml_processors/processor_proc_c.yaml
+    filepath: processors/processor_proc_c.yaml
   - name: Proc_D
-    filepath: /home/ben/git/comic100_dax_config/yaml_processors/processor_proc_d.yaml
+    filepath: processors/processor_proc_d.yaml
   - name: Proc_E
-    filepath: /home/ben/git/comic100_dax_config/yaml_processors/processor_proc_e.yaml
+    filepath: processors/processor_proc_e.yaml
 projects:
   - project: proj1
     yamlprocessors: Proc_A, Proc_B, Proc_C, Proc_D, Proc_E

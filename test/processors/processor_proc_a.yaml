@@ -1,7 +1,7 @@
 ---
 inputs:
   default:
-    spider_path: /home/ben/git/comic100_dax_config/pipelines/Proc_A/v1.0.0/Proc_A_v1_0_0.py
+    spider_path: pipelines/Proc_A/v1.0.0/Proc_A_v1_0_0.py
     working_dir: /home/ben/dax/scratch
     nipype_exe: proc_a.py
     #gmatrix: /cluster/project0/SegBiASM/DataToTryBaMoS/GMatrix4_Low3.txt
