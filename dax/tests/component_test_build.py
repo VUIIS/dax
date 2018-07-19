@@ -5,7 +5,10 @@ import StringIO
 import json
 import yaml
 import xml.etree.cElementTree as xmlet
+import os
 import itertools
+from dax import bin
+from dax import dax_tools_utils
 
 
 from dax import XnatUtils
@@ -113,16 +116,16 @@ scan_presets = {
 }
 
 
-proc_a_params = {
+proc_x_params = {
     'xsitype': asrxsitype,
-    'proctype': 'Proc_A_v1',
+    'proctype': 'Proc_X_v1',
     'files': [
-        ('SEG', ['seg.gz'])
+        ('SEG', ['seg.gz']),
     ]
 }
 
 assessor_presets = {
-    'Proc_A_v1': proc_a_params
+    'Proc_X_v1': proc_x_params
 }
 
 
@@ -171,12 +174,12 @@ class ComponentTestBuild(TestCase):
     @staticmethod
     def _setup_assessors(session):
         SessionTools.add_assessor(session,
-                                  'proc1-x-subj1-x-sess1-x-1-Proc_A_v1',
-                                  assessor_presets['Proc_A_v1'],
+                                  'proc1-x-subj1-x-sess1-x-1-Proc_X_v1',
+                                  assessor_presets['Proc_X_v1'],
                                   'no_inputs')
         SessionTools.add_assessor(session,
-                                  'proc1-x-subj1-x-sess1-x-2-Proc_A_v1',
-                                  assessor_presets['Proc_A_v1'],
+                                  'proc1-x-subj1-x-sess1-x-2-Proc_X_v1',
+                                  assessor_presets['Proc_X_v1'],
                                   'no_inputs')
 
 
@@ -266,3 +269,63 @@ class ComponentTestBuild(TestCase):
 
 
         print len(table)
+
+
+
+    def test_end_to_end_test(self):
+
+        print os.getcwd()
+        settings_location = os.getcwd()+'/settings/'
+        processor_location = os.getcwd()+'/processors/'
+
+        self.test_clean_assessors_from_test_session()
+
+        self.test_setup_old_assessors()
+
+        bin.build(
+            settings_location + 'test.yaml',
+            None,
+            True,
+            projects='proj1',
+            sessions='sess1,sess2',
+            mod_delta=None,
+            proj_lastrun=None)
+
+        bin.launch_jobs(
+            settings_location + 'test.yaml',
+            None,
+            True,
+            projects='proj1',
+            sessions='sess1,sess2',
+            writeonly=False,
+            pbsdir=None,
+            force_no_qsub=False)
+
+        dax_tools_utils.upload_tasks(
+            None,
+            True,
+            settings_location + 'test_upload.yaml',
+            host=None,
+            username=None,
+            password=None,
+            projects=None,
+            suffix='',
+            emailaddress=None)
+
+        bin.update_tasks(
+            settings_location + 'test.yaml',
+            None,
+            True,
+            projects='proj1',
+            sessions='sess1,sess2')
+
+        dax_tools_utils.upload_tasks(
+            None,
+            True,
+            settings_location + 'test_upload.yaml',
+            host=None,
+            username=None,
+            password=None,
+            projects=None,
+            suffix='',
+            emailaddress=None)
