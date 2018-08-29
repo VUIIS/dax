@@ -50,7 +50,7 @@ VARIABLES_LIST = {
                  'procstatus', 'qcstatus', 'version', 'jobid', 'memused',
                  'walltimeused', 'jobnode', 'jobstartdate'],
     'resource': ['resource']}
-QUOTE_FIELDS = ['type', 'series_description', 'quality', 'qcstatus']
+QUOTE_FIELDS = ['type', 'series_description', 'quality', 'qcstatus', 'note']
 
 
 def display(row):
