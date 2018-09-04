@@ -270,6 +270,7 @@ def filter_assessors(args, assessors, has_fs_datatypes=False,
                         assess_carry_1.append(assess)
 
             assess_carry_1 = list_flatten(assess_carry_1)
+            assessors = assess_carry_1
 
             if former_status and former_status != 'all':
                 if args.qcstatus:
@@ -278,7 +279,7 @@ def filter_assessors(args, assessors, has_fs_datatypes=False,
                     field_name = 'procstatus'
                 assessors = XnatUtils.filter_list_dicts_regex(
                     assess_carry_1, field_name, former_status, args.full_regex)
-            assessors = list_flatten(assessors)
+                assessors = list_flatten(assessors)
             return assessors
 
     if not args.sessions:
