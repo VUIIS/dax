@@ -14,6 +14,7 @@ from uuid import uuid4
 from . import XnatUtils, task
 from . import assessor_utils
 from . import processor_parser
+from . import yaml_doc
 from .errors import AutoProcessorError
 from .dax_settings import DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE
 from .dax_settings import DAX_Settings
@@ -1219,9 +1220,9 @@ def load_from_yaml(xnat, filepath, user_inputs=None, singularity_imagedir=None):
     :return: processor
     """
 
-    # Set Outputs from Yaml
-    doc = XnatUtils.read_yaml(filepath)
-    if doc.get('moreauto'):
-        return MoreAutoProcessor(xnat, filepath, user_inputs, singularity_imagedir)
+    yaml_obj = yaml_doc.YamlDoc().from_file(filepath)
+    #doc = XnatUtils.read_yaml(filepath)
+    if yaml_obj.contents.get('moreauto'):
+        return MoreAutoProcessor(xnat, yaml_obj, user_inputs, singularity_imagedir)
     else:
-        return AutoProcessor(xnat, filepath, user_inputs)
+        return AutoProcessor(xnat, yaml_obj, user_inputs)
