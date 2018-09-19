@@ -1583,7 +1583,12 @@ undo_processing...')
             return self.processor.build_cmds(cobj, assr_dir)
         except NotImplementedError:
             # Handle older processors without build_cmds()
-            has_inputs, qcstatus = self.processor.has_inputs(cobj)
+            #has_inputs, qcstatus = self.processor.has_inputs(cobj)
+            has_inputs, qcstatus = self.processor.has_inputs(self.assessor)
+
+            # Convert array of tuples into single string
+            qcstatus = ','.join(':'.join(i) for i in qcstatus)
+
             if has_inputs == 1:
                 return self.processor.get_cmds(self.assessor, assr_dir)
             elif has_inputs == -1:
