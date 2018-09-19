@@ -593,8 +593,7 @@ defined by yaml file {}'
         self.type = self.attrs.get('type')
 
         # Set template if in Yaml
-        if doc.get('jobtemplate'):
-            self.job_template = doc.get('jobtemplate')
+        self.job_template = doc.get('jobtemplate', None)
 
     def _check_default_keys(self, source_id, doc):
         """ Static method to raise error if key not found in dictionary from
@@ -860,10 +859,6 @@ class MoreAutoProcessor(AutoProcessor):
 
         # Set Outputs from Yaml
         self.outputs = doc.get('outputs')
-
-        # Set template if in Yaml
-        if doc.get('jobtemplate'):
-            self.job_template = doc.get('jobtemplate')
 
     def _check_default_keys(self, yaml_file, doc):
         """ Static method to raise error if key not found in dictionary from
