@@ -212,18 +212,30 @@ def read_yaml_settings(yaml_file, logger):
     # Set Inputs from Yaml
     check_default_keys(yaml_file, doc)
 
-    # Set attributs for settings:
+    # Set attributes for settings
     attrs = doc.get('attrs')
 
-    # Read modules and processors:
+    # Set singularity image dir
+    singularity_imagedir = doc.get('singularity_imagedir')
+
+    # Read modules
+    modulelib = doc.get('modulelib')
     mods = dict()
     modules = doc.get('modules', list())
     for mod_dict in modules:
         if mod_dict.get('filepath') is None:
             err = 'Filepath not set for {}'.format(mod_dict.get('name'))
             raise DaxError(err)
+
+        mod_path = mod_dict.get('filepath')
+        if not os.path.isabs(mod_path) and modulelib:
+            # Preprend lib location
+            mod_path = os.path.join(modulelib, mod_path)
+
         mods[mod_dict.get('name')] = load_from_file(
-            mod_dict.get('filepath'), mod_dict.get('arguments'), logger)
+            mod_path, mod_dict.get('arguments'), logger)
+
+    # Read processors
     procs = dict()
     processors = doc.get('processors', list())
     for proc_dict in processors:
@@ -232,16 +244,26 @@ def read_yaml_settings(yaml_file, logger):
             raise DaxError(err)
         procs[proc_dict.get('name')] = load_from_file(
             proc_dict.get('filepath'), proc_dict.get('arguments'), logger)
+
+    # Read yaml processors
+    processorlib = doc.get('processorlib')
     yamlprocs = dict()
     yamls = doc.get('yamlprocessors', list())
     for yaml_dict in yamls:
         if yaml_dict.get('filepath') is None:
             err = 'Filepath not set for {}'.format(yaml_dict.get('name'))
             raise DaxError(err)
-        yamlprocs[yaml_dict.get('name')] = load_from_file(
-            yaml_dict.get('filepath'), yaml_dict.get('arguments'), logger)
 
-    # project:
+        yaml_path = yaml_dict.get('filepath')
+        if not os.path.isabs(yaml_path) and processorlib:
+            # Preprend lib location
+            yaml_path = os.path.join(processorlib, yaml_path)
+
+        yamlprocs[yaml_dict.get('name')] = load_from_file(
+            yaml_path, yaml_dict.get('arguments'),
+            logger, singularity_imagedir)
+
+    # Read projects
     proj_mod = dict()
     proj_proc = dict()
     yaml_proc = dict()
@@ -305,7 +327,7 @@ def raise_yaml_error_if_no_key(doc, yaml_file, key):
         raise DaxError(err.format(yaml_file, key))
 
 
-def load_from_file(filepath, args, logger):
+def load_from_file(filepath, args, logger, singularity_imagedir=None):
     """
     Check if a file exists and if it's a python file
     :param filepath: path to the file to test
@@ -335,7 +357,7 @@ def load_from_file(filepath, args, logger):
         logger.err(err.format(filepath))
 
     elif filepath.endswith('.yaml'):
-        yaml_obj = yaml_doc.YamlDoc().from_file(filepath)
-        return processors.AutoProcessor(XnatUtils, yaml_obj, args)
+        return processors.load_from_yaml(
+            XnatUtils, filepath, args, singularity_imagedir)
 
     return None

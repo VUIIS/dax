@@ -39,6 +39,14 @@ $page.setVlinkColor($ui.vlink)
 									<DIV>$inputelem</DIV>
 								#end
 							</TD></TR>
+							<TR><TD>DAX Processor Version</TD><TD>$!item.getStringProperty("proc:genProcData/dax_processor_version")</TD></TR>
+							<TR><TD>DAX Processor Name</TD><TD>$!item.getStringProperty("proc:genProcData/dax_processor_name")</TD></TR>
+							<TR><TD>DAX Spider Version</TD><TD>$!item.getStringProperty("proc:genProcData/dax_spider_version")</TD></TR>
+							<TR><TD>DAX Spider Name</TD><TD>$!item.getStringProperty("proc:genProcData/dax_spider_name")</TD></TR>
+							<TR><TD>DAX Code Version</TD><TD>$!item.getStringProperty("proc:genProcData/dax_code_version")</TD></TR>
+							<TR><TD>DAX Docker Version</TD><TD>$!item.getStringProperty("proc:genProcData/dax_docker_version")</TD></TR>
+							<TR><TD>DAX Version</TD><TD>$!item.getStringProperty("proc:genProcData/dax_version")</TD></TR>
+							<TR><TD>DAX Version Hash</TD><TD>$!item.getStringProperty("proc:genProcData/dax_version_hash")</TD></TR>
 						</table>
 						<BR />
 						<table>

@@ -1,0 +1,11 @@
+/*
+ * xnat-template: settings.gradle
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2017, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
+// TODO: Replace this with your project name.
+rootProject.name = 'vuiis-dicom-filter'
