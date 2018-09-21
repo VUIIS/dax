@@ -4,6 +4,7 @@ import itertools
 import logging
 import sys
 from collections import namedtuple
+from .task import NeedInputsException, NoDataException
 
 LOGGER = logging.getLogger('dax')
 
@@ -214,7 +215,6 @@ class ProcessorParser:
 
         return command_set
 
-
     def find_inputs(self, assr):
         assr_inputs = XnatUtils.get_assessor_inputs(assr)
         variable_set = {}
@@ -233,24 +233,33 @@ class ProcessorParser:
                     cur_res = inp_res
                     break
 
+            # Select the resource object on xnat
+            robj = assr._intf.select(resource_paths[artefact_type].format(
+                assr_inputs[v['input']], resource))
+
+            if not robj.exists():
+                LOGGER.debug('failed to find resource')
+                raise NeedInputsException('No Resource')
+
             if 'fmatch' in cur_res:
-                # Select the resource object on xnat
-                robj = assr._intf.select(resource_paths[artefact_type].format(assr_inputs[v['input']], resource))
+                fmatch = cur_res['fmatch']
 
                 # Get list of all files in the resource
                 file_list = robj.files().get()
 
                 # Filter list based on regex matching
-                regex = XnatUtils.extract_exp(cur_res['fmatch'], full_regex=False)
+                regex = XnatUtils.extract_exp(fmatch, full_regex=False)
                 file_list = [x for x in file_list if regex.match(x)]
 
                 # Make a comma separated list of files
-                uri_list = ['{}/files/{}'.format(resource, f) for f in file_list]
+                uri_list = ['{}/files/{}'.format(
+                    resource, f) for f in file_list]
                 res_path = ','.join(uri_list)
             elif 'filepath' in cur_res:
-                res_path = resource+'/files/'+cur_res['filepath']
+                fpath = cur_res['filepath']
+                res_path = resource + '/files/' + fpath
             else:
-                res_path = resource+'/files'
+                res_path = resource + '/files'
 
             path_elements = [
                 assr._intf.host,
