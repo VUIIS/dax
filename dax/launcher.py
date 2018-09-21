@@ -941,7 +941,7 @@ in session %s'
                             LOGGER.debug(
                                 'building task: ' + assessor[0].label())
                             (proc_status, qc_status) = xtask.build_task(
-                                csess,
+                                assessor[0],
                                 self.root_job_dir,
                                 self.job_email,
                                 self.job_email_options)

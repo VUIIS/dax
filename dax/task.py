@@ -1527,7 +1527,7 @@ undo_processing...')
         """
         raise NotImplementedError()
 
-    def build_task(self, csess, jobdir, job_email=None,
+    def build_task(self, assr, jobdir, job_email=None,
                    job_email_options=DEFAULT_EMAIL_OPTS,
                    xnat_host=None):
         """
@@ -1536,7 +1536,8 @@ undo_processing...')
         (old_proc_status, old_qc_status, _) = self.get_statuses()
 
         try:
-            cmds = self.build_commands(csess, jobdir)
+            cmds = self.build_commands(assr, jobdir)
+            print(cmds)
             batch_file = self.batch_path()
             outlog = self.outlog_path()
             batch = PBS(batch_file,
@@ -1568,7 +1569,7 @@ undo_processing...')
 
         return (new_proc_status, new_qc_status)
 
-    def build_commands(self, cobj, jobdir):
+    def build_commands(self, assr, jobdir):
         """
         Call the build_cmds method of the class Processor.
 
@@ -1580,7 +1581,7 @@ undo_processing...')
         """
         assr_dir = os.path.join(jobdir, self.assessor_label)
         try:
-            return self.processor.build_cmds(cobj, assr_dir)
+            return self.processor.build_cmds(assr, assr_dir)
         except NotImplementedError:
             # Handle older processors without build_cmds()
             #has_inputs, qcstatus = self.processor.has_inputs(cobj)

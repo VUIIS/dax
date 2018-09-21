@@ -496,7 +496,7 @@ class AutoProcessor(Processor):
         if user_inputs is not None:
             self._edit_inputs(user_inputs, yaml_source)
 
-        self.parser = processor_parser.ProcessorParser(yaml_source.contents)
+        self.parser = processor_parser.ProcessorParser(yaml_source.contents, self.proctype)
 
         # Set up attrs:
         self.walltime_str = self.attrs.get('walltime')
@@ -592,7 +592,7 @@ defined by yaml file {}'
         self.name = self.proctype
         self.type = self.attrs.get('type')
 
-        # Set template if in Yaml
+        # Set template
         self.job_template = doc.get('jobtemplate', None)
 
     def _check_default_keys(self, source_id, doc):
@@ -760,7 +760,7 @@ defined by yaml file {}'
 class MoreAutoProcessor(AutoProcessor):
     """ More Auto Processor class for AutoSpider using YAML files"""
 
-    def __init__(self, xnat, yaml_file, user_inputs=None, singularity_imagedir=None):
+    def __init__(self, xnat, yaml_source, user_inputs=None, singularity_imagedir=None):
         """
         Entry point for the auto processor
 
@@ -775,24 +775,21 @@ class MoreAutoProcessor(AutoProcessor):
         # Save location of singularity imagedir
         self.singularity_imagedir = singularity_imagedir
 
-        super(MoreAutoProcessor, self).__init__(xnat, yaml_file, user_inputs)
+        super(MoreAutoProcessor, self).__init__(xnat, yaml_source, user_inputs)
 
-    def read_yaml(self, yaml_file):
+    def _read_yaml(self, yaml_source):
         """
         Method to read the processor arguments and there default value.
 
         :param yaml_file: path to yaml file defining the processor
         """
-        if not os.path.isfile(yaml_file):
-            err = 'Path not found for {}'
-            raise AutoProcessorError(err.format(yaml_file))
+        if yaml_source.source_type is None:
+            raise AutoProcessorError('Empty yaml source provided')
 
-        # Read YAML into a dictionary
-        doc = XnatUtils.read_yaml(yaml_file)
+        doc = yaml_source.contents
 
-        # Check for required keys
-        self._check_default_keys(yaml_file, doc)
-
+        # Set Inputs from Yaml
+        self._check_default_keys(yaml_source.source_id, doc)
         self.attrs = doc.get('attrs')
         self.command = doc.get('command')
 
@@ -803,15 +800,15 @@ class MoreAutoProcessor(AutoProcessor):
             # If value is a key in command
             k_str = '{{{}}}'.format(key)
             if k_str in self.command:
-                self.inputs[key] = value
+                self.user_overrides[key] = value
             else:
                 if isinstance(value, bool) and value is True:
-                    self.extra_inputs[key] = ''
+                    self.extra_user_overrides[key] = ''
                 elif value and value != 'None':
-                    self.extra_inputs[key] = value
+                    self.extra_user_overrides[key] = value
 
         # Container path, prepend singularity imagedir
-        self.container_path = self.inputs.get('container_path')
+        self.container_path = inputs.get('default').get('container_path')
         if ((self.container_path.endswith('.simg') or
                 self.container_path.endswith('.img')) and
                 not os.path.isabs(self.container_path) and
@@ -820,7 +817,7 @@ class MoreAutoProcessor(AutoProcessor):
                 self.singularity_imagedir, self.container_path)
 
         # Overwrite container_path for building script
-        self.inputs['container_path'] = self.container_path
+        self.user_overrides['container_path'] = self.container_path
 
         # Getting proctype and version from Yaml
         if doc.get('procversion'):
@@ -860,7 +857,10 @@ class MoreAutoProcessor(AutoProcessor):
         # Set Outputs from Yaml
         self.outputs = doc.get('outputs')
 
-    def _check_default_keys(self, yaml_file, doc):
+         # Set template
+        self.job_template = doc.get('jobtemplate', None)
+
+    def _check_default_keys(self, source_id, doc):
         """ Static method to raise error if key not found in dictionary from
         yaml file.
 
@@ -870,7 +870,7 @@ class MoreAutoProcessor(AutoProcessor):
         """
         # first level
         for key in ['inputs', 'command', 'attrs', 'outputs']:
-            self._raise_yaml_error_if_no_key(doc, yaml_file, key)
+            self._raise_yaml_error_if_no_key(doc, source_id, key)
 
         # Second level in inputs and attrs:
         inputs = doc.get('inputs')
@@ -878,15 +878,15 @@ class MoreAutoProcessor(AutoProcessor):
         for _doc, key in [(inputs, 'default'), (inputs, 'xnat'),
                           (attrs, 'type'), (attrs, 'memory'),
                           (attrs, 'walltime')]:
-            self._raise_yaml_error_if_no_key(_doc, yaml_file, key)
+            self._raise_yaml_error_if_no_key(_doc, source_id, key)
         if attrs['type'] == 'scan':
-            self._raise_yaml_error_if_no_key(attrs, yaml_file, 'scan_nb')
+            self._raise_yaml_error_if_no_key(attrs, source_id, 'scan_nb')
 
         # third level for default:
         default = doc.get('inputs').get('default')
 
         for key in ['container_path']:
-            self._raise_yaml_error_if_no_key(default, yaml_file, key)
+            self._raise_yaml_error_if_no_key(default, source_id, key)
 
     def parse_procname(self):
         tmp = self.container_path
@@ -921,20 +921,23 @@ class MoreAutoProcessor(AutoProcessor):
 
         return tmp
 
-    def build_cmds(self, cobj, jobdir):
+    def build_cmds(self, assr, jobdir):
         """Method to generate the spider command for cluster job.
-        :param cobj: pyxnat cached session or scan object
         :param jobdir: jobdir where the job's output will be generated
         :return: command to execute the spider in the job script
         """
-        assr_label = self.get_assessor_name(cobj)
+        assr_label = assr.label()
         dstdir = os.path.join(DAX_Settings().get_results_dir(), assr_label)
-
+        
         # Find values for the xnat inputs
-        var2val, input_list = self.find_inputs(cobj)
+        var2val, input_list = self.parser.find_inputs(assr)
 
-        # Append other inputs
-        var2val.update(self.inputs)
+        # Append other stuff
+        for k, v in self.user_overrides.iteritems():
+            var2val[k] = v
+
+        for k, v in self.extra_user_overrides.iteritems():
+            var2val[k] = v
 
         # Include the assessor label
         var2val['assessor'] = assr_label
@@ -943,205 +946,6 @@ class MoreAutoProcessor(AutoProcessor):
         cmd = self.build_text(var2val, input_list, jobdir, dstdir)
 
         return [cmd]
-
-    def get_xnat_uri(
-            self, cobj, resource, required=True, fpath=None, fmatch=None):
-        """Method to get the file URI on XNAT
-
-        :param cobjs: list of cobjs (assessor or scan) in dax.XnatUtils
-                      (see XnatUtils in dax for information)
-        :param resource: name of the resource
-        :param fpath: filepath to get
-        :return: list of paths
-        """
-        xnat_uri = ''
-        assr_tmp = '{0}/data/projects/{1}/subjects/{2}/experiments/{3}/assessors/{4}/out/resources/{5}'
-        scan_tmp = '{0}/data/projects/{1}/subjects/{2}/experiments/{3}/scans/{4}/resources/{5}'
-
-        if resource in [res['label'] for res in cobj.get_resources()]:
-            obj_info = cobj.info()
-
-            if isinstance(cobj, XnatUtils.CachedImageAssessor):
-                label = obj_info['label']
-                path_tmp = assr_tmp
-            elif isinstance(cobj, XnatUtils.CachedImageScan):
-                label = obj_info['ID']
-                path_tmp = scan_tmp
-
-            x_path = path_tmp.format(
-                cobj.parent().xnat.host,
-                obj_info['project_id'],
-                obj_info['subject_label'],
-                obj_info['session_label'],
-                label,
-                resource
-            )
-
-            if fmatch:
-                sess = cobj.parent().full_object()
-                if isinstance(cobj, XnatUtils.CachedImageAssessor):
-                    robj = sess.assessor(
-                        obj_info['label']).out_resource(resource)
-
-                elif isinstance(cobj, XnatUtils.CachedImageScan):
-                    robj = sess.scan(obj_info['ID']).resource(resource)
-
-                # Get list of all files in the resource
-                file_list = robj.files().get()
-
-                # TODO: Filter list based on regex matching
-                regex = XnatUtils.extract_exp(fmatch, full_regex=False)
-                file_list = [x for x in file_list if regex.match(x)]
-
-                # Make a comma separated list of files
-                uri_list = ['{}/files/{}'.format(x_path, f) for f in file_list]
-                xnat_uri = ','.join(uri_list)
-            elif fpath:
-                xnat_uri = '{}/files/{}'.format(x_path, fpath)
-            else:
-                xnat_uri = '{}/files'.format(x_path, fpath)
-
-        elif required:
-            msg = 'No resource {} found in {}.'
-            LOGGER.debug(msg.format(resource, cobj.label()))
-
-        return xnat_uri
-
-    def find_inputs(self, cobj):
-        input_list = []
-        var2val = {}
-
-        if isinstance(cobj, XnatUtils.CachedImageScan):
-            csess = cobj.parent()
-            scan_label = cobj.label()
-        else:
-            csess = cobj
-
-        # For each input scan descriptor
-        for scan_in in self.xnat_inputs.get('scans', list()):
-            if self.scan_nb in list(scan_in.keys()):
-                # Handle scan_nb
-                matched_cscans = [cobj]
-            else:
-                # Handle other scans
-                scantypes = scan_in.get('types').split(',')
-                needs_qc = scan_in.get('needs_qc', True)
-
-                # First get matching scan(s)
-                matched_cscans = XnatUtils.get_good_cscans(
-                    csess, scantypes, needs_qc)
-
-                # Check count of matches scans
-                if len(matched_cscans) == 0:
-                    LOGGER.debug('failed to find a scan')
-                    raise NoDataException('No Scan')
-                elif len(matched_cscans) > 1:
-                    LOGGER.debug('too many matching scans found')
-                    raise NeedInputsException('Multiple Scans')
-
-            # Now match resources of matched scans
-            resources = scan_in.get('resources', list())
-            for res in resources:
-                xnat_uri_list = []
-                for cscan in matched_cscans:
-                    xnat_uri = self.get_xnat_uri(
-                        cscan, res.get('resource'),
-                        fpath=res.get('filepath', None),
-                        fmatch=res.get('fmatch')
-                    )
-                    if not xnat_uri:
-                        LOGGER.debug('failed to find a file path')
-                        raise NeedInputsException('No Resource')
-
-                    xnat_uri_list.append(xnat_uri)
-
-                fdest = res.get('fdest')
-                ftype = res.get('ftype')
-                input_list.append({
-                    'fdest': fdest, 'ftype': ftype,
-                    'fpath': ','.join(xnat_uri_list)})
-                if 'varname' in res:
-                    varname = res['varname']
-                    var2val[varname] = fdest
-
-        # For each input assessor descriptor
-        for assr_in in self.xnat_inputs.get('assessors', list()):
-            proctypes = assr_in.get('proctypes').split(',')
-            needs_qc = assr_in.get('needs_qc', True)
-
-            # First get matching assessor(s)
-            matched_cassrs = XnatUtils.get_good_cassr(
-                csess, proctypes, needs_qc)
-
-            if 'scan_nb' in list(assr_in.keys()):
-                # Filter to only include those tied to scan_nb
-                matched_cassrs = [
-                    a for a in matched_cassrs if
-                    XnatUtils.AssessorHandler(
-                        a.label()).get_scan_id() == scan_label]
-
-            # Check counts of matched assessors
-            # TODO: figure out how to determine NoDataException
-            if len(matched_cassrs) == 0:
-                LOGGER.debug('failed to find an assessor')
-                raise NeedInputsException('Need Assr')
-            elif len(matched_cassrs) > 1:
-                LOGGER.debug('too many matching assessors found')
-                raise NeedInputsException('Multiple Assr')
-
-            # Now match resources of matched assessors
-            resources = assr_in.get('resources', list())
-            for res in resources:
-                xnat_uri_list = []
-                for cassr in matched_cassrs:
-                    xnat_uri = self.get_xnat_uri(
-                        cassr, res.get('resource'),
-                        required=res.get('required', True),
-                        fpath=res.get('filepath', None),
-                        fmatch=res.get('fmatch')
-                    )
-                    if not xnat_uri:
-                        LOGGER.debug('failed to find a file path')
-                        raise NeedInputsException('No Resource')
-
-                    xnat_uri_list.append(xnat_uri)
-
-                fdest = res.get('fdest')
-                ftype = res.get('ftype')
-                input_list.append({
-                    'fdest': fdest,
-                    'ftype': ftype,
-                    'fpath': ','.join(xnat_uri_list)
-                })
-                if 'varname' in res:
-                    varname = res['varname']
-                    var2val[varname] = fdest
-
-        # Handle xnat attributes
-        for attr_in in self.xnat_inputs.get('attrs', list()):
-            _var = attr_in['varname']
-            _attr = attr_in['attr']
-            _obj = attr_in['object']
-            _val = ''
-
-            if _obj == 'subject':
-                _val = csess.full_object().parent().attrs.get(_attr)
-            elif _obj == 'session':
-                _val = csess.full_object().attrs.get(_attr)
-            elif _obj == 'scan' and scan_label:
-                _val = csess.full_object().scan(scan_label).attrs.get(_attr)
-            else:
-                # TODO: throw invalid YAML error
-                LOGGER.error('invalid YAML')
-                err = 'YAML File:contains invalid attribute:{}'
-                raise AutoProcessorError(err.format(_attr))
-
-            if _val == '':
-                raise NeedInputsException('Missing ' + _attr)
-            else:
-                var2val[_var] = _val
-
-        return var2val, input_list
 
     def build_text(self, var2val, input_list, jobdir, dstdir):
         # Initialize commands
@@ -1216,7 +1020,6 @@ def load_from_yaml(xnat, filepath, user_inputs=None, singularity_imagedir=None):
     """
 
     yaml_obj = yaml_doc.YamlDoc().from_file(filepath)
-    #doc = XnatUtils.read_yaml(filepath)
     if yaml_obj.contents.get('moreauto'):
         return MoreAutoProcessor(xnat, yaml_obj, user_inputs, singularity_imagedir)
     else:

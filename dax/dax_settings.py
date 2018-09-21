@@ -622,8 +622,10 @@ class DAX_Settings(object):
         """
         with open(filepath, 'r') as f:
             data = f.read()
-        if data is None or data == '':
-            return ''
+
+        if data is None:
+            data = ''
+
         return Template(data)
 
     @staticmethod
