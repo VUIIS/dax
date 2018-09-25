@@ -185,7 +185,7 @@ class Processor(object):
         """
         raise NotImplementedError()
 
-    def create_assessor(self, xnatsession, inputs):
+    def create_assessor(self, xnatsession, inputs, relabel=False):
         attempts = 0
         while attempts < 100:
             guid = str(uuid4())
@@ -202,8 +202,15 @@ class Processor(object):
                     kwargs[procversion] = self.version
                 input_key = '{}/inputs'.format(self.xsitype.lower())
                 kwargs[input_key] = self._serialize_inputs(inputs)
+                if relabel:
+                    _proj = assessor.parent().parent().parent().label()
+                    _subj = assessor.parent().parent().label()
+                    _sess = assessor.parent().label()
+                    label = '-x-'.join([_proj, _subj, _sess, self.name, guid[:8]])
+                else:
+                    label=guid
                 assessor.create(assessors=self.xsitype.lower(),
-                                ID=guid,
+                                ID=guid, label=label,
                                 **kwargs)
                 return assessor
 
