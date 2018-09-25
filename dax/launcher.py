@@ -916,7 +916,7 @@ in session %s'
                 for inputs, p_assrs in mapping:
                     if len(p_assrs) == 0:
                         assessor = sess_proc.create_assessor(xnat_session,
-                                                             inputs)
+                                                             inputs, relabel=True)
                         assessors =\
                             [(assessor, task.NEED_TO_RUN, task.DOES_NOT_EXIST)]
                     else:
