@@ -4,7 +4,9 @@ import itertools
 import logging
 import sys
 from collections import namedtuple
-from .task import NeedInputsException, NoDataException
+from . task import NeedInputsException, NoDataException
+from . task import NEED_INPUTS, OPEN_STATUS_LIST, OPEN_QA_LIST, BAD_QA_STATUS,\
+JOB_PENDING, REPROC, RERUN, FAILED_NEEDS_REPROC, NEEDS_QA
 
 LOGGER = logging.getLogger('dax')
 
@@ -133,7 +135,6 @@ class ProcessorParser:
         self.artefacts_by_input = None
         self.parameter_matrix = None
         self.assessor_parameter_map = None
-        self.command_params = None
 
         self.xsitype = yaml_source['attrs'].get('xsitype', 'proc:genProcData')
 
@@ -150,7 +151,6 @@ class ProcessorParser:
         self.artefacts_by_input = None
         self.parameter_matrix = None
         self.assessor_parameter_map = None
-        self.command_params = None
 
         # build a list of sessions starting from the current session backwards
         intf = csess.intf
@@ -219,6 +219,38 @@ class ProcessorParser:
         assr_inputs = XnatUtils.get_assessor_inputs(assr)
         variable_set = {}
         input_list = []
+
+        # Check artefact status
+        for artk, artv in assr_inputs.iteritems():
+            inp = self.inputs[artk]
+            art_type = inp['artefact_type']
+            if art_type == 'scan' and not inp['needs_qc']:
+                continue
+
+            # Get status from xnat
+            aobj = assr._intf.select(artv)
+            if art_type == 'scan':
+                if not aobj.attrs.get('quality') == 'usable':
+                    raise NeedInputsException(artk + ': Not Usable')
+            else:
+                dtype = aobj.datatype()
+                procstatus = aobj.attrs.get(dtype + '/procstatus')
+                if procstatus in OPEN_STATUS_LIST+[NEED_INPUTS]:
+                    raise NeedInputsException(artk + ': Not Ready')
+
+                qcstatus = aobj.attrs.get(dtype + '/validation/status')
+                if qcstatus in [JOB_PENDING, REPROC, RERUN]:
+                    raise NeedInputsException(artk + ': Not Ready')
+
+                if not inp['needs_qc']:
+                    continue
+
+                if (qcstatus in [FAILED_NEEDS_REPROC, NEEDS_QA]):
+                    raise NeedInputsException(artk + ': Needs QC')
+
+                for qcstatus in BAD_QA_STATUS:
+                    if qcstatus.lower() in qcstatus.split(' ')[0].lower():
+                        raise NeedInputsException(artk + ': Bad QC')
 
         # map from parameters to input resources
         for k, v in self.variables_to_inputs.iteritems():
@@ -304,9 +336,8 @@ class ProcessorParser:
             if mode not in valid_modes:
                 valid_mode_str =\
                     ', '.join(map(lambda x: "'" + x + "'", valid_modes))
-                errors.append(
-                    bad_mode.format(input_category, input_name, keyword, mode,
-                                    valid_mode_str))
+                errors.append(bad_mode.format(
+                    input_category, input_name, keyword, mode, valid_mode_str))
         return errors
 
 
@@ -314,24 +345,20 @@ class ProcessorParser:
     def __check_resources_yaml_v1(input_category, input_name, resources_yaml):
         errors = []
         if 'resources' not in resources_yaml:
-            errors.append(
-                missing_field_named.format(
-                    input_category, input_name, 'resources'))
+            errors.append(missing_field_named.format(input_category,
+                input_name, 'resources'))
 
             for r, j in enumerate(resources_yaml['resources']):
                 if 'varname' not in r:
-                    errors.append(
-                        missing_resource_field_unnamed.format(
-                            input_category, input_name, j, 'varname'))
+                    errors.append(missing_resource_field_unnamed.format(
+                        input_category, input_name, j, 'varname'))
                 if 'resource' not in r:
-                    errors.append(
-                        missing_resource_field_named.format(
-                            input_category, input_name, r['varname'], 'resource'))
+                    errors.append(missing_resource_field_named.format(
+                        input_category, input_name, r['varname'], 'resource'))
                 if 'required' in r:
                     if r['required'] not in [True, False]:
-                        errors.append(
-                            bad_resource_mode.format(
-                                input_category, input_name, 'required'))
+                        errors.append(bad_resource_mode.format(
+                            input_category, input_name, 'required'))
         return errors
 
 
@@ -363,8 +390,7 @@ class ProcessorParser:
 
             errors.extend(
                 ProcessorParser._check_valid_mode(
-                    'scan', name, 'select-session', select_session_namespace,
-                    s))
+                    'scan', name, 'select-session', select_session_namespace,s))
 
             errors.extend(
                 ProcessorParser.__check_resources_yaml_v1('scan', name, s))
@@ -379,14 +405,11 @@ class ProcessorParser:
             if 'types' not in a:
                 errors.append(missing_field_named.format('scan', name, 'types'))
 
-            errors.extend(
-                ProcessorParser._check_valid_mode(
-                    'assessor', name, 'select', select_namespace, a))
+            errors.extend(ProcessorParser._check_valid_mode('assessor', name,
+                'select', select_namespace, a))
 
-            errors.extend(
-                ProcessorParser._check_valid_mode(
-                    'assessor', name, 'select-session',
-                    select_session_namespace, a))
+            errors.extend(ProcessorParser._check_valid_mode('assessor', name,
+                'select-session', select_session_namespace, a))
 
             ProcessorParser.__check_resources_yaml_v1('assessor', name, a)
 
@@ -656,24 +679,13 @@ class ProcessorParser:
                 # those inputs is subsequently removed from the session, the
                 # assessor now has a missing input
                 if not a.exists():
-                    errors.append(
-                        (
-                            artefact_input_k,
-                            'Artefact {} does not exist'.format(
-                                artefact_input_path)
-                        )
-                    )
+                    errors.append((artefact_input_k,' does not exist'))
                     continue
 
                 artefact_type = assr._intf.object_type_from_path(
                     artefact_input_path)
                 if artefact_type not in ['scan', 'assessor']:
-                    errors.append(
-                        (
-                            artefact_input_k,
-                            'Artefact {} must be a scan or assessor'.format(
-                                artefact_input_path))
-                        )
+                    errors.append((artefact_input_k,' must be scan or assr'))
                     continue
 
                 if processor_inputs['needs_qc'] == True:
@@ -684,13 +696,8 @@ class ProcessorParser:
                         usable = XnatUtils.is_bad_qa(status) == 1
 
                     if not usable:
-                        errors.append(
-                            (
-                                artefact_input_k,
-                                'Artefact {} is not usable'.format(
-                                    artefact_input_path)
-                            )
-                        )
+                        errors.append((artefact_input_k, ' not usable'))
+                        continue
 
                 resource_dict = {}
 
@@ -699,21 +706,13 @@ class ProcessorParser:
 
                 for r in processor_inputs['resources']:
                     if r['resource'] not in resource_dict:
-                        errors.append(
-                            (
-                                artefact_input_k,
-                                'Artefact {} is missing {} resource'.format(
-                                    artefact_input_path, r['resource'])
-                            )
-                        )
+                        errors.append((artefact_input_k,
+                            'missing resource {}'.format(r['resource'])))
+                        continue
                     elif resource_dict[r['resource']] < 1:
-                        errors.append(
-                            (
-                                artefact_input_k,
-                                'Artefact {} is missing files from resource {}'
-                                .format(artefact_input_path, r['resource'])
-                            )
-                        )
+                        errors.append((artefact_input_k,
+                            'missing files from {}'.format(r['resource'])))
+                        continue
 
         return 1 if len(errors) == 0 else 0, errors
 
