@@ -949,6 +949,33 @@ class MoreAutoProcessor(AutoProcessor):
         # Include the assessor label
         var2val['assessor'] = assr_label
 
+        # Handle xnat attributes
+        # TODO: handle multiple scans/assrs for an input
+        assr_inputs = XnatUtils.get_assessor_inputs(assr)
+        for attr_in in self.xnat_inputs.get('attrs', list()):
+            _var = attr_in['varname']
+            _attr = attr_in['attr']
+            _obj = attr_in['object']
+            _val = ''
+
+            if _obj == 'subject':
+                _val = assr.parent().parent().attrs.get(_attr)
+            elif _obj == 'session':
+                _val = assr.parent().attrs.get(_attr)
+            elif _obj == 'scan':
+                _ref = attr_in['ref']
+                _refval = assr_inputs[_ref].rsplit('/', 1)[1]
+                _val = assr.parent().scan(_refval).attrs.get(_attr)
+            else:
+                LOGGER.error('invalid YAML')
+                err = 'YAML File:contains invalid attribute:{}'
+                raise AutoProcessorError(err.format(_attr))
+
+            if _val == '':
+                raise NeedInputsException('Missing ' + _attr)
+            else:
+                var2val[_var] = _val
+
         # Build the command text
         cmd = self.build_text(var2val, input_list, jobdir, dstdir)
 
