@@ -32,7 +32,7 @@ def full_label_from_assessor(assessor):
 def parse_full_assessor_name(assessor_name):
     elements = assessor_name.split('-x-')
 
-    if len(elements == 5):
+    if len(elements) == 5:
         # relabel is in use so no need to parse
         return assessor_name
 
