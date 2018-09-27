@@ -59,8 +59,8 @@ resource_paths = {
 }
 
 uri_paths = {
-    'assessor': '{0}/data/{1}/out/resources/{2}',
-    'scan': '{0}/data/{1}/resources/{2}'
+    'assessor': '{0}/data{1}/out/resources/{2}',
+    'scan': '{0}/data{1}/resources/{2}'
 }
 
 
