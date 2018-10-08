@@ -1015,7 +1015,7 @@ unable to find XML file: %s'
                 upload_resource(assessor_obj, resource, resource_path)
 
         # after Upload
-        if is_diskq_assessor(assessor_path):
+        if is_diskq_assessor(os.path.basename(assessor_path)):
             # was this run using the DISKQ option
             # Read attributes
             ctask = ClusterTask(assessor_dict['label'], RESULTS_DIR, DISKQ_DIR)

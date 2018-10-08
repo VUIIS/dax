@@ -35,20 +35,20 @@ def parse_full_assessor_name(assessor_name):
 
     if len(elements) == 5:
         # relabel is in use or old style with scan id in label
-        assrdict = zip(
+        assrdict = dict(zip(
             ['project_id', 'subject_label', 'session_label', 'label'],
-            [elements[0], elements[1], elements[2], assessor_name])
+            [elements[0], elements[1], elements[2], assessor_name]))
     elif len(elements) == 4:
         if len(elements[3]) == 36:
             # new style label with uuid
-            assrdict = zip(
+            assrdict = dict(zip(
                 ['project_id', 'subject_label', 'session_label', 'label'],
-                elements)
+                elements))
         else:
             # old style label
-            assrdict = zip(
+            assrdict = dict(zip(
                 ['project_id', 'subject_label', 'session_label', 'label'],
-                [elements[0], elements[1], elements[2], assessor_name])
+                [elements[0], elements[1], elements[2], assessor_name]))
     else:
         raise ValueError(("'assessor_name' parameter '{}' is not a valid full "
                           "assessor name".format(assessor_name)))
