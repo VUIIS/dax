@@ -248,8 +248,8 @@ class ProcessorParser:
                 if (qcstatus in [FAILED_NEEDS_REPROC, NEEDS_QA]):
                     raise NeedInputsException(artk + ': Needs QC')
 
-                for qcstatus in BAD_QA_STATUS:
-                    if qcstatus.lower() in qcstatus.split(' ')[0].lower():
+                for badstatus in BAD_QA_STATUS:
+                    if badstatus.lower() in qcstatus.split(' ')[0].lower():
                         raise NeedInputsException(artk + ': Bad QC')
 
         # map from parameters to input resources
