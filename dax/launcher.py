@@ -912,6 +912,9 @@ in session %s'
             sess_proc.parse_session(csess)
             mapping = sess_proc.get_assessor_mapping()
 
+            if mapping is None:
+                continue
+                
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
                 for inputs, p_assrs in mapping:
                     if len(p_assrs) == 0:

@@ -833,6 +833,10 @@ class ProcessorParser:
         for casr in filter(lambda a: a.type() == processor_type,
                            csess.assessors()):
             inputs = casr.get_inputs()
+            
+            if inputs is None:
+                print('ERROR:empty inputs found:'+casr.label())
+                return None
 
             for pi, p in enumerate(parameter_matrix):
                 if inputs == p:
