@@ -38,7 +38,7 @@ def parse_full_assessor_name(assessor_name):
         assrdict = zip(
             ['project_id', 'subject_label', 'session_label', 'label'],
             [elements[0], elements[1], elements[2], assessor_name])
-    if len(elements) == 4:
+    elif len(elements) == 4:
         if len(elements[3]) == 36:
             # new style label with uuid
             assrdict = zip(
