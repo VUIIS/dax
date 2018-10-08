@@ -206,7 +206,7 @@ class Processor(object):
                     _proj = assessor.parent().parent().parent().label()
                     _subj = assessor.parent().parent().label()
                     _sess = assessor.parent().label()
-                    label = '-x-'.join([_proj, _subj, _sess, self.name, guid[:8]])
+                    label = '-x-'.join([_proj, _subj, _sess, self.name, guid])
                 else:
                     label=guid
                 assessor.create(assessors=self.xsitype.lower(),
