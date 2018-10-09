@@ -230,7 +230,7 @@ class ProcessorParser:
             # Get status from xnat
             aobj = assr._intf.select(artv)
             if art_type == 'scan':
-                if not aobj.attrs.get('quality') == 'usable':
+                if aobj.attrs.get('quality') == 'unusable':
                     raise NeedInputsException(artk + ': Not Usable')
             else:
                 dtype = aobj.datatype()
