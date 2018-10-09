@@ -464,7 +464,7 @@ class ProcessorParser:
         elif iteration_args[0] == 'all':
             iteration_sources.add(name)
         elif iteration_args[0] == 'from':
-            iteration_map[name] = iteration_args[1].split('/')[0]
+            iteration_map[name] = iteration_args[1] #.split('/')[0]
 
 
     @staticmethod
@@ -726,7 +726,6 @@ class ProcessorParser:
                                   iteration_map,
                                   artefacts,
                                   artefacts_by_input):
-
         # generate n dimensional input matrix based on iteration sources
         all_inputs = []
         input_dimension_map = []
@@ -772,18 +771,25 @@ class ProcessorParser:
                 # the select mode of the mapped input
                 combined_input_vector = [cur_input_vector]
                 for k, v in iteration_map.iteritems():
-                    mapped_inputs.append(k)
-                    if inputs[k]['select'][0] == 'foreach':
-                        combined_input_vector.append(sanitised_inputs[k][:])
-                    else: # from
-                        from_artefacts = sanitised_inputs[v]
-                        mapped_input_vector = []
-                        for fa in from_artefacts:
-                            a = artefacts[fa]
-                            from_inputs = a.entity.get_inputs()
-                            mapped_input_vector.append(from_inputs[k])
-                        combined_input_vector.append(mapped_input_vector)
+                    (v1, v2) = v.split('/')
+                    if v1 == i:
+                        mapped_inputs.append(k)
+                        if inputs[k]['select'][0] == 'foreach':
+                            combined_input_vector.append(sanitised_inputs[k][:])
+                        else: # fromi
+                            from_artefacts = sanitised_inputs[v1]
+                            mapped_input_vector = []
+                            for fa in from_artefacts:
+                                a = artefacts[fa]
+                                from_inputs = a.entity.get_inputs()
+                                mapped_input_vector.append(from_inputs[v2])
+                           
+                            combined_input_vector.append(mapped_input_vector)
 
+                    else:
+                        ##print('ignoring, v1='+v1+',i='+i)
+                        pass
+                        
                 # 'trim' the input vectors to the number of entries of the
                 # shortest vector. We don't actually truncate the datasets but
                 # just use the number when transposing, below
@@ -833,9 +839,9 @@ class ProcessorParser:
         for casr in filter(lambda a: a.type() == processor_type,
                            csess.assessors()):
             inputs = casr.get_inputs()
-            
+
             if inputs is None:
-                print('ERROR:empty inputs found:'+casr.label())
+                print('ERROR:empty inputs found:' + casr.label())
                 return None
 
             for pi, p in enumerate(parameter_matrix):
