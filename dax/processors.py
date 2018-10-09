@@ -597,7 +597,6 @@ defined by yaml file {}'
         # Set attributs:
         self.spider_path = self.user_overrides.get('spider_path')
         self.name = self.proctype
-        self.type = self.attrs.get('type')
 
         # Set template
         self.job_template = doc.get('jobtemplate', None)
@@ -617,7 +616,7 @@ defined by yaml file {}'
         inputs = doc.get('inputs')
         attrs = doc.get('attrs')
         for _doc, key in [(inputs, 'default'), (inputs, 'xnat'),
-                          (attrs, 'type'), (attrs, 'memory'),
+                          (attrs, 'memory'),
                           (attrs, 'walltime')]:
             self._raise_yaml_error_if_no_key(_doc, source_id, key)
         # third level for default:
@@ -858,8 +857,6 @@ class MoreAutoProcessor(AutoProcessor):
 
         # Set attributes:
         self.name = self.proctype
-        self.type = self.attrs.get('type')
-        self.scan_nb = self.attrs.get('scan_nb', None)
 
         # Set Outputs from Yaml
         self.outputs = doc.get('outputs')
@@ -883,11 +880,9 @@ class MoreAutoProcessor(AutoProcessor):
         inputs = doc.get('inputs')
         attrs = doc.get('attrs')
         for _doc, key in [(inputs, 'default'), (inputs, 'xnat'),
-                          (attrs, 'type'), (attrs, 'memory'),
+                          (attrs, 'memory'),
                           (attrs, 'walltime')]:
             self._raise_yaml_error_if_no_key(_doc, source_id, key)
-        if attrs['type'] == 'scan':
-            self._raise_yaml_error_if_no_key(attrs, source_id, 'scan_nb')
 
         # third level for default:
         default = doc.get('inputs').get('default')
