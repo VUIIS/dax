@@ -9,7 +9,7 @@ import os
 import json
 import itertools
 from uuid import uuid4
-
+from datetime import date
 
 from . import XnatUtils, task
 from . import assessor_utils
@@ -209,6 +209,13 @@ class Processor(object):
                     label = '-x-'.join([_proj, _subj, _sess, self.name, guid])
                 else:
                     label=guid
+
+                # Set creation date to today
+                date_key = '{}/date'.format(self.xsitype.lower())
+                date_val = str(date.today())
+                kwargs[date_key] = date_val
+
+                # Create the assessor
                 assessor.create(assessors=self.xsitype.lower(),
                                 ID=guid, label=label,
                                 **kwargs)
