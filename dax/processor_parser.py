@@ -624,8 +624,8 @@ class ProcessorParser:
 
             LOGGER.info('inputs by assessor:')
             for cassr in csess.assessors():
-                LOGGER.info(' - ' + cassr.label())
-                LOGGER.info('   - ' + str(cassr.get_inputs()))
+                LOGGER.info(cassr.label())
+                LOGGER.info(str(cassr.get_inputs()))
         return artefacts
 
 
@@ -841,7 +841,7 @@ class ProcessorParser:
             inputs = casr.get_inputs()
 
             if inputs is None:
-                print('ERROR:empty inputs found:' + casr.label())
+                LOGGER.warn('skipping, inputs field is empty:' + casr.label())
                 return None
 
             for pi, p in enumerate(parameter_matrix):
