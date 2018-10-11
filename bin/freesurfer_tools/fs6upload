@@ -1,0 +1,173 @@
+#!/Users/boydb1/miniconda2/bin/python
+# -*- coding: utf-8 -*-
+
+'''
+Upload manual edits to FreeSurfer 6 subject on XNAT
+'''
+
+from __future__ import print_function
+
+import os
+import sys
+import subprocess
+import time
+
+from dax import XnatUtils, task
+
+
+__exe__ = os.path.basename(__file__)
+__author__ = 'Brian Boyd'
+__purpose__ = "Upload FreeSurfer edits to subject on XNAT"
+
+
+def mri_diff(file1, file2):
+    """
+    Method to estimate the difference between two files using mri_diff
+
+    :param file1: path to file 1
+    :param file2: path to file 2
+    :return: parser object parsed
+    """
+    cmd = 'mri_diff {} {}'.format(file1, file2)
+
+    try:
+        output = subprocess.call(cmd, stderr=subprocess.STDOUT, shell=True)
+        return output
+    except (subprocess.CalledProcessError, ValueError):
+        return -1
+
+
+def parse_args():
+    """
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
+    """
+    from argparse import ArgumentParser
+    ap = ArgumentParser(prog=__exe__, description=__purpose__)
+    ap.add_argument(
+        '--host', dest='host', default=None,
+        help='Host for XNAT. Default: env XNAT_HOST.')
+    ap.add_argument(
+        '-u', '--username', dest='username', default=None,
+        help='Username for XNAT.')
+    ap.add_argument('project', help='Project Label')
+    ap.add_argument('session', help='Session Label')
+    ap.add_argument(
+        'proc_suffix', help='Proc name suffix', nargs='?', default='')
+    ap.add_argument(
+        '-sd', '--subjects_dir', dest='subjects_dir',
+        help='Subjects Directory',
+        default=os.environ.get('SUBJECTS_DIR', '/tmp'))
+    return ap.parse_args()
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    proj_label = args.project
+    sess_label = args.session
+    subjects_dir = args.subjects_dir
+    fs = None
+    if not args.proc_suffix:
+        proc_suffix = ''
+    else:
+        proc_suffix = args.proc_suffix
+
+    local_subj_path = os.path.join(subjects_dir, sess_label)
+    if not os.path.exists(local_subj_path):
+        print('ERROR:cannot upload, subject not found locally')
+        sys.exit(1)
+
+    if args.host:
+        host = args.host
+    else:
+        host = os.environ.get('XNAT_HOST', None)
+
+    user = args.username
+    with XnatUtils.get_interface(host=host, user=user) as xnat:
+        print('INFO: connection to xnat <{}>:'.format(host))
+
+        # Find the FreeSurfer assessor
+        sess_list = XnatUtils.list_sessions(xnat, projectid=proj_label)
+        fs_list = []
+        for sess in sess_list:
+            if sess['label'] == sess_label:
+                alist = XnatUtils.list_assessors(
+                    xnat, proj_label, sess['subject_ID'], sess['ID'])
+
+                flist = [a for a in alist if a['proctype'].startswith('FS6_')]
+
+        if not flist:
+            print('ERROR:FreeSurfer not found on XNAT')
+            sys.exit(1)
+
+        if len(flist) == 1:
+            fs = flist[0]
+        elif not proc_suffix:
+            print('ERROR:mutliple FreeSurfers found, specify suffix')
+            sys.exit(1)
+
+        else:
+            flist2 = []
+            flist2 = [a for a in flist if a['label'].endswith(proc_suffix)]
+
+            if not flist2:
+                print('ERROR:FreeSurfer not found with suffix')
+                sys.exit(1)
+
+            if len(flist2) == 1:
+                fs = flist2[0]
+            else:
+                print('ERROR:mutliple FreeSurfers found suffix')
+                sys.exit(1)
+
+        # TODO: Check for edits saved with original filenames
+        # res = mri_diff(local_subj_path + '/mri/brainmask.auto.mgz',
+        #                local_subj_path + '/mri/brainmask.mgz')
+        # print('diff brainmask result='+str(res))
+
+        # res = mri_diff(local_subj_path + '/mri/aseg.auto.mgz',
+        #                local_subj_path + '/mri/aseg.mgz')
+        # print('diff aeg result='+str(res))
+
+        # Upload the edits - brainmask, wm, aseg, control.dat,...
+        assessor_obj = XnatUtils.get_full_object(xnat, fs)
+        resource = assessor_obj.out_resource('EDITS')
+        curtime = time.strftime("%Y%m%d-%H%M%S")
+        brainmask_path = os.path.join(
+            local_subj_path, 'mri', 'brainmask.edited.mgz')
+        wm_path = os.path.join(local_subj_path, 'mri', 'wm.edited.mgz')
+        aseg_path = os.path.join(local_subj_path, 'mri', 'aseg.edited.mgz')
+        control_path = os.path.join(local_subj_path, 'tmp', 'control.dat')
+
+        if os.path.isfile(brainmask_path):
+            print('Uploading brainmask...')
+            resource.file(
+                'brainmask.edited.mgz.{}'.format(curtime)).put(brainmask_path)
+        else:
+            print('No edited brainmask found')
+
+        if os.path.isfile(wm_path):
+            print('Uploading wm...')
+            resource.file('wm.edited.mgz.{}'.format(curtime)).put(wm_path)
+        else:
+            print('No edited wm found')
+
+        if os.path.isfile(aseg_path):
+            print('Uploading aseg...')
+            resource.file('aseg.edited.mgz.{}'.format(curtime)).put(aseg_path)
+        else:
+            print('No edited aseg found')
+
+        if os.path.isfile(control_path):
+            print('Uploading control.dat...')
+            resource.file('control.dat.{}'.format(curtime)).put(control_path)
+        else:
+            print('No edited control points found')
+
+        # Set QC Status to trigger reprocessing
+        print('Setting qcstatus to trigger reprocessing...')
+        assessor_obj.attrs.set(
+            'xnat:imageAssessorData/validation/status', task.REPROC)
+
+        print('DONE')
