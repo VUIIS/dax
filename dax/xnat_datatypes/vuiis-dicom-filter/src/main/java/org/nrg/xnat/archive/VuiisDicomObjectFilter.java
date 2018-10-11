@@ -25,7 +25,7 @@ public class VuiisDicomObjectFilter {
         // Check that PatientComments has not already been set
         if (dataset.contains(Tag.PatientComments) && 
             dataset.getString(Tag.PatientComments) != null && 
-            dataset.getString(Tag.PatientComments).trim().equals("")) {
+            !dataset.getString(Tag.PatientComments).trim().equals("")) {
             return;
         }
         
