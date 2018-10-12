@@ -646,8 +646,10 @@ class ProcessorParser:
 
             if csess is not None:
                 for cscan in csess.scans():
-                    if cscan.type() in iv['types']:
-                        artefacts_by_input[i].append(cscan.full_path())
+                    for expression in iv['types']:
+                        regex = XnatUtils.extract_exp(expression)
+                        if regex.match(cscan.type()):
+                            artefacts_by_input[i].append(cscan.full_path())
 
                 for cassr in csess.assessors():
                     if cassr.type() in iv['types']:
