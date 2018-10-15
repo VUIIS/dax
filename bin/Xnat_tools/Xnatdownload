@@ -899,7 +899,10 @@ def download_specific_assessor():
     if OPTIONS.resourcesA:
         LOGGER.info('Selected Processor: %s' % (OPTIONS.selectionAssessor))
         # Variables:
-        assessor_path = os.path.join(DIRECTORY, OPTIONS.selectionAssessor)
+        if not OPTIONS.oneDir:
+            assessor_path = os.path.join(DIRECTORY, OPTIONS.selectionAssessor)
+        else:
+            assessor_path = DIRECTORY
         assessors_resources = get_option_list(OPTIONS.resourcesA)
         status = get_option_list(OPTIONS.status)
         # Get assessor obj dict:
@@ -920,7 +923,8 @@ def download_specific_assessor():
                 jobstatus = assessor_obj.attrs.get(
                     'proc:genProcData/procstatus')
             if not status or (status and jobstatus in status):
-                assessor_path = os.path.join(DIRECTORY, assessor_dict['label'])
+                if not OPTIONS.oneDir:
+                    assessor_path = os.path.join(DIRECTORY, assessor_dict['label'])
                 out_reslist = get_resources_list(
                     assessor_dict, assessors_resources)
                 for rname in out_reslist:
