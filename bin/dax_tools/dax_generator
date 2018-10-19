@@ -1278,7 +1278,7 @@ information."""
         code_str = spiders.load_template(code_file)
         code_str = code_str.replace('"""', "'''")
         # Make the spider
-        spider_file = 'Spider_{}_v{}.py'.format(args.name,
+        spider_filename = 'Spider_{}_v{}.py'.format(args.name,
                                                 args.version.replace('.', '_'))
         spider_str = AUTO_SP_TEMPLATE.format(
             name=args.name,
@@ -1287,8 +1287,12 @@ information."""
             code=code_str,
             version=args.version,
             exe_lang=exe_lang)
+        if args.directory and os.path.exists(args.directory):
+            spider_path = os.path.join(args.directory,spider_filename)
+        else:
+            spider_path = os.path.join(os.getcwd(),spider_filename);
         # Write the file
-        with open(spider_file, 'w') as f:
+        with open(spider_path, 'w') as f:
             f.write(spider_str)
 
     elif args.command == 'processor':
