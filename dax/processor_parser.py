@@ -261,7 +261,7 @@ class ProcessorParser:
             # Find the resource
             cur_res = None
             for inp_res in inp['resources']:
-                if inp_res['resource'] == resource:
+                if inp_res['varname'] == k:
                     cur_res = inp_res
                     break
 
