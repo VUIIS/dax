@@ -112,7 +112,7 @@ flair_params = {
 scan_presets = {
     't1': t1_params,
     't2': t2_params,
-    'flair' : flair_params
+    'flair': flair_params
 }
 
 
@@ -165,10 +165,10 @@ class ComponentTestBuild(TestCase):
 
 
     @staticmethod
-    def _setup_scans(session):
-        SessionTools.add_scan(session, '1', scan_presets['t1'])
-        SessionTools.add_scan(session, '2', scan_presets['t1'])
-        SessionTools.add_scan(session, '11', scan_presets['flair'])
+    def _setup_scans(session, scan_descriptors):
+        for s, d in scan_descriptors:
+            print(s, d)
+            SessionTools.add_scan(session, s, scan_presets[d])
 
 
     @staticmethod
@@ -201,7 +201,8 @@ class ComponentTestBuild(TestCase):
             self.assertTrue(False, 'sess1 should be pre-created for this test')
 
         # delete and recreate scans
-        ComponentTestBuild._setup_scans(session)
+        scan_descriptors = [('1', 't1'), ('2', 't1'), ('11', 'flair')]
+        ComponentTestBuild._setup_scans(session, scan_descriptors)
 
         # delete and recreate old assessors
         ComponentTestBuild._setup_assessors(session)
@@ -212,12 +213,30 @@ class ComponentTestBuild(TestCase):
         subj_id = 'subj1'
         sess_ids = ['sess1', 'sess2']
         intf = XnatUtils.get_interface(host=host)
+        scan_descriptors = [('1', 't1'), ('2', 't1'),
+                 ('11', 'flair'), ('12', 'flair'),
+                 ('21', 't2')]
         for sess_id in sess_ids:
             session = intf.select_experiment(proj_id, subj_id, sess_id)
             if not session.exists():
                 self.assertTrue(False, "no such session")
 
-            ComponentTestBuild._setup_scans(session)
+            ComponentTestBuild._setup_scans(session, scan_descriptors)
+
+
+    def test_clean_scans_from_test_session(self):
+        proj_id = 'proj1'
+        subj_id = 'subj1'
+        sess_ids = ['sess1', 'sess2']
+        intf = XnatUtils.get_interface(host=host)
+        for sess_id in sess_ids:
+            session = intf.select_experiment(proj_id, subj_id, sess_id)
+            if not session.exists():
+                self.assertTrue(False, "no such session")
+
+            for scn in session.scans():
+                scn.delete()
+
 
 
     def test_clean_assessors_from_test_session(self):

@@ -213,6 +213,16 @@ xnat_scan_contents_1 = [
     (proj, subj, sess, "22", "X3", "usable", copy.deepcopy(scan_files))
 ]
 
+xnat_scan_contents_t1_no_fl_no_t2 = [
+    (proj, subj, sess, '1', 'T1', 'usable', copy.deepcopy(scan_files)),
+    (proj, subj, sess, '2', 'T1', 'usable', copy.deepcopy(scan_files))
+]
+
+xnat_scan_contents_no_t1_fl_no_t2 = [
+    (proj, subj, sess, '11', 'T2', 'usable', copy.deepcopy(scan_files)),
+    (proj, subj, sess, '12', 'T2', 'usable', copy.deepcopy(scan_files))
+]
+
 xnat_assessor_inputs_1 = {
     'proc1-asr1': {'scan1': scan_path.format(proj, subj, sess, '1')},
     'proc1-asr2': {'scan1': scan_path.format(proj, subj, sess, '2')},
@@ -311,18 +321,61 @@ xnat_assessor_contents_2 = [
      copy.deepcopy(asr_files), xnat_assessor_inputs_2['proc1-asr2']),
 ]
 
+
+processor_yaml_foreach_map = yamls.generate_yaml(
+    'proc2',
+    scans=[
+        {
+            'name': 'scanx', 'types': 'T1',
+            'select': 'foreach',
+            'resources': [
+                {'type': 'NIFTI', 'name': 't1'}
+            ]
+        },
+        {
+            'name': 'scany', 'types': 'FLAIR',
+            'select': 'foreach(scanx)',
+            'resources': [
+                {'type': 'NIFTI', 'name': 'fl'}
+            ]
+        },
+    ],
+    assessors=[]
+)
+
+processor_yaml_all = yamls.generate_yaml(
+    'proc2',
+    scans=[
+        {
+            'name': 'scanx', 'types': 'T1',
+            'select': 'foreach',
+            'resources': [
+                {'type': 'NIFTI', 'name': 't1'}
+            ]
+        },
+        {
+            'name': 'scany', 'types': 'FLAIR',
+            'select': 'all',
+            'resources': [
+                {'type': 'NIFTI', 'name': 'fl'}
+            ]
+        },
+    ],
+    assessors=[]
+)
+
 processor_yaml_2 = yamls.generate_yaml(
     'proc2',
     scans=[
         {
-            'name': 'scan1', 'types': 'T1',
+            'name': 'scan_t', 'types': 'T1',
             'select': 'from(asr1/scan1)',
             'resources': [
                 {'type': 'NIFTI', 'name': 't1'}
             ]
         },
         {
-            'name': 'scan2', 'types': 'FLAIR',
+            'name': 'scan_f', 'types': 'FLAIR',
             'select': 'from(asr1/scan2)',
             'resources': [
                 {'type': 'NIFTI', 'name': 'fl'}
@@ -336,6 +389,48 @@ processor_yaml_2 = yamls.generate_yaml(
         ]
     }]
 )
+
+processor_yaml_from_two_assessors = yamls.generate_yaml(
+    'proc3',
+    scans=[
+        {
+            'name': 'scan_t1', 'types': 'T1',
+            'select': 'from(asr2/scan1)',
+            'resources': [
+                {'type': 'NIFTI', 'name': 't1'}
+            ]
+        },
+        {
+            'name': 'scan_f', 'types': 'FLAIR',
+            'select': 'from(asr2/scan2)',
+            'resources': [
+                {'type': 'NIFTI', 'name': 'fl'}
+            ]
+        },
+        {
+            'name': 'scan_t2', 'types': 'T2',
+            'select': 'from(asr1/scan1)',
+            'resources': [
+                {'type': 'NIFTI', 'name': 't2'}
+            ]
+        }
+    ],
+    assessors=[
+        {
+            'name': 'asr1', 'types': 'proc1',
+            'resources': [
+                {'type': 'SEG', 'name': 'seg1'}
+            ]
+        },
+        {
+            'name': 'asr2', 'types': 'proc2',
+            'resources': [
+                {'type': 'SEG', 'name': 'seg2'}
+            ]
+        }
+    ]
+)
+
 
 class ArtefactResource:
     def __init__(self, restype, required, files):
@@ -376,11 +471,21 @@ class ProcessorTest(TestCase):
 
 class ProcessorParserUnitTests(TestCase):
 
+    def __generate_scans(self, proj, subj, sess, scan_descriptors):
+        contents = list()
+        for s, d in scan_descriptors:
+            contents.append(
+                (proj, subj, sess, s, d, "usable", copy.deepcopy(scan_files))
+            )
+        return contents
+
+
 
     def __run_processor_parser_unit_tests(self,
                                           scan_contents,
                                           assessor_contents,
-                                          processor_yaml):
+                                          processor_yaml,
+                                          expected=None):
 
         csess = [TestSession().OldInit(proj, subj, sess, scan_contents,
                                       assessor_contents)]
@@ -401,12 +506,12 @@ class ProcessorParserUnitTests(TestCase):
         print "artefacts =", artefacts
 
         artefacts_by_input = \
-            ProcessorParser.map_artefacts_to_inputs(csess, inputs_by_type)
+            ProcessorParser.map_artefacts_to_inputs(csess, inputs, inputs_by_type)
         print "artefacts_by_input =", artefacts_by_input
 
-        variables_to_inputs = \
-            ProcessorParser.parse_variables(inputs)
-        print "variables_to_inputs =", variables_to_inputs
+        # variables_to_inputs = \
+        #     ProcessorParser.parse_variables(inputs)
+        # print "variables_to_inputs =", variables_to_inputs
 
         parameter_matrix = \
             ProcessorParser.generate_parameter_matrix(
@@ -420,19 +525,151 @@ class ProcessorParserUnitTests(TestCase):
                                                 parameter_matrix)
         print "assessor_parameter_map = ", assessor_parameter_map
 
+        if expected is None:
+            self.assertTrue(False, 'No expected results provided: no test validation')
+        else:
+            for p in parameter_matrix:
+                error = 'entry {} is not in expected; parameter matrix = {}, expected = {}'
+                self.assertTrue(p in expected, error.format(p, parameter_matrix, expected))
+
 
     def test_processor_parser_experimental_1(self):
+        expected = [
+            {'scan4': None,
+             'asr1': '/projects/proj1/subjects/subj1/experiments/sess1/assessors/proc1-asr1',
+             'scan1': '/projects/proj1/subjects/subj1/experiments/sess1/scans/1',
+             'scan2': '/projects/proj1/subjects/subj1/experiments/sess1/scans/11',
+             'scan3': ['/projects/proj1/subjects/subj1/experiments/sess1/scans/21',
+                       '/projects/proj1/subjects/subj1/experiments/sess1/scans/22']},
+            {'scan4': None,
+             'asr1': '/projects/proj1/subjects/subj1/experiments/sess1/assessors/proc1-asr2',
+             'scan1': '/projects/proj1/subjects/subj1/experiments/sess1/scans/1',
+             'scan2': '/projects/proj1/subjects/subj1/experiments/sess1/scans/12',
+             'scan3': ['/projects/proj1/subjects/subj1/experiments/sess1/scans/21',
+                       '/projects/proj1/subjects/subj1/experiments/sess1/scans/22']},
+            {'scan4': None,
+             'asr1': '/projects/proj1/subjects/subj1/experiments/sess1/assessors/proc1-asr1',
+             'scan1': '/projects/proj1/subjects/subj1/experiments/sess1/scans/2',
+             'scan2': '/projects/proj1/subjects/subj1/experiments/sess1/scans/11',
+             'scan3': ['/projects/proj1/subjects/subj1/experiments/sess1/scans/21',
+                       '/projects/proj1/subjects/subj1/experiments/sess1/scans/22']},
+            {'scan4': None,
+             'asr1': '/projects/proj1/subjects/subj1/experiments/sess1/assessors/proc1-asr2',
+             'scan1': '/projects/proj1/subjects/subj1/experiments/sess1/scans/2',
+             'scan2': '/projects/proj1/subjects/subj1/experiments/sess1/scans/12',
+             'scan3': ['/projects/proj1/subjects/subj1/experiments/sess1/scans/21',
+                       '/projects/proj1/subjects/subj1/experiments/sess1/scans/22']},
+            {'scan4': None,
+             'asr1': '/projects/proj1/subjects/subj1/experiments/sess1/assessors/proc1-asr1',
+             'scan1': '/projects/proj1/subjects/subj1/experiments/sess1/scans/3',
+             'scan2': '/projects/proj1/subjects/subj1/experiments/sess1/scans/11',
+             'scan3': ['/projects/proj1/subjects/subj1/experiments/sess1/scans/21',
+                       '/projects/proj1/subjects/subj1/experiments/sess1/scans/22']},
+            {'scan4': None,
+             'asr1': '/projects/proj1/subjects/subj1/experiments/sess1/assessors/proc1-asr2',
+             'scan1': '/projects/proj1/subjects/subj1/experiments/sess1/scans/3',
+             'scan2': '/projects/proj1/subjects/subj1/experiments/sess1/scans/12',
+             'scan3': ['/projects/proj1/subjects/subj1/experiments/sess1/scans/21',
+                       '/projects/proj1/subjects/subj1/experiments/sess1/scans/22']},
+            {'scan4': None,
+             'asr1': '/projects/proj1/subjects/subj1/experiments/sess1/assessors/proc1-asr1',
+             'scan1': '/projects/proj1/subjects/subj1/experiments/sess1/scans/4',
+             'scan2': '/projects/proj1/subjects/subj1/experiments/sess1/scans/11',
+             'scan3': ['/projects/proj1/subjects/subj1/experiments/sess1/scans/21',
+                       '/projects/proj1/subjects/subj1/experiments/sess1/scans/22']},
+            {'scan4': None,
+             'asr1': '/projects/proj1/subjects/subj1/experiments/sess1/assessors/proc1-asr2',
+             'scan1': '/projects/proj1/subjects/subj1/experiments/sess1/scans/4',
+             'scan2': '/projects/proj1/subjects/subj1/experiments/sess1/scans/12',
+             'scan3': ['/projects/proj1/subjects/subj1/experiments/sess1/scans/21',
+                       '/projects/proj1/subjects/subj1/experiments/sess1/scans/22']}
+        ]
 
         self.__run_processor_parser_unit_tests(xnat_scan_contents_1,
                                                xnat_assessor_contents_1,
-                                               scan_gif_parcellation_yaml)
+                                               scan_gif_parcellation_yaml,
+                                               expected)
+
+
+    def test_processor_parser_foreach_map(self):
+        expected = [
+            {'scanx': '/projects/proj1/subjects/subj1/experiments/sess1/scans/3',
+             'scany': '/projects/proj1/subjects/subj1/experiments/sess1/scans/11'},
+            {'scanx': '/projects/proj1/subjects/subj1/experiments/sess1/scans/4',
+             'scany': '/projects/proj1/subjects/subj1/experiments/sess1/scans/12'}
+        ]
+        self.__run_processor_parser_unit_tests(xnat_scan_contents_1,
+                                               xnat_assessor_contents_1,
+                                               processor_yaml_foreach_map,
+                                               expected)
+
+
+
+    def test_processor_parser_foreach_map_no_fl(self):
+        expected = [
+            {}
+        ]
+        self.__run_processor_parser_unit_tests(xnat_scan_contents_t1_no_fl_no_t2,
+                                               xnat_assessor_contents_1,
+                                               processor_yaml_foreach_map,
+                                               expected)
+
+
+
+    def test_processor_parser_foreach_map_no_t1(self):
+        expected = [
+            {}
+        ]
+        self.__run_processor_parser_unit_tests(xnat_scan_contents_no_t1_fl_no_t2,
+                                               xnat_assessor_contents_1,
+                                               processor_yaml_foreach_map,
+                                               expected)
+
+
+
+    def test_processor_parser_all(self):
+        expected = [
+            {'scanx': '/projects/proj1/subjects/subj1/experiments/sess1/scans/1',
+             'scany': ['/projects/proj1/subjects/subj1/experiments/sess1/scans/11',
+                       '/projects/proj1/subjects/subj1/experiments/sess1/scans/12']},
+            {'scanx': '/projects/proj1/subjects/subj1/experiments/sess1/scans/2',
+             'scany': ['/projects/proj1/subjects/subj1/experiments/sess1/scans/11',
+                       '/projects/proj1/subjects/subj1/experiments/sess1/scans/12']},
+        ]
+        scans = [('1', 'T1'), ('2', 'T1'), ('11', 'FLAIR'), ('12', 'FLAIR')]
+        self.__run_processor_parser_unit_tests(
+            self.__generate_scans('proj1', 'subj1', 'sess1', scans),
+            [],
+            processor_yaml_all,
+            expected),
+
+
+    def test_processor_parser_foreach_map(self):
+        expected = [
+            {'scanx': '/projects/proj1/subjects/subj1/experiments/sess1/scans/3',
+             'scany': '/projects/proj1/subjects/subj1/experiments/sess1/scans/11'},
+            {'scanx': '/projects/proj1/subjects/subj1/experiments/sess1/scans/4',
+             'scany': '/projects/proj1/subjects/subj1/experiments/sess1/scans/12'}
+        ]
+        self.__run_processor_parser_unit_tests(xnat_scan_contents_1,
+                                               xnat_assessor_contents_1,
+                                               processor_yaml_foreach_map,
+                                               expected)
 
 
     def test_processor_parser_experimental_2(self):
-
+        expected = [
+            {'scan_t': '/projects/proj1/subjects/subj1/experiments/sess1/scans/1',
+             'scan_f': '/projects/proj1/subjects/subj1/experiments/sess1/scans/11',
+             'asr1': '/projects/proj1/subjects/subj1/experiments/sess1/assessors/proc1-asr1'},
+            {'scan_t': '/projects/proj1/subjects/subj1/experiments/sess1/scans/2',
+             'scan_f': '/projects/proj1/subjects/subj1/experiments/sess1/scans/12',
+             'asr1': '/projects/proj1/subjects/subj1/experiments/sess1/assessors/proc1-asr2'}
+        ]
         self.__run_processor_parser_unit_tests(xnat_scan_contents_2,
                                                xnat_assessor_contents_2,
-                                               processor_yaml_2)
+                                               processor_yaml_2,
+                                               expected)
 
 
     @staticmethod

@@ -734,15 +734,15 @@ class ProcessorParser:
 
         # check whether all inputs are present
         for i, iv in inputs.iteritems():
-            if i not in artefacts_by_input and iv['required'] == True:
+            if len(artefacts_by_input[i]) == 0 and iv['required'] == True:
                 return []
 
         # add in None for optional inputs so that the matrix can be generated
         # without artefacts present for those inputs
         sanitised_inputs = {}
         for i, iv in inputs.iteritems():
-            if i not in artefacts_by_input:
-                sanitised_inputs[i] = [[None]]
+            if len(artefacts_by_input[i]) == 0:
+                sanitised_inputs[i] = [list().append(None)]
             else:
                 sanitised_inputs[i] = artefacts_by_input[i]
 
@@ -763,17 +763,20 @@ class ProcessorParser:
             elif select_fn == 'some':
                 input_count = min(len(sanitised_inputs[i]),
                                   inputs[i]['select'][1])
-                cur_input_vector = [[sanitised_inputs[i][input_count:]]]
+                cur_input_vector = [[sanitised_inputs[i][:input_count]]]
 
             elif select_fn == 'one':
-                cur_input_vector = [sanitised_inputs[i][0]]
+                cur_input_vector = [sanitised_inputs[i][:1]]
 
             if select_fn in ['foreach', 'from']:
                 # build up the set of mapped input vectors one by one based on
                 # the select mode of the mapped input
                 combined_input_vector = [cur_input_vector]
                 for k, v in iteration_map.iteritems():
-                    (v1, v2) = v.split('/')
+                    if inputs[k]['select'][0] == 'foreach':
+                        (v1, v2) = v, None
+                    else:
+                        (v1, v2) = v.split('/')
                     if v1 == i:
                         mapped_inputs.append(k)
                         if inputs[k]['select'][0] == 'foreach':
