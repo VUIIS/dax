@@ -35,10 +35,10 @@ function [scan_detail_file,sess_detail_file] = XnatDetailedReport( ...
 %                            columns are added for the status of each
 %                            associated scan assessor.
 %
-% detailed_report_sess.csv   For session assessors. Each session gets a row, 
+% detailed_report_sess.csv   For session assessors. Each session gets a row,
 %                            and columns are added for the status of each
 %                            associated session assessor.
-% 
+%
 %
 % It shouldn't be too hard to refactor this in python using pandas data
 % frames if that is needed. Essentially we're just joining tables.
@@ -99,7 +99,7 @@ for p = 1:length(proctypes_scan)
 		[proctypes_scan{p} '_qcstatus'];
 	thisassr.Properties.VariableNames{'version'} = ...
 		[proctypes_scan{p} '_version'];
-
+	
 	newscan = outerjoin( ...
 		newscan, ...
 		thisassr, ...
@@ -107,7 +107,7 @@ for p = 1:length(proctypes_scan)
 		'MergeKeys', true, ...
 		'Type','Left' ...
 		);
-		
+	
 end
 
 % Save the scan assessor table to file. We will timestamp it according to
@@ -123,38 +123,46 @@ writetable(newscan,scan_detail_file,'QuoteStrings',true)
 % Now for session assessors. One session assessor type at a time, make a
 % table whose columns contain the assessor status info for each session,
 % and merge it with the existing session table.
-disp('Merging for sessions')
-for p = 1:length(proctypes_sess)
-	thisassr = assr(strcmp(assr.proctype,proctypes_sess{p}),:);
-	thisassr = thisassr(:, ...
-		{'project_id','subject_label','session_label', ...
-		'procstatus','qcstatus','version'});
-	thisassr.Properties.VariableNames{'procstatus'} = ...
-		[proctypes_sess{p} '_procstatus'];
-	thisassr.Properties.VariableNames{'qcstatus'} = ...
-		[proctypes_sess{p} '_qcstatus'];
-	thisassr.Properties.VariableNames{'version'} = ...
-		[proctypes_sess{p} '_version'];
+if isempty(proctypes_sess)
+	
+	disp('No session assessors found')
 
-	if p==1
-		newsess = thisassr;
-	else
-		newsess = outerjoin( ...
-		newsess, ...
-		thisassr, ...
-		'Keys',{'project_id','subject_label','session_label'}, ...
-		'MergeKeys', true, ...
-		'Type','Full' ...
-		);
-	end
+else
+	
+	disp('Merging for sessions')
+	for p = 1:length(proctypes_sess)
+		thisassr = assr(strcmp(assr.proctype,proctypes_sess{p}),:);
+		thisassr = thisassr(:, ...
+			{'project_id','subject_label','session_label', ...
+			'procstatus','qcstatus','version'});
+		thisassr.Properties.VariableNames{'procstatus'} = ...
+			[proctypes_sess{p} '_procstatus'];
+		thisassr.Properties.VariableNames{'qcstatus'} = ...
+			[proctypes_sess{p} '_qcstatus'];
+		thisassr.Properties.VariableNames{'version'} = ...
+			[proctypes_sess{p} '_version'];
 		
-end
+		if p==1
+			newsess = thisassr;
+		else
+			newsess = outerjoin( ...
+				newsess, ...
+				thisassr, ...
+				'Keys',{'project_id','subject_label','session_label'}, ...
+				'MergeKeys', true, ...
+				'Type','Full' ...
+				);
+		end
+		
+	end
+	
+	% Save the session assessor table to file
+	disp('Writing session data to file')
+	sess_detail_file = fullfile(out_dir, ...
+		['detailed_report_sess_' timestamp '.csv']);
+	writetable(newsess,sess_detail_file,'QuoteStrings',true)
 
-% Save the session assessor table to file
-disp('Writing session data to file')
-sess_detail_file = fullfile(out_dir, ...
-	['detailed_report_sess_' timestamp '.csv']);
-writetable(newsess,sess_detail_file,'QuoteStrings',true)
+end
 
 
 % We're done
