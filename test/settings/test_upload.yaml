@@ -1,0 +1,7 @@
+---
+settings:
+  - host: http://10.1.1.17
+    username:
+    password:
+    projects:
+      - proj1

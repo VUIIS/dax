@@ -95,7 +95,7 @@ directory.')
 
         # Find the session
         trac_sess = None
-        sess_list = XnatUtils.list_sessions(xnat, projectid=proj_label)
+        sess_list = xnat.get_sessions(projectid=proj_label)
         for sess in sess_list:
             if sess['label'] == sess_label:
                 trac_sess = sess

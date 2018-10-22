@@ -26,11 +26,19 @@ $page.setVlinkColor($ui.vlink)
 						<TABLE>
 							<TR><TD>Label</TD><TD><strong>$!item.getStringProperty("proc:genProcData/label")</strong></TD></TR>
 							<TR><TD>Proc Type</TD><TD>$!item.getStringProperty("proc:genProcData/proctype")</TD></TR>
-                            <TR><TD>Proc Version</TD><TD>$!item.getStringProperty("proc:genProcData/procversion")</TD></TR>
-                            <TR><TD>Proc Date</TD><TD>$!item.getProperty("proc:genProcData/date")</TD></TR>
-                            <TR><TD>ID</TD><TD>$!item.getStringProperty("proc:genProcData/ID")</TD></TR>
+              <TR><TD>Proc Version</TD><TD>$!item.getStringProperty("proc:genProcData/procversion")</TD></TR>
+              <TR><TD>Proc Date</TD><TD>$!item.getProperty("proc:genProcData/date")</TD></TR>
+              <TR><TD>ID</TD><TD>$!item.getStringProperty("proc:genProcData/ID")</TD></TR>
 							<TR><TD>Note</TD><TD>$!item.getStringProperty("proc:genProcData/note")</TD></TR>
 							<TR><TD>Version</TD><TD>$!item.getIntegerProperty("proc:genProcData/version")</TD></TR>
+							<TR><TD>Inputs</TD><TD>
+								#set($inputs = $!item.getStringProperty("proc:genProcData/inputs"))
+								#set($inputs = $inputs.replace("{",""))
+								#set($inputs = $inputs.replace("}",""))
+								#foreach($inputelem in $inputs.split(","))
+									<DIV>$inputelem</DIV>
+								#end
+							</TD></TR>
 							<TR><TD>DAX Processor Version</TD><TD>$!item.getStringProperty("proc:genProcData/dax_processor_version")</TD></TR>
 							<TR><TD>DAX Processor Name</TD><TD>$!item.getStringProperty("proc:genProcData/dax_processor_name")</TD></TR>
 							<TR><TD>DAX Spider Version</TD><TD>$!item.getStringProperty("proc:genProcData/dax_spider_version")</TD></TR>
@@ -42,7 +50,7 @@ $page.setVlinkColor($ui.vlink)
 						</table>
 						<BR />
 						<table>
-						    <TR><TH>Job Information</TH></TR>
+						  <TR><TH>Job Information</TH></TR>
 							<TR><TD>Job Status</TD><TD><strong>$!item.getStringProperty("proc:genProcData/procstatus")</strong></TD></TR>
 							<TR><TD>Job ID</TD><TD>$!item.getStringProperty("proc:genProcData/jobid")</TD></TR>
 							<TR><TD>Job Start Date</TD><TD>$!item.getStringProperty("proc:genProcData/jobstartdate")</TD></TR>
@@ -52,13 +60,13 @@ $page.setVlinkColor($ui.vlink)
 						</TABLE>
 						<BR />
 						 <TABLE>
-                        	<TR><TH>QC Information</TH></TR>
-                            <TR><TD>Status</TD><TD><strong>$!item.getStringProperty("proc:genProcData/validation/status")</strong></TD></TR>
+              <TR><TH>QC Information</TH></TR>
+              <TR><TD>Status</TD><TD><strong>$!item.getStringProperty("proc:genProcData/validation/status")</strong></TD></TR>
 							<TR><TD>Set by</TD><TD>$!item.getStringProperty("proc:genProcData/validation/validated_by")</TD></TR>
 							<TR><TD>Date</TD><TD>$!item.getStringProperty("proc:genProcData/validation/date")</TD></TR>
 							<TR><TD>Method</TD><TD>$!item.getStringProperty("proc:genProcData/validation/method")</TD></TR>
 							<TR><TD>Notes</TD><TD>$!item.getStringProperty("proc:genProcData/validation/notes")</TD></TR>
-                        </TABLE>
+            </TABLE>
 					</TD>
 					<TD valign="top" align="right">
 						#elementActionsBox($element $search_field $search_value $data.getSession().getAttribute("user") $item)

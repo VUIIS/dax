@@ -175,8 +175,8 @@ set properly.\nTraceback: %s' % err
     if args.projects:
         print('INFO: Querying XNAT to get assessors for all the projects.')
         if args.projects == 'all':
-            _uri = XnatUtils.PROJECTS_URI
-            projects = [_p['ID'] for _p in xnat._get_json(_uri)]
+            #_uri = XnatUtils.PROJECTS_URI
+            projects = [_p['ID'] for _p in xnat.get_projects()]
         elif args.projects:
             projects = args.projects.split(',')
         else:
@@ -445,8 +445,8 @@ def set_need_inputs_proctype(xnat, assessor, need_inputs, full_regex=False):
             else:
                 set_proc_status(assessor_obj, task.NEED_INPUTS)
 
-            li_assessors = XnatUtils.list_assessor_out_resources(
-                xnat, a_linked_dict['project_id'],
+            li_assessors = xnat.get_assessor_out_resources(
+                a_linked_dict['project_id'],
                 a_linked_dict['subject_id'],
                 a_linked_dict['session_id'],
                 a_linked_dict['label'])
@@ -562,8 +562,8 @@ def set_status_assessor(xnat, assessor, status,
                 for resource in resources:
                     delete_assr_resource(assessor_obj, resource)
             else:
-                resources = XnatUtils.list_assessor_out_resources(
-                    xnat, assessor['project_id'], assessor['subject_label'],
+                resources = xnat.get_assessor_out_resources(
+                    assessor['project_id'], assessor['subject_label'],
                     assessor['session_label'], assessor['label'])
                 for resource in resources:
                     delete_assr_resource(assessor_obj, resource['label'])

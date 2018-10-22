@@ -36,6 +36,13 @@
 				<xs:element name="jobstartdate" type="xs:date" use="optional"/>
 				<xs:element name="memused" type="xs:string" use="optional" />
 				<xs:element name="jobnode" type="xs:string" use="optional" />
+				<xs:element name="inputs" type="xs:string" use="optional">
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="10000"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
 				<xs:element name="dax_processor_version" type="xs:string" use="optional" />
 				<xs:element name="dax_processor_name" type="xs:string" use="optional" />
 				<xs:element name="dax_spider_version" type="xs:string" use="optional" />

@@ -15,6 +15,7 @@ from . import launcher
 from . import log
 from . import XnatUtils
 from . import processors
+from . import yaml_doc
 from .dax_settings import DAX_Settings
 from .errors import DaxError
 DAX_SETTINGS = DAX_Settings()
@@ -101,6 +102,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
     logger.info('finished launcher, End Time: %s' % str(datetime.now()))
 
 
+# TODO:BenM/assessor_of_assessor/starting point
 def build(settings_path, logfile, debug, projects=None, sessions=None,
           mod_delta=None, proj_lastrun=None):
     """
@@ -187,8 +189,8 @@ def pi_from_project(project):
 
     """
     pi_name = ''
-    with XnatUtils.get_interface() as xnat:
-        proj = xnat.select.project(project)
+    with XnatUtils.get_interface() as intf:
+        proj = intf.select.project(project)
         pi_name = proj.attrs.get('xnat:projectdata/pi/lastname')
 
     return pi_name
@@ -279,7 +281,8 @@ def read_yaml_settings(yaml_file, logger):
 
             # processors:
             if proj_dict.get('processors'):
-                for proc_n in proj_dict.get('processors').split(','):
+                for proc_n in map(lambda s: s.strip(),
+                                  proj_dict.get('processors').split(',')):
                     if project not in list(proj_proc.keys()):
                         proj_proc[project] = [procs[proc_n]]
                     else:
@@ -287,7 +290,8 @@ def read_yaml_settings(yaml_file, logger):
 
             # yaml_proc:
             if proj_dict.get('yamlprocessors'):
-                for yaml_n in proj_dict.get('yamlprocessors').split(','):
+                for yaml_n in map(lambda s: s.strip(),
+                                  proj_dict.get('yamlprocessors').split(',')):
                     if project not in list(yaml_proc.keys()):
                         yaml_proc[project] = [yamlprocs[yaml_n]]
                     else:
@@ -353,6 +357,7 @@ def load_from_file(filepath, args, logger, singularity_imagedir=None):
         logger.err(err.format(filepath))
 
     elif filepath.endswith('.yaml'):
-        return processors.load_from_yaml(filepath, args, singularity_imagedir)
+        return processors.load_from_yaml(
+            XnatUtils, filepath, args, singularity_imagedir)
 
     return None

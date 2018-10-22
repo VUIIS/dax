@@ -15,6 +15,7 @@ from .cluster import PBS
 from .errors import (NeedInputsException, NoDataException,
                      ClusterLaunchException)
 from .dax_settings import DAX_Settings, DEFAULT_DATATYPE, DEFAULT_FS_DATATYPE
+from . import assessor_utils
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
@@ -119,7 +120,7 @@ class Task(object):
         Init of class Task
 
         :param processor: processor used
-        :param assessor: assessor dict ?
+        :param assessor: pyxnat assessor object
         :param upload_dir: upload directory to copy data after job finished.
         :return: None
 
@@ -149,7 +150,7 @@ class Task(object):
 
         # Cache for convenience
         self.assessor_id = assessor.id()
-        self.assessor_label = assessor.label()
+        self.assessor_label = assessor_utils.full_label_from_assessor(assessor)
 
     def get_processor_name(self):
         """
@@ -766,7 +767,9 @@ undo_processing...')
         """
         res_dir = os.path.join(DAX_SETTINGS.get_results_dir())
         j_ext = DAX_SETTINGS.get_job_extension_file()
-        filename = '%s%s' % (self.assessor_label, j_ext)
+        assessor_label = assessor_utils.full_label_from_assessor(
+            self.assessor)
+        filename = '%s%s' % (assessor_label, j_ext)
         if writeonly:
             if pbsdir and os.path.isdir(pbsdir):
                 return os.path.join(pbsdir, filename)
@@ -1524,7 +1527,7 @@ undo_processing...')
         """
         raise NotImplementedError()
 
-    def build_task(self, csess, jobdir, job_email=None,
+    def build_task(self, assr, jobdir, job_email=None,
                    job_email_options=DEFAULT_EMAIL_OPTS,
                    xnat_host=None):
         """
@@ -1533,7 +1536,8 @@ undo_processing...')
         (old_proc_status, old_qc_status, _) = self.get_statuses()
 
         try:
-            cmds = self.build_commands(csess, jobdir)
+            cmds = self.build_commands(assr, jobdir)
+            print(cmds)
             batch_file = self.batch_path()
             outlog = self.outlog_path()
             batch = PBS(batch_file,
@@ -1565,7 +1569,7 @@ undo_processing...')
 
         return (new_proc_status, new_qc_status)
 
-    def build_commands(self, cobj, jobdir):
+    def build_commands(self, assr, jobdir):
         """
         Call the build_cmds method of the class Processor.
 
@@ -1577,10 +1581,15 @@ undo_processing...')
         """
         assr_dir = os.path.join(jobdir, self.assessor_label)
         try:
-            return self.processor.build_cmds(cobj, assr_dir)
+            return self.processor.build_cmds(assr, assr_dir)
         except NotImplementedError:
             # Handle older processors without build_cmds()
-            has_inputs, qcstatus = self.processor.has_inputs(cobj)
+            #has_inputs, qcstatus = self.processor.has_inputs(cobj)
+            has_inputs, qcstatus = self.processor.has_inputs(self.assessor)
+
+            # Convert array of tuples into single string
+            qcstatus = ','.join(':'.join(i) for i in qcstatus)
+
             if has_inputs == 1:
                 return self.processor.get_cmds(self.assessor, assr_dir)
             elif has_inputs == -1:

@@ -147,8 +147,8 @@
 		<DisplayFieldRef id="DATE"/>
 		<DisplayFieldRef id="PROCSTATUS"/>
 		<DisplayFieldRef id="PROCTYPE"/>
-        <DisplayFieldRef id="PROCVERSION"/>
-        <DisplayFieldRef id="JOBID"/>
+    <DisplayFieldRef id="PROCVERSION"/>
+    <DisplayFieldRef id="JOBID"/>
 		<DisplayFieldRef id="JOBSTARTDATE"/>
 		<DisplayFieldRef id="JOBNODE"/>
 		<DisplayFieldRef id="WALLTIMEUSED"/>

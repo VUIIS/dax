@@ -424,7 +424,7 @@ xnat. Check your user rights. %s' % e)
     print('INFO:loading and sorting subject list...')
 
     proj_label = src_proj.label()
-    subj_list = XnatUtils.list_subjects(src_xnat, proj_label)
+    subj_list = src_xnat.get_subjects(proj_label)
     subj_list = [x for x in subj_list if x['label'] not in SUBJECTS_MIRRORED]
     subj_i = 0
     for subj in subj_list:

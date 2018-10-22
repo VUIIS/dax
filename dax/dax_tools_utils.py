@@ -24,6 +24,7 @@ from email.mime.text import MIMEText
 import getpass
 import glob
 import imp
+import itertools
 import json
 import logging
 import os
@@ -47,9 +48,13 @@ from . import processors
 from . import task
 from . import xnat_tools_utils
 from . import XnatUtils
+from . import assessor_utils
+from . import yaml_doc
 from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
                            DEFAULT_FS_DATATYPE)
-from .errors import DaxUploadError, AutoProcessorError, DaxSetupError, DaxError
+from .errors import (DaxUploadError, AutoProcessorError, DaxSetupError,
+                     DaxError, DaxNetrcError)
+
 from .task import (READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED,
                    JOB_PENDING, NEEDS_QA)
 from .task import ClusterTask
@@ -573,8 +578,8 @@ def testing(test_file, project, sessions, host=None, username=None, hide=False,
             logfile = None
         log.setup_debug_logger('dax', logfile)
 
-        with XnatUtils.get_interface(host=_host, user=username) as xnat:
-            tests.set_xnat(xnat)
+        with XnatUtils.get_interface(host=_host, user=username) as intf:
+            tests.set_xnat(intf)
             tests.run_test(project, sessions, nb_sess)
 
     print(TD_END.format(nb_test=tests.get_number(),
@@ -839,7 +844,7 @@ def generate_snapshots(assessor_path):
         os.system(cmd)
 
 
-def copy_outlog(assessor_dict):
+def copy_outlog(assessor_dict, assessor_path):
     """
     Copy the oulog files to the assessor folder if we are uploading.
 
@@ -848,10 +853,10 @@ def copy_outlog(assessor_dict):
     """
     outlog_path = os.path.join(RESULTS_DIR, _OUTLOG,
                                assessor_dict['label'] + '.output')
-    new_outlog_path = os.path.join(assessor_dict['path'], _OUTLOG,
+    new_outlog_path = os.path.join(assessor_path, _OUTLOG,
                                    assessor_dict['label'] + '.output')
     if os.path.exists(outlog_path):
-        os.makedirs(os.path.join(assessor_dict['path'], _OUTLOG))
+        os.makedirs(os.path.join(assessor_path, _OUTLOG))
         shutil.move(outlog_path, new_outlog_path)
 
 
@@ -869,7 +874,7 @@ def get_xsitype(assessor_dict):
         return DEFAULT_DATATYPE
 
 
-def is_complete(assessor_dict, procstatus):
+def is_complete(assessor_dict, assessor_path, procstatus):
     """
     Copy the oulog files to the assessor folder if we are uploading.
 
@@ -878,7 +883,7 @@ def is_complete(assessor_dict, procstatus):
     :return: True if the assessor is Complete, False otherwise
     """
     if procstatus == READY_TO_COMPLETE or procstatus == COMPLETE:
-        eflag = os.path.join(assessor_dict['path'], _EMAILED_FLAG_FILE)
+        eflag = os.path.join(assessor_path, _EMAILED_FLAG_FILE)
         open(eflag, 'w').close()
         LOGGER.warn('  -->Data already present on XNAT.\n')
         return True
@@ -924,7 +929,7 @@ def create_default_assessor(assessor_obj, proctype):
          DEFAULT_DATATYPE + '/date': today})
 
 
-def should_upload_assessor(assessor_obj, assessor_dict, xsitype, version):
+def should_upload_assessor(assessor_obj, assessor_dict, assessor_path, version):
     """
     Check if the assessor is ready to be uploaded to XNAT
 
@@ -935,14 +940,16 @@ def should_upload_assessor(assessor_obj, assessor_dict, xsitype, version):
     :return: True if the assessor should be upload, False otherwise
     """
     if not assessor_obj.exists():
-        if xsitype == DEFAULT_FS_DATATYPE:
-            create_freesurfer_assessor(assessor_obj)
-        else:
-            create_default_assessor(assessor_obj, assessor_dict['proctype'])
+        return False
+        # if xsitype == DEFAULT_FS_DATATYPE:
+        #     create_freesurfer_assessor(assessor_obj)
+        # else:
+        #     create_default_assessor(assessor_obj, assessor_dict['proctype'])
     else:
+        xsitype = assessor_obj.datatype()
         # Check if not already complete assessor
         procstatus = assessor_obj.attrs.get(xsitype + '/procstatus')
-        if is_complete(assessor_dict, procstatus):
+        if is_complete(assessor_dict, assessor_path, procstatus):
             return False
     # set the status to UPLOADING
     assessor_obj.attrs.mset({xsitype + '/procstatus': UPLOADING,
@@ -950,7 +957,7 @@ def should_upload_assessor(assessor_obj, assessor_dict, xsitype, version):
     return True
 
 
-def upload_assessor(xnat, assessor_dict):
+def upload_assessor(xnat, assessor_dict, assessor_path):
     """
     Upload results to an assessor
 
@@ -959,7 +966,7 @@ def upload_assessor(xnat, assessor_dict):
     :return: None
     """
     # get spiderpath from version.txt file:
-    version = get_version_assessor(assessor_dict['path'])
+    version = get_version_assessor(assessor_path)
     session_obj = XnatUtils.select_obj(xnat,
                                        assessor_dict['project_id'],
                                        assessor_dict['subject_label'],
@@ -969,41 +976,46 @@ def upload_assessor(xnat, assessor_dict):
         return True
 
     # Select assessor
+    assessor_dict =\
+        assessor_utils.parse_full_assessor_name(os.path.basename(assessor_path))
     assessor_obj = session_obj.assessor(assessor_dict['label'])
-    xsitype = get_xsitype(assessor_dict)
-
-    if should_upload_assessor(assessor_obj, assessor_dict, xsitype, version):
+    #xsitype = get_xsitype(assessor_dict)
+    if should_upload_assessor(assessor_obj,
+                              assessor_dict,
+                              assessor_path,
+                              version):
+        xsitype = assessor_obj.datatype()
         # Before Upload
-        generate_snapshots(assessor_dict['path'])
-        copy_outlog(assessor_dict)
+        generate_snapshots(assessor_path)
+        copy_outlog(assessor_dict, assessor_path)
 
         # Upload the XML if FreeSurfer
         if xsitype == DEFAULT_FS_DATATYPE:
-            xmlpath = os.path.join(assessor_dict['path'], 'XML')
+            xmlpath = os.path.join(assessor_path, 'XML')
             if os.path.exists(xmlpath):
                 LOGGER.debug('    +setting XML for FreeSurfer')
                 xml_files_list = os.listdir(xmlpath)
                 if len(xml_files_list) != 1:
-                    fpath = assessor_dict['path']
+                    fpath = assessor_path
                     msg = 'cannot upload FreeSurfer assessor, \
 unable to find XML file: %s'
                     LOGGER.error(msg % (fpath))
                     return
-                xml_path = os.path.join(assessor_dict['path'], 'XML',
+                xml_path = os.path.join(assessor_path, 'XML',
                                         xml_files_list[0])
                 assessor_obj.create(xml=xml_path, allowDataDeletion=False)
 
         # Upload
         # for each folder=resource in the assessor directory
-        for resource in os.listdir(assessor_dict['path']):
-            resource_path = os.path.join(assessor_dict['path'], resource)
+        for resource in os.listdir(assessor_path):
+            resource_path = os.path.join(assessor_path, resource)
             # Need to be in a folder to create the resource :
             if os.path.isdir(resource_path):
                 LOGGER.debug('    +uploading %s' % (resource))
                 upload_resource(assessor_obj, resource, resource_path)
 
         # after Upload
-        if is_diskq_assessor(assessor_dict['label']):
+        if is_diskq_assessor(os.path.basename(assessor_path)):
             # was this run using the DISKQ option
             # Read attributes
             ctask = ClusterTask(assessor_dict['label'], RESULTS_DIR, DISKQ_DIR)
@@ -1021,14 +1033,13 @@ unable to find XML file: %s'
 
             # Delete the task from diskq
             ctask.delete()
-        elif os.path.exists(os.path.join(assessor_dict['path'],
-                                         _READY_FLAG_FILE)):
+        elif os.path.exists(os.path.join(assessor_path, _READY_FLAG_FILE)):
             assessor_obj.attrs.set(xsitype + '/procstatus', READY_TO_COMPLETE)
         else:
             assessor_obj.attrs.set(xsitype + '/procstatus', JOB_FAILED)
 
         # Remove the folder
-        shutil.rmtree(assessor_dict['path'])
+        shutil.rmtree(assessor_path)
 
         return True
 
@@ -1128,9 +1139,10 @@ def upload_assessors(xnat, projects):
         LOGGER.info(msg % (str(index + 1), str(number_of_processes),
                            assessor_label, str(datetime.now())))
 
-        assessor_dict = get_assessor_dict(assessor_label, assessor_path)
+        #assessor_dict = get_assessor_dict(assessor_label, assessor_path)
+        assessor_dict = assessor_utils.parse_full_assessor_name(assessor_label)
         if assessor_dict:
-            uploaded = upload_assessor(xnat, assessor_dict)
+            uploaded = upload_assessor(xnat, assessor_dict, assessor_path)
             if not uploaded:
                 mess = """    - Assessor label : {label}\n"""
                 warnings.append(mess.format(label=assessor_dict['label']))
@@ -1156,7 +1168,8 @@ def upload_pbs(xnat, projects):
                                 max=str(number_pbs),
                                 file=pbsfile))
         assessor_label = os.path.splitext(pbsfile)[0]
-        assessor_dict = get_assessor_dict(assessor_label, 'none')
+        #assessor_dict = get_assessor_dict(assessor_label, 'none')
+        assessor_dict = assessor_utils.parse_full_assessor_name(assessor_label)
         if not assessor_dict:
             LOGGER.warn('wrong assessor label for %s' % (pbsfile))
             os.rename(pbs_fpath, os.path.join(RESULTS_DIR, _TRASH, pbsfile))
@@ -1215,19 +1228,21 @@ def upload_outlog(xnat, projects):
         LOGGER.info(mess.format(index=str(index + 1),
                                 max=str(number_outlog),
                                 file=outlogfile))
-        assessor_dict = get_assessor_dict(outlogfile[:-7], 'none')
+        #assessor_dict = get_assessor_dict(outlogfile[:-7], 'none')
+        assessor_label = os.path.splitext(outlogfile)[0]
+        assessor_dict = assessor_utils.parse_full_assessor_name(assessor_label)
         if not assessor_dict:
             LOGGER.warn('     wrong outlog file. You should remove it')
         else:
             assessor_obj = select_assessor(xnat, assessor_dict)
-            xtp = get_xsitype(assessor_dict)
+            #xtp = get_xsitype(assessor_dict)
             if not assessor_obj.exists():
                 msg = '     no assessor on XNAT -- moving file to trash.'
                 LOGGER.warn(msg)
                 new_location = os.path.join(RESULTS_DIR, _TRASH, outlogfile)
                 os.rename(outlog_fpath, new_location)
             else:
-                if assessor_obj.attrs.get(xtp + '/procstatus') == JOB_FAILED:
+                if assessor_obj.attrs.get(assessor_obj.datatype() + '/procstatus') == JOB_FAILED:
                     resource_obj = assessor_obj.out_resource(_OUTLOG)
                     if resource_obj.exists():
                         pass
@@ -1240,6 +1255,79 @@ def upload_outlog(xnat, projects):
                             print(ERR_MSG % err)
                         if status:
                             os.remove(outlog_fpath)
+
+
+def new_upload_results(upload_settings, emailaddress):
+
+    # get the list of assessors from the results directory
+    if len(os.listdir(RESULTS_DIR)) == 0:
+        LOGGER.warn('No data to be uploaded.\n')
+        sys.exit()
+
+    warnings = list()
+
+    for project in upload_settings:
+        try:
+            with XnatUtils.get_interface(host=project['host'],
+                                         user=project['username'],
+                                         pwd=project['password']) as intf:
+                LOGGER.info('=' * 60)
+
+                assessors = get_assessor_list(project['projects'])
+                x = [assessor_utils.parse_full_assessor_name(a)
+                     for a in assessors]
+
+                # create a nested dictionary of assessor result directories by
+                # project id then subject label then session label
+                z = {}
+                for a in x:
+                    if not a['project_id'] in z:
+                        z[a['project_id']] = dict()
+                    zp = z[a['project_id']]
+
+                    if not a['subject_label'] in zp:
+                        zp[a['subject_label']] = dict()
+                    zs = zp[a['subject_label']]
+
+                    if not a['session_label'] in zs:
+                        zs[a['session_label']] = list()
+                    ze = zs[a['session_label']]
+
+                    ze.append(a)
+
+
+                for kp, vp in z.iteritems():
+                    for ks, vs in vp.iteritems():
+                        for ke, ve in vs.iteritems():
+                            # handle all assessors from this session
+                            session = intf.select_experiment(kp, ks, ke)
+                            if not session.exists():
+                                # flag the experiment as missing
+                                LOGGER.warning(
+                                    "session {}/{}/{} does not exist".format(
+                                        kp, ks, ke
+                                    )
+                                )
+                            else:
+                                # handle assessors
+                                for a in ve:
+                                    print(a)
+                                    assessor = intf.select_assessor(
+                                        kp, ks, ke, a['label'])
+                                    if not assessor.exists():
+                                        # flag the assessor as missing
+                                        LOGGER.warning(
+                                            "assessor {}/{}/{}/{} does not exist".format(
+                                                kp, ks, ke, a['label']
+                                            )
+                                        )
+                                    else:
+                                        # upload this assessor
+                                        pass
+
+        except Exception as e:
+            LOGGER.error(e.msg)
+
 
 
 def upload_results(upload_settings, emailaddress):
@@ -1257,33 +1345,38 @@ def upload_results(upload_settings, emailaddress):
     warnings = list()
 
     for upload_dict in upload_settings:
-        with XnatUtils.get_interface(host=upload_dict['host'],
-                                     user=upload_dict['username'],
-                                     pwd=upload_dict['password']) as xnat:
-            LOGGER.info('===================================================\
-================')
-            proj_str = (upload_dict['projects'] if upload_dict['projects']
-                        else 'all')
-            LOGGER.info('Connecting to XNAT <%s> to start uploading processes \
-for projects: %s' % (upload_dict['host'], proj_str))
-            if not XnatUtils.has_dax_datatypes(xnat):
-                msg = 'Error: dax datatypes are not installed on xnat <%s>.'
-                raise DaxUploadError(msg % (upload_dict['host']))
+        try:
+            with XnatUtils.get_interface(host=upload_dict['host'],
+                                         user=upload_dict['username'],
+                                         pwd=upload_dict['password']) as intf:
+                LOGGER.info('===================================================\
+    ================')
+                proj_str = (upload_dict['projects'] if upload_dict['projects']
+                            else 'all')
+                LOGGER.info('Connecting to XNAT <%s> to start uploading processes \
+    for projects: %s' % (upload_dict['host'], proj_str))
+                if not XnatUtils.has_dax_datatypes(intf):
+                    msg = 'Error: dax datatypes are not installed on xnat <%s>.'
+                    raise DaxUploadError(msg % (upload_dict['host']))
 
-            # 1) Upload the assessor data
-            # For each assessor label that need to be upload :
-            LOGGER.info(' - Uploading results for assessors')
-            warnings.extend(upload_assessors(xnat, upload_dict['projects']))
+                # 1) Upload the assessor data
+                # For each assessor label that need to be upload :
+                LOGGER.info(' - Uploading results for assessors')
+                warnings.extend(upload_assessors(intf, upload_dict['projects']))
 
-            # 2) Upload the PBS files
-            # For each file, upload it to the PBS resource
-            LOGGER.info(' - Uploading PBS files ...')
-            upload_pbs(xnat, upload_dict['projects'])
+                # 2) Upload the PBS files
+                # For each file, upload it to the PBS resource
+                LOGGER.info(' - Uploading PBS files ...')
+                upload_pbs(intf, upload_dict['projects'])
 
-            # 3) Upload the OUTLOG files not uploaded with processes
-            LOGGER.info(' - Checking OUTLOG files to upload them for JOB_FAILED \
-jobs ...')
-            upload_outlog(xnat, upload_dict['projects'])
+                # 3) Upload the OUTLOG files not uploaded with processes
+                LOGGER.info(' - Checking OUTLOG files to upload them for JOB_FAILED \
+    jobs ...')
+                upload_outlog(intf, upload_dict['projects'])
+        except DaxNetrcError as e:
+            msg = e.msg
+            LOGGER.error(e.msg)
+
 
     send_warning_emails(warnings, emailaddress)
 
@@ -1550,12 +1643,12 @@ class test_results(object):
         :return: None
         """
         co_list = list()
-        sess_list = XnatUtils.list_sessions(self.xnat, project)
+        sess_list = self.xnat.get_sessions(project)
         sess_list = [sess for sess in sess_list if sess['label'] in sessions]
 
         # Loop through the sessions
         for sess in sess_list:
-            csess = XnatUtils.CachedImageSession(self.xnat, project,
+            csess = XnatUtils.CachedImageSession(self.intf, project,
                                                  sess['subject_label'],
                                                  sess['label'])
             if isinstance(proc_obj, processors.ScanProcessor):
@@ -1589,7 +1682,7 @@ class test_results(object):
         :return: None
         """
         co_list = list()
-        sess_list = XnatUtils.list_sessions(self.xnat, project)
+        sess_list = self.xnat.get_sessions(project)
         sess_list = [sess for sess in sess_list if sess['label'] in sessions]
 
         # Loop through the sessions
@@ -1829,14 +1922,13 @@ unknown (-1/0/1): %s" % state)
             print("Run on sessions: %s ..." % ','.join(sessions))
             for cobj in cobj_list:
                 cinfo = cobj.info()
-                self.tobj.run(cinfo, XnatUtils.get_full_object(self.xnat,
-                                                               cinfo))
+                self.tobj.run(cinfo, cobj.full_object())
                 if isinstance(self.tobj, modules.SessionModule):
                     result = self.tobj.has_flag_resource(
                         cobj, self.tobj.mod_name)
                     if not result:
                         print("[FAIL] Session Module didn't create the \
-flagfile for %s." % (cobj.info()['label']))
+flagfile for %s." % (cinfo['label']))
 
             return True
         except Exception:
@@ -2084,7 +2176,7 @@ def randomly_get_sessions(xnat, project, nb_sess=5):
     :return: list of sessions label
     """
     sessions = list()
-    list_sess = XnatUtils.list_sessions(xnat, project)
+    list_sess = xnat.get_sessions(project)
     if len(list_sess) < int(nb_sess):
         sessions = [sess['label'] for sess in list_sess]
     else:
@@ -2125,7 +2217,27 @@ def load_test(filepath):
         print('[ERROR] %s does not exists.' % filepath)
         return None
 
-    if filepath.endswith('.py') or is_python_file(filepath):
+    if filepath.endswith('yaml'):
+        doc = XnatUtils.read_yaml(filepath)
+
+        if 'projects' in list(doc.keys()):
+            try:
+                return bin.read_yaml_settings(filepath, LOGGER)
+            except AutoProcessorError:
+                print('[ERROR]')
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                          limit=2, file=sys.stdout)
+        else:
+            # So far only auto processor:
+            try:
+                return processors.load_from_yaml(XnatUtils, filepath)
+            except AutoProcessorError:
+                print('[ERROR]')
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                          limit=2, file=sys.stdout)
+    elif filepath.endswith('.py') or is_python_file(filepath):
         test = imp.load_source('test', filepath)
         # Check if processor file
         try:
@@ -2149,28 +2261,6 @@ def load_test(filepath):
 the python file {}.'
         print(err.format(filepath))
         return None
-
-    elif filepath.endswith('yaml'):
-        doc = XnatUtils.read_yaml(filepath)
-
-        if 'projects' in list(doc.keys()):
-            try:
-                return bin.read_yaml_settings(filepath, LOGGER)
-            except AutoProcessorError:
-                print('[ERROR]')
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                traceback.print_exception(exc_type, exc_value, exc_traceback,
-                                          limit=2, file=sys.stdout)
-        else:
-            # So far only auto processor:
-            try:
-                return processors.load_from_yaml(filepath)
-            except AutoProcessorError:
-                print('[ERROR]')
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                traceback.print_exception(exc_type, exc_value, exc_traceback,
-                                          limit=2, file=sys.stdout)
-
     else:
         err = '[ERROR] {} format unknown. Please provide a .py or .yaml file.'
         print(err.format(filepath))

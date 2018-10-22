@@ -45,7 +45,7 @@ def query_project(xnat, project, qall=False):
         err = 'argument project not provided.'
         raise XnatToolsUserError(__exe__, err)
     print('Project: %s' % (project))
-    subjects = XnatUtils.list_subjects(xnat, project)
+    subjects = xnat.get_subjects(project)
     if not subjects:
         err = 'no subjects found for project %s.' % project
         raise XnatToolsUserError(__exe__, err)
@@ -69,7 +69,7 @@ def query_subject(xnat, project, subject, qall=False):
     if not subject:
         err = 'argument subject not provided.'
         raise XnatToolsUserError(__exe__, err)
-    sessions = XnatUtils.list_sessions(xnat, project, subject)
+    sessions = xnat.get_sessions(project, subject)
     if not sessions:
         err = 'no sessions found for subject %s.' % project
         raise XnatToolsUserError(__exe__, err)
@@ -97,7 +97,7 @@ def query_session(xnat, project, subject, session, qall=False):
     if not session:
         err = 'argument session not provided.'
         raise XnatToolsUserError(__exe__, err)
-    scans = XnatUtils.list_scans(xnat, project, subject, session)
+    scans = xnat.get_scans(project, subject, session)
     if not scans:
         err = 'no scans found for session %s.' % project
         raise XnatToolsUserError(__exe__, err)
@@ -140,8 +140,8 @@ def query_assessor(xnat, assessor_label, qall=False):
     labels = assessor_label.split('-x-')
     print('       - %s' % (assessor_label))
     if qall:
-        list_assrs = XnatUtils.list_assessor_out_resources(
-            xnat, labels[0], labels[1], labels[2], assessor_label)
+        list_assrs = xnat.get_assessor_out_resources(
+            labels[0], labels[1], labels[2], assessor_label)
         for out_resource in list_assrs:
             print('         -> %s' % (out_resource['label']))
 
@@ -165,8 +165,8 @@ def run_xnat_query(args):
         if args.me:
             print('List of projects on XNAT you have access to:')
             print('---------------------------------------')
-            for proj in xnat._get_json(XnatUtils.PROJECTS_URI):
-                if XnatUtils.list_subjects(xnat, proj['ID']):
+            for proj in xnat.get_projects():
+                if xnat.get_subjects(proj['ID']):
                     print('%*s : %*s' % (-20, proj['ID'], -30, proj['name']))
             print('---------------------------------------')
 
@@ -179,7 +179,7 @@ def run_xnat_query(args):
 
         elif args.project == 'all' or args.all:
             utils.print_separators()
-            projects_list = xnat._get_json(XnatUtils.PROJECTS_URI)
+            projects_list = xnat.get_projects()
             for project in projects_list:
                 query_project(xnat, project['ID'], qall=True)
 

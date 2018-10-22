@@ -136,7 +136,7 @@ def report_subjects(xnat, project, header):
     :param header: header to display
     :return: None
     """
-    subjects_list = XnatUtils.list_subjects(xnat, project)
+    subjects_list = xnat.get_subjects(project)
     for subject_dict in subjects_list:
         display(get_row(xnat, subject_dict, header))
 
@@ -150,7 +150,7 @@ def report_sessions(xnat, project, header):
     :param header: header to display
     :return: None
     """
-    sessions_list = XnatUtils.list_sessions(xnat, project)
+    sessions_list = xnat.get_sessions(project)
     for session in sorted(sessions_list, key=lambda k: k['session_label']):
         display(get_row(xnat, session, header))
 
@@ -167,11 +167,11 @@ def report_under_sessions(xnat, project, header, default=False):
     """
     objs_list = list()
     if default:
-        scans_list = XnatUtils.list_project_scans(xnat, project)
+        scans_list = xnat.get_project_scans(project)
         assrs_list = XnatUtils.list_project_assessors(xnat, project)
         objs_list = scans_list + assrs_list
     elif [x for x in VARIABLES_LIST['scan'] if x in header]:
-        objs_list = XnatUtils.list_project_scans(xnat, project)
+        objs_list = xnat.get_project_scans(project)
     elif [x for x in VARIABLES_LIST['assessor'] if x in header]:
         objs_list = XnatUtils.list_project_assessors(xnat, project)
 
@@ -267,12 +267,11 @@ def get_resources(xnat, obj_dict):
             obj_dict['session_label'])
         _res = '/'.join([r['label'] for r in res_list])
     elif 'subject_label' in _okeys:
-        res_list = XnatUtils.list_subject_resources(
-            xnat, obj_dict['project_id'], obj_dict['subject_label'])
+        res_list = xnat.get_subject_resources(obj_dict['project_id'],
+                                              obj_dict['subject_label'])
         _res = '/'.join([r['label'] for r in res_list])
     elif 'project_id' in _okeys:
-        res_list = XnatUtils.list_project_resources(
-            xnat, obj_dict['project_id'])
+        res_list = xnat.get_project_resources(obj_dict['project_id'])
         _res = '/'.join([r['label'] for r in res_list])
 
     return str(_res)

@@ -255,12 +255,12 @@ given as a parameter or it does not exist on XNAT.')
         # list of scans and assessors for the all the project cat together.
         for project in projects_list:
             if OPTIONS.scantype:
-                scans_list.extend(XnatUtils.list_project_scans(XNAT, project))
+                scans_list.extend(XNAT.get_project_scans(project))
             if OPTIONS.assessortype:
                 asses_list.extend(XnatUtils.list_project_assessors(
                     XNAT, project))
          #   if OPTIONS.subject:
-          #      scans_list.extend(XnatUtils.list_project_scans(XNAT, project))
+          #      scans_list.extend(XNAT.get_project_scans(project))
            #     asses_list.extend(XnatUtils.list_assessors(XNAT, project, get_option_list(OPTIONS.subject), get_option_list(OPTIONS.session)))
         # Read previous report
         scans_dl_dict, asses_dl_dict, last_dl_date, old_rows = read_report()
@@ -453,7 +453,7 @@ def check_projects(projects_list):
 this project from the list.' % (project))
             projects_list.remove(project)
         else:
-            if not len(XnatUtils.list_subjects(XNAT, project)) > 0:
+            if not len(XNAT.get_subjects(project)) > 0:
                 LOGGER.info("WARNING: You don't access to the project: %s. \
 Remove this project from the list." % (project))
                 projects_list.remove(project)
@@ -643,6 +643,8 @@ def download_scan(directory, scan_dict, resources_list, row, last_dl_date):
     try:
         scan_obj = XnatUtils.get_full_object(XNAT, scan_dict)
     except KeyError:
+        # TODO: BenM/xnatutils refactor/this shouldn't be hit under any
+        # circumstances; figure out if it is still needed and, if not, remove
         scan_obj = XNAT.select('/project/{project}/subject/{subject}/experiment/{experiment}/scan/{scan}'. format(project=scan_dict['project_id'],
                                                                                                                   subject=scan_dict['subject_label'],
                                                                                                                   experiment=scan_dict['session_label'],
@@ -810,6 +812,7 @@ def dl_files(res_obj, directory):
     :param directory: local download directory for the data
     :return: None
     """
+    # TODO: BenM/xnatutils refactor/appears to me a lot of unnecessary fetching / refetching here
     # if more than one file:
     if len(res_obj.files().get()) > 1:
         # create a dir with the resourcename:

@@ -1,0 +1,25 @@
+---
+inputs:
+  default:
+    spider_path: pipelines/Proc_E/v1.0.0/Proc_E_v1_0_0.py
+    working_dir: /home/ben/dax/scratch
+    nipype_exe: proc_e.py
+    # gmatrix: /cluster/project0/SegBiASM/DataToTryBaMoS/GMatrix4_Low3.txt
+    # rule: /cluster/project0/SegBiASM/DataToTryBaMoS/GenericRule_CSF.txt
+    # icbm: /cluster/project0/SegBiASM/ICBM_Priors
+  xnat:
+    assessors:
+      - name: asr1
+        proctypes: Proc_X_v1
+        resources:
+          - resource: SEG
+            varname: seg
+command: python {spider_path} --seg{seg}
+attrs:
+  suffix:
+  xsitype: proc:genProcData
+  walltime: 24:00:00
+  memory: 8048
+  ppn: 4
+  #env: /share/apps/cmic/NiftyPipe/v2.0/setup_v2.0.sh
+  type: session

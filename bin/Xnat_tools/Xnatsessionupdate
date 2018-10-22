@@ -136,7 +136,7 @@ def change_date(xnat, project, session, sessions_list):
 
 def change_date_all(xnat, sessions_list):
     """
-    Method to change the data on all sessions
+    Method to change the date on all sessions
 
     :param xnat: pyxnat interface
     :param sessions_list: list of session dictionaries to modify
@@ -199,7 +199,7 @@ def run_xnat_session_update(args):
             else:
                 print('-> Project : %s' % project)
                 print('INFO: Getting Sessions from XNAT...')
-                sessions = XnatUtils.list_sessions(xnat, project)
+                sessions = xnat.get_sessions(project)
                 if not sessions:
                     err = "You don't have access to the project: %s."
                     raise XnatToolsUserError(__exe__, err % project)

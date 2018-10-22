@@ -29,13 +29,20 @@
 				</xs:sequence>
 				<xs:element name="procstatus" type="xs:string" use="optional" />
 				<xs:element name="proctype" type="xs:string" use="optional" />
-                <xs:element name="procversion" type="xs:string" use="optional" />
-                <xs:element name="jobid" type="xs:string" use="optional" />
+				<xs:element name="procversion" type="xs:string" use="optional" />
+				<xs:element name="jobid" type="xs:string" use="optional" />
 				<xs:element name="walltimeused" type="xs:string" use="optional" />
 				<xs:element name="memusedmb" type="xs:integer" use="optional" />
 				<xs:element name="jobstartdate" type="xs:date" use="optional"/>
 				<xs:element name="memused" type="xs:string" use="optional" />
 				<xs:element name="jobnode" type="xs:string" use="optional" />
+				<xs:element name="inputs" type="xs:string" use="optional">
+					<xs:simpleType>q
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="10000"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
 			</xs:extension>
 		</xs:complexContent>
 	</xs:complexType>

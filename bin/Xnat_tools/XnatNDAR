@@ -553,7 +553,7 @@ def get_scan_xnat(options, xnat, directory, subjects):
     scan_info = read_csv(options.scaninfo, DEFAULT_SCAN_HEADER)
 
     # list of scans and assessors for the full project
-    scan_list = XnatUtils.list_project_scans(xnat, options.project)
+    scan_list = xnat.get_project_scans(options.project)
     assessor_list = XnatUtils.list_project_assessors(xnat, options.project)
 
     # filter to keep only the scan we need and keep the assessor that we need
@@ -653,7 +653,7 @@ def get_proc_scan_xnat(options, xnat, directory, subjects, scan_info,
     proc_records = list()
 
     # list of scans and assessors for the full project
-    scan_list = XnatUtils.list_project_scans(xnat, options.project)
+    scan_list = xnat.get_project_scans(options.project)
 
     # filter to keep only the scan we need and keep the assessor that we need
     # for the qc Scan
@@ -723,8 +723,8 @@ def get_proc_assr_xnat(options, xnat, directory, assessor_info, assessor_list):
             for header, value in list(assr_dict.items()):
                 if header == 'derived_files_xnat':
                     if value == 'all':  # remove the metric_files_xnat
-                        resources = XnatUtils.list_assessor_out_resources(
-                            xnat, assessor['project_id'],
+                        resources = xnat.get_assessor_out_resources(
+                            assessor['project_id'],
                             assessor['subject_label'],
                             assessor['session_label'],
                             assessor['label'])
@@ -909,7 +909,7 @@ because {} does not exist.'
 XNAT.'.format(options.project))
                 return False
             else:
-                if not XnatUtils.list_subjects(xnat, options.project):
+                if not xnat.get_subjects(options.project):
                     msg = "OPTION ERROR: You don't access to the project: {}."
                     print(msg.format(options.project))
                     return False

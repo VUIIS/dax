@@ -159,7 +159,7 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
 
     print('INFO: query through project %s ...' % project)
     # scan loop
-    scans_list = XnatUtils.list_project_scans(xnat, project)
+    scans_list = xnat.get_project_scans(project)
     subj_number = len(set([d['subject_label'] for d in scans_list]))
     sess_number = len(set([d['session_label'] for d in scans_list]))
     scan_number = len(scans_list)

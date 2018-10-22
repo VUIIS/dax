@@ -1,0 +1,31 @@
+---
+inputs:
+  default:
+    spider_path: pipelines/Proc_C/v1.0.0/Proc_C_v1_0_0.py
+    working_dir: /home/ben/dax/scratch
+    nipype_exe: proc_c.py
+    # gmatrix: /cluster/project0/SegBiASM/DataToTryBaMoS/GMatrix4_Low3.txt
+    # rule: /cluster/project0/SegBiASM/DataToTryBaMoS/GenericRule_CSF.txt
+    # icbm: /cluster/project0/SegBiASM/ICBM_Priors
+  xnat:
+    scans:
+      - name: scan1
+        types: T1
+        resources:
+          - resource: NIFTI
+            varname: cur
+      - name: scan2
+        types: T1
+        select-session: prior(1)
+        resources:
+          - resource: NIFTI
+            varname: prev
+command: python {spider_path} --cur{cur} --prev{prev}
+attrs:
+  suffix:
+  xsitype: proc:genProcData
+  walltime: 24:00:00
+  memory: 8048
+  ppn: 4
+  #env: /share/apps/cmic/NiftyPipe/v2.0/setup_v2.0.sh
+  type: session

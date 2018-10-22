@@ -1,0 +1,150 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Download a FreeSurfer 6 subject from XNAT
+'''
+
+from __future__ import print_function
+
+import os
+import sys
+import shutil
+
+from dax import XnatUtils
+
+
+__exe__ = os.path.basename(__file__)
+__author__ = 'Brian Boyd'
+__purpose__ = "Download FreeSurfer subject from XNAT"
+CURL_CMD = '''curl -qu {xuser}:{xpass} {xhost}/data/archive/projects/{proj}/\
+subjects/{subj}/experiments/{sess}/assessors/{asse}/out/resources/DATA/\
+files?format=zip > {zip}'''
+
+
+def parse_args():
+    """
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
+    """
+    from argparse import ArgumentParser
+    ap = ArgumentParser(prog=__exe__, description=__purpose__)
+    ap.add_argument(
+        '--host', dest='host', default=None,
+        help='Host for XNAT. Default: env XNAT_HOST.')
+    ap.add_argument(
+        '-u', '--username', dest='username', default=None,
+        help='Username for XNAT.')
+    ap.add_argument('project', help='Project Label')
+    ap.add_argument('session', help='Session Label')
+    ap.add_argument(
+        'proc_suffix', help='Proc name suffix', nargs='?', default='')
+    ap.add_argument(
+        '-sd', '--subjects_dir', dest='subjects_dir',
+        help='Subjects Directory',
+        default=os.environ.get('SUBJECTS_DIR', '/tmp'))
+    return ap.parse_args()
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    proj_label = args.project
+    sess_label = args.session
+    subjects_dir = args.subjects_dir
+    fs = None
+
+    # Check for suffix
+    if not args.proc_suffix:
+        proc_suffix = ''
+    else:
+        proc_suffix = args.proc_suffix
+
+    if os.path.exists(os.path.join(subjects_dir, sess_label)):
+        print('ERROR:cannot download, session exists in FS subjects dir')
+        sys.exit(1)
+
+    if args.host:
+        host = args.host
+    else:
+        host = os.environ['XNAT_HOST']
+
+    user = args.username
+    with XnatUtils.get_interface(host=host, user=user) as xnat:
+        print('INFO:connection to xnat <{}>:'.format(host))
+
+        # Find the FreeSurfer assessor
+        sess_list = XnatUtils.list_sessions(xnat, projectid=proj_label)
+        flist = []
+
+        # Find the session b/c we need subject label
+        for sess in sess_list:
+            if sess['label'] == sess_label:
+                alist = XnatUtils.list_assessors(
+                    xnat, proj_label, sess['subject_label'], sess['label'])
+
+                flist = [a for a in alist if a['proctype'].startswith('FS6_')]
+
+        if not flist:
+            print('ERROR:FreeSurfer not found for session')
+            sys.exit(1)
+
+        if len(flist) == 1:
+            fs = flist[0]
+        elif not proc_suffix:
+            print('ERROR:multiple FreeSurfers found, specify a suffix')
+            sys.exit(1)
+        else:
+            flist2 = []
+            flist2 = [a for a in flist if a['label'].endswith(proc_suffix)]
+            if not flist2:
+                print('ERROR:FreeSurfer not found with suffix')
+                sys.exit(1)
+
+            if len(flist2) == 1:
+                fs = flist2[0]
+            else:
+                print('ERROR:mutliple FreeSurfer found with suffix')
+                sys.exit(1)
+
+        # Download it
+        assr_label = fs['assessor_label']
+        out_zip = os.path.join(subjects_dir, sess_label + '.zip')
+        if os.path.exists(os.path.join(subjects_dir, assr_label)):
+            print('ERROR:cannot download, fs already exists locally')
+            sys.exit(1)
+
+        if os.path.exists(out_zip):
+            print('ERROR:cannot download, zip already exists locally')
+            sys.exit(1)
+
+        print('Downloading:{}'.format(assr_label))
+        cmd = CURL_CMD.format(
+            xuser=xnat.user, xpass=xnat.pwd, xhost=xnat.host,
+            proj=fs['project_id'], subj=fs['subject_id'],
+            sess=fs['session_id'], asse=fs['assessor_id'],
+            zip=out_zip)
+        os.system(cmd)
+
+        # Unzip
+        os.chdir(subjects_dir)
+        cmd = 'unzip -q {}'.format(out_zip)
+        os.system(cmd)
+
+        # Build path to data
+        data_dir = os.path.join(
+            subjects_dir, assr_label, 'out', 'resources', 'DATA', 'files')
+
+        # Move files
+        if os.path.exists(os.path.join(data_dir, 'mri')):
+            # Move subdir containing FS subject up to level of SUBJECTS_DIR,
+            # effectively renaming to session label
+            src = data_dir
+            dst = os.path.join(subjects_dir, sess_label)
+            shutil.move(src, dst)
+        else:
+            print('ERROR:failed to find FreeSurfer data in downloaded files')
+
+        # Delete the downloaded zip and directory
+        shutil.rmtree(os.path.join(subjects_dir, assr_label))
+        os.remove(out_zip)

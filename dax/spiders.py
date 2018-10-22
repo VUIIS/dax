@@ -243,7 +243,7 @@ your spider.')
         # Inputs folder: jobdir/inputs
         input_dir = os.path.join(self.jobdir, 'inputs')
         with XnatUtils.get_interface(host=self.host, user=self.user,
-                                     pwd=self.pwd) as xnat:
+                                     pwd=self.pwd) as intf:
             for data_dict in self.inputs:
                 if not isinstance(data_dict, dict):
                     raise SpiderError('data in self.inputs is not a dict: %s'
@@ -266,7 +266,7 @@ your spider.')
                         os.makedirs(data_folder)
                     xnat_dict = self.get_xnat_dict(data_dict, res)
                     res_str = self.select_str(xnat_dict)
-                    resource_obj = xnat.select(res_str)
+                    resource_obj = intf.select(res_str)
                     resource_obj.get(data_folder, extract=True)
                     resource_dir = os.path.join(data_folder,
                                                 resource_obj.label())
@@ -359,8 +359,8 @@ your spider.')
         """
         # Open connection to XNAT
         with XnatUtils.get_interface(host=self.host, user=self.user,
-                                     pwd=self.pwd) as xnat:
-            resource_obj = self.select_obj(intf=xnat,
+                                     pwd=self.pwd) as intf:
+            resource_obj = self.select_obj(intf=intf,
                                            obj_label=obj_label,
                                            resource=resource)
             list_files = XnatUtils.download_files_from_obj(
@@ -1230,10 +1230,10 @@ GeneratorAutoSpider.')
         """Download XNAT specific file."""
         results = None
         with XnatUtils.get_interface(host=self.host, user=self.user,
-                                     pwd=self.pwd) as xnat:
+                                     pwd=self.pwd) as intf:
             try:
                 _res, _file = src.split('/files/')
-                res = xnat.select(_res)
+                res = intf.select(_res)
                 if not res.exists():
                     msg = 'resources specified by %s not found on XNAT.'
                     raise AutoSpiderError(msg % src)
@@ -1253,9 +1253,9 @@ XNAT+REST+API+Directory for the path.'
         """Download XNAT complete resource."""
         results = None
         with XnatUtils.get_interface(host=self.host, user=self.user,
-                                     pwd=self.pwd) as xnat:
+                                     pwd=self.pwd) as intf:
             try:
-                res = xnat.select(src)
+                res = intf.select(src)
                 if not res.exists():
                     msg = 'resources specified by %s not found on XNAT.'
                     raise AutoSpiderError(msg % src)
