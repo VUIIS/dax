@@ -189,7 +189,7 @@ set properly.\nTraceback: %s' % err
             assessors.extend(assessors_list)
 
             #Filter assessors:
-            assessors =filter_assessors(args, assessors, has_fs_datatypes,
+            assessors =filter_assessors(xnat,project,args, assessors, has_fs_datatypes,
                                                full_project=True if projects else False)
 
             # Print number of assessors found:
@@ -209,7 +209,7 @@ set properly.\nTraceback: %s' % err
     return assessors
 
 
-def filter_assessors(args, assessors, has_fs_datatypes=False,
+def filter_assessors(xnat,project,args, assessors, has_fs_datatypes=False,
                      full_project=False):
     """
     Function to filter the list of assessors to keep the ones respecting
@@ -245,10 +245,15 @@ def filter_assessors(args, assessors, has_fs_datatypes=False,
         assessors = XnatUtils.filter_list_dicts_regex(
             assessors, 'subject_label', args.subjects, args.full_regex)
 
-    if args.sessions and args.sessions != 'all':
-        sessions = utils.get_option_list(args.sessions)
-        for session in sessions:
-            assess.append(XnatUtils.filter_list_dicts_regex(assessors, 'session_label', session, args.full_regex))
+    if args.sessions:
+        if args.sessions=='all':
+            sessions = XnatUtils.list_sessions(xnat,project)
+            for session in sessions:
+                assess.append(XnatUtils.filter_list_dicts_regex(assessors, 'session_label', session['session_label'], args.full_regex))
+        elif args.sessions!='all':
+            sessions = utils.get_option_list(args.sessions)
+            for session in sessions:
+                assess.append(XnatUtils.filter_list_dicts_regex(assessors, 'session_label', session, args.full_regex))
         assessors = assess
 
         if(args.sessions):
