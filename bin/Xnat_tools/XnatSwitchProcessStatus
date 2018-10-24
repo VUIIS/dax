@@ -247,7 +247,7 @@ def filter_assessors(xnat,project,args, assessors, has_fs_datatypes=False,
 
     if args.sessions:
         if args.sessions=='all':
-            sessions = XnatUtils.list_sessions(xnat,project)
+            sessions = XnatUtils.list_experiments(xnat,project)
             for session in sessions:
                 assess.append(XnatUtils.filter_list_dicts_regex(assessors, 'session_label', session['session_label'], args.full_regex))
         elif args.sessions!='all':
