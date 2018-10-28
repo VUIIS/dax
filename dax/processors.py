@@ -1007,7 +1007,7 @@ class MoreAutoProcessor(AutoProcessor):
         cmd += 'INDIR=$JOBDIR/INPUTS\n'
         cmd += 'OUTDIR=$JOBDIR/OUTPUTS\n'
         cmd += 'DSTDIR={}\n\n'.format(dstdir)
-
+        cmd += 'CONTAINERPATH={}\n\n'.format(self.container_path)
         # Append the main command
         cmd += 'MAINCMD=\"'
         cmd += self.command.format(**var2val)
