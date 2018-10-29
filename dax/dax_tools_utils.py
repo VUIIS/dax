@@ -829,10 +829,9 @@ def get_dax_version_hash_assessor(assessor_path):
     try:
         with open(fpath, 'r') as f_obj:
             dax_version_hash = f_obj.read().strip()
-            f_obj.close()
 
     except IOError as e:
-        LOGGER.warn('failed to read dax_version_hash:' + fpath + ':' + e)
+        LOGGER.warn('failed to read dax_version_hash:' + str(e))
 
     return dax_version_hash
 
