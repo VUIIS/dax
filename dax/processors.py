@@ -937,7 +937,7 @@ class MoreAutoProcessor(AutoProcessor):
         """
         assr_label = assr.label()
         dstdir = os.path.join(DAX_Settings().get_results_dir(), assr_label)
-        
+
         # Find values for the xnat inputs
         var2val, input_list = self.parser.find_inputs(assr)
 
@@ -968,6 +968,10 @@ class MoreAutoProcessor(AutoProcessor):
                 _ref = attr_in['ref']
                 _refval = assr_inputs[_ref].rsplit('/', 1)[1]
                 _val = assr.parent().scan(_refval).attrs.get(_attr)
+            elif _obj == 'assessor':
+                _ref = attr_in['ref']
+                _refval = assr_inputs[_ref].rsplit('/', 1)[1]
+                _val = assr.parent().assessor(_refval).attrs.get(_attr)
             else:
                 LOGGER.error('invalid YAML')
                 err = 'YAML File:contains invalid attribute:{}'
