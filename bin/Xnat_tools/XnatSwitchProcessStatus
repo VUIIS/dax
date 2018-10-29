@@ -450,11 +450,13 @@ def set_need_inputs_proctype(xnat, assessor, need_inputs, full_regex=False):
             else:
                 set_proc_status(assessor_obj, task.NEED_INPUTS)
 
-            li_assessors = xnat.get_assessor_out_resources(
+            li_assessors = XnatUtils.list_assessor_out_resources(
+                xnat,
                 a_linked_dict['project_id'],
                 a_linked_dict['subject_id'],
                 a_linked_dict['session_id'],
                 a_linked_dict['label'])
+
             for resource in li_assessors:
                 delete_assr_resource(assessor_obj, resource['label'])
 
@@ -567,7 +569,8 @@ def set_status_assessor(xnat, assessor, status,
                 for resource in resources:
                     delete_assr_resource(assessor_obj, resource)
             else:
-                resources = xnat.get_assessor_out_resources(
+                resources = XnatUtils.list_assessor_out_resources(
+                    xnat,
                     assessor['project_id'], assessor['subject_label'],
                     assessor['session_label'], assessor['label'])
                 for resource in resources:

@@ -275,7 +275,13 @@ class ProcessorParser:
 
             if 'fmatch' in cur_res:
                 fmatch = cur_res['fmatch']
+            elif cur_res['ftype'] == 'FILE':
+                # Default to all
+                fmatch = '*'
+            else:
+                fmatch = None
 
+            if fmatch:
                 # Get list of all files in the resource
                 file_list = robj.files().get()
 

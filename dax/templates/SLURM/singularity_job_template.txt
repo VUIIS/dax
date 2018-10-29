@@ -22,12 +22,14 @@ date
 #DSTDIR=
 #INLIST=
 #OUTLIST=
+#CONTAINERPATH=
 #MAINCMD=
 ${job_cmds}
 #=============================================================================
 echo $DSTDIR
 echo $INDIR
 echo $OUTDIR
+echo $CONTAINERPATH
 
 mkdir -p $INDIR
 mkdir -p $OUTDIR
@@ -40,21 +42,21 @@ for IN in "${INLIST[@]}"; do
     elif [ $col2 == "DIRJ" ]; then
         CMD="curl -s -n $col3?format=zip -o $INDIR/${col1}.zip && unzip -j $INDIR/${col1}.zip -d $INDIR/$col1"
     else
-        CMD="curl -s -n $col3?format=zip -o $INDIR/${col1}.zip && unzip $INDIR/${col1}.zip -d $INDIR/$col1"
+        CMD="curl -s -n '$col3?format=zip&structure=simplified' -o $INDIR/${col1}.zip && unzip $INDIR/${col1}.zip -d $INDIR/$col1 && mv $INDIR/$col1/*/out/* $INDIR/$col1"
     fi
     echo $CMD
     eval $CMD
 done
 
 # Run main command
-module load GCC Singularity
 echo $_JAVA_OPTIONS
 echo $MAINCMD
 eval $MAINCMD
 
-# Write version file
+# Write version files
 mkdir -p $DSTDIR
 echo $VERSION > $DSTDIR/version.txt
+sha256sum $CONTAINERPATH | awk '{print $1}' > $DSTDIR/dax_version_hash.txt
 
 # Handle outputs
 errors=0
@@ -84,4 +86,7 @@ done
 if [ $errors -gt 0 ] || [ $haspdf != 1 ]; then echo "JOB_FAILED" && touch $DSTDIR/JOB_FAILED.txt;
 else echo "COMPLETE" && touch $DSTDIR/READY_TO_UPLOAD.txt; fi
 
+rm -rf $INDIR $OUTDIR
+
 echo "DONE"
+
