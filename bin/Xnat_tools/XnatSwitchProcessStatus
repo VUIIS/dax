@@ -569,7 +569,8 @@ def set_status_assessor(xnat, assessor, status,
                 for resource in resources:
                     delete_assr_resource(assessor_obj, resource)
             else:
-                resources = xnat.get_assessor_out_resources(
+                resources = XnatUtils.list_assessor_out_resources(
+                    xnat,
                     assessor['project_id'], assessor['subject_label'],
                     assessor['session_label'], assessor['label'])
                 for resource in resources:
