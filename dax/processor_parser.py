@@ -656,6 +656,8 @@ class ProcessorParser:
                         regex = XnatUtils.extract_exp(expression)
                         if regex.match(cscan.type()):
                             artefacts_by_input[i].append(cscan.full_path())
+                            # Break here so we don't match multiple times
+                            break
 
                 for cassr in csess.assessors():
                     if cassr.type() in iv['types']:
