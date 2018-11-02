@@ -88,7 +88,7 @@ if __name__ == '__main__':
         print('INFO: connection to xnat <{}>:'.format(host))
 
         # Find the FreeSurfer assessor
-        sess_list = XnatUtils.list_sessions(xnat, projectid=proj_label)
+        sess_list = xnat.get_sessions(projectid=proj_label)
         fs_list = []
         for sess in sess_list:
             if sess['label'] == sess_label:
