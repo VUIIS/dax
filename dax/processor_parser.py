@@ -265,57 +265,107 @@ class ProcessorParser:
                     cur_res = inp_res
                     break
 
-            # Select the resource object on xnat
-            robj = assr._intf.select(resource_paths[artefact_type].format(
-                assr_inputs[v['input']], resource))
+            if isinstance(assr_inputs[v['input']], list):
+                for vnum, vinput in enumerate(assr_inputs[v['input']]):
+                    robj = assr._intf.select(resource_paths[artefact_type].format(
+                       vinput, resource))
 
-            if not robj.exists():
-                LOGGER.debug('failed to find resource')
-                raise NeedInputsException('No Resource')
+                    if not robj.exists():
+                        LOGGER.debug('failed to find resource')
+                        raise NeedInputsException('No Resource')
 
-            if 'fmatch' in cur_res:
-                fmatch = cur_res['fmatch']
-            elif cur_res['ftype'] == 'FILE':
-                # Default to all
-                fmatch = '*'
+                    if 'fmatch' in cur_res:
+                        fmatch = cur_res['fmatch']
+                    elif cur_res['ftype'] == 'FILE':
+                        # Default to all
+                        fmatch = '*'
+                    else:
+                        fmatch = None
+
+                    if fmatch:
+                        # Get list of all files in the resource
+                        file_list = robj.files().get()
+
+                        # Filter list based on regex matching
+                        regex = XnatUtils.extract_exp(fmatch, full_regex=False)
+                        file_list = [x for x in file_list if regex.match(x)]
+
+                        # Make a comma separated list of files
+                        uri_list = ['{}/files/{}'.format(
+                            resource, f) for f in file_list]
+                        res_path = ','.join(uri_list)
+                    elif 'filepath' in cur_res:
+                        fpath = cur_res['filepath']
+                        res_path = resource + '/files/' + fpath
+                    else:
+                        res_path = resource + '/files'
+
+                    path_elements = [
+                        assr._intf.host,
+                        vinput,
+                        res_path
+                    ]
+
+                    variable_set[k] = uri_paths[artefact_type].format(*path_elements)
+
+                    # Append to inputs to be downloaded
+                    input_list.append({
+                        'fdest': str(vnum) + cur_res['fdest'],
+                        'ftype': cur_res['ftype'],
+                        'fpath': variable_set[k]
+                    })
             else:
-                fmatch = None
+                # Select the resource object on xnat
+                robj = assr._intf.select(resource_paths[artefact_type].format(
+                   assr_inputs[v['input']], resource))
 
-            if fmatch:
-                # Get list of all files in the resource
-                file_list = robj.files().get()
+                if not robj.exists():
+                    LOGGER.debug('failed to find resource')
+                    raise NeedInputsException('No Resource')
 
-                # Filter list based on regex matching
-                regex = XnatUtils.extract_exp(fmatch, full_regex=False)
-                file_list = [x for x in file_list if regex.match(x)]
+                if 'fmatch' in cur_res:
+                    fmatch = cur_res['fmatch']
+                elif cur_res['ftype'] == 'FILE':
+                    # Default to all
+                    fmatch = '*'
+                else:
+                    fmatch = None
 
-                # Make a comma separated list of files
-                uri_list = ['{}/files/{}'.format(
-                    resource, f) for f in file_list]
-                res_path = ','.join(uri_list)
-            elif 'filepath' in cur_res:
-                fpath = cur_res['filepath']
-                res_path = resource + '/files/' + fpath
-            else:
-                res_path = resource + '/files'
+                if fmatch:
+                    # Get list of all files in the resource
+                    file_list = robj.files().get()
 
-            path_elements = [
-                assr._intf.host,
-                assr_inputs[v['input']],
-                res_path
-            ]
+                    # Filter list based on regex matching
+                    regex = XnatUtils.extract_exp(fmatch, full_regex=False)
+                    file_list = [x for x in file_list if regex.match(x)]
 
-            variable_set[k] = uri_paths[artefact_type].format(*path_elements)
+                    # Make a comma separated list of files
+                    uri_list = ['{}/files/{}'.format(
+                        resource, f) for f in file_list]
+                    res_path = ','.join(uri_list)
+                elif 'filepath' in cur_res:
+                    fpath = cur_res['filepath']
+                    res_path = resource + '/files/' + fpath
+                else:
+                    res_path = resource + '/files'
 
-            # Append to inputs to be downloaded
-            input_list.append({
-                'fdest': cur_res['fdest'],
-                'ftype': cur_res['ftype'],
-                'fpath': variable_set[k]
-            })
-            # Replace path with destination path after download
-            if 'varname' in cur_res:
-                variable_set[k] = cur_res['fdest']
+                path_elements = [
+                    assr._intf.host,
+                    assr_inputs[v['input']],
+                    res_path
+                ]
+
+                variable_set[k] = uri_paths[artefact_type].format(*path_elements)
+
+                # Append to inputs to be downloaded
+                input_list.append({
+                    'fdest': cur_res['fdest'],
+                    'ftype': cur_res['ftype'],
+                    'fpath': variable_set[k]
+                })
+                # Replace path with destination path after download
+                if 'varname' in cur_res:
+                    variable_set[k] = cur_res['fdest']
 
         return variable_set, input_list
 
@@ -655,7 +705,10 @@ class ProcessorParser:
                     for expression in iv['types']:
                         regex = XnatUtils.extract_exp(expression)
                         if regex.match(cscan.type()):
-                            artefacts_by_input[i].append(cscan.full_path())
+                            if iv.get('select')[0] == 'all' and cscan.info().get('quality') == 'unusable':
+                                print('excluding unusable scan')
+                            else:
+                                artefacts_by_input[i].append(cscan.full_path())
                             # Break here so we don't match multiple times
                             break
 
