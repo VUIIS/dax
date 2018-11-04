@@ -982,6 +982,52 @@ class MoreAutoProcessor(AutoProcessor):
             else:
                 var2val[_var] = _val
 
+        # Handle edits
+        edit_res = assr.out_resource(task.EDITS_RESOURCE)
+        if edit_res.exists():
+            file_list = edit_res.files().get()
+            assr_path = '/projects/{}/subjects/{}/experiments/{}/assessors/{}'.format(
+                assr.parent().parent().parent().label(),
+                assr.parent().parent().label(),
+                assr.parent().label(),
+                assr.label()
+                )
+
+            for edit_in in self.xnat_inputs.get('edits', list()):
+                print(edit_in)
+                _fpref = edit_in['fpref']
+                _fdest = edit_in['fdest']
+                _var = edit_in['varname']
+                _val = ''
+
+                # Filter files that match prefix
+                cur_list = [f for f in file_list if f.startswith(_fpref)]
+
+                if not cur_list:
+                    # None found
+                    continue
+
+                # Sort and grab the last file
+                _val = sorted(cur_list)[-1]
+
+                _uri = '{}/data{}/out/resources/{}/files/{}'.format(
+                    assr._intf.host,
+                    assr_path,
+                    task.EDITS_RESOURCE,
+                    _val)
+
+                variable_set[k] = _uri
+
+                # Append to inputs to be downloaded
+                input_list.append({
+                    'fdest': cur_res['fdest'],
+                    'ftype': cur_res['ftype'],
+                    'fpath': variable_set[k]
+                })
+                # Replace path with destination path after download
+                if 'varname' in cur_res:
+                    variable_set[k] = cur_res['fdest']
+
         # Build the command text
         cmd = self.build_text(var2val, input_list, jobdir, dstdir)
 
@@ -1005,13 +1051,15 @@ class MoreAutoProcessor(AutoProcessor):
 
         cmd += ')\n\n'
 
-        # Append other other paths and the command
+        # Append other paths
         cmd += 'VERSION={}\n'.format(self.version)
-        cmd += 'JOBDIR=$(mktemp -d "{}.XXXXXXXXX") || {{ echo "mktemp failed"; exit 1; }}\n'.format(jobdir)
+        cmd += 'JOBDIR=$(mktemp -d "{}.XXXXXXXXX") || '.format(jobdir)
+        cmd += '{{ echo "mktemp failed"; exit 1; }}\n'
         cmd += 'INDIR=$JOBDIR/INPUTS\n'
         cmd += 'OUTDIR=$JOBDIR/OUTPUTS\n'
         cmd += 'DSTDIR={}\n\n'.format(dstdir)
         cmd += 'CONTAINERPATH={}\n\n'.format(self.container_path)
+
         # Append the main command
         cmd += 'MAINCMD=\"'
         cmd += self.command.format(**var2val)
@@ -1042,10 +1090,6 @@ def processors_by_type(proc_list):
                 sess_proc_list.append(proc)
             elif issubclass(proc.__class__, AutoProcessor):
                 auto_proc_list.append(proc)
-                # if proc.type == 'scan':
-                #     scan_proc_list.append(proc)
-                # else:
-                #     sess_proc_list.append(proc)
             else:
                 LOGGER.warn('unknown processor type: %s' % proc)
 
