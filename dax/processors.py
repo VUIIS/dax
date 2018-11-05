@@ -998,33 +998,33 @@ class MoreAutoProcessor(AutoProcessor):
                 _fpref = edit_in['fpref']
                 _fdest = edit_in['fdest']
                 _var = edit_in['varname']
-                _val = ''
 
                 # Filter files that match prefix
                 cur_list = [f for f in file_list if f.startswith(_fpref)]
 
-                if not cur_list:
+                if cur_list:
+                    # Sort and grab the last file
+                    _val = sorted(cur_list)[-1]
+
+                    _uri = '{}/data{}/out/resources/{}/files/{}'.format(
+                        assr._intf.host,
+                        assr_path,
+                        task.EDITS_RESOURCE,
+                        _val)
+
+                     # Append to inputs to be downloaded
+                    input_list.append({
+                        'fdest': _fdest,
+                        'ftype': 'FILE',
+                        'fpath': _uri
+                    })
+
+                    var2val[_var] = _fdest
+
+                else:
                     # None found
-                    continue
-
-                # Sort and grab the last file
-                _val = sorted(cur_list)[-1]
-
-                _uri = '{}/data{}/out/resources/{}/files/{}'.format(
-                    assr._intf.host,
-                    assr_path,
-                    task.EDITS_RESOURCE,
-                    _val)
-
-                # Append to inputs to be downloaded
-                input_list.append({
-                    'fdest': _fdest,
-                    'ftype': 'FILE',
-                    'fpath': _uri
-                })
-
-                var2val[_var] = _fdest
-
+                    var2val[_var] = ''
+               
         # Build the command text
         cmd = self.build_text(var2val, input_list, jobdir, dstdir)
 
