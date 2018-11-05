@@ -994,9 +994,7 @@ class MoreAutoProcessor(AutoProcessor):
                 )
 
             for edit_in in self.xnat_inputs.get('edits', list()):
-                print(edit_in)
                 _fpref = edit_in['fpref']
-                _fdest = edit_in['fdest']
                 _var = edit_in['varname']
 
                 # Filter files that match prefix
@@ -1006,6 +1004,7 @@ class MoreAutoProcessor(AutoProcessor):
                     # Sort and grab the last file
                     _val = sorted(cur_list)[-1]
 
+                    # Build full uri
                     _uri = '{}/data{}/out/resources/{}/files/{}'.format(
                         assr._intf.host,
                         assr_path,
@@ -1014,12 +1013,13 @@ class MoreAutoProcessor(AutoProcessor):
 
                      # Append to inputs to be downloaded
                     input_list.append({
-                        'fdest': _fdest,
+                        'fdest': _fpref,
                         'ftype': 'FILE',
                         'fpath': _uri
                     })
 
-                    var2val[_var] = _fdest
+                    # Set the value for command text
+                    var2val[_var] = '/INPUTS/'+_fpref
 
                 else:
                     # None found
