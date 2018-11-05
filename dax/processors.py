@@ -1016,17 +1016,14 @@ class MoreAutoProcessor(AutoProcessor):
                     task.EDITS_RESOURCE,
                     _val)
 
-                variable_set[k] = _uri
-
                 # Append to inputs to be downloaded
                 input_list.append({
-                    'fdest': cur_res['fdest'],
-                    'ftype': cur_res['ftype'],
-                    'fpath': variable_set[k]
+                    'fdest': _fdest,
+                    'ftype': 'FILE',
+                    'fpath': _uri
                 })
-                # Replace path with destination path after download
-                if 'varname' in cur_res:
-                    variable_set[k] = cur_res['fdest']
+
+                var2val[_var] = _fdest
 
         # Build the command text
         cmd = self.build_text(var2val, input_list, jobdir, dstdir)
