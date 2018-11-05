@@ -1051,7 +1051,7 @@ class MoreAutoProcessor(AutoProcessor):
         # Append other paths
         cmd += 'VERSION={}\n'.format(self.version)
         cmd += 'JOBDIR=$(mktemp -d "{}.XXXXXXXXX") || '.format(jobdir)
-        cmd += '{{ echo "mktemp failed"; exit 1; }}\n'
+        cmd += '{ echo "mktemp failed"; exit 1; }\n'
         cmd += 'INDIR=$JOBDIR/INPUTS\n'
         cmd += 'OUTDIR=$JOBDIR/OUTPUTS\n'
         cmd += 'DSTDIR={}\n\n'.format(dstdir)
