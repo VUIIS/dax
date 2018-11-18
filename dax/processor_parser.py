@@ -282,7 +282,10 @@ class ProcessorParser:
                     else:
                         fmatch = None
 
-                    if fmatch:
+                    if 'filepath' in cur_res:
+                        fpath = cur_res['filepath']
+                        res_path = resource + '/files/' + fpath
+                    elif fmatch:
                         # Get list of all files in the resource
                         file_list = robj.files().get()
 
@@ -294,9 +297,6 @@ class ProcessorParser:
                         uri_list = ['{}/files/{}'.format(
                             resource, f) for f in file_list]
                         res_path = ','.join(uri_list)
-                    elif 'filepath' in cur_res:
-                        fpath = cur_res['filepath']
-                        res_path = resource + '/files/' + fpath
                     else:
                         res_path = resource + '/files'
 
@@ -331,7 +331,10 @@ class ProcessorParser:
                 else:
                     fmatch = None
 
-                if fmatch:
+                if 'filepath' in cur_res:
+                    fpath = cur_res['filepath']
+                    res_path = resource + '/files/' + fpath
+                elif fmatch:
                     # Get list of all files in the resource
                     file_list = robj.files().get()
 
@@ -343,9 +346,6 @@ class ProcessorParser:
                     uri_list = ['{}/files/{}'.format(
                         resource, f) for f in file_list]
                     res_path = ','.join(uri_list)
-                elif 'filepath' in cur_res:
-                    fpath = cur_res['filepath']
-                    res_path = resource + '/files/' + fpath
                 else:
                     res_path = resource + '/files'
 
