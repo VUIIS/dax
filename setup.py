@@ -164,7 +164,7 @@ if __name__ == '__main__':
         shutil.copy('dax/dax_settings.ini',
                     os.path.join(os.path.expanduser('~'), '.dax_settings.ini'))
 
-	write_git_revision_py()
+    write_git_revision_py()
 
     setup(name=NAME,
           maintainer=MAINTAINER,
