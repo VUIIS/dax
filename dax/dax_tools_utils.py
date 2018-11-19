@@ -60,6 +60,7 @@ from .task import (READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED,
 from .task import ClusterTask
 from .XnatUtils import XnatUtilsError
 from .version import VERSION as __version__
+from .git_revision import git_revision as __git_revision__
 
 
 # Global Variables
@@ -816,24 +817,24 @@ def get_version_assessor(assessor_path):
     return version
 
 
-def get_dax_version_hash_assessor(assessor_path):
+def get_dax_docker_version_assessor(assessor_path):
     """
-    Get the dax_version_hash of assessor we are uploading from text file
+    Get the dax_docker_version of assessor we are uploading from text file
 
     :param assessor_path: path for the assessor
     :return: version of the assessor from the version.txt file
     """
-    dax_version_hash = ''
-    fpath = os.path.join(assessor_path, 'dax_version_hash.txt')
+    dax_docker_version = ''
+    fpath = os.path.join(assessor_path, 'dax_docker_version.txt')
 
     try:
         with open(fpath, 'r') as f_obj:
-            dax_version_hash = f_obj.read().strip()
+            dax_docker_version = f_obj.read().strip()
 
     except IOError as e:
-        LOGGER.warn('failed to read dax_version_hash:' + str(e))
+        LOGGER.warn('failed to read dax_docker_version:' + str(e))
 
-    return dax_version_hash
+    return dax_docker_version
 
 
 def generate_snapshots(assessor_path):
@@ -987,7 +988,7 @@ def upload_assessor(xnat, assessor_dict, assessor_path):
     """
     # get spiderpath from version.txt file:
     version = get_version_assessor(assessor_path)
-    dax_version_hash = get_dax_version_hash_assessor(assessor_path)
+    dax_docker_version = get_dax_docker_version_assessor(assessor_path)
     session_obj = XnatUtils.select_obj(xnat,
                                        assessor_dict['project_id'],
                                        assessor_dict['subject_label'],
@@ -1050,7 +1051,9 @@ unable to find XML file: %s'
                 xsitype + '/memused': ctask.get_memused(),
                 xsitype + '/walltimeused': ctask.get_walltime(),
                 xsitype + '/jobstartdate': ctask.get_jobstartdate(),
-                xsitype + '/dax_version_hash': dax_version_hash
+                xsitype + '/dax_version': __version__,
+                xsitype + '/dax_version_hash': __git_revision__,
+                xsitype + '/dax_docker_version': dax_docker_version
             })
 
             # Delete the task from diskq

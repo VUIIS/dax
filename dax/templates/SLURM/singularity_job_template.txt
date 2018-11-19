@@ -56,7 +56,7 @@ eval $MAINCMD
 # Write version files
 mkdir -p $DSTDIR
 echo $VERSION > $DSTDIR/version.txt
-sha256sum $CONTAINERPATH | awk '{print $1}' > $DSTDIR/dax_version_hash.txt
+sha256sum $CONTAINERPATH | awk '{print $1}' > $DSTDIR/dax_docker_version.txt
 
 # Handle outputs
 errors=0

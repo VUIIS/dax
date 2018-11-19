@@ -15,6 +15,7 @@ from .cluster import PBS
 from .launcher import Launcher
 from .dax_settings import DAX_Settings, DAX_Netrc
 from .version import VERSION as __version__
+from .git_revision import git_revision as __git_revision__
 from .XnatUtils import SpiderProcessHandler, AssessorHandler
 from .modules import ScanModule, SessionModule
 from .spiders import AutoSpider, ScanSpider, SessionSpider
