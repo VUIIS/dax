@@ -40,6 +40,8 @@ import sys
 import time
 import traceback
 
+from multiprocessing import Pool
+
 from . import bin
 from . import launcher
 from . import log
@@ -1144,9 +1146,8 @@ def upload_snapshots(assessor_obj, resource_path):
         except XnatUtilsError as err:
             print(ERR_MSG % err)
 
-
 def upload_assessors(xnat, projects):
-    """
+    """  
     Upload all assessors to XNAT
 
     :param xnat: pyxnat.Interface object
@@ -1158,23 +1159,42 @@ def upload_assessors(xnat, projects):
     number_of_processes = len(assessors_list)
     warnings = list()
 
+    print('Starting pool')
+    sys.stdout.flush()
+    
+    pool = Pool(processes=3) 
     for index, assessor_label in enumerate(assessors_list):
-        assessor_path = os.path.join(RESULTS_DIR, assessor_label)
-        msg = "    *Process: %s/%s -- label: %s / time: %s"
-        LOGGER.info(msg % (str(index + 1), str(number_of_processes),
-                           assessor_label, str(datetime.now())))
-
-        #assessor_dict = get_assessor_dict(assessor_label, assessor_path)
-        assessor_dict = assessor_utils.parse_full_assessor_name(assessor_label)
-        if assessor_dict:
-            uploaded = upload_assessor(xnat, assessor_dict, assessor_path)
-            if not uploaded:
-                mess = """    - Assessor label : {label}\n"""
-                warnings.append(mess.format(label=assessor_dict['label']))
-        else:
-            LOGGER.warn('     --> wrong label')
+        print(index)
+        sys.stdout.flush()
+    
+        pool.apply_async(upload_thread,[xnat, index, assessor_label, number_of_processes])
+    
+    print('Waiting for pool to finish...')
+    sys.stdout.flush()
+    
+    pool.close()
+    pool.join()
+    
+    print('Pool finished')
+    sys.stdout.flush()
+    
     return warnings
 
+def upload_thread(xnat, index, assessor_label, number_of_processes):
+    assessor_path = os.path.join(RESULTS_DIR, assessor_label)
+    msg = "    *Process: %s/%s -- label: %s / time: %s"
+    LOGGER.info(msg % (str(index + 1), str(number_of_processes),
+                       assessor_label, str(datetime.now())))
+
+    #assessor_dict = get_assessor_dict(assessor_label, assessor_path)
+    assessor_dict = assessor_utils.parse_full_assessor_name(assessor_label)
+    if assessor_dict:
+        uploaded = upload_assessor(xnat, assessor_dict, assessor_path)
+        if not uploaded:
+            mess = """    - Assessor label : {label}\n"""
+            warnings.append(mess.format(label=assessor_dict['label']))
+    else:
+        LOGGER.warn('     --> wrong label')
 
 def upload_pbs(xnat, projects):
     """
