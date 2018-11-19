@@ -60,6 +60,7 @@ from .task import (READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED,
 from .task import ClusterTask
 from .XnatUtils import XnatUtilsError
 from .version import VERSION as __version__
+from .git_revision import git_revision as __git_revision__
 
 
 # Global Variables
@@ -1051,6 +1052,7 @@ unable to find XML file: %s'
                 xsitype + '/walltimeused': ctask.get_walltime(),
                 xsitype + '/jobstartdate': ctask.get_jobstartdate(),
                 xsitype + '/dax_version': __version__,
+                xsitype + '/dax_version_hash': __git_revision__,
                 xsitype + '/dax_docker_version': dax_docker_version
             })
 
