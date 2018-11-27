@@ -780,14 +780,14 @@ def filter_project(xnat, project, filters, levels):
             project, xnat.get_project_scans,
             [_filter for _filter in filters if _filter.grp == 'scan'])
         asses_filtered = filter_list(
-            project, xnat.get_project_assessors,
+            project, XnatUtils.list_project_assessors,
             [_filter for _filter in filters if _filter.grp == 'assessor'])
         return scans_filtered + asses_filtered
     elif 'scan' in levels and 'assessor' not in levels:
         return filter_list(project, xnat.get_project_scans,
                            filters)
     elif 'scan' not in levels and 'assessor' in levels:
-        return filter_list(project, xnat.get_project_assessors,
+        return filter_list(project, XnatUtils.list_project_assessors,
                            filters)
     elif 'session' in levels:
         return filter_list(project, xnat.get_sessions, filters)
