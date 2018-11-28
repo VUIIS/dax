@@ -165,10 +165,14 @@
 							  		<A target="_blank" HREF="$content.getURI("/REST/experiments/$om.getId()/assessors/${procID}/out/resources/SNAPSHOTS/files?file_content=ORIGINAL&index=0")" > <IMG SRC="$content.getURI("/REST/experiments/$om.getId()/assessors/${procID}/out/resources/SNAPSHOTS/files?file_content=THUMBNAIL&index=0")"> </A>
 							  	</td>
 			          		</tr>
-			          		<tr><td>Inputs</td><td>
+			          		<tr>
+			          		    <td> </td>
+			          		    <td>Inputs</td><td>
+			          		    #set($inputs = '')
 								#set($inputs = $!proc.getProperty("inputs"))
 								#set($inputs = $inputs.replace("{",""))
 								#set($inputs = $inputs.replace("}",""))
+								#set($inputs = $inputs.replace('"',""))
 								#foreach($inputelem in $inputs.split(","))
 									<DIV>$inputelem</DIV>
 								#end
