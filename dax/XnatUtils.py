@@ -453,6 +453,127 @@ class InterfaceTemp(Interface):
 
         return sorted(list(scans_dict.values()), key=lambda k: k['session_label'])
 
+    def get_project_assessors(self, projectid):
+        """
+        List all the assessors that you have access to based on passed project.
+
+        :param projectid: ID of a project on XNAT
+        :return: List of all the assessors for the project
+        """
+        assessors_dict = dict()
+
+        # Get the sessions list to get the different variables needed:
+        session_list = self.get_sessions(projectid)
+        sess_id2mod = dict((sess['session_id'], [sess['subject_label'],
+                            sess['type'], sess['handedness'], sess['gender'],
+                            sess['yob'], sess['age'], sess['last_modified'],
+                            sess['last_updated']]) for sess in session_list)
+
+        if has_fs_datatypes(self):
+            # First get FreeSurfer
+            post_uri = SE_ARCHIVE_URI
+            post_uri += ASSESSOR_FS_PROJ_POST_URI.format(
+                project=projectid, fstype=DEFAULT_FS_DATATYPE)
+            assessor_list = self._get_json(post_uri)
+
+            pfix = DEFAULT_FS_DATATYPE.lower()
+            for asse in assessor_list:
+                if asse['label']:
+                    key = asse['label']
+                    if assessors_dict.get(key):
+                        res = '%s/out/file/label' % pfix
+                        assessors_dict[key]['resources'].append(asse[res])
+                    else:
+                        anew = {}
+                        anew['ID'] = asse['ID']
+                        anew['label'] = asse['label']
+                        anew['uri'] = asse['URI']
+                        anew['assessor_id'] = asse['ID']
+                        anew['assessor_label'] = asse['label']
+                        anew['assessor_uri'] = asse['URI']
+                        anew['project_id'] = projectid
+                        anew['project_label'] = projectid
+                        sfix = 'xnat:imagesessiondata'
+                        anew['subject_id'] = asse['%s/subject_id' % sfix]
+                        anew['subject_label'] = asse['subject_label']
+                        anew['session_type'] = sess_id2mod[asse['session_ID']][1]
+                        anew['session_id'] = asse['session_ID']
+                        anew['session_label'] = asse['session_label']
+                        anew['procstatus'] = asse['%s/procstatus' % pfix]
+                        anew['qcstatus'] = asse['%s/validation/status' % pfix]
+                        anew['proctype'] = 'FreeSurfer'
+
+                        if len(asse['label'].rsplit('-x-FS')) > 1:
+                            anew['proctype'] = (anew['proctype'] +
+                                                asse['label'].rsplit('-x-FS')[1])
+
+                        anew['version'] = asse.get('%s/procversion' % pfix)
+                        anew['xsiType'] = asse['xsiType']
+                        anew['jobid'] = asse.get('%s/jobid' % pfix)
+                        anew['jobstartdate'] = asse.get('%s/jobstartdate' % pfix)
+                        anew['memused'] = asse.get('%s/memused' % pfix)
+                        anew['walltimeused'] = asse.get('%s/walltimeused' % pfix)
+                        anew['jobnode'] = asse.get('%s/jobnode' % pfix)
+                        anew['handedness'] = sess_id2mod[asse['session_ID']][2]
+                        anew['gender'] = sess_id2mod[asse['session_ID']][3]
+                        anew['yob'] = sess_id2mod[asse['session_ID']][4]
+                        anew['age'] = sess_id2mod[asse['session_ID']][5]
+                        anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
+                        anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
+                        anew['resources'] = [asse['%s/out/file/label' % pfix]]
+                        assessors_dict[key] = anew
+
+        if has_genproc_datatypes(self):
+            # Then add genProcData
+            post_uri = SE_ARCHIVE_URI
+            post_uri += ASSESSOR_PR_PROJ_POST_URI.format(project=projectid,
+                                                         pstype=DEFAULT_DATATYPE)
+            assessor_list = self._get_json(post_uri)
+
+            pfix = DEFAULT_DATATYPE.lower()
+            for asse in assessor_list:
+                if asse['label']:
+                    key = asse['label']
+                    if assessors_dict.get(key):
+                        res = '%s/out/file/label' % pfix
+                        assessors_dict[key]['resources'].append(asse[res])
+                    else:
+                        anew = {}
+                        anew['ID'] = asse['ID']
+                        anew['label'] = asse['label']
+                        anew['uri'] = asse['URI']
+                        anew['assessor_id'] = asse['ID']
+                        anew['assessor_label'] = asse['label']
+                        anew['assessor_uri'] = asse['URI']
+                        anew['project_id'] = projectid
+                        anew['project_label'] = projectid
+                        sfix = 'xnat:imagesessiondata'
+                        anew['subject_id'] = asse['%s/subject_id' % sfix]
+                        anew['subject_label'] = sess_id2mod[asse['session_ID']][0]
+                        anew['session_type'] = sess_id2mod[asse['session_ID']][1]
+                        anew['session_id'] = asse['session_ID']
+                        anew['session_label'] = asse['session_label']
+                        anew['procstatus'] = asse['%s/procstatus' % pfix]
+                        anew['proctype'] = asse['%s/proctype' % pfix]
+                        anew['qcstatus'] = asse['%s/validation/status' % pfix]
+                        anew['version'] = asse['%s/procversion' % pfix]
+                        anew['xsiType'] = asse['xsiType']
+                        anew['jobid'] = asse.get('%s/jobid' % pfix)
+                        anew['jobnode'] = asse.get('%s/jobnode' % pfix)
+                        anew['jobstartdate'] = asse.get('%s/jobstartdate' % pfix)
+                        anew['memused'] = asse.get('%s/memused' % pfix)
+                        anew['walltimeused'] = asse.get('%s/walltimeused' % pfix)
+                        anew['handedness'] = sess_id2mod[asse['session_ID']][2]
+                        anew['gender'] = sess_id2mod[asse['session_ID']][3]
+                        anew['yob'] = sess_id2mod[asse['session_ID']][4]
+                        anew['age'] = sess_id2mod[asse['session_ID']][5]
+                        anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
+                        anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
+                        anew['resources'] = [asse['%s/out/file/label' % pfix]]
+                        assessors_dict[key] = anew
+
+        return sorted(list(assessors_dict.values()), key=lambda k: k['label'])
+
     def get_subjects(self, project_id):
         if project_id:
             post_uri = SUBJECTS_URI.format(project=project_id)

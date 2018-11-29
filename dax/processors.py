@@ -546,13 +546,13 @@ auto processor defined by yaml file {}'
                 if tags[2] in list(self.xnat_inputs.keys()):
                     # scan number or assessor number (e.g: scan1)
                     for obj in self.xnat_inputs[tags[2]]:
-                        if tags[3] in list(obj.keys()) and \
-                           tags[4] in list(obj.keys()):
+                        if tags[3] == obj['name']:
                             if tags[4] == 'resources':
                                 msg = 'You can not change the resources \
 tag from the processor yaml file {}. Unauthorised operation.'
                                 LOGGER.warn(msg.format(yaml_source.source_id))
                             else:
+                                LOGGER.info('overriding setting:'+tags[4]+':'+val)
                                 obj[tags[4]] = val
                 else:
                     msg = 'key {} not found in the xnat inputs for auto \
