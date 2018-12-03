@@ -127,13 +127,16 @@ def get_resources_list(object_dict, resources_list):
     # Get list of resources' label
 
     if resources_list == 'all':
-        res_list = []
-        resources = XNAT.select('/project/{project}/subject/{subject}/experiment/{experiment}/assessor/{assessor}/resources'.format(project=object_dict['project_id'],
+        if object_dict.has_key("resources"):
+            res_list = object_dict['resources']
+        else:
+            res_list = []
+            resources = XNAT.select('/project/{project}/subject/{subject}/experiment/{experiment}/assessor/{assessor}/resources'.format(project=object_dict['project_id'],
                                                                                                                   subject=object_dict['subject_label'],
                                                                                                                   experiment=object_dict['session_label'],
                                                                                                                   assessor=object_dict['label']))
-        for resource in resources:
-            res_list.append(resource.label())
+            for resource in resources:
+                res_list.append(resource.label())
     else:
         res_list=resources_list
     return res_list
