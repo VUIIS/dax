@@ -152,7 +152,7 @@ label,URI,xsiType,project,xnat:imagesessiondata/subject_id,\
 xnat:imagesessiondata/id,xnat:imagesessiondata/label,{pstype}/procstatus,\
 {pstype}/proctype,{pstype}/validation/status,{pstype}/procversion,\
 {pstype}/jobstartdate,{pstype}/memused,{pstype}/walltimeused,\
-{pstype}/jobid,{pstype}/jobnode,{pstype}/out/file/label'''
+{pstype}/jobid,{pstype}/jobnode,{pstype}/inputs,{pstype}/out/file/label'''
 EXPERIMENT_POST_URI = '''?columns=ID,URI,subject_label,subject_ID,modality,\
 project,date,xsiType,label,xnat:subjectdata/meta/last_modified'''
 
@@ -570,6 +570,7 @@ class InterfaceTemp(Interface):
                         anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
                         anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
                         anew['resources'] = [asse['%s/out/file/label' % pfix]]
+                        anew['inputs'] = asse.get('%s/inputs' % pfix)
                         assessors_dict[key] = anew
 
         return sorted(list(assessors_dict.values()), key=lambda k: k['label'])
@@ -1457,6 +1458,7 @@ def list_project_assessors(intf, projectid):
                     anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
                     anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
                     anew['resources'] = [asse['%s/out/file/label' % pfix]]
+                    anew['inputs'] = asse.get('%s/inputs' % pfix)
                     assessors_dict[key] = anew
 
     return sorted(list(assessors_dict.values()), key=lambda k: k['label'])
