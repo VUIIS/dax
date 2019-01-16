@@ -1,10 +1,11 @@
-# Requires my updates to dax/XnatUtils
+#!/usr/bin/env python
 
 import json
 import sys
 import pandas
 import pyxnat
 from dax import XnatUtils
+from dax import utilities
 
 if len(sys.argv)!=4 :
     print('Usage:')
@@ -34,7 +35,8 @@ for assr in Assrs :
         thisR[key] = assr[key]
 
     # Clean up the inputs field, split on / and keep the last bit
-    inps = json.loads(assr['inputs'].replace('&quot;','"'))
+    inps = utilities.decode_url_json_string(assr['inputs'])
+    #inps = json.loads(assr['inputs'].replace('&quot;','"'))
     for key in inps.keys() :
         thisR[key] = inps[key].split('/')[-1]
     
