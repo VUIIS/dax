@@ -598,6 +598,14 @@ class DAX_Settings(object):
         """
         return self.get('cluster', 'launcher_type')
 
+    def get_upload_threads(self):
+        """
+        Get the upload threads from the cluster
+
+        :return: number of upload threads
+        """
+        return self.get('cluster', 'upload_threads')
+
     def get_api_url(self):
         """Get the api_url value from the dax_manager section.
 
