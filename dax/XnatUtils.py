@@ -2616,9 +2616,8 @@ def upload_reference(reference, assessor_obj, resource):
     :param resource: pyxnat object resource to be uploaded
     """
     _uri = '{}/out/resources/{}/files?overwrite=True&label={}&reference={}'
-    _uri.format(assessor_obj._uri, resource, resource, reference)
-    print(_uri)
-    _xnat = resource._intf
+    _uri = _uri.format(assessor_obj._uri, resource, resource, reference)
+    _xnat = assessor_obj._intf
     _xnat.put(_uri)
 
 def copy_resource_from_obj(directory, xnat_obj, old_res, new_res):
