@@ -1094,6 +1094,13 @@ def upload_resource(assessor_obj, resource, resource_path):
         rfiles_list = os.listdir(resource_path)
         if not rfiles_list:
             LOGGER.warn('No files in {}'.format(resource_path))
+        elif DAX_SETTINGS.get_use_reference():
+            try:
+                ref_path = get_reference_path(resource_path)
+                res_obj = assessor_obj.out_resource(resource)
+                XnatUtils.upload_reference(ref_path, res_obj)
+            except XnatUtilsError as err:
+                print(ERR_MSG % err)
         elif len(rfiles_list) > 1 or os.path.isdir(rfiles_list[0]):
             try:
                 XnatUtils.upload_folder_to_obj(
@@ -1110,6 +1117,10 @@ def upload_resource(assessor_obj, resource, resource_path):
             except XnatUtilsError as err:
                 print(ERR_MSG % err)
 
+def get_reference_path(resource_path):
+    return resource_path.replace(
+        DAX_SETTINGS.get_results_dir(),
+        DAX_SETTINGS.get_reference_dir())
 
 def upload_snapshots(assessor_obj, resource_path):
     """

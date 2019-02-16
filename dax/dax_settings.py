@@ -620,6 +620,25 @@ class DAX_Settings(object):
         """
         return self.get('dax_manager', 'api_key_dax')
 
+    def get_use_reference(self):
+        """
+        Get use_reference from the cluster
+
+        :return: True or False
+        """
+        _use = self.get('cluster', 'use_reference')
+        if _use or _use.lower().startswith('y') or _use.lower().startswith('t'):
+            return True
+        else:
+            return False
+
+    def get_reference_dir(self):
+        """Get the reference_dir value from the cluster section.
+
+        :return: String of the reference_dir value, None if empty
+        """
+        return self.get('cluster', 'reference_dir')
+
     @staticmethod
     def read_file_and_return_template(filepath):
         """Reads a a file and returns the string as a string Template.
