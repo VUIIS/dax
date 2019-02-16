@@ -2608,15 +2608,15 @@ def upload_folder(directory, project_id=None, subject_id=None, session_id=None,
 
     return status
 
-def upload_reference(reference, resource):
+def upload_reference(reference, assessor_obj, resource):
     """
     Upload path by reference
 
     :param reference: Full path of the directory on xnat server to be uploaded
     :param resource: pyxnat object resource to be uploaded
     """
-    _uri = '{}/files?overwrite=True&label={}&reference={}'.format(
-        _uri, resource.label(), reference)
+    _uri = '{}/out/resources/{}/files?overwrite=True&label={}&reference={}'
+    _uri.format(assessor_obj._uri, resource, resource, reference)
     print(_uri)
     _xnat = resource._intf
     _xnat.put(_uri)

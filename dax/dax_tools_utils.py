@@ -1097,8 +1097,7 @@ def upload_resource(assessor_obj, resource, resource_path):
         elif DAX_SETTINGS.get_use_reference():
             try:
                 ref_path = get_reference_path(resource_path)
-                res_obj = assessor_obj.out_resource(resource)
-                XnatUtils.upload_reference(ref_path, res_obj)
+                XnatUtils.upload_reference(ref_path, assessor_obj, resource)
             except XnatUtilsError as err:
                 print(ERR_MSG % err)
         elif len(rfiles_list) > 1 or os.path.isdir(rfiles_list[0]):
