@@ -1406,33 +1406,31 @@ def upload_results(upload_settings, emailaddress):
             with XnatUtils.get_interface(host=upload_dict['host'],
                                          user=upload_dict['username'],
                                          pwd=upload_dict['password']) as intf:
-                LOGGER.info('===================================================\
-    ================')
+                LOGGER.info('='*50)
                 proj_str = (upload_dict['projects'] if upload_dict['projects']
                             else 'all')
-                LOGGER.info('Connecting to XNAT <%s> to start uploading processes \
-    for projects: %s' % (upload_dict['host'], proj_str))
+                LOGGER.info('Connecting to XNAT <%s>, upload for projects:%s' % 
+                    (upload_dict['host'], proj_str))
                 if not XnatUtils.has_dax_datatypes(intf):
                     msg = 'Error: dax datatypes are not installed on xnat <%s>.'
                     raise DaxUploadError(msg % (upload_dict['host']))
 
                 # 1) Upload the assessor data
                 # For each assessor label that need to be upload :
-                LOGGER.info(' - Uploading results for assessors')
+                LOGGER.info('Uploading results for assessors')
                 if DAX_SETTINGS.get_use_reference():
-                    LOGGER.info(' - using upload by reference, reference dir is:')
-                    LOGGER.info(' - {}'.format(DAX_SETTINGS.get_reference_dir()))
+                    LOGGER.info('using upload by reference, dir is:{}'.format(
+                        DAX_SETTINGS.get_reference_dir()))
 
                 warnings.extend(upload_assessors(intf, upload_dict['projects']))
 
                 # 2) Upload the PBS files
                 # For each file, upload it to the PBS resource
-                LOGGER.info(' - Uploading PBS files ...')
+                LOGGER.info('Uploading PBS files ...')
                 upload_pbs(intf, upload_dict['projects'])
 
                 # 3) Upload the OUTLOG files not uploaded with processes
-                LOGGER.info(' - Checking OUTLOG files to upload them for JOB_FAILED \
-    jobs ...')
+                LOGGER.info('Checking OUTLOG files for JOB_FAILED jobs ...')
                 upload_outlog(intf, upload_dict['projects'])
         except DaxNetrcError as e:
             msg = e.msg
