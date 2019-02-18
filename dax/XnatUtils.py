@@ -2618,7 +2618,10 @@ def upload_reference(reference, assessor_obj, resource):
     _uri = '{}/out/resources/{}/files?overwrite=True&label={}&reference={}'
     _uri = _uri.format(assessor_obj._uri, resource, resource, reference)
     _xnat = assessor_obj._intf
-    _xnat.put(_uri)
+    _resp = _xnat.put(_uri)
+    if (_resp is not None and not _resp.ok):
+        err = 'bad response on put:{}'.format(_resp.content)
+        raise XnatUtilsError(err)
 
 def copy_resource_from_obj(directory, xnat_obj, old_res, new_res):
     """

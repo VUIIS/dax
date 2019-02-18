@@ -1036,7 +1036,11 @@ unable to find XML file: %s'
             # Need to be in a folder to create the resource :
             if os.path.isdir(resource_path):
                 LOGGER.debug('    +uploading %s' % (resource))
-                upload_resource(assessor_obj, resource, resource_path)
+                try:
+                    upload_resource(assessor_obj, resource, resource_path)
+                except Exception as e:
+                    LOGGER.error('failed to upload, skipping assessor:'+resource_path)
+                    return
 
         # after Upload
         if is_diskq_assessor(os.path.basename(assessor_path)):
@@ -1099,7 +1103,7 @@ def upload_resource(assessor_obj, resource, resource_path):
                 ref_path = get_reference_path(resource_path)
                 XnatUtils.upload_reference(ref_path, assessor_obj, resource)
             except XnatUtilsError as err:
-                print(ERR_MSG % err)
+                raise err
         elif len(rfiles_list) > 1 or os.path.isdir(rfiles_list[0]):
             try:
                 XnatUtils.upload_folder_to_obj(
