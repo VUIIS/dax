@@ -626,8 +626,8 @@ class DAX_Settings(object):
 
         :return: True or False
         """
-        _use = self.get('cluster', 'use_reference')
-        if _use or _use.lower().startswith('y') or _use.lower().startswith('t'):
+        _ur = self.get('cluster', 'use_reference')
+        if _ur and (_use.lower().startswith('y') or _ur.lower().startswith('t')):
             return True
         else:
             return False

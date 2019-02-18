@@ -1419,6 +1419,10 @@ def upload_results(upload_settings, emailaddress):
                 # 1) Upload the assessor data
                 # For each assessor label that need to be upload :
                 LOGGER.info(' - Uploading results for assessors')
+                if DAX_SETTINGS.get_use_reference():
+                    LOGGER.info(' - using upload by reference, reference dir is:')
+                    LOGGER.info(' - {}'.format(DAX_SETTINGS.get_reference_dir())
+
                 warnings.extend(upload_assessors(intf, upload_dict['projects']))
 
                 # 2) Upload the PBS files
