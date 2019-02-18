@@ -1039,7 +1039,9 @@ unable to find XML file: %s'
                 try:
                     upload_resource(assessor_obj, resource, resource_path)
                 except Exception as e:
-                    LOGGER.error('failed to upload, skipping assessor:'+resource_path)
+                    _msg = 'failed to upload, skipping assessor:{}:{}'.format(
+                        resource_path, str(e))
+                    LOGGER.error(_msg)
                     return
 
         # after Upload
