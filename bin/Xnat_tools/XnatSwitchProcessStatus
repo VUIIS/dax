@@ -231,7 +231,7 @@ def filter_assessors(xnat,project,args, assessors, has_fs_datatypes=False,
     elif args.init:
         former_status = task.NO_DATA
     elif args.rerundiskq:
-        former_status = None
+        former_status = task.JOB_FAILED
 
     assess = list()
     proctypes = utils.get_option_list(args.proctypes)
@@ -254,52 +254,55 @@ def filter_assessors(xnat,project,args, assessors, has_fs_datatypes=False,
             sessions = utils.get_option_list(args.sessions)
             for session in sessions:
                 assess.append(XnatUtils.filter_list_dicts_regex(assessors, 'session_label', session, args.full_regex))
-        assessors = assess
+        assessors = list_flatten(assess)
 
-        if(args.sessions):
-            assess1 = list()
-            assessor_fin = list()
-            assess_carry_1 = list()
+        assess1 = list()
+        assess_carry_1 = list()
 
-            if proctypes and proctypes != 'all':
+        if (proctypes and proctypes != 'all' ):
+            assess1.append(XnatUtils.filter_list_dicts_regex(
+                    assessors, 'proctype', proctypes, args.full_regex))
 
-                for assessor in assessors:
-                    assess1.append(XnatUtils.filter_list_dicts_regex(
-                        assessor, 'proctype', proctypes, args.full_regex))
-
-                for assess in assess1:
-                    if(len(assess) > 1):
-                        for asse in assess:
-                            assess_carry_1.append(asse)
-                    else:
-                        assess_carry_1.append(assess)
+            for assess in assess1:
+                if(len(assess) > 1):
+                    for asse in assess:
+                        assess_carry_1.append(asse)
+                else:
+                    assess_carry_1.append(assess)
 
             assess_carry_1 = list_flatten(assess_carry_1)
             assessors = assess_carry_1
 
-            if former_status and former_status != 'all':
-                if args.qcstatus:
-                    field_name = 'qcstatus'
-                else:
-                    field_name = 'procstatus'
-                assessors = XnatUtils.filter_list_dicts_regex(
-                    assess_carry_1, field_name, former_status, args.full_regex)
-                assessors = list_flatten(assessors)
-            return assessors
+        if ((former_status and former_status != 'all') or args.rerundiskq):
+            if args.rerundiskq:
+                former_status='JOB_FAILED'
+                field_name='procstatus'
+            elif args.qcstatus:
+                field_name = 'qcstatus'
+            else:
+                field_name = 'procstatus'
+            assessors = XnatUtils.filter_list_dicts_regex(
+                assessors, field_name, former_status, args.full_regex)
+            assessors = list_flatten(assessors)
+
 
     if not args.sessions:
-        if proctypes and proctypes != 'all':
+        if ((proctypes and proctypes != 'all' )or args.rerundiskq):
+            if args.rerundiskq:
+                proctypes = 'NEED_INPUTS'
             assessors = XnatUtils.filter_list_dicts_regex(
                 assessors, 'proctype', proctypes, args.full_regex)
 
-        if former_status and former_status != 'all':
+        if ((former_status and former_status != 'all') or args.rerundiskq):
+            if args.rerundiskq:
+                former_status='JOB_FAILED'
             if args.qcstatus:
                 field_name = 'qcstatus'
             else:
                 field_name = 'procstatus'
             assessors = XnatUtils.filter_list_dicts_regex(
                 assessors, field_name, former_status, args.full_regex)
-        return assessors
+    return assessors
 
 def list_flatten(l, assessor=None):
     """
