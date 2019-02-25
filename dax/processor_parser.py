@@ -128,6 +128,7 @@ class ProcessorParser:
         self.prior_session_count =\
             ProcessorParser.parse_inputs(yaml_source)
 
+        self.match_filters = ProcessorParser.parse_match_filters(yaml_source)
         self.variables_to_inputs = ProcessorParser.parse_variables(self.inputs)
 
         self.csess = None
@@ -151,6 +152,9 @@ class ProcessorParser:
         self.artefacts_by_input = None
         self.parameter_matrix = None
         self.assessor_parameter_map = None
+
+        # TODO: determine if we really need to load other sessions based on 
+        # whether we are actually referring to them anywhere
 
         # build a list of sessions starting from the current session backwards
         intf = csess.intf
@@ -185,6 +189,12 @@ class ProcessorParser:
                 self.iteration_map,
                 artefacts,
                 artefacts_by_input)
+
+
+        parameter_matrix = ProcessorParser.filter_matrix(
+            parameter_matrix,
+            self.match_filters,
+            artefacts)
 
         assessor_parameter_map = \
             ProcessorParser.compare_to_existing(ordered_sessions,
@@ -647,6 +657,24 @@ class ProcessorParser:
         return (inputs, inputs_by_type, iteration_sources, iteration_map,
                 prior_session_count)
 
+    @staticmethod
+    def parse_match_filters(yaml_source):
+        match_list = []
+        try:
+            _filters = yaml_source['inputs']['xnat']['filters']
+        except KeyError as err:
+            print('error parsing filters:' + str(err))       
+            return []
+
+        for f in _filters:
+            _type = f['type']
+            if _type == 'match':
+                _inputs = f['inputs'].split(',')
+                match_list.append(_inputs)
+            else:
+                LOGGER.error('invalid filter type:{}'.format(_type))
+
+        return match_list
 
     @staticmethod
     def parse_variables(inputs):
@@ -915,3 +943,37 @@ class ProcessorParser:
                     assessors[pi].append(casr)
 
         return zip(copy.deepcopy(parameter_matrix), assessors)
+
+    @staticmethod
+    def filter_matrix(parameter_matrix, match_filters, artefacts):
+        filtered_matrix = []
+        for _p in parameter_matrix:
+            all_match = True
+            for _f in match_filters:
+                if '/' not in _f[0]:
+                    first = _p[_f[0]]
+                else:
+                    (_parent_name, _child_name) = _f[0].split('/')
+                    _parent_val = _p[_parent_name]
+                    _parent_art = artefacts[_parent_val]
+                    _parent_inputs = _parent_art.entity.get_inputs()
+                    first = _parent_inputs[_child_name]
+
+                for _i in _f[1:]:
+                    if '/' not in _i:
+                        _val = _p[_i]
+                    else:
+                        (_parent_name, _child_name) = _i.split('/')
+                        _parent_val = _p[_parent_name]
+                        _parent_art = artefacts[_parent_val]
+                        _parent_inputs = _parent_art.entity.get_inputs()
+                        _val = _parent_inputs[_child_name]
+
+                    if _val != first:
+                        all_match = False
+                        break
+
+            if all_match:
+                filtered_matrix.append(_p)
+
+        return filtered_matrix
