@@ -944,36 +944,49 @@ class ProcessorParser:
 
         return zip(copy.deepcopy(parameter_matrix), assessors)
 
+
+    @staticmethod
+    def get_input_value(input_name, parameter, artefacts):
+        if '/' not in input_name:
+            # Matching on parent so keep this value
+            _val = parameter[input_name]
+        else:
+            # Match is on a parent so parse out the parent/child
+            (_parent_name, _child_name) = input_name.split('/')
+            _parent_val = parameter[_parent_name]
+            _parent_art = artefacts[_parent_val]
+
+            # Get the inputs field from the child
+            _parent_inputs = _parent_art.entity.get_inputs()
+            _val = _parent_inputs[_child_name]
+
+        return _val
+
+
     @staticmethod
     def filter_matrix(parameter_matrix, match_filters, artefacts):
         filtered_matrix = []
-        for _p in parameter_matrix:
+        for cur_param in parameter_matrix:
+            # Reset matching for this param set
             all_match = True
-            for _f in match_filters:
-                if '/' not in _f[0]:
-                    first = _p[_f[0]]
-                else:
-                    (_parent_name, _child_name) = _f[0].split('/')
-                    _parent_val = _p[_parent_name]
-                    _parent_art = artefacts[_parent_val]
-                    _parent_inputs = _parent_art.entity.get_inputs()
-                    first = _parent_inputs[_child_name]
 
-                for _i in _f[1:]:
-                    if '/' not in _i:
-                        _val = _p[_i]
-                    else:
-                        (_parent_name, _child_name) = _i.split('/')
-                        _parent_val = _p[_parent_name]
-                        _parent_art = artefacts[_parent_val]
-                        _parent_inputs = _parent_art.entity.get_inputs()
-                        _val = _parent_inputs[_child_name]
+            for cur_filter in match_filters:
+                # Get the first value to compare with others
+                first_val = ProcessorParser.get_input_value(
+                    cur_filter[0], cur_param, artefacts)
 
-                    if _val != first:
+                # Compare other values with first value
+                for cur_input in cur_filter[1:]:
+                    cur_val = ProcessorParser.get_input_value(
+                        cur_input, cur_param, artefacts)
+
+                    if cur_val != first_val:
+                        # A single non-match breaks the whole thing
                         all_match = False
                         break
 
             if all_match:
-                filtered_matrix.append(_p)
+                # Keep this param set if everything matches
+                filtered_matrix.append(cur_param)
 
         return filtered_matrix
