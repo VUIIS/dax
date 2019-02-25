@@ -657,24 +657,28 @@ class ProcessorParser:
         return (inputs, inputs_by_type, iteration_sources, iteration_map,
                 prior_session_count)
 
+
     @staticmethod
     def parse_match_filters(yaml_source):
         match_list = []
         try:
             _filters = yaml_source['inputs']['xnat']['filters']
         except KeyError as err:
-            print('error parsing filters:' + str(err))       
+            LOGGER.error('error parsing filters:' + str(err))
             return []
 
+        # Parse out filters, currently only filters of type match are supported
         for f in _filters:
             _type = f['type']
             if _type == 'match':
+                # Split the comma-separated list of inputs
                 _inputs = f['inputs'].split(',')
                 match_list.append(_inputs)
             else:
                 LOGGER.error('invalid filter type:{}'.format(_type))
 
         return match_list
+
 
     @staticmethod
     def parse_variables(inputs):
