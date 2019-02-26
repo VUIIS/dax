@@ -1024,7 +1024,7 @@ in session %s'
                 LOGGER.critical(err2 % (E.__class__, E.message))
                 LOGGER.critical(traceback.format_exc())
 
-        LOGGER.debug('\n')
+        #LOGGER.debug('\n')
 
     def module_afterrun(self, xnat, project_id):
         """

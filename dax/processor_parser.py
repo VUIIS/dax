@@ -664,7 +664,6 @@ class ProcessorParser:
         try:
             _filters = yaml_source['inputs']['xnat']['filters']
         except KeyError as err:
-            LOGGER.error('error parsing filters:' + str(err))
             return []
 
         # Parse out filters, currently only filters of type match are supported
@@ -710,10 +709,10 @@ class ProcessorParser:
             parse(csess.scans(), artefacts)
             parse(csess.assessors(), artefacts)
 
-            LOGGER.info('inputs by assessor:')
-            for cassr in csess.assessors():
-                LOGGER.info(cassr.label())
-                LOGGER.info(str(cassr.get_inputs()))
+            #LOGGER.info('inputs by assessor:')
+            #for cassr in csess.assessors():
+            #    LOGGER.info(cassr.label())
+            #    LOGGER.info(str(cassr.get_inputs()))
         return artefacts
 
 
