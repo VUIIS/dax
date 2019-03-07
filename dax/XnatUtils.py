@@ -1510,7 +1510,7 @@ def get_resource_lastdate_modified(intf, resource_obj):
     # Get the XML for resource
     xmlstr = intf._exec(res_xml_uri, 'GET')
     # Parse out the times
-    root = etree.fromstring(xmlstr)
+    root = etree.fromstring(xmlstr,parser=etree.XMLParser(huge_tree=True))
     create_times = root.xpath(created_xpath, namespaces=root.nsmap)
     if not create_times:
         create_times = root.xpath(created_dcm_xpath, namespaces=root.nsmap)
