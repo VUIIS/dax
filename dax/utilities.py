@@ -1,3 +1,4 @@
+import itertools as it
 import json
 import HTMLParser
 
@@ -22,3 +23,27 @@ def parse_json_pairs(pairs):
             v = v.encode('utf-8')
         sink_pairs.append((k, v))
     return dict(sink_pairs)
+
+
+def groupby_to_dict(source, group_pred):
+    results = dict()
+
+    for k, v in it.groupby(source, group_pred):
+        d = results.get(k, list())
+        d.extend(list(v))
+        results[k] = d
+
+    return results
+
+
+def groupby_groupby_to_dict(source, outer_pred, inner_pred):
+    return {
+        k: groupby_to_dict(v, inner_pred)
+        for k, v in groupby_to_dict(source, outer_pred).items()
+    }
+
+def find_with_pred(items, pred):
+    for i in items:
+        if pred(i):
+            return i
+    return None

@@ -1409,6 +1409,7 @@ def list_project_assessors(intf, projectid):
                     anew['last_modified'] = sess_id2mod[asse['session_ID']][6]
                     anew['last_updated'] = sess_id2mod[asse['session_ID']][7]
                     anew['resources'] = [asse['%s/out/file/label' % pfix]]
+                    anew['inputs'] = asse.get('%s/inputs' % pfix)
                     assessors_dict[key] = anew
 
     if has_genproc_datatypes(intf):
@@ -3063,6 +3064,9 @@ class CachedImageSession(object):
         self.subject = subj
         self.session = sess
         self.intf = intf  # cache for later usage
+        self.full_object_ = experiment
+        self.scans_ = None
+        self.assessors_ = None
 
     def entity_type(self):
         return 'session'
@@ -3072,6 +3076,9 @@ class CachedImageSession(object):
                                               self.subject,
                                               self.session)
         self.sess_element = ET.fromstring(experiment.get())
+        self.full_object_ = experiment
+        self.scans_ = None
+        self.assessors_ = None
 
     def label(self):
         """
@@ -3147,13 +3154,16 @@ class CachedImageSession(object):
         :return: List of CachedImageScan objects for the session.
 
         """
-        scan_list = []
-        scan_elements = self.sess_element.find('xnat:scans', NS)
-        if scan_elements:
-            for scan in scan_elements:
-                scan_list.append(CachedImageScan(self.intf, scan, self))
+        if self.scans_ is None:
+            scan_list = []
+            scan_elements = self.sess_element.find('xnat:scans', NS)
+            if scan_elements:
+                for scan in scan_elements:
+                    scan_list.append(CachedImageScan(self.intf, scan, self))
 
-        return scan_list
+            self.scans_ = scan_list
+
+        return self.scans_
 
     def assessors(self, select=AssessorSelect.all_inputs):
         """
@@ -3165,20 +3175,23 @@ class CachedImageSession(object):
         if not self.AssessorSelect.valid(select):
             raise ValueError("'select' must be a valid AssessorSelect.value")
 
+        if self.assessors_ is None:
 
-        assr_list = []
+            assr_list = []
 
-        assr_elements = self.sess_element.find('xnat:assessors', NS)
-        if assr_elements:
-            for assr in assr_elements:
-                assr_list.append(CachedImageAssessor(self.intf, assr, self))
+            assr_elements = self.sess_element.find('xnat:assessors', NS)
+            if assr_elements:
+                for assr in assr_elements:
+                    assr_list.append(CachedImageAssessor(self.intf, assr, self))
 
-            if select == CachedImageSession.AssessorSelect.with_inputs:
-                assr_list = assr_list.filter(
-                    parse_assessor_inputs(self.get("proc:inputs") is not None)
-                )
+                if select == CachedImageSession.AssessorSelect.with_inputs:
+                    assr_list = assr_list.filter(
+                        parse_assessor_inputs(self.get("proc:inputs") is not None)
+                    )
 
-        return assr_list
+            self.assessors_ = assr_list
+
+        return self.assessors_
 
     def info(self):
         """
@@ -3244,7 +3257,9 @@ class CachedImageSession(object):
         :return: pyxnat Session object
 
         """
-        return self.intf.select_experiment(self.project, self.subject, self.session)
+        if self.full_object_ is None:
+            self.full_object_ = self.intf.select_experiment(self.project, self.subject, self.session)
+        return self.full_object_
 
 
     def creation_timestamp(self):
@@ -3273,6 +3288,7 @@ class CachedImageScan(object):
         self.scan_element = scan_element
         self.scan_label = self.label()
         self.type_ = self.get('type')
+        self.full_object_ = None
 
     def entity_type(self):
         return 'scan'
@@ -3416,11 +3432,13 @@ class CachedImageScan(object):
         return [res.info() for res in self.resources()]
 
     def full_object(self):
-        info = self.info()
-        return self.intf.select_scan(info['project_id'],
-                                     info['subject_id'],
-                                     info['session_id'],
-                                     info['scan_id'])
+        if self.full_object_ is None:
+            info = self.info()
+            self.full_object_ = self.intf.select_scan(info['project_id'],
+                                                      info['subject_id'],
+                                                      info['session_id'],
+                                                      info['scan_id'])
+        return self.full_object_
 
 
 class CachedImageAssessor(object):
@@ -3440,6 +3458,7 @@ class CachedImageAssessor(object):
         self.assr_parent = parent
         self.assr_element = assr_element
         self.proctype = None
+        self.full_object_ = None
 
     def entity_type(self):
         return 'assessor'
@@ -3653,11 +3672,13 @@ class CachedImageAssessor(object):
         return self.get_out_resources()
 
     def full_object(self):
-        info = self.info()
-        return self.intf.select_assessor(info['project_id'],
-                                         info['subject_id'],
-                                         info['session_id'],
-                                         info['assessor_id'])
+        if self.full_object_ is None:
+            info = self.info()
+            self.full_object_ = self.intf.select_assessor(info['project_id'],
+                                                          info['subject_id'],
+                                                          info['session_id'],
+                                                          info['assessor_id'])
+        return self.full_object_
 
 
 class CachedResource(object):

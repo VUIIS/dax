@@ -131,6 +131,7 @@ class ProcessorParser:
         self.variables_to_inputs = ProcessorParser.parse_variables(self.inputs)
 
         self.csess = None
+        self.sessions_ = None
         self.artefacts = None
         self.artefacts_by_input = None
         self.parameter_matrix = None
@@ -145,8 +146,9 @@ class ProcessorParser:
             yaml_source['inputs']['default']['spider_path'])[0]
 
 
-    def parse_session(self, csess):
+    def parse_session(self, csess, sessions):
         self.csess = None
+        self.sessions_ = sessions
         self.artefacts = None
         self.artefacts_by_input = None
         self.parameter_matrix = None
@@ -155,26 +157,26 @@ class ProcessorParser:
         # build a list of sessions starting from the current session backwards
         intf = csess.intf
         subj = intf.select_subject(csess.project_id(), csess.subject_id())
-        x = [XnatUtils.CachedImageSession(intf,
-                                          csess.project_id(),
-                                          csess.subject_id(),
-                                          s.label())
-             for s in subj.experiments()]
-        x = [TimestampSession(s.creation_timestamp(), s) for s in x]
-        ordered_sessions = map(lambda y: y.session,
-                               sorted(x,
-                                      key=lambda v: v.timestamp,
-                                      reverse=True))
+        # x = [XnatUtils.CachedImageSession(intf,
+        #                                   csess.project_id(),
+        #                                   csess.subject_id(),
+        #                                   s.label())
+        #      for s in subj.experiments()]
+        # x = [TimestampSession(s.creation_timestamp(), s) for s in x]
+        # ordered_sessions = map(lambda y: y.session,
+        #                        sorted(x,
+        #                               key=lambda v: v.timestamp,
+        #                               reverse=True))
+        #
+        # ordered_sessions =\
+        #     filter(
+        #         lambda y: y.creation_timestamp() <= csess.creation_timestamp(),
+        #         ordered_sessions)
 
-        ordered_sessions =\
-            filter(
-                lambda y: y.creation_timestamp() <= csess.creation_timestamp(),
-                ordered_sessions)
-
-        artefacts = ProcessorParser.parse_artefacts(ordered_sessions)
+        artefacts = ProcessorParser.parse_artefacts(sessions)
 
         artefacts_by_input = \
-            ProcessorParser.map_artefacts_to_inputs(ordered_sessions,
+            ProcessorParser.map_artefacts_to_inputs(sessions,
                                                     self.inputs,
                                                     self.inputs_by_type)
 
@@ -187,7 +189,7 @@ class ProcessorParser:
                 artefacts_by_input)
 
         assessor_parameter_map = \
-            ProcessorParser.compare_to_existing(ordered_sessions,
+            ProcessorParser.compare_to_existing(sessions,
                                                 self.proctype,
                                                 parameter_matrix)
 
@@ -848,7 +850,8 @@ class ProcessorParser:
                             for fa in from_artefacts:
                                 a = artefacts[fa]
                                 from_inputs = a.entity.get_inputs()
-                                mapped_input_vector.append(from_inputs[v2])
+                                if from_inputs is not None:
+                                    mapped_input_vector.append(from_inputs[v2])
                            
                             combined_input_vector.append(mapped_input_vector)
 

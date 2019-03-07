@@ -649,8 +649,8 @@ defined by yaml file {}'
         return self.parser.assessor_parameter_map
 
 
-    def parse_session(self, csess):
-        self.parser.parse_session(csess)
+    def parse_session(self, csess, sessions):
+        self.parser.parse_session(csess, sessions)
 
 
     def should_run(self, obj_dict):
