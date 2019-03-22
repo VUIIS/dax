@@ -534,7 +534,7 @@ cluster queue"
         # scan_procs = []
         # TODO: BenM/assessor_of_assessor/uncomment this when ready and remove
         # above calls
-        session_procs, scan_procs, auto_procs =\
+        scan_procs, session_procs, auto_procs =\
             processors.processors_by_type(proj_procs)
         auto_procs = ProcessorGraph.order_processors(auto_procs, LOGGER)
 
