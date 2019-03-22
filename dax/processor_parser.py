@@ -128,6 +128,7 @@ class ProcessorParser:
         self.prior_session_count =\
             ProcessorParser.parse_inputs(yaml_source)
 
+        self.match_filters = ProcessorParser.parse_match_filters(yaml_source)
         self.variables_to_inputs = ProcessorParser.parse_variables(self.inputs)
 
         self.csess = None
@@ -153,6 +154,9 @@ class ProcessorParser:
         self.artefacts_by_input = None
         self.parameter_matrix = None
         self.assessor_parameter_map = None
+
+        # TODO: determine if we really need to load other sessions based on 
+        # whether we are actually referring to them anywhere
 
         # build a list of sessions starting from the current session backwards
         intf = csess.intf
@@ -187,6 +191,12 @@ class ProcessorParser:
                 self.iteration_map,
                 artefacts,
                 artefacts_by_input)
+
+
+        parameter_matrix = ProcessorParser.filter_matrix(
+            parameter_matrix,
+            self.match_filters,
+            artefacts)
 
         assessor_parameter_map = \
             ProcessorParser.compare_to_existing(sessions,
@@ -651,6 +661,27 @@ class ProcessorParser:
 
 
     @staticmethod
+    def parse_match_filters(yaml_source):
+        match_list = []
+        try:
+            _filters = yaml_source['inputs']['xnat']['filters']
+        except KeyError as err:
+            return []
+
+        # Parse out filters, currently only filters of type match are supported
+        for f in _filters:
+            _type = f['type']
+            if _type == 'match':
+                # Split the comma-separated list of inputs
+                _inputs = f['inputs'].split(',')
+                match_list.append(_inputs)
+            else:
+                LOGGER.error('invalid filter type:{}'.format(_type))
+
+        return match_list
+
+
+    @staticmethod
     def parse_variables(inputs):
         variables_to_inputs = {}
         for ik, iv in inputs.iteritems():
@@ -680,10 +711,10 @@ class ProcessorParser:
             parse(csess.scans(), artefacts)
             parse(csess.assessors(), artefacts)
 
-            LOGGER.info('inputs by assessor:')
-            for cassr in csess.assessors():
-                LOGGER.info(cassr.label())
-                LOGGER.info(str(cassr.get_inputs()))
+            #LOGGER.info('inputs by assessor:')
+            #for cassr in csess.assessors():
+            #    LOGGER.info(cassr.label())
+            #    LOGGER.info(str(cassr.get_inputs()))
         return artefacts
 
 
@@ -918,3 +949,50 @@ class ProcessorParser:
                     assessors[pi].append(casr)
 
         return zip(copy.deepcopy(parameter_matrix), assessors)
+
+
+    @staticmethod
+    def get_input_value(input_name, parameter, artefacts):
+        if '/' not in input_name:
+            # Matching on parent so keep this value
+            _val = parameter[input_name]
+        else:
+            # Match is on a parent so parse out the parent/child
+            (_parent_name, _child_name) = input_name.split('/')
+            _parent_val = parameter[_parent_name]
+            _parent_art = artefacts[_parent_val]
+
+            # Get the inputs field from the child
+            _parent_inputs = _parent_art.entity.get_inputs()
+            _val = _parent_inputs[_child_name]
+
+        return _val
+
+
+    @staticmethod
+    def filter_matrix(parameter_matrix, match_filters, artefacts):
+        filtered_matrix = []
+        for cur_param in parameter_matrix:
+            # Reset matching for this param set
+            all_match = True
+
+            for cur_filter in match_filters:
+                # Get the first value to compare with others
+                first_val = ProcessorParser.get_input_value(
+                    cur_filter[0], cur_param, artefacts)
+
+                # Compare other values with first value
+                for cur_input in cur_filter[1:]:
+                    cur_val = ProcessorParser.get_input_value(
+                        cur_input, cur_param, artefacts)
+
+                    if cur_val != first_val:
+                        # A single non-match breaks the whole thing
+                        all_match = False
+                        break
+
+            if all_match:
+                # Keep this param set if everything matches
+                filtered_matrix.append(cur_param)
+
+        return filtered_matrix

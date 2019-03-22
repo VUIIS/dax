@@ -954,6 +954,7 @@ in session %s'
             if not sess_proc.should_run(sess_info):
                 continue
 
+            # TODO: use mod time to decide if we need to reload
             csess.reload()
 
             # return a mapping between the assessor input sets and existing
@@ -1072,7 +1073,7 @@ in session %s'
                 LOGGER.critical(err2 % (E.__class__, E.message))
                 LOGGER.critical(traceback.format_exc())
 
-        LOGGER.debug('\n')
+        #LOGGER.debug('\n')
 
     def module_afterrun(self, xnat, project_id):
         """
