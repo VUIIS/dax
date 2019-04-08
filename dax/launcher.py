@@ -525,15 +525,6 @@ cluster queue"
         proj_mods = self.project_modules_dict.get(project_id, None)
         proj_procs = self.project_process_dict.get(project_id, None)
         exp_mods, scan_mods = modules.modules_by_type(proj_mods)
-        # TODO: BenM/assessor_of_assessor/get old scan/session processors and
-        # a separate list of autoprocessors. Autoprocessors get their own code
-        # path and parameter for the call to build_session. Probably need to
-        # move order processors call into processors_by_type
-        # exp_procs, scan_procs = processors.processors_by_type(proj_procs)
-        # exp_procs = ProcessorGraph.order_processors(proj_procs, LOGGER)
-        # scan_procs = []
-        # TODO: BenM/assessor_of_assessor/uncomment this when ready and remove
-        # above calls
         scan_procs, session_procs, auto_procs =\
             processors.processors_by_type(proj_procs)
         auto_procs = ProcessorGraph.order_processors(auto_procs, LOGGER)
@@ -547,21 +538,13 @@ cluster queue"
         # get the list of processors for this project
         processor_types = set(map(lambda x: x.name, session_procs + scan_procs + auto_procs))
 
-
         sessions_by_subject = groupby_to_dict(
             self.get_sessions_list(intf, project_id, sessions_local),
             lambda x: x['subject_id'])
 
         # check to see if there are processor types that are new to this project
         assessors = XnatUtils.list_project_assessors(intf, project_id)
-        has_new = self.new_has_new_processors(
-            intf, assessors, processor_types)
-        assessors_by_subject = groupby_groupby_to_dict(
-            assessors, lambda x: x['subject_id'], lambda y: y['session_id'])
-
-        scans = intf.get_project_scans(project_id)
-        scans_by_subject = groupby_groupby_to_dict(
-            scans, lambda x: x['subject_id'], lambda y: y['session_id'])
+        has_new = self.has_new_processors(assessors, processor_types)
 
         for subject_id, sessions in sessions_by_subject.items():
             # Get the cached session objects for this subject
@@ -615,12 +598,6 @@ cluster queue"
 
             # build a full list of sessions for the subject: they may be needed even if not all sessions are getting
             # updated
-            # cached_sessions = dict()
-            # for sess_info in sessions:
-            #     cached_sessions[sess_info['ID']] =\
-            #         XnatUtils.CachedImageSession(
-            #             intf, sess_info['project_id'],
-            #             sess_info['subject_id'], sess_info['session_id'])
             cached_sessions = [XnatUtils.CachedImageSession(
                 intf, x['project_label'], x['subject_label'], x['session_label']) for x in sessions]
             sorted(cached_sessions, key=lambda s: s.creation_timestamp_)
@@ -635,7 +612,6 @@ cluster queue"
                 try:
                     # TODO: BenM - ensure that this code is robust to subjects
                     # without sessions and sessions without assessors / scans
-
                     self.build_session(
                         intf, sess_info, session_procs, scan_procs, auto_procs,
                         exp_mods, scan_mods,
@@ -693,10 +669,6 @@ cluster queue"
             LOGGER.critical('build_session must be provided with a list of cached sessions')
             return
 
-        # csess = XnatUtils.CachedImageSession(intf,
-        #                                      sess_info['project_label'],
-        #                                      sess_info['subject_label'],
-        #                                      sess_info['session_label'])
         csess = find_with_pred(sessions, lambda s: s.session_id())
 
         # Modules
@@ -1434,33 +1406,19 @@ The project is not part of the settings."""
         return True
 
     @staticmethod
-    def new_has_new_processors(xnat, assessors, proc_types):
+    def has_new_processors(assessors, proc_types):
+        """
+        Method to check whether, given a list of assessors, there are processor
+        types that are new relative to the list of assessors (the proc type
+        doesn't appear in the set of assessor proc types).
+        :param assessors: a list of assessors, typically from a session or
+        subject
+        :param proc_types: a set of processor types to check against assessors
+        :return: Boolean indicating whether the proc_types set has proc types
+        that aren't in the assessors list
+        """
         assr_types = set(x['proctype'] for x in assessors)
         return proc_types.difference(assr_types) > 0
-
-    @staticmethod
-    def has_new_processors(xnat, project_id, proc_name_set):
-        """
-        Check if has new processors
-
-        :param xnat: pyxnat.Interface object
-        :param project_id: project ID on XNAT
-        :param sess_proc_list: list of processors running on a session
-        :param scan_proc_list: list of processors running on a scan
-        :return: True if has new processors, False otherwise
-        """
-        # Get unique list of assessors already in XNAT
-        assr_list = XnatUtils.list_project_assessors(xnat, project_id)
-        assr_type_set = set([x['proctype'] for x in assr_list])
-
-        # # Get unique list of processors prescribed for project
-        # proc_name_set = set([x.name for x in proc_list])
-
-        # Get list of processors that don't have assessors in XNAT yet
-        diff_list = list(proc_name_set.difference(assr_type_set))
-
-        # Are there any?
-        return len(diff_list) > 0
 
 
 # TODO: BenM/assessor_of_assessor/check path.txt to get the project_id

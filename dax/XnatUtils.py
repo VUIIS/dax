@@ -3079,6 +3079,7 @@ class CachedImageSession(object):
         self.session = sess
         self.intf = intf  # cache for later usage
         self.full_object_ = experiment
+        self.sess_info_ = None
         self.scans_ = None
         self.assessors_ = None
 
@@ -3091,6 +3092,7 @@ class CachedImageSession(object):
                                               self.session)
         self.sess_element = ET.fromstring(experiment.get())
         self.full_object_ = experiment
+        self.sess_info_ = None
         self.scans_ = None
         self.assessors_ = None
 
@@ -3214,27 +3216,30 @@ class CachedImageSession(object):
         :return: Dictionary of variables
 
         """
-        sess_info = {}
+        if self.sess_info_ is None:
+            sess_info = dict()
 
-        sess_info['ID'] = self.get('ID')
-        sess_info['label'] = self.get('label')
-        sess_info['note'] = self.get('xnat:note')
-        sess_info['session_type'] = self.get('session_type')
-        sess_info['project_id'] = self.project
-        sess_info['original'] = self.get('original')
-        sess_info['modality'] = self.get('modality')
-        sess_info['UID'] = self.get('UID')
-        sess_info['subject_id'] = self.get('xnat:subject_ID')
-        sess_info['subject_label'] = self.subject
-        sess_info['project_label'] = sess_info['project_id']
-        sess_info['project'] = sess_info['project_id']
-        sess_info['subject_ID'] = self.get('xnat:subject_ID')
-        sess_info['URI'] = '/data/experiments/%s' % sess_info['ID']
-        sess_info['session_label'] = sess_info['label']
-        sess_info['last_updated'] = sess_info['original']
-        sess_info['type'] = sess_info['modality']
+            sess_info['ID'] = self.get('ID')
+            sess_info['label'] = self.get('label')
+            sess_info['note'] = self.get('xnat:note')
+            sess_info['session_type'] = self.get('session_type')
+            sess_info['project_id'] = self.project
+            sess_info['original'] = self.get('original')
+            sess_info['modality'] = self.get('modality')
+            sess_info['UID'] = self.get('UID')
+            sess_info['subject_id'] = self.get('xnat:subject_ID')
+            sess_info['subject_label'] = self.subject
+            sess_info['project_label'] = sess_info['project_id']
+            sess_info['project'] = sess_info['project_id']
+            sess_info['subject_ID'] = self.get('xnat:subject_ID')
+            sess_info['URI'] = '/data/experiments/%s' % sess_info['ID']
+            sess_info['session_label'] = sess_info['label']
+            sess_info['last_updated'] = sess_info['original']
+            sess_info['type'] = sess_info['modality']
 
-        return sess_info
+            self.sess_info_ = sess_info
+
+        return self.sess_info_
 
     def resources(self):
         """
@@ -3303,6 +3308,7 @@ class CachedImageScan(object):
         self.scan_label = self.label()
         self.type_ = self.get('type')
         self.full_object_ = None
+        self.scan_info_ = None
 
     def entity_type(self):
         return 'scan'
@@ -3383,32 +3389,35 @@ class CachedImageScan(object):
         :return: Dictionary of infomation about the scan.
 
         """
-        scan_info = {}
+        if self.scan_info_ is None:
+            scan_info = dict()
 
-        scan_info['ID'] = self.get('ID')
-        scan_info['label'] = self.get('ID')
-        scan_info['quality'] = self.get('xnat:quality')
-        scan_info['frames'] = self.get('xnat:frames')
-        scan_info['note'] = self.get('xnat:note')
-        scan_info['type'] = self.get('type')
-        scan_info['series_description'] = self.get('xnat:series_description')
-        scan_info['project_id'] = self.parent().project
-        scan_info['subject_id'] = self.parent().get('xnat:subject_ID')
-        scan_info['subject_label'] = self.parent().subject
+            scan_info['ID'] = self.get('ID')
+            scan_info['label'] = self.get('ID')
+            scan_info['quality'] = self.get('xnat:quality')
+            scan_info['frames'] = self.get('xnat:frames')
+            scan_info['note'] = self.get('xnat:note')
+            scan_info['type'] = self.get('type')
+            scan_info['series_description'] = self.get('xnat:series_description')
+            scan_info['project_id'] = self.parent().project
+            scan_info['subject_id'] = self.parent().get('xnat:subject_ID')
+            scan_info['subject_label'] = self.parent().subject
 
-        scan_info['scan_id'] = scan_info['ID']
-        scan_info['scan_label'] = scan_info['label']
-        scan_info['scan_quality'] = scan_info['quality']
-        scan_info['scan_note'] = scan_info['note']
-        scan_info['scan_type'] = scan_info['type']
-        scan_info['scan_frames'] = scan_info['frames']
-        scan_info['scan_description'] = scan_info['series_description']
+            scan_info['scan_id'] = scan_info['ID']
+            scan_info['scan_label'] = scan_info['label']
+            scan_info['scan_quality'] = scan_info['quality']
+            scan_info['scan_note'] = scan_info['note']
+            scan_info['scan_type'] = scan_info['type']
+            scan_info['scan_frames'] = scan_info['frames']
+            scan_info['scan_description'] = scan_info['series_description']
 
-        scan_info['session_id'] = self.parent().get('ID')
-        scan_info['session_label'] = self.parent().get('label')
-        scan_info['project_label'] = scan_info['project_id']
+            scan_info['session_id'] = self.parent().get('ID')
+            scan_info['session_label'] = self.parent().get('label')
+            scan_info['project_label'] = scan_info['project_id']
 
-        return scan_info
+            self.scan_info_ = scan_info
+
+        return self.scan_info_
 
     def type(self):
         return self.info()['type']
@@ -3473,6 +3482,7 @@ class CachedImageAssessor(object):
         self.assr_element = assr_element
         self.proctype = None
         self.full_object_ = None
+        self.assr_info_ = None
 
     def entity_type(self):
         return 'assessor'
@@ -3566,50 +3576,53 @@ class CachedImageAssessor(object):
         :return: None
 
         """
-        assr_info = {}
+        if self.assr_info_ is None:
+            assr_info = dict()
 
-        assr_info['inputs'] = parse_assessor_inputs(self.get('proc:inputs'))
-        assr_info['ID'] = self.get('ID')
-        assr_info['label'] = self.get('label')
-        assr_info['assessor_id'] = assr_info['ID']
-        assr_info['assessor_label'] = assr_info['label']
-        assr_info['project_id'] = self.get('project')
-        assr_info['project_label'] = assr_info['project_id']
-        assr_info['subject_id'] = self.parent().get('xnat:subject_ID')
-        assr_info['subject_label'] = self.parent().subject
-        assr_info['session_id'] = self.parent().get('ID')
-        assr_info['session_label'] = self.parent().get('label')
-        xmltype = '{http://www.w3.org/2001/XMLSchema-instance}type'
-        assr_info['xsiType'] = self.get(xmltype).lower()
+            assr_info['inputs'] = parse_assessor_inputs(self.get('proc:inputs'))
+            assr_info['ID'] = self.get('ID')
+            assr_info['label'] = self.get('label')
+            assr_info['assessor_id'] = assr_info['ID']
+            assr_info['assessor_label'] = assr_info['label']
+            assr_info['project_id'] = self.get('project')
+            assr_info['project_label'] = assr_info['project_id']
+            assr_info['subject_id'] = self.parent().get('xnat:subject_ID')
+            assr_info['subject_label'] = self.parent().subject
+            assr_info['session_id'] = self.parent().get('ID')
+            assr_info['session_label'] = self.parent().get('label')
+            xmltype = '{http://www.w3.org/2001/XMLSchema-instance}type'
+            assr_info['xsiType'] = self.get(xmltype).lower()
 
-        if assr_info['xsiType'].lower() == DEFAULT_FS_DATATYPE.lower():
-            # FreeSurfer
-            assr_info['procstatus'] = self.get('fs:procstatus')
-            assr_info['qcstatus'] = self.get('xnat:validation/status')
-            assr_info['version'] = self.get('fs:procversion')
-            assr_info['jobid'] = self.get('fs:jobid')
-            assr_info['jobstartdate'] = self.get('fs:jobstartdate')
-            assr_info['memused'] = self.get('fs:memused')
-            assr_info['walltimeused'] = self.get('fs:walltimeused')
-            assr_info['jobnode'] = self.get('fs:jobnode')
-            assr_info['proctype'] = 'FreeSurfer'
+            if assr_info['xsiType'].lower() == DEFAULT_FS_DATATYPE.lower():
+                # FreeSurfer
+                assr_info['procstatus'] = self.get('fs:procstatus')
+                assr_info['qcstatus'] = self.get('xnat:validation/status')
+                assr_info['version'] = self.get('fs:procversion')
+                assr_info['jobid'] = self.get('fs:jobid')
+                assr_info['jobstartdate'] = self.get('fs:jobstartdate')
+                assr_info['memused'] = self.get('fs:memused')
+                assr_info['walltimeused'] = self.get('fs:walltimeused')
+                assr_info['jobnode'] = self.get('fs:jobnode')
+                assr_info['proctype'] = 'FreeSurfer'
 
-        elif assr_info['xsiType'].lower() == DEFAULT_DATATYPE.lower():
-            # genProcData
-            assr_info['procstatus'] = self.get('proc:procstatus')
-            assr_info['proctype'] = self.get('proc:proctype')
-            assr_info['qcstatus'] = self.get('xnat:validation/status')
-            assr_info['version'] = self.get('proc:procversion')
-            assr_info['jobid'] = self.get('proc:jobid')
-            assr_info['jobstartdate'] = self.get('proc:jobstartdate')
-            assr_info['memused'] = self.get('proc:memused')
-            assr_info['walltimeused'] = self.get('proc:walltimeused')
-            assr_info['jobnode'] = self.get('proc:jobnode')
-        else:
-            msg = 'Warning:unknown xsitype for assessor: %s'
-            print(msg % assr_info['xsiType'])
+            elif assr_info['xsiType'].lower() == DEFAULT_DATATYPE.lower():
+                # genProcData
+                assr_info['procstatus'] = self.get('proc:procstatus')
+                assr_info['proctype'] = self.get('proc:proctype')
+                assr_info['qcstatus'] = self.get('xnat:validation/status')
+                assr_info['version'] = self.get('proc:procversion')
+                assr_info['jobid'] = self.get('proc:jobid')
+                assr_info['jobstartdate'] = self.get('proc:jobstartdate')
+                assr_info['memused'] = self.get('proc:memused')
+                assr_info['walltimeused'] = self.get('proc:walltimeused')
+                assr_info['jobnode'] = self.get('proc:jobnode')
+            else:
+                msg = 'Warning:unknown xsitype for assessor: %s'
+                print(msg % assr_info['xsiType'])
 
-        return assr_info
+            self.assr_info_ = assr_info
+
+        return self.assr_info_
 
 
     # TODO: BenM/assessor_of_assessor/implment this once the schema is

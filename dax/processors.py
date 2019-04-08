@@ -650,6 +650,18 @@ defined by yaml file {}'
 
 
     def parse_session(self, csess, sessions):
+        """
+        Method to run the processor parser on this session, in order to
+        calculate the pattern matches for this processor and the sessions
+        provided
+        :param csess: the active session. For non-longitudinal studies, this is
+        the session that the pattern matching is performed on. For longitudinal
+        studies, this is the 'current' session from which all prior sessions
+        are numbered for the purposes of pattern matching
+        :param sessions: the full, time-ordered list of sessions that should be
+        considered for longitudinal studies.
+        :return: None
+        """
         self.parser.parse_session(csess, sessions)
 
 
