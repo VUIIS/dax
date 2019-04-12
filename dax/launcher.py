@@ -669,7 +669,7 @@ cluster queue"
             LOGGER.critical('build_session must be provided with a list of cached sessions')
             return
 
-        csess = find_with_pred(sessions, lambda s: s.session_id())
+        csess = find_with_pred(sessions, lambda s: sess_info['label'] == s.session_id())
 
         # Modules
         mod_count = 0

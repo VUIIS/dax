@@ -226,8 +226,8 @@ class ComponentTestBuild(TestCase):
 
     def test_clean_scans_from_test_session(self):
         proj_id = 'proj1'
-        subj_id = 'subj1'
-        sess_ids = ['sess1', 'sess2']
+        subj_id = 'subj2'
+        sess_ids = ['sess3', 'sess4']
         intf = XnatUtils.get_interface(host=host)
         for sess_id in sess_ids:
             session = intf.select_experiment(proj_id, subj_id, sess_id)
