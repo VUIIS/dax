@@ -241,6 +241,10 @@ def filter_assessors(xnat,project,args, assessors, has_fs_datatypes=False,
         err = "Argument -t/--type required because -p/--project provided."
         raise XnatToolsUserError(__exe__, err)
 
+    if not args.sessions and args.rerundiskq:
+        err = "Argument --sess required because --rerundiskq provided"
+        raise XnatToolsUserError(__exe__, err)
+
     if args.subjects and args.subjects != 'all':
         assessors = XnatUtils.filter_list_dicts_regex(
             assessors, 'subject_label', args.subjects, args.full_regex)
