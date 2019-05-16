@@ -1318,7 +1318,8 @@ The project is not part of the settings."""
         if slocal and slocal.lower() != 'all':
             # filter the list and keep the match between both list:
             val = slocal.split(',')
-            list_sessions = [x for x in list_sessions if x['label'] in val]
+            #list_sessions = [x for x in list_sessions if x['label'] in val]
+            list_sessions = filter(lambda x: x['label'] in val, list_sessions)
             if not list_sessions:
                 warn = 'No session from XNAT matched the sessions given: %s .'
                 LOGGER.warn(warn % slocal)

@@ -20,6 +20,12 @@ DAX_SETTINGS = DAX_Settings()
 RESULTS_DIR = DAX_SETTINGS.get_results_dir()
 
 
+def strip_leading_and_trailing_spaces(list_arg):
+    if list_arg is None:
+        return None
+    return ','.join(map(lambda x: x.strip(), list_arg.split(',')))
+
+
 def parse_args():
     """Method to parse arguments base on ArgumentParser.
 
@@ -167,7 +173,9 @@ if __name__ == '__main__':
     if args.command == 'build':
         if DAX_SETTINGS.is_cluster_valid():
             dax.bin.build(args.settings_path, args.logfile, args.debug,
-                          args.project, args.sessions, args.mod_delta)
+                          args.project,
+                          strip_leading_and_trailing_spaces(args.sessions),
+                          args.mod_delta)
         else:
             sys.stdout.write('Please edit your settings via dax_setup for the \
 cluster section\n.')

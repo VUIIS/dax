@@ -146,6 +146,8 @@ class ProcessorParser:
             self.proctype = XnatUtils.get_proctype(
             yaml_source['inputs']['default']['spider_path'])[0]
 
+        self.is_longitudinal_ = ProcessorParser.is_longitudinal(yaml_source)
+
 
     def parse_session(self, csess, sessions):
         """
@@ -167,10 +169,14 @@ class ProcessorParser:
             if sessions[i].creation_timestamp_ >= sessions[i+1].creation_timestamp_:
                 raise ValueError("session parameter is not ordered by creation datetime")
 
-        artefacts = ProcessorParser.parse_artefacts(sessions)
+        index = sessions.index(csess)
+
+        relevant_sessions = [csess] if not self.is_longitudinal_ else sessions[:index+1]
+
+        artefacts = ProcessorParser.parse_artefacts(relevant_sessions)
 
         artefacts_by_input = \
-            ProcessorParser.map_artefacts_to_inputs(sessions,
+            ProcessorParser.map_artefacts_to_inputs(relevant_sessions,
                                                     self.inputs,
                                                     self.inputs_by_type)
 
@@ -189,7 +195,7 @@ class ProcessorParser:
             artefacts)
 
         assessor_parameter_map = \
-            ProcessorParser.compare_to_existing(sessions,
+            ProcessorParser.compare_to_existing(relevant_sessions,
                                                 self.proctype,
                                                 parameter_matrix)
 
@@ -448,7 +454,7 @@ class ProcessorParser:
 
             errors.extend(
                 ProcessorParser._check_valid_mode(
-                    'scan', name, 'select-session', select_session_namespace,s))
+                    'scan', name, 'select-session', select_session_namespace, s))
 
             errors.extend(
                 ProcessorParser.__check_resources_yaml_v1('scan', name, s))
@@ -649,6 +655,17 @@ class ProcessorParser:
         return (inputs, inputs_by_type, iteration_sources, iteration_map,
                 prior_session_count)
 
+    @staticmethod
+    def is_longitudinal(yaml_source):
+        inputs = yaml_source['inputs']['xnat']
+
+        entries = inputs.get('scans', list()) + inputs.get('assessors', list())
+
+        for e in entries:
+            if e.get('select-session', 'current') is not 'current':
+                return True
+        return False
+
 
     @staticmethod
     def parse_match_filters(yaml_source):
@@ -719,9 +736,9 @@ class ProcessorParser:
                 else:
                     csess = csesses[iv['select-session'].delta]
             elif iv['select-session'].mode in ['first', 'first-with']:
-                csess = csesses[-1]
-            else:
                 csess = csesses[0]
+            else:
+                csess = csesses[-1]
 
             if csess is not None:
                 for cscan in csess.scans():

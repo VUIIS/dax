@@ -98,3 +98,7 @@ def find_with_pred(items, pred):
         if pred(i):
             return i
     return None
+
+
+def strip_leading_and_trailing_spaces(list_arg):
+    return ','.join(map(lambda x: x.strip(), list_arg.split(',')))
