@@ -166,12 +166,12 @@ class ProcessorParser:
         self.assessor_parameter_map = None
 
         for i in range(len(sessions) - 1):
-            if sessions[i].creation_timestamp_ >= sessions[i+1].creation_timestamp_:
+            if sessions[i].creation_timestamp_ < sessions[i+1].creation_timestamp_:
                 raise ValueError("session parameter is not ordered by creation datetime")
 
         index = sessions.index(csess)
 
-        relevant_sessions = [csess] if not self.is_longitudinal_ else sessions[:index+1]
+        relevant_sessions = [csess] if not self.is_longitudinal_ else sessions[index:]
 
         artefacts = ProcessorParser.parse_artefacts(relevant_sessions)
 
@@ -736,9 +736,9 @@ class ProcessorParser:
                 else:
                     csess = csesses[iv['select-session'].delta]
             elif iv['select-session'].mode in ['first', 'first-with']:
-                csess = csesses[0]
-            else:
                 csess = csesses[-1]
+            else:
+                csess = csesses[0]
 
             if csess is not None:
                 for cscan in csess.scans():
