@@ -172,40 +172,40 @@ class ComponentTestBuild(TestCase):
 
 
     @staticmethod
-    def _setup_assessors(session):
-        SessionTools.add_assessor(session,
-                                  'proc1-x-subj1-x-sess1-x-1-Proc_X_v1',
-                                  assessor_presets['Proc_X_v1'],
-                                  'no_inputs')
-        SessionTools.add_assessor(session,
-                                  'proc1-x-subj1-x-sess1-x-2-Proc_X_v1',
-                                  assessor_presets['Proc_X_v1'],
-                                  'no_inputs')
+    def _setup_assessors(proj_id, subj_id, session):
+        for i in range(1, 3):
+            SessionTools.add_assessor(
+                session,
+                '{}-x-{}-x-{}-x-{}-x-Proc_X_v1'.format(proj_id, subj_id, session.label(), i),
+                                      assessor_presets['Proc_X_v1'],
+                                      'no_inputs')
 
 
     def test_setup_old_assessors(self):
         intf = XnatUtils.get_interface(host)
         proj_id = 'proj1'
+        subj_id = 'subj1'
+        sess_ids = ['sess2', 'sess1']
+
         project = intf.select_project(proj_id)
         if not project.exists():
             self.assertTrue(False, 'proj1 should be pre-created for this test')
 
-        subj_id = 'subj1'
         subject = intf.select_subject(proj_id, subj_id)
         if not subject.exists():
             self.assertTrue(False, 'subj1 should be pre-created for this test')
 
-        sess_id = 'sess1'
-        session = intf.select_experiment(proj_id, subj_id, sess_id)
-        if not session.exists():
-            self.assertTrue(False, 'sess1 should be pre-created for this test')
+        for s in sess_ids:
+            session = intf.select_experiment(proj_id, subj_id, s)
+            if not session.exists():
+                self.assertTrue(False, 'sess1 should be pre-created for this test')
 
-        # delete and recreate scans
-        scan_descriptors = [('1', 't1'), ('2', 't1'), ('11', 'flair')]
-        ComponentTestBuild._setup_scans(session, scan_descriptors)
+            # delete and recreate scans
+            scan_descriptors = [('1', 't1'), ('2', 't1'), ('11', 'flair')]
+            ComponentTestBuild._setup_scans(session, scan_descriptors)
 
-        # delete and recreate old assessors
-        ComponentTestBuild._setup_assessors(session)
+            # delete and recreate old assessors
+            ComponentTestBuild._setup_assessors(proj_id, subj_id, session)
 
 
     def test_setup_session(self):
@@ -228,6 +228,8 @@ class ComponentTestBuild(TestCase):
         proj_id = 'proj1'
         subj_id = 'subj1'
         sess_ids = ['sess1', 'sess2']
+        # subj_id = 'subj2'
+        # sess_ids = ['sess3', 'sess4']
         intf = XnatUtils.get_interface(host=host)
         for sess_id in sess_ids:
             session = intf.select_experiment(proj_id, subj_id, sess_id)
@@ -243,6 +245,8 @@ class ComponentTestBuild(TestCase):
         proj_id = 'proj1'
         subj_id = 'subj1'
         sess_ids = ['sess1', 'sess2']
+        # subj_id = 'subj2'
+        # sess_ids = ['sess3', 'sess4']
         intf = XnatUtils.get_interface(host=host)
         for sess_id in sess_ids:
             session = intf.select_experiment(proj_id, subj_id, sess_id)

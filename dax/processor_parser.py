@@ -132,6 +132,7 @@ class ProcessorParser:
         self.variables_to_inputs = ProcessorParser.parse_variables(self.inputs)
 
         self.csess = None
+        self.sessions_ = None
         self.artefacts = None
         self.artefacts_by_input = None
         self.parameter_matrix = None
@@ -145,40 +146,37 @@ class ProcessorParser:
             self.proctype = XnatUtils.get_proctype(
             yaml_source['inputs']['default']['spider_path'])[0]
 
+        self.is_longitudinal_ = ProcessorParser.is_longitudinal(yaml_source)
 
-    def parse_session(self, csess):
+
+    def parse_session(self, csess, sessions):
+        """
+        Parse a session to determine whether new assessors should be created.
+        This call populates assessor_parameter_map.
+        :param csess: the session in question
+        :param sessions: the full list of sessions, including csess, for the
+        subject
+        :return: None
+        """
         self.csess = None
+        self.sessions_ = sessions
         self.artefacts = None
         self.artefacts_by_input = None
         self.parameter_matrix = None
         self.assessor_parameter_map = None
 
-        # TODO: determine if we really need to load other sessions based on 
-        # whether we are actually referring to them anywhere
+        for i in range(len(sessions) - 1):
+            if sessions[i].creation_timestamp_ < sessions[i+1].creation_timestamp_:
+                raise ValueError("session parameter is not ordered by creation datetime")
 
-        # build a list of sessions starting from the current session backwards
-        intf = csess.intf
-        subj = intf.select_subject(csess.project_id(), csess.subject_id())
-        x = [XnatUtils.CachedImageSession(intf,
-                                          csess.project_id(),
-                                          csess.subject_id(),
-                                          s.label())
-             for s in subj.experiments()]
-        x = [TimestampSession(s.creation_timestamp(), s) for s in x]
-        ordered_sessions = map(lambda y: y.session,
-                               sorted(x,
-                                      key=lambda v: v.timestamp,
-                                      reverse=True))
+        index = sessions.index(csess)
 
-        ordered_sessions =\
-            filter(
-                lambda y: y.creation_timestamp() <= csess.creation_timestamp(),
-                ordered_sessions)
+        relevant_sessions = [csess] if not self.is_longitudinal_ else sessions[index:]
 
-        artefacts = ProcessorParser.parse_artefacts(ordered_sessions)
+        artefacts = ProcessorParser.parse_artefacts(relevant_sessions)
 
         artefacts_by_input = \
-            ProcessorParser.map_artefacts_to_inputs(ordered_sessions,
+            ProcessorParser.map_artefacts_to_inputs(relevant_sessions,
                                                     self.inputs,
                                                     self.inputs_by_type)
 
@@ -197,7 +195,7 @@ class ProcessorParser:
             artefacts)
 
         assessor_parameter_map = \
-            ProcessorParser.compare_to_existing(ordered_sessions,
+            ProcessorParser.compare_to_existing(relevant_sessions,
                                                 self.proctype,
                                                 parameter_matrix)
 
@@ -456,7 +454,7 @@ class ProcessorParser:
 
             errors.extend(
                 ProcessorParser._check_valid_mode(
-                    'scan', name, 'select-session', select_session_namespace,s))
+                    'scan', name, 'select-session', select_session_namespace, s))
 
             errors.extend(
                 ProcessorParser.__check_resources_yaml_v1('scan', name, s))
@@ -656,6 +654,17 @@ class ProcessorParser:
 
         return (inputs, inputs_by_type, iteration_sources, iteration_map,
                 prior_session_count)
+
+    @staticmethod
+    def is_longitudinal(yaml_source):
+        inputs = yaml_source['inputs']['xnat']
+
+        entries = inputs.get('scans', list()) + inputs.get('assessors', list())
+
+        for e in entries:
+            if e.get('select-session', 'current') is not 'current':
+                return True
+        return False
 
 
     @staticmethod
@@ -879,7 +888,8 @@ class ProcessorParser:
                             for fa in from_artefacts:
                                 a = artefacts[fa]
                                 from_inputs = a.entity.get_inputs()
-                                mapped_input_vector.append(from_inputs[v2])
+                                if from_inputs is not None:
+                                    mapped_input_vector.append(from_inputs[v2])
                            
                             combined_input_vector.append(mapped_input_vector)
 

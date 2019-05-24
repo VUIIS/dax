@@ -22,6 +22,7 @@ from .errors import (ClusterCountJobsException, ClusterLaunchException,
                      DaxXnatError, DaxLauncherError)
 from . import yaml_doc
 from .processor_graph import ProcessorGraph
+from .utilities import find_with_pred, groupby_to_dict, groupby_groupby_to_dict
 
 try:
     basestring
@@ -524,16 +525,7 @@ cluster queue"
         proj_mods = self.project_modules_dict.get(project_id, None)
         proj_procs = self.project_process_dict.get(project_id, None)
         exp_mods, scan_mods = modules.modules_by_type(proj_mods)
-        # TODO: BenM/assessor_of_assessor/get old scan/session processors and
-        # a separate list of autoprocessors. Autoprocessors get their own code
-        # path and parameter for the call to build_session. Probably need to
-        # move order processors call into processors_by_type
-        # exp_procs, scan_procs = processors.processors_by_type(proj_procs)
-        # exp_procs = ProcessorGraph.order_processors(proj_procs, LOGGER)
-        # scan_procs = []
-        # TODO: BenM/assessor_of_assessor/uncomment this when ready and remove
-        # above calls
-        session_procs, scan_procs, auto_procs =\
+        scan_procs, session_procs, auto_procs =\
             processors.processors_by_type(proj_procs)
         auto_procs = ProcessorGraph.order_processors(auto_procs, LOGGER)
 
@@ -543,96 +535,123 @@ cluster queue"
         else:
             lastmod_delta = None
 
-        # Check for new processors
-        has_new = self.has_new_processors(intf, project_id, session_procs,
-                                          scan_procs)
+        # get the list of processors for this project
+        processor_types = set(map(lambda x: x.name, session_procs + scan_procs + auto_procs))
 
-        # Get the list of sessions:
-        sessions = self.get_sessions_list(intf, project_id, sessions_local)
+        sessions_by_subject = groupby_to_dict(
+            self.get_sessions_list(intf, project_id, sessions_local),
+            lambda x: x['subject_id'])
 
-        # Update each session from the list:
-        for sess_info in sessions:
-            if not self.skip_lastupdate and not has_new and not sessions_local:
-                last_mod = datetime.strptime(sess_info['last_modified'][0:19],
-                                             UPDATE_FORMAT)
-                now_date = datetime.today()
-                last_up = self.get_lastupdated(sess_info)
-                if last_up is not None and \
-                        last_mod < last_up and \
-                        now_date < last_mod + timedelta(days=int(self.max_age)):
-                    mess = "  + Session %s: skipping, last_mod=%s,last_up=%s"
-                    mess_str = mess % (sess_info['label'], str(last_mod),
-                                       str(last_up))
-                    LOGGER.info(mess_str)
-                    continue
+        # check to see if there are processor types that are new to this project
+        assessors = XnatUtils.list_project_assessors(intf, project_id)
+        has_new = self.has_new_processors(assessors, processor_types)
 
-            elif lastrun:
-                last_mod = datetime.strptime(sess_info['last_modified'][0:19],
-                                             UPDATE_FORMAT)
-                if last_mod < lastrun:
-                    mess = "  + Session %s:skipping not modified since last run,\
- last_mod=%s, last_run=%s"
-                    LOGGER.info(mess % (sess_info['label'], str(last_mod),
-                                        str(lastrun)))
-                    continue
+        for subject_id, sessions in sessions_by_subject.items():
+            # Get the cached session objects for this subject
 
-            elif lastmod_delta:
-                last_mod = datetime.strptime(sess_info['last_modified'][0:19],
-                                             UPDATE_FORMAT)
-                now_date = datetime.today()
-                if now_date > last_mod + lastmod_delta:
-                    mess = "  + Session %s:skipping not modified within delta,\
- last_mod=%s"
-                    LOGGER.info(mess % (sess_info['label'], str(last_mod)))
-                    continue
-                else:
-                    LOGGER.info('lastmod = %s' % str(last_mod))
+            sessions_to_update = dict()
+            # Check which sessions (if any) require an update:
+            for sess_info in sessions:
 
-            mess = "  + Session %s: building..."
-            LOGGER.info(mess % sess_info['label'])
+                if not self.skip_lastupdate and not has_new and not sessions_local:
+                    last_mod = datetime.strptime(sess_info['last_modified'][0:19],
+                                                 UPDATE_FORMAT)
+                    now_date = datetime.today()
+                    last_up = self.get_lastupdated(sess_info)
+                    if last_up is not None and \
+                            last_mod < last_up and \
+                            now_date < last_mod + timedelta(days=int(self.max_age)):
+                        mess = "  + Session %s: skipping, last_mod=%s,last_up=%s"
+                        mess_str = mess % (sess_info['label'], str(last_mod),
+                                           str(last_up))
+                        LOGGER.info(mess_str)
+                        continue
 
-            if not self.skip_lastupdate:
-                update_start_time = datetime.now()
+                elif lastrun:
+                    last_mod = datetime.strptime(sess_info['last_modified'][0:19],
+                                                 UPDATE_FORMAT)
+                    if last_mod < lastrun:
+                        mess = "  + Session %s:skipping not modified since last run,\
+     last_mod=%s, last_run=%s"
+                        LOGGER.info(mess % (sess_info['label'], str(last_mod),
+                                            str(lastrun)))
+                        continue
 
-            try:
-                self.build_session(intf, sess_info,
-                                   session_procs, scan_procs, auto_procs,
-                                   exp_mods, scan_mods)
-            except Exception as E:
-                err1 = 'Caught exception building sessions %s'
-                err2 = 'Exception class %s caught with message %s'
-                LOGGER.critical(err1 % sess_info['session_label'])
-                LOGGER.critical(err2 % (E.__class__, E.message))
-                LOGGER.critical(traceback.format_exc())
+                elif lastmod_delta:
+                    last_mod = datetime.strptime(sess_info['last_modified'][0:19],
+                                                 UPDATE_FORMAT)
+                    now_date = datetime.today()
+                    if now_date > last_mod + lastmod_delta:
+                        mess = "  + Session %s:skipping not modified within delta,\
+     last_mod=%s"
+                        LOGGER.info(mess % (sess_info['label'], str(last_mod)))
+                        continue
+                    else:
+                        LOGGER.info('lastmod = %s' % str(last_mod))
 
-            try:
+                mess = "  + Session %s: building..."
+                LOGGER.info(mess % sess_info['label'])
+                sessions_to_update[sess_info['ID']] = sess_info
+
+            if len(sessions_to_update) == 0:
+                continue
+
+            # build a full list of sessions for the subject: they may be needed even if not all sessions are getting
+            # updated
+            cached_sessions = [XnatUtils.CachedImageSession(
+                intf, x['project_label'], x['subject_label'], x['session_label']) for x in sessions]
+            cached_sessions = sorted(cached_sessions, key=lambda s: s.creation_timestamp_, reverse=True)
+
+            # update each of the sessions that require it
+
+            for sess_info in sessions_to_update.values():
+
                 if not self.skip_lastupdate:
-                    self.set_session_lastupdated(intf, self.cr, sess_info,
-                                                 update_start_time)
-            except Exception as E:
-                err1 = 'Caught exception setting session timestamp %s'
-                err2 = 'Exception class %s caught with message %s'
-                LOGGER.critical(err1 % sess_info['session_label'])
-                LOGGER.critical(err2 % (E.__class__, E.message))
-                LOGGER.critical(traceback.format_exc())
+                    update_start_time = datetime.now()
 
-        if not sessions_local or sessions_local.lower() == 'all':
-            # Modules after run
-            LOGGER.debug('* Modules Afterrun')
-            try:
-                self.module_afterrun(intf, project_id)
-            except Exception as E:
-                err2 = 'Exception class %s caught with message %s'
-                LOGGER.critical('Caught exception after running modules')
-                LOGGER.critical(err2 % (E.__class__, E.message))
-                LOGGER.critical(traceback.format_exc())
+                try:
+                    # TODO: BenM - ensure that this code is robust to subjects
+                    # without sessions and sessions without assessors / scans
+                    self.build_session(
+                        intf, sess_info, session_procs, scan_procs, auto_procs,
+                        exp_mods, scan_mods,
+                        sessions=cached_sessions)
+                except Exception as E:
+                    err1 = 'Caught exception building sessions %s'
+                    err2 = 'Exception class %s caught with message %s'
+                    LOGGER.critical(err1 % sess_info['session_label'])
+                    LOGGER.critical(err2 % (E.__class__, E.message))
+                    LOGGER.critical(traceback.format_exc())
+
+                try:
+                    if not self.skip_lastupdate:
+                        self.set_session_lastupdated(intf, self.cr, sess_info,
+                                                     update_start_time)
+                except Exception as E:
+                    err1 = 'Caught exception setting session timestamp %s'
+                    err2 = 'Exception class %s caught with message %s'
+                    LOGGER.critical(err1 % sess_info['session_label'])
+                    LOGGER.critical(err2 % (E.__class__, E.message))
+                    LOGGER.critical(traceback.format_exc())
+
+            if not sessions_local or sessions_local.lower() == 'all':
+                # Modules after run
+                LOGGER.debug('* Modules Afterrun')
+                try:
+                    self.module_afterrun(intf, project_id)
+                except Exception as E:
+                    err2 = 'Exception class %s caught with message %s'
+                    LOGGER.critical('Caught exception after running modules')
+                    LOGGER.critical(err2 % (E.__class__, E.message))
+                    LOGGER.critical(traceback.format_exc())
 
 
     # TODO:BenM/assessor_of_assessor/modify from here for one to many
     # processor to assessor mapping
     def build_session(self, intf, sess_info,
                       sess_proc_list, scan_proc_list, auto_proc_list,
-                      sess_mod_list, scan_mod_list):
+                      sess_mod_list, scan_mod_list,
+                      sessions=None):
         """
         Build a session
 
@@ -645,10 +664,12 @@ cluster queue"
         :param scan_mod_list: list of modules running on a scan
         :return: None
         """
-        csess = XnatUtils.CachedImageSession(intf,
-                                             sess_info['project_label'],
-                                             sess_info['subject_label'],
-                                             sess_info['session_label'])
+
+        if sessions is None:
+            LOGGER.critical('build_session must be provided with a list of cached sessions')
+            return
+
+        csess = find_with_pred(sessions, lambda s: sess_info['label'] == s.session_id())
 
         # Modules
         mod_count = 0
@@ -687,7 +708,7 @@ cluster queue"
         # Auto Processors
         LOGGER.debug('== Build auto processors ==')
         if auto_proc_list:
-            self.build_auto_processors(intf, csess, auto_proc_list)
+            self.build_auto_processors(csess, auto_proc_list, sessions)
 
 
     def build_session_processors(self, xnat, csess, sess_proc_list):
@@ -889,7 +910,7 @@ in session %s'
                     LOGGER.critical(traceback.format_exc())
 
 
-    def build_auto_processors(self, xnat, csess, sess_proc_list):
+    def build_auto_processors(self, csess, sess_proc_list, sessions):
         """ Build yaml-based processors.
 
         :param xnat: pyxnat.Interface object
@@ -910,7 +931,7 @@ in session %s'
 
             # return a mapping between the assessor input sets and existing
             # assessors that map to those input sets
-            sess_proc.parse_session(csess)
+            sess_proc.parse_session(csess, sessions)
             mapping = sess_proc.get_assessor_mapping()
 
             if mapping is None:
@@ -1297,7 +1318,8 @@ The project is not part of the settings."""
         if slocal and slocal.lower() != 'all':
             # filter the list and keep the match between both list:
             val = slocal.split(',')
-            list_sessions = [x for x in list_sessions if x['label'] in val]
+            #list_sessions = [x for x in list_sessions if x['label'] in val]
+            list_sessions = filter(lambda x: x['label'] in val, list_sessions)
             if not list_sessions:
                 warn = 'No session from XNAT matched the sessions given: %s .'
                 LOGGER.warn(warn % slocal)
@@ -1385,28 +1407,19 @@ The project is not part of the settings."""
         return True
 
     @staticmethod
-    def has_new_processors(xnat, project_id, sess_proc_list, scan_proc_list):
+    def has_new_processors(assessors, proc_types):
         """
-        Check if has new processors
-
-        :param xnat: pyxnat.Interface object
-        :param project_id: project ID on XNAT
-        :param sess_proc_list: list of processors running on a session
-        :param scan_proc_list: list of processors running on a scan
-        :return: True if has new processors, False otherwise
+        Method to check whether, given a list of assessors, there are processor
+        types that are new relative to the list of assessors (the proc type
+        doesn't appear in the set of assessor proc types).
+        :param assessors: a list of assessors, typically from a session or
+        subject
+        :param proc_types: a set of processor types to check against assessors
+        :return: Boolean indicating whether the proc_types set has proc types
+        that aren't in the assessors list
         """
-        # Get unique list of assessors already in XNAT
-        assr_list = XnatUtils.list_project_assessors(xnat, project_id)
-        assr_type_set = set([x['proctype'] for x in assr_list])
-
-        # Get unique list of processors prescribed for project
-        proc_name_set = set([x.name for x in sess_proc_list + scan_proc_list])
-
-        # Get list of processors that don't have assessors in XNAT yet
-        diff_list = list(proc_name_set.difference(assr_type_set))
-
-        # Are there any?
-        return len(diff_list) > 0
+        assr_types = set(x['proctype'] for x in assessors)
+        return proc_types.difference(assr_types) > 0
 
 
 # TODO: BenM/assessor_of_assessor/check path.txt to get the project_id
