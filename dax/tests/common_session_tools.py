@@ -10,7 +10,6 @@ class SessionTools:
     def get_connection(host):
         return XnatUtils.get_interface(host=host)
 
-
     @staticmethod
     def prep_project(intf, proj_id, subj_id, sess_id, scans, assessors):
         sess = intf.select_experiment(proj_id, subj_id, sess_id)
@@ -18,7 +17,6 @@ class SessionTools:
             SessionTools.add_scan(sess, scan['name'], scan)
         for assessor in assessors:
             SessionTools.add_assessor(assessor, assessor['name'], assessor)
-
 
     @staticmethod
     def add_session(proj, name, parameters):
@@ -36,17 +34,16 @@ class SessionTools:
             scn.delete()
             scn = sess.scan(name)
         kwargs = dict()
-        print parameters
-        print parameters['xsitype']
+        print(parameters)
+        print((parameters['xsitype']))
         kwargs[parameters['xsitype'] + '/type'] = parameters['type']
         kwargs[parameters['xsitype'] + '/quality'] = parameters['quality']
         scn.create(scans=parameters['xsitype'], **kwargs)
         for output in parameters['files']:
             for f in output[1]:
                 scn.resource(output[0]).file(f).insert('./file.txt')
-                #print output[0], f
+                # print output[0], f
         return scn
-
 
     @staticmethod
     def add_assessor(sess, name, parameters, inputs_policy="empty_if_not_set"):

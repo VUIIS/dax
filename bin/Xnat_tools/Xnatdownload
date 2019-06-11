@@ -14,11 +14,6 @@ WARNING: very important,--update OPTIONS isn't working completely.
          attributes hasn't been added yet to XNAT.
 '''
 
-from __future__ import print_function
-
-from builtins import next
-from builtins import str
-from builtins import zip
 
 import os
 import sys
@@ -131,14 +126,15 @@ def get_resources_list(object_dict, resources_list):
             res_list = object_dict['resources']
         else:
             res_list = []
-            resources = XNAT.select('/project/{project}/subject/{subject}/experiment/{experiment}/assessor/{assessor}/resources'.format(project=object_dict['project_id'],
-                                                                                                                  subject=object_dict['subject_label'],
-                                                                                                                  experiment=object_dict['session_label'],
-                                                                                                                  assessor=object_dict['label']))
+            resources = XNAT.select('/project/{project}/subject/{subject}/experiment/{experiment}/assessor/{assessor}/resources'.format(
+                project=object_dict['project_id'],
+                subject=object_dict['subject_label'],
+                experiment=object_dict['session_label'],
+                assessor=object_dict['label']))
             for resource in resources:
                 res_list.append(resource.label())
     else:
-        res_list=resources_list
+        res_list = resources_list
     return res_list
 
 
@@ -937,7 +933,8 @@ def download_specific_assessor():
                     'proc:genProcData/procstatus')
             if not status or (status and jobstatus in status):
                 if not OPTIONS.oneDir:
-                    assessor_path = os.path.join(DIRECTORY, assessor_dict['label'])
+                    assessor_path = os.path.join(
+                        DIRECTORY, assessor_dict['label'])
                 out_reslist = get_resources_list(
                     assessor_dict, assessors_resources)
                 for rname in out_reslist:

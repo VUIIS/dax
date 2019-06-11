@@ -1,7 +1,7 @@
 
 from unittest import TestCase
 
-import StringIO
+import io
 import json
 import yaml
 import xml.etree.cElementTree as xmlet
@@ -146,7 +146,7 @@ class ComponentTestBuild(TestCase):
     def __generate_yamls(entries):
         yamldocs = []
         for e in entries:
-            print e
+            print(e)
             yamldocs.append(
                 yamls.generate_yaml(
                     scans=[{
@@ -163,23 +163,20 @@ class ComponentTestBuild(TestCase):
                 )
             )
 
-
     @staticmethod
     def _setup_scans(session, scan_descriptors):
         for s, d in scan_descriptors:
-            print(s, d)
+            print((s, d))
             SessionTools.add_scan(session, s, scan_presets[d])
-
 
     @staticmethod
     def _setup_assessors(proj_id, subj_id, session):
         for i in range(1, 3):
             SessionTools.add_assessor(
-                session,
-                '{}-x-{}-x-{}-x-{}-x-Proc_X_v1'.format(proj_id, subj_id, session.label(), i),
-                                      assessor_presets['Proc_X_v1'],
-                                      'no_inputs')
-
+                session, '{}-x-{}-x-{}-x-{}-x-Proc_X_v1'.format(
+                    proj_id, subj_id, session.label(), i),
+                assessor_presets['Proc_X_v1'],
+                'no_inputs')
 
     def test_setup_old_assessors(self):
         intf = XnatUtils.get_interface(host)
@@ -198,7 +195,8 @@ class ComponentTestBuild(TestCase):
         for s in sess_ids:
             session = intf.select_experiment(proj_id, subj_id, s)
             if not session.exists():
-                self.assertTrue(False, 'sess1 should be pre-created for this test')
+                self.assertTrue(
+                    False, 'sess1 should be pre-created for this test')
 
             # delete and recreate scans
             scan_descriptors = [('1', 't1'), ('2', 't1'), ('11', 'flair')]
@@ -207,22 +205,21 @@ class ComponentTestBuild(TestCase):
             # delete and recreate old assessors
             ComponentTestBuild._setup_assessors(proj_id, subj_id, session)
 
-
     def test_setup_session(self):
         proj_id = 'proj1'
         subj_id = 'subj1'
         sess_ids = ['sess1', 'sess2']
         intf = XnatUtils.get_interface(host=host)
-        scan_descriptors = [('1', 't1'), ('2', 't1'),
-                 ('11', 'flair'), ('12', 'flair'),
-                 ('21', 't2')]
+        scan_descriptors = [
+            ('1', 't1'), ('2', 't1'),
+            ('11', 'flair'), ('12', 'flair'),
+            ('21', 't2')]
         for sess_id in sess_ids:
             session = intf.select_experiment(proj_id, subj_id, sess_id)
             if not session.exists():
                 self.assertTrue(False, "no such session")
 
             ComponentTestBuild._setup_scans(session, scan_descriptors)
-
 
     def test_clean_scans_from_test_session(self):
         proj_id = 'proj1'
@@ -239,8 +236,6 @@ class ComponentTestBuild(TestCase):
             for scn in session.scans():
                 scn.delete()
 
-
-
     def test_clean_assessors_from_test_session(self):
         proj_id = 'proj1'
         subj_id = 'subj1'
@@ -254,9 +249,8 @@ class ComponentTestBuild(TestCase):
                 self.assertTrue(False, "no such session")
 
             for asr in session.assessors():
-                print assessor_utils.full_label_from_assessor(asr)
+                print((assessor_utils.full_label_from_assessor(asr)))
                 asr.delete()
-
 
     # TODO: the text matrix that we run at the component level should be only
     # a small subset of the unit test processor parser test matrix
@@ -269,12 +263,12 @@ class ComponentTestBuild(TestCase):
         input_files = [
             [],
             [('NIFTI', ['images.nii'])],
-            #[('NIFTI', ['images.nii']), ('SNAPSHOTS', ['snapshot.jpg.gz', 'snapshot(1).jpg.gz'])]
+            # [('NIFTI', ['images.nii']), ('SNAPSHOTS', ['snapshot.jpg.gz',
+            # 'snapshot(1).jpg.gz'])]
         ]
         input_values = [input_xsitype, input_quality, input_type, input_files]
         input_table_values = itertools.product(*input_values)
-        input_table = map(lambda r: [dict(itertools.izip(input_headers, r))],
-                          input_table_values)
+        input_table = [[dict(zip(input_headers, r))] for r in input_table_values]
 
         headers = ['required', 'select', 'quality', 'inputs']
         required = [None, False, True]
@@ -283,21 +277,17 @@ class ComponentTestBuild(TestCase):
         input_fields = [[]] + [i for i in input_table]
         values = [required, select, quality, input_fields]
         table_values = itertools.product(*values)
-        table = map(lambda r: dict(itertools.izip(headers, r)), table_values)
+        table = [dict(zip(headers, r)) for r in table_values]
 
         # generate the scan artefacts against which this is run
         for scans in input_table:
             for scan in scans:
                 SessionTools.add_scan(None, 'scan1', scan)
 
-
-        print len(table)
-
-
+        print((len(table)))
 
     def test_end_to_end_test(self):
-
-        print os.getcwd()
+        print((os.getcwd()))
         settings_location = os.getcwd()+'/settings/'
         processor_location = os.getcwd()+'/processors/'
 

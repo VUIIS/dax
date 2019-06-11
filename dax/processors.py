@@ -1,8 +1,5 @@
 """ Processor class define for Scan and Session."""
 
-from builtins import object
-from past.builtins import basestring
-
 import logging
 import re
 import os
@@ -18,16 +15,11 @@ from . import yaml_doc
 from .errors import AutoProcessorError
 from .dax_settings import DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE
 from .dax_settings import DAX_Settings
-from .task import NeedInputsException, NoDataException
+from .task import NeedInputsException
 
-
-try:
-    basestring
-except NameError:
-    basestring = str
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
-__all__ = ['Processor', 'ScanProcessor', 'SessionProcessor', 'AutoProcessor']
+__all__ = ['Processor', 'AutoProcessor']
 # Logger for logs
 LOGGER = logging.getLogger('dax')
 
@@ -145,22 +137,6 @@ class Processor(object):
         """
         return []
 
-    # has_inputs - does this object have the required inputs?
-    # e.g. NIFTI format of the required scan type and quality
-    #      and are there no conflicting inputs.
-    # i.e. only 1 required by 2 found?
-    # other arguments here, could be Proj/Subj/Sess/Scan/Assessor depending
-    # on processor type?
-    def has_inputs(self):
-        """
-        Check to see if the spider has all the inputs necessary to run.
-
-        :raises: NotImplementedError if user does not override
-        :return: None
-
-        """
-        raise NotImplementedError()
-
     # should_run - is the object of the proper object type?
     # e.g. is it a scan? and is it the required scan type?
     # e.g. is it a T1?
@@ -208,7 +184,7 @@ class Processor(object):
                     _sess = assessor.parent().label()
                     label = '-x-'.join([_proj, _subj, _sess, self.name, guid])
                 else:
-                    label=guid
+                    label = guid
 
                 # Set creation date to today
                 date_key = '{}/date'.format(self.xsitype.lower())
@@ -227,259 +203,8 @@ class Processor(object):
         return json.dumps(inputs)
 
     def _deserialize_inputs(self, assessor):
-        input_key = '{}/inputs'.format(self.xsitype.lower())
         return json.loads(
             XnatUtils.parse_assessor_inputs(assessor.attrs.get('inputs')))
-
-
-class ScanProcessor(Processor):
-    """ Scan Processor class for processor on a scan on XNAT """
-    def __init__(self, scan_types, walltime_str, memreq_mb, spider_path,
-                 version=None, ppn=1, env=None, suffix_proc='',
-                 full_regex=False, job_template=None):
-        """
-        Entry point of the ScanProcessor Class.
-
-        :param scan_types: Types of scans that the spider should run on
-        :param walltime_str: Amount of walltime to request for the process
-        :param memreq_mb: Amount of memory in MB to request for the process
-        :param spider_path: Absolute path to the spider
-        :param version: Version of the spider (taken from the file name)
-        :param ppn: Number of processors per node to request
-        :param env: Environment file to source
-        :param suffix_proc: Processor suffix
-        :param full_regex: use full regex
-        :return: None
-
-        """
-        super(ScanProcessor, self).__init__(walltime_str, memreq_mb,
-                                            spider_path, version, ppn,
-                                            env, suffix_proc,
-                                            job_template=job_template)
-        self.full_regex = full_regex
-        if isinstance(scan_types, list):
-            self.scan_types = scan_types
-        elif isinstance(scan_types, basestring):
-            if scan_types == 'all':
-                self.scan_types = 'all'
-            else:
-                self.scan_types = scan_types.split(',')
-        else:
-            self.scan_types = []
-
-    def has_inputs(self):
-        """
-        Method to check and see that the process has all of the inputs
-         that it needs to run.
-
-        :raises: NotImplementedError if not overridden.
-        :return: None
-
-        """
-        raise NotImplementedError()
-
-    def get_assessor_name(self, cscan):
-        """
-        Returns the label of the assessor
-
-        :param cscan: CachedImageScan object from XnatUtils
-        :return: String of the assessor label
-
-        """
-        scan_dict = cscan.info()
-        subj_label = scan_dict['subject_label']
-        sess_label = scan_dict['session_label']
-        proj_label = scan_dict['project_label']
-        scan_label = scan_dict['scan_label']
-        assr_name = '-x-'.join([proj_label, subj_label, sess_label, scan_label,
-                                self.name])
-
-        # Check if shared project:
-        csess = cscan.parent()
-        proj_shared = csess.has_shared_project()
-        assr_name_shared = None
-        if proj_shared is not None:
-            assr_name_shared = '-x-'.join([proj_shared, subj_label, sess_label,
-                                           scan_label, self.name])
-
-        # Look for existing assessor
-        assr_label = assr_name
-        for assr in csess.assessors():
-            if assr_name_shared is not None and \
-               assr.info()['label'] == assr_name_shared:
-                assr_label = assr_name_shared
-                break
-            if assr.info()['label'] == assr_name:
-                break
-
-        return assr_label
-
-    def get_assessor(self, cscan):
-        """
-        Returns the assessor object depending on cscan and the assessor label.
-
-        :param cscan: CachedImageScan object from XnatUtils
-        :return: String of the assessor label
-
-        """
-        assessor_name = self.get_assessor_name(cscan)
-
-        # Look for existing assessor
-        csess = cscan.parent()
-        p_assr = None
-        for assr in csess.assessors():
-            if assr.info()['label'] == assessor_name:
-                p_assr = assr
-                break
-
-        return p_assr, assessor_name
-
-    def get_task(self, cscan, upload_dir):
-        """
-        Get the Task object
-
-        :param intf: XNAT interface (pyxnat.Interface class)
-        :param cscan: CachedImageScan object from XnatUtils
-        :param upload_dir: the directory to put the processed data when the
-         process is done
-        :return: Task object
-
-        """
-        assessor_name = self.get_assessor_name(cscan)
-        scan = cscan.full_object()
-        assessor = scan.parent().assessor(assessor_name)
-        return task.Task(self, assessor, upload_dir)
-
-    def should_run(self, scan_dict):
-        """
-        Method to see if the assessor should appear in the session.
-
-        :param scan_dict: Dictionary of information about the scan
-        :return: True if it should run, false if it shouldn't
-
-        """
-        if self.scan_types == 'all':
-            return True
-        else:
-            for expression in self.scan_types:
-                regex = XnatUtils.extract_exp(expression, self.full_regex)
-                if regex.match(scan_dict['scan_type']):
-                    return True
-            return False
-
-
-class SessionProcessor(Processor):
-    """ Session Processor class for processor on a session on XNAT """
-    def __init__(self, walltime_str, memreq_mb, spider_path, version=None,
-                 ppn=1, env=None, suffix_proc='', job_template=None):
-        """
-        Entry point for the session processor
-
-        :param walltime_str: Amount of walltime to request for the process
-        :param memreq_mb: Amount of memory in MB to request for the process
-        :param spider_path: Absolute path to the spider
-        :param version: Version of the spider (taken from the file name)
-        :param ppn: Number of processors per node to request
-        :param env: Environment file to source
-        :param suffix_proc: Processor suffix
-        :return: None
-
-        """
-        super(SessionProcessor, self).__init__(walltime_str, memreq_mb,
-                                               spider_path, version, ppn,
-                                               env, suffix_proc,
-                                               job_template=job_template)
-
-    def has_inputs(self):
-        """
-        Check to see that the session has the required inputs to run.
-
-        :raises: NotImplementedError if not overriden from base class.
-        :return: None
-        """
-        raise NotImplementedError()
-
-    def should_run(self, session_dict):
-        """
-        By definition, this should always run, so it just returns true
-         with no checks
-
-        :param session_dict: Dictionary of session information for
-         XnatUtils.list_experiments()
-        :return: True
-
-        """
-        return True
-
-    def get_assessor_name(self, csess):
-        """
-        Returns the label of the assessor
-
-        :param csess: CachedImageSession object from XnatUtils
-        :return: String of the assessor label
-
-        """
-        session_dict = csess.info()
-        proj_label = session_dict['project_id']
-        subj_label = session_dict['subject_label']
-        sess_label = session_dict['label']
-        assr_name = '-x-'.join([proj_label, subj_label, sess_label, self.name])
-
-        # Check if shared project:
-        proj_shared = csess.has_shared_project()
-        assr_name_shared = None
-        if proj_shared is not None:
-            assr_name_shared = '-x-'.join([proj_shared, subj_label, sess_label,
-                                           self.name])
-
-        # Look for existing assessor
-        assr_label = assr_name
-        for assr in csess.assessors():
-            if assr_name_shared is not None and \
-               assr.info()['label'] == assr_name_shared:
-                assr_label = assr_name_shared
-                break
-            if assr.info()['label'] == assr_name:
-                break
-
-        return assr_label
-
-    def get_assessor(self, csess):
-        """
-        Returns the assessor object depending on csess and the assessor label.
-
-        :param csess: CachedImageSession object from XnatUtils
-        :return: String of the assessor label
-
-        """
-        # TODO: BenM/id_refactor/currently returns null if the assessor doesn't
-        # exist; this adds unnecessary complexity downstream - consider adding
-        # a method that returns assessors that need construction and one for
-        # assessors that exist
-        assessor_name = self.get_assessor_name(csess)
-
-        # Look for existing assessor
-        p_assr = None
-        for assr in csess.assessors():
-            if assr.info()['label'] == assessor_name:
-                p_assr = assr
-                break
-
-        return p_assr, assessor_name
-
-    def get_task(self, csess, upload_dir):
-        """
-        Return the Task object
-
-        :param csess: CachedImageSession from XnatUtils
-        :param upload_dir: directory to put the data after run on the node
-        :return: Task object of the assessor
-
-        """
-        assessor_name = self.get_assessor_name(csess)
-        session = csess.full_object()
-        assessor = session.assessor(assessor_name)
-        return task.Task(self, assessor, upload_dir)
 
 
 class AutoProcessor(Processor):
@@ -498,7 +223,8 @@ class AutoProcessor(Processor):
         if not xnat:
             raise AutoProcessorError("Parameter 'xnat' must be provided")
         if not yaml_source:
-            raise AutoProcessorError("Parameter 'yaml_source' must be provided")
+            raise AutoProcessorError(
+                "Parameter 'yaml_source' must be provided")
 
         self.xnat = xnat
         self.user_overrides = dict()
@@ -510,7 +236,8 @@ class AutoProcessor(Processor):
         if user_inputs is not None:
             self._edit_inputs(user_inputs, yaml_source)
 
-        self.parser = processor_parser.ProcessorParser(yaml_source.contents, self.proctype)
+        self.parser = processor_parser.ProcessorParser(
+            yaml_source.contents, self.proctype)
 
         # Set up attrs:
         self.walltime_str = self.attrs.get('walltime')
@@ -520,7 +247,6 @@ class AutoProcessor(Processor):
         self.xsitype = self.attrs.get('xsitype', 'proc:genProcData')
         self.full_regex = self.attrs.get('fullregex', False)
         self.suffix = self.attrs.get('suffix', None)
-
 
     def _edit_inputs(self, user_inputs, yaml_source):
         """
@@ -552,7 +278,8 @@ auto processor defined by yaml file {}'
 tag from the processor yaml file {}. Unauthorised operation.'
                                 LOGGER.warn(msg.format(yaml_source.source_id))
                             else:
-                                LOGGER.info('overriding setting:'+tags[4]+':'+val)
+                                LOGGER.info(
+                                    'overriding setting:'+tags[4]+':'+val)
                                 obj[tags[4]] = val
                 else:
                     msg = 'key {} not found in the xnat inputs for auto \
@@ -566,7 +293,6 @@ processor defined by yaml file {}'
                     msg = 'key {} not found in the attrs for auto processor \
 defined by yaml file {}'
                     LOGGER.warn(msg.format(tags[-1], yaml_source.source_id))
-
 
     def _read_yaml(self, yaml_source):
         """
@@ -601,7 +327,7 @@ defined by yaml file {}'
             self.user_overrides.get('spider_path'),
             self.attrs.get('suffix', None))
 
-        # Set attributs:
+        # Set attributes:
         self.spider_path = self.user_overrides.get('spider_path')
         self.name = self.proctype
 
@@ -631,7 +357,6 @@ defined by yaml file {}'
         for key in ['spider_path']:
             self._raise_yaml_error_if_no_key(default, source_id, key)
 
-
     @ staticmethod
     def _raise_yaml_error_if_no_key(doc, source_id, key):
         """Method to raise an execption if the key is not in the dict
@@ -644,10 +369,8 @@ defined by yaml file {}'
             err = 'YAML source {} does not have {} defined. See example.'
             raise AutoProcessorError(err.format(source_id, key))
 
-
     def get_assessor_mapping(self):
         return self.parser.assessor_parameter_map
-
 
     def parse_session(self, csess, sessions):
         """
@@ -663,7 +386,6 @@ defined by yaml file {}'
         :return: None
         """
         self.parser.parse_session(csess, sessions)
-
 
     def should_run(self, obj_dict):
         """
@@ -691,11 +413,9 @@ defined by yaml file {}'
             # with no checks for session
             return True
 
-
     def get_proctype(self):
         return self.name
     # ***** Names still need fixing! *****
-
 
     def get_assessor_input_types(self):
         """
@@ -704,32 +424,10 @@ defined by yaml file {}'
         from a non-yaml processor.
         :return: a list of input assessor types
         """
-        assessor_inputs = filter(lambda i: i['artefact_type'] == 'assessor',
-                                 self.parser.inputs.itervalues())
-        assessors = map(lambda i: i['types'], assessor_inputs)
+        assessor_inputs = [i for i in list(self.parser.inputs.values()) if i['artefact_type'] == 'assessor']
+        assessors = [i['types'] for i in assessor_inputs]
 
         return list(itertools.chain.from_iterable(assessors))
-
-
-    # TODO: BenM/assessor_of_assessor/replace with processor_parser
-    # functionality
-    def has_inputs(self, cobj):
-        """Method to check the inputs.
-
-        By definition:
-            status = 0  -> NEED_INPUTS, for session asr inputs and resources
-            status = 1  -> NEED_TO_RUN
-            status = -1 -> NO_DATA, for scan primary input isn't usable
-            qcstatus needs a value only when -1 or 0.
-        You need to set qcstatus to a short string that explain
-        why it's no ready to run. e.g: No NIFTI
-
-        :param cobj: cached object define in dax.XnatUtils (Session or Scan)
-                     (see XnatUtils in dax for information)
-        :return: status, qcstatus
-        """
-        return self.parser.has_inputs(cobj)
-
 
     # TODO: BenM/assessor_of_assessor/this method is no longer suitable for
     # execution on a single assessor, as it generates commands for the whole
@@ -743,8 +441,6 @@ defined by yaml file {}'
         :param jobdir: jobdir where the job's output will be generated
         :return: command to execute the spider in the job script
         """
-        # Add the jobdir and the assessor label:
-        assr_label = assr.label()
 
         # TODO: BenM/assessor_of_assessors/parse each scan / assessor and
         # any select statements and generate one or more corresponding commands
@@ -756,9 +452,9 @@ defined by yaml file {}'
         commands = []
         variable_set = self.parser.get_variable_set(assr)
         combined_params = {}
-        for k, v in variable_set.iteritems():
+        for k, v in list(variable_set.items()):
             combined_params[k] = v
-        for k, v in self.user_overrides.iteritems():
+        for k, v in list(self.user_overrides.items()):
             combined_params[k] = v
 
         cmd = self.command.format(**combined_params)
@@ -785,7 +481,9 @@ defined by yaml file {}'
 class MoreAutoProcessor(AutoProcessor):
     """ More Auto Processor class for AutoSpider using YAML files"""
 
-    def __init__(self, xnat, yaml_source, user_inputs=None, singularity_imagedir=None):
+    def __init__(self, xnat, yaml_source, user_inputs=None,
+                 singularity_imagedir=None):
+
         """
         Entry point for the auto processor
 
@@ -880,7 +578,7 @@ class MoreAutoProcessor(AutoProcessor):
         # Set Outputs from Yaml
         self.outputs = doc.get('outputs')
 
-         # Set template
+        # Set template
         self.job_template = doc.get('jobtemplate', None)
 
     def _check_default_keys(self, source_id, doc):
@@ -954,10 +652,10 @@ class MoreAutoProcessor(AutoProcessor):
         var2val, input_list = self.parser.find_inputs(assr)
 
         # Append other stuff
-        for k, v in self.user_overrides.iteritems():
+        for k, v in list(self.user_overrides.items()):
             var2val[k] = v
 
-        for k, v in self.extra_user_overrides.iteritems():
+        for k, v in list(self.extra_user_overrides.items()):
             var2val[k] = v
 
         # Include the assessor label
@@ -987,7 +685,7 @@ class MoreAutoProcessor(AutoProcessor):
                     _val = assr.parent().assessor(_refval).attrs.get(_attr)
                 else:
                     print(_attr)
-                    print(assr.label())
+                    print((assr.label()))
                     _val = assr.attrs.get(_attr)
             else:
                 LOGGER.error('invalid YAML')
@@ -1028,7 +726,7 @@ class MoreAutoProcessor(AutoProcessor):
                         task.EDITS_RESOURCE,
                         _val)
 
-                     # Append to inputs to be downloaded
+                    # Append to inputs to be downloaded
                     input_list.append({
                         'fdest': _fpref,
                         'ftype': 'FILE',
@@ -1091,29 +789,25 @@ def processors_by_type(proc_list):
      first, then scan
 
     :param proc_list: List of Processor classes from the DAX settings file
-    :return: List of SessionProcessors, and list of ScanProcessors
+    :return: Lists of processors by type
 
     """
-    sess_proc_list = list()
-    scan_proc_list = list()
     auto_proc_list = list()
 
     # Build list of processors by type
     if proc_list is not None:
         for proc in proc_list:
-            if issubclass(proc.__class__, ScanProcessor):
-                scan_proc_list.append(proc)
-            elif issubclass(proc.__class__, SessionProcessor):
-                sess_proc_list.append(proc)
-            elif issubclass(proc.__class__, AutoProcessor):
+            if issubclass(proc.__class__, AutoProcessor):
                 auto_proc_list.append(proc)
             else:
                 LOGGER.warn('unknown processor type: %s' % proc)
 
-    return scan_proc_list, sess_proc_list, auto_proc_list
+    return auto_proc_list
 
 
-def load_from_yaml(xnat, filepath, user_inputs=None, singularity_imagedir=None):
+def load_from_yaml(xnat, filepath, user_inputs=None,
+                   singularity_imagedir=None):
+
     """
     Load processor from yaml
     :param filepath: path to yaml file
@@ -1122,6 +816,7 @@ def load_from_yaml(xnat, filepath, user_inputs=None, singularity_imagedir=None):
 
     yaml_obj = yaml_doc.YamlDoc().from_file(filepath)
     if yaml_obj.contents.get('moreauto'):
-        return MoreAutoProcessor(xnat, yaml_obj, user_inputs, singularity_imagedir)
+        return MoreAutoProcessor(xnat, yaml_obj, user_inputs,
+                                 singularity_imagedir)
     else:
         return AutoProcessor(xnat, yaml_obj, user_inputs)

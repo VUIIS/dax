@@ -7,7 +7,6 @@ Load TRACULA subject in freeview
 @author: Brian D. Boyd, Psychiatry, Vanderbilt University
 '''
 
-from __future__ import print_function
 
 import glob
 import os

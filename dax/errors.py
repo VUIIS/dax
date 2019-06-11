@@ -6,8 +6,6 @@
 Method related to errors and Custom Exceptions.
 """
 
-from __future__ import print_function
-
 import netrc
 import sys
 
@@ -96,7 +94,7 @@ class XnatToolsError(DaxError):
 class XnatToolsUserError(DaxError):
     """Xnat Tools Exception."""
     def __init__(self, script, message):
-        print('\n%s: error: %s' % (script, message))
+        print(('\n%s: error: %s' % (script, message)))
         sys.exc_info()[-1]
         sys.exit(self)
 

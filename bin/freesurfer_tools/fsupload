@@ -7,7 +7,6 @@ Upload manual edits to FreeSurfer subject on XNAT
 @author: Brian D. Boyd, Psychiatry, Vanderbilt University
 '''
 
-from __future__ import print_function
 
 import os
 import sys

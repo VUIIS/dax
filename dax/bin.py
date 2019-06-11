@@ -3,10 +3,6 @@
 
 """ File containing functions called by dax executables """
 
-from __future__ import print_function
-
-from builtins import str
-
 from datetime import datetime
 import imp
 import os
@@ -93,7 +89,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
     except Exception as e:
         logger.critical('Caught exception launching jobs in bin.launch_jobs')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
-                                                                e.message))
+                                                                str(e)))
         flagfile = os.path.join(os.path.join(
             DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.LAUNCH_SUFFIX))
@@ -134,7 +130,7 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
     except Exception as e:
         logger.critical('Caught exception building Project in bin.build')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
-                                                                e.message))
+                                                                str(e)))
         flagfile = os.path.join(os.path.join(
             DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
@@ -171,7 +167,7 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
     except Exception as e:
         logger.critical('Caught exception updating tasks in bin.update_tasks')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
-                                                                e.message))
+                                                                str(e)))
         flagfile = os.path.join(os.path.join(
             DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.UPDATE_SUFFIX))
@@ -281,8 +277,7 @@ def read_yaml_settings(yaml_file, logger):
 
             # processors:
             if proj_dict.get('processors'):
-                for proc_n in map(lambda s: s.strip(),
-                                  proj_dict.get('processors').split(',')):
+                for proc_n in [s.strip() for s in proj_dict.get('processors').split(',')]:
                     if project not in list(proj_proc.keys()):
                         proj_proc[project] = [procs[proc_n]]
                     else:
@@ -290,8 +285,7 @@ def read_yaml_settings(yaml_file, logger):
 
             # yaml_proc:
             if proj_dict.get('yamlprocessors'):
-                for yaml_n in map(lambda s: s.strip(),
-                                  proj_dict.get('yamlprocessors').split(',')):
+                for yaml_n in [s.strip() for s in proj_dict.get('yamlprocessors').split(',')]:
                     if project not in list(yaml_proc.keys()):
                         yaml_proc[project] = [yamlprocs[yaml_n]]
                     else:

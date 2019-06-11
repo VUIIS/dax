@@ -11,9 +11,6 @@ Edited on February 22, 2017
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
-from __future__ import print_function
-
-from builtins import str
 
 from datetime import datetime
 import os
@@ -175,7 +172,7 @@ set properly.\nTraceback: %s' % err
     if args.projects:
         print('INFO: Querying XNAT to get assessors for all the projects.')
         if args.projects == 'all':
-            #_uri = XnatUtils.PROJECTS_URI
+            # _uri = XnatUtils.PROJECTS_URI
             projects = [_p['ID'] for _p in xnat.get_projects()]
         elif args.projects:
             projects = args.projects.split(',')
@@ -188,9 +185,10 @@ set properly.\nTraceback: %s' % err
             assessors_list = XnatUtils.list_project_assessors(xnat, project)
             assessors.extend(assessors_list)
 
-            #Filter assessors:
-            assessors =filter_assessors(xnat,project,args, assessors, has_fs_datatypes,
-                                               full_project=True if projects else False)
+            # Filter assessors:
+            assessors = filter_assessors(
+                xnat, project, args, assessors, has_fs_datatypes,
+                full_project=True if projects else False)
 
             # Print number of assessors found:
             if projects and assessors:
@@ -199,7 +197,8 @@ set properly.\nTraceback: %s' % err
                     _format = '| %*s | %*s |'
                     _sep = ' ---------------------------------------------'
                     print(_sep)
-                    print(_format % (-20, 'Project ID', -20, 'Number of Assessors'))
+                    print(_format % (-20, 'Project ID', -20,
+                          'Number of Assessors'))
                     print(_sep)
                     for project in projects:
                         print(_format % (-20, project,
@@ -209,7 +208,7 @@ set properly.\nTraceback: %s' % err
     return assessors
 
 
-def filter_assessors(xnat,project,args, assessors, has_fs_datatypes=False,
+def filter_assessors(xnat, project, args, assessors, has_fs_datatypes=False,
                      full_project=False):
     """
     Function to filter the list of assessors to keep the ones respecting

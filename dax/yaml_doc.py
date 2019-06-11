@@ -1,9 +1,9 @@
 
 # TODO: BenM/general refactor/missing project requirement
 import yaml
-import StringIO
+from io import StringIO
 
-import XnatUtils
+from . import XnatUtils
 
 
 # TODO: BenM/general refactor/document if this is staying
@@ -14,7 +14,7 @@ class YamlDoc:
         self.contents = None
 
     def from_string(self, source):
-        contents = yaml.load((StringIO.StringIO(source)))
+        contents = yaml.load((StringIO.StringIO(source)), Loader=yaml.FullLoader)
         self.source_type = "string"
         self.source_id = "string source"
         self.contents = contents

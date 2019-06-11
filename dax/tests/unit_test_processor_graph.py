@@ -21,7 +21,6 @@ class TestLog:
 
 class ProcessorGraphUnitTests(TestCase):
 
-
     @staticmethod
     def __getabcdscenario():
         proc_a = yamls.generate_yaml(
@@ -98,7 +97,7 @@ class ProcessorGraphUnitTests(TestCase):
             'f': ['d', 'e']
         }
         actual = ProcessorGraph.order_from_inputs(graph_description, log)
-        print actual
+        print(actual)
 
 
     def test_ordered_processors_has_cycle(self):
@@ -113,33 +112,29 @@ class ProcessorGraphUnitTests(TestCase):
             'f': ['d', 'e']
         }
         actual = ProcessorGraph.order_from_inputs(graph_description, log)
-        print actual
-
+        print(actual)
 
     def test_processor_inputs_from_sources(self):
 
-        print ProcessorGraph.processor_inputs_from_sources(
+        print((ProcessorGraph.processor_inputs_from_sources(
             ProcessorGraphUnitTests.__getabcdscenario()
-        )
+        )))
 
 
     def test_ordering_from_sources(self):
         log = TestLog()
-        print ProcessorGraph.order_from_inputs(
+        print((ProcessorGraph.order_from_inputs(
             ProcessorGraph.processor_inputs_from_sources(
                 ProcessorGraphUnitTests.__getabcdscenario()
             ),
             log
-        )
-
+        )))
 
     def test_order_processors(self):
-        yamldocs = map(lambda p: p[1],
-                       ProcessorGraphUnitTests.__getabcdscenario())
-        processors = map(lambda p: AutoProcessor(common.FakeXnat, p), yamldocs)
+        yamldocs = [p[1] for p in ProcessorGraphUnitTests.__getabcdscenario()]
+        processors = [AutoProcessor(common.FakeXnat, p) for p in yamldocs]
         log = TestLog()
-        print ProcessorGraph.order_processors(processors, log)
-
+        print((ProcessorGraph.order_processors(processors, log)))
 
     def test_order_processors_mocked(self):
         class TestProcessor:
@@ -229,7 +224,7 @@ class ProcessorGraphUnitTests(TestCase):
 
         def impl(g, expected):
             actual = ProcessorGraph.tarjan(g)
-            print actual
+            print(actual)
             self.assertListEqual(actual, expected)
 
         g = {

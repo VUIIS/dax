@@ -87,7 +87,7 @@ class InterfaceTempUnitTests(TestCase):
         for prepost in itertools.product(prefix, postfix):
             for t in tests:
                 instr = prepost[0] + t[0] + prepost[1]
-                print 'testing ', instr
+                print(('testing ', instr))
                 self.assertEqual(
                     t[1],
                     XnatUtils.InterfaceTemp.object_type_from_path(instr),

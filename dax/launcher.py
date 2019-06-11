@@ -3,14 +3,9 @@
 
 """ launcher.py that represents the main object called by the executables """
 
-from builtins import input
-from builtins import str
-from builtins import object
-from past.builtins import basestring
 
 from datetime import datetime, timedelta
 import logging
-import redcap
 import sys
 import os
 import traceback
@@ -22,14 +17,9 @@ from .errors import (ClusterCountJobsException, ClusterLaunchException,
                      DaxXnatError, DaxLauncherError)
 from . import yaml_doc
 from .processor_graph import ProcessorGraph
-from .utilities import find_with_pred, groupby_to_dict, groupby_groupby_to_dict
+from .utilities import find_with_pred, groupby_to_dict
 
-try:
-    basestring
-except NameError:
-    basestring = str
-
-__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__copyright__ = 'Copyright 2019 Vanderbilt University. All Rights Reserved'
 __all__ = ['Launcher']
 DAX_SETTINGS = DAX_Settings()
 UPDATE_PREFIX = 'updated--'
@@ -37,6 +27,7 @@ UPDATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 BUILD_SUFFIX = 'BUILD_RUNNING.txt'
 UPDATE_SUFFIX = 'UPDATE_RUNNING.txt'
 LAUNCH_SUFFIX = 'LAUNCHER_RUNNING.txt'
+
 # Logger to print logs
 LOGGER = logging.getLogger('dax')
 
@@ -65,13 +56,16 @@ def check_dir(dir_path):
         if not os.path.isdir(dir_path):
             raise
 
+
 def task_needs_to_run(procstatus, qcstatus):
     return\
         procstatus in [task.NEED_TO_RUN, task.NEED_INPUTS] or\
         qcstatus in [task.RERUN, task.REPROC, task.DOES_NOT_EXIST]
 
+
 def task_needs_status_update(qcstatus):
     return qcstatus in [task.RERUN, task.REPROC]
+
 
 class Launcher(object):
     """ Launcher object to manage a list of projects from a settings file """
@@ -85,8 +79,7 @@ class Launcher(object):
                  root_job_dir=DAX_SETTINGS.get_root_job_dir(),
                  xnat_user=None, xnat_pass=None, xnat_host=None, cr=None,
                  job_email=None, job_email_options='bae', max_age=7,
-                 launcher_type=DAX_SETTINGS.get_launcher_type(),
-                 skip_lastupdate=None):
+                 launcher_type=DAX_SETTINGS.get_launcher_type()):
 
         """
         Entry point for the Launcher class
@@ -97,7 +90,8 @@ class Launcher(object):
         :param queue_limit: maximum number of jobs in the queue
         :param root_job_dir: root directory for jobs
         :param xnat_host: XNAT Host url. By default, use env variable.
-        :param cr: True if the host is an XNAT CR instance (will default to False if not specified)
+        :param cr: True if the host is an XNAT CR instance (will default to
+        :False if not specified)
         :param xnat_user: XNAT User ID. By default, use env variable.
         :param xnat_pass: XNAT Password. By default, use env variable.
         :param job_email: job email address for report
@@ -157,38 +151,30 @@ name as a key and list of yaml filepaths as values.'
 
         if isinstance(priority_project, list):
             self.priority_project = priority_project
-        elif isinstance(priority_project, basestring):
+        elif isinstance(priority_project, str):
             self.priority_project = priority_project.split(',')
         else:
             self.priority_project = None
+
         self.job_email = job_email
         self.job_email_options = job_email_options
         self.max_age = DAX_SETTINGS.get_max_age()
         self.launcher_type = launcher_type
-        if not skip_lastupdate or not skip_lastupdate.lower().startswith('y'):
-            self.skip_lastupdate = False
-        else:
-            self.skip_lastupdate = True
 
         # Creating Folders for flagfile/pbs/outlog in RESULTS_DIR
         res_dir = DAX_SETTINGS.get_results_dir()
-        if launcher_type in ['diskq-xnat', 'diskq-cluster', 'diskq-combined']:
-            check_dir(os.path.join(res_dir, 'DISKQ'))
-            check_dir(os.path.join(os.path.join(res_dir, 'DISKQ'), 'INPUTS'))
-            check_dir(os.path.join(os.path.join(res_dir, 'DISKQ'), 'OUTLOG'))
-            check_dir(os.path.join(os.path.join(res_dir, 'DISKQ'), 'BATCH'))
-            check_dir(os.path.join(res_dir, 'FlagFiles'))
-        else:
-            check_dir(res_dir)
-            check_dir(os.path.join(res_dir, 'FlagFiles'))
-            check_dir(os.path.join(res_dir, 'OUTLOG'))
-            check_dir(os.path.join(res_dir, 'PBS'))
+        check_dir(os.path.join(res_dir, 'DISKQ'))
+        check_dir(os.path.join(os.path.join(res_dir, 'DISKQ'), 'INPUTS'))
+        check_dir(os.path.join(os.path.join(res_dir, 'DISKQ'), 'OUTLOG'))
+        check_dir(os.path.join(os.path.join(res_dir, 'DISKQ'), 'BATCH'))
+        check_dir(os.path.join(res_dir, 'FlagFiles'))
 
         self.xnat_host = xnat_host
         if not self.xnat_host:
             self.xnat_host = os.environ['XNAT_HOST']
 
-        # CR flag: don't want something like 'cr: blah blah' in the settings file turning the cr flag on
+        # CR flag: don't want something like 'cr: blah blah' in the settings
+        # file turning the cr flag on
         if str(cr).upper() == 'TRUE':
             self.cr = True
         else:
@@ -207,8 +193,8 @@ name as a key and list of yaml filepaths as values.'
             self.xnat_user = xnat_user
             if not xnat_pass:
                 msg = 'Please provide password for host <%s> and user <%s>: '
-                self.xnat_pass = input(msg % (self.xnat_host,
-                                              self.xnat_user))
+                self.xnat_pass = eval(input(msg % (self.xnat_host,
+                                              self.xnat_user)))
             else:
                 self.xnat_pass = xnat_pass
 
@@ -232,10 +218,9 @@ name as a key and list of yaml filepaths as values.'
             err = 'cannot launch jobs with this launcher type: %s'
             raise DaxLauncherError(err % self.launcher_type)
 
-        LOGGER.info('-------------- Launch Tasks --------------\n')
+        LOGGER.info('-------------- Launch Tasks --------------')
         LOGGER.info('launcher_type = %s' % self.launcher_type)
 
-        intf = None
         res_dir = DAX_SETTINGS.get_results_dir()
         flagfile = os.path.join(os.path.join(res_dir, 'FlagFiles'),
                                 '%s_%s' % (lockfile_prefix, LAUNCH_SUFFIX))
@@ -243,39 +228,17 @@ name as a key and list of yaml filepaths as values.'
         project_list = self.init_script(flagfile, project_local,
                                         type_update=3, start_end=1)
 
-        if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
-            msg = 'Loading task queue from: %s'
-            LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-            task_list = load_task_queue(
-                status=task.NEED_TO_RUN,
-                proj_filter=list(set(
-                    self.project_process_dict.keys() + self.project_modules_dict.keys())))
+        msg = 'Loading task queue from: %s'
+        LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
+        task_list = load_task_queue(
+            status=task.NEED_TO_RUN,
+            proj_filter=list(set(
+                list(self.project_process_dict.keys()) +
+                list(self.project_modules_dict.keys()))))
 
-            msg = '%s tasks that need to be launched found'
-            LOGGER.info(msg % str(len(task_list)))
-            self.launch_tasks(task_list, force_no_qsub=force_no_qsub)
-        else:
-            LOGGER.info('Connecting to XNAT at %s' % self.xnat_host)
-            with XnatUtils.get_interface(self.xnat_host, self.xnat_user,
-                                         self.xnat_pass) as intf:
-
-                if not XnatUtils.has_dax_datatypes(intf):
-                    err = 'dax datatypes are not installed on xnat <%s>'
-                    raise DaxXnatError(err % (self.xnat_host))
-
-                LOGGER.info('Getting launchable tasks list...')
-                task_list = self.get_tasks(intf,
-                                           self.is_launchable_tasks,
-                                           project_list,
-                                           sessions_local)
-
-                msg = '%s tasks that need to be launched found'
-                LOGGER.info(msg % str(len(task_list)))
-
-                # Launch the task that need to be launch
-                self.launch_tasks(task_list, writeonly, pbsdir,
-                                  force_no_qsub=force_no_qsub)
-
+        msg = '%s tasks that need to be launched found'
+        LOGGER.info(msg % str(len(task_list)))
+        self.launch_tasks(task_list, force_no_qsub=force_no_qsub)
         self.finish_script(flagfile, project_list, 3, 2, project_local)
 
     @staticmethod
@@ -332,21 +295,12 @@ cluster queue"
                 LOGGER.info(msg % (cur_task.assessor_label, str(cjobs)))
 
             try:
-                if self.launcher_type in ['diskq-cluster',
-                                          'diskq-combined']:
-                    success = cur_task.launch(force_no_qsub=force_no_qsub)
-                else:
-                    success = cur_task.launch(self.root_job_dir,
-                                              self.job_email,
-                                              self.job_email_options,
-                                              self.xnat_host,
-                                              writeonly, pbsdir,
-                                              force_no_qsub=force_no_qsub)
+                success = cur_task.launch(force_no_qsub=force_no_qsub)
             except Exception as E:
                 LOGGER.critical('Caught exception launching job %s'
                                 % cur_task.assessor_label)
                 LOGGER.critical('Exception class %s caught with message %s'
-                                % (E.__class__, E.message))
+                                % (E.__class__, str(E)))
                 LOGGER.critical(traceback.format_exc())
 
                 success = False
@@ -377,49 +331,26 @@ cluster queue"
             err = 'cannot update jobs with this launcher type: %s'
             raise DaxLauncherError(err % self.launcher_type)
 
-        LOGGER.info('-------------- Update Tasks --------------\n')
+        LOGGER.info('-------------- Update Tasks --------------')
         LOGGER.info('launcher_type = %s' % self.launcher_type)
 
-        intf = None
         res_dir = DAX_SETTINGS.get_results_dir()
         flagfile = os.path.join(os.path.join(res_dir, 'FlagFiles'),
                                 '%s_%s' % (lockfile_prefix, UPDATE_SUFFIX))
         project_list = self.init_script(flagfile, project_local,
                                         type_update=2, start_end=1)
 
-        if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
-            msg = 'Loading task queue from: %s'
-            LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-            task_list = load_task_queue(
-                proj_filter=list(self.project_process_dict.keys()))
+        msg = 'Loading task queue from: %s'
+        LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
+        task_list = load_task_queue(
+            proj_filter=list(self.project_process_dict.keys()))
 
-            LOGGER.info('%s tasks found.' % str(len(task_list)))
+        LOGGER.info('%s tasks found.' % str(len(task_list)))
 
-            LOGGER.info('Updating tasks...')
-            for cur_task in task_list:
-                LOGGER.info('Updating task: %s' % cur_task.assessor_label)
-                cur_task.update_status()
-        else:
-            LOGGER.info('Connecting to XNAT at %s' % self.xnat_host)
-            with XnatUtils.get_interface(self.xnat_host, self.xnat_user,
-                                         self.xnat_pass) as intf:
-
-                if not XnatUtils.has_dax_datatypes(intf):
-                    err = 'error: dax datatypes are not installed on xnat <%s>'
-                    raise DaxXnatError(err % (self.xnat_host))
-
-                LOGGER.info('Getting task list...')
-                task_list = self.get_tasks(intf,
-                                           self.is_updatable_tasks,
-                                           project_list,
-                                           sessions_local)
-
-                LOGGER.info('%s open tasks found' % str(len(task_list)))
-                LOGGER.info('Updating tasks...')
-                for cur_task in task_list:
-                    msg = '     Updating task: %s'
-                    LOGGER.info(msg % cur_task.assessor_label)
-                    cur_task.update_status()
+        LOGGER.info('Updating tasks...')
+        for cur_task in task_list:
+            LOGGER.info('Updating task: %s' % cur_task.assessor_label)
+            cur_task.update_status()
 
         self.finish_script(flagfile, project_list, 2, 2, project_local)
 
@@ -453,7 +384,7 @@ cluster queue"
             err = 'cannot build jobs with this launcher type: %s'
             raise DaxLauncherError(err % self.launcher_type)
 
-        LOGGER.info('-------------- Build --------------\n')
+        LOGGER.info('-------------- Build --------------')
         LOGGER.info('launcher_type = %s' % self.launcher_type)
         LOGGER.info('mod delta = %s' % str(mod_delta))
 
@@ -495,7 +426,7 @@ cluster queue"
                     err1 = 'Caught exception building project %s'
                     err2 = 'Exception class %s caught with message %s'
                     LOGGER.critical(err1 % project_id)
-                    LOGGER.critical(err2 % (E.__class__, E.message))
+                    LOGGER.critical(err2 % (E.__class__, str(E)))
                     LOGGER.critical(traceback.format_exc())
 
         self.finish_script(flagfile, project_list, 1, 2, project_local)
@@ -518,17 +449,15 @@ cluster queue"
         else:
             self.module_prerun(project_id, lockfile_prefix)
 
-        # TODO: make a project settings to store skip_lastupdate, processors,
+        # TODO: make a project settings to store, processors,
         #       modules, etc
 
         # Get lists of modules/processors per scan/exp for this project
         proj_mods = self.project_modules_dict.get(project_id, None)
         proj_procs = self.project_process_dict.get(project_id, None)
         exp_mods, scan_mods = modules.modules_by_type(proj_mods)
-        scan_procs, session_procs, auto_procs =\
-            processors.processors_by_type(proj_procs)
+        auto_procs = processors.processors_by_type(proj_procs)
         auto_procs = ProcessorGraph.order_processors(auto_procs, LOGGER)
-
 
         if mod_delta:
             lastmod_delta = str_to_timedelta(mod_delta)
@@ -536,40 +465,27 @@ cluster queue"
             lastmod_delta = None
 
         # get the list of processors for this project
-        processor_types = set(map(lambda x: x.name, session_procs + scan_procs + auto_procs))
+        processor_types = set([x.name for x in auto_procs])
 
         sessions_by_subject = groupby_to_dict(
             self.get_sessions_list(intf, project_id, sessions_local),
             lambda x: x['subject_id'])
 
-        # check to see if there are processor types that are new to this project
-        assessors = XnatUtils.list_project_assessors(intf, project_id)
+        # check for processor types that are new to this project
+        assessors = intf.list_project_assessors(project_id)
         has_new = self.has_new_processors(assessors, processor_types)
 
-        for subject_id, sessions in sessions_by_subject.items():
+        for subject_id, sessions in list(sessions_by_subject.items()):
             # Get the cached session objects for this subject
 
             sessions_to_update = dict()
+
             # Check which sessions (if any) require an update:
             for sess_info in sessions:
+                if lastrun:
+                    last_mod = datetime.strptime(
+                        sess_info['last_modified'][0:19], UPDATE_FORMAT)
 
-                if not self.skip_lastupdate and not has_new and not sessions_local:
-                    last_mod = datetime.strptime(sess_info['last_modified'][0:19],
-                                                 UPDATE_FORMAT)
-                    now_date = datetime.today()
-                    last_up = self.get_lastupdated(sess_info)
-                    if last_up is not None and \
-                            last_mod < last_up and \
-                            now_date < last_mod + timedelta(days=int(self.max_age)):
-                        mess = "  + Session %s: skipping, last_mod=%s,last_up=%s"
-                        mess_str = mess % (sess_info['label'], str(last_mod),
-                                           str(last_up))
-                        LOGGER.info(mess_str)
-                        continue
-
-                elif lastrun:
-                    last_mod = datetime.strptime(sess_info['last_modified'][0:19],
-                                                 UPDATE_FORMAT)
                     if last_mod < lastrun:
                         mess = "  + Session %s:skipping not modified since last run,\
      last_mod=%s, last_run=%s"
@@ -578,8 +494,8 @@ cluster queue"
                         continue
 
                 elif lastmod_delta:
-                    last_mod = datetime.strptime(sess_info['last_modified'][0:19],
-                                                 UPDATE_FORMAT)
+                    last_mod = datetime.strptime(
+                        sess_info['last_modified'][0:19], UPDATE_FORMAT)
                     now_date = datetime.today()
                     if now_date > last_mod + lastmod_delta:
                         mess = "  + Session %s:skipping not modified within delta,\
@@ -596,80 +512,60 @@ cluster queue"
             if len(sessions_to_update) == 0:
                 continue
 
-            # build a full list of sessions for the subject: they may be needed even if not all sessions are getting
-            # updated
+            # build a full list of sessions for the subject: they may be needed
+            # even if not all sessions are getting updated
             cached_sessions = [XnatUtils.CachedImageSession(
-                intf, x['project_label'], x['subject_label'], x['session_label']) for x in sessions]
-            cached_sessions = sorted(cached_sessions, key=lambda s: s.creation_timestamp_, reverse=True)
+                intf, x['project_label'], x['subject_label'],
+                x['session_label']) for x in sessions]
+            cached_sessions = sorted(
+                cached_sessions,
+                key=lambda s: s.creation_timestamp_, reverse=True)
 
             # update each of the sessions that require it
-
-            for sess_info in sessions_to_update.values():
-
-                if not self.skip_lastupdate:
-                    update_start_time = datetime.now()
-
+            for sess_info in list(sessions_to_update.values()):
                 try:
                     # TODO: BenM - ensure that this code is robust to subjects
                     # without sessions and sessions without assessors / scans
                     self.build_session(
-                        intf, sess_info, session_procs, scan_procs, auto_procs,
-                        exp_mods, scan_mods,
+                        intf, sess_info, auto_procs, exp_mods, scan_mods,
                         sessions=cached_sessions)
                 except Exception as E:
                     err1 = 'Caught exception building sessions %s'
                     err2 = 'Exception class %s caught with message %s'
                     LOGGER.critical(err1 % sess_info['session_label'])
-                    LOGGER.critical(err2 % (E.__class__, E.message))
+                    LOGGER.critical(err2 % (E.__class__, str(E)))
                     LOGGER.critical(traceback.format_exc())
 
-                try:
-                    if not self.skip_lastupdate:
-                        self.set_session_lastupdated(intf, self.cr, sess_info,
-                                                     update_start_time)
-                except Exception as E:
-                    err1 = 'Caught exception setting session timestamp %s'
-                    err2 = 'Exception class %s caught with message %s'
-                    LOGGER.critical(err1 % sess_info['session_label'])
-                    LOGGER.critical(err2 % (E.__class__, E.message))
-                    LOGGER.critical(traceback.format_exc())
-
-            if not sessions_local or sessions_local.lower() == 'all':
-                # Modules after run
-                LOGGER.debug('* Modules Afterrun')
-                try:
-                    self.module_afterrun(intf, project_id)
-                except Exception as E:
-                    err2 = 'Exception class %s caught with message %s'
-                    LOGGER.critical('Caught exception after running modules')
-                    LOGGER.critical(err2 % (E.__class__, E.message))
-                    LOGGER.critical(traceback.format_exc())
-
+        if not sessions_local or sessions_local.lower() == 'all':
+            # Modules after run
+            LOGGER.debug('* Modules Afterrun')
+            try:
+                self.module_afterrun(intf, project_id)
+            except Exception as E:
+                err2 = 'Exception class %s caught with message %s'
+                LOGGER.critical('Caught exception after running modules')
+                LOGGER.critical(err2 % (E.__class__, str(E)))
+                LOGGER.critical(traceback.format_exc())
 
     # TODO:BenM/assessor_of_assessor/modify from here for one to many
     # processor to assessor mapping
-    def build_session(self, intf, sess_info,
-                      sess_proc_list, scan_proc_list, auto_proc_list,
+    def build_session(self, intf, sess_info, auto_proc_list,
                       sess_mod_list, scan_mod_list,
-                      sessions=None):
+                      sessions):
         """
         Build a session
 
 
         :param intf: pyxnat.Interface object
         :param sess_info: python ditionary from XnatUtils.list_sessions method
-        :param sess_proc_list: list of processors running on a session
-        :param scan_proc_list: list of processors running on a scan
+        :param auto_proc_list: list of processors running
         :param sess_mod_list: list of modules running on a session
         :param scan_mod_list: list of modules running on a scan
         :return: None
         """
 
-        if sessions is None:
-            LOGGER.critical('build_session must be provided with a list of cached sessions')
-            return
-
-        csess = find_with_pred(sessions, lambda s: sess_info['label'] == s.session_id())
+        csess = find_with_pred(
+            sessions, lambda s: sess_info['label'] == s.session_id())
 
         # Modules
         mod_count = 0
@@ -693,91 +589,10 @@ cluster queue"
             csess.reload()
             mod_count += 1
 
-        # Scan Processors
-        LOGGER.debug('== Build scan processors ==')
-        if scan_proc_list:
-            for cscan in csess.scans():
-                LOGGER.debug('+SCAN: ' + cscan.info()['scan_id'])
-                self.build_scan_processors(intf, cscan, scan_proc_list)
-
-        # Session Processors
-        LOGGER.debug('== Build session processors ==')
-        if sess_proc_list:
-            self.build_session_processors(intf, csess, sess_proc_list)
-
         # Auto Processors
-        LOGGER.debug('== Build auto processors ==')
         if auto_proc_list:
+            LOGGER.debug('== Build auto processors ==')
             self.build_auto_processors(csess, auto_proc_list, sessions)
-
-
-    def build_session_processors(self, xnat, csess, sess_proc_list):
-        """ Build Session processors.
-
-        :param xnat: pyxnat.Interface object
-        :param csess: CachedObject for Session (XnatUtils)
-        :param sess_proc_list: list of processors running on a session
-        :return: None
-        """
-        sess_info = csess.info()
-        res_dir = DAX_SETTINGS.get_results_dir()
-
-        for sess_proc in sess_proc_list:
-            if not sess_proc.should_run(sess_info):
-                continue
-
-            p_assr, assr_name = sess_proc.get_assessor(csess)
-
-            if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
-                if p_assr is None or \
-                   p_assr.info()['procstatus'] == task.NEED_INPUTS or \
-                   p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
-                    assessor = csess.full_object().assessor(assr_name)
-                    xtask = XnatTask(sess_proc, assessor, res_dir,
-                                     os.path.join(res_dir, 'DISKQ'))
-
-                    if p_assr is not None and \
-                       p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
-                        xtask.update_status()
-
-                    LOGGER.debug('building task:' + assr_name)
-                    (proc_status, qc_status) = xtask.build_task(
-                        csess,
-                        self.root_job_dir,
-                        self.job_email,
-                        self.job_email_options)
-                    deg = 'proc_status=%s, qc_status=%s'
-                    LOGGER.debug(deg % (proc_status, qc_status))
-                else:
-                    # TODO: check that it actually exists in QUEUE
-                    LOGGER.debug('skipping, already built: %s' % assr_name)
-            else:
-                if p_assr is None or \
-                   p_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    sess_task = sess_proc.get_task(xnat, csess, res_dir)
-                    log_updating_status(sess_proc.name,
-                                        sess_task.assessor_label)
-                    has_inputs, qcstatus = sess_proc.has_inputs(csess)
-                    try:
-                        if has_inputs == 1:
-                            sess_task.set_status(task.NEED_TO_RUN)
-                            sess_task.set_qcstatus(task.JOB_PENDING)
-                        elif has_inputs == -1:
-                            sess_task.set_status(task.NO_DATA)
-                            sess_task.set_qcstatus(qcstatus)
-                        else:
-                            sess_task.set_qcstatus(qcstatus)
-                    except Exception as E:
-                        err1 = 'Caught exception building session %s while \
-setting assessor status'
-                        err2 = 'Exception class %s caught with message %s'
-                        LOGGER.critical(err1 % sess_info['session_label'])
-                        LOGGER.critical(err2 % (E.__class__, E.message))
-                        LOGGER.critical(traceback.format_exc())
-                else:
-                    # Other statuses handled by dax_update_tasks
-                    pass
-
 
     def build_session_modules(self, xnat, csess, sess_mod_list):
         """
@@ -802,84 +617,8 @@ setting assessor status'
                     err1 = 'Caught exception building session module %s'
                     err2 = 'Exception class %s caught with message %s'
                     LOGGER.critical(err1 % sess_info['session_label'])
-                    LOGGER.critical(err2 % (E.__class__, E.message))
+                    LOGGER.critical(err2 % (E.__class__, str(E)))
                     LOGGER.critical(traceback.format_exc())
-
-    # TODO: BenM/assessor_of_assessors/the list of candidate assessors is
-    # generated by the available artefacts in the session. We should only
-    # need to create the assessor if it doesn't exist, so Task/XnatTask can
-    # lose the rechecking
-    def build_scan_processors(self, xnat, cscan, scan_proc_list):
-        """
-        Build the scan
-
-        :param xnat: pyxnat.Interface object
-        :param cscan: CachedImageScan from XnatUtils
-        :param scan_proc_list: list of processors running on a scan
-        :param scan_mod_list: list of modules running on a scan
-        :return: None
-        """
-        scan_info = cscan.info()
-        res_dir = DAX_SETTINGS.get_results_dir()
-
-        # Processors
-        for scan_proc in scan_proc_list:
-            if not scan_proc.should_run(scan_info):
-                continue
-
-            p_assr, assr_name = scan_proc.get_assessor(cscan)
-
-            if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
-                if p_assr is None or \
-                   p_assr.info()['procstatus'] in [task.NEED_INPUTS,
-                                                   task.NEED_TO_RUN] or \
-                   p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
-                    # TODO: get session object directly
-                    scan = XnatUtils.get_full_object(xnat, scan_info)
-                    assessor = scan.parent().assessor(assr_name)
-                    xtask = XnatTask(scan_proc, assessor, res_dir,
-                                     os.path.join(res_dir, 'DISKQ'))
-
-                    if p_assr is not None and \
-                       p_assr.info()['qcstatus'] in [task.RERUN, task.REPROC]:
-                        xtask.update_status()
-
-                    LOGGER.debug('building task:' + assr_name)
-                    (proc_status, qc_status) = xtask.build_task(
-                        cscan,
-                        self.root_job_dir,
-                        self.job_email,
-                        self.job_email_options)
-                    deg = 'proc_status=%s, qc_status=%s'
-                    LOGGER.debug(deg % (proc_status, qc_status))
-                else:
-                    # TODO: check that it actually exists in QUEUE
-                    LOGGER.debug('skipping, already built:' + assr_name)
-            else:
-                if p_assr is None or \
-                   p_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    scan_task = scan_proc.get_task(xnat, cscan, res_dir)
-                    log_updating_status(scan_proc.name,
-                                        scan_task.assessor_label)
-                    has_inputs, qcstatus = scan_proc.has_inputs(cscan)
-                    try:
-                        if has_inputs == 1:
-                            scan_task.set_status(task.NEED_TO_RUN)
-                            scan_task.set_qcstatus(task.JOB_PENDING)
-                        elif has_inputs == -1:
-                            scan_task.set_status(task.NO_DATA)
-                            scan_task.set_qcstatus(qcstatus)
-                        else:
-                            scan_task.set_qcstatus(qcstatus)
-                    except Exception as E:
-                        err1 = 'Caught exception building sessions %s'
-                        err2 = 'Exception class %s caught with message %s'
-                        LOGGER.critical(err1 % scan_info['session_label'])
-                        LOGGER.critical(err2 % (E.__class__, E.message))
-                        LOGGER.critical(traceback.format_exc())
-                else:
-                    # Other statuses handled by dax_update_open_tasks
-                    pass
 
     def build_scan_modules(self, xnat, cscan, scan_mod_list):
         """ Build Scan modules.
@@ -906,125 +645,78 @@ setting assessor status'
 in session %s'
                     err2 = 'Exception class %s caught with message %s'
                     LOGGER.critical(err1 % scan_info['session_label'])
-                    LOGGER.critical(err2 % (E.__class__, E.message))
+                    LOGGER.critical(err2 % (E.__class__, str(E)))
                     LOGGER.critical(traceback.format_exc())
 
-
-    def build_auto_processors(self, csess, sess_proc_list, sessions):
+    def build_auto_processors(self, csess, auto_proc_list, sessions):
         """ Build yaml-based processors.
 
         :param xnat: pyxnat.Interface object
         :param csess: CachedObject for Session (XnatUtils)
-        :param sess_proc_list: list of yaml processors
+        :param auto_proc_list: list of yaml processors
         :return: None
         """
         sess_info = csess.info()
         res_dir = DAX_SETTINGS.get_results_dir()
         xnat_session = csess.full_object()
 
-        for sess_proc in sess_proc_list:
-            if not sess_proc.should_run(sess_info):
+        for auto_proc in auto_proc_list:
+            if not auto_proc.should_run(sess_info):
                 continue
 
             # TODO: use mod time to decide if we need to reload
-            csess.reload()
+            if False:
+                csess.reload()
+            else:
+                print('DEBUG:skipping csess reload')
 
             # return a mapping between the assessor input sets and existing
             # assessors that map to those input sets
-            sess_proc.parse_session(csess, sessions)
-            mapping = sess_proc.get_assessor_mapping()
+            auto_proc.parse_session(csess, sessions)
+            mapping = auto_proc.get_assessor_mapping()
 
             if mapping is None:
                 continue
-                
-            if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
-                for inputs, p_assrs in mapping:
-                    if len(p_assrs) == 0:
-                        assessor = sess_proc.create_assessor(xnat_session,
-                                                             inputs, relabel=True)
-                        assessors =\
-                            [(assessor, task.NEED_TO_RUN, task.DOES_NOT_EXIST)]
+
+            for inputs, p_assrs in mapping:
+                if len(p_assrs) == 0:
+                    assessor = auto_proc.create_assessor(
+                        xnat_session, inputs, relabel=True)
+                    assessors =\
+                        [(assessor, task.NEED_TO_RUN, task.DOES_NOT_EXIST)]
+                else:
+                    assessors = []
+                    for p in p_assrs:
+                        info = p.info()
+                        procstatus = info['procstatus']
+                        qcstatus = info['qcstatus']
+                        assessors.append(
+                            (p.full_object(), procstatus, qcstatus))
+
+                for assessor in assessors:
+                    procstatus = assessor[1]
+                    qcstatus = assessor[2]
+                    if task_needs_to_run(procstatus, qcstatus):
+                        xtask = XnatTask(auto_proc, assessor[0], res_dir,
+                                         os.path.join(res_dir, 'DISKQ'))
+
+                        if task_needs_status_update(qcstatus):
+                            xtask.update_status()
+
+                        LOGGER.debug(
+                            'building task: ' + assessor[0].label())
+                        (proc_status, qc_status) = xtask.build_task(
+                            assessor[0],
+                            self.root_job_dir,
+                            self.job_email,
+                            self.job_email_options)
+                        deg = 'proc_status=%s, qc_status=%s'
+                        LOGGER.debug(deg % (proc_status, qc_status))
                     else:
-                        assessors = []
-                        for p in p_assrs:
-                            info = p.info()
-                            procstatus = info['procstatus']
-                            qcstatus = info['qcstatus']
-                            assessors.append(
-                                (p.full_object(), procstatus, qcstatus))
-
-                    for assessor in assessors:
-                        procstatus = assessor[1]
-                        qcstatus = assessor[2]
-                        if task_needs_to_run(procstatus, qcstatus):
-                            xtask = XnatTask(sess_proc, assessor[0], res_dir,
-                                             os.path.join(res_dir, 'DISKQ'))
-
-                            if task_needs_status_update(qcstatus):
-                                xtask.update_status()
-
-                            LOGGER.debug(
-                                'building task: ' + assessor[0].label())
-                            (proc_status, qc_status) = xtask.build_task(
-                                assessor[0],
-                                self.root_job_dir,
-                                self.job_email,
-                                self.job_email_options)
-                            deg = 'proc_status=%s, qc_status=%s'
-                            LOGGER.debug(deg % (proc_status, qc_status))
-                        else:
-                            # TODO: check that it actually exists in QUEUE
-                            LOGGER.debug(
-                                'skipping, already built: ' +
-                                assessor[0].label())
-            else:
-                for inputs, p_assrs in mapping:
-                    if len(p_assrs) == 0:
-                        assessor = sess_proc.create_assessor(xnat_session,
-                                                             inputs)
-                        assessors =\
-                            [(assessor, task.NEED_TO_RUN, task.DOES_NOT_EXIST)]
-                    else:
-                        assessors = []
-                        for p in p_assrs:
-                            info = p.info()
-                            procstatus = info['procstatus']
-                            qcstatus = info['qcstatus']
-                            assessors.append(
-                                (p.full_object(), procstatus, qcstatus))
-
-                    for assessor in assessors:
-                        procstatus = assessor[1]
-                        qcstatus = assessor[2]
-                        if task_needs_to_run(procstatus, qcstatus):
-                            sess_task =\
-                                task.Task(sess_proc, assessor[0], res_dir)
-
-                            log_updating_status(sess_proc.name,
-                                                sess_task.assessor_label)
-                            has_inputs, qcerrors =\
-                                sess_proc.has_inputs(assessor[0])
-                            try:
-                                if has_inputs == 1:
-                                    sess_task.set_status(task.NEED_TO_RUN)
-                                    sess_task.set_qcstatus(task.JOB_PENDING)
-                                else:
-                                    errorstr =\
-                                        '\n'.join((q[1] for q in qcerrors))
-                                    sess_task.set_qcstatus(errorstr)
-                                    if has_inputs == -1:
-                                        sess_task.set_status(task.NO_DATA)
-                            except Exception as E:
-                                err1 = 'Caught exception building session %s while \
-        setting assessor status'
-                                err2 = 'Exception class %s caught with message %s'
-                                LOGGER.critical(err1 % sess_info['session_label'])
-                                LOGGER.critical(err2 % (E.__class__, E.message))
-                                LOGGER.critical(traceback.format_exc())
-                        else:
-                            # Other statuses handled by dax_update_tasks
-                            pass
-
+                        # TODO: check that it actually exists in QUEUE
+                        LOGGER.debug(
+                            'skipping, already built: ' +
+                            assessor[0].label())
 
     def module_prerun(self, project_id, settings_filename=''):
         """
@@ -1042,10 +734,8 @@ in session %s'
                 err1 = 'Caught exception in module prerun for project %s'
                 err2 = 'Exception class %s caught with message %s'
                 LOGGER.critical(err1 % project_id)
-                LOGGER.critical(err2 % (E.__class__, E.message))
+                LOGGER.critical(err2 % (E.__class__, str(E)))
                 LOGGER.critical(traceback.format_exc())
-
-        #LOGGER.debug('\n')
 
     def module_afterrun(self, xnat, project_id):
         """
@@ -1062,10 +752,8 @@ in session %s'
                 err1 = 'Caught exception in module prerun for project %s'
                 err2 = 'Exception class %s caught with message %s'
                 LOGGER.critical(err1 % project_id)
-                LOGGER.critical(err2 % (E.__class__, E.message))
+                LOGGER.critical(err2 % (E.__class__, str(E)))
                 LOGGER.critical(traceback.format_exc())
-
-        LOGGER.debug('\n')
 
     # Generic Methods
     def init_script(self, flagfile, project_local, type_update, start_end):
@@ -1104,8 +792,7 @@ The project is not part of the settings."""
             if not success:
                 LOGGER.warn('failed to get lock. Already running.')
                 exit(1)
-            # Set the date on REDCAP for update starting
-            upload_update_date_redcap(project_list, type_update, start_end)
+
         return project_list
 
     def finish_script(self, flagfile, project_list, type_update,
@@ -1123,8 +810,6 @@ The project is not part of the settings."""
         """
         if not project_local:
             self.unlock_flagfile(flagfile)
-            # Set the date on REDCAP for update ending
-            upload_update_date_redcap(project_list, type_update, start_end)
 
     @staticmethod
     def lock_flagfile(lock_file):
@@ -1200,7 +885,7 @@ The project is not part of the settings."""
 
         # Get lists of processors for this project
         pp_dict = self.project_process_dict.get(project_id, None)
-        sess_procs, scan_procs, auto_procs =\
+        auto_procs =\
             processors.processors_by_type(pp_dict)
 
         # Get lists of assessors for this project
@@ -1209,36 +894,22 @@ The project is not part of the settings."""
         # Match each assessor to a processor, get a task, and add to list
         for assr_info in assr_list:
             if is_valid_assessor(assr_info):
-                cur_task = self.generate_task(xnat, assr_info, sess_procs,
-                                              scan_procs, auto_procs)
+                cur_task = self.generate_task(xnat, assr_info, auto_procs)
                 if cur_task:
                     task_list.append(cur_task)
 
         return task_list
 
     @staticmethod
-    def match_proc(assr_info, sess_proc_list, scan_proc_list, auto_proc_list):
+    def match_proc(assr_info, auto_proc_list):
         """
         Check if an assessor is a match with the processors
 
         :param assr_info: dictionary containing the assessor info
                           (See XnatUtils.list_assessors)
-        :param sess_proc_list: list of processors running on a session
-        :param scan_proc_list: list of processors running on a scan
+        :param auto_proc_list: list of processors running
         :return: processor if found, None otherwise
         """
-        # Look for a match in sess processors
-        for sess_proc in sess_proc_list:
-            if sess_proc.xsitype == assr_info['xsiType'] and \
-                    sess_proc.name == assr_info['proctype']:
-                return sess_proc
-
-        # Look for a match in scan processors
-        for scan_proc in scan_proc_list:
-            if scan_proc.xsitype == assr_info['xsiType'] and \
-                    scan_proc.name == assr_info['proctype']:
-                return scan_proc
-
         # Look for a match in yaml processors
         for auto_proc in auto_proc_list:
             if auto_proc.xsitype == assr_info['xsiType'] and \
@@ -1247,23 +918,17 @@ The project is not part of the settings."""
 
         return None
 
-    def generate_task(self, xnat, assr_info,
-                      sess_proc_list, scan_proc_list, auto_proc_list):
+    def generate_task(self, xnat, assr_info, auto_proc_list):
         """
         Generate a task for the assessor in the info
 
         :param xnat: pyxnat.Interface object
         :param assr_info: dictionary containing the assessor info
                           (See XnatUtils.list_assessors)
-        :param sess_proc_list: list of processors running on a session
-        :param scan_proc_list: list of processors running on a scan
         :param auto_proc_list: list of yaml processors
         :return: task if processor and assessor match, None otherwise
         """
-        task_proc = self.match_proc(assr_info,
-                                    sess_proc_list,
-                                    scan_proc_list,
-                                    auto_proc_list)
+        task_proc = self.match_proc(assr_info, auto_proc_list)
 
         if task_proc is None:
             warn = 'no matching processor found: %s'
@@ -1318,15 +983,15 @@ The project is not part of the settings."""
         if slocal and slocal.lower() != 'all':
             # filter the list and keep the match between both list:
             val = slocal.split(',')
-            #list_sessions = [x for x in list_sessions if x['label'] in val]
-            list_sessions = filter(lambda x: x['label'] in val, list_sessions)
+            list_sessions = list(
+                [x for x in list_sessions if x['label'] in val])
             if not list_sessions:
                 warn = 'No session from XNAT matched the sessions given: %s .'
                 LOGGER.warn(warn % slocal)
 
-        # Sort sessions: first the new sessions that have never been updated
-        sorted_list = [s for s in list_sessions if not s['last_updated']]
-        new_sessions_label = [sess['label'] for sess in sorted_list]
+        # TODO: sort by last modified
+        sorted_list = list_sessions
+        new_sessions_label = [sess['label'] for sess in list_sessions]
         for session in list_sessions:
             if not session['label'] in new_sessions_label:
                 sorted_list.append(session)
@@ -1345,68 +1010,6 @@ The project is not part of the settings."""
         return self.priority_project + random_project
 
     @staticmethod
-    def get_lastupdated(info):
-        """
-        Get the last updated date from XNAT
-
-        :param info: dictionary of an assessor
-        :return: date in UPDATE_PREFIX if last updated date found
-         None otherwise
-        """
-        update_time = info['last_updated'][len(UPDATE_PREFIX):]
-        if update_time == '':
-            return None
-        else:
-            return datetime.strptime(update_time, UPDATE_FORMAT)
-
-    @staticmethod
-    def set_session_lastupdated(xnat, cr, sess_info, update_start_time):
-        """
-        Set the last session update on XNAT
-
-        :param xnat: pyxnat.Interface object
-        :param cr: True if the host is an XNAT CR instance
-        :param sess_info: dictionary of session information
-        :param update_start_time: date when the update started
-        :return: False if the session change(don't set the last update date),
-                 True otherwise
-        """
-        xsi_type = sess_info['xsiType']
-        sess_obj = xnat.select_experiment(sess_info['project_id'],
-                                          sess_info['subject_id'],
-                                          sess_info['session_id'])
-        xsi_uri = '%s/meta/last_modified' % xsi_type
-        last_modified_xnat = sess_obj.attrs.get(xsi_uri)
-        d_format = '%Y-%m-%d %H:%M:%S'
-        last_mod = datetime.strptime(last_modified_xnat[0:19], d_format)
-        if last_mod > update_start_time:
-            return False
-
-        # format:
-        update_str = (datetime.now() +
-                      timedelta(minutes=1)).strftime(UPDATE_FORMAT)
-        # We set update to one minute into the future
-        # since setting update field will change last modified time
-        deg = 'setting last_updated for: %s to %s'
-        LOGGER.debug(deg % (sess_info['label'], update_str))
-        try:
-            if cr:
-                LOGGER.critical(
-                    'CR does not seem to allow changing of session timestamp, what do we do?')
-            else:
-                sess_obj.attrs.set('%s/original' % xsi_type,
-                                   UPDATE_PREFIX + update_str, params={
-                        "event_reason": "DAX setting session_lastupdated"})
-        except Exception as E:
-            err1 = 'Caught exception setting update timestamp for session %s'
-            err2 = 'Exception class %s caught with message %s'
-            LOGGER.critical(err1 % sess_info['session_label'])
-            LOGGER.critical(err2 % (E.__class__, E.message))
-            LOGGER.critical(traceback.format_exc())
-
-        return True
-
-    @staticmethod
     def has_new_processors(assessors, proc_types):
         """
         Method to check whether, given a list of assessors, there are processor
@@ -1419,7 +1022,7 @@ The project is not part of the settings."""
         that aren't in the assessors list
         """
         assr_types = set(x['proctype'] for x in assessors)
-        return proc_types.difference(assr_types) > 0
+        return len(proc_types.difference(assr_types)) > 0
 
 
 # TODO: BenM/assessor_of_assessor/check path.txt to get the project_id
@@ -1482,67 +1085,3 @@ def log_updating_status(procname, assessor_label):
     mess = """* Processor:{proc}: updating status: {label}"""
     mess_str = mess.format(proc=procname, label=assessor_label)
     LOGGER.debug(mess_str)
-
-
-def upload_update_date_redcap(project_list, type_update, start_end):
-    """
-    Upload the timestamp of when bin ran on a project (start and finish).
-
-    :param project_list: List of projects that were updated
-    :param type_update: What type of process ran: dax_build (1),
-     dax_update_tasks (2), dax_launch (3)
-    :param start_end: starting timestamp (1) and ending timestamp (2)
-    :return: None
-
-    """
-    dax_config = DAX_SETTINGS.get_dax_manager_config()
-    logger = logging.getLogger('dax')
-    if DAX_SETTINGS.get_api_url() and \
-       DAX_SETTINGS.get_api_key_dax() and \
-       dax_config:
-        redcap_project = None
-        try:
-            redcap_project = redcap.Project(DAX_SETTINGS.get_api_url(),
-                                            DAX_SETTINGS.get_api_key_dax())
-        except Exception:
-            logger.warn('Could not access redcap. Either wrong DAX_SETTINGS. \
-API_URL/API_KEY or redcap down.')
-
-        if redcap_project:
-            data = list()
-            for project in project_list:
-                to_upload = dict()
-                to_upload[dax_config['project']] = project
-                if type_update == 1:
-                    to_upload = set_dax_manager(to_upload, 'dax_build',
-                                                start_end)
-                elif type_update == 2:
-                    to_upload = set_dax_manager(to_upload, 'dax_update_tasks',
-                                                start_end)
-                elif type_update == 3:
-                    to_upload = set_dax_manager(to_upload, 'dax_launch',
-                                                start_end)
-                data.append(to_upload)
-            XnatUtils.upload_list_records_redcap(redcap_project, data)
-
-
-def set_dax_manager(record_data, field_prefix, start_end):
-    """
-    Update the process id of what was running and when
-
-    :param record_data: the REDCap record infor from Project.export_records()
-    :param field_prefix: prefix to make field assignment simpler
-    :param start_end: 1 if starting process, 2 if ending process
-    :return: updated record_data to upload to REDCap
-
-    """
-    dax_config = DAX_SETTINGS.get_dax_manager_config()
-    if start_end == 1:
-        key = dax_config[field_prefix + '_start_date']
-        record_data[key] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-        record_data[dax_config[field_prefix + '_end_date']] = 'In Process'
-        record_data[dax_config[field_prefix + '_pid']] = str(os.getpid())
-    elif start_end == 2:
-        key = dax_config[field_prefix + '_end_date']
-        record_data[key] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())
-    return record_data

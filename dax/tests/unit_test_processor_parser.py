@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import copy
 
-import StringIO
+import io
 import yaml
 import itertools
 
@@ -490,24 +490,24 @@ class ProcessorParserUnitTests(TestCase):
         csess = [TestSession().OldInit(proj, subj, sess, scan_contents,
                                       assessor_contents)]
 
-        doc = yaml.load((StringIO.StringIO(processor_yaml)))
+        doc = yaml.load((io.StringIO(processor_yaml)))
 
         inputs, inputs_by_type, iteration_sources, iteration_map,\
             prior_session_count =\
             ProcessorParser.parse_inputs(doc)
 
-        print "inputs =", inputs
-        print "inputs_by_type =", inputs_by_type
-        print "iteration_sources =", iteration_sources
-        print "iteration_map =", iteration_map
-        print "prior_session_count =", prior_session_count
+        print(("inputs =", inputs))
+        print(("inputs_by_type =", inputs_by_type))
+        print(("iteration_sources =", iteration_sources))
+        print(("iteration_map =", iteration_map))
+        print(("prior_session_count =", prior_session_count))
 
         artefacts = ProcessorParser.parse_artefacts(csess)
-        print "artefacts =", artefacts
+        print(("artefacts =", artefacts))
 
         artefacts_by_input = \
             ProcessorParser.map_artefacts_to_inputs(csess, inputs, inputs_by_type)
-        print "artefacts_by_input =", artefacts_by_input
+        print(("artefacts_by_input =", artefacts_by_input))
 
         # variables_to_inputs = \
         #     ProcessorParser.parse_variables(inputs)
@@ -517,13 +517,13 @@ class ProcessorParserUnitTests(TestCase):
             ProcessorParser.generate_parameter_matrix(
                 inputs, iteration_sources, iteration_map,
                 artefacts, artefacts_by_input)
-        print "parameter_matrix =", parameter_matrix
+        print(("parameter_matrix =", parameter_matrix))
 
         assessor_parameter_map = \
             ProcessorParser.compare_to_existing(csess,
                                                 'proc2',
                                                 parameter_matrix)
-        print "assessor_parameter_map = ", assessor_parameter_map
+        print(("assessor_parameter_map = ", assessor_parameter_map))
 
         if expected is None:
             self.assertTrue(False, 'No expected results provided: no test validation')
@@ -531,7 +531,6 @@ class ProcessorParserUnitTests(TestCase):
             for p in parameter_matrix:
                 error = 'entry {} is not in expected; parameter matrix = {}, expected = {}'
                 self.assertTrue(p in expected, error.format(p, parameter_matrix, expected))
-
 
     def test_processor_parser_experimental_1(self):
         expected = [
@@ -675,7 +674,7 @@ class ProcessorParserUnitTests(TestCase):
     @staticmethod
     def __generate_test_matrix(headers, values):
         table_values = itertools.product(*values)
-        table = map(lambda r: dict(itertools.izip(headers, r)), table_values)
+        table = [dict(zip(headers, r)) for r in table_values]
         return table
 
 
@@ -733,7 +732,7 @@ class ProcessorParserUnitTests(TestCase):
                            artefact_quality, artefact_type, artefact_resources]
         artefact_matrix = ProcessorParserUnitTests.__generate_test_matrix(
             artefact_headers, artefact_values)
-        artefact_matrix = map(lambda i: [i], artefact_matrix)
+        artefact_matrix = [[i] for i in artefact_matrix]
 
         yaml_headers = ['category', 'label', 'type', 'select', 'select-session',
                         'needs_qc', 'resources']
@@ -751,7 +750,7 @@ class ProcessorParserUnitTests(TestCase):
         yaml_matrix = ProcessorParserUnitTests.__generate_test_matrix(
             yaml_headers, yaml_elems
         )
-        yaml_matrix = map(lambda i: [i], yaml_matrix)
+        yaml_matrix = [[i] for i in yaml_matrix]
 
         combined_headers = ['artefacts', 'yaml_inputs']
         combined_values = [artefact_matrix, yaml_matrix]
@@ -781,13 +780,12 @@ class ProcessorParserUnitTests(TestCase):
             try:
                 parser = ProcessorParser(yaml_source.contents)
                 parser.parse_session(csess)
-                print m, '->', parser.assessor_parameter_map
+                print((m, '->', parser.assessor_parameter_map))
             except ValueError as err:
                 if err.message not in\
                     ['yaml processor is missing xnat keyword contents']:
                     raise
-        print 'scenario count = ', len(matrix)
-
+        print(('scenario count = ', len(matrix)))
 
     def test_check_valid_mode(self):
         input_category = 'scan'

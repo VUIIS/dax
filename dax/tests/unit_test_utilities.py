@@ -52,7 +52,6 @@ class GroupbyToDictTest(TestCase):
 
         self.assertDictEqual(actual, expected)
 
-
     def test_strip_leading_and_trailing_spaces(self):
         tests = [
             ('', ''),
@@ -68,5 +67,3 @@ class GroupbyToDictTest(TestCase):
         for t in tests:
             actual = utilities.strip_leading_and_trailing_spaces(t[0])
             self.assertEqual(actual, t[1])
-
-

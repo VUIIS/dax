@@ -5,8 +5,6 @@
 Download a FreeSurfer 6 subject from XNAT
 '''
 
-from __future__ import print_function
-
 import os
 import sys
 import shutil

@@ -4,12 +4,6 @@
 Xnatmirror - copies Subjects, Sessions (MR, PET, CT), Scans and Assessors
 '''
 
-from __future__ import print_function
-
-from past.builtins import cmp
-from builtins import zip
-from builtins import input
-from builtins import str
 
 import os
 import sys
@@ -332,7 +326,7 @@ def copy_attributes(src_obj, dest_obj):
 
 def subj_compare(item1, item2):
     '''Compare sort of items'''
-    return cmp(item1.label(), item2.label())
+    return ((item1 > item2) - (item1 < item2))
 
 
 def copy_file(src_f, dest_r, cache_d):

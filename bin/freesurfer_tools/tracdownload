@@ -7,7 +7,6 @@ Download a TRACULA subject from XNAT and arrange directories
 @author: Brian D. Boyd, Psychiatry, Vanderbilt University
 '''
 
-from __future__ import print_function
 
 import os
 import sys

@@ -1,9 +1,5 @@
 """dax_settings class to read the INI settings file."""
 
-from future import standard_library
-standard_library.install_aliases()
-
-from builtins import object
 from collections import OrderedDict
 import configparser
 from importlib import import_module
@@ -164,24 +160,6 @@ class DAX_Settings(object):
             return False
         return True
 
-    def load_code_path(self):
-        """Check code_path section.
-
-        Try to load all the files in the folder.
-        If it fails, print warning (need to fix the spider/processor/module).
-        :return: None
-        """
-        if self.config_parser.has_section('code_path'):
-            for option in self.config_parser.options('code_path'):
-                dir_path = self.config_parser.get('code_path', option)
-                if os.path.isdir(dir_path):
-                    li_files = list()
-                    for root, _, fnames in os.walk(dir_path):
-                        li_files.extend([os.path.join(root, f) for f in fnames
-                                         if f.lower().endswith('.py')])
-                    for python_file in li_files:
-                        self.load_python_file(python_file)
-
     def load_python_file(self, python_file):
         """Load python file from processors/spiders/modules files."""
         filename = os.path.basename(python_file.lower())
@@ -278,14 +256,6 @@ class DAX_Settings(object):
         """
         opts = self.config_parser.options('admin')
         return self.iterate_options('admin', opts)
-
-    def get_code_path_config(self):
-        """Method to get all of the key value pairs for the code_path section.
-
-        :return: A dictionary of key value pairs for the code_path section
-        """
-        opts = self.config_parser.options('code_path')
-        return self.iterate_options('code_path', opts)
 
     def get_dax_manager_config(self):
         """Method to get all of the key value pairs for the dax_manager section.
@@ -581,13 +551,6 @@ class DAX_Settings(object):
         """
         return int(self.get('cluster', 'max_age'))
 
-    def get_skip_lastupdate(self):
-        """Get the skip_lastupdate value from the cluster section.
-
-        :return: skip_lastupdate value
-        """
-        return self.get('cluster', 'skip_lastupdate')
-
     def get_launcher_type(self):
         """
         Get the launcher type from the cluster
@@ -627,7 +590,9 @@ class DAX_Settings(object):
         :return: True or False
         """
         _ur = self.get('cluster', 'use_reference')
-        if _ur and (_ur.lower().startswith('y') or _ur.lower().startswith('t')):
+        if _ur and (_ur.lower().startswith('y') or
+                    _ur.lower().startswith('t')):
+
             return True
         else:
             return False

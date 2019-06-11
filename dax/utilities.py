@@ -1,8 +1,8 @@
 import itertools as it
 import json
-import HTMLParser
+from html.parser import HTMLParser
 
-h = HTMLParser.HTMLParser()
+h = HTMLParser()
 
 
 def decode_url_json_string(json_string):
@@ -27,9 +27,9 @@ def parse_json_pairs(pairs):
     """
     sink_pairs = []
     for k, v in pairs:
-        if isinstance(k, unicode):
+        if isinstance(k, str):
             k = k.encode('utf-8')
-        if isinstance(v, unicode):
+        if isinstance(v, str):
             v = v.encode('utf-8')
         sink_pairs.append((k, v))
     return dict(sink_pairs)
@@ -80,7 +80,7 @@ def groupby_groupby_to_dict(source, outer_pred, inner_pred):
     """
     return {
         k: groupby_to_dict(v, inner_pred)
-        for k, v in groupby_to_dict(source, outer_pred).items()
+        for k, v in list(groupby_to_dict(source, outer_pred).items())
     }
 
 
@@ -101,4 +101,4 @@ def find_with_pred(items, pred):
 
 
 def strip_leading_and_trailing_spaces(list_arg):
-    return ','.join(map(lambda x: x.strip(), list_arg.split(',')))
+    return ','.join([x.strip() for x in list_arg.split(',')])

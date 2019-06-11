@@ -21,6 +21,7 @@ class TestAttrs:
     def __init__(self, properties):
         pass
 
+
 class TestPyxnatScan:
     def __init__(self, project, subject, session, scanjson):
         self.scanjson = scanjson

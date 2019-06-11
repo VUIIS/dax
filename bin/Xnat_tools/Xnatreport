@@ -7,9 +7,6 @@ Generate a report for a list of project on XNAT
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
-from __future__ import print_function
-
-from builtins import str
 
 from datetime import datetime
 import logging

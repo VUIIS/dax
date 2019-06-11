@@ -1,1 +1,0 @@
-qstat -u $USER | grep ${jobid} | awk {'print $5'}

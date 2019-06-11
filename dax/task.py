@@ -1,8 +1,5 @@
 """ Task object to generate / manage assessors and cluster."""
 
-from builtins import str
-from builtins import object
-
 from datetime import date
 import errno
 import logging
@@ -1537,7 +1534,6 @@ undo_processing...')
 
         try:
             cmds = self.build_commands(assr, jobdir)
-            print(cmds)
             batch_file = self.batch_path()
             outlog = self.outlog_path()
             batch = PBS(batch_file,
@@ -1580,19 +1576,4 @@ undo_processing...')
 
         """
         assr_dir = os.path.join(jobdir, self.assessor_label)
-        try:
-            return self.processor.build_cmds(assr, assr_dir)
-        except NotImplementedError:
-            # Handle older processors without build_cmds()
-            #has_inputs, qcstatus = self.processor.has_inputs(cobj)
-            has_inputs, qcstatus = self.processor.has_inputs(self.assessor)
-
-            # Convert array of tuples into single string
-            qcstatus = ','.join(':'.join(i) for i in qcstatus)
-
-            if has_inputs == 1:
-                return self.processor.get_cmds(self.assessor, assr_dir)
-            elif has_inputs == -1:
-                raise NoDataException(qcstatus)
-            else:
-                raise NeedInputsException(qcstatus)
+        return self.processor.build_cmds(assr, assr_dir)

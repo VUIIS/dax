@@ -5,9 +5,10 @@ from unittest import TestCase
 from dax.task import (JOB_FAILED, JOB_RUNNING, JOB_PENDING, READY_TO_UPLOAD,
                    NEEDS_QA, RERUN, REPROC, FAILED_NEEDS_REPROC, BAD_QA_STATUS)
 
-import unit_test_common_processor_yamls as processor_yamls
+from . import unit_test_common_processor_yamls as processor_yamls
 
 bad_qa_status = [JOB_PENDING, NEEDS_QA, REPROC, RERUN, FAILED_NEEDS_REPROC]
+
 
 class FakeXnat:
 
@@ -15,40 +16,32 @@ class FakeXnat:
     def placeholder():
         raise NotImplementedError()
 
-
     @staticmethod
     def get_proctype(spider, suffix=None):
         # TODO: ok to use XnatUtils method, at least until it is removed from XnatUtils, which should happen
         return XnatUtils.get_proctype(spider, suffix)
 
-
     @staticmethod
     def is_cscan_unusable(scan):
         return scan.info()['quality'] == 'unusable'
-
 
     @staticmethod
     def is_cscan_usable(scan):
         return scan.info()['quality'] == 'usable'
 
-
     @staticmethod
     def has_resource(scan, label):
         return XnatUtils.has_resource(scan, label)
-
 
     @staticmethod
     def get_good_cassr(csess, sp_types, needs_qc):
         return XnatUtils.get_good_cassr(csess, sp_types, needs_qc)
 
 
-
 class TestResource:
 
     def __init__(self):
         self.thing = None
-
-
 
 # class TestAssessorObject:
 #
@@ -58,7 +51,6 @@ class TestResource:
 #
 #     def info(self):
 #         return {'label': self.label}
-
 
 
 class TestProjectObject:
@@ -79,7 +71,6 @@ class TestProjectObject:
 
     def label(self):
         return self.label_
-
 
 
 class TestSubjectObject:
@@ -110,7 +101,6 @@ class TestSubjectObject:
         return self.label_
 
 
-
 class TestSessionObject:
     def __init__(self, subject, session_dict):
         self.subject_ = subject
@@ -126,30 +116,23 @@ class TestSessionObject:
             for assr in session_dict['assessors']
         }
 
-
     def project_id(self):
         return self.subject_.project_id()
-
 
     def subject_id(self):
         return self.subject_.subject_id()
 
-
     def session_id(self):
         return self.session_id_
-
 
     def label(self):
         return self.label_
 
-
     def session(self):
         return self
 
-
     def parent(self):
         return self.subject_
-
 
     def info(self):
         return {
@@ -158,15 +141,12 @@ class TestSessionObject:
             'session_label': self.session_id_
         }
 
-
     @staticmethod
     def entity_type():
         return 'session'
 
-
     def has_shared_project(self):
         return None
-
 
     def scan_by_key(self, key):
         return self.scan_objects_[key]
@@ -174,14 +154,11 @@ class TestSessionObject:
     def assessor_by_key(self, key):
         return self.assessor_objects_[key]
 
-
     def scans(self):
         return self.scan_objects_
 
-
     def assessors(self):
         return self.assessor_objects_
-
 
 
 class TestScanObject:
@@ -236,7 +213,7 @@ class TestScanObject:
         return 'scan'
 
     def resources(self):
-        return self.resource_objects_.values()
+        return list(self.resource_objects_.values())
 
     def __getitem__(self, key):
         return self.resource_objects_[key]
@@ -299,7 +276,7 @@ class TestAssessorObject:
         return self.qcstatus_ in bad_qa_status
 
     def resources(self):
-        return self.resource_objects_.values()
+        return list(self.resource_objects_.values())
 
     @staticmethod
     def entity_type():
@@ -333,7 +310,6 @@ class TestResourceObject:
         return self.resource_dict_[key]
 
 
-
 class TestObjectsTest(TestCase):
 
     def test_make_repo(self):
@@ -341,23 +317,22 @@ class TestObjectsTest(TestCase):
         #     'proj1', 'subj1',
         #     brain_tiv_from_gif_xnat_contents['projects'][0]['subjects'][0]['sessions'][0])
         tp = TestProjectObject(brain_tiv_from_gif_xnat_contents['projects'][0])
-        print tp.label()
-        for tsb in tp.subjects().itervalues():
-            print '', tsb.label()
-            for tse in tsb.sessions().itervalues():
-                print ' ', tse.label()
-                for tsc in tse.scans().itervalues():
-                    print '  ', tsc.label()
-                for tas in tse.assessors().itervalues():
-                    print '  ', tas.label()
+        print((tp.label()))
+        for tsb in tp.subjects().values():
+            print(('', tsb.label()))
+            for tse in tsb.sessions().values():
+                print((' ', tse.label()))
+                for tsc in tse.scans().values():
+                    print(('  ', tsc.label()))
+                for tas in tse.assessors().values():
+                    print(('  ', tas.label()))
 
 
 # second attempt; cut at xnatutils, assessorhandler and interfacetemp
 
-#TODO: refactor calls to InterfaceTemp.select: move to methods on InterfaceTemp
-#TODO: create FakeAssessorHandler
-#TODO: create FakeXnatInterface
-
+# TODO: refactor calls to InterfaceTemp.select: move to methods on InterfaceTemp
+# TODO: create FakeAssessorHandler
+# TODO: create FakeXnatInterface
 
 
 # class processor_yamls:
@@ -365,11 +340,7 @@ class TestObjectsTest(TestCase):
 #     scan_brain_tiv_from_gif = processor_yamls.scan_brain_tiv_from_gif_yaml
 
 
-
 spider_tiv_from_gif = '/home/dax/Xnat-management/comic100_dax_config/pipelines/BrainTivFromGIF/v1.0.0/Spider_BrainTivFromGIF_v1_0_0.py'
-
-
-
 
 brain_tiv_from_gif_xnat_contents = {
     'projects': [{

@@ -6,9 +6,6 @@
 Cluster functionality
 """
 
-from builtins import str
-from builtins import object
-
 import os
 import time
 import logging
@@ -142,10 +139,11 @@ def get_job_mem_used(jobid, diff_days):
                                         'jobid': jobid})
     try:
         output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
-        if output.startswith('sacct: error'):
+        if output.startswith(b'sacct: error'):
             raise ClusterError(output)
         if output:
             mem = output.strip()
+            mem = mem.decode()
 
     except (sb.CalledProcessError, ClusterError):
         pass
@@ -174,6 +172,7 @@ def get_job_walltime_used(jobid, diff_days):
         output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
         if output:
             walltime = output.strip()
+            walltime = walltime.decode()
 
     except sb.CalledProcessError:
         pass
@@ -212,7 +211,7 @@ def get_job_node(jobid, diff_days):
         output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
         if output:
             jobnode = output.strip()
-
+            jobnode = jobnode.decode()
     except sb.CalledProcessError:
         pass
 
@@ -339,8 +338,9 @@ def submit_job(filename, outlog=None, force_no_qsub=False):
                 LOGGER.info(output)
             if error:
                 LOGGER.error(error)
-            jobid = get_specific_str(output, DAX_SETTINGS.get_prefix_jobid(),
-                                     DAX_SETTINGS.get_suffix_jobid())
+            jobid = get_specific_str(
+                output.decode(), DAX_SETTINGS.get_prefix_jobid(),
+                DAX_SETTINGS.get_suffix_jobid())
         except sb.CalledProcessError as err:
             LOGGER.error(err)
             jobid = '0'

@@ -5,6 +5,7 @@ LOGGER = logging.getLogger('dax')
 # TODO: BenM/asr_of_asr/should detect / report cycles
 # TODO: BenM/asr_of_asr/needs proper unittesting
 
+
 class ProcessorGraph:
 
     @staticmethod
@@ -22,12 +23,11 @@ class ProcessorGraph:
             sources[name] = list(inputs)
         return sources
 
-
     @staticmethod
     def get_forward_edges(nodes_to_src_edges):
         sink_edges = dict()
         # calculate a list of nodes to sink edges
-        for k, v in nodes_to_src_edges.iteritems():
+        for k, v in list(nodes_to_src_edges.items()):
             if k not in sink_edges:
                 sink_edges[k] = []
             for src in v:
@@ -38,7 +38,6 @@ class ProcessorGraph:
             sink_edges[v] = sorted(sink_edges[v])
 
         return sink_edges
-
 
     @staticmethod
     def order_processors(processors, log=None):
@@ -54,7 +53,7 @@ class ProcessorGraph:
         :param processors:
         :return:
         """
-        processor_map = dict(map(lambda p: (p.get_proctype(), p), processors))
+        processor_map = dict([(p.get_proctype(), p) for p in processors])
         named_processors = []
         unnamed_processors = []
         assessor_inputs = {}
@@ -63,15 +62,13 @@ class ProcessorGraph:
             if not proctype:
                 unnamed_processors.append(p)
             else:
-                assessor_inputs[p.get_proctype()] = p.get_assessor_input_types()
+                assessor_inputs[p.get_proctype()] =\
+                    p.get_assessor_input_types()
 
         ordered_names = ProcessorGraph.order_from_inputs(assessor_inputs, log)
         for n in ordered_names:
             named_processors.append(processor_map[n])
         return named_processors + unnamed_processors
-
-
-
 
     # TODO: BenM/assessor_of_assessor/ideally, this would operate on a list of
     # processors rather than a list of yaml_sources, but this would require a
@@ -79,7 +76,7 @@ class ProcessorGraph:
     @staticmethod
     def order_from_inputs(artefacts_to_inputs, log=None):
         # artefact_type_map is a list of artefacts to their *inputs*.
-            # consider the following graph:
+        # consider the following graph:
         # a --> b --> d
         #   \     \     \
         #    \     \     \
@@ -104,7 +101,7 @@ class ProcessorGraph:
         # node; this is more easily done using the mapping of nodes to inputs.
         # if a node has an in-degree of zero then it can go onto the satisfied
         # list
-        for k, v in artefacts_to_inputs.iteritems():
+        for k, v in list(artefacts_to_inputs.items()):
             open_nodes[k] = len(v)
             if len(v) == 0:
                 satisfied.append(k)
@@ -123,7 +120,7 @@ class ProcessorGraph:
                     satisfied.append(sink)
 
         unordered = list()
-        for k, v in open_nodes.iteritems():
+        for k, v in list(open_nodes.items()):
             if v > 0:
                 unordered.append(k)
         unordered = sorted(unordered)
@@ -135,11 +132,10 @@ class ProcessorGraph:
             if len(regions) < len(artefacts_to_inputs):
                 log.warning('Cyclic processor dependencies detected:')
             regions.reverse()
-            for r in filter(lambda x: len(x) > 1, regions):
+            for r in [x for x in regions if len(x) > 1]:
                 log.warning('  Cycle: ' + ', '.join(r))
 
         return ordered + unordered
-
 
     @staticmethod
     def tarjan(graph):
@@ -178,12 +174,12 @@ class ProcessorGraph:
                 self.S = list()
                 self.index = 0
                 self.scrs = list()
-                self.V = {v: Vertex(v, w) for (v, w) in graph.iteritems()}
+                self.V = {v: Vertex(v, w) for (v, w) in list(graph.items())}
 
                 self.index = 0
                 self.S = list()
 
-                for v in self.V.itervalues():
+                for v in self.V.values():
                     if v.index is None:
                         self.strongconnect(v)
 
@@ -218,6 +214,3 @@ class ProcessorGraph:
         results = t.go(graph)
         # print results, len(results) < len(graph)
         return results
-
-
-

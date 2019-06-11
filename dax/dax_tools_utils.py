@@ -5,17 +5,6 @@
 Functions used by dax_tools like in dax_upload/dax_test/dax_setup.
 """
 
-from __future__ import print_function
-
-from future import standard_library
-standard_library.install_aliases()
-from builtins import filter
-from builtins import input
-from builtins import str
-from builtins import zip
-from builtins import range
-from builtins import object
-
 from collections import OrderedDict
 import configparser
 import csv
@@ -24,7 +13,6 @@ from email.mime.text import MIMEText
 import getpass
 import glob
 import imp
-import itertools
 import json
 import logging
 import os
@@ -51,7 +39,6 @@ from . import task
 from . import xnat_tools_utils
 from . import XnatUtils
 from . import assessor_utils
-from . import yaml_doc
 from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
                            DEFAULT_FS_DATATYPE)
 from .errors import (DaxUploadError, AutoProcessorError, DaxSetupError,
@@ -112,13 +99,7 @@ CLUSTER_DEFAULTS = OrderedDict([
     ('results_dir', os.path.join(os.path.expanduser('~'),
                                  'RESULTS_XNAT_SPIDER')),
     ('max_age', '14'),
-    ('launcher_type', 'xnatq-combined'),
-    ('skip_lastupdate', '')])
-
-CODE_PATH_DEFAULTS = OrderedDict([
-    ('processors_path', ''),
-    ('spiders_path', ''),
-    ('modules_path', '')])
+    ('launcher_type', 'xnatq-combined')])
 
 DAX_MANAGER_DEFAULTS = OrderedDict([
     ('api_url', ''),
@@ -144,12 +125,10 @@ DAX_MANAGER_DEFAULTS = OrderedDict([
     ('dax_launch_end_date', 'dax_launch_end_date'),
     ('dax_launch_pid', 'dax_launch_pid'),
     ('max_age', 'dax_max_age'),
-    ('skip_lastupdate', 'dax_skip_lastupdate'),
     ('admin_email', 'dax_email_address')])
 
 DEFAULTS = {'admin': ADMIN_DEFAULTS,
             'cluster': CLUSTER_DEFAULTS,
-            'code_path': CODE_PATH_DEFAULTS,
             'dax_manager': DAX_MANAGER_DEFAULTS}
 
 INI_HEADER = """;dax_settings.ini contains all the variables to set dax on your system.
@@ -163,10 +142,6 @@ INI_HEADER = """;dax_settings.ini contains all the variables to set dax on your 
 ; This should include commands that are grid-specific to get job id,
 ; walltime usage etc. Additionally, there are several templates that
 ; needed to be specified. See readthedocs for a description.
-
-;The third one is [code_path] for Python script extension information.
-; To import in dax all the spiders, processors and modules from those folders.
-; You don't have to set a path if you don't want to give those paths.
 
 ;The fourth and last one is [dax_manager] that defines the REDCap
 ; infrastructure (options). Dax_manager uses REDCap to automatically generate
@@ -236,8 +211,6 @@ copied to for upload: ', 'is_path': True},
 on a session: ', 'is_path': False},
     'launcher_type': {'msg': 'Please enter launcher type: ',
                       'is_path': False},
-    'skip_lastupdate': {'msg': 'Do you want to skip last update?: ',
-                        'is_path': False},
     'api_url': {'msg': 'Please enter your REDCap API URL: ',
                 'is_path': False},
     'api_key_dax': {'msg': 'Please enter the key to connect to the \
@@ -563,10 +536,10 @@ def testing(test_file, project, sessions, host=None, username=None, hide=False,
             _host = test_obj.xnat_host
             _user = test_obj.xnat_user
 
-        print(TD_INFO.format(platform=platform.system(),
+        print((TD_INFO.format(platform=platform.system(),
                              version=platform.python_version(),
                              dax_version=__version__,
-                             host=_host, user=_user))
+                             host=_host, user=_user)))
         # set test object:
         tests.set_tobj(test_obj)
 
@@ -585,9 +558,9 @@ def testing(test_file, project, sessions, host=None, username=None, hide=False,
             tests.set_xnat(intf)
             tests.run_test(project, sessions, nb_sess)
 
-    print(TD_END.format(nb_test=tests.get_number(),
+    print((TD_END.format(nb_test=tests.get_number(),
                         time="%.3f" % tests.get_time(),
-                        state=tests.get_test_state()))
+                        state=tests.get_test_state())))
 
     if do_not_remove:
         if 'OK' == tests.get_test_state()[:2]:
@@ -690,11 +663,11 @@ def select_assessor(xnat, assessor_dict):
     :param assessor_dict: assessor dictionary
     :return: assessor pyxnat Eobject
     """
-    return XnatUtils.select_obj(xnat,
-                                assessor_dict['project_id'],
-                                assessor_dict['subject_label'],
-                                assessor_dict['session_label'],
-                                assessor_id=assessor_dict['label'])
+    return xnat.select_assessor(
+        assessor_dict['project_id'],
+        assessor_dict['subject_label'],
+        assessor_dict['session_label'],
+        assessor_id=assessor_dict['label'])
 
 
 def is_dax_upload_running(flagfile):
@@ -720,25 +693,6 @@ def is_dax_upload_running(flagfile):
         LOGGER.debug('Flagfile created: %s with date: %s\n'
                      % (flagfile, datestr))
         return False
-
-
-def get_assessor_dict(assessor_label, assessor_path):
-    """
-    Generate the dictionary for an assessor from the folder in the queue
-
-    :param assessor_label: assessor label
-    :param assessor_path: assessor path on the station
-    :return: None
-    """
-    assessor_dict = dict()
-    keys = ['project_id', 'subject_label', 'session_label', 'label',
-            'proctype', 'path']
-    labels = assessor_label.split('-x-')
-    if len(labels) > 3:
-        values = [labels[0], labels[1], labels[2], assessor_label, labels[-1],
-                  assessor_path]
-        assessor_dict = dict(list(zip(keys, values)))
-    return assessor_dict
 
 
 def get_assessor_list(projects):
@@ -952,7 +906,8 @@ def create_default_assessor(assessor_obj, proctype):
          DEFAULT_DATATYPE + '/date': today})
 
 
-def should_upload_assessor(assessor_obj, assessor_dict, assessor_path, version):
+def should_upload_assessor(assessor_obj,
+                           assessor_dict, assessor_path, version):
     """
     Check if the assessor is ready to be uploaded to XNAT
 
@@ -991,19 +946,19 @@ def upload_assessor(xnat, assessor_dict, assessor_path):
     # get spiderpath from version.txt file:
     version = get_version_assessor(assessor_path)
     dax_docker_version = get_dax_docker_version_assessor(assessor_path)
-    session_obj = XnatUtils.select_obj(xnat,
-                                       assessor_dict['project_id'],
-                                       assessor_dict['subject_label'],
-                                       assessor_dict['session_label'])
+    session_obj = xnat.select_session(
+        assessor_dict['project_id'],
+        assessor_dict['subject_label'],
+        assessor_dict['session_label'])
+
     if not session_obj.exists():
         LOGGER.error('Cannot upload assessor, session does not exist.')
         return True
 
     # Select assessor
-    assessor_dict =\
-        assessor_utils.parse_full_assessor_name(os.path.basename(assessor_path))
+    assessor_dict = assessor_utils.parse_full_assessor_name(
+            os.path.basename(assessor_path))
     assessor_obj = session_obj.assessor(assessor_dict['label'])
-    #xsitype = get_xsitype(assessor_dict)
     if should_upload_assessor(assessor_obj,
                               assessor_dict,
                               assessor_path,
@@ -1112,7 +1067,7 @@ def upload_resource(assessor_obj, resource, resource_path):
                     resource_path, assessor_obj.out_resource(resource),
                     resource, removeall=True)
             except XnatUtilsError as err:
-                print(ERR_MSG % err)
+                print((ERR_MSG % err))
         # One or two file, let just upload them:
         else:
             fpath = os.path.join(resource_path, rfiles_list[0])
@@ -1120,12 +1075,14 @@ def upload_resource(assessor_obj, resource, resource_path):
                 XnatUtils.upload_file_to_obj(
                     fpath, assessor_obj.out_resource(resource), removeall=True)
             except XnatUtilsError as err:
-                print(ERR_MSG % err)
+                print((ERR_MSG % err))
+
 
 def get_reference_path(resource_path):
     return resource_path.replace(
         DAX_SETTINGS.get_results_dir(),
         DAX_SETTINGS.get_reference_dir())
+
 
 def upload_snapshots(assessor_obj, resource_path):
     """
@@ -1145,7 +1102,7 @@ def upload_snapshots(assessor_obj, resource_path):
         status = XnatUtils.upload_assessor_snapshots(
             assessor_obj, original, thumbnail)
     except XnatUtilsError as err:
-        print(ERR_MSG % err)
+        print((ERR_MSG % err))
 
     if status:
         os.remove(original)
@@ -1160,7 +1117,8 @@ def upload_snapshots(assessor_obj, resource_path):
                 resource_path, assessor_obj.out_resource('SNAPSHOTS'),
                 'SNAPSHOTS')
         except XnatUtilsError as err:
-            print(ERR_MSG % err)
+            print((ERR_MSG % err))
+
 
 def upload_assessors(xnat, projects):
     """
@@ -1177,16 +1135,17 @@ def upload_assessors(xnat, projects):
 
     num_threads = int(DAX_SETTINGS.get_upload_threads())
 
-    print('Starting pool with: ' + str(num_threads) + ' threads')
+    print(('Starting pool with: ' + str(num_threads) + ' threads'))
     sys.stdout.flush()
 
-    pool = Pool(processes=num_threads) 
+    pool = Pool(processes=num_threads)
     for index, assessor_label in enumerate(assessors_list):
         print(index)
         sys.stdout.flush()
 
-        pool.apply_async(upload_thread,[xnat, index, assessor_label, number_of_processes])
-    
+        pool.apply_async(
+            upload_thread, [xnat, index, assessor_label, number_of_processes])
+
     print('Waiting for pool to finish...')
     sys.stdout.flush()
 
@@ -1194,9 +1153,10 @@ def upload_assessors(xnat, projects):
     pool.join()
 
     print('Pool finished')
-    sys.stdout.flush()    
+    sys.stdout.flush()
 
     return warnings
+
 
 def upload_thread(xnat, index, assessor_label, number_of_processes):
     assessor_path = os.path.join(RESULTS_DIR, assessor_label)
@@ -1204,15 +1164,15 @@ def upload_thread(xnat, index, assessor_label, number_of_processes):
     LOGGER.info(msg % (str(index + 1), str(number_of_processes),
                        assessor_label, str(datetime.now())))
 
-    #assessor_dict = get_assessor_dict(assessor_label, assessor_path)
     assessor_dict = assessor_utils.parse_full_assessor_name(assessor_label)
     if assessor_dict:
         uploaded = upload_assessor(xnat, assessor_dict, assessor_path)
         if not uploaded:
             mess = """    - Assessor label : {label}\n"""
-            warnings.append(mess.format(label=assessor_dict['label']))
+            LOGGER.warn(mess.format(label=assessor_dict['label']))
     else:
         LOGGER.warn('     --> wrong label')
+
 
 def upload_pbs(xnat, projects):
     """
@@ -1231,7 +1191,6 @@ def upload_pbs(xnat, projects):
                                 max=str(number_pbs),
                                 file=pbsfile))
         assessor_label = os.path.splitext(pbsfile)[0]
-        #assessor_dict = get_assessor_dict(assessor_label, 'none')
         assessor_dict = assessor_utils.parse_full_assessor_name(assessor_label)
         if not assessor_dict:
             LOGGER.warn('wrong assessor label for %s' % (pbsfile))
@@ -1266,7 +1225,7 @@ def upload_pbs(xnat, projects):
                         status = XnatUtils.upload_file_to_obj(pbs_fpath,
                                                               resource_obj)
                     except XnatUtilsError as err:
-                        print(ERR_MSG % err)
+                        print((ERR_MSG % err))
                     if status:
                         os.remove(pbs_fpath)
 
@@ -1291,21 +1250,20 @@ def upload_outlog(xnat, projects):
         LOGGER.info(mess.format(index=str(index + 1),
                                 max=str(number_outlog),
                                 file=outlogfile))
-        #assessor_dict = get_assessor_dict(outlogfile[:-7], 'none')
         assessor_label = os.path.splitext(outlogfile)[0]
         assessor_dict = assessor_utils.parse_full_assessor_name(assessor_label)
         if not assessor_dict:
             LOGGER.warn('     wrong outlog file. You should remove it')
         else:
             assessor_obj = select_assessor(xnat, assessor_dict)
-            #xtp = get_xsitype(assessor_dict)
             if not assessor_obj.exists():
                 msg = '     no assessor on XNAT -- moving file to trash.'
                 LOGGER.warn(msg)
                 new_location = os.path.join(RESULTS_DIR, _TRASH, outlogfile)
                 os.rename(outlog_fpath, new_location)
             else:
-                if assessor_obj.attrs.get(assessor_obj.datatype() + '/procstatus') == JOB_FAILED:
+                if assessor_obj.attrs.get(
+                        assessor_obj.datatype() + '/procstatus') == JOB_FAILED:
                     resource_obj = assessor_obj.out_resource(_OUTLOG)
                     if resource_obj.exists():
                         pass
@@ -1315,82 +1273,9 @@ def upload_outlog(xnat, projects):
                             status = XnatUtils.upload_file_to_obj(outlog_fpath,
                                                                   resource_obj)
                         except XnatUtilsError as err:
-                            print(ERR_MSG % err)
+                            print((ERR_MSG % err))
                         if status:
                             os.remove(outlog_fpath)
-
-
-def new_upload_results(upload_settings, emailaddress):
-
-    # get the list of assessors from the results directory
-    if len(os.listdir(RESULTS_DIR)) == 0:
-        LOGGER.warn('No data to be uploaded.\n')
-        sys.exit()
-
-    warnings = list()
-
-    for project in upload_settings:
-        try:
-            with XnatUtils.get_interface(host=project['host'],
-                                         user=project['username'],
-                                         pwd=project['password']) as intf:
-                LOGGER.info('=' * 60)
-
-                assessors = get_assessor_list(project['projects'])
-                x = [assessor_utils.parse_full_assessor_name(a)
-                     for a in assessors]
-
-                # create a nested dictionary of assessor result directories by
-                # project id then subject label then session label
-                z = {}
-                for a in x:
-                    if not a['project_id'] in z:
-                        z[a['project_id']] = dict()
-                    zp = z[a['project_id']]
-
-                    if not a['subject_label'] in zp:
-                        zp[a['subject_label']] = dict()
-                    zs = zp[a['subject_label']]
-
-                    if not a['session_label'] in zs:
-                        zs[a['session_label']] = list()
-                    ze = zs[a['session_label']]
-
-                    ze.append(a)
-
-
-                for kp, vp in z.iteritems():
-                    for ks, vs in vp.iteritems():
-                        for ke, ve in vs.iteritems():
-                            # handle all assessors from this session
-                            session = intf.select_experiment(kp, ks, ke)
-                            if not session.exists():
-                                # flag the experiment as missing
-                                LOGGER.warning(
-                                    "session {}/{}/{} does not exist".format(
-                                        kp, ks, ke
-                                    )
-                                )
-                            else:
-                                # handle assessors
-                                for a in ve:
-                                    print(a)
-                                    assessor = intf.select_assessor(
-                                        kp, ks, ke, a['label'])
-                                    if not assessor.exists():
-                                        # flag the assessor as missing
-                                        LOGGER.warning(
-                                            "assessor {}/{}/{}/{} does not exist".format(
-                                                kp, ks, ke, a['label']
-                                            )
-                                        )
-                                    else:
-                                        # upload this assessor
-                                        pass
-
-        except Exception as e:
-            LOGGER.error(e.msg)
-
 
 
 def upload_results(upload_settings, emailaddress):
@@ -1415,10 +1300,10 @@ def upload_results(upload_settings, emailaddress):
                 LOGGER.info('='*50)
                 proj_str = (upload_dict['projects'] if upload_dict['projects']
                             else 'all')
-                LOGGER.info('Connecting to XNAT <%s>, upload for projects:%s' % 
-                    (upload_dict['host'], proj_str))
+                LOGGER.info('Connecting to XNAT <%s>, upload for projects:%s' %
+                            (upload_dict['host'], proj_str))
                 if not XnatUtils.has_dax_datatypes(intf):
-                    msg = 'Error: dax datatypes are not installed on xnat <%s>.'
+                    msg = 'dax datatypes are not installed on xnat <%s>.'
                     raise DaxUploadError(msg % (upload_dict['host']))
 
                 # 1) Upload the assessor data
@@ -1428,7 +1313,8 @@ def upload_results(upload_settings, emailaddress):
                     LOGGER.info('using upload by reference, dir is:{}'.format(
                         DAX_SETTINGS.get_reference_dir()))
 
-                warnings.extend(upload_assessors(intf, upload_dict['projects']))
+                warnings.extend(
+                    upload_assessors(intf, upload_dict['projects']))
 
                 # 2) Upload the PBS files
                 # For each file, upload it to the PBS resource
@@ -1441,7 +1327,6 @@ def upload_results(upload_settings, emailaddress):
         except DaxNetrcError as e:
             msg = e.msg
             LOGGER.error(e.msg)
-
 
     send_warning_emails(warnings, emailaddress)
 
@@ -1716,13 +1601,7 @@ class test_results(object):
             csess = XnatUtils.CachedImageSession(self.intf, project,
                                                  sess['subject_label'],
                                                  sess['label'])
-            if isinstance(proc_obj, processors.ScanProcessor):
-                for cscan in csess.scans():
-                    if proc_obj.should_run(cscan.info()):
-                        co_list.append(cscan)
-            elif isinstance(proc_obj, processors.SessionProcessor):
-                co_list.append(csess)
-            elif isinstance(proc_obj, processors.AutoProcessor):
+            if isinstance(proc_obj, processors.AutoProcessor):
                 if proc_obj.type == 'session':
                     co_list.append(csess)
                 else:
@@ -1787,10 +1666,10 @@ class test_results(object):
                 if isinstance(cobj, XnatUtils.CachedImageScan):
                     msg = "Processor.has_inputs(cobj) running on %s - %s - %s \
 ..."
-                    print(msg % (project, cinfo['session_label'], cinfo['ID']))
+                    print((msg % (project, cinfo['session_label'], cinfo['ID'])))
                 else:
                     msg = "Processor.has_inputs(cobj) running on %s - %s ..."
-                    print(msg % (project, cinfo['session_label']))
+                    print((msg % (project, cinfo['session_label'])))
                 state, qcstatus = self.tobj.has_inputs(cobj)
                 self.inc_test()
                 qcstatus = qcstatus if qcstatus else task.JOB_PENDING
@@ -1801,12 +1680,12 @@ class test_results(object):
                 elif state == -1:
                     state = task.NO_DATA
                 else:
-                    print("[FAIL] State return by Processor.has_inputs() \
-unknown (-1/0/1): %s" % state)
+                    print(("[FAIL] State return by Processor.has_inputs() \
+unknown (-1/0/1): %s" % state))
                     self.inc_fail()
                     return False
-                print("Outputs: state = %s and qcstatus = %s"
-                      % (state, qcstatus))
+                print(("Outputs: state = %s and qcstatus = %s"
+                      % (state, qcstatus)))
             except Exception:
                 print('[ERROR]')
                 exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -1828,7 +1707,7 @@ unknown (-1/0/1): %s" % state)
         print_sub_test('test_dax_build')
         try:
             self.inc_test()
-            print("dax_build on %s - %s ..." % (project, ','.join(sessions)))
+            print(("dax_build on %s - %s ..." % (project, ','.join(sessions))))
             self.launch_obj.build('dax_test', project, ','.join(sessions))
             has_assessors = self.check_sessions(project, sessions)
             if has_assessors:
@@ -1874,11 +1753,10 @@ unknown (-1/0/1): %s" % state)
                                             cinfo['subject_label'],
                                             cinfo['session_label'],
                                             proc_obj.name)
-                assessor_obj = XnatUtils.select_assessor(self.xnat,
-                                                         assessor_label)
+                assessor_obj = select_assessor(self.xnat, assessor_label)
                 if not assessor_obj.exists():
-                    print('[FAIL] Assessor %s did not get created on XNAT.'
-                          % assessor_label)
+                    print(('[FAIL] Assessor %s did not get created on XNAT.'
+                          % assessor_label))
                     return False
                 else:
                     mget = assessor_obj.attrs.mget([
@@ -1888,8 +1766,8 @@ unknown (-1/0/1): %s" % state)
                         DEFAULT_DATATYPE + '/date'])
                     msg = "Assessor %s: \n - proctype: %s\n - procstatus: %s\n\
  - qcstatus: %s\n - date: %s"
-                    print(msg % (assessor_label, mget[0], mget[1], mget[2],
-                                 mget[3]))
+                    print((msg % (assessor_label, mget[0], mget[1], mget[2],
+                                 mget[3])))
         return True
 
     def test_dax_launch(self, project, sessions):
@@ -1903,8 +1781,8 @@ unknown (-1/0/1): %s" % state)
         print_sub_test('test_dax_launch')
         try:
             self.inc_test()
-            print("Launching tasks for %s - %s with writeonly ..."
-                  % (project, ','.join(sessions)))
+            print(("Launching tasks for %s - %s with writeonly ..."
+                  % (project, ','.join(sessions))))
             tasks_list = self.launch_obj.get_tasks(
                 self.xnat, self.all_tasks, [project], ','.join(sessions))
             for cur_task in tasks_list:
@@ -1984,7 +1862,7 @@ unknown (-1/0/1): %s" % state)
         cobj_list = self.set_mod_cobjs_list(self.tobj, project, sessions)
         try:
             self.inc_test()
-            print("Run on sessions: %s ..." % ','.join(sessions))
+            print(("Run on sessions: %s ..." % ','.join(sessions)))
             for cobj in cobj_list:
                 cinfo = cobj.info()
                 self.tobj.run(cinfo, cobj.full_object())
@@ -1992,8 +1870,8 @@ unknown (-1/0/1): %s" % state)
                     result = self.tobj.has_flag_resource(
                         cobj, self.tobj.mod_name)
                     if not result:
-                        print("[FAIL] Session Module didn't create the \
-flagfile for %s." % (cinfo['label']))
+                        print(("[FAIL] Session Module didn't create the \
+flagfile for %s." % (cinfo['label'])))
 
             return True
         except Exception:
@@ -2108,13 +1986,13 @@ flagfile for %s." % (cinfo['label']))
 
         # if empty raise Error
         if len(pbs_files) == 0:
-            print('[ERROR] No PBS file generated in %s by dax_launch'
-                  % DAX_TEST_DIR)
+            print(('[ERROR] No PBS file generated in %s by dax_launch'
+                  % DAX_TEST_DIR))
             self.inc_error()
             return False
         else:
             print('PBS Example:\n')
-            print(open(pbs_files[0], "rb").read())
+            print((open(pbs_files[0], "rb").read()))
             return True
 
     def display_settings(self):
@@ -2134,10 +2012,10 @@ flagfile for %s." % (cinfo['label']))
         proj_procs = self.launch_obj.project_process_dict
         proj_list.extend(list(proj_mods.keys()))
         proj_list.extend(list(proj_procs.keys()))
-        print('\nList of XNAT projects : %s' % ','.join(list(set(proj_list))))
+        print(('\nList of XNAT projects : %s' % ','.join(list(set(proj_list)))))
 
         for project in list(set(proj_list)):
-            print(' - Project %s:' % project)
+            print((' - Project %s:' % project))
             print('  + Module(s) arguments:')
             if project in list(proj_mods.keys()) and \
                len(proj_mods[project]) > 0:
@@ -2162,7 +2040,7 @@ def print_settings(settings_dict):
       for the dax.launcher.Launcher object
     :return: None
     """
-    print(SETTINGS_DISPLAY.format(
+    print((SETTINGS_DISPLAY.format(
         host=settings_dict['xnat_host'],
         user=settings_dict['xnat_user'],
         priority=settings_dict['priority_project'],
@@ -2172,7 +2050,7 @@ def print_settings(settings_dict):
         email=settings_dict['job_email'],
         email_opts=settings_dict['job_email_options'],
         limit=settings_dict['queue_limit'],
-        age=settings_dict['max_age']))
+        age=settings_dict['max_age'])))
 
 
 def print_module(mod_obj):
@@ -2188,11 +2066,11 @@ def print_module(mod_obj):
     for key, arg in list(mod_dict.items()):
         if key not in MOD_DEF_ARGS:
             other_args += "       %s: %s\n" % (key, str(arg).strip())
-    print(MOD_DISPLAY.format(name=mod_dict['mod_name'],
+    print((MOD_DISPLAY.format(name=mod_dict['mod_name'],
                              temp_dir=mod_dict['directory'],
                              email=mod_dict['email'],
                              level=level,
-                             other=other_args))
+                             other=other_args)))
 
 
 def print_processor(proc_obj):
@@ -2203,9 +2081,7 @@ def print_processor(proc_obj):
     :return: None
     """
     level = 'Session'
-    if isinstance(proc_obj, processors.ScanProcessor):
-        level = 'Scan'
-    elif isinstance(proc_obj, processors.AutoProcessor):
+    if isinstance(proc_obj, processors.AutoProcessor):
         if proc_obj.type == 'scan':
             level = 'Scan'
 
@@ -2220,7 +2096,7 @@ def print_processor(proc_obj):
         if key not in PROC_DEF_ARGS:
             other_args += "       %s: %s\n" % (key, str(arg).strip())
 
-    print(PROC_DISPLAY.format(name=proc_dict['name'],
+    print((PROC_DISPLAY.format(name=proc_dict['name'],
                               spath=proc_dict['spider_path'],
                               version=proc_dict['version'],
                               host=host,
@@ -2230,7 +2106,7 @@ def print_processor(proc_obj):
                               walltime=proc_dict['walltime_str'],
                               ppn=proc_dict['ppn'],
                               env=proc_dict['env'],
-                              other=other_args))
+                              other=other_args)))
 
 
 def randomly_get_sessions(xnat, project, nb_sess=5):
@@ -2279,7 +2155,7 @@ def load_test(filepath):
     :return: True the file pass the test, False otherwise
     """
     if not os.path.exists(filepath):
-        print('[ERROR] %s does not exists.' % filepath)
+        print(('[ERROR] %s does not exists.' % filepath))
         return None
 
     if filepath.endswith('yaml'):
@@ -2324,11 +2200,11 @@ def load_test(filepath):
 
         err = '[ERROR] Module or processor or myLauncher object NOT FOUND in \
 the python file {}.'
-        print(err.format(filepath))
+        print((err.format(filepath)))
         return None
     else:
         err = '[ERROR] {} format unknown. Please provide a .py or .yaml file.'
-        print(err.format(filepath))
+        print((err.format(filepath)))
         return None
 
 
@@ -2339,7 +2215,7 @@ def print_new_test(name):
     :param name: name for the test
     :return: None
     """
-    print('{}\nTest -- {} ...'.format(DEL_UP, name))
+    print(('{}\nTest -- {} ...'.format(DEL_UP, name)))
 
 
 def print_sub_test(name):
@@ -2349,7 +2225,7 @@ def print_sub_test(name):
     :param name: name for the method
     :return: None
     """
-    print('\n{}\n + Testing method {} \n'.format(DEL_DW, name))
+    print(('\n{}\n + Testing method {} \n'.format(DEL_DW, name)))
 
 
 def get_sessions_for_project(xnat, project, sessions, nb_sess=5):
@@ -2466,17 +2342,17 @@ settings file?' % section
                 msg = OPTIONS_DESCRIPTION[option]['msg']
                 stdin = getpass.getpass(prompt=msg)
             else:
-                stdin = input(OPTIONS_DESCRIPTION[option]['msg'])
+                stdin = eval(input(OPTIONS_DESCRIPTION[option]['msg']))
             if OPTIONS_DESCRIPTION[option]['is_path'] and stdin:
                 if stdin.startswith('~/'):
                     stdin = os.path.join(os.path.expanduser('~'), stdin[2:])
                 else:
                     stdin = os.path.abspath(stdin)
                 if not os.path.exists(stdin):
-                    print("Path <%s> does not exists." % stdin)
+                    print(("Path <%s> does not exists." % stdin))
                     stdin = self._prompt(section, option)
         else:
-            stdin = input('Please enter %s: ' % option)
+            stdin = eval(input('Please enter %s: ' % option))
         if not stdin:
             stdin = DEFAULTS[section][option]
 
@@ -2490,13 +2366,13 @@ settings file?' % section
         """
         cluster_type = '0'
         while cluster_type not in ['1', '2', '3']:
-            cluster_type = input("Which cluster are you using? \
-[1.SGE 2.SLURM 3.MOAB] ")
+            cluster_type = eval(input("Which cluster are you using? \
+[1.SGE 2.SLURM 3.MOAB] "))
         sys.stdout.write('Warning: You can edit the cluster templates files \
 at any time in ~/.dax_templates/\n')
 
         for option in ['gateway', 'root_job_dir', 'queue_limit', 'results_dir',
-                       'max_age', 'launcher_type', 'skip_lastupdate']:
+                       'max_age', 'launcher_type']:
             value = self._prompt('cluster', option)
             self.config_parser.set('cluster', option, value)
 
@@ -2556,8 +2432,8 @@ def set_xnat_netrc():
         print('Warning: daxnetrc is empty. Setting XNAT login:')
         connection = False
         while not connection:
-            host = input("Please enter your XNAT host: ")
-            user = input("Please enter your XNAT username: ")
+            host = eval(input("Please enter your XNAT host: "))
+            user = eval(input("Please enter your XNAT username: "))
             pwd = getpass.getpass(prompt='Please enter your XNAT password: ')
             connection = test_connection_xnat(host, user, pwd)
         if connection:

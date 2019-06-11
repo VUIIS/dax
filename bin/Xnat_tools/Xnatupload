@@ -7,11 +7,6 @@ Upload data to XNAT following the csv file information
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
-from __future__ import print_function
-
-from builtins import str
-from builtins import zip
-
 import csv
 from datetime import datetime
 import glob

@@ -7,8 +7,6 @@ Download a FreeSurfer subject from XNAT
 @author: Brian D. Boyd, Psychiatry, Vanderbilt University
 '''
 
-from __future__ import print_function
-
 import os
 import sys
 import shutil

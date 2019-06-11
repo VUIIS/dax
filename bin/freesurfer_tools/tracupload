@@ -8,7 +8,6 @@ uploads control points from dlabel/dmri
 @author: Brian D. Boyd, Psychiatry, Vanderbilt University
 '''
 
-from __future__ import print_function
 
 import glob
 import os
