@@ -59,3 +59,4 @@ docs/_build/
 # Test directory
 test/log_test_job_runner.txt
 
+.DS_Store
