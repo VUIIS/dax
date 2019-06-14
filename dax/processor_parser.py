@@ -9,6 +9,7 @@ from .task import NeedInputsException
 from .task import NEED_INPUTS, OPEN_STATUS_LIST, BAD_QA_STATUS,\
     JOB_PENDING, REPROC, RERUN, FAILED_NEEDS_REPROC, NEEDS_QA
 from . import XnatUtils
+from . import utilities
 
 LOGGER = logging.getLogger('dax')
 
@@ -79,6 +80,7 @@ class ParserArtefact:
         return '{}(path = {}, resources = {}, entity = {})'.format(
             self.__class__.__name__, self.path, self.resources, self.entity
         )
+
 
 class SelectSessionParameters:
     def __init__(self, mode, delta):
@@ -208,15 +210,20 @@ class ProcessorParser:
 
         return command_set
 
-    def find_inputs(self, assr):
-        assr_inputs = {
-            key.decode(): val.decode() for key, val in
-            list(XnatUtils.get_assessor_inputs(assr).items())}
+    def find_inputs(self, assr, sessions, assr_inputs):
+        # LOGGER.debug('getting inputs from xnat')
+        # assr_inputs = {
+        #    key.decode(): val.decode() for key, val in
+        #    list(XnatUtils.get_assessor_inputs(assr).items())}
+        # LOGGER.debug('finished getting inputs')
+
         variable_set = {}
         input_list = []
 
+        LOGGER.debug('checking status of each artefact')
         # Check artefact status
         for artk, artv in list(assr_inputs.items()):
+            LOGGER.debug('checking status:'+artv)
             inp = self.inputs[artk]
             art_type = inp['artefact_type']
             if art_type == 'scan' and not inp['needs_qc']:
@@ -230,7 +237,7 @@ class ProcessorParser:
             else:
                 dtype = aobj.datatype()
                 procstatus = aobj.attrs.get(dtype + '/procstatus')
-                if procstatus in OPEN_STATUS_LIST+[NEED_INPUTS]:
+                if procstatus in OPEN_STATUS_LIST + [NEED_INPUTS]:
                     raise NeedInputsException(artk + ': Not Ready')
 
                 qcstatus = aobj.attrs.get(dtype + '/validation/status')
@@ -247,8 +254,12 @@ class ProcessorParser:
                     if badstatus.lower() in qcstatus.split(' ')[0].lower():
                         raise NeedInputsException(artk + ': Bad QC')
 
+        LOGGER.debug('finished artefact status')
+
+        LOGGER.debug('mapping params to artefact resources')
         # map from parameters to input resources
         for k, v in list(self.variables_to_inputs.items()):
+            LOGGER.debug('mapping:'+k)
             inp = self.inputs[v['input']]
             artefact_type = inp['artefact_type']
             resource = v['resource']
@@ -286,7 +297,7 @@ class ProcessorParser:
                         file_list = robj.files().get()
 
                         # Filter list based on regex matching
-                        regex = XnatUtils.extract_exp(fmatch, full_regex=False)
+                        regex = utilities.extract_exp(fmatch, full_regex=False)
                         file_list = [x for x in file_list if regex.match(x)]
 
                         # Make a comma separated list of files
@@ -336,7 +347,7 @@ class ProcessorParser:
                     file_list = robj.files().get()
 
                     # Filter list based on regex matching
-                    regex = XnatUtils.extract_exp(fmatch, full_regex=False)
+                    regex = utilities.extract_exp(fmatch, full_regex=False)
                     file_list = [x for x in file_list if regex.match(x)]
 
                     # Make a comma separated list of files
@@ -364,6 +375,8 @@ class ProcessorParser:
                 # Replace path with destination path after download
                 if 'varname' in cur_res:
                     variable_set[k] = cur_res['fdest']
+
+        LOGGER.debug('finished mapping params to artefact resources')
 
         return variable_set, input_list
 
@@ -454,7 +467,8 @@ class ProcessorParser:
             name = a['name']
 
             if 'types' not in a:
-                errors.append(missing_field_named.format('scan', name, 'types'))
+                errors.append(
+                    missing_field_named.format('scan', name, 'types'))
 
             errors.extend(ProcessorParser._check_valid_mode(
                 'assessor', name,
@@ -513,7 +527,7 @@ class ProcessorParser:
         elif iteration_args[0] == 'all':
             iteration_sources.add(name)
         elif iteration_args[0] == 'from':
-            iteration_map[name] = iteration_args[1] #.split('/')[0]
+            iteration_map[name] = iteration_args[1]
 
     @staticmethod
     def _register_input_types(input_types, inputs_by_type, name):
@@ -716,7 +730,7 @@ class ProcessorParser:
             if csess is not None:
                 for cscan in csess.scans():
                     for expression in iv['types']:
-                        regex = XnatUtils.extract_exp(expression)
+                        regex = utilities.extract_exp(expression)
                         if regex.match(cscan.type()):
                             if iv.get('select')[0] == 'all' and\
                                  cscan.info().get('quality') == 'unusable':
@@ -833,7 +847,9 @@ class ProcessorParser:
 
         # perform a cartesian product of the dimension map entries to get the
         # final input combinations
-        matrix = [list(itertools.chain.from_iterable(x)) for x in itertools.product(*input_dimension_map)]
+        matrix = [list(
+            itertools.chain.from_iterable(x)) for x in itertools.product(
+                *input_dimension_map)]
 
         matrix_headers = list(itertools.chain.from_iterable(all_inputs))
 
@@ -848,13 +864,13 @@ class ProcessorParser:
         return final_matrix
 
     @staticmethod
-    def compare_to_existing(csesses, processor_type, parameter_matrix):
+    def compare_to_existing(csesses, proc_type, parameter_matrix):
 
         csess = csesses[0]
 
         assessors = [[] for _ in range(len(parameter_matrix))]
 
-        for casr in [a for a in csess.assessors() if a.type() == processor_type]:
+        for casr in [a for a in csess.assessors() if a.type() == proc_type]:
             inputs = {
                 key.decode(): val.decode() for key, val in
                 list(casr.get_inputs().items())}

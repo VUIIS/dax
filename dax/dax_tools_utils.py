@@ -38,6 +38,7 @@ from . import processors
 from . import task
 from . import xnat_tools_utils
 from . import XnatUtils
+from . import utilities
 from . import assessor_utils
 from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
                            DEFAULT_FS_DATATYPE)
@@ -1373,7 +1374,7 @@ Missing args. 4 needed, %s found at line %s." % (str(len(row)), str(index)))
                             host_projs.append(dict(list(zip(DEFAULT_HEADER,
                                                         row[:4]))))
         elif f_settings.endswith('.yaml'):
-            doc = XnatUtils.read_yaml(f_settings)
+            doc = utilities.read_yaml(f_settings)
             host_projs = doc.get('settings')
         else:
             raise DaxError("error: doesn't recognize the file format for the \
@@ -2159,7 +2160,7 @@ def load_test(filepath):
         return None
 
     if filepath.endswith('yaml'):
-        doc = XnatUtils.read_yaml(filepath)
+        doc = utilities.read_yaml(filepath)
 
         if 'projects' in list(doc.keys()):
             try:

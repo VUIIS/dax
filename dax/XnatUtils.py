@@ -21,12 +21,10 @@ SpiderProcessHandler to handle results at the end of any spider
 """
 
 
-import fnmatch
 import getpass
 import os
 import re
 import shutil
-import yaml
 
 import xml.etree.cElementTree as ET
 from pyxnat import Interface
@@ -212,9 +210,9 @@ class InterfaceTemp(Interface):
             print(e)
             raise XnatAuthentificationError(self.host, self.user)
 
-    # TODO: string.format wants well-formed strings and will, for example, throw
-    # a KeyError if any named variables in the format string are missing. Put
-    # proper validation in place for these methods
+    # TODO: string.format wants well-formed strings and will, for example,
+    # throw a KeyError if any named variables in the format string are missing.
+    # Put proper validation in place for these methods
 
     def get_project_path(self, project):
         return InterfaceTemp.P_XPATH.format(project=project)
@@ -1073,7 +1071,7 @@ class SpiderProcessHandler(object):
             os.mkdir(self.directory)
         else:
             # Remove files in directories
-            clean_directory(self.directory)
+            utilities.clean_directory(self.directory)
 
         self.print_msg("INFO: Handling results ...")
         self.print_msg('-Creating folder %s for %s'
@@ -1460,7 +1458,7 @@ def upload_file_to_obj(
         # Remove previous resource to upload the new one
         if removeall and resource_obj.exists():
             resource_obj.delete()
-        filepath = check_image_format(filepath)
+        filepath = utilities.check_image_format(filepath)
         if fname:
             filename = fname
             if filepath.endswith('.gz') and not fname.endswith('.gz'):
@@ -1618,41 +1616,14 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail):
     assessor_obj.out_resource('SNAPSHOTS')\
                 .file(os.path.basename(thumbnail))\
                 .put(thumbnail, thumbnail.split('.')[1].upper(), 'THUMBNAIL',
-                     overwrite=True, params={"event_reason": "DAX uploading file"})
+                     overwrite=True,
+                     params={"event_reason": "DAX uploading file"})
     assessor_obj.out_resource('SNAPSHOTS')\
                 .file(os.path.basename(original))\
                 .put(original, original.split('.')[1].upper(), 'ORIGINAL',
-                     overwrite=True, params={"event_reason": "DAX uploading file"})
+                     overwrite=True,
+                     params={"event_reason": "DAX uploading file"})
     return True
-
-
-def extract_exp(expression, full_regex=False):
-    """Extract the experession with or without full_regex.
-
-    :param expression: string to filter
-    :param full_regex: using full regex
-    :return: regex Object from re package
-    """
-    if not full_regex:
-        exp = fnmatch.translate(expression)
-    return re.compile(exp)
-
-
-def clean_directory(directory):
-    """
-    Remove a directory tree or file
-
-    :param directory: The directory (with sub directories if desired that you
-     want to delete). Also works with a file.
-    :return: None
-
-    """
-    for fname in os.listdir(directory):
-        fpath = os.path.join(directory, fname)
-        if os.path.isdir(fpath):
-            shutil.rmtree(fpath)
-        else:
-            os.remove(fpath)
 
 
 def get_files_in_folder(folder, label=''):
@@ -1669,7 +1640,7 @@ def get_files_in_folder(folder, label=''):
     for fpath in os.listdir(folder):
         ffpath = os.path.join(folder, fpath)
         if os.path.isfile(ffpath):
-            fpath = check_image_format(fpath)
+            fpath = utilities.check_image_format(fpath)
             if label:
                 filename = os.path.join(label, fpath)
             else:
@@ -1680,25 +1651,11 @@ def get_files_in_folder(folder, label=''):
             f_list.extend(get_files_in_folder(ffpath, label))
     return f_list
 
-
-def check_image_format(fpath):
-    """
-    Check to see if a NIfTI file or REC file are uncompress and runs gzip via
-     system command if not compressed
-
-    :param fpath: Filepath of a NIfTI or REC file
-    :return: the new file path of the gzipped file.
-
-    """
-    if fpath.endswith('.nii') or fpath.endswith('.rec'):
-        os.system('gzip %s' % fpath)
-        fpath = '%s.gz' % fpath
-    return fpath
-
-
 ###############################################################################
 #                                5) Cached Class                              #
 ###############################################################################
+
+
 class CachedImageSession(object):
     """
     Enumeration for assessors function, to control what assessors are returned
@@ -2443,17 +2400,3 @@ class CachedResource(object):
         res_info['content'] = self.get('content')
 
         return res_info
-
-
-def read_yaml(yaml_file):
-    """Functio to read a yaml file and return the document info
-
-    :param yaml_file: yaml file path
-    """
-    with open(yaml_file, "r") as yaml_stream:
-        try:
-            return yaml.load(yaml_stream, Loader=yaml.FullLoader)
-        except yaml.error.YAMLError as exc:
-            err = 'YAML File {} could not be loaded properly. Error: {}'
-            raise XnatUtilsError(err.format(yaml_file, exc))
-    return None

@@ -1,6 +1,14 @@
 import itertools as it
 import json
 from html.parser import HTMLParser
+import fnmatch
+import yaml
+import os
+import shutil
+import re
+
+from .errors import DaxError
+
 
 h = HTMLParser()
 
@@ -102,3 +110,61 @@ def find_with_pred(items, pred):
 
 def strip_leading_and_trailing_spaces(list_arg):
     return ','.join([x.strip() for x in list_arg.split(',')])
+
+
+def extract_exp(expression, full_regex=False):
+    """Extract the experession with or without full_regex.
+
+    :param expression: string to filter
+    :param full_regex: using full regex
+    :return: regex Object from re package
+    """
+    if not full_regex:
+        exp = fnmatch.translate(expression)
+    return re.compile(exp)
+
+
+def clean_directory(directory):
+    """
+    Remove a directory tree or file
+
+    :param directory: The directory (with sub directories if desired that you
+     want to delete). Also works with a file.
+    :return: None
+
+    """
+    for fname in os.listdir(directory):
+        fpath = os.path.join(directory, fname)
+        if os.path.isdir(fpath):
+            shutil.rmtree(fpath)
+        else:
+            os.remove(fpath)
+
+
+def check_image_format(fpath):
+    """
+    Check to see if a NIfTI file or REC file are uncompress and runs gzip via
+     system command if not compressed
+
+    :param fpath: Filepath of a NIfTI or REC file
+    :return: the new file path of the gzipped file.
+
+    """
+    if fpath.endswith('.nii') or fpath.endswith('.rec'):
+        os.system('gzip %s' % fpath)
+        fpath = '%s.gz' % fpath
+    return fpath
+
+
+def read_yaml(yaml_file):
+    """Functio to read a yaml file and return the document info
+
+    :param yaml_file: yaml file path
+    """
+    with open(yaml_file, "r") as yaml_stream:
+        try:
+            return yaml.load(yaml_stream, Loader=yaml.FullLoader)
+        except yaml.error.YAMLError as exc:
+            err = 'YAML File {} could not be loaded properly. Error: {}'
+            raise DaxError(err.format(yaml_file, exc))
+    return None

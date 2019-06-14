@@ -473,6 +473,8 @@ cluster queue"
 
         # check for processor types that are new to this project
         assessors = intf.list_project_assessors(project_id)
+
+        # TODO: use has_new
         has_new = self.has_new_processors(assessors, processor_types)
 
         for subject_id, sessions in list(sessions_by_subject.items()):
@@ -656,14 +658,11 @@ in session %s'
         :param auto_proc_list: list of yaml processors
         :return: None
         """
-        sess_info = csess.info()
+        # sess_info = csess.info()
         res_dir = DAX_SETTINGS.get_results_dir()
         xnat_session = csess.full_object()
 
         for auto_proc in auto_proc_list:
-            if not auto_proc.should_run(sess_info):
-                continue
-
             # TODO: use mod time to decide if we need to reload
             if False:
                 csess.reload()
@@ -706,7 +705,7 @@ in session %s'
                         LOGGER.debug(
                             'building task: ' + assessor[0].label())
                         (proc_status, qc_status) = xtask.build_task(
-                            assessor[0],
+                            assessor[0], sessions,
                             self.root_job_dir,
                             self.job_email,
                             self.job_email_options)

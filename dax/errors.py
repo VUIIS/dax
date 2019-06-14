@@ -11,13 +11,12 @@ import sys
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
-__all__ = ['DaxError', 'DaxXnatError', 'DaxSpiderError', 'DaxProcessorError',
+__all__ = ['DaxError', 'DaxXnatError', 'DaxProcessorError',
            'DaxSetupError', 'DaxNetrcError', 'DaxUploadError',
            'XnatAuthentificationError', 'XnatUtilsError', 'XnatAccessError',
            'XnatToolsError', 'XnatToolsUserError',
            'ClusterLaunchException', 'ClusterCountJobsException',
            'ClusterJobIDException',
-           'SpiderError', 'AutoSpiderError',
            'AutoProcessorError']
 
 
@@ -29,11 +28,6 @@ class DaxError(Exception):
 # DAX XNAT error:
 class DaxXnatError(DaxError):
     """Basic exception for errors related to XNAT raised by dax."""
-
-
-# DAX Spider error:
-class DaxSpiderError(DaxError):
-    """Basic exception for errors related to spider raised by dax."""
 
 
 # DAX Processor error:
@@ -145,15 +139,6 @@ class NoDataException(DaxError):
 
     def __str__(self):
         return repr(self.value)
-
-
-# Spider and AutoSpider Exception:
-class SpiderError(DaxSpiderError):
-    pass
-
-
-class AutoSpiderError(DaxSpiderError):
-    pass
 
 
 # Processor Exception:

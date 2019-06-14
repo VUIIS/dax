@@ -10,8 +10,8 @@ import os
 from . import launcher
 from . import log
 from . import XnatUtils
+from . import utilities
 from . import processors
-from . import yaml_doc
 from .dax_settings import DAX_Settings
 from .errors import DaxError
 DAX_SETTINGS = DAX_Settings()
@@ -203,7 +203,7 @@ def read_yaml_settings(yaml_file, logger):
         err = 'Path not found for {}'
         raise DaxError(err.format(yaml_file))
 
-    doc = XnatUtils.read_yaml(yaml_file)
+    doc = utilities.read_yaml(yaml_file)
 
     # Set Inputs from Yaml
     check_default_keys(yaml_file, doc)
@@ -277,7 +277,8 @@ def read_yaml_settings(yaml_file, logger):
 
             # processors:
             if proj_dict.get('processors'):
-                for proc_n in [s.strip() for s in proj_dict.get('processors').split(',')]:
+                for proc_n in [s.strip() for s in proj_dict.get(
+                        'processors').split(',')]:
                     if project not in list(proj_proc.keys()):
                         proj_proc[project] = [procs[proc_n]]
                     else:
@@ -285,7 +286,8 @@ def read_yaml_settings(yaml_file, logger):
 
             # yaml_proc:
             if proj_dict.get('yamlprocessors'):
-                for yaml_n in [s.strip() for s in proj_dict.get('yamlprocessors').split(',')]:
+                for yaml_n in [s.strip() for s in proj_dict.get(
+                        'yamlprocessors').split(',')]:
                     if project not in list(yaml_proc.keys()):
                         yaml_proc[project] = [yamlprocs[yaml_n]]
                     else:

@@ -1524,16 +1524,18 @@ undo_processing...')
         """
         raise NotImplementedError()
 
-    def build_task(self, assr, jobdir, job_email=None,
+    def build_task(self, assr, sessions,
+                   jobdir, job_email=None,
                    job_email_options=DEFAULT_EMAIL_OPTS,
                    xnat_host=None):
         """
         Method to build a job
         """
+        LOGGER.debug('getting statuses from xnat')
         (old_proc_status, old_qc_status, _) = self.get_statuses()
-
+        LOGGER.debug('finished status='+old_proc_status+':'+old_qc_status)
         try:
-            cmds = self.build_commands(assr, jobdir)
+            cmds = self.build_commands(assr, sessions, jobdir)
             batch_file = self.batch_path()
             outlog = self.outlog_path()
             batch = PBS(batch_file,
@@ -1565,7 +1567,7 @@ undo_processing...')
 
         return (new_proc_status, new_qc_status)
 
-    def build_commands(self, assr, jobdir):
+    def build_commands(self, assr, sessions, jobdir):
         """
         Call the build_cmds method of the class Processor.
 
@@ -1576,4 +1578,4 @@ undo_processing...')
 
         """
         assr_dir = os.path.join(jobdir, self.assessor_label)
-        return self.processor.build_cmds(assr, assr_dir)
+        return self.processor.build_cmds(assr, sessions, assr_dir)

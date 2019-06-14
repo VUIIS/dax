@@ -387,32 +387,6 @@ defined by yaml file {}'
         """
         self.parser.parse_session(csess, sessions)
 
-    def should_run(self, obj_dict):
-        """
-        Method to see if the assessor should appear in the session.
-
-        :param obj_dict: Dictionary of information about the scan or sesion
-        :return: True if it should run, false if it shouldn't
-
-        """
-        # TODO: BenM/assessor_of_assessor/this method checks whether a given
-        # processor type runs on a session - figure out if this is still
-        # necessary
-        if 'scan_type' in obj_dict:
-            scantypes = self.scaninfo.get('types', '').split(',')
-            if scantypes == 'all':
-                return True
-            else:
-                for expression in scantypes:
-                    regex = self.xnat.extract_exp(expression, self.full_regex)
-                    if regex.match(obj_dict['scan_type']):
-                        return True
-                return False
-        else:
-            # By definition, this should always run, so it just returns true
-            # with no checks for session
-            return True
-
     def get_proctype(self):
         return self.name
     # ***** Names still need fixing! *****
@@ -640,16 +614,27 @@ class MoreAutoProcessor(AutoProcessor):
 
         return tmp
 
-    def build_cmds(self, assr, jobdir):
+    def build_cmds(self, assr, sessions, jobdir):
         """Method to generate the spider command for cluster job.
         :param jobdir: jobdir where the job's output will be generated
         :return: command to execute the spider in the job script
         """
+        LOGGER.debug('getting assessor label')
         assr_label = assr.label()
+        LOGGER.debug('finished assessor label:' + assr_label)
         dstdir = os.path.join(DAX_Settings().get_results_dir(), assr_label)
 
+        LOGGER.debug('getting inputs from xnat')
+        assr_inputs = {
+            key.decode(): val.decode() for key, val in
+            list(XnatUtils.get_assessor_inputs(assr).items())}
+        LOGGER.debug('finished getting inputs')
+
         # Find values for the xnat inputs
-        var2val, input_list = self.parser.find_inputs(assr)
+        LOGGER.debug('calling find_inputs')
+        var2val, input_list = self.parser.find_inputs(
+            assr, sessions, assr_inputs)
+        LOGGER.debug('finished find_inputs')
 
         # Append other stuff
         for k, v in list(self.user_overrides.items()):
@@ -663,7 +648,10 @@ class MoreAutoProcessor(AutoProcessor):
 
         # Handle xnat attributes
         # TODO: handle multiple scans/assrs for an input
-        assr_inputs = XnatUtils.get_assessor_inputs(assr)
+        #LOGGER.debug('retrieving assessor inputs from xnat')
+        #assr_inputs = XnatUtils.get_assessor_inputs(assr)
+        #LOGGER.debug('finished getting assessor inputs')
+
         for attr_in in self.xnat_inputs.get('attrs', list()):
             _var = attr_in['varname']
             _attr = attr_in['attr']
