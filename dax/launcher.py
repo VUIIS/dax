@@ -193,8 +193,8 @@ name as a key and list of yaml filepaths as values.'
             self.xnat_user = xnat_user
             if not xnat_pass:
                 msg = 'Please provide password for host <%s> and user <%s>: '
-                self.xnat_pass = eval(input(msg % (self.xnat_host,
-                                              self.xnat_user)))
+                self.xnat_pass = eval(
+                    input(msg % (self.xnat_host, self.xnat_user)))
             else:
                 self.xnat_pass = xnat_pass
 
@@ -663,12 +663,6 @@ in session %s'
         xnat_session = csess.full_object()
 
         for auto_proc in auto_proc_list:
-            # TODO: use mod time to decide if we need to reload
-            if False:
-                csess.reload()
-            else:
-                print('DEBUG:skipping csess reload')
-
             # return a mapping between the assessor input sets and existing
             # assessors that map to those input sets
             auto_proc.parse_session(csess, sessions)
@@ -683,6 +677,8 @@ in session %s'
                         xnat_session, inputs, relabel=True)
                     assessors =\
                         [(assessor, task.NEED_TO_RUN, task.DOES_NOT_EXIST)]
+
+                    csess.refresh()
                 else:
                     assessors = []
                     for p in p_assrs:
@@ -711,10 +707,12 @@ in session %s'
                             self.job_email_options)
                         deg = 'proc_status=%s, qc_status=%s'
                         LOGGER.debug(deg % (proc_status, qc_status))
+
+                        csess.refresh()
                     else:
                         # TODO: check that it actually exists in QUEUE
                         LOGGER.debug(
-                            'skipping, already built: ' +
+                            'already built: ' +
                             assessor[0].label())
 
     def module_prerun(self, project_id, settings_filename=''):

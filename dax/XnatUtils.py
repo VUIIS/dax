@@ -25,6 +25,7 @@ import getpass
 import os
 import re
 import shutil
+from datetime import datetime
 
 import xml.etree.cElementTree as ET
 from pyxnat import Interface
@@ -916,8 +917,6 @@ class AssessorHandler(object):
         :return: None
         """
         self.assessor_label = label
-        self.is_session_assessor = False
-        self.is_scan_assessor = False
         if len(re.findall('-x-', label)) == 3:
             labels = label.split('-x-')
             self.project_id = labels[0]
@@ -925,7 +924,6 @@ class AssessorHandler(object):
             self.session_label = labels[2]
             self.proctype = labels[3]
             self.scan_id = None
-            self.is_session_assessor = True
         elif len(re.findall('-x-', label)) == 4:
             labels = label.split('-x-')
             self.project_id = labels[0]
@@ -933,7 +931,6 @@ class AssessorHandler(object):
             self.session_label = labels[2]
             self.scan_id = labels[3]
             self.proctype = labels[4]
-            self.is_scan_assessor = True
         else:
             self.assessor_label = None
 
@@ -1059,7 +1056,7 @@ class SpiderProcessHandler(object):
                     raise XnatUtilsError(err % str(xnat_info))
                 assessor_label = '-x-'.join(xnat_info)
             self.assr_handler = AssessorHandler(assessor_label)
-        if not self.assr_handler.is_valid:
+        if not self.assr_handler.is_valid():
             err = 'SpiderProcessHandler:invalid assessor handler. Wrong label.'
             raise XnatUtilsError(err)
 
@@ -1354,28 +1351,6 @@ def get_interface(host=None, user=None, pwd=None):
     return InterfaceTemp(host, user, pwd)
 
 
-# TODO: BenM/assessor_of_assessor/assessor handler should be removable in the
-# medium term
-def generate_assessor_handler(project, subject, session, proctype, scan=None):
-    """
-    Generate an assessorHandler object corresponding to the labels in the
-     parameters.
-
-    :param project: project label on XNAT
-    :param subject: subject label on XNAT
-    :param session: session label on XNAT
-    :param proctype: proctype for the assessor
-    :param scan: scan label on XNAT if apply
-    :return: assessorHandler object
-    """
-    if scan:
-        assessor_label = '-x-'.join([project, subject, session, scan,
-                                     proctype])
-    else:
-        assessor_label = '-x-'.join([project, subject, session, proctype])
-    return AssessorHandler(assessor_label)
-
-
 def has_dax_datatypes(intf):
     """
     Check if Xnat instance has the datatypes for DAX
@@ -1423,7 +1398,16 @@ def parse_assessor_inputs(inputs):
         return None
 
 
-def get_assessor_inputs(assessor):
+def get_assessor_inputs(assessor, cached_sessions=None):
+    # Try to get inputs from cached data
+    if cached_sessions:
+        assr_label = assessor.label()
+        for csess in cached_sessions:
+            for cassr in csess.assessors():
+                if cassr.label() == assr_label:
+                    return cassr.info()['inputs']
+
+    # It's not in the cached data, so Query XNAT
     datatype = assessor.datatype()
     inputs = assessor.attrs.get(datatype + '/inputs')
     return parse_assessor_inputs(inputs)
@@ -1682,6 +1666,7 @@ class CachedImageSession(object):
         :return: None
 
         """
+        self.cached_timestamp = datetime.now()
         experiment = intf.select_experiment(proj, subj, sess)
         self.datatype_ = experiment.datatype()
         xml_str = experiment.get()
@@ -1708,6 +1693,17 @@ class CachedImageSession(object):
         self.sess_info_ = None
         self.scans_ = None
         self.assessors_ = None
+
+    def refresh(self):
+        last_mod_xnat = self.full_object().attrs.get(
+            self.datatype() + '/meta/last_modified')
+        last_mod = datetime.strptime(last_mod_xnat[0:19], '%Y-%m-%d %H:%M:%S')
+        if last_mod > self.cached_timestamp:
+            print('DEBUG:reloading xml from xnat')
+            self.reload()
+        else:
+            # Nothing changed so don't reload
+            pass
 
     def label(self):
         """
@@ -2400,3 +2396,36 @@ class CachedResource(object):
         res_info['content'] = self.get('content')
 
         return res_info
+
+
+def get_scan_status(sessions, scan_path):
+    path_parts = scan_path.split('/')
+    sess_label = path_parts[6]
+    scan_label = path_parts[8]
+
+    for csess in sessions:
+        if csess.label() == sess_label:
+            for cscan in csess.scans():
+                if cscan.label() == scan_label:
+                    return cscan.info()['quality']
+
+    raise XnatUtilsError('Invalid scan path:' + scan_path)
+
+
+def get_assr_status(sessions, assr_path):
+    path_parts = assr_path.split('/')
+    sess_label = path_parts[6]
+    assr_label = path_parts[8]
+
+    for csess in sessions:
+        if csess.label() != sess_label:
+            continue
+
+        for cassr in csess.assessors():
+            if cassr.label() != assr_label:
+                continue
+
+            cinfo = cassr.info()
+            return cinfo['procstatus'], cinfo['qcstatus']
+
+    raise XnatUtilsError('Invalid assessor path:' + assr_path)

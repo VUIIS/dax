@@ -614,27 +614,20 @@ class MoreAutoProcessor(AutoProcessor):
 
         return tmp
 
-    def build_cmds(self, assr, sessions, jobdir):
+    def build_cmds(self, assr, assr_label, sessions, jobdir):
         """Method to generate the spider command for cluster job.
         :param jobdir: jobdir where the job's output will be generated
         :return: command to execute the spider in the job script
         """
-        LOGGER.debug('getting assessor label')
-        assr_label = assr.label()
-        LOGGER.debug('finished assessor label:' + assr_label)
+        assr_dir = os.path.join(jobdir, assr_label)
         dstdir = os.path.join(DAX_Settings().get_results_dir(), assr_label)
-
-        LOGGER.debug('getting inputs from xnat')
         assr_inputs = {
             key.decode(): val.decode() for key, val in
-            list(XnatUtils.get_assessor_inputs(assr).items())}
-        LOGGER.debug('finished getting inputs')
+            list(XnatUtils.get_assessor_inputs(assr, sessions).items())}
 
         # Find values for the xnat inputs
-        LOGGER.debug('calling find_inputs')
         var2val, input_list = self.parser.find_inputs(
             assr, sessions, assr_inputs)
-        LOGGER.debug('finished find_inputs')
 
         # Append other stuff
         for k, v in list(self.user_overrides.items()):
@@ -647,11 +640,6 @@ class MoreAutoProcessor(AutoProcessor):
         var2val['assessor'] = assr_label
 
         # Handle xnat attributes
-        # TODO: handle multiple scans/assrs for an input
-        #LOGGER.debug('retrieving assessor inputs from xnat')
-        #assr_inputs = XnatUtils.get_assessor_inputs(assr)
-        #LOGGER.debug('finished getting assessor inputs')
-
         for attr_in in self.xnat_inputs.get('attrs', list()):
             _var = attr_in['varname']
             _attr = attr_in['attr']
@@ -732,7 +720,7 @@ class MoreAutoProcessor(AutoProcessor):
                 var2val[edit_in['varname']] = ''
 
         # Build the command text
-        cmd = self.build_text(var2val, input_list, jobdir, dstdir)
+        cmd = self.build_text(var2val, input_list, assr_dir, dstdir)
 
         return [cmd]
 

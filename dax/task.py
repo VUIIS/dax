@@ -626,13 +626,22 @@ undo_processing...')
             xnat_status = 'UNKNOWN_xsiType: %s' % self.atype
         return xnat_status
 
-    def get_statuses(self):
+    def get_statuses(self, cached_sessions=None):
         """
         Get the procstatus, qcstatus, and job id of an assessor
 
         :return: Serially ordered strings of the assessor procstatus,
          qcstatus, then jobid.
         """
+        if cached_sessions:
+            for csess in cached_sessions:
+                for cassr in csess.assessors():
+                    if cassr.label() == self.assessor_label:
+                        pstatus = cassr.info()['procstatus']
+                        qstatus = cassr.info()['qcstatus']
+                        jobid = cassr.info()['jobid']
+                        return pstatus, qstatus, jobid
+
         if not self.assessor.exists():
             xnat_status = DOES_NOT_EXIST
             qcstatus = DOES_NOT_EXIST
@@ -1531,9 +1540,7 @@ undo_processing...')
         """
         Method to build a job
         """
-        LOGGER.debug('getting statuses from xnat')
-        (old_proc_status, old_qc_status, _) = self.get_statuses()
-        LOGGER.debug('finished status='+old_proc_status+':'+old_qc_status)
+        (old_proc_status, old_qc_status, _) = self.get_statuses(sessions)
         try:
             cmds = self.build_commands(assr, sessions, jobdir)
             batch_file = self.batch_path()
@@ -1577,5 +1584,8 @@ undo_processing...')
          args.
 
         """
-        assr_dir = os.path.join(jobdir, self.assessor_label)
-        return self.processor.build_cmds(assr, sessions, assr_dir)
+        return self.processor.build_cmds(
+            assr,
+            self.assessor_label,
+            sessions,
+            jobdir)

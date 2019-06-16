@@ -226,35 +226,31 @@ class ProcessorParser:
             LOGGER.debug('checking status:'+artv)
             inp = self.inputs[artk]
             art_type = inp['artefact_type']
+
             if art_type == 'scan' and not inp['needs_qc']:
                 continue
 
-            # Get status from xnat
-            aobj = assr._intf.select(artv)
             if art_type == 'scan':
-                if aobj.attrs.get('quality') == 'unusable':
+                qstatus = XnatUtils.get_scan_status(sessions, artv)
+                if qstatus == 'unusable':
                     raise NeedInputsException(artk + ': Not Usable')
             else:
-                dtype = aobj.datatype()
-                procstatus = aobj.attrs.get(dtype + '/procstatus')
-                if procstatus in OPEN_STATUS_LIST + [NEED_INPUTS]:
+                pstatus, qstatus = XnatUtils.get_assr_status(sessions, artv)
+                if pstatus in OPEN_STATUS_LIST + [NEED_INPUTS]:
                     raise NeedInputsException(artk + ': Not Ready')
 
-                qcstatus = aobj.attrs.get(dtype + '/validation/status')
-                if qcstatus in [JOB_PENDING, REPROC, RERUN]:
+                if qstatus in [JOB_PENDING, REPROC, RERUN]:
                     raise NeedInputsException(artk + ': Not Ready')
 
                 if not inp['needs_qc']:
                     continue
 
-                if (qcstatus in [FAILED_NEEDS_REPROC, NEEDS_QA]):
+                if (qstatus in [FAILED_NEEDS_REPROC, NEEDS_QA]):
                     raise NeedInputsException(artk + ': Needs QC')
 
                 for badstatus in BAD_QA_STATUS:
-                    if badstatus.lower() in qcstatus.split(' ')[0].lower():
+                    if badstatus.lower() in qstatus.split(' ')[0].lower():
                         raise NeedInputsException(artk + ': Bad QC')
-
-        LOGGER.debug('finished artefact status')
 
         LOGGER.debug('mapping params to artefact resources')
         # map from parameters to input resources
