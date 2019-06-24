@@ -279,12 +279,6 @@ name as a key and list of yaml filepaths as values.'
         while (cjobs < self.queue_limit or writeonly) and len(task_list) > 0:
             cur_task = task_list.pop()
 
-            # Confirm task is still ready to run
-            # I don't think that we need to make this get here.
-            # We've already filtered the assessors as need to run.
-            # if cur_task.get_status() != task.NEED_TO_RUN:
-            #     continue
-
             if writeonly:
                 msg = "  +Writing PBS file for job:%s, currently %s jobs in \
 cluster queue"
@@ -1022,7 +1016,6 @@ The project is not part of the settings."""
         return len(proc_types.difference(assr_types)) > 0
 
 
-# TODO: BenM/assessor_of_assessor/check path.txt to get the project_id
 def load_task_queue(status=None, proj_filter=None):
     """ Load the task queue for DiskQ"""
     task_list = list()
@@ -1070,15 +1063,3 @@ def sess_was_modified(xnat, sess_info, build_start_time):
     """
     last_mod = get_sess_lastmod(xnat, sess_info)
     return (last_mod > build_start_time)
-
-
-def log_updating_status(procname, assessor_label):
-    """
-    Print as debug the status updating string
-    :param procname: process name
-    :param assessors_label: assessor label
-    :return: None
-    """
-    mess = """* Processor:{proc}: updating status: {label}"""
-    mess_str = mess.format(proc=procname, label=assessor_label)
-    LOGGER.debug(mess_str)

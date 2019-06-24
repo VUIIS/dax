@@ -2429,3 +2429,36 @@ def get_assr_status(sessions, assr_path):
             return cinfo['procstatus'], cinfo['qcstatus']
 
     raise XnatUtilsError('Invalid assessor path:' + assr_path)
+
+def get_input_list(input_val, default_val):
+    """
+    Method to get a list from a comma separated string.
+    :param input_val: Input string or list
+    :param default_val: Default value (generally used for a spider)
+    :return: listified string or default_val if input is not a list or string.
+    """
+    if isinstance(input_val, list):
+        return input_val
+    elif isinstance(input_val, str):
+        return input_val.split(',')
+    else:
+        return default_val
+
+def has_resource(cobj, resource_label):
+    """
+    Check to see if a CachedImageObject has a specified resource
+    :param cobj: CachedImageObject object from XnatUtils
+    :param resource_label: label of the resource to check
+    :return: True if cobj has the resource and there is at least one file,
+             False if not.
+    """
+    res_list = [r for r in cobj.get_resources() if r['label'] == resource_label]
+    return (len(res_list) > 0) and (int(res_list[0]['file_count']) > 0)
+
+def is_cscan_unusable(cscan):
+    """
+    Check to see if a CachedImageScan is unusable
+    :param cscan: XnatUtils.CachedImageScan object
+    :return: True if unusable, False otherwise
+    """
+    return cscan.info()['quality'] == "unusable"
