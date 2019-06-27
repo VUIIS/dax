@@ -73,9 +73,13 @@ def job_status(jobid):
     """
     cmd = DAX_SETTINGS.get_cmd_get_job_status()\
                       .safe_substitute({'jobid': jobid})
+
+    LOGGER.debug(str(cmd))
+
     try:
         output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
-        output = output.strip()
+        LOGGER.debug('output='+str(output))
+        output = output.decode().strip()
         if output == DAX_SETTINGS.get_running_status():
             return 'R'
         elif output == DAX_SETTINGS.get_queue_status():
@@ -84,7 +88,8 @@ def job_status(jobid):
             return 'C'
         else:
             return None
-    except sb.CalledProcessError:
+    except sb.CalledProcessError as e:
+        LOGGER.debug(str(e))
         return None
 
 
@@ -335,9 +340,9 @@ def submit_job(filename, outlog=None, force_no_qsub=False):
             proc = sb.Popen(cmd.split(), stdout=sb.PIPE, stderr=sb.PIPE)
             output, error = proc.communicate()
             if output:
-                LOGGER.info(output)
+                LOGGER.info(output.decode())
             if error:
-                LOGGER.error(error)
+                LOGGER.error(error.decode())
             jobid = get_specific_str(
                 output.decode(), DAX_SETTINGS.get_prefix_jobid(),
                 DAX_SETTINGS.get_suffix_jobid())

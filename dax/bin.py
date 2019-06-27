@@ -339,17 +339,11 @@ def load_from_file(filepath, args, logger, singularity_imagedir=None):
 
     if filepath.endswith('.py'):
         test = imp.load_source('test', filepath)
-        #try:
-        #    return eval(_tmp.format(test.__processor_name__))
-        #except AttributeError as e:
-        #    print('attribute error', str(e))
-        #    pass
-
         try:
-            print('evaling:' + _tmp.format(os.path.basename(filepath)[:-3]))
+            #print('evaling:' + _tmp.format(os.path.basename(filepath)[:-3]))
             return eval(_tmp.format(os.path.basename(filepath)[:-3]))
         except AttributeError as e:
-            print('attribute error', str(e))
+            #print('attribute error', str(e))
             pass
 
         err = '[ERROR] Module or processor NOT FOUND in the python file {}.'

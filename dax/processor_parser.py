@@ -867,13 +867,13 @@ class ProcessorParser:
         assessors = [[] for _ in range(len(parameter_matrix))]
 
         for casr in [a for a in csess.assessors() if a.type() == proc_type]:
-            inputs = {
-                key.decode(): val.decode() for key, val in
-                list(casr.get_inputs().items())}
+            inputs = casr.get_inputs()
             if inputs is None:
                 LOGGER.warn('skipping, inputs field is empty:' + casr.label())
-                return None
+                return list()
 
+            inputs = list(inputs.items())
+            inputs = {key.decode(): val.decode() for key, val in inputs}
             for pi, p in enumerate(parameter_matrix):
                 if inputs == p:
                     assessors[pi].append(casr)

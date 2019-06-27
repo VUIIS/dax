@@ -436,12 +436,6 @@ cluster queue"
         :param sessions_local: list of sessions to launch tasks
         :return: None
         """
-        # Modules prerun
-        LOGGER.info('  * Modules Prerun')
-        if sessions_local:
-            self.module_prerun(project_id, 'manual_update')
-        else:
-            self.module_prerun(project_id, lockfile_prefix)
 
         # TODO: make a project settings to store, processors,
         #       modules, etc
@@ -453,6 +447,14 @@ cluster queue"
         auto_procs = processors.processors_by_type(proj_procs)
         auto_procs = ProcessorGraph.order_processors(auto_procs, LOGGER)
 
+        if proj_mods:
+            # Modules prerun
+            LOGGER.info('  * Modules Prerun')
+            if sessions_local:
+                self.module_prerun(project_id, 'manual_update')
+            else:
+                self.module_prerun(project_id, lockfile_prefix)
+
         if mod_delta:
             lastmod_delta = str_to_timedelta(mod_delta)
         else:
@@ -461,6 +463,7 @@ cluster queue"
         # get the list of processors for this project
         processor_types = set([x.name for x in auto_procs])
 
+        LOGGER.info('  * Loading list of sessions from XNAT for project')
         sessions_by_subject = groupby_to_dict(
             self.get_sessions_list(intf, project_id, sessions_local),
             lambda x: x['subject_id'])
@@ -501,8 +504,7 @@ cluster queue"
                     else:
                         LOGGER.info('lastmod = %s' % str(last_mod))
 
-                mess = "  + Session %s: building..."
-                LOGGER.info(mess % sess_info['label'])
+                # Append session to list of sessions to update
                 sessions_to_update[sess_info['ID']] = sess_info
 
             if len(sessions_to_update) == 0:
@@ -510,6 +512,8 @@ cluster queue"
 
             # build a full list of sessions for the subject: they may be needed
             # even if not all sessions are getting updated
+            mess = "+ Subject %s: loading XML for %s session(s)..."
+            LOGGER.info(mess % (sessions[0]['subject_label'], len(sessions)))
             cached_sessions = [XnatUtils.CachedImageSession(
                 intf, x['project_label'], x['subject_label'],
                 x['session_label']) for x in sessions]
@@ -522,6 +526,8 @@ cluster queue"
                 try:
                     # TODO: BenM - ensure that this code is robust to subjects
                     # without sessions and sessions without assessors / scans
+                    mess = "+ Session %s: building..."
+                    LOGGER.info(mess % sess_info['label'])
                     self.build_session(
                         intf, sess_info, auto_procs, exp_mods, scan_mods,
                         sessions=cached_sessions)
@@ -553,7 +559,7 @@ cluster queue"
 
 
         :param intf: pyxnat.Interface object
-        :param sess_info: python ditionary from XnatUtils.list_sessions method
+        :param sess_info: python dictionary from XnatUtils.list_sessions method
         :param auto_proc_list: list of processors running
         :param sess_mod_list: list of modules running on a session
         :param scan_mod_list: list of modules running on a scan
@@ -563,27 +569,30 @@ cluster queue"
         csess = find_with_pred(
             sessions, lambda s: sess_info['label'] == s.session_id())
 
-        # Modules
-        mod_count = 0
-        while mod_count < 3:
-            mess = """== Build modules (count:{count}) =="""
-            LOGGER.debug(mess.format(count=mod_count))
-            # NOTE: we keep starting time to check if something changes below
-            start_time = datetime.now()
-            if sess_mod_list:
-                self.build_session_modules(intf, csess, sess_mod_list)
-            if scan_mod_list:
-                for cscan in csess.scans():
-                    LOGGER.debug('+SCAN: ' + cscan.info()['scan_id'])
-                    self.build_scan_modules(intf, cscan, scan_mod_list)
+        if sess_mod_list or scan_mod_list:
+            # Modules
+            mod_count = 0
+            while mod_count < 3:
+                mess = """== Build modules (count:{count}) =="""
+                LOGGER.debug(mess.format(count=mod_count))
+                # NOTE: we keep starting time to check if something changes below
+                # start_time = datetime.now()
+                if sess_mod_list:
+                    self.build_session_modules(intf, csess, sess_mod_list)
+                if scan_mod_list:
+                    for cscan in csess.scans():
+                        LOGGER.debug('+SCAN: ' + cscan.info()['scan_id'])
+                        self.build_scan_modules(intf, cscan, scan_mod_list)
 
-            # TODO: BenM/xnat refactor/this test should be encapsulated into a
-            # session object
-            if not sess_was_modified(intf, sess_info, start_time):
-                break
+                # TODO: BenM/xnat refactor/this test should be encapsulated into a
+                # session object
+                reloaded = csess.refresh()
+                if not reloaded:
+                    # if not sess_was_modified(intf, sess_info, start_time):
+                    break
 
-            csess.reload()
-            mod_count += 1
+                # csess.reload()
+                mod_count += 1
 
         # Auto Processors
         if auto_proc_list:

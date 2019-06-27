@@ -419,6 +419,7 @@ undo_processing...')
             # This is now handled by dax_build
             pass
         elif old_status == JOB_RUNNING:
+            LOGGER.debug('calling check_running')
             new_status = self.check_running(jobid)
         elif old_status == READY_TO_UPLOAD:
             # TODO: let upload spider handle it???
@@ -433,6 +434,7 @@ undo_processing...')
             LOGGER.warn('             * unknown status for %s: %s'
                         % (self.assessor_label, old_status))
 
+        LOGGER.debug('new_status='+new_status)
         if new_status != old_status:
             LOGGER.info('             * changing status from %s to %s'
                         % (old_status, new_status))
@@ -471,6 +473,8 @@ undo_processing...')
 
         if jobid != '' and jobid != '0':
             jobstatus = cluster.job_status(jobid)
+
+        LOGGER.debug('jobid,jobstatus='+str(jobid)+','+str(jobstatus))
 
         return jobstatus
 
@@ -818,6 +822,8 @@ undo_processing...')
         # Check status on cluster
         jobstatus = self.get_job_status(jobid)
 
+        LOGGER.debug('jobstatus='+str(jobstatus))
+
         if not jobstatus or jobstatus in ['R', 'Q']:
             # Still running
             return JOB_RUNNING
@@ -1022,6 +1028,7 @@ class ClusterTask(Task):
         """
         old_status = self.get_status()
         new_status = old_status
+        LOGGER.debug('old_status='+old_status)
 
         if old_status == JOB_RUNNING:
             new_status = self.check_running()
@@ -1069,6 +1076,8 @@ class ClusterTask(Task):
 
         if jobid and jobid != '0':
             jobstatus = cluster.job_status(jobid)
+
+        LOGGER.debug('jobid,jobstatus='+str(jobid)+','+str(jobstatus))
 
         return jobstatus
 
@@ -1298,6 +1307,8 @@ class ClusterTask(Task):
 
         # Check status on cluster
         jobstatus = self.get_job_status()
+
+        LOGGER.debug('jobstatus='+str(jobstatus))
 
         if not jobstatus or jobstatus == 'R' or jobstatus == 'Q':
             # Still running

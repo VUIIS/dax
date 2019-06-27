@@ -1666,7 +1666,7 @@ class CachedImageSession(object):
         :return: None
 
         """
-        self.cached_timestamp = datetime.now()
+        self.reset_cached_time()
         experiment = intf.select_experiment(proj, subj, sess)
         self.datatype_ = experiment.datatype()
         xml_str = experiment.get()
@@ -1682,6 +1682,9 @@ class CachedImageSession(object):
         self.scans_ = None
         self.assessors_ = None
 
+    def reset_cached_time(self):
+        self.cached_timestamp = datetime.now()
+
     def entity_type(self):
         return 'session'
 
@@ -1693,17 +1696,20 @@ class CachedImageSession(object):
         self.sess_info_ = None
         self.scans_ = None
         self.assessors_ = None
+        self.reset_cached_time()
 
     def refresh(self):
         last_mod_xnat = self.full_object().attrs.get(
             self.datatype() + '/meta/last_modified')
         last_mod = datetime.strptime(last_mod_xnat[0:19], '%Y-%m-%d %H:%M:%S')
         if last_mod > self.cached_timestamp:
-            print('DEBUG:reloading xml from xnat')
             self.reload()
+            # return value means we did refresh
+            return True
         else:
             # Nothing changed so don't reload
-            pass
+            # return value means we didn't refresh
+            return False
 
     def label(self):
         """
