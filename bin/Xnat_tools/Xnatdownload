@@ -174,7 +174,7 @@ def read_txtfile():
     scans_list = list()
     asses_list = list()
     if os.path.exists(OPTIONS.csvfile):
-        with open(OPTIONS.csvfile, 'rb') as csvfileread:
+        with open(OPTIONS.csvfile, 'r') as csvfileread:
             csvreader = csv.reader(csvfileread, delimiter=',')
             for row in csvreader:
                 if row[0] == 'scan':
@@ -210,11 +210,11 @@ def read_report():
     last_dl_date = None
     rp_path = os.path.join(DIRECTORY, DEFAULT_REPORT_NAME)
     if os.path.exists(rp_path):
-        with open(rp_path, 'rb') as csvfileread:
+        with open(rp_path, 'r') as csvfileread:
             csvreader = csv.reader(csvfileread, delimiter=',')
             # get the last_update
             last_dl_date = int(
-                csvreader.next()[0].split('=')[1]
+                csvreader.__next__()[0].split('=')[1]
                                    .replace('-', '')
                                    .replace(':', '')
                                    .replace(' ', ''))
@@ -263,8 +263,8 @@ given as a parameter or it does not exist on XNAT.')
             if OPTIONS.scantype:
                 scans_list.extend(XNAT.get_project_scans(project))
             if OPTIONS.assessortype:
-                asses_list.extend(XnatUtils.list_project_assessors(
-                    XNAT, project))
+                asses_list.extend(XNAT.list_project_assessors(project))
+
          #   if OPTIONS.subject:
           #      scans_list.extend(XNAT.get_project_scans(project))
            #     asses_list.extend(XnatUtils.list_assessors(XNAT, project, get_option_list(OPTIONS.subject), get_option_list(OPTIONS.session)))
@@ -646,15 +646,12 @@ def download_scan(directory, scan_dict, resources_list, row, last_dl_date):
     :param last_dl_date: time at the last download call
     :return: None
     """
-    try:
-        scan_obj = XnatUtils.get_full_object(XNAT, scan_dict)
-    except KeyError:
-        # TODO: BenM/xnatutils refactor/this shouldn't be hit under any
-        # circumstances; figure out if it is still needed and, if not, remove
-        scan_obj = XNAT.select('/project/{project}/subject/{subject}/experiment/{experiment}/scan/{scan}'. format(project=scan_dict['project_id'],
-                                                                                                                  subject=scan_dict['subject_label'],
-                                                                                                                  experiment=scan_dict['session_label'],
-                                                                                                                  scan=scan_dict['ID']))
+    scan_obj = XNAT.select_scan(
+        scan_dict['project_id'],
+        scan_dict['subject_label'],
+        scan_dict['session_label'],
+        scan_dict['ID'])
+
     if not scan_obj.exists():
         LOGGER.info('  ->WARNING: No scan with the ID given.')
     else:
@@ -691,7 +688,11 @@ def download_assessor(directory, assessor_dict, resources_list, row,
     :param last_dl_date: time at the last download call
     :return: None
     """
-    assessor_obj = XnatUtils.get_full_object(XNAT, assessor_dict)
+    assessor_obj = XNAT.select_assessor(
+        assessor_dict['project_label'],
+        assessor_dict['subject_label'],
+        assessor_dict['session_label'],
+        assessor_dict['assessor_label'])
     if not assessor_obj.exists():
         LOGGER.info('  ->WARNING: No processor with the label given.')
     else:
@@ -880,7 +881,11 @@ def download_specific_scan():
             ['project_id', 'subject_label', 'session_label', 'ID'],
             OPTIONS.selectionScan.split('-x-'))))
         scan_dict['scan_id'] = scan_dict['ID']
-        scan_obj = XnatUtils.get_full_object(XNAT, scan_dict)
+        scan_obj = XNAT.select_scan(
+            scan_dict['project_id'],
+            scan_dict['subject_label'],
+            scan_dict['session_label'],
+            scan_dict['ID'])
         if scan_obj.exists():
             if not qualities or \
                (qualities and scan_obj.attrs.get('quality') in qualities):
@@ -1041,12 +1046,9 @@ def main_display():
     print('#     Download data from XNAT based on input args              #')
     print('# Parameters :                                                 #')
     if vars(OPTIONS) == DEFAULT_ARGUMENTS:
-        print('#     No Arguments given                                     \
-  #')
-        print('#     See the help bellow or Use "Xnatdownload" -h           \
-  #')
-        print('##############################################################\
-##\n')
+        print('#     No Arguments given                                     #')
+        print('#     See the help bellow or Use "Xnatdownload" -h         \n#')
+        print('############################################################\n')
         PARSER.print_help()
         sys.exit()
     else:
@@ -1146,14 +1148,7 @@ def main_display():
             print('#     %*s -> %*s#' % (
                 -20, 'Output file',
                 -33, get_proper_str(OPTIONS.outputfile, True)))
-        print('##############################################################\
-##')
-        print("IMPORTANT WARNING FOR ALL USERS: ")
-        print("  --update OPTIONS isn't working.")
-        print("  The last modified resources date can't be access right now ")
-        print("  if XNAT version is less than 1.6.5.")
-        print('==============================================================\
-=======')
+        print('##############################################################')
 
 
 def get_proper_str(str_option, end=False):
@@ -1322,7 +1317,7 @@ scans.')
                 # open the report file:
                 if not OPTIONS.ignorecsv:
                     rep_path = os.path.join(DIRECTORY, DEFAULT_REPORT_NAME)
-                    with open(rep_path, 'wb') as csvfilewrite:
+                    with open(rep_path, 'w') as csvfilewrite:
                         CSVWRITER = csv.writer(csvfilewrite, delimiter=',')
                         # Today date
                         msg = 'Last download date = {:%Y-%m-%d %H:%M:%S}'

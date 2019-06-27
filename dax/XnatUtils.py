@@ -26,8 +26,10 @@ import os
 import re
 import shutil
 from datetime import datetime
+import fnmatch
 
 import xml.etree.cElementTree as ET
+from lxml import etree
 from pyxnat import Interface
 from pyxnat.core.errors import DatabaseError
 
@@ -2436,6 +2438,7 @@ def get_assr_status(sessions, assr_path):
 
     raise XnatUtilsError('Invalid assessor path:' + assr_path)
 
+
 def get_input_list(input_val, default_val):
     """
     Method to get a list from a comma separated string.
@@ -2450,6 +2453,7 @@ def get_input_list(input_val, default_val):
     else:
         return default_val
 
+
 def has_resource(cobj, resource_label):
     """
     Check to see if a CachedImageObject has a specified resource
@@ -2461,6 +2465,7 @@ def has_resource(cobj, resource_label):
     res_list = [r for r in cobj.get_resources() if r['label'] == resource_label]
     return (len(res_list) > 0) and (int(res_list[0]['file_count']) > 0)
 
+
 def is_cscan_unusable(cscan):
     """
     Check to see if a CachedImageScan is unusable
@@ -2468,3 +2473,83 @@ def is_cscan_unusable(cscan):
     :return: True if unusable, False otherwise
     """
     return cscan.info()['quality'] == "unusable"
+
+
+def filter_list_dicts_regex(list_dicts, key, expressions, nor=False,
+                            full_regex=False):
+    """Filter the list of dictionary from XnatUtils.list_* using the regex.
+    :param list_dicts: list of dictionaries to filter
+    :param key: key from dictionary to filter using regex
+    :param expressions: list of regex expressions to use (OR)
+    :param full_regex: use full regex
+    :return: list of items from the list_dicts that match the regex
+    """
+    flist = list()
+    if nor:
+        flist = list_dicts
+    if isinstance(expressions, str):
+        expressions = [expressions]
+    elif isinstance(expressions, list):
+        pass
+    else:
+        err = "Wrong type for 'expressions' in filter_list_dicts_regex: %s \
+found, <type 'str'> or <type 'list'> required." % type(expressions)
+        raise XnatUtilsError(err)
+
+    for exp in expressions:
+        regex = extract_exp(exp, full_regex)
+        if nor:
+            flist = [d for d in flist if not regex.match(d[key])]
+        else:
+            flist.extend([d for d in list_dicts if regex.match(d[key])])
+
+    return flist
+
+
+def extract_exp(expression, full_regex=False):
+    """Extract the experession with or without full_regex.
+    :param expression: string to filter
+    :param full_regex: using full regex
+    :return: regex Object from re package
+    """
+    if not full_regex:
+        exp = fnmatch.translate(expression)
+
+    return re.compile(exp)
+
+
+def get_resource_lastdate_modified(intf, resource_obj):
+    """
+    Get the last modified data for a resource on XNAT.
+     (NOT WORKING: bug on XNAT side for version<1.6.5)
+    :param intf: pyxnat.Interface object
+    :param resource: resource pyxnat Eobject
+    :return: date of last modified data with the format %Y%m%d%H%M%S
+    """
+    # xpaths for times in resource xml
+    created_dcm_xpath = "/cat:DCMCatalog/cat:entries/cat:entry/@createdTime"
+    modified_dcm_xpath = "/cat:DCMCatalog/cat:entries/cat:entry/@modifiedTime"
+    created_xpath = "/cat:Catalog/cat:entries/cat:entry/@createdTime"
+    modified_xpath = "/cat:Catalog/cat:entries/cat:entry/@modifiedTime"
+    # Get the resource object and its uri
+    res_xml_uri = '%s?format=xml' % (resource_obj._uri)
+    # Get the XML for resource
+    xmlstr = intf._exec(res_xml_uri, 'GET')
+    # Parse out the times
+    root = etree.fromstring(xmlstr,parser=etree.XMLParser(huge_tree=True))
+    create_times = root.xpath(created_xpath, namespaces=root.nsmap)
+    if not create_times:
+        create_times = root.xpath(created_dcm_xpath, namespaces=root.nsmap)
+    mod_times = root.xpath(modified_xpath, namespaces=root.nsmap)
+    if not mod_times:
+        mod_times = root.xpath(modified_dcm_xpath, namespaces=root.nsmap)
+    # Find the most recent time
+    all_times = create_times + mod_times
+    if all_times:
+        max_time = max(all_times)
+        date = max_time.split('.')[0]
+        res_date = (date.split('T')[0].replace('-', '') +
+                    date.split('T')[1].replace(':', ''))
+    else:
+        res_date = ('{:%Y%m%d%H%M%S}'.format(datetime.now()))
+    return res_date

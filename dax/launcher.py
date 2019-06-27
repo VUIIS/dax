@@ -280,12 +280,12 @@ name as a key and list of yaml filepaths as values.'
             cur_task = task_list.pop()
 
             if writeonly:
-                msg = "  +Writing PBS file for job:%s, currently %s jobs in \
+                msg = "+Writing PBS file for job:%s, currently %s jobs in \
 cluster queue"
                 LOGGER.info(msg % (cur_task.assessor_label,
                                    str(cjobs)))
             else:
-                msg = '  +Launching job:%s, currently %s jobs in cluster queue'
+                msg = '+Launching job:%s, currently %s jobs in cluster queue'
                 LOGGER.info(msg % (cur_task.assessor_label, str(cjobs)))
 
             try:
@@ -449,7 +449,7 @@ cluster queue"
 
         if proj_mods:
             # Modules prerun
-            LOGGER.info('  * Modules Prerun')
+            LOGGER.info('* Modules Prerun')
             if sessions_local:
                 self.module_prerun(project_id, 'manual_update')
             else:
@@ -463,7 +463,7 @@ cluster queue"
         # get the list of processors for this project
         processor_types = set([x.name for x in auto_procs])
 
-        LOGGER.info('  * Loading list of sessions from XNAT for project')
+        LOGGER.info('* Loading list of sessions from XNAT for project')
         sessions_by_subject = groupby_to_dict(
             self.get_sessions_list(intf, project_id, sessions_local),
             lambda x: x['subject_id'])
@@ -486,7 +486,7 @@ cluster queue"
                         sess_info['last_modified'][0:19], UPDATE_FORMAT)
 
                     if last_mod < lastrun:
-                        mess = "  + Session %s:skipping not modified since last run,\
+                        mess = "+ Session %s:skipping not modified since last run,\
      last_mod=%s, last_run=%s"
                         LOGGER.info(mess % (sess_info['label'], str(last_mod),
                                             str(lastrun)))
@@ -497,7 +497,7 @@ cluster queue"
                         sess_info['last_modified'][0:19], UPDATE_FORMAT)
                     now_date = datetime.today()
                     if now_date > last_mod + lastmod_delta:
-                        mess = "  + Session %s:skipping not modified within delta,\
+                        mess = "+ Session %s:skipping not modified within delta,\
      last_mod=%s"
                         LOGGER.info(mess % (sess_info['label'], str(last_mod)))
                         continue
