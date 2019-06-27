@@ -74,7 +74,7 @@ def job_status(jobid):
     cmd = DAX_SETTINGS.get_cmd_get_job_status()\
                       .safe_substitute({'jobid': jobid})
 
-    LOGGER.debug(str(cmd))
+    LOGGER.debug(str(cmd).strip())
 
     try:
         output = sb.check_output(cmd, stderr=sb.STDOUT, shell=True)
