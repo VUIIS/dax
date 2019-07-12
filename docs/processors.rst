@@ -50,13 +50,13 @@ filters
 --------------------
 outputs
 --------------------
-
+outputs should be a list files or directories that should be uploaded to XNAT.
 
 
 --------------------
 command
 --------------------
-
+command should be a string template that is formatted using the values from inputs.
 
 
 --------------------
