@@ -5,13 +5,16 @@ standard_library.install_aliases()
 
 from builtins import object
 from collections import OrderedDict
-import configparser
 from importlib import import_module
 import os
 import stat
 from string import Template
 import sys
 import netrc
+if sys.version_info[0] == 2:
+    import ConfigParser as configparser
+else:
+    import configparser
 
 from .errors import DaxNetrcError
 
