@@ -9,4 +9,3 @@ pydicom
 xlrd
 scipy
 pyyaml
-git_revision
