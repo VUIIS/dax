@@ -1,7 +1,7 @@
 pycap
 httplib2
 lxml
-pyxnat
+pyxnat==1.0.1.0
 matplotlib
 numpy
 nibabel
@@ -9,3 +9,4 @@ pydicom
 xlrd
 scipy
 pyyaml
+git_revision
