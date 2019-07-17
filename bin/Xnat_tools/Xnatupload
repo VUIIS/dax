@@ -129,11 +129,11 @@ def read_csv_for_upload(csv_file, session_type, report=False):
         msg = 'INFO: Reading CSV -- the script will verify the csv given to \
 --csvfile.\n      Any row with a warning will not be uploaded.'
         __logger__.info(msg)
-        with open(csv_file, 'rb') as csvfileread:
+        with open(csv_file, 'r') as csvfileread:
             csvreader = csv.reader(csvfileread, delimiter=',')
             for ind, row in enumerate(csvreader):
                 if len(row) < 11:
-                    msg = 'not enough column. Required 11 columns, %d given.'
+                    msg = 'not enough columns. Required 11 columns, %d given.'
                     __logger__.info(warn_format % (ind + 1, msg % len(row)))
                 else:
                     if row[0] == 'scan':
@@ -521,15 +521,15 @@ def get_xnat_obj(xnat, obj_dict, session_type=None):
 
     # Scan or Assessors
     if obj_dict['object_type'] == 'scan':
-        obj = XnatUtils.select_obj(
-            xnat, obj_dict['project_id'], obj_dict['subject_label'],
-            obj_dict['session_label'], scan_id=obj_dict['ID'])
+        obj = xnat.select_scan(
+            obj_dict['project_id'], obj_dict['subject_label'],
+            obj_dict['session_label'], obj_dict['ID'])
         if not obj.exists():
             obj = create_scan(obj, obj_dict, stype, c_date)
     elif obj_dict['object_type'] == 'assessor':
-        obj = XnatUtils.select_obj(
-            xnat, obj_dict['project_id'], obj_dict['subject_label'],
-            obj_dict['session_label'], assessor_id=obj_dict['label'])
+        obj = xnat.select_assessor(
+            obj_dict['project_id'], obj_dict['subject_label'],
+            obj_dict['session_label'], obj_dict['label'])
         if not obj.exists():
             obj = create_assessor(xnat, obj, obj_dict, stype, c_date)
     else:
