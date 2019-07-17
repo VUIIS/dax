@@ -892,7 +892,11 @@ class ProcessorParser:
             _parent_art = artefacts[_parent_val]
 
             # Get the inputs field from the child
-            _parent_inputs = _parent_art.entity.get_inputs()
+            _parent_inputs = {
+                key.decode(): val.decode() for key, val in
+                _parent_art.entity.get_inputs().items()}
+            print(_parent_inputs)
+
             _val = _parent_inputs[_child_name]
 
         return _val
