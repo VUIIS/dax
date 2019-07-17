@@ -121,7 +121,8 @@ like: project-x-subject-x-session(-x-scan)-x-proctype.'
             assessor['xsiType'] = XnatUtils.DEFAULT_DATATYPE
 
         # get procstatus and qcstatus:
-        assr_obj = XnatUtils.select_assessor(xnat, assessor['label'])
+        assr_obj = xnat.select_assessor(
+            labels[0], labels[1], labels[2], assessor['label'])
         if not assr_obj.exists():
             err = 'Assessor "%s" does not exist on XNAT.'
             return None, err % assessor_label
@@ -554,7 +555,9 @@ def set_status_assessor(xnat, assessor, status,
     :param qcstatus: edit the qcstatus instead of procstatus
     :return: None
     """
-    assessor_obj = XnatUtils.select_assessor(xnat, assessor['label'])
+    labels = assessor['label'].split('-x-')
+    assessor_obj = xnat.select_assessor(
+        labels[0], labels[1], labels[2], assessor['label'])
 
     if qcstatus:
         if assessor['xsiType'] == XnatUtils.DEFAULT_FS_DATATYPE:
