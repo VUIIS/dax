@@ -15,7 +15,9 @@ Installation
 
 Install the latest release with `pip <https://pypi.org/project/pip/>`_:
 
-    $ pip install dax
+.. code::
+
+   pip install dax
 
 
 Contents:
