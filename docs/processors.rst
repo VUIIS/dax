@@ -9,7 +9,6 @@ https://learnxinyminutes.com/docs/yaml/
 
 The YAML defines the Environment, Inputs, Commands, and Outputs of your pipeline.
 
-----------------
 Processor Repos
 ----------------
 There are several existing processors that can be used without modification. The processors in these
@@ -20,28 +19,25 @@ https://github.com/bud42/dax-processors
 https://github.com/MASILab/yaml_processors
 
 
-----------------
 Overview
 ----------------
 The processor file defines how a script to run a pipeline should be created. DAX will use the processor to generate scripts to be submitted to your cluster as jobs. The script will contain the
 commands to download the inputs from XNAT, run the pipeline, and prepare the results to be uploaded back to XNAT (the actual uploading is performed by DAX via "dax upload").
 
--------------------
 Parts of the Processor YAML
 -------------------
 The primary components of a processor YAML file are:
--   inputs
--   outputs
--   command
--   attrs
--   jobtemplate
+
+- inputs
+- outputs
+- command
+- attrs
+- jobtemplate
 
 Each of the components is required.
 
 
 
-
---------------------
 inputs
 --------------------
 The inputs section defines what files or parameters should be prepared for the pipeline.
@@ -71,7 +67,6 @@ You can grab attributes at the subject, session, or scan level under inputs.xnat
 This allows you to filter a subset of the cartesian product of the inputs. Currently, the only filter implemented is a match filter. It will only create the assessors where the specified list of inputs match.
 
 
---------------------
 outputs
 --------------------
 The output section defines a list files or directories to be uploaded to XNAT upon completion of the pipeline.
@@ -79,7 +74,6 @@ The output section defines a list files or directories to be uploaded to XNAT up
 
 A PDF output with resource named PDF is required and must be of type FILE.
 
---------------------
 command
 --------------------
 The command tag defines a string template that is formatted using the values from inputs.
@@ -88,7 +82,6 @@ Each tag specified inside a curly braces {} corresponds to an input.resource.var
 
 Not all var must be used.
 
---------------------
 attrs
 --------------------
 The attrs section defines miscellanous other attributes including cluster parameters. 
