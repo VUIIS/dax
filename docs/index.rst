@@ -1,7 +1,7 @@
 Welcome to DAX's documentation!
 ===============================
 
-DAX is Distributed Automation for `XNAT <http://xnat.org/>`.
+DAX is Distributed Automation for `XNAT <http://xnat.org/>`_
 
 DAX allows you to:
 -	store analyzed imaging data on XNAT (datatypes)
@@ -12,7 +12,7 @@ DAX allows you to:
 Installation
 ------------
 
-Install the latest release with `pip <https://pypi.org/project/pip/>`_::
+Install the latest release with `pip <https://pypi.org/project/pip/>`_:
     $ pip install dax
 
 
