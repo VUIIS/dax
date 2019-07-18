@@ -4,8 +4,8 @@ DAX Processors
 -----
 About
 -----
-DAX pipelines are defined by a creating a YAML text file. If you are not familiar with YAML, start here:
-https://learnxinyminutes.com/docs/yaml/
+DAX pipelines are defined by creating a YAML text file. If you are not familiar with YAML, start here:
+https://learnxinyminutes.com/docs/yaml/.
 
 The processor YAML defines the Environment, Inputs, Commands, and Outputs of your pipeline.
 
@@ -92,9 +92,9 @@ Each of these components is required.
 --------------------
 inputs
 --------------------
-The **inputs** section defines the files and parameters to be prepared for the pipeline. Currently, the only subsections of inputs supported are **default** and **xnat**.
+The **inputs** section defines the files and parameters to be prepared for the pipeline. Currently, the only subsections of inputs supported are **defaults** and **xnat**.
 
-The default subsection can contain paths to local resources such as singularity containers, local codebases, local data to be used by the pipeline. It can essentially contain any value 
+The **defaults** subsection can contain paths to local resources such as singularity containers, local codebases, local data to be used by the pipeline. It can essentially contain any value 
 that needs to be passed directly to the **command** template (see below). 
 
 The **xnat** section defines the files, directories or values that are extracted from XNAT and passed to the command. Currently, the subsections of **xnat** that are supported are **scans**, **assessors**, **attrs**, and **filters**. Each of these subsections contains an array with a specific set of fields for each item in the array.
@@ -102,14 +102,14 @@ The **xnat** section defines the files, directories or values that are extracted
 
 xnat scans
 ---------------
-Each xnat **scans** item requires a **types** field. The **types** field is used to match against the scan type attribute on XNAT. The value can be a single string or a comma-separated list. Wildcards are also supported.
+Each **xnat scans** item requires a **types** field. The **types** field is used to match against the scan type attribute on XNAT. The value can be a single string or a comma-separated list. Wildcards are also supported.
 
 By default, any scan that matches will be included. You can exclude scans with a quality of *unusable* on XNAT by including the field **needs_qc** with value of *True*. The default is to run anything, i.e. value of *False*.
 Note that questionable is treated the same as *usable*, so they'll always run.
 
 The **resources** subsection of each xnat scan should contain a list of resources to download from the matched scan. Each resource requires fields for **ftype** and **var**. 
 
-**ftype** specifies what type to downloaded from the resource, either *FILE*, *DIR*, or *DIRJ*. *FILE* will download individual files from the resource. *DIR* will download the whole directory from the resource with the hieararchy maintained. *DIRJ* will also download the directory but strips extraneous intermediate directories from the produced path as impelemented by the *-j* flag of unzip.
+**ftype** specifies what type to downloaded from the resource, either *FILE*, *DIR*, or *DIRJ*. *FILE* will download individual files from the resource. *DIR* will download the whole directory from the resource with the hierarchy maintained. *DIRJ* will also download the directory but strips extraneous intermediate directories from the produced path as implemented by the *-j* flag of unzip.
 
 The **var** field defines the tag to be replaced in the **command** string template (see below).
 
@@ -124,7 +124,7 @@ By default, any assessor that matches **proctype** will be included. If you want
 
 The **resources** subsection of each xnat assessor should contain a list of resources to download from the matched scan. Each resource requires fields for **ftype** and **var**. 
 
-The **ftype** specifies what type to downloaded from the resource, either *FILE*, *DIR*, or *DIRJ*. *FILE* will download individual files from the resource. *DIR* will download the whole directory from the resource with the hieararchy maintained. *DIRJ* will also download the directory but strips extraneous intermediate directories from the produced path as impelemented by the "-j" flag of unzip.
+The **ftype** specifies what type to downloaded from the resource, either *FILE*, *DIR*, or *DIRJ*. *FILE* will download individual files from the resource. *DIR* will download the whole directory from the resource with the hierarchy maintained. *DIRJ* will also download the directory but strips extraneous intermediate directories from the produced path as impelemented by the "-j" flag of unzip.
 
 The **var** field defines the tag to be replaced in the **command** string template (see below).
 
@@ -136,12 +136,34 @@ The inputs for some containers are expected to be in specific locations with spe
 xnat attrs
 ---------------
 You can evaluate attributes at the subject, session, or scan level. Any fields that are accessible via the XNAT API can be queried. Each **attrs** item should contain a **varname**, **object**, and **attr**.
-**varname** specifies the tag to be replaced in the **command** string template. **object** is the XNAT object type to query and can be either *subject*, *session*, or *scan*. **attr** is the XNAT field to query. If the object type is scan, then a scan name from the xnat scans section must be included with the **ref** field.
+**varname** specifies the tag to be replaced in the **command** string template. **object** is the XNAT object type to query and can be either *subject*, *session*, or *scan*. **attr** is the XNAT field to query. If the object type is *scan*, then a scan name from the xnat scans section must be included with the **ref** field.
+
+For example:
+
+.. code-block:: yaml
+
+  attrs:
+      - varname: project
+        object: session
+        attr: project
+
+This will extract the value of the project attribute from the session object and replace {project} in the command template.
+
 
 
 xnat filters
 ------------------
 **filters** allows you to filter a subset of the cartesian product of the matched scans and assessors. Currently, the only filter implemented is a match filter. It will only create the assessors where the specified list of inputs match. This is used when you want to link a set of assessors that all use the same initial scan as input.
+
+For example:
+
+.. code-block:: yaml
+
+  filters:
+      - type: match
+        inputs: scan_t1,assr_freesurfer/scan_t1
+
+This will tell DAX to only run this pipeline where the value for scan_t1 and assr_freesurfer/scan_t1 are the same scan.
 
 
 outputs
@@ -156,11 +178,11 @@ The **command** field defines a string template that is formatted using the valu
 
 Each tag specified inside curly braces ("{}"") corresponds to a field in the **defaults** input section, or to a **var** field from a resource on an input or to a **varname** in the xnat attrs section.
 
-Not all var must be used.
+Not all **var** must be used.
 
 attrs
 --------------------
-The **attrs** section defines miscellanous other attributes including cluster parameters. These values replace tags in the jobtemplate. 
+The **attrs** section defines miscellaneous other attributes including cluster parameters. These values replace tags in the jobtemplate. 
 
 
 jobtemplate
