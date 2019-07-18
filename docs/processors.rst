@@ -9,6 +9,7 @@ https://learnxinyminutes.com/docs/yaml/
 
 The YAML defines the Environment, Inputs, Commands, and Outputs of your pipeline.
 
+----------------
 Processor Repos
 ----------------
 There are several existing processors that can be used without modification. The processors in these
@@ -19,33 +20,88 @@ https://github.com/bud42/dax-processors
 https://github.com/MASILab/yaml_processors
 
 
+----------------
 Overview
 ----------------
 The processor file defines how a script to run a pipeline should be created. DAX will use the processor to generate scripts to be submitted to your cluster as jobs. The script will contain the
 commands to download the inputs from XNAT, run the pipeline, and prepare the results to be uploaded back to XNAT (the actual uploading is performed by DAX via "dax upload").
 
+----------------
+A "Simple" Example
+----------------
+
+::
+---
+moreauto: true
+inputs:
+  default:
+    container_path: MRIQA_v1.0.0.simg
+  xnat:
+    scans:
+      - name: scan_t1
+        types: MPRAGE
+        resources:
+          - resource: NIFTI
+            ftype: FILE
+            varname: t1_nifti
+outputs:
+  - path: stats.txt
+    type: FILE
+    resource: STATS
+  - path: report.pdf
+    type: FILE
+    resource: PDF
+  - path: DATA
+    type: DIR
+    resource: DATA
+command: >-
+  singularity
+  run
+  --bind $INDIR:/INPUTS
+  --bind $OUTDIR:/OUTPUTS
+  {container_path}
+  --t1_nifti /INPUTS/{t1_nifti}
+attrs:
+  walltime: '36:00:00'
+  memory: 8192
+
+
+----------------
 Parts of the Processor YAML
--------------------
+----------------
+
+All processor YAML files should start with this:
+:: 
+---
+moreauto: true
+
+
 The primary components of a processor YAML file are:
 
 - inputs
 - outputs
 - command
 - attrs
-- jobtemplate
 
-Each of the components is required.
-
+Each of these components is required.
 
 
 inputs
 --------------------
-The inputs section defines what files or parameters should be prepared for the pipeline.
+The inputs section defines what files and parameters should be prepared for the pipeline. Currently, 
 xnat
-   scans
+  scans
        types
        resources 
           var - this should match up with a tag in the command template
+          resources:
+          - resource: 
+            fmatch:
+            fcount:
+            fdest:
+            ftype:
+
+varname: fmri_nifti
    assessors
        proctype
 
@@ -71,12 +127,15 @@ outputs
 --------------------
 The output section defines a list files or directories to be uploaded to XNAT upon completion of the pipeline.
 
+path: 
+type:
+resource:
 
 A PDF output with resource named PDF is required and must be of type FILE.
 
 command
 --------------------
-The command tag defines a string template that is formatted using the values from inputs.
+The command field defines a string template that is formatted using the values from inputs.
 
 Each tag specified inside a curly braces {} corresponds to an input.resource.var 
 
@@ -86,7 +145,7 @@ attrs
 --------------------
 The attrs section defines miscellanous other attributes including cluster parameters. 
 
---------------------
+
 jobtemplate
 --------------------
 
