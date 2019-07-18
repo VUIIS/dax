@@ -4,10 +4,10 @@ DAX Processors
 -----
 About
 -----
-DAX pipelines are defined by creating a YAML text file. If you are not familiar with YAML, start here:
+DAX pipelines are defined by creating YAML text files. If you are not familiar with YAML, start here:
 https://learnxinyminutes.com/docs/yaml/.
 
-The processor YAML defines the Environment, Inputs, Commands, and Outputs of your pipeline.
+A processor YAML file defines the Environment, Inputs, Commands, and Outputs of your pipeline.
 
 ----------------
 Processor Repos
