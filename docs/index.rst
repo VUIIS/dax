@@ -4,9 +4,10 @@ Welcome to DAX's documentation!
 DAX is Distributed Automation for `XNAT <http://xnat.org/>`_
 
 DAX allows you to:
--	store analyzed imaging data on XNAT (datatypes)
--   extract information from XNAT via scripts (Xnat_tools)
--   run pipelines on your data in XNAT via a cluster (processors)
+
+- store analyzed imaging data on XNAT (datatypes)
+- extract information from XNAT via scripts (Xnat_tools)
+- run pipelines on your data in XNAT via a cluster (processors)
 
 
 Installation
