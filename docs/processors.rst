@@ -95,7 +95,7 @@ inputs
 The **inputs** section defines the files and parameters to be prepared for the pipeline. Currently, the only subsections of inputs supported are **default** and **xnat**.
 
 The default subsection can contain paths to local resources such as singularity containers, local codebases, local data to be used by the pipeline. It can essentially contain any value 
-that needs to be passed directly to the **command** template (see below).
+that needs to be passed directly to the **command** template (see below). 
 
 The **xnat** section defines the files, directories or values that are extracted from XNAT and passed to the command. Currently, the subsections of **xnat** that are supported are **scans**, **assessors**, **attrs**, and **filters**. Each of these subsections contains an array with a specific set of fields for each item in the array.
 
@@ -173,14 +173,10 @@ Versioning
 By default, name and version are parsed from the container file name, based on the format:
 <NAME>_v<major.minor.revision>.simg  where<NAME>_v<major> is the proctype.
 
-The YAML file can override these by using any of these fields: procversion, procname, proctype
-procversion specifies the major.minor.revision, e.g. 1.0.2
-procname specifies the name only without version, e.g. mprage
-proctype is the name and major version, e.g. mprage_v1
-
-If only procname is specified, the version is parsed from the container.
-If only procversion is specified, the name is parsed from the container.
-If proctype is specified, it will override everything else to determine proctype.
+The YAML file can override these by using any of the top level fields **procversion**, **procname**, and/or **proctype**. **procversion** specifies the major.minor.revision, e.g. *1.0.2*. **procname** specifies the name only without version, e.g. mprage. **proctype** is the name and major version, e.g. *mprage_v1*.
+If only **procname** is specified, the version is parsed from the container name.
+If only **procversion** is specified, the name is parsed from the container name.
+If **proctype** is specified, it will override everything else to determine proctype.
 
 
 -------------------
