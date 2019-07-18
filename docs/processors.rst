@@ -30,40 +30,41 @@ commands to download the inputs from XNAT, run the pipeline, and prepare the res
 A "Simple" Example
 ----------------
 
-::
----
-moreauto: true
-inputs:
-  default:
-    container_path: MRIQA_v1.0.0.simg
-  xnat:
-    scans:
-      - name: scan_t1
-        types: MPRAGE
-        resources:
-          - resource: NIFTI
-            ftype: FILE
-            varname: t1_nifti
-outputs:
-  - path: stats.txt
-    type: FILE
-    resource: STATS
-  - path: report.pdf
-    type: FILE
-    resource: PDF
-  - path: DATA
-    type: DIR
-    resource: DATA
-command: >-
-  singularity
-  run
-  --bind $INDIR:/INPUTS
-  --bind $OUTDIR:/OUTPUTS
-  {container_path}
-  --t1_nifti /INPUTS/{t1_nifti}
-attrs:
-  walltime: '36:00:00'
-  memory: 8192
+.. code-block:: yaml
+
+  ---
+  moreauto: true
+  inputs:
+    default:
+      container_path: MRIQA_v1.0.0.simg
+    xnat:
+      scans:
+        - name: scan_t1
+          types: MPRAGE
+          resources:
+            - resource: NIFTI
+              ftype: FILE
+              varname: t1_nifti
+  outputs:
+    - path: stats.txt
+      type: FILE
+      resource: STATS
+    - path: report.pdf
+      type: FILE
+      resource: PDF
+    - path: DATA
+      type: DIR
+      resource: DATA
+  command: >-
+    singularity
+    run
+    --bind $INDIR:/INPUTS
+    --bind $OUTDIR:/OUTPUTS
+    {container_path}
+    --t1_nifti /INPUTS/{t1_nifti}
+  attrs:
+    walltime: '36:00:00'
+    memory: 8192
 
 
 ----------------
@@ -71,9 +72,11 @@ Parts of the Processor YAML
 ----------------
 
 All processor YAML files should start with this:
-:: 
----
-moreauto: true
+
+.. code-block:: yaml
+
+  ---
+  moreauto: true
 
 
 The primary components of a processor YAML file are:
@@ -88,7 +91,8 @@ Each of these components is required.
 
 inputs
 --------------------
-The inputs section defines what files and parameters should be prepared for the pipeline. Currently, 
+The inputs section defines the files and parameters to be prepared for the pipeline. Currently, the only the subsections of inputs supported are default and xnat.
+
 xnat
   scans
        types
