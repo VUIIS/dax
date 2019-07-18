@@ -100,7 +100,7 @@ that needs to be passed directly to the command.
 The xnat section defines the files, directories or values that are extracted from XNAT and passed to the command. Currently, the subsections of XNAT that are supported are scans, assessors, attrs, and filters. Each of these subsections contains an array with a specific set of fields for each item in the array.
 
 
-xnat scans items
+xnat scans
 ---------------
 Each xnat scans item requires a types field. The types field is used to match against the scan type attribute on XNAT. The value can be a single string or a comma-separated list. Wildcards are also supported.
 
@@ -116,7 +116,7 @@ The var field defines the tag to be replaced in the command string template.
 Optional fields for a resource are fmatch and fcount. fmatch defines a regular expression to apply to filter the list of filenames in the resource. fcount can be used to limit the number of files matched. By default, only 1 file is downloaded.
 
 
-xnat assessors items
+xnat assessors
 ---------------
 Each xnat assessor item requires a proctype field. The proctype field is used to match against the assessor proctype attribute on XNAT. The value can be a single string or a comma-separated list. Wildcards are also supported.
 
@@ -133,13 +133,13 @@ The inputs for some containers are expected to be in specific locations with spe
 
 
 
-xnat attrs items
+xnat attrs
 ---------------
 You can evaluate attributes at the subject, session, or scan level. Any fields that are accessible via the XNAT API can be queried. Each attrs item should contain a varname, object, and attr.
 The varname specifies the tag replace in the command. The object is the XNAT object type to query and should be either subject, session, or scan. The attr is the XNAT field to query. If the object type is scan, then a scan name from the xnat scans section must be included with the ref field.
 
 
-xnat filters items
+xnat filters
 ------------------
 Filters allows you to filter a subset of the cartesian product of the inputs. Currently, the only filter implemented is a match filter. It will only create the assessors where the specified list of inputs match. This is used when you want to link a line of assessors that all use the same initial scan as input.
 
@@ -149,7 +149,7 @@ outputs
 The output section defines a list files or directories to be uploaded to XNAT upon completion of the pipeline.
 
 
-xnat outputs items
+xnat outputs
 --------------------
 Each xnat output item must contain fields for path, type, and resource. The path value contains the local relative path of the file or directory to be uploaded. The type of the path should either be FILE or DIR. The resource is the name of resource of the assessor created on XNAT where the output is to be uploaded.
 
