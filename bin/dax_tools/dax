@@ -10,7 +10,8 @@ import dax
 import sys
 from dax import DAX_Settings
 from dax import dax_tools_utils as dax_tools
-
+from dax import DaxError
+from dax.utilities import send_email
 
 __author__ = "Benjamin Yvernault"
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
@@ -172,10 +173,20 @@ if __name__ == '__main__':
 
     if args.command == 'build':
         if DAX_SETTINGS.is_cluster_valid():
-            dax.bin.build(args.settings_path, args.logfile, args.debug,
-                          args.project,
-                          strip_leading_and_trailing_spaces(args.sessions),
-                          args.mod_delta)
+            try:
+                dax.bin.build(args.settings_path, args.logfile, args.debug,
+                              args.project,
+                              strip_leading_and_trailing_spaces(args.sessions),
+                              args.mod_delta)
+            except DaxError as err:
+                # email the exception
+                _from = DAX_SETTINGS.get_smtp_from()
+                _host = DAX_SETTINGS.get_smtp_host()
+                _pass = DAX_SETTINGS.get_smtp_pass()
+                _to = DAX_SETTINGS.get_admin_email()
+                _subj = 'ERROR:dax build'
+                _msg = 'ERROR:dax build failed:{}'.format(str(err))
+                send_email(_from, _host, _pass, _to, _subj, _msg)
         else:
             sys.stdout.write('Please edit your settings via dax_setup for the \
 cluster section\n.')
