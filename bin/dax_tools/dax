@@ -5,9 +5,10 @@
 Executable to build you sessions for a settings file describing which
 project on XNAT and which pipelines to run on those projects.
 """
+import traceback
+import sys
 
 import dax
-import sys
 from dax import DAX_Settings
 from dax import dax_tools_utils as dax_tools
 from dax import DaxError
@@ -178,14 +179,17 @@ if __name__ == '__main__':
                               args.project,
                               strip_leading_and_trailing_spaces(args.sessions),
                               args.mod_delta)
-            except DaxError as err:
+            except Exception:
+                _err = traceback.format_exc()
+                print('ERROR:build failed, emailing admin:{}', format(_err))
+
                 # email the exception
+                _msg = 'ERROR:{}'.format(_err)
                 _from = DAX_SETTINGS.get_smtp_from()
                 _host = DAX_SETTINGS.get_smtp_host()
                 _pass = DAX_SETTINGS.get_smtp_pass()
-                _to = DAX_SETTINGS.get_admin_email()
-                _subj = 'ERROR:dax build'
-                _msg = 'ERROR:dax build failed:{}'.format(str(err))
+                _to = DAX_SETTINGS.get_admin_email().split(',')
+                _subj = 'ERROR:dax build:{}'.format(args.settings_path)
                 send_email(_from, _host, _pass, _to, _subj, _msg)
         else:
             sys.stdout.write('Please edit your settings via dax_setup for the \
