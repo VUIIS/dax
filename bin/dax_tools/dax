@@ -180,7 +180,7 @@ if __name__ == '__main__':
                               args.mod_delta)
             except Exception:
                 _err = traceback.format_exc()
-                print('ERROR:build failed, emailing admin:{}', format(_err))
+                print('ERROR:build failed, emailing admin:', _err)
 
                 # email the exception
                 _msg = 'ERROR:{}'.format(_err)
