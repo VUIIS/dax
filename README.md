@@ -21,7 +21,7 @@ sudo apt-get install libfreetype6-dev
 sudo apt-get install libffi-dev
 sudo apt-get install libssl-dev
 sudo apt-get install libatlas-base-dev gfortran
-pip install https://github.com/VUIIS/dax/archive/master.zip --upgrade
+pip install dax
 ~~~~~~~~
 
 or in a docker:
@@ -42,7 +42,7 @@ apt-get -y install libfreetype6-dev && \
 apt-get -y install libffi-dev && \
 apt-get -y install libssl-dev && \
 apt-get -y install libatlas-base-dev gfortran git && \
-pip install https://github.com/VUIIS/dax/archive/master.zip --upgrade
+pip install dax
 
 #Set to bash
 CMD ["bash"]
