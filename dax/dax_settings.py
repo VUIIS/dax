@@ -148,6 +148,7 @@ class DAX_Settings(object):
         if self.config_parser.has_section('cluster'):
             for option in FILES_OPTIONS:
                 file_path = self.config_parser.get('cluster', option)
+                file_path = file_path.replace('~', os.path.expanduser('~'))
                 if not file_path:
                     sys.stdout.write('Warning: option \
 %s not set in settings.\n' % (option))
