@@ -17,7 +17,6 @@ from builtins import range
 from builtins import object
 
 from collections import OrderedDict
-import configparser
 import csv
 from datetime import datetime
 from email.mime.text import MIMEText
@@ -39,6 +38,10 @@ import subprocess as sb
 import sys
 import time
 import traceback
+if sys.version_info[0] == 2:
+    import ConfigParser as configparser
+else:
+    import configparser
 
 from multiprocessing import Pool
 
