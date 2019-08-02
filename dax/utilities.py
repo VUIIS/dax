@@ -1,6 +1,8 @@
 import itertools as it
 import json
 import HTMLParser
+import smtplib
+from email.mime.text import MIMEText
 
 h = HTMLParser.HTMLParser()
 
@@ -102,3 +104,27 @@ def find_with_pred(items, pred):
 
 def strip_leading_and_trailing_spaces(list_arg):
     return ','.join(map(lambda x: x.strip(), list_arg.split(',')))
+
+
+def send_email(smtp_from, smtp_host, smtp_pass, to_addr, subject, content):
+    """
+    Send an email
+
+    :param content: content of the email
+    :param to_addr: address to send the email to
+    :param subject: subject of the email
+    :return: None
+    """
+
+    # Create the container (outer) email message.
+    msg = MIMEText(content)
+    msg['Subject'] = subject
+    msg['From'] = smtp_from
+    msg['To'] = ','.join(to_addr)
+
+    # Send the email via our SMTP server
+    smtp = smtplib.SMTP(smtp_host)
+    smtp.starttls()
+    smtp.login(smtp_from, smtp_pass)
+    smtp.sendmail(smtp_from, to_addr, msg.as_string())
+    smtp.quit()
