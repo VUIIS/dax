@@ -122,7 +122,7 @@ def get_resources_list(object_dict, resources_list):
     # Get list of resources' label
 
     if resources_list == 'all':
-        if object_dict.has_key("resources"):
+        if 'resources' in object_dict:
             res_list = object_dict['resources']
         else:
             res_list = []
