@@ -338,7 +338,6 @@ class ScanProcessor(Processor):
         """
         Get the Task object
 
-        :param intf: XNAT interface (pyxnat.Interface class)
         :param cscan: CachedImageScan object from XnatUtils
         :param upload_dir: the directory to put the processed data when the
          process is done

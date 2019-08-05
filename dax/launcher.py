@@ -754,7 +754,7 @@ cluster queue"
             else:
                 if p_assr is None or \
                    p_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    sess_task = sess_proc.get_task(xnat, csess, res_dir)
+                    sess_task = sess_proc.get_task(csess, res_dir)
                     log_updating_status(sess_proc.name,
                                         sess_task.assessor_label)
                     has_inputs, qcstatus = sess_proc.has_inputs(csess)
@@ -858,7 +858,7 @@ setting assessor status'
             else:
                 if p_assr is None or \
                    p_assr.info()['procstatus'] == task.NEED_INPUTS:
-                    scan_task = scan_proc.get_task(xnat, cscan, res_dir)
+                    scan_task = scan_proc.get_task(cscan, res_dir)
                     log_updating_status(scan_proc.name,
                                         scan_task.assessor_label)
                     has_inputs, qcstatus = scan_proc.has_inputs(cscan)
