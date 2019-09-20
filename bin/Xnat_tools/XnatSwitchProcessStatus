@@ -183,7 +183,7 @@ set properly.\nTraceback: %s' % err
 
         for project in projects:
             sys.stdout.write("  * Project: %s\n" % (project))
-            assessors_list = XnatUtils.list_project_assessors(xnat, project)
+            assessors_list = xnat.list_project_assessors(project)
             assessors.extend(assessors_list)
 
             # Filter assessors:
@@ -250,11 +250,11 @@ def filter_assessors(xnat, project, args, assessors, has_fs_datatypes=False,
             assessors, 'subject_label', args.subjects, args.full_regex)
 
     if args.sessions:
-        if args.sessions=='all':
-            sessions = XnatUtils.list_experiments(xnat,project)
+        if args.sessions == 'all':
+            sessions = XnatUtils.list_experiments(xnat, project)
             for session in sessions:
                 assess.append(XnatUtils.filter_list_dicts_regex(assessors, 'session_label', session['session_label'], args.full_regex))
-        elif args.sessions!='all':
+        elif args.sessions != 'all':
             sessions = utils.get_option_list(args.sessions)
             for session in sessions:
                 assess.append(XnatUtils.filter_list_dicts_regex(assessors, 'session_label', session, args.full_regex))
@@ -263,9 +263,9 @@ def filter_assessors(xnat, project, args, assessors, has_fs_datatypes=False,
         assess1 = list()
         assess_carry_1 = list()
 
-        if (proctypes and proctypes != 'all' ):
+        if (proctypes and proctypes != 'all'):
             assess1.append(XnatUtils.filter_list_dicts_regex(
-                    assessors, 'proctype', proctypes, args.full_regex))
+                assessors, 'proctype', proctypes, args.full_regex))
 
             for assess in assess1:
                 if(len(assess) > 1):
@@ -279,8 +279,8 @@ def filter_assessors(xnat, project, args, assessors, has_fs_datatypes=False,
 
         if ((former_status and former_status != 'all') or args.rerundiskq):
             if args.rerundiskq:
-                former_status='JOB_FAILED'
-                field_name='procstatus'
+                former_status = 'JOB_FAILED'
+                field_name = 'procstatus'
             elif args.qcstatus:
                 field_name = 'qcstatus'
             else:
@@ -289,9 +289,8 @@ def filter_assessors(xnat, project, args, assessors, has_fs_datatypes=False,
                 assessors, field_name, former_status, args.full_regex)
             assessors = list_flatten(assessors)
 
-
     if not args.sessions:
-        if ((proctypes and proctypes != 'all' )or args.rerundiskq):
+        if ((proctypes and proctypes != 'all') or args.rerundiskq):
             if args.rerundiskq:
                 proctypes = 'NEED_INPUTS'
             assessors = XnatUtils.filter_list_dicts_regex(
@@ -299,7 +298,7 @@ def filter_assessors(xnat, project, args, assessors, has_fs_datatypes=False,
 
         if ((former_status and former_status != 'all') or args.rerundiskq):
             if args.rerundiskq:
-                former_status='JOB_FAILED'
+                former_status = 'JOB_FAILED'
             if args.qcstatus:
                 field_name = 'qcstatus'
             else:
@@ -307,6 +306,7 @@ def filter_assessors(xnat, project, args, assessors, has_fs_datatypes=False,
             assessors = XnatUtils.filter_list_dicts_regex(
                 assessors, field_name, former_status, args.full_regex)
     return assessors
+
 
 def list_flatten(l, assessor=None):
     """
@@ -316,7 +316,7 @@ def list_flatten(l, assessor=None):
     :return: list object
     """
     if assessor is None:
-        #initialize with empty list
+        # initialize with empty list
         assessor = []
 
     for i in l:
@@ -696,3 +696,4 @@ status to NEED_INPUTS from JOB_FAILED and delete previous resources.'
 if __name__ == '__main__':
     utils.run_tool(__exe__, __description__, add_to_parser, __purpose__,
                    run_xnat_switch_process_status)
+
