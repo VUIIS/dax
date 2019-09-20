@@ -278,8 +278,8 @@ auto processor defined by yaml file {}'
 tag from the processor yaml file {}. Unauthorised operation.'
                                 LOGGER.warn(msg.format(yaml_source.source_id))
                             else:
-                                LOGGER.info(
-                                    'overriding setting:'+tags[4]+':'+val)
+                                LOGGER.info('overriding setting:{}:{}'.format(
+                                    tags[4], str(val)))
                                 obj[tags[4]] = val
                 else:
                     msg = 'key {} not found in the xnat inputs for auto \
