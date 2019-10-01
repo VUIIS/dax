@@ -32,7 +32,7 @@ for assr in Assrs :
     # Get desired fields
     thisR = {}
     for key in ('project_label','subject_label','session_label','proctype',
-                'assessor_id','procstatus','qcstatus','assessor_label') :
+                'assessor_id','procstatus','qcstatus','assessor_label','jobstartdate','version') :
         thisR[key] = assr[key]
 
     # Clean up the inputs field, split on / and keep the last bit
