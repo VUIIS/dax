@@ -151,11 +151,13 @@ def get_assessors(xnat, args, has_fs_datatypes=False):
     projects = list()
 
     if args.select:
-        assessor, err = get_assessor_dict(xnat, args.select, has_fs_datatypes)
-        if err:
-            err = 'Argument --select not set properly.\nTraceback: %s' % err
-            raise XnatToolsUserError(__exe__, err)
-        assessors.append(assessor)
+        for label in args.select.split(','):
+            assessor, err = get_assessor_dict(xnat, label, has_fs_datatypes)
+            if err:
+                err = 'Argument --select not set properly.\nTraceback: %s' % err
+                raise XnatToolsUserError(__exe__, err)
+            assessors.append(assessor)
+
     if args.txt_file:
         print('INFO: Reading assessors from txt file: %s' % args.txt_file)
         if args.txt_file and not os.path.exists(args.txt_file):
