@@ -242,7 +242,7 @@ name as a key and list of yaml filepaths as values.'
 
         project_list = self.init_script(flagfile, project_local,
                                         type_update=3, start_end=1)
-        
+
         if project_list is None or len(project_list) == 0:
             LOGGER.info('no projects to launch')
         elif self.launcher_type in ['diskq-cluster', 'diskq-combined']:
@@ -251,7 +251,8 @@ name as a key and list of yaml filepaths as values.'
             task_list = load_task_queue(
                 status=task.NEED_TO_RUN,
                 proj_filter=list(set(
-                    self.project_process_dict.keys() + self.project_modules_dict.keys())))
+                    self.project_process_dict.keys() +
+                    self.project_modules_dict.keys())))
 
             msg = '%s tasks that need to be launched found'
             LOGGER.info(msg % str(len(task_list)))
@@ -388,7 +389,7 @@ cluster queue"
                                 '%s_%s' % (lockfile_prefix, UPDATE_SUFFIX))
         project_list = self.init_script(flagfile, project_local,
                                         type_update=2, start_end=1)
-        
+
         if project_list is None or len(project_list) == 0:
             LOGGER.info('no projects to update')
         elif self.launcher_type in ['diskq-cluster', 'diskq-combined']:
@@ -466,14 +467,13 @@ cluster queue"
                                 '%s_%s' % (lockfile_prefix, BUILD_SUFFIX))
         project_list = self.init_script(flagfile, project_local,
                                         type_update=1, start_end=1)
-        
+
         if project_list is None or len(project_list) == 0:
             LOGGER.info('no projects to build')
-
         else:
             LOGGER.info('Connecting to XNAT at %s' % self.xnat_host)
-            with XnatUtils.get_interface(self.xnat_host, self.xnat_user,
-                                       self.xnat_pass) as intf:
+            with XnatUtils.get_interface(
+                    self.xnat_host, self.xnat_user, self.xnat_pass) as intf:
 
                 if not XnatUtils.has_dax_datatypes(intf):
                     err = 'error: dax datatypes are not installed on xnat <%s>'
@@ -496,9 +496,9 @@ cluster queue"
                         else:
                             lastrun = None
 
-                        self.build_project(intf, project_id, lockfile_prefix,
-                                           sessions_local,
-                                           mod_delta=mod_delta, lastrun=lastrun)
+                        self.build_project(
+                        	intf, project_id, lockfile_prefix, sessions_local,
+                            mod_delta=mod_delta, lastrun=lastrun)
                     except Exception as E:
                         err1 = 'Caught exception building project %s'
                         err2 = 'Exception class %s caught with message %s'
