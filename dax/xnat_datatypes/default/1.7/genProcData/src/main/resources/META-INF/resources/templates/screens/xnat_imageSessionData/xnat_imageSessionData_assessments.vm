@@ -85,6 +85,7 @@
 				#set ($procStatus = $!proc.getProperty("procstatus"))
 			#end
 
+			#set ($qcStatus  = "")
 			#set ($qcStatus  = $!proc.getProperty("xnat:experimentData.validation/status"))
 
 			<tr>

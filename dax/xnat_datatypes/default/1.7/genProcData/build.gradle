@@ -1,9 +1,9 @@
-def pluginVersion = 'genProcData-1.4.0'
+def pluginVersion = 'genProcData-1.4.1'
 
 group 'org.nrg.xnat.dax'
 version pluginVersion
 
-def vXnat = '1.7.4'
+def vXnat = '1.7.5'
 def vJunit = '4.12'
 def vSpring = '4.2.5.RELEASE'
 def vSlf4j = '1.7.15'
@@ -32,7 +32,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.4"
+        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.5.6"
     }
     configurations {
         all*.exclude group: 'avalon-framework'
@@ -157,8 +157,7 @@ configurations {
 
 dependencies {
 
-    //compile("org.nrg:framework:1.7.0-SNAPSHOT") {
-    compile("org.nrg:framework:1.7.4") {
+    compile("org.nrg:framework:1.7.5.6") {
         transitive = false
     }
     compile("org.nrg.xnat:web:${vXnat}") {
