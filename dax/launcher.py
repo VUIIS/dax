@@ -242,8 +242,10 @@ name as a key and list of yaml filepaths as values.'
 
         project_list = self.init_script(flagfile, project_local,
                                         type_update=3, start_end=1)
-
-        if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
+        
+        if project_list is None or len(project_list) == 0:
+            LOGGER.info('no projects to launch')
+        elif self.launcher_type in ['diskq-cluster', 'diskq-combined']:
             msg = 'Loading task queue from: %s'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
             task_list = load_task_queue(
@@ -386,8 +388,10 @@ cluster queue"
                                 '%s_%s' % (lockfile_prefix, UPDATE_SUFFIX))
         project_list = self.init_script(flagfile, project_local,
                                         type_update=2, start_end=1)
-
-        if self.launcher_type in ['diskq-cluster', 'diskq-combined']:
+        
+        if project_list is None or len(project_list) == 0:
+            LOGGER.info('no projects to update')
+        elif self.launcher_type in ['diskq-cluster', 'diskq-combined']:
             msg = 'Loading task queue from: %s'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
             task_list = load_task_queue(
@@ -462,41 +466,45 @@ cluster queue"
                                 '%s_%s' % (lockfile_prefix, BUILD_SUFFIX))
         project_list = self.init_script(flagfile, project_local,
                                         type_update=1, start_end=1)
+        
+        if project_list is None or len(project_list) == 0:
+            LOGGER.info('no projects to build')
 
-        LOGGER.info('Connecting to XNAT at %s' % self.xnat_host)
-        with XnatUtils.get_interface(self.xnat_host, self.xnat_user,
-                                     self.xnat_pass) as intf:
+        else:
+            LOGGER.info('Connecting to XNAT at %s' % self.xnat_host)
+            with XnatUtils.get_interface(self.xnat_host, self.xnat_user,
+                                       self.xnat_pass) as intf:
 
-            if not XnatUtils.has_dax_datatypes(intf):
-                err = 'error: dax datatypes are not installed on xnat <%s>'
-                raise DaxXnatError(err % (self.xnat_host))
+                if not XnatUtils.has_dax_datatypes(intf):
+                    err = 'error: dax datatypes are not installed on xnat <%s>'
+                    raise DaxXnatError(err % (self.xnat_host))
 
-            # Priority if set:
-            if self.priority_project and not project_local:
-                unique_list = set(list(self.project_process_dict.keys()) +
-                                  list(self.project_modules_dict.keys()))
-                project_list = self.get_project_list(list(unique_list))
+                # Priority if set:
+                if self.priority_project and not project_local:
+                    unique_list = set(list(self.project_process_dict.keys()) +
+                                      list(self.project_modules_dict.keys()))
+                    project_list = self.get_project_list(list(unique_list))
 
-            # Build projects
-            for project_id in project_list:
-                LOGGER.info('===== PROJECT: %s =====' % project_id)
-                try:
-                    if ((proj_lastrun) and
-                            (project_id in proj_lastrun) and
-                            (proj_lastrun[project_id] is not None)):
-                        lastrun = proj_lastrun[project_id]
-                    else:
-                        lastrun = None
+                # Build projects
+                for project_id in project_list:
+                    LOGGER.info('===== PROJECT: %s =====' % project_id)
+                    try:
+                        if ((proj_lastrun) and
+                                (project_id in proj_lastrun) and
+                                (proj_lastrun[project_id] is not None)):
+                            lastrun = proj_lastrun[project_id]
+                        else:
+                            lastrun = None
 
-                    self.build_project(intf, project_id, lockfile_prefix,
-                                       sessions_local,
-                                       mod_delta=mod_delta, lastrun=lastrun)
-                except Exception as E:
-                    err1 = 'Caught exception building project %s'
-                    err2 = 'Exception class %s caught with message %s'
-                    LOGGER.critical(err1 % project_id)
-                    LOGGER.critical(err2 % (E.__class__, E.message))
-                    LOGGER.critical(traceback.format_exc())
+                        self.build_project(intf, project_id, lockfile_prefix,
+                                           sessions_local,
+                                           mod_delta=mod_delta, lastrun=lastrun)
+                    except Exception as E:
+                        err1 = 'Caught exception building project %s'
+                        err2 = 'Exception class %s caught with message %s'
+                        LOGGER.critical(err1 % project_id)
+                        LOGGER.critical(err2 % (E.__class__, E.message))
+                        LOGGER.critical(traceback.format_exc())
 
         self.finish_script(flagfile, project_list, 1, 2, project_local)
 
