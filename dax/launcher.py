@@ -642,16 +642,16 @@ cluster queue"
                     LOGGER.critical(err2 % (E.__class__, E.message))
                     LOGGER.critical(traceback.format_exc())
 
-            if not sessions_local or sessions_local.lower() == 'all':
-                # Modules after run
-                LOGGER.debug('* Modules Afterrun')
-                try:
-                    self.module_afterrun(intf, project_id)
-                except Exception as E:
-                    err2 = 'Exception class %s caught with message %s'
-                    LOGGER.critical('Caught exception after running modules')
-                    LOGGER.critical(err2 % (E.__class__, E.message))
-                    LOGGER.critical(traceback.format_exc())
+        if not sessions_local or sessions_local.lower() == 'all':
+            # Modules after run
+            LOGGER.debug('* Modules Afterrun')
+            try:
+                self.module_afterrun(intf, project_id)
+            except Exception as E:
+                err2 = 'Exception class %s caught with message %s'
+                LOGGER.critical('Caught exception after running modules')
+                LOGGER.critical(err2 % (E.__class__, E.message))
+                LOGGER.critical(traceback.format_exc())
 
 
     # TODO:BenM/assessor_of_assessor/modify from here for one to many
@@ -944,7 +944,7 @@ in session %s'
 
             if mapping is None:
                 continue
-                
+
             if self.launcher_type in ['diskq-xnat', 'diskq-combined']:
                 for inputs, p_assrs in mapping:
                     if len(p_assrs) == 0:
