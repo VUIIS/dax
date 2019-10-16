@@ -128,13 +128,14 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
             '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
         _launcher_obj.unlock_flagfile(flagfile)
     except Exception as e:
-        logger.critical('Caught exception building Project in bin.build')
-        logger.critical('Exception Class %s with message %s' % (e.__class__,
-                                                                str(e)))
+        #logger.critical('Caught exception building Project in bin.build')
+        #logger.critical('Exception Class %s with message %s' % (e.__class__,
+        #                                                        str(e)))
         flagfile = os.path.join(os.path.join(
             DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
         _launcher_obj.unlock_flagfile(flagfile)
+        raise e
 
     logger.info('finished build, End Time: %s' % str(datetime.now()))
 
