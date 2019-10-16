@@ -9,7 +9,7 @@ import logging
 import sys
 import os
 import traceback
-from request.exceptions import ReadTimeout
+from requests.exceptions import ReadTimeout
 
 from . import processors, modules, XnatUtils, task, cluster
 from .task import Task, ClusterTask, XnatTask
