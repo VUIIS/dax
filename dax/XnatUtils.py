@@ -1,24 +1,4 @@
-""" XnatUtils contains useful function to interface with XNAT using Pyxnat.
-
-The functions are several categories:
-
-1) Class Specific to XNAT and Spiders:
-InterfaceTemp to create an interface with XNAT using a tempfolder
-AssessorHandler to handle assessor label string and access object
-SpiderProcessHandler to handle results at the end of any spider
-
-2) Methods to query XNAT database and get XNAT object :
-
-3) Methods to access/check objects on XNAT
-
-4) Methods to Download / Upload data to XNAT
-
-5) Other Methods
-
-6) Cached Class for DAX
-
-7) Old download functions still used in some spiders
-"""
+""" XnatUtils contains functions to interface with XNAT using Pyxnat."""
 
 
 import getpass
@@ -212,6 +192,14 @@ class InterfaceTemp(Interface):
         except DatabaseError as e:
             print(e)
             raise XnatAuthentificationError(self.host, self.user)
+
+    def _exec(self, uri, method='GET', body=None, headers=None, force_preemptive_auth=False,
+        timeout=300, **kwargs):
+
+        print('_exec:{}:{}'.format(method, uri))
+
+        return super()._exec(uri, method, body, headers, force_preemptive_auth,
+            timeout=timeout, **kwargs)
 
     # TODO: string.format wants well-formed strings and will, for example,
     # throw a KeyError if any named variables in the format string are missing.
@@ -674,6 +662,58 @@ class InterfaceTemp(Interface):
         # Return list sorted by label
         return sorted(full_sess_list, key=lambda k: k['session_label'])
 
+    def get_sessions_minimal(self, projectid):
+        """
+        :param projectid: ID of a project on XNAT
+        :return: List of sessions
+        """
+        type_list = []
+        full_sess_list = []
+        post_uri = ALL_SESS_PROJ_URI.format(project=projectid)
+       
+        # First get a list of all experiment types
+        post_uri_types = '%s?columns=xsiType' % post_uri
+        sess_list = self._get_json(post_uri_types)
+        for sess in sess_list:
+            sess_type = sess['xsiType'].lower()
+            if sess_type not in type_list:
+                type_list.append(sess_type)
+
+        # Get list of sessions for each type since we have to be specific
+        # about last_modified field
+        for sess_type in type_list:
+            post_uri_type = '''{post_uri}?xsiType={stype}&columns=ID,subject_label,subject_ID,xsiType,label,{stype}/meta/last_modified'''.format(
+                post_uri=post_uri, stype=sess_type)
+            sess_list = self._get_json(post_uri_type)
+
+            for sess in sess_list:
+                # Override the project returned to be the one we queried
+                sess['project'] = projectid
+                sess['project_id'] = sess['project']
+                sess['project_label'] = sess['project']
+                sess['subject_id'] = sess['subject_ID']
+                sess['session_id'] = sess['ID']
+                sess['session_label'] = sess['label']
+                if sess_type.startswith('xnat:') and 'session' in sess_type:
+                    sess['session_type'] = sess_type.split('xnat:')[1] \
+                        .split('session')[0] \
+                        .upper()
+                    sess['type'] = sess_type.split('xnat:')[1] \
+                        .split('session')[0] \
+                        .upper()
+                else:
+                    sess['session_type'] = sess_type
+                    sess['type'] = sess_type
+
+                last_modified_str = '%s/meta/last_modified' % sess_type
+                sess['last_modified'] = sess.get(last_modified_str, None)
+
+            # Add sessions of this type to full list
+            full_sess_list.extend(sess_list)
+
+        # Return list
+        return full_sess_list
+
     def get_session_resources(self, projectid, subjectid, sessionid):
         """
         Gets a list of all of the resources for a session associated to a
@@ -902,6 +942,36 @@ class InterfaceTemp(Interface):
 
         return sorted(list(assessors_dict.values()), key=lambda k: k['label'])
 
+    def list_project_assessor_types(self, projectid):
+        """
+        List all the assessors that you have access to based on passed project.
+
+        :param projectid: ID of a project on XNAT
+        :return: List of all the assessors for the project
+        """
+        assr_types = []
+
+        if has_genproc_datatypes(self):
+            # genProcData
+            post_uri = SE_ARCHIVE_URI + '''?project={project}&xsiType={pstype}\
+&columns=ID,xsiType,project,{pstype}/proctype'''
+            post_uri = post_uri.format(project=projectid, pstype=DEFAULT_DATATYPE)
+            assessor_list = self._get_json(post_uri)
+            proctype_field = '{}/proctype'.format(DEFAULT_DATATYPE.lower())
+            assr_types = set(x[proctype_field] for x in assessor_list)
+
+        if has_fs_datatypes(self):
+            # FreeSurfer
+            post_uri = SE_ARCHIVE_URI + '''?project={project}&xsiType={fstype}\
+&columns=ID,xsiType,project'''
+
+            post_uri = post_uri.format(project=projectid, fstype=DEFAULT_FS_DATATYPE)
+            assessor_list = self._get_json(post_uri)
+            if len(assessor_list) > 0:
+                assr_types.add('FreeSurfer')
+
+        return list(assr_types)
+
 
 class AssessorHandler(object):
     """
@@ -997,8 +1067,8 @@ class AssessorHandler(object):
         :return: The pyxnat EObject of the assessor
 
         """
-        return intf.select(self.project_id,
-                           self.subject_id,
+        return intf.select_assessor(self.project_id,
+                           self.subject_label,
                            self.session_label,
                            self.assessor_label)
 
