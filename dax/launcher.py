@@ -469,10 +469,10 @@ cluster queue"
             lambda x: x['subject_id'])
 
         # check for processor types that are new to this project
-        assessors = intf.list_project_assessors(project_id)
-
-        # TODO: use has_new
-        has_new = self.has_new_processors(assessors, processor_types)
+        assr_types = intf.list_project_assessor_types(project_id)
+        has_new = (len(processor_types.difference(assr_types)) > 0)
+        print(assr_types)
+        print('has_new='+str(has_new))
 
         for subject_id, sessions in list(sessions_by_subject.items()):
             # Get the cached session objects for this subject
@@ -481,13 +481,15 @@ cluster queue"
 
             # Check which sessions (if any) require an update:
             for sess_info in sessions:
-                if lastrun:
+                if has_new:
+                    # Don't skip any sessions
+                    pass
+                elif lastrun:
                     last_mod = datetime.strptime(
                         sess_info['last_modified'][0:19], UPDATE_FORMAT)
 
                     if last_mod < lastrun:
-                        mess = "+ Session %s:skipping not modified since last run,\
-     last_mod=%s, last_run=%s"
+                        mess = "+ Session %s:skipping not modified since last run, last_mod=%s, last_run=%s"
                         LOGGER.info(mess % (sess_info['label'], str(last_mod),
                                             str(lastrun)))
                         continue
@@ -497,8 +499,7 @@ cluster queue"
                         sess_info['last_modified'][0:19], UPDATE_FORMAT)
                     now_date = datetime.today()
                     if now_date > last_mod + lastmod_delta:
-                        mess = "+ Session %s:skipping not modified within delta,\
-     last_mod=%s"
+                        mess = "+ Session %s:skipping not modified within delta, last_mod=%s"
                         LOGGER.info(mess % (sess_info['label'], str(last_mod)))
                         continue
                     else:
@@ -979,7 +980,8 @@ The project is not part of the settings."""
         :param slocal: session selected by user
         :return: list of sessions sorted for a project
         """
-        list_sessions = xnat.get_sessions(project_id)
+        list_sessions = xnat.get_sessions_minimal(project_id)
+
         if slocal and slocal.lower() != 'all':
             # filter the list and keep the match between both list:
             val = slocal.split(',')
