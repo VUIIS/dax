@@ -6,6 +6,8 @@ import yaml
 import os
 import shutil
 import re
+import smtplib
+from email.mime.text import MIMEText
 
 from .errors import DaxError
 
@@ -168,3 +170,26 @@ def read_yaml(yaml_file):
             err = 'YAML File {} could not be loaded properly. Error: {}'
             raise DaxError(err.format(yaml_file, exc))
     return None
+
+
+def send_email(smtp_from, smtp_host, smtp_pass, to_addr, subject, content):
+    """
+    Send an email
+    :param content: content of the email
+    :param to_addr: address to send the email to
+    :param subject: subject of the email
+    :return: None
+    """
+
+    # Create the container (outer) email message.
+    msg = MIMEText(content)
+    msg['Subject'] = subject
+    msg['From'] = smtp_from
+    msg['To'] = ','.join(to_addr)
+
+    # Send the email via our SMTP server
+    smtp = smtplib.SMTP(smtp_host)
+    smtp.starttls()
+    smtp.login(smtp_from, smtp_pass)
+    smtp.sendmail(smtp_from, to_addr, msg.as_string())
+    smtp.quit()

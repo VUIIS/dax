@@ -9,6 +9,7 @@ import logging
 import sys
 import os
 import traceback
+from request.exceptions import ReadTimeout
 
 from . import processors, modules, XnatUtils, task, cluster
 from .task import Task, ClusterTask, XnatTask
@@ -416,6 +417,8 @@ cluster queue"
                     self.build_project(intf, project_id, lockfile_prefix,
                                        sessions_local,
                                        mod_delta=mod_delta, lastrun=lastrun)
+                except ReadTimeout as E:
+                    raise E
                 except Exception as E:
                     err1 = 'Caught exception building project %s'
                     err2 = 'Exception class %s caught with message %s'
@@ -472,7 +475,7 @@ cluster queue"
         assr_types = intf.list_project_assessor_types(project_id)
         has_new = (len(processor_types.difference(assr_types)) > 0)
         print(assr_types)
-        print('has_new='+str(has_new))
+        print('has_new=' + str(has_new))
 
         for subject_id, sessions in list(sessions_by_subject.items()):
             # Get the cached session objects for this subject
