@@ -417,14 +417,15 @@ cluster queue"
                     self.build_project(intf, project_id, lockfile_prefix,
                                        sessions_local,
                                        mod_delta=mod_delta, lastrun=lastrun)
-                except ReadTimeout as E:
-                    raise E
                 except Exception as E:
-                    err1 = 'Caught exception building project %s'
-                    err2 = 'Exception class %s caught with message %s'
-                    LOGGER.critical(err1 % project_id)
-                    LOGGER.critical(err2 % (E.__class__, str(E)))
-                    LOGGER.critical(traceback.format_exc())
+                    raise E
+
+                #except Exception as E:
+                #    err1 = 'Caught exception building project %s'
+                #    err2 = 'Exception class %s caught with message %s'
+                #    LOGGER.critical(err1 % project_id)
+                #    LOGGER.critical(err2 % (E.__class__, str(E)))
+                #    LOGGER.critical(traceback.format_exc())
 
         self.finish_script(flagfile, project_list, 1, 2, project_local)
 
