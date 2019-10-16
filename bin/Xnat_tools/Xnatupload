@@ -662,7 +662,8 @@ def upload_resources(xnat, args, obj, obj_dict):
     :return: None
     """
     warn_format = '     - File %s: WARNING -- path not found.'
-    delete_all_resources(xnat, obj, obj_dict)
+    if args.delete_all:
+        delete_all_resources(xnat, obj, obj_dict)
 
 
     # Upload each resources:
