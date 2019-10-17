@@ -471,8 +471,8 @@ cluster queue"
         # check for processor types that are new to this project
         assr_types = intf.list_project_assessor_types(project_id)
         has_new = (len(processor_types.difference(assr_types)) > 0)
-        print(assr_types)
-        print('has_new=' + str(has_new))
+        LOGGER.debug(assr_types)
+        LOGGER.debug('has_new=' + str(has_new))
 
         for subject_id, sessions in list(sessions_by_subject.items()):
             # Get the cached session objects for this subject

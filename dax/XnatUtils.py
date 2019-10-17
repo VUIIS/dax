@@ -221,7 +221,7 @@ class InterfaceTemp(Interface):
         except requests.Timeout:
             _err = traceback.format_exc()
             if self.timeout_email:
-                LOGGER.warn('XNAT timeout, emailing admin:')
+                LOGGER.warn('XNAT timeout, emailing admin')
 
                 # email the exception
                 _msg = '{}\n\n'.format(uri)
