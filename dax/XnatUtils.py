@@ -12,13 +12,13 @@ import xml.etree.cElementTree as ET
 from lxml import etree
 from pyxnat import Interface
 from pyxnat.core.errors import DatabaseError
+from requests.exceptions import ReadTimeout
 
 from . import utilities
 from .task import (JOB_FAILED, JOB_RUNNING, READY_TO_UPLOAD)
 from .errors import (XnatUtilsError, XnatAuthentificationError)
 from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
                            DEFAULT_FS_DATATYPE)
-
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ["InterfaceTemp", "AssessorHandler", "SpiderProcessHandler",
@@ -132,7 +132,7 @@ class InterfaceTemp(Interface):
     R_XPATH = '{xpath}/resources/{resource}'
     AR_XPATH = '%s/out/resources/{resource}' % A_XPATH
 
-    def __init__(self, xnat_host=None, xnat_user=None, xnat_pass=None):
+    def __init__(self, xnat_host=None, xnat_user=None, xnat_pass=None, timeout_email=True):
         """Entry point for the InterfaceTemp class.
 
         :param xnat_host: XNAT Host url
@@ -155,6 +155,11 @@ class InterfaceTemp(Interface):
             if not self.pwd:
                 msg = 'Please provide password for host <%s> and user <%s>: '
                 self.pwd = getpass.getpass(msg % (self.host, self.user))
+
+        self.xnat_timeout = 300
+        self.xnat_retries = 4
+        self.xnat_wait = 900
+        self.timeout_email = timeout_email
 
         self.authenticate()
 
@@ -193,13 +198,50 @@ class InterfaceTemp(Interface):
             print(e)
             raise XnatAuthentificationError(self.host, self.user)
 
-    def _exec(self, uri, method='GET', body=None, headers=None, force_preemptive_auth=False,
-        timeout=300, **kwargs):
-
+    def _exec(self, uri, method='GET', body=None, headers=None, force_preemptive_auth=False, **kwargs):
+        result = None
         print('_exec:{}:{}'.format(method, uri))
 
-        return super()._exec(uri, method, body, headers, force_preemptive_auth,
-            timeout=timeout, **kwargs)
+        try:
+            result = super()._exec(uri, method, body, headers, force_preemptive_auth,
+            timeout=self.xnat_timeout, **kwargs)
+        except ReadTimeout as e:
+            _err = traceback.format_exc()
+            if timeout_email:
+                print('WARNING:XNAT timeout, emailing admin:', _err)
+
+                # email the exception
+                _msg = 'ERROR:{}'.format(_err)
+                _from = DAX_SETTINGS.get_smtp_from()
+                _host = DAX_SETTINGS.get_smtp_host()
+                _pass = DAX_SETTINGS.get_smtp_pass()
+                _to = DAX_SETTINGS.get_admin_email().split(',')
+                _subj = 'ERROR:dax build:{}'.format(args.settings_path)
+                send_email(_from, _host, _pass, _to, _subj, _msg)
+            else:
+                print('ERROR:XNAT timeout, email disabled.', _err)
+
+            # Retry
+            for i in range(self.xnat_retries):
+                # First we sleep
+                print('DEBUG:waiting {} secs before retry', self.xnat_wait)
+                time.sleep(self.xnat_wait)
+
+                # Then we try again
+                print('DEBUG:retry #{}', i)
+                try:
+                    result = super()._exec(uri, method, body, headers, 
+                        force_preemptive_auth,
+                        timeout=self.xnat_timeout, **kwargs)
+                except ReadTimeout as e:
+                    # Do nothing
+                    print('DEBUG:retry #{} timed out', i)
+                    pass
+
+            if not result:
+                raise XnatUtilsError('XNAT timeout')
+
+        return result
 
     # TODO: string.format wants well-formed strings and will, for example,
     # throw a KeyError if any named variables in the format string are missing.

@@ -9,7 +9,6 @@ import logging
 import sys
 import os
 import traceback
-from requests.exceptions import ReadTimeout
 
 from . import processors, modules, XnatUtils, task, cluster
 from .task import Task, ClusterTask, XnatTask
@@ -418,14 +417,11 @@ cluster queue"
                                        sessions_local,
                                        mod_delta=mod_delta, lastrun=lastrun)
                 except Exception as E:
-                    raise E
-
-                #except Exception as E:
-                #    err1 = 'Caught exception building project %s'
-                #    err2 = 'Exception class %s caught with message %s'
-                #    LOGGER.critical(err1 % project_id)
-                #    LOGGER.critical(err2 % (E.__class__, str(E)))
-                #    LOGGER.critical(traceback.format_exc())
+                    err1 = 'Caught exception building project %s'
+                    err2 = 'Exception class %s caught with message %s'
+                    LOGGER.critical(err1 % project_id)
+                    LOGGER.critical(err2 % (E.__class__, str(E)))
+                    LOGGER.critical(traceback.format_exc())
 
         self.finish_script(flagfile, project_list, 1, 2, project_local)
 
