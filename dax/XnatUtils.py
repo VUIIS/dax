@@ -9,6 +9,7 @@ from datetime import datetime
 import fnmatch
 import traceback
 import time
+import logging
 
 import xml.etree.cElementTree as ET
 from lxml import etree
@@ -31,6 +32,8 @@ NS = {'xnat': 'http://nrg.wustl.edu/xnat',
       'proc': 'http://nrg.wustl.edu/proc',
       'fs': 'http://nrg.wustl.edu/fs',
       'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+
+LOGGER = logging.getLogger('dax')
 
 # REST URI for XNAT
 PROJECTS_URI = '/REST/projects'
@@ -135,7 +138,10 @@ class InterfaceTemp(Interface):
     AR_XPATH = '%s/out/resources/{resource}' % A_XPATH
 
     def __init__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
-                 timeout_email=True):
+                 timeout_email=True,
+                 xnat_timeout=300,
+                 xnat_retries=4,
+                 xnat_wait=900):
 
         """Entry point for the InterfaceTemp class.
 
@@ -160,9 +166,9 @@ class InterfaceTemp(Interface):
                 msg = 'Please provide password for host <%s> and user <%s>: '
                 self.pwd = getpass.getpass(msg % (self.host, self.user))
 
-        self.xnat_timeout = 300
-        self.xnat_retries = 4
-        self.xnat_wait = 900
+        self.xnat_timeout = xnat_timeout
+        self.xnat_retries = xnat_retries
+        self.xnat_wait = xnat_wait
         self.timeout_email = timeout_email
 
         self.authenticate()
@@ -199,14 +205,14 @@ class InterfaceTemp(Interface):
             self.connect()
             return True
         except DatabaseError as e:
-            print(e)
+            LOGGER.error(e)
             raise XnatAuthentificationError(self.host, self.user)
 
     def _exec(self, uri, method='GET', body=None, headers=None,
               force_preemptive_auth=False, **kwargs):
 
         result = None
-        print('_exec:{}:{}'.format(method, uri))
+        LOGGER.debug('_exec:{}:{}'.format(method, uri))
 
         try:
             result = super()._exec(
@@ -215,7 +221,7 @@ class InterfaceTemp(Interface):
         except requests.Timeout:
             _err = traceback.format_exc()
             if self.timeout_email:
-                print('WARNING:XNAT timeout, emailing admin:')
+                LOGGER.warn('XNAT timeout, emailing admin:')
 
                 # email the exception
                 _msg = '{}\n\n'.format(uri)
@@ -227,25 +233,25 @@ class InterfaceTemp(Interface):
                 _subj = 'ERROR:XNAT timeout'
                 utilities.send_email(_from, _host, _pass, _to, _subj, _msg)
             else:
-                print('ERROR:XNAT timeout, email disabled', _err)
+                LOGGER.warn('XNAT timeout, email disabled', _err)
 
             # Retry
             for i in range(self.xnat_retries):
                 # First we sleep
-                print('DEBUG:retry in {} secs'.format(self.xnat_wait))
+                LOGGER.debug('retry in {} secs'.format(self.xnat_wait))
                 time.sleep(self.xnat_wait)
 
                 # Then we try again
-                print('DEBUG:retry {} of {}'.format(
+                LOGGER.debug('retry {} of {}'.format(
                     str(i + 1), str(self.xnat_retries)))
-                print('_exec:{}:{}'.format(method, uri))
+                LOGGER.debug('_exec:{}:{}'.format(method, uri))
                 try:
                     result = super()._exec(
                         uri, method, body, headers, force_preemptive_auth,
                         timeout=self.xnat_timeout, **kwargs)
                 except requests.Timeout:
                     # Do nothing
-                    print('DEBUG:retry {} timed out'.format(str(i + 1)))
+                    LOGGER.debug('retry {} timed out'.format(str(i + 1)))
                     pass
 
             if not result:
