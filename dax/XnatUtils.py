@@ -235,7 +235,7 @@ class InterfaceTemp(Interface):
             else:
                 LOGGER.warn('XNAT timeout, email disabled', _err)
 
-            # Retry
+            # Retries
             for i in range(self.xnat_retries):
                 # First we sleep
                 LOGGER.debug('retry in {} secs'.format(self.xnat_wait))
@@ -249,13 +249,15 @@ class InterfaceTemp(Interface):
                     result = super()._exec(
                         uri, method, body, headers, force_preemptive_auth,
                         timeout=self.xnat_timeout, **kwargs)
+                    break
                 except requests.Timeout:
                     # Do nothing
                     LOGGER.debug('retry {} timed out'.format(str(i + 1)))
                     pass
 
-            if not result:
-                raise XnatUtilsError('XNAT timeout')
+        if result is None:
+            # None of the retries worked
+            raise XnatUtilsError('XNAT timeout')
 
         return result
 
