@@ -7,6 +7,8 @@ import re
 import shutil
 from datetime import datetime
 import fnmatch
+import traceback
+import time
 
 import xml.etree.cElementTree as ET
 from lxml import etree
@@ -198,16 +200,19 @@ class InterfaceTemp(Interface):
             print(e)
             raise XnatAuthentificationError(self.host, self.user)
 
-    def _exec(self, uri, method='GET', body=None, headers=None, force_preemptive_auth=False, **kwargs):
+    def _exec(self, uri, method='GET', body=None, headers=None,
+              force_preemptive_auth=False, **kwargs):
+
         result = None
         print('_exec:{}:{}'.format(method, uri))
 
         try:
-            result = super()._exec(uri, method, body, headers, force_preemptive_auth,
-            timeout=self.xnat_timeout, **kwargs)
-        except ReadTimeout as e:
+            result = super()._exec(
+                uri, method, body, headers, force_preemptive_auth,
+                timeout=self.xnat_timeout, **kwargs)
+        except ReadTimeout:
             _err = traceback.format_exc()
-            if timeout_email:
+            if self.timeout_email:
                 print('WARNING:XNAT timeout, emailing admin:', _err)
 
                 # email the exception
@@ -216,10 +221,10 @@ class InterfaceTemp(Interface):
                 _host = DAX_SETTINGS.get_smtp_host()
                 _pass = DAX_SETTINGS.get_smtp_pass()
                 _to = DAX_SETTINGS.get_admin_email().split(',')
-                _subj = 'ERROR:dax build:{}'.format(args.settings_path)
-                send_email(_from, _host, _pass, _to, _subj, _msg)
+                _subj = 'ERROR:xnat timeout:{}'.format(uri)
+                utilities.send_email(_from, _host, _pass, _to, _subj, _msg)
             else:
-                print('ERROR:XNAT timeout, email disabled.', _err)
+                print('ERROR:XNAT timeout, email disabled', _err)
 
             # Retry
             for i in range(self.xnat_retries):
@@ -230,10 +235,10 @@ class InterfaceTemp(Interface):
                 # Then we try again
                 print('DEBUG:retry #{}', i)
                 try:
-                    result = super()._exec(uri, method, body, headers, 
-                        force_preemptive_auth,
+                    result = super()._exec(
+                        uri, method, body, headers, force_preemptive_auth,
                         timeout=self.xnat_timeout, **kwargs)
-                except ReadTimeout as e:
+                except ReadTimeout:
                     # Do nothing
                     print('DEBUG:retry #{} timed out', i)
                     pass
@@ -1785,7 +1790,7 @@ class CachedImageSession(object):
         self.datatype_ = experiment.datatype()
         xml_str = experiment.get()
         self.creation_timestamp_ =\
-            experiment.attrs.get(self.datatype_+'/meta/insert_date')
+            experiment.attrs.get(self.datatype_ + '/meta/insert_date')
         self.sess_element = ET.fromstring(xml_str)
         self.project = proj
         self.subject = subj
@@ -2648,7 +2653,7 @@ def get_resource_lastdate_modified(intf, resource_obj):
     # Get the XML for resource
     xmlstr = intf._exec(res_xml_uri, 'GET')
     # Parse out the times
-    root = etree.fromstring(xmlstr,parser=etree.XMLParser(huge_tree=True))
+    root = etree.fromstring(xmlstr, parser=etree.XMLParser(huge_tree=True))
     create_times = root.xpath(created_xpath, namespaces=root.nsmap)
     if not create_times:
         create_times = root.xpath(created_dcm_xpath, namespaces=root.nsmap)
