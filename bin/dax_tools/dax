@@ -172,7 +172,7 @@ It can be the yaml file for a processor or settings.'
 
 if __name__ == '__main__':
     args = parse_args()
-    if args.sessions:
+    if args.command in ['build', 'launch', 'update', 'test']:
         args.sessions = strip_leading_and_trailing_spaces(args.sessions)
 
     if args.command == 'build':
