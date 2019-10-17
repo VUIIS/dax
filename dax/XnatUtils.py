@@ -14,7 +14,7 @@ import xml.etree.cElementTree as ET
 from lxml import etree
 from pyxnat import Interface
 from pyxnat.core.errors import DatabaseError
-from requests.exceptions import ReadTimeout
+import requests
 
 from . import utilities
 from .task import (JOB_FAILED, JOB_RUNNING, READY_TO_UPLOAD)
@@ -210,7 +210,7 @@ class InterfaceTemp(Interface):
             result = super()._exec(
                 uri, method, body, headers, force_preemptive_auth,
                 timeout=self.xnat_timeout, **kwargs)
-        except ReadTimeout:
+        except requests.Timeout:
             _err = traceback.format_exc()
             if self.timeout_email:
                 print('WARNING:XNAT timeout, emailing admin:', _err)
@@ -229,18 +229,18 @@ class InterfaceTemp(Interface):
             # Retry
             for i in range(self.xnat_retries):
                 # First we sleep
-                print('DEBUG:waiting {} secs before retry', self.xnat_wait)
+                print('DEBUG:retry in {} secs'.format(self.xnat_wait))
                 time.sleep(self.xnat_wait)
 
                 # Then we try again
-                print('DEBUG:retry #{}', i)
+                print('DEBUG:retry #{}'.format(str(i)))
                 try:
                     result = super()._exec(
                         uri, method, body, headers, force_preemptive_auth,
                         timeout=self.xnat_timeout, **kwargs)
-                except ReadTimeout:
+                except requests.Timeout:
                     # Do nothing
-                    print('DEBUG:retry #{} timed out', i)
+                    print('DEBUG:retry #{} timed out'.format(str(i)))
                     pass
 
             if not result:
