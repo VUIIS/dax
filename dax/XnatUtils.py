@@ -215,7 +215,7 @@ class InterfaceTemp(Interface):
         except requests.Timeout:
             _err = traceback.format_exc()
             if self.timeout_email:
-                print('WARNING:XNAT timeout, emailing admin:', _err)
+                print('WARNING:XNAT timeout, emailing admin:')
 
                 # email the exception
                 _msg = '{}\n\n'.format(uri)
@@ -245,7 +245,7 @@ class InterfaceTemp(Interface):
                         timeout=self.xnat_timeout, **kwargs)
                 except requests.Timeout:
                     # Do nothing
-                    print('DEBUG:retry #{} timed out'.format(str(i)))
+                    print('DEBUG:retry {} timed out'.format(str(i + 1)))
                     pass
 
             if not result:
@@ -722,7 +722,7 @@ class InterfaceTemp(Interface):
         type_list = []
         full_sess_list = []
         post_uri = ALL_SESS_PROJ_URI.format(project=projectid)
-       
+
         # First get a list of all experiment types
         post_uri_types = '%s?columns=xsiType' % post_uri
         sess_list = self._get_json(post_uri_types)
@@ -1119,10 +1119,11 @@ class AssessorHandler(object):
         :return: The pyxnat EObject of the assessor
 
         """
-        return intf.select_assessor(self.project_id,
-                           self.subject_label,
-                           self.session_label,
-                           self.assessor_label)
+        return intf.select_assessor(
+            self.project_id,
+            self.subject_label,
+            self.session_label,
+            self.assessor_label)
 
 
 # TODO: BenM/assessor_of_assessor/use path.txt here to associate results with
