@@ -746,6 +746,9 @@ class InterfaceTemp(Interface):
                 post_uri=post_uri, stype=sess_type)
             sess_list = self._get_json(post_uri_type)
 
+            # Sort by label
+            sess_list = sorted(sess_list, key=lambda k: k['label'])
+
             for sess in sess_list:
                 # Override the project returned to be the one we queried
                 sess['project'] = projectid
