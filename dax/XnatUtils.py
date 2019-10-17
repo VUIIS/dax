@@ -134,7 +134,9 @@ class InterfaceTemp(Interface):
     R_XPATH = '{xpath}/resources/{resource}'
     AR_XPATH = '%s/out/resources/{resource}' % A_XPATH
 
-    def __init__(self, xnat_host=None, xnat_user=None, xnat_pass=None, timeout_email=True):
+    def __init__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
+                 timeout_email=True):
+
         """Entry point for the InterfaceTemp class.
 
         :param xnat_host: XNAT Host url
@@ -216,12 +218,13 @@ class InterfaceTemp(Interface):
                 print('WARNING:XNAT timeout, emailing admin:', _err)
 
                 # email the exception
-                _msg = 'ERROR:{}'.format(_err)
+                _msg = '{}\n\n'.format(uri)
+                _msg += 'ERROR:{}'.format(_err)
                 _from = DAX_SETTINGS.get_smtp_from()
                 _host = DAX_SETTINGS.get_smtp_host()
                 _pass = DAX_SETTINGS.get_smtp_pass()
                 _to = DAX_SETTINGS.get_admin_email().split(',')
-                _subj = 'ERROR:xnat timeout:{}'.format(uri)
+                _subj = 'ERROR:XNAT timeout'
                 utilities.send_email(_from, _host, _pass, _to, _subj, _msg)
             else:
                 print('ERROR:XNAT timeout, email disabled', _err)
@@ -233,7 +236,9 @@ class InterfaceTemp(Interface):
                 time.sleep(self.xnat_wait)
 
                 # Then we try again
-                print('DEBUG:retry #{}'.format(str(i)))
+                print('DEBUG:retry {} of {}'.format(
+                    str(i + 1), str(self.xnat_retries)))
+                print('_exec:{}:{}'.format(method, uri))
                 try:
                     result = super()._exec(
                         uri, method, body, headers, force_preemptive_auth,
