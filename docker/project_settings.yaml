@@ -1,0 +1,15 @@
+---
+processorlib: /root/dax-processors
+modulelib: /root/dax-modules
+singularity_imagedir: /root/SINGULARITY_IMAGES
+attrs:
+  queue_limit: 1
+  job_email: brian.d.boyd@vumc.org
+  job_email_options: FAIL
+  xnat_host: http://xnat2.vanderbilt.edu:8080/xnat
+modules:
+  - name: d2n
+    filepath: Module_dcm2niix.py
+projects:
+  - project: TAYLOR_CAARE
+    modules: d2n

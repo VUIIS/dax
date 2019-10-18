@@ -1,0 +1,38 @@
+---
+admin:
+  user_home: ~
+  admin_email: brian.d.boyd@vumc.org
+  smtp_host: smtp.gmail.com
+  smtp_from: ccm.xnat@gmail.com
+  smtp_pass: xgnatbuz
+  xsitype_include: proc:genProcData
+cluster:
+  type: SLURM
+  cmd_submit: sbatch
+  prefix_jobid: Submitted batch job
+  suffix_jobid:
+  cmd_count_nb_jobs: ~/.dax_templates/cmd_count_nb_jobs.txt
+  cmd_get_job_status: ~/.dax_templates/cmd_get_job_status.txt
+  queue_status: Q
+  running_status: R
+  complete_status: "slurm_load_jobs error: Invalid job id specified"
+  cmd_get_job_memory: ~/.dax_templates/cmd_get_job_memory.txt
+  cmd_get_job_walltime: ~/.dax_templates/cmd_get_job_walltime.txt
+  cmd_get_job_node: ~/.dax_templates/cmd_get_job_node.txt
+  job_extension_file: .slurm
+  job_template: ~/.dax_templates/job_template.txt
+  email_opts: FAIL
+  gateway: smithers
+  root_job_dir: /tmp
+  queue_limit: 400
+  results_dir: ~/UPLOADQ
+lib:
+  processorlib: /root/dax-processors
+  modulelib: /root/dax-modules
+  singularity_imagedir: /root/SINGULARITY_IMAGES
+  job_email: brian.d.boyd@vumc.org
+  job_email_options: FAIL
+  xnat_host: http://xnat2.vanderbilt.edu:8080/xnat
+modules:
+  - name: d2n
+    filepath: Module_dcm2niix.py
