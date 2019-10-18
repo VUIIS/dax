@@ -17,6 +17,7 @@ from datetime import datetime
 import glob
 import logging
 import os
+import sys
 
 from dax import XnatUtils
 from dax.errors import XnatToolsUserError
@@ -664,6 +665,7 @@ def upload_resources(xnat, args, obj, obj_dict):
     if args.delete_all:
         delete_all_resources(xnat, obj, obj_dict)
 
+
     # Upload each resources:
     for resource_label, fpath_list in list(obj_dict['resource'].items()):
         __logger__.info('   > Resource %s' % (resource_label))
@@ -785,10 +787,18 @@ def run_xnat_upload(args):
         err = "Argument -c/--csvfile: path '%s' does not exist."
         raise XnatToolsUserError(__exe__, err % args.csvfile)
 
+    if args.delete_all:
+        qst = 'The --deleteAll option removes all resources for the scan before uploading, including resources not listed in the csv file. Do you want to continue?'
+        yes = utils.prompt_user_yes_no(qst)
+        if not yes:
+            print('User stopped')
+            sys.exit()
+
     if args.session_type and \
        args.session_type not in list(utils.XNAT_MODALITIES.keys()):
         err = 'Argument --sess does not exist on XNAT: %s' % args.session_type
         raise XnatToolsUserError(__exe__, err)
+
 
     if args.print_modality:
         utils.print_separators()
@@ -820,6 +830,7 @@ https://github.com/VUIIS/dax wiki.'
             upload_data_xnat(xnat, args, scans, assessors)
 
     utils.print_end(__exe__)
+
 
 
 def add_to_parser(parser):
