@@ -218,7 +218,7 @@ class InterfaceTemp(Interface):
             result = super()._exec(
                 uri, method, body, headers, force_preemptive_auth,
                 timeout=self.xnat_timeout, **kwargs)
-        except (requests.Timeout, requests.ConnectionError):
+        except requests.Timeout, requests.ConnectionError:
             _err = traceback.format_exc()
             if self.timeout_email:
                 LOGGER.warn('XNAT timeout, emailing admin')
@@ -250,7 +250,7 @@ class InterfaceTemp(Interface):
                         uri, method, body, headers, force_preemptive_auth,
                         timeout=self.xnat_timeout, **kwargs)
                     break
-                except (requests.Timeout, requests.ConnectionError):
+                except requests.Timeout, requests.ConnectionError:
                     # Do nothing
                     LOGGER.debug('retry {} timed out'.format(str(i + 1)))
                     pass
