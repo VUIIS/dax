@@ -968,10 +968,16 @@ class ProcessorParser:
             (_parent_name, _child_name) = input_name.split('/')
             _parent_val = parameter[_parent_name]
             _parent_art = artefacts[_parent_val]
-
-            # Get the inputs field from the child
-            _parent_inputs = _parent_art.entity.get_inputs()
-            _val = _parent_inputs[_child_name]
+            
+            _parent_art_inputs = _parent_art.entity.get_inputs()
+            if _parent_art_inputs is None:
+                # Check that inputs field is not empty
+                LOGGER.warn('inputs field is empty:' + _parent_val)
+                _val = None
+            else:
+                # Get the inputs field from the child
+                _parent_inputs = _parent_art_inputs
+                _val = _parent_inputs[_child_name]
 
         return _val
 
@@ -992,6 +998,12 @@ class ProcessorParser:
                 for cur_input in cur_filter[1:]:
                     cur_val = ProcessorParser.get_input_value(
                         cur_input, cur_param, artefacts)
+                    
+                    if cur_val is None:
+                        LOGGER.warn('cannot match, empty inputs:{}'.format(
+                            cur_input))
+                        all_match = False
+                        break
 
                     if cur_val != first_val:
                         # A single non-match breaks the whole thing
