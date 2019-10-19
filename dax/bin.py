@@ -298,6 +298,10 @@ def read_yaml_settings(yaml_file, logger):
     attrs['project_modules_dict'] = proj_mod
     attrs['yaml_dict'] = yaml_proc
 
+    # Delete unsupported arguments
+    attrs.pop('skip_lastupdate', None)
+
+    # Return a launcher with specified arguments
     return launcher.Launcher(**attrs)
 
 
