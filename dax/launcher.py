@@ -228,17 +228,19 @@ name as a key and list of yaml filepaths as values.'
         project_list = self.init_script(flagfile, project_local,
                                         type_update=3, start_end=1)
 
-        msg = 'Loading task queue from: %s'
-        LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-        task_list = load_task_queue(
-            status=task.NEED_TO_RUN,
-            proj_filter=list(set(
-                list(self.project_process_dict.keys()) +
-                list(self.project_modules_dict.keys()))))
+        if project_list is None or len(project_list) == 0:
+            LOGGER.info('no projects to launch')
+        else:
+            msg = 'Loading task queue from: %s'
+            LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
+            task_list = load_task_queue(
+                status=task.NEED_TO_RUN,
+                proj_filter=project_list)
 
-        msg = '%s tasks that need to be launched found'
-        LOGGER.info(msg % str(len(task_list)))
-        self.launch_tasks(task_list, force_no_qsub=force_no_qsub)
+            msg = '%s tasks that need to be launched found'
+            LOGGER.info(msg % str(len(task_list)))
+            self.launch_tasks(task_list, force_no_qsub=force_no_qsub)
+
         self.finish_script(flagfile, project_list, 3, 2, project_local)
 
     @staticmethod
@@ -334,17 +336,19 @@ cluster queue"
         project_list = self.init_script(flagfile, project_local,
                                         type_update=2, start_end=1)
 
-        msg = 'Loading task queue from: %s'
-        LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-        task_list = load_task_queue(
-            proj_filter=list(self.project_process_dict.keys()))
+        if project_list is None or len(project_list) == 0:
+            LOGGER.info('no projects to launch')
+        else:
+            msg = 'Loading task queue from: %s'
+            LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
+            task_list = load_task_queue(proj_filter=project_list)
 
-        LOGGER.info('%s tasks found.' % str(len(task_list)))
+            LOGGER.info('%s tasks found.' % str(len(task_list)))
 
-        LOGGER.info('Updating tasks...')
-        for cur_task in task_list:
-            LOGGER.info('Updating task: %s' % cur_task.assessor_label)
-            cur_task.update_status()
+            LOGGER.info('Updating tasks...')
+            for cur_task in task_list:
+                LOGGER.info('Updating task: %s' % cur_task.assessor_label)
+                cur_task.update_status()
 
         self.finish_script(flagfile, project_list, 2, 2, project_local)
 
