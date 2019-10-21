@@ -250,9 +250,7 @@ name as a key and list of yaml filepaths as values.'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
             task_list = load_task_queue(
                 status=task.NEED_TO_RUN,
-                proj_filter=list(set(
-                    self.project_process_dict.keys() +
-                    self.project_modules_dict.keys())))
+                proj_filter=project_list)
 
             msg = '%s tasks that need to be launched found'
             LOGGER.info(msg % str(len(task_list)))
@@ -396,7 +394,7 @@ cluster queue"
             msg = 'Loading task queue from: %s'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
             task_list = load_task_queue(
-                proj_filter=list(self.project_process_dict.keys()))
+                proj_filter=project_list)
 
             LOGGER.info('%s tasks found.' % str(len(task_list)))
 
