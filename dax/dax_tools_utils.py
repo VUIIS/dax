@@ -691,7 +691,7 @@ def is_dax_upload_running(flagfile):
                                              str(today.second))
         f_obj.write(datestr + '\n')
         f_obj.close()
-        LOGGER.debug('Flagfile created: %s with date: %s\n'
+        LOGGER.debug('Flagfile created: %s with date: %s'
                      % (flagfile, datestr))
         return False
 
