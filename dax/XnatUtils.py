@@ -141,7 +141,7 @@ class InterfaceTemp(Interface):
                  timeout_email=True,
                  xnat_timeout=300,
                  xnat_retries=4,
-                 xnat_wait=900):
+                 xnat_wait=600):
 
         """Entry point for the InterfaceTemp class.
 
