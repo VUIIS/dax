@@ -60,3 +60,4 @@ docs/_build/
 test/log_test_job_runner.txt
 
 .DS_Store
+dax/git_revision.py
