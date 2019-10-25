@@ -1,0 +1,171 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Set and Check the logins for XNAT.
+
+Created on Jan 24, 2013
+Edited on February 26,2015
+Edited on January 25, 2017
+
+@author: byvernault
+'''
+
+
+import os
+import sys
+import getpass
+from pyxnat import Interface
+from pyxnat.core.errors import DatabaseError
+
+from dax import DAX_Netrc
+import dax.xnat_tools_utils as utils
+
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__exe__ = os.path.basename(__file__)
+__author__ = 'byvernault'
+__purpose__ = "Set and Check the logins for XNAT."
+BASH_PROFILE_XNAT = """# Xnat Host for default dax executables:
+{export_cmd}
+"""
+
+
+def test_connection_xnat(host, user, pwd):
+    """
+    Method to check connection to XNAT using host, user, pwd.
+
+    :param host: Host for XNAT
+    :param user: User for XNAT
+    :param pwd: Password for XNAT
+    :return: True if succeeded, False otherwise.
+    """
+    msg = '  Connecting to host <%s> with user <%s>...\n'
+    sys.stdout.write(msg % (host, user))
+    try:
+        xnat = Interface(host, user, pwd)
+        # try deleting SESSION connection
+        xnat._exec('/data/JSESSION', method='DELETE')
+        print('   --> Good login.')
+        return True
+    except DatabaseError:
+        print('   --> error: Wrong login.')
+        return False
+
+
+def add_host(dax_netrc, host):
+    """
+    Method to add host to netrc file if not already there.
+
+    :param host: Host for XNAT
+    :return: None
+    """
+    # Test connection for new XNAT host
+    connection = False
+    while not connection:
+        user = input("Please enter your XNAT username: ")
+        pwd = getpass.getpass(prompt='Please enter your XNAT password: ')
+        print('Checking XNAT logins for host: <%s>' % host)
+        connection = test_connection_xnat(host, user, pwd)
+
+    dax_netrc.add_host(host, user, pwd)
+    print('Login saved.')
+    qst = 'Do you want to use host <%s> as default host on your computer?'
+    yes = utils.prompt_user_yes_no(qst % host)
+    if yes:
+        add_to_profile(host)
+
+
+def add_to_profile(host):
+    """Function to init your profile file to call xnat_profile.
+
+    :param host: Host of XNAT to add to your profile
+    :return: None
+    """
+    profile = None
+    if os.path.exists(os.path.join(os.path.expanduser('~'), '.bash_profile')):
+        profile = os.path.join(os.path.expanduser('~'), '.bash_profile')
+    elif os.path.exists(os.path.join(os.path.expanduser('~'), '.bashrc')):
+        profile = os.path.join(os.path.expanduser('~'), '.bashrc')
+    elif os.path.exists(os.path.join(os.path.expanduser('~'), '.profile')):
+        profile = os.path.join(os.path.expanduser('~'), '.profile')
+    else:
+        print("Warning: profile file not found. Please add XNAT_HOST \
+to your environment variables manually.")
+
+    if profile:
+        # Add the line to the profile
+        line_to_add = 'export XNAT_HOST=%s' % host
+        if 'XNAT_HOST' not in open(profile).read():
+            with open(profile, "a") as f_profile:
+                lines = BASH_PROFILE_XNAT.format(export_cmd=line_to_add)
+                f_profile.write(lines)
+        else:
+            print('Warning: XNAT_HOST already set in your profile file. \
+Please edit it.')
+
+
+def check_settings(dax_netrc, host):
+    """
+    Method to check the settings for host in xnatnetrc
+
+    :param dax_netrc: netrc object for xnatnetrc
+    :param host: Xnat Host URL
+    :return: None
+    """
+    no_host_saved = False
+    host_unknown = False
+    if not host:
+        qst = 'Do you want to see the xnat host saved?'
+        yes = utils.prompt_user_yes_no(qst)
+        if yes:
+            print('XNAT Hosts stored:')
+            if not dax_netrc.is_empty():
+                for saved_host in dax_netrc.get_hosts():
+                    print('  - %s' % saved_host)
+            else:
+                no_host_saved = True
+                print('  No Host found.')
+
+        while not host:
+            msg = "Please enter the XNAT host you want to check/add: "
+            host = input(msg)
+            if not host:
+                print('You need to provide a value.')
+
+    if no_host_saved or not dax_netrc.has_host(host):
+        host_unknown = True
+
+    if host_unknown:
+        print('Warning: no information stored for host <%s>.' % host)
+        qst = 'Do you want to save XNAT host <%s> information?' % host
+        yes = utils.prompt_user_yes_no(qst)
+        if yes:
+            add_host(dax_netrc, host)
+        else:
+            return
+    else:
+        print('Logins found for <%s>. Checking connection ...' % host)
+        user, pwd = dax_netrc.get_login(host)
+        test_connection_xnat(host, user, pwd)
+
+
+def parse_args():
+    """
+    Method to parser arguments following ArgumentParser
+
+    :return: arguments parsed
+    """
+    from argparse import ArgumentParser
+    ap = ArgumentParser(prog=__exe__, description=__purpose__)
+    ap.add_argument('--host', dest='host', default=None, help='Host for XNAT.')
+    return ap.parse_args()
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    utils.print_separators()
+    print('Checking your settings for XNAT in xnatnetrc file:')
+    dax_netrc = DAX_Netrc()
+    check_settings(dax_netrc, args.host)
+    utils.print_separators()
