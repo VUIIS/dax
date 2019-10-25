@@ -316,7 +316,8 @@ def prompt_user_yes_no(question):
     """
     value = ''
     while value.lower() not in ['yes', 'no', 'n', 'y']:
-        value = eval(input("%s [yes/no] " % question))
+        value = input("%s [yes/no] " % question)
+
     if value.lower() in ['yes', 'y']:
         return True
     else:
