@@ -902,7 +902,6 @@ class ProcessorParser:
                     key.decode(): val.decode() for key, val in
                     _parent_art_inputs.items()}
 
-                print(_parent_inputs)
                 _val = _parent_inputs[_child_name]
 
         return _val

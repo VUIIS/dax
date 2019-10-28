@@ -1552,6 +1552,7 @@ undo_processing...')
         Method to build a job
         """
         (old_proc_status, old_qc_status, _) = self.get_statuses(sessions)
+        LOGGER.debug('old status=', old_proc_status, old_qc_status)
         try:
             cmds = self.build_commands(assr, sessions, jobdir)
             batch_file = self.batch_path()

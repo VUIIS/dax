@@ -686,7 +686,8 @@ in session %s'
                     assessors =\
                         [(assessor, task.NEED_TO_RUN, task.DOES_NOT_EXIST)]
 
-                    csess.refresh()
+                    # TODO: is this necessary?
+                    #csess.refresh()
                 else:
                     assessors = []
                     for p in p_assrs:
