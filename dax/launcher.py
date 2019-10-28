@@ -673,6 +673,7 @@ in session %s'
         for auto_proc in auto_proc_list:
             # return a mapping between the assessor input sets and existing
             # assessors that map to those input sets
+            csess.refresh()
             auto_proc.parse_session(csess, sessions)
             mapping = auto_proc.get_assessor_mapping()
 
@@ -716,8 +717,6 @@ in session %s'
                             self.job_email_options)
                         deg = 'proc_status=%s, qc_status=%s'
                         LOGGER.debug(deg % (proc_status, qc_status))
-
-                        csess.refresh()
                     else:
                         # TODO: check that it actually exists in QUEUE
                         LOGGER.debug(
