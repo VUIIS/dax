@@ -152,8 +152,8 @@ class ProcessorParser:
         self.assessor_parameter_map = None
 
         for i in range(len(sessions) - 1):
-            if sessions[i].creation_timestamp_ <\
-                  sessions[i+1].creation_timestamp_:
+            if sessions[i].creation_timestamp() <\
+                  sessions[i+1].creation_timestamp():
                 raise ValueError("session param is not ordered by datetime")
 
         if not self.is_longitudinal_:

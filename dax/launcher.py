@@ -522,9 +522,10 @@ cluster queue"
             cached_sessions = [XnatUtils.CachedImageSession(
                 intf, x['project_label'], x['subject_label'],
                 x['session_label']) for x in sessions]
+
             cached_sessions = sorted(
                 cached_sessions,
-                key=lambda s: s.creation_timestamp_, reverse=True)
+                key=lambda s: s.creation_timestamp(), reverse=True)
 
             # update each of the sessions that require it
             for sess_info in list(sessions_to_update.values()):

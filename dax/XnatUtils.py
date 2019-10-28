@@ -1804,10 +1804,7 @@ class CachedImageSession(object):
         """
         self.reset_cached_time()
         experiment = intf.select_experiment(proj, subj, sess)
-        self.datatype_ = experiment.datatype()
         xml_str = experiment.get()
-        self.creation_timestamp_ =\
-            experiment.attrs.get(self.datatype_ + '/meta/insert_date')
         self.sess_element = ET.fromstring(xml_str)
         self.project = proj
         self.subject = subj
@@ -1817,6 +1814,8 @@ class CachedImageSession(object):
         self.sess_info_ = None
         self.scans_ = None
         self.assessors_ = None
+        self.datatype_ = None
+        self.creation_timestamp_ = None
 
     def reset_cached_time(self):
         self.cached_timestamp = datetime.now()
@@ -2034,10 +2033,17 @@ class CachedImageSession(object):
                 self.project, self.subject, self.session)
         return self.full_object_
 
-    def creation_timestamp(self):
+    def creation_timestamp(self): 
+        if self.creation_timestamp_ is None:
+            self.creation_timestamp_ = experiment.attrs.get(
+                self.datatype() + '/meta/insert_date')
+
         return self.creation_timestamp_
 
     def datatype(self):
+        if self.datatype_ is None:
+            self.datatype_ = experiment.datatype()
+
         return self.datatype_
 
 
