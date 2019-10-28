@@ -2035,14 +2035,14 @@ class CachedImageSession(object):
 
     def creation_timestamp(self): 
         if self.creation_timestamp_ is None:
-            self.creation_timestamp_ = self.experiment.attrs.get(
+            self.creation_timestamp_ = self.full_object().attrs.get(
                 self.datatype() + '/meta/insert_date')
 
         return self.creation_timestamp_
 
     def datatype(self):
         if self.datatype_ is None:
-            self.datatype_ = self.experiment.datatype()
+            self.datatype_ = self.full_object().datatype()
 
         return self.datatype_
 
