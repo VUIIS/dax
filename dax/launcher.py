@@ -685,9 +685,6 @@ in session %s'
                         xnat_session, inputs, relabel=True)
                     assessors =\
                         [(assessor, task.NEED_TO_RUN, task.DOES_NOT_EXIST)]
-
-                    # TODO: is this necessary?
-                    #csess.refresh()
                 else:
                     assessors = []
                     for p in p_assrs:
@@ -707,8 +704,7 @@ in session %s'
                         if task_needs_status_update(qcstatus):
                             xtask.update_status()
 
-                        LOGGER.debug(
-                            'building task: ' + assessor[0].label())
+                        LOGGER.debug('building task: ' + xtask.assessor_label)
                         (proc_status, qc_status) = xtask.build_task(
                             assessor[0], sessions,
                             self.root_job_dir,

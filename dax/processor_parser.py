@@ -268,6 +268,7 @@ class ProcessorParser:
                     break
 
             if isinstance(assr_inputs[v['input']], list):
+                # TODO: optimize this to get resource list only once
                 for vnum, vinput in enumerate(assr_inputs[v['input']]):
                     robj = assr._intf.select(
                         resource_paths[artefact_type].format(
