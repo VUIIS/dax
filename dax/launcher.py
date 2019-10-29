@@ -685,20 +685,20 @@ in session %s'
                 if len(p_assrs) == 0:
                     assessor = auto_proc.create_assessor(
                         xnat_session, inputs, relabel=True)
-                    assessors =\
-                        [(assessor, task.NEED_TO_RUN, task.DOES_NOT_EXIST)]
+                    assessors =[(assessor, assessor.label(),
+                        task.NEED_TO_RUN, task.DOES_NOT_EXIST)]
                 else:
                     assessors = []
                     for p in p_assrs:
                         info = p.info()
                         procstatus = info['procstatus']
                         qcstatus = info['qcstatus']
-                        assessors.append(
-                            (p.full_object(), procstatus, qcstatus))
+                        assessors.append((
+                            p.full_object(), p.label(), procstatus, qcstatus))
 
                 for assessor in assessors:
-                    procstatus = assessor[1]
-                    qcstatus = assessor[2]
+                    procstatus = assessor[2]
+                    qcstatus = assessor[3]
                     if task_needs_to_run(procstatus, qcstatus):
                         xtask = XnatTask(auto_proc, assessor[0], res_dir,
                                          os.path.join(res_dir, 'DISKQ'))
@@ -719,9 +719,7 @@ in session %s'
                         csess.refresh()
                     else:
                         # TODO: check that it actually exists in QUEUE
-                        LOGGER.debug(
-                            'already built: ' +
-                            assessor[0].label())
+                        LOGGER.debug('already built: ' + assessor[1])
 
     def module_prerun(self, project_id, settings_filename=''):
         """
