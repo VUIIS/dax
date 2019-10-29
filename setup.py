@@ -49,13 +49,15 @@ def get_version():
     basedir = os.path.dirname(__file__)
     with open(os.path.join(basedir, 'dax/version.py')) as f:
         VERSION = None
-        exec(f.read())
+        version_ns = {}
+        exec(f.read(), version_ns)
+        VERSION = version_ns['VERSION']
         return VERSION
     raise RuntimeError("No version found")
 
 
 def readme():
-    with open('README.rst.example') as f:
+    with open('README.md') as f:
         return f.read()
 
 
