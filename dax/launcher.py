@@ -685,8 +685,11 @@ in session %s'
                 if len(p_assrs) == 0:
                     assessor = auto_proc.create_assessor(
                         xnat_session, inputs, relabel=True)
-                    assessors =[(assessor, assessor.label(),
+                    assessors = [(
+                        assessor, assessor.label(),
                         task.NEED_TO_RUN, task.DOES_NOT_EXIST)]
+
+                    csess.refresh()
                 else:
                     assessors = []
                     for p in p_assrs:
