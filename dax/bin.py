@@ -100,7 +100,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
 
 # TODO:BenM/assessor_of_assessor/starting point
 def build(settings_path, logfile, debug, projects=None, sessions=None,
-          mod_delta=None, proj_lastrun=None):
+          mod_delta=None, proj_lastrun=None, start_sess=None):
     """
     Method that is responsible for running all modules and putting assessors
      into the database
@@ -120,7 +120,8 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
     lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
     try:
         _launcher_obj.build(lockfile_prefix, projects, sessions,
-                            mod_delta=mod_delta, proj_lastrun=proj_lastrun)
+                            mod_delta=mod_delta, proj_lastrun=proj_lastrun,
+                            start_sess=start_sess)
     except KeyboardInterrupt:
         logger.warn('Killed by user.')
         flagfile = os.path.join(os.path.join(

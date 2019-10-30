@@ -367,7 +367,7 @@ cluster queue"
 
     # BUILD Main Method
     def build(self, lockfile_prefix, project_local, sessions_local,
-              mod_delta=None, proj_lastrun=None):
+              mod_delta=None, proj_lastrun=None, start_sess=None):
         """
         Main method to build the tasks and the sessions
 
@@ -419,7 +419,8 @@ cluster queue"
 
                     self.build_project(intf, project_id, lockfile_prefix,
                                        sessions_local,
-                                       mod_delta=mod_delta, lastrun=lastrun)
+                                       mod_delta=mod_delta, lastrun=lastrun,
+                                       start_sess=start_sess)
                 except Exception as E:
                     err1 = 'Caught exception building project %s'
                     err2 = 'Exception class %s caught with message %s'
@@ -430,7 +431,7 @@ cluster queue"
         self.finish_script(flagfile, project_list, 1, 2, project_local)
 
     def build_project(self, intf, project_id, lockfile_prefix, sessions_local,
-                      mod_delta=None, lastrun=None):
+                      mod_delta=None, lastrun=None, start_sess=None):
         """
         Build the project
 
@@ -468,9 +469,19 @@ cluster queue"
         processor_types = set([x.name for x in auto_procs])
 
         LOGGER.info('* Loading list of sessions from XNAT for project')
+        sess_list = self.get_sessions_list(intf, project_id, sessions_local)
+
+        # Skip to session
+        if start_sess:
+            for i, sess in sess_list:
+                if sess['label'] == start_sess:
+                    LOGGER.info('starting index=' + i)
+                    sess_list = sess_list[i:]
+                    break
+
+        # Group by subject
         sessions_by_subject = groupby_to_dict(
-            self.get_sessions_list(intf, project_id, sessions_local),
-            lambda x: x['subject_id'])
+            sess_list, lambda x: x['subject_id'])
 
         # check for processor types that are new to this project
         assr_types = intf.list_project_assessor_types(project_id)

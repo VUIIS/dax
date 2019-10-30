@@ -58,6 +58,8 @@ project).'
                               help='Avoid printing DEBUG information.')
     build_parser.add_argument('--mod', dest='mod_delta', default=None,
                               help='Run build if modified within this window')
+    build_parser.add_argument('--startsess', dest='start_sess', default=None,
+                              help='Start build at index of specified session')
 
     # launch:
     launch_desc = "Launch all tasks that need to run (NEED_TO_RUN)."
@@ -180,7 +182,7 @@ if __name__ == '__main__':
             try:
                 dax.bin.build(
                     args.settings_path, args.logfile, args.debug, args.project,
-                    args.sessions, args.mod_delta)
+                    args.sessions, args.mod_delta, args.start_sess)
             except Exception:
                 _err = traceback.format_exc()
                 print('ERROR:build failed, emailing admin:', _err)
