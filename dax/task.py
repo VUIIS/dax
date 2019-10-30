@@ -127,26 +127,7 @@ class Task(object):
         self.upload_dir = upload_dir
         self.atype = processor.xsitype.lower()
 
-        # Create assessor if needed
-        if not assessor.exists():
-            if self.atype == DEFAULT_FS_DATATYPE.lower():
-                kwargs = {'%s/fsversion' % DEFAULT_FS_DATATYPE.lower(): '0'}
-                assessor.create(assessors=DEFAULT_FS_DATATYPE.lower(),
-                                **kwargs)
-            else:
-                assessor.create(assessors=self.atype)
-
-            self.set_createdate_today()
-            atype = self.atype.lower()
-            if atype == DEFAULT_DATATYPE.lower():
-                assessor.attrs.mset(
-                    {'%s/proctype' % atype: self.get_processor_name(),
-                     '%s/procversion' % atype: self.get_processor_version()})
-
-            self.set_proc_and_qc_status(NEED_INPUTS, JOB_PENDING)
-
         # Cache for convenience
-        self.assessor_id = assessor.id()
         self.assessor_label = assessor_utils.full_label_from_assessor(assessor)
 
     def get_processor_name(self):
@@ -1552,7 +1533,6 @@ undo_processing...')
         Method to build a job
         """
         (old_proc_status, old_qc_status, _) = self.get_statuses(sessions)
-        LOGGER.debug('old status={},{}'.format(old_proc_status, old_qc_status))
         try:
             cmds = self.build_commands(assr, sessions, jobdir)
             batch_file = self.batch_path()

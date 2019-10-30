@@ -274,8 +274,10 @@ class ProcessorParser:
                         resource_paths[artefact_type].format(
                             vinput, resource))
 
-                    if not robj.exists():
-                        LOGGER.debug('failed to find resource')
+                    # Get list of all files in the resource
+                    file_list = robj.files().get()
+                    if len(file_list) == 0:
+                        LOGGER.debug('empty or missing resource')
                         raise NeedInputsException('No Resource')
 
                     if 'fmatch' in cur_res:
@@ -290,9 +292,6 @@ class ProcessorParser:
                         fpath = cur_res['filepath']
                         res_path = resource + '/files/' + fpath
                     elif fmatch:
-                        # Get list of all files in the resource
-                        file_list = robj.files().get()
-
                         # Filter list based on regex matching
                         regex = utilities.extract_exp(fmatch, full_regex=False)
                         file_list = [x for x in file_list if regex.match(x)]
