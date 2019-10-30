@@ -474,7 +474,7 @@ cluster queue"
         # Skip to session
         print('start_sess=', start_sess)
         if start_sess:
-            for i, sess in sess_list:
+            for i, sess in enumerate(sess_list):
                 if sess['label'] == start_sess:
                     LOGGER.info('starting index=' + i)
                     sess_list = sess_list[i:]
