@@ -183,7 +183,7 @@ if __name__ == '__main__':
                 print('start_sess=', args.start_sess)
                 dax.bin.build(
                     args.settings_path, args.logfile, args.debug, args.project,
-                    args.sessions, args.mod_delta, args.start_sess)
+                    args.sessions, args.mod_delta, None, args.start_sess)
             except Exception:
                 _err = traceback.format_exc()
                 print('ERROR:build failed, emailing admin:', _err)
