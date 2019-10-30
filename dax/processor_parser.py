@@ -320,12 +320,12 @@ class ProcessorParser:
                     })
             else:
                 # Select the resource object on xnat
-                fobj = assr._intf.select(
-                    resource_paths[artefact_type] + '/files'.format(
+                robj = assr._intf.select(
+                    resource_paths[artefact_type].format(
                         assr_inputs[v['input']], resource))
 
                 # Get list of all files in the resource
-                file_list = fobj.get()
+                file_list = robj.files().get()
 
                 if len(file_list) == 0:
                     LOGGER.debug('empty or missing resource')
