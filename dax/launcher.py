@@ -472,6 +472,7 @@ cluster queue"
         sess_list = self.get_sessions_list(intf, project_id, sessions_local)
 
         # Skip to session
+        print('start_sess=', start_sess)
         if start_sess:
             for i, sess in sess_list:
                 if sess['label'] == start_sess:
