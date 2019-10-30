@@ -472,11 +472,10 @@ cluster queue"
         sess_list = self.get_sessions_list(intf, project_id, sessions_local)
 
         # Skip to session
-        print('start_sess=', start_sess)
         if start_sess:
             for i, sess in enumerate(sess_list):
                 if sess['label'] == start_sess:
-                    LOGGER.info('starting index=' + i)
+                    LOGGER.info('starting index=' + str(i))
                     sess_list = sess_list[i:]
                     break
 
