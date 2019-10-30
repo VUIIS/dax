@@ -180,7 +180,6 @@ if __name__ == '__main__':
     if args.command == 'build':
         if DAX_SETTINGS.is_cluster_valid():
             try:
-                print('start_sess=', args.start_sess)
                 dax.bin.build(
                     args.settings_path, args.logfile, args.debug, args.project,
                     args.sessions, args.mod_delta, None, args.start_sess)
