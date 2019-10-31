@@ -725,13 +725,9 @@ def delete_all_resources(xnat, obj, obj_dict):
     :return: None
     """
     if obj_dict['object_type'] == 'scan':
-        for ID in obj_dict.get('resource').keys():
+        for resource in obj.resources().get('resource'):
+            ID = resource.label()
             obj.resource(ID).delete()
-        #resources = XnatUtils.list_scan_resources(
-        #    xnat, obj_dict['project_id'], obj_dict['subject_label'],
-        #    obj_dict['session_label'], obj_dict['ID'])
-        #for resource_label in resources:
-        #    obj.resource(resource_label).delete()
     else:
         resources = xnat.get_assessor_out_resources(
             obj_dict['project_id'], obj_dict['subject_label'],
