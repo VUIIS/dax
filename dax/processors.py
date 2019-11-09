@@ -557,6 +557,33 @@ tag from the processor yaml file {}. Unauthorised operation.'
                     msg = 'key {} not found in the xnat inputs for auto \
 processor defined by yaml file {}'
                     LOGGER.warn(msg.format(tags[3], yaml_source.source_id))
+            elif key == 'attrs.suffix':
+                # Prepend leading underscore
+                if val[0] != '_':
+                    val = '_{}'.format(val)
+
+                # Replace illegal chars with underscore
+                val = re.sub('[^a-zA-Z0-9]', '_', val)
+
+                # Remove trailing underscore
+                if val[-1] == '_':
+                    val = val[:-1]
+
+                # Remove existing suffix
+                old_suffix = self.attrs.get('suffix', None)
+                old_proctype = self.proctype
+                if old_suffix:
+                    old_root = old_proctype.split(old_suffix)[0]
+                else:
+                    old_root = old_proctype
+
+                # Create proctype with new suffix
+                self.attrs['suffix'] = val
+                self.proctype = '{}{}'.format(old_root, self.attrs['suffix'])
+                self.name = self.proctype
+                LOGGER.debug(
+                    'suffix overriden, proctype changed from {} to {}'.format(
+                        old_proctype, self.proctype))
             elif key.startswith('attrs'):
                 # change value in self.attrs
                 if tags[-1] in list(self.attrs.keys()):
