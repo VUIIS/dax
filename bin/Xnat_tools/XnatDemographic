@@ -51,7 +51,8 @@ Examples:
 subject_label,session_label,race,handedness,gender,age
    *Upload demographic data with a different header (and session variables):
     XnatDemographic -i demographic_data.csv --format=project_id,subject_label,\
-session_label,gender,MCR,state \--sessformat MCR,state
+session_label,gender,MCR,state\
+--sessformat MCR,state
 """
 
 REQUIRED_VARIABLES_LIST = ['project_id', 'subject_label', 'session_label']
@@ -157,7 +158,6 @@ def get_row_csv(row, header, row_index, session_variables):
     if len(row) != len(header):
         print(' WARNING: row %s -- less or more columns than the header. \
 Check the csv file.' % (str(row_index + 1)))
-        return tmp_dict
     else:
         tmp_dict['upload_demo_subject'] = dict()
         tmp_dict['upload_demo_session'] = dict()
@@ -165,21 +165,21 @@ Check the csv file.' % (str(row_index + 1)))
             _key = header[index]
             if _key in REQUIRED_VARIABLES_LIST:
                 tmp_dict[_key] = val
-            else:
-                if val:
-                    if _key in session_variables:
-                        tmp_dict['upload_demo_session'][_key] = val
+            elif val:
+                if _key in session_variables:
+                    tmp_dict['upload_demo_session'][_key] = val
+                else:
+                    _dict = tmp_dict['upload_demo_subject']
+                    if header[index] == 'handedness':
+                        _dict[_key] = utils.get_handedness_from_label(val)
+                    elif header[index] == 'gender':
+                        _dict[_key] = utils.get_gender_from_label(val)
+                    elif header[index] == 'yob':
+                        _dict[_key] = get_yob_from_label(val, row_index)
                     else:
-                        _dict = tmp_dict['upload_demo_subject']
-                        if header[index] == 'handedness':
-                            _dict[_key] = utils.get_handedness_from_label(val)
-                        elif header[index] == 'gender':
-                            _dict[_key] = utils.get_gender_from_label(val)
-                        elif header[index] == 'yob':
-                            _dict[_key] = get_yob_from_label(val, row_index)
-                        else:
-                            _dict[_key] = val
-        return tmp_dict
+                        _dict[_key] = val
+
+    return tmp_dict
 
 
 def print_report(demographics, header):
@@ -200,6 +200,7 @@ List of the data that need to be upload for the header:
         if obj_dict:
             row = get_row_info(obj_dict)
             print(','.join(row))
+
     utils.print_separators(symbol='-')
 
 
@@ -222,6 +223,7 @@ def get_row_info(obj_dict, header):
                 row.append(obj_dict['upload_demo_session'].get(field, ''))
             else:
                 row.append('')
+
     return row
 
 
@@ -237,7 +239,6 @@ def print_info_row(object_dict):
     if 'session_label' in list(object_dict.keys()):
         _tmp += ' / Session: %s'
         _args.append(object_dict['session_label'])
-    print(_tmp % _args)
 
     if 'upload_demo_subject' in list(object_dict.keys()):
         for tag, value in list(object_dict['upload_demo_subject'].items()):
@@ -251,7 +252,7 @@ def print_info_row(object_dict):
             _args.append(tag)
             _args.append(value)
 
-    print(_tmp % _args)
+    print(_tmp % tuple(_args))
 
 
 def print_format():
@@ -296,17 +297,17 @@ def upload_demographic_data(xnat, demographics):
     :return: None
     """
     for obj_dict in sorted(demographics, key=lambda k: k['project_id']):
-        print_info_row(obj_dict)
         subject_obj = XnatUtils.select_obj(
             xnat,
             project_id=obj_dict['project_id'],
-            subject_id=obj_dict['subject_label']
-        )
+            subject_id=obj_dict['subject_label'])
+
         if not subject_obj.exists():
             msg = " --> WARNING: Subject %s doesn't exist. No information \
 will be uploaded."
             print(msg % (obj_dict['subject_label']))
         else:
+            print_info_row(obj_dict)
             update_demo_data(subject_obj, obj_dict)
 
 
@@ -338,17 +339,25 @@ def update_tags_subject(subject_obj, subject_label, subj_dict):
     :param subj_dict: dictionary of tag and value to set for the subject
     :return: None
     """
-    mset_dict = dict()
-    for tag, value in list(subj_dict.items()):
-        if tag in SUBJECT_PARAMETERS_LIST:  # default attributes
-            key_tmp = 'xnat:subjectData/demographics[@xsi:type=xnat:\
-demographicData]/%s'
+    if len(subj_dict) == 1:
+        tag, value = list(subj_dict.items())[0]
+        if subject_obj.attrs.get(tag):
+            print('already set:'+tag)
         else:
-            key_tmp = 'xnat:subjectData/fields/field[name=%s]/field'
-        mset_dict[key_tmp % tag.lower()] = value
+            print('setting {} to {}'.format(tag, value))
+            subject_obj.attrs.set(tag, value)
+    else:
+        mset_dict = dict()
+        for tag, value in list(subj_dict.items()):
+            if tag in SUBJECT_PARAMETERS_LIST:  # default attributes
+                key_tmp = 'xnat:subjectData/demographics[@xsi:type=xnat:\
+    demographicData]/%s'
+            else:
+                key_tmp = 'xnat:subjectData/fields/field[name=%s]/field'
+            mset_dict[key_tmp % tag.lower()] = value
 
-    subject_obj.attrs.mset(mset_dict)
-    print("  - %s set on subject." % (', '.join(list(subj_dict.keys()))))
+        subject_obj.attrs.mset(mset_dict)
+        print("  - %s set on subject." % (', '.join(list(subj_dict.keys()))))
 
 
 def update_tags_session(session_obj, session_label, sess_dict):
@@ -360,12 +369,23 @@ def update_tags_session(session_obj, session_label, sess_dict):
     :param sess_dict: dictionary of tag and value to set for the session
     :return: None
     """
-    mset_dict = dict()
-
     if not session_obj.exists():
         msg = "  --> warning: Session %s doesn't exist or not set."
         print(msg % (session_label))
+    elif len(sess_dict) == 1:
+        xsitype_sess = session_obj.attrs.get('xsiType')
+        tag, value = list(sess_dict.items())[0]
+        if tag in SESSION_PARAMETERS_LIST:
+            tag = '{}/{}'.format(xsitype_sess, tag)
+        else:
+            tag = '{}/fields/field[name=%s]/field/{}'.format(xsitype_sess, tag)
+        if session_obj.attrs.get(tag):
+            print('already set:'+tag)
+        else:
+            print('setting {} to {}'.format(tag, value))
+            session_obj.attrs.set(tag, value)
     else:
+        mset_dict = dict()
         xsitype_sess = session_obj.attrs.get('xsiType')
         for tag, value in list(sess_dict.items()):
             if tag in SESSION_PARAMETERS_LIST:
@@ -389,29 +409,29 @@ def run_xnat_demographics(args):
         print_format()
         utils.print_separators()
 
-    if args.csvfile:
-        if not os.path.exists(args.csvfile):
-            err = "the csv file '%s' does not exist."
-            raise XnatToolsUserError(__exe__, err % args.csvfile)
+    if args.csvfile and not os.path.exists(args.csvfile):
+        err = "the csv file '%s' does not exist."
+        raise XnatToolsUserError(__exe__, err % args.csvfile)
+
+    demographics, header = read_csv(args.csvfile, args.session_format,
+                                    args.format, args.delimiter)
+    if not demographics:
+        print('INFO: no valid demographic data found.')
+    elif args.report:
+        print_report(demographics, header)
+    else:
+        if args.host:
+            host = args.host
         else:
-            demographics, header = read_csv(args.csvfile, args.session_format,
-                                            args.format, args.delimiter)
-            if not demographics:
-                print('INFO: no valid demographic data found.')
-            elif args.report:
-                print_report(demographics, header)
-            else:
-                if args.host:
-                    host = args.host
-                else:
-                    host = os.environ['XNAT_HOST']
-                user = args.username
-                with XnatUtils.get_interface(host=host, user=user) as xnat:
-                    print('INFO: connection to xnat <%s>:' % (host))
-                    msg = 'INFO: Uploading demographics data to XNAT <%s>. It \
+            host = os.environ['XNAT_HOST']
+
+        user = args.username
+        with XnatUtils.get_interface(host=host, user=user) as xnat:
+            print('INFO: connection to xnat <%s>:' % (host))
+            msg = 'INFO: Uploading demographics data to XNAT <%s>. It \
 will take some time to upload demographic data. Please be patient.'
-                    print(msg % (host))
-                    upload_demographic_data(xnat, demographics)
+            print(msg % (host))
+            upload_demographic_data(xnat, demographics)
 
     utils.print_end(__exe__)
 
