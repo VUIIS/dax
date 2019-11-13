@@ -518,7 +518,8 @@ cluster queue"
                         LOGGER.info(mess % (sess_info['label'], str(last_mod)))
                         continue
                     else:
-                        LOGGER.info('lastmod = %s' % str(last_mod))
+                        LOGGER.info('+ Session {}:modified, last_mod={}'.format(
+                            sess_info['label'], str(last_mod))
 
                 # Append session to list of sessions to update
                 sessions_to_update[sess_info['ID']] = sess_info
