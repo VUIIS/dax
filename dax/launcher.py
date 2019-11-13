@@ -519,7 +519,7 @@ cluster queue"
                         continue
                     else:
                         LOGGER.info('+ Session {}:modified, last_mod={}'.format(
-                            sess_info['label'], str(last_mod))
+                            sess_info['label'], str(last_mod)))
 
                 # Append session to list of sessions to update
                 sessions_to_update[sess_info['ID']] = sess_info
@@ -534,7 +534,7 @@ cluster queue"
             cached_sessions = [XnatUtils.CachedImageSession(
                 intf, x['project_label'], x['subject_label'],
                 x['session_label']) for x in sessions]
- 
+
             if len(cached_sessions) > 1:
                 cached_sessions = sorted(
                     cached_sessions,
