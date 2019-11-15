@@ -1069,8 +1069,8 @@ def upload_resource(assessor_obj, resource, resource_path):
                     resource, removeall=True)
             except XnatUtilsError as err:
                 print((ERR_MSG % err))
-        # One or two file, let just upload them:
         else:
+            # One file, just upload it
             fpath = os.path.join(resource_path, rfiles_list[0])
             try:
                 XnatUtils.upload_file_to_obj(
