@@ -9,6 +9,7 @@ import logging
 import sys
 import os
 import traceback
+import socket
 
 from . import processors, modules, XnatUtils, task, cluster
 from .task import Task, ClusterTask, XnatTask
@@ -841,6 +842,13 @@ The project is not part of the settings."""
             return False
         else:
             open(lock_file, 'w').close()
+
+            # Write hostname-PID to lock file
+            _pid = os.getpid()
+            _host = socket.gethostname().split('.')[0]
+            with open(lock_file, 'w') as f:
+                f.write('{}-{}'.format(_host, _pid))
+
             return True
 
     @staticmethod
