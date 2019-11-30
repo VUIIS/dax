@@ -211,12 +211,6 @@ class ProcessorParser:
         return command_set
 
     def find_inputs(self, assr, sessions, assr_inputs):
-        # LOGGER.debug('getting inputs from xnat')
-        # assr_inputs = {
-        #    key.decode(): val.decode() for key, val in
-        #    list(XnatUtils.get_assessor_inputs(assr).items())}
-        # LOGGER.debug('finished getting inputs')
-
         variable_set = {}
         input_list = []
 
@@ -731,7 +725,7 @@ class ProcessorParser:
                         if regex.match(cscan.type()):
                             if iv.get('select')[0] == 'all' and\
                                  cscan.info().get('quality') == 'unusable':
-                                print('excluding unusable scan')
+                                LOGGER.info('excluding unusable scan')
                             else:
                                 artefacts_by_input[i].append(cscan.full_path())
                             # Break here so we don't match multiple times
@@ -813,7 +807,7 @@ class ProcessorParser:
                                 from_inputs = a.entity.get_inputs()
                                 if from_inputs is not None:
                                     mapped_input_vector.append(
-                                        from_inputs[v2.encode()].decode())
+                                        from_inputs[v2])
 
                             combined_input_vector.append(mapped_input_vector)
 
@@ -873,8 +867,6 @@ class ProcessorParser:
                 LOGGER.warn('skipping, inputs field is empty:' + casr.label())
                 return list()
 
-            inputs = list(inputs.items())
-            inputs = {key.decode(): val.decode() for key, val in inputs}
             for pi, p in enumerate(parameter_matrix):
                 if inputs == p:
                     assessors[pi].append(casr)
@@ -899,10 +891,7 @@ class ProcessorParser:
                 _val = None
             else:
                 # Get the inputs field from the child
-                _parent_inputs = {
-                    key.decode(): val.decode() for key, val in
-                    _parent_art_inputs.items()}
-
+                _parent_inputs = _parent_art_inputs
                 _val = _parent_inputs[_child_name]
 
         return _val

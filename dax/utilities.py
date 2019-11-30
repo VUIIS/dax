@@ -38,9 +38,9 @@ def parse_json_pairs(pairs):
     sink_pairs = []
     for k, v in pairs:
         if isinstance(k, str):
-            k = k.encode('utf-8')
+            k = k.encode('utf-8').decode()
         if isinstance(v, str):
-            v = v.encode('utf-8')
+            v = v.encode('utf-8').decode()
         sink_pairs.append((k, v))
     return dict(sink_pairs)
 

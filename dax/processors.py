@@ -621,9 +621,7 @@ class MoreAutoProcessor(AutoProcessor):
         """
         assr_dir = os.path.join(jobdir, assr_label)
         dstdir = os.path.join(DAX_Settings().get_results_dir(), assr_label)
-        assr_inputs = {
-            key.decode(): val.decode() for key, val in
-            list(XnatUtils.get_assessor_inputs(assr, sessions).items())}
+        assr_inputs = XnatUtils.get_assessor_inputs(assr, sessions)
 
         # Find values for the xnat inputs
         var2val, input_list = self.parser.find_inputs(
