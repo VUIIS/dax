@@ -624,9 +624,9 @@ class MoreAutoProcessor(AutoProcessor):
         assr_inputs = XnatUtils.get_assessor_inputs(assr, sessions)
 
         # Make every input a list, so we can iterate later
-        for i in range(len(assr_inputs)):
-            if not isinstance(assr_inputs[i], list):
-                assr_inputs[i] = [assr_inputs[i]]
+        for k in assr_inputs:
+            if not isinstance(assr_inputs[k], list):
+                assr_inputs[k] = [assr_inputs[k]]
 
         # Find values for the xnat inputs
         var2val, input_list = self.parser.find_inputs(
