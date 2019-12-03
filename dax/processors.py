@@ -711,7 +711,8 @@ class MoreAutoProcessor(AutoProcessor):
                     input_list.append({
                         'fdest': _fpref,
                         'ftype': 'FILE',
-                        'fpath': _uri
+                        'fpath': _uri,
+                        'ddest': ''
                     })
 
                     # Set the value for command text
