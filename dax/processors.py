@@ -623,6 +623,11 @@ class MoreAutoProcessor(AutoProcessor):
         dstdir = os.path.join(DAX_Settings().get_results_dir(), assr_label)
         assr_inputs = XnatUtils.get_assessor_inputs(assr, sessions)
 
+        # Make every input a list, so we can iterate later
+        for i in range(len(assr_inputs)):
+            if not isinstance(assr_inputs[i], list):
+                assr_inputs[i] = [assr_inputs[i]]
+
         # Find values for the xnat inputs
         var2val, input_list = self.parser.find_inputs(
             assr, sessions, assr_inputs)
@@ -650,13 +655,15 @@ class MoreAutoProcessor(AutoProcessor):
                 _val = assr.parent().attrs.get(_attr)
             elif _obj == 'scan':
                 _ref = attr_in['ref']
-                _refval = assr_inputs[_ref].rsplit('/', 1)[1]
-                _val = assr.parent().scan(_refval).attrs.get(_attr)
+                _refval = [a.rsplit('/', 1)[1] for a in assr_inputs[_ref]]
+                _val = ','.join(
+                    [assr.parent().scan(r).attrs.get(_attr) for r in _refval])
             elif _obj == 'assessor':
                 if 'ref' in attr_in:
                     _ref = attr_in['ref']
-                    _refval = assr_inputs[_ref].rsplit('/', 1)[1]
-                    _val = assr.parent().assessor(_refval).attrs.get(_attr)
+                    _refval = [a.rsplit('/', 1)[1] for a in assr_inputs[_ref]]
+                    _val = ','.join(
+                        [assr.parent().assessor(r).attrs.get(_attr) for r in _refval])
                 else:
                     print(_attr)
                     print((assr.label()))
@@ -729,7 +736,7 @@ class MoreAutoProcessor(AutoProcessor):
         # Append the list of inputs
         cmd += 'INLIST=(\n'
         for cur in input_list:
-            cmd += '{fdest},{ftype},{fpath}\n'.format(**cur)
+            cmd += '{fdest},{ftype},{fpath},{ddest}\n'.format(**cur)
 
         cmd += ')\n\n'
 

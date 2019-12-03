@@ -225,26 +225,30 @@ class ProcessorParser:
                 continue
 
             if art_type == 'scan':
-                qstatus = XnatUtils.get_scan_status(sessions, artv)
-                if qstatus == 'unusable':
-                    raise NeedInputsException(artk + ': Not Usable')
+                # Check status of each input scan
+                for vinput in artv:
+                    qstatus = XnatUtils.get_scan_status(sessions, vinput)
+                    if qstatus == 'unusable':
+                        raise NeedInputsException(artk + ': Not Usable')
             else:
-                pstatus, qstatus = XnatUtils.get_assr_status(sessions, artv)
-                if pstatus in OPEN_STATUS_LIST + [NEED_INPUTS]:
-                    raise NeedInputsException(artk + ': Not Ready')
+                # Check status of each input assr
+                for vinput in artv:
+                    pstatus, qstatus = XnatUtils.get_assr_status(sessions, vinput)
+                    if pstatus in OPEN_STATUS_LIST + [NEED_INPUTS]:
+                        raise NeedInputsException(artk + ': Not Ready')
 
-                if qstatus in [JOB_PENDING, REPROC, RERUN]:
-                    raise NeedInputsException(artk + ': Not Ready')
+                    if qstatus in [JOB_PENDING, REPROC, RERUN]:
+                        raise NeedInputsException(artk + ': Not Ready')
 
-                if not inp['needs_qc']:
-                    continue
+                    if not inp['needs_qc']:
+                        continue
 
-                if (qstatus in [FAILED_NEEDS_REPROC, NEEDS_QA]):
-                    raise NeedInputsException(artk + ': Needs QC')
+                    if (qstatus in [FAILED_NEEDS_REPROC, NEEDS_QA]):
+                        raise NeedInputsException(artk + ': Needs QC')
 
-                for badstatus in BAD_QA_STATUS:
-                    if badstatus.lower() in qstatus.split(' ')[0].lower():
-                        raise NeedInputsException(artk + ': Bad QC')
+                    for badstatus in BAD_QA_STATUS:
+                        if badstatus.lower() in qstatus.split(' ')[0].lower():
+                            raise NeedInputsException(artk + ': Bad QC')
 
         # Map from parameters to input resources
         LOGGER.debug('mapping params to artefact resources')
@@ -260,9 +264,6 @@ class ProcessorParser:
                 if inp_res['varname'] == k:
                     cur_res = inp_res
                     break
-
-            if not isinstance(assr_inputs[v['input']], list):
-                assr_inputs[v['input']] = [assr_inputs[v['input']]]
 
             # TODO: optimize this to get resource list only once
             for vnum, vinput in enumerate(assr_inputs[v['input']]):
@@ -313,11 +314,17 @@ class ProcessorParser:
                 else:
                     fdest = cur_res['fdest']
 
+                if 'ddest' in cur_res:
+                    ddest = cur_res['ddest']
+                else:
+                    ddest = ''
+
                 # Append to inputs to be downloaded
                 input_list.append({
                     'fdest': fdest,
                     'ftype': cur_res['ftype'],
-                    'fpath': variable_set[k]
+                    'fpath': variable_set[k],
+                    'ddest': ddest
                 })
 
                 # Replace path with destination path after download
