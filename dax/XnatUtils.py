@@ -1389,6 +1389,10 @@ def list_project_assessors(intf, projectid):
                     anew['session_label'] = asse['session_label']
                     anew['procstatus'] = asse['%s/procstatus' % pfix]
                     anew['qcstatus'] = asse['%s/validation/status' % pfix]
+                    if '%s/validation/notes' % pfix in asse.keys() :
+                        anew['qcnotes'] = asse['%s/validation/notes' % pfix]
+                    else :
+                        anew['qcnotes'] = ''
                     anew['proctype'] = 'FreeSurfer'
 
                     if len(asse['label'].rsplit('-x-FS')) > 1:
@@ -1445,6 +1449,10 @@ def list_project_assessors(intf, projectid):
                     anew['procstatus'] = asse['%s/procstatus' % pfix]
                     anew['proctype'] = asse['%s/proctype' % pfix]
                     anew['qcstatus'] = asse['%s/validation/status' % pfix]
+                    if '%s/validation/notes' % pfix in asse.keys() :
+                        anew['qcnotes'] = asse['%s/validation/notes' % pfix]
+                    else :
+                        anew['qcnotes'] = ''
                     anew['version'] = asse['%s/procversion' % pfix]
                     anew['xsiType'] = asse['xsiType']
                     anew['jobid'] = asse.get('%s/jobid' % pfix)

@@ -32,7 +32,7 @@ for assr in Assrs :
     # Get desired fields
     thisR = {}
     for key in ('project_label','subject_label','session_label','proctype',
-                'assessor_id','procstatus','qcstatus','assessor_label','jobstartdate','version') :
+                'assessor_id','procstatus','qcstatus','qcnotes','assessor_label','jobstartdate','version') :
         thisR[key] = assr[key]
 
     # Clean up the inputs field, split on / and keep the last bit
@@ -51,7 +51,7 @@ D = pandas.DataFrame(R)
 
 # Reorder columns
 colorder = ('project_label','subject_label','session_label','proctype',
-            'assessor_id','procstatus','qcstatus')
+            'assessor_id','procstatus','qcstatus','qcnotes')
 oldcols = D.columns.tolist()
 newcols = list()
 for col in colorder :
@@ -78,7 +78,13 @@ for session in sessions:
     # Check that we only got one session's data
     sinfo = thisD[['project_label','subject_label','session_label']].drop_duplicates()
     if sinfo.shape[0]!=1:
-        raise Exception('Trouble with session labels')
+        # Seems to happen when a label is empty
+        print('Unexpected value - skipping in session report:')
+        for s in range(sinfo.shape[0]) :
+            print('   ' + sinfo['project_label'].values[s] + ' - ' + 
+                  sinfo['subject_label'].values[s]  + ' - ' + 
+                  sinfo['session_label'].values[s])
+        print(' ')
 
     thisS['project_label'] = sinfo['project_label'].values[0]
     thisS['subject_label'] = sinfo['subject_label'].values[0]
