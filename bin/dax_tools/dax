@@ -8,11 +8,13 @@ project on XNAT and which pipelines to run on those projects.
 
 import traceback
 import sys
+import os
 
 import dax
 from dax import DAX_Settings
 from dax import dax_tools_utils as dax_tools
 from dax.utilities import send_email
+from dax import dax_manager
 
 
 __author__ = "Benjamin Yvernault"
@@ -165,6 +167,11 @@ It can be the yaml file for a processor or settings.'
     test_parser.add_argument('--hide', dest='hide',
                              help=_help, action='store_true')
 
+    # manager:
+    manager_desc = 'Extracts settings from REDCap projects, then \
+runs build, launch, update and upload'
+    manager_parser = dax_parser.add_parser('manager', help=manager_desc)
+
     # setup:
     setup_desc = "Setup dax on your computer."
     dax_parser.add_parser('setup', help=setup_desc)
@@ -229,3 +236,14 @@ cluster section\n.')
 
     elif args.command == 'setup':
         dax_tools.setup_dax_package()
+
+    elif args.command == 'manager':
+        API_URL = os.environ['API_URL']
+        API_KEY_P = os.environ['API_KEY_DAX_PROJECTS']
+        API_KEY_I = os.environ['API_KEY_DAX_INSTANCES']
+
+        # Clean up existing lock files
+        dax_manager.clean_lockfiles()
+
+        # Make and run our dax manager
+        dax_manager.DaxManager(API_URL, API_KEY_I, API_KEY_P).run()
