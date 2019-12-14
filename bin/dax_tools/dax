@@ -252,5 +252,5 @@ cluster section\n.')
         # Make and run our dax manager
         dax_manager.DaxManager(API_URL, API_KEY_I, API_KEY_P).run()
 
-     elif args.command == 'version':
+    elif args.command == 'version':
         print()
