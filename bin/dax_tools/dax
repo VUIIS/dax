@@ -168,13 +168,17 @@ It can be the yaml file for a processor or settings.'
                              help=_help, action='store_true')
 
     # manager:
-    manager_desc = 'Extracts settings from REDCap projects, then \
-runs build, launch, update and upload'
+    manager_desc = 'Extracts settings from REDCap, then \
+runs build, launch, update and upload.'
     manager_parser = dax_parser.add_parser('manager', help=manager_desc)
 
     # setup:
     setup_desc = "Setup dax on your computer."
     dax_parser.add_parser('setup', help=setup_desc)
+
+    # version:
+    version_desc = 'Print dax version.'
+    dax_parser.add_parser('version', help=version_desc)
 
     return parser.parse_args()
 
@@ -247,3 +251,6 @@ cluster section\n.')
 
         # Make and run our dax manager
         dax_manager.DaxManager(API_URL, API_KEY_I, API_KEY_P).run()
+
+     elif args.command == 'version':
+        print()
