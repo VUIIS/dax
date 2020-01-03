@@ -862,7 +862,7 @@ class MoreAutoProcessor(AutoProcessor):
         self.container_path = inputs.get('default').get('container_path')
         if ((self.container_path.endswith('.simg') or
                 self.container_path.endswith('.img') or
-                   self.container_path.endswith('.sif') and
+                   self.container_path.endswith('.sif')) and
                 not os.path.isabs(self.container_path) and
                 self.singularity_imagedir):
             self.container_path = os.path.join(
