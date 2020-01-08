@@ -1577,17 +1577,22 @@ def get_full_object(intf, obj_dict):
                                     obj_dict['subject_id'],
                                     obj_dict['session_id'],
                                     obj_dict['assessor_id'])
-    elif 'experiments' in obj_dict['URI']:
+    elif 'URI' in obj_dict and 'experiments' in obj_dict['URI']:
         # TODO: BenM/xnatutils refactor/ids should be consistent
         return intf.select_experiment(obj_dict['project'],
                                       obj_dict['subject_ID'],
                                       obj_dict['ID'])
-    elif 'subjects' in obj_dict['URI']:
+    elif 'URI' in obj_dict and 'subjects' in obj_dict['URI']:
         # TODO: BenM/xnatutils refactor/ids should be consistent
         return intf.select_subject(obj_dict['project'],
                                    obj_dict['ID'])
-    elif 'projects' in obj_dict['URI']:
+    elif 'URI' in obj_dict and 'projects' in obj_dict['URI']:
         return intf.select_project(obj_dict['project'])
+    elif 'object_type' in obj_dict and 'assessor' in obj_dict['object_type']:
+        return intf.select_assessor(obj_dict['project_id'],
+                                      obj_dict['subject_label'],
+                                      obj_dict['session_label'],
+                                      obj_dict['label'])
     else:
         return intf.select_all_projects()
         # xpath = '/project/'
