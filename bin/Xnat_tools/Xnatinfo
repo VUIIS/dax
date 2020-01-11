@@ -221,7 +221,7 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
         if len(assessor_dict['proctype']) > as_len:
             as_len = len(assessor_dict['proctype']) + 5
     for key in sorted(assessors_found):
-	assrs_info.append(
+      assrs_info.append(
             _format %
             (-1 * as_len, key,
              -5, assessors_found[key][0],

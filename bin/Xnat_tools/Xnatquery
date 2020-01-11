@@ -200,7 +200,6 @@ def run_xnat_query(args):
                     else:
                         query_session(xnat, args.project, args.subject, args.session,
                                       args.all)
-			print(args.subject)    #trying to debug
                 else:
                     utils.display_item(args.project, args.subject)
                     query_subject(xnat, args.project, args.subject, args.all)

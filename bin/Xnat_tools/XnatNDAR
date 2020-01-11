@@ -90,9 +90,9 @@ import os
 import csv
 import sys
 import glob
-import dicom
+import pydicom
 import shutil
-from dicom.tag import Tag
+from pydicom.tag import Tag
 from dax import XnatUtils
 
 
