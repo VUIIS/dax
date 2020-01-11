@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+'''
+Gets a list of random sessions from XNAT
+
+@author: Steve Daemon, Electrical Engineering, Vanderbilt University
+'''
+
+
+
+import os
+
+from dax import XnatUtils
+
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__exe__ = os.path.basename(__file__)
+__author__ = 'sdaemon'
+__purpose__ = 'Program to get a random list of sessions'
+__description__ = """What is the script doing :
+   * Return a random list of sessions from XNAT
+"""
+
+
+def parse_args():
+    """
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object parsed
+    """
+    from argparse import ArgumentParser, RawTextHelpFormatter
+    parser = ArgumentParser(prog=__exe__, description=__description__,
+                            formatter_class=RawTextHelpFormatter)
+    parser.add_argument('--host', dest='host', default=None,
+                        help='Host for XNAT. Default: env XNAT_HOST.')
+    parser.add_argument('-u', '--username', dest='username', default=None,
+                        help='Username for XNAT.')
+    parser.add_argument("-p", "--project",
+                        help="Project to get sessions from", required=True)
+    parser.add_argument("-n", "--num-sessions",
+                        help="Number of sessions to return (default=10)",
+                        default=10, required=False)
+    parser.add_argument("-d", "--delimeter",
+                        help="Delimeter to separate session IDs (default=,)",
+                        default=",", required=False)
+    return parser.parse_args()
+
+
+def main():
+    """
+    Main Method
+
+    :return: None
+    """
+    args = parse_args()
+    if args.host:
+        host = args.host
+    else:
+        host = os.environ['XNAT_HOST']
+    user = args.username
+
+    with XnatUtils.get_interface(host=host, user=user) as xnat:
+        project_id = args.project
+        num_sessions = args.num_sessions
+        delim = args.delimeter
+        sesses = XnatUtils.get_random_sessions(xnat, project_id, num_sessions)
+
+    sesses = sesses.replace(",", delim)
+    print(sesses)
+
+
+if __name__ == '__main__':
+    main()

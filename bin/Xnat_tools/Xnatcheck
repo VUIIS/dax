@@ -1,0 +1,1096 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Check XNAT data (subject/session/scan/assessor/resource).
+
+Created on May 6, 2013
+Edited on February 22, 2017
+
+@author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
+'''
+
+
+
+from builtins import str
+from builtins import object
+
+import datetime
+import logging
+import os
+
+from dax import XnatUtils
+from dax.errors import XnatToolsUserError
+import dax.xnat_tools_utils as utils
+
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__exe__ = os.path.basename(__file__)
+__author__ = 'byvernault'
+__purpose__ = 'Check XNAT data (subject/session/scan/assessor/resource)'
+__logger__ = utils.setup_info_logger(__exe__)
+__description__ = """What is the script doing :
+   *Check object on XNAT (subject/session/scan/assessor/resources) specify by \
+the options.
+
+How to write a filter string:
+ - for resources filters, the string needs to follow this template:
+   variable_name=value--sizeoperatorValue--nbfoperatorValue--fpathsoperatorValue
+   By default, it will return the assessor that does have the resource if no \
+other filter specify
+ - for other filters, the string needs to follow this template:
+   variable_name=Value
+   operator can be different than =. Look at the table in --printfilters
+
+Use --printfilters to see the different variables available
+
+Examples:
+   *See format variables:
+        Xnatcheck --printformat
+   *See filter variables:
+        Xnatcheck --printfilters
+   *Get list of T1,DTI scans that have a resource called NIFTI:
+        Xnatcheck -p PID --filters type=T1,DTI assessor_res=NIFTI
+   *Get list of fMRIQA assessors that have a resource called PDF:
+        Xnatcheck -p PID --filters proctype=fMRIQA assessor_res=PDF
+   *Get list of assessors except fMRIQA that have a resource called PDF :
+        Xnatcheck -p PID --filters proctype!=fMRIQA assessor_res=PDF
+   *Get list of project sessions that do not have a resource called testing:
+        Xnatcheck -p PID --filters session_label=VUSTP1a,VUSTP2b,VUSTP3a \
+session_res!=testing
+   *Get list of project fMRIQA and VBMQA that used more than 45mb and less \
+than 1hour:
+        Xnatcheck -p PID1,PID2 --filters proctype=fMRIQA,VBMQA \
+procstatus=COMPLETE "memused>45mb" "walltimeused<1:00:00" --format \
+assessor_label,procnode,memused,walltimeused
+"""
+
+NOTFOUND = 'NotFound'
+VARIABLES_LIST = {
+    'commun': ['object_type'],
+    'project': ['project_id'],
+    'subject': ['subject_id', 'subject_label', 'handedness', 'gender', 'yob'],
+    'session': ['session_id', 'session_type', 'session_label', 'age',
+                'last_modified', 'last_updated'],
+    'scan': ['scan_id', 'type', 'series_description', 'quality', 'note',
+             'frames'],
+    'assessor': ['assessor_id', 'assessor_label', 'proctype', 'procstatus',
+                 'qcstatus', 'version', 'jobid', 'memused', 'walltimeused',
+                 'jobnode', 'jobstartdate'],
+}
+VAR_FILTERS = [
+    {'var': 'subject_id', 'value': 'Subjects ID',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'subject'},
+    {'var': 'subject_label', 'value': 'Subjects label',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'subject'},
+    {'var': 'handedness', 'value': '"right"/"left"/"ambidextrous"/"unknown"',
+     'format': 'string', 'operator': '=,!=', 'grp': 'subject'},
+    {'var': 'gender', 'value': '"male"/"female"/"unknown"',
+     'format': 'string', 'operator': '=,!=', 'grp': 'subject'},
+    {'var': 'yob', 'value': 'year of birth',
+     'format': 'integer YYYY', 'operator': '=,!=,<,>,<=,>=', 'grp': 'subject'},
+    {'var': 'session_id', 'value': 'Sessions ID',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'session'},
+    {'var': 'session_type', 'value': 'Session type',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'session'},
+    {'var': 'session_label', 'value': 'Sessions label',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'session'},
+    {'var': 'age', 'value': 'age of the participants',
+     'format': 'integer', 'operator': '=,!=,<,>,<=,>=', 'grp': 'session'},
+    {'var': 'scan_id', 'value': 'Scans ID',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'scan'},
+    {'var': 'type', 'value': 'Scans type',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'scan'},
+    {'var': 'series_description', 'value': 'Series Description',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'scan'},
+    {'var': 'quality', 'value': 'Quality "usable"/"unusable"/"questionable"',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'scan'},
+    {'var': 'assessor_id', 'value': 'Assessor ID',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'assessor'},
+    {'var': 'assessor_label', 'value': 'Assessor label',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'assessor'},
+    {'var': 'proctype', 'value': 'Assessor type',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'assessor'},
+    {'var': 'procstatus', 'value': 'Job status for an assessor',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'assessor'},
+    {'var': 'qcstatus', 'value': 'Quality Control Status',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'assessor'},
+    {'var': 'version', 'value': 'Version of an assessor',
+     'format': 'X.Y.Z', 'operator': '=,!=,<,>,<=,>=', 'grp': 'assessor'},
+    {'var': 'jobid', 'value': 'Job ID for assessor',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'assessor'},
+    {'var': 'memused', 'value': 'Memory used by the assessor',
+     'format': 'float+mb/kb/gb/tb', 'operator': '=,!=,<,>,<=,>=',
+     'grp': 'assessor'},
+    {'var': 'walltimeused', 'value': 'Walltime used by the assessor',
+     'format': 'HH:MM:SS', 'operator': '=,!=,<,>,<=,>=', 'grp': 'assessor'},
+    {'var': 'jobnode', 'value': 'Node where the assessor ran',
+     'format': 'comma separated list', 'operator': '=,!=', 'grp': 'assessor'},
+    {'var': 'jobstartdate', 'value': 'Job starting date',
+     'format': 'YYYY-MM-DD', 'operator': '=,!=,<,>,<=,>=', 'grp': 'assessor'},
+]
+RESOURCES_LIST = ['scan_res', 'assessor_res', 'session_res', 'subject_res']
+RESOURCES_VARS = ['size', 'nbf', 'fpath']
+RES_OBJ_DICT = {'assessor_res': 'proctype', 'scan_res': 'series_description',
+                'session_res': 'session_label', 'subject_res': 'subject_label'}
+
+
+# Classes
+class filter_variable(object):
+    """ Class to generate a filter for variable to check on pyxnat Eobject"""
+    def __init__(self, rvar, rval, operator):
+        """
+        Entry point for the filter_variable class
+
+        :param rvar: variable name
+        :param rval: value for variable
+        :param operator: operator to apply to variable (=,>,<,!=,...)
+        :return: None
+        """
+        if rvar in [_d['var'] for _d in VAR_FILTERS]:
+            self.var = rvar
+            self.goodfilter = True
+            # init operator:
+            self.init_operator(operator)
+            # init value
+            self.init_value(rval)
+            # grp
+            self.grp = [d['grp'] for d in VAR_FILTERS
+                        if d['var'] == rvar][0]
+            print('  * regular filter:', rvar, self.operator, rval)
+        else:
+            print(' WARNING: %s -- Not a variable that can be filter. \
+Unusable filter.' % (rvar))
+            self.goodfilter = False
+
+    def filter(self, list_obj):
+        """
+        Method to filter the list of object with the init parameters
+
+        :param list_obj: list of object to filter
+        :return: filtered list
+        """
+        return [x for x in list_obj if operate_action(
+            self.operator, self.get_obj_value(x), self.val)]
+
+    def get_obj_value(self, obj_dict):
+        """
+        Method to get the value from obj_dict
+
+        :param obj_dict: dictionary of information on an object
+        :return: value for the variable we are filtering
+        """
+        if isinstance(self.val, int):
+            if self.var == 'walltimeused':
+                return getwalltime(obj_dict[self.var])
+            elif self.var == 'jobstartdate':
+                try:
+                    return int(obj_dict[self.var].replace('-', ''))
+                except Exception:
+                    return '{:%Y%m%d}'.format(datetime.datetime.now())
+            elif self.var == 'version':
+                try:
+                    return int(obj_dict[self.var].replace('.', ''))
+                except Exception:
+                    return '1.0.0'
+            else:
+                try:
+                    return int(obj_dict[self.var])
+                except Exception:
+                    return 0
+        elif self.var == 'memused':  # need to convert
+            return getmemory(obj_dict[self.var])
+        else:
+            return obj_dict[self.var]
+
+    def is_usable_filter(self):
+        """
+        Return True if the filter is usable
+
+        :return: True if filter is good, False otherwise
+        """
+        return self.goodfilter
+
+    def init_operator(self, operator):
+        """
+        Method to init the operator for the filter
+         default '=' is used
+
+        :return: None
+        """
+        if operator not in [d['operator'] for d in VAR_FILTERS
+                            if d['var'] == self.var][0].split(','):
+            print(' WARNING: %s -- Not a good value for operator. Using \
+default "=".' % (self.var))
+            self.operator = '='
+        else:
+            self.operator = operator
+
+    def init_value(self, val):
+        """
+        Method to init the value for the filter
+
+        :return: None
+        """
+        warning = ' WARNING: %s -- %s. Unusable filter.'
+        formats = [d['format'] for d in VAR_FILTERS
+                   if d['var'] == self.var]
+        if 'comma separated list' in formats[0]:
+            self.val = val.split(',')
+        elif self.var == 'memused':
+            self.val = getmemory(val)
+        elif self.var == 'handedness':
+            if val in ['right', 'left', 'unknown', 'ambidextrous']:
+                self.val = val
+            else:
+                print(warning % (self.var, 'Not a good value'))
+                self.goodfilter = False
+        elif self.var == 'gender':
+            if val in ['male', 'female', 'unknown']:
+                self.val = val
+            else:
+                print(warning % (self.var, 'Not a good value'))
+                self.goodfilter = False
+        elif self.var == 'jobstartdate':
+            try:
+                self.val = int(val.replace('-', ''))
+            except Exception:
+                print(warning % (self.var, 'Not a good value'))
+                self.goodfilter = False
+        elif self.var == 'walltime':
+            try:
+                self.val = int(val.replace(':', ''))
+            except Exception:
+                print(warning % (self.var, 'Not a good value'))
+                self.goodfilter = False
+        elif 'integer' in [d['format'] for d in VAR_FILTERS
+                           if d['var'] == self.var][0]:
+            try:
+                self.val = int(val)
+            except Exception:
+                msg = 'value can not be converted to an int'
+                print(warning % (self.var, msg))
+                self.goodfilter = False
+        else:
+            self.val = val
+
+
+class filter_resource(object):
+    """ Class to create filter on XNAT resources"""
+    def __init__(self, filterstring, delimiter):
+        """
+        Entry point for the filter_resource class
+
+        :param filterstring: string describing the filter
+        :param delimiter: delimiter in the string
+        :return: None
+        """
+        self.delimiter = delimiter
+        rvar, rval, operator, res_vars = get_res_filter(filterstring,
+                                                        delimiter)
+        if rvar in RESOURCES_LIST:
+            self.var = rvar
+            self.val = rval.split(',')
+            self.operator = operator
+            self.goodfilter = True
+            self.hasfilters = False
+            self.size = None
+            self.sizeOp = '='
+            self.nbf = None
+            self.nbfOp = '='
+            self.fpaths = None
+            self.init_variables(res_vars)
+            msg = '  * resource filter: %s %s %s -- size %s %s bytes -- nbf \
+%s %s -- fpaths = %s'
+            print(msg % (self.var, self.operator, rval, self.sizeOp,
+                         str(self.size), self.nbfOp, str(self.nbf),
+                         str(self.fpaths)))
+            if (self.size or self.nbf or self.fpaths) \
+               and self.operator == '!=':
+                print('    --> WARNING : %s -- you want to filter the resource\
+ attributes but you used the operator !=. The script will not check resource \
+attributes only the existence of it.' % (rvar))
+        else:
+            print(' WARNING: %s -- Not a variable for resource that can be \
+filter. Unusable filter.' % (filterstring))
+            self.goodfilter = False
+
+    def init_variables(self, res_vars):
+        """
+        Method to init the variable value for the filter
+
+        :param res_vars: variables n
+        :return: None
+        """
+        for rv in res_vars:
+            rvar = None
+            rval = None
+            if '>=' in rv:
+                rvar, rval = rv.split('>=')[:2]
+                self.set_variables(rvar, rval, '>=')
+            elif '<=' in rv:
+                rvar, rval = rv.split('<=')[:2]
+                self.set_variables(rvar, rval, '<=')
+            elif '>' in rv:
+                rvar, rval = rv.split('>')[:2]
+                self.set_variables(rvar, rval, '>')
+            elif '<' in rv:
+                rvar, rval = rv.split('<')[:2]
+                self.set_variables(rvar, rval, '<')
+            elif '!=' in rv:
+                rvar, rval = rv.split('!=')[:2]
+                self.set_variables(rvar, rval, '!=')
+            elif '=' in rv:
+                rvar, rval = rv.split('=')[:2]
+                self.set_variables(rvar, rval, '=')
+            else:
+                print(' - warning - %s - no operator found in the filters \
+for resource.' % (rv))
+
+    def set_variables(self, rvar, rval, operator):
+        """
+        Method to set the variable value for the filter
+
+        :param rvar: variable name
+        :param rval: value for variable
+        :param operator: operator to apply to variable (=,>,<,!=,...)
+        :return: None
+        """
+        if rvar == 'size':
+            self.size = getmemory(rval)
+            self.sizeOp = operator
+            self.hasfilters = True
+        elif rvar == 'nbf':
+            self.nbf = int(rval)
+            self.nbfOp = operator
+            self.hasfilters = True
+        elif rvar == 'fpath':
+            self.fpaths = rval.split(',')
+            self.hasfilters = True
+
+    def init_operator(self, operator):
+        """
+        Method to init the operator for the filter
+         default '=' is used
+
+        :return: None
+        """
+        if ',' in operator:
+            print(' WARNING: %s -- operator %s contained a comma. \
+Using default: "=".' % (self.var, operator))
+            return '='
+        elif operator in ['=', '<', '>', '<=', '>=', '!=']:
+            return operator
+        else:
+            print(' WARNING: %s -- operator %s not found. Using default: "=".'
+                  % (self.var, operator))
+            return '='
+
+    def is_usable_filter(self):
+        """
+        Return True if the filter is usable
+
+        :return: True if filter is good, False otherwise
+        """
+        return self.goodfilter
+
+    def filter(self, xnat, objects_list):
+        """
+        Method to filter the list of object on the resource using this filter
+
+        :param xnat: pyxnat.interface Object
+        :param objects_list: list of object to filter
+        :return: filtered list
+        """
+        filtered_list = list()
+        for object_dict in objects_list:
+            if not RES_OBJ_DICT[self.var] in list(object_dict.keys()):
+                filtered_list.append(object_dict)
+            else:
+                if self.check_resources(xnat, object_dict):
+                    filtered_list.append(object_dict)
+        return filtered_list
+
+    def check_resources(self, xnat, object_dict):
+        """
+        Method to check the resource for an object on XNAT
+
+        :param xnat: pyxnat.interface Object
+        :param object_dict: pyxnat Eobject to be checked
+        :return: return True if the resource doesn't answer the filter's
+                 criteria, False otherwise
+        """
+        resources_list = get_resource_list(xnat, object_dict, self.var)
+        for reslabel in self.val:
+            if self.operator == '!=':
+                if reslabel not in [r['label'] for r in resources_list]:
+                    return True
+                else:
+                    return False
+            else:
+                if reslabel not in [r['label'] for r in resources_list]:
+                    return False
+                else:
+                    pass
+
+                # Check if set the variables:
+                if self.hasfilters:
+                    res_xnat = get_resource(xnat, object_dict, self.var,
+                                            reslabel)
+                    if self.fpaths:
+                        out = self.check_fpaths(res_xnat)
+                        if not out:
+                            return False
+                    elif self.size:
+                        out = self.check_size(get_bigger_size(res_xnat))
+                        if not out:
+                            return False
+                    if self.nbf:
+                        out = self.check_nbf(res_xnat)
+                        if not out:
+                            return False
+
+        return True
+
+    def check_size(self, size):
+        """
+        Method to check the size
+
+        :param size: size to check
+        :return: return True if the size answers the filter's criteria,
+                 False otherwise
+        """
+        return operate_action(self.sizeOp, size, self.size)
+
+    def check_nbf(self, res_xnat):
+        """
+        Method to check the number of files for a resource
+
+        :param res_xnat: pyxnat Eobject for the resource
+        :return: return True if the number of files answers the filter's
+                 criteria, False otherwise
+        """
+        return operate_action(self.nbfOp, len(res_xnat.files().get()),
+                              self.nbf)
+
+    def check_fpaths(self, res_xnat):
+        """
+        Method to check the number of files
+
+        :param res_xnat: pyxnat Eobject for the resource
+        :return: return True if the number of files answers the filter's
+                 criteria, False otherwise
+        """
+        for fpath in self.fpaths:
+            if not res_xnat.file(fpath).exists():
+                return False
+            elif self.size:
+                out = self.check_size(float(res_xnat.file(fpath).size()))
+                if not out:
+                    return False
+        return True
+
+
+def get_res_filter(filterString, delimiter):
+    """
+    Method to generate the init variables for the resource filter
+
+    :param filterString: string describing the filter in the exe arguments
+    :param delimiter: string delimiter in filterstring
+    :return: logging object
+    """
+    labels = filterString.split(delimiter)
+    if len(labels) > 1:
+        if '!=' in labels[0]:
+            return (labels[0].split('!=')[0], labels[0].split('!=')[1], '!=',
+                    labels[1:])
+        elif '=' in labels[0]:
+            return (labels[0].split('=')[0], labels[0].split('=')[1], '=',
+                    labels[1:])
+        else:
+            return None, None, None, []
+    else:
+        if '!=' in labels[0]:
+            return labels[0].split('!=')[0], labels[0].split('!=')[1], '!=', []
+        elif '=' in labels[0]:
+            return labels[0].split('=')[0], labels[0].split('=')[1], '=', []
+        else:
+            return None, None, None, []
+
+
+def operate_action(operator, value1, value2):
+    """
+    Method to run the operator for a filter
+
+    :param operator: operator to apply
+    :param value1: left side of operator value
+    :param value2: right side of operator value
+    :return: logging object
+    """
+    if operator == '<':
+        return value1 < value2
+    elif operator == '<=':
+        return value1 <= value2
+    elif operator == '>':
+        return value1 > value2
+    elif operator == '>=':
+        return value1 >= value2
+    elif operator == '!=':
+        if isinstance(value2, list):
+            return value1 not in value2
+        else:
+            return value1 != value2
+    elif operator == '=' and isinstance(value2, list):
+        return value1 in value2
+    else:
+        return value1 == value2
+
+
+def get_resource_list(xnat, object_dict, variable_name):
+    """
+    Method to get the resources list from a pyxnat Eobject
+
+    :param xnat: pyxnat.interface object
+    :param object_dict: dictionary describing pyxnat Eobject
+    :param variable_name: name of the variable to filter for resource
+    :return: list object
+    """
+    if 'scan' in variable_name:
+        return XnatUtils.list_scan_resources(
+            xnat,
+            object_dict['project_id'],
+            object_dict['subject_label'],
+            object_dict['session_label'],
+            object_dict['ID'])
+    elif 'assessor' in variable_name:
+        return xnat.get_assessor_out_resources(
+            object_dict['project_id'],
+            object_dict['subject_label'],
+            object_dict['session_label'],
+            object_dict['label'])
+    elif 'session' in variable_name:
+        return XnatUtils.list_experiment_resources(
+            xnat,
+            object_dict['project_id'],
+            object_dict['subject_label'],
+            object_dict['session_label'])
+    else:
+        return xnat.get_subject_resources(object_dict['project_id'],
+                                          object_dict['subject_label'])
+
+
+def get_resource(xnat, object_dict, variable_name, resource_label):
+    """
+    Method to select the resource object from URI
+
+    :param xnat: pyxnat.interface object
+    :param object_dict: dictionary describing pyxnat Eobject
+    :param variable_name: name of the variable to filter for resource
+    :param resource_label: resource label to select
+    :return: pyxnat Eobject
+    """
+    if 'scan' in variable_name:
+        return XnatUtils.select_obj(xnat,
+                                    project_id=object_dict['project_id'],
+                                    subject_id=object_dict['subject_id'],
+                                    session_id=object_dict['session_id'],
+                                    scan_id=object_dict['scan_id'],
+                                    resource=resource_label)
+    elif 'assessor' in variable_name:
+        return XnatUtils.select_obj(xnat,
+                                    project_id=object_dict['project_id'],
+                                    subject_id=object_dict['subject_id'],
+                                    session_id=object_dict['session_id'],
+                                    assessor_id=object_dict['label'],
+                                    resource=resource_label)
+    elif 'session' in variable_name:
+        return XnatUtils.select_obj(xnat,
+                                    project_id=object_dict['project_id'],
+                                    subject_id=object_dict['subject_id'],
+                                    session_id=object_dict['session_id'],
+                                    resource=resource_label)
+    else:
+        return XnatUtils.select_obj(xnat,
+                                    project_id=object_dict['project_id'],
+                                    subject_id=object_dict['subject_id'],
+                                    resource=resource_label)
+
+
+def getmemory(memory_str):
+    """
+    Method to convert the memory given in the filter parameters in bytes
+
+    :param memory_str: string representing the memory
+    :return: integer for memory in bytes
+    """
+    try:
+        if memory_str == NOTFOUND:
+            return 0.0
+        elif memory_str.lower().endswith('t'):
+            return float(memory_str[:-1]) * 1024 * 1024 * 1024 * 1024
+        elif memory_str.lower().endswith('tb'):
+            return float(memory_str[:-2]) * 1024 * 1024 * 1024 * 1024
+        elif memory_str.lower().endswith('g'):
+            return float(memory_str[:-1]) * 1024 * 1024 * 1024
+        elif memory_str.lower().endswith('gb'):
+            return float(memory_str[:-2]) * 1024 * 1024 * 1024
+        elif memory_str.lower().endswith('m'):
+            return float(memory_str[:-1]) * 1024 * 1024
+        elif memory_str.lower().endswith('mb'):
+            return float(memory_str[:-2]) * 1024 * 1024
+        elif memory_str.lower().endswith('k'):
+            return float(memory_str[:-1]) * 1024
+        elif memory_str.lower().endswith('kb'):
+            return float(memory_str[:-2]) * 1024
+        else:
+            return float(memory_str)
+    except Exception:
+        return 0.0
+
+
+def getwalltime(walltime_str):
+    """
+    Method to convert the walltime string given in the filter parameters
+
+    :param walltime_str: string representing the walltime
+    :return: value for walltime
+    """
+    if walltime_str == NOTFOUND:
+        return 0
+    elif '-' in walltime_str:
+        nb_day = int(walltime_str.split('-')[0])
+        hours, minutes, seconds = walltime_str.split('-')[1].split(':')
+        hours = str(int(hours) + nb_day * 24)
+        return int(hours + minutes + seconds)
+    else:
+        return walltime_str.replace(':', '')
+
+
+def get_bigger_size(resource):
+    """
+    Method to extract the biggest file size in the files for a pyxnat resource
+     Eobject
+
+    :param resource: pyxnat resource Eobject
+    :return: biggest size
+    """
+    bigger_file_size = 0
+    for fname in resource.files().get()[:]:
+        size_file = float(resource.file(fname).size())
+        if bigger_file_size < size_file:
+            bigger_file_size = size_file
+    return bigger_file_size
+
+
+def get_size(size):
+    """
+    Method to convert string size in bytes
+
+    :param size: string representing the size
+    :return: integer for the size in bytes
+    """
+    if not size:
+        return None
+    elif 'g' in size.lower():
+        # bring back to bytes
+        size = int(size.lower().split('g')[0]) * 1024 * 1024 * 1024
+    elif 'm' in size.lower():
+        size = int(size.lower().split('m')[0]) * 1024 * 1024
+    elif 'k' in size.lower():
+        size = int(size.lower().split('k')[0]) * 1024
+    else:
+        size = int(size)
+    return size
+
+
+def extract_var(filterString):
+    """
+    Method to convert string describing the filter in variable, value, operator
+
+    :param filterString: string describing the filter
+    :return: variable, value, operator
+    """
+    rvar = None
+    rval = None
+    operator = None
+    if '>=' in filterString:
+        rvar, rval = filterString.split('>=')[:2]
+        operator = '>='
+    elif '<=' in filterString:
+        rvar, rval = filterString.split('<=')[:2]
+        operator = '<='
+    elif '>' in filterString:
+        rvar, rval = filterString.split('>')[:2]
+        operator = '>'
+    elif '<' in filterString:
+        rvar, rval = filterString.split('<')[:2]
+        operator = '<'
+    elif '!=' in filterString:
+        rvar, rval = filterString.split('!=')[:2]
+        operator = '!='
+    elif '=' in filterString:
+        rvar, rval = filterString.split('=')[:2]
+        operator = '='
+    else:
+        msg = ' - warning - %s - no operator found in the filter for resource.'
+        print(msg % (filterString))
+    return rvar, rval, operator
+
+
+def create_filters(filters, res_delimiter):
+    """
+    Method to create the filters object from the OptionParser
+
+    :param filters: list of filters input
+    :param res_delimiter: delimiter for the filter string
+    :return: list of filters, list of resource filters
+    """
+    print('INFO: Creating your filters from the options.')
+    filters_list = list()
+    filter_r_list = list()
+    for _filter in filters:
+        if res_delimiter in _filter:
+            rvar, rval, operator = extract_var(_filter.split(res_delimiter)[0])
+        else:
+            rvar, rval, operator = extract_var(_filter)
+        if rvar:
+            if rvar in ['scan_res', 'assessor_res', 'session_res',
+                        'subject_res']:
+                fil = filter_resource(_filter, res_delimiter)
+                filter_r_list.append(fil)
+            else:
+                fil = filter_variable(rvar, rval, operator)
+                filters_list.append(fil)
+    return filters_list, filter_r_list
+
+
+def filter_project(xnat, project, filters, levels):
+    """
+    Method to filter a project on XNAT using the list of filters
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param filters: list of filters to apply
+    :param levels: which levels to filter
+                   (scan or/and assessor / sessions or subject)
+    :return: list of filters, list of resource filters
+    """
+    if 'scan' in levels and 'assessor' in levels:
+        scans_filtered = filter_list(
+            project, xnat.get_project_scans,
+            [_filter for _filter in filters if _filter.grp == 'scan'])
+        asses_filtered = filter_list(
+            project, xnat.get_project_assessors,
+            [_filter for _filter in filters if _filter.grp == 'assessor'])
+        return scans_filtered + asses_filtered
+    elif 'scan' in levels and 'assessor' not in levels:
+        return filter_list(project, xnat.get_project_scans,
+                           filters)
+    elif 'scan' not in levels and 'assessor' in levels:
+        return filter_list(project, xnat.get_project_assessors,
+                           filters)
+    elif 'session' in levels:
+        return filter_list(project, xnat.get_sessions, filters)
+    else:
+        return filter_list(project, xnat.get_subjects, filters)
+
+
+def filter_list(project, get_list, filters_list):
+    """
+    Method to filter object from a project on XNAT using the list of filters
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param get_list: method to get the list of object (XnatUtils methods)
+    :param filters_list: list of filters to apply
+    :return: list of filters, list of resource filters
+    """
+    # Get full object list
+    objects_list = get_list(project)
+    # filter
+    for _filter in filters_list:
+        if _filter.is_usable_filter():
+            objects_list = _filter.filter(objects_list)
+    return objects_list
+
+
+def generate_xnat_object_list(host, username, projects, filters, filters_r):
+    """
+    Main Method to generate the list of all XNAT objects that satisfied the
+    user's filters
+
+    :param host: host name for XNAT
+    :param username: user for XNAT
+    :param projects: projects list to search
+    :param filters: list of regular filters
+    :param filters_r: list of resource filters
+    :return: list of XNAT objects dictionaries
+    """
+    object_list = list()
+    if host:
+        host = host
+    else:
+        host = os.environ['XNAT_HOST']
+    with XnatUtils.get_interface(host=host, user=username) as xnat:
+        print('INFO: connection to xnat <%s>:' % (host))
+        print('INFO: extracting information from XNAT')
+        print(' WARNING: extracting information from XNAT for a full project \
+might take some time. Please be patient.\n')
+        for project in projects:
+            _proj = XnatUtils.select_obj(xnat, project_id=project)
+            if not _proj.exists():
+                msg = ' - WARNING: Project <%s> does not exist on Xnat.'
+                print(msg % (project))
+            else:
+                print(' - %s' % (project))
+                _objs = generate_project_object_list(xnat, project, filters,
+                                                     filters_r)
+                object_list.extend(_objs)
+    return object_list
+
+
+def generate_project_object_list(xnat, project, filters, filters_r=None):
+    """
+    Method to generate the list of all XNAT objects that satisfied the user's
+     filters for a specific project on XNAT
+
+    :param xnat: pyxnat.interface object
+    :param project: project ID on XNAT
+    :param filters: list of regular filters
+    :param filters_r: list of resource filters
+    :return: list of XNAT objects dictionaries
+    """
+    levels = [f.grp for f in filters if f.is_usable_filter()]
+    if filters_r:
+        for _filter in filters_r:
+            if _filter.is_usable_filter():
+                levels.append(_filter.var.split('_res')[0])
+    levels = set(levels)
+    objects_list = filter_project(xnat, project, filters, levels)
+    if filters_r:
+        # After filtering the full object_list, check the resource
+        # if filter resource
+        for _filter_r in filters_r:
+            if _filter_r.is_usable_filter():
+                objects_list = _filter_r.filter(xnat, objects_list)
+    return objects_list
+
+
+def print_report(objects, header):
+    """
+    Method to print report as a csv on the object found on XNAT
+     answering the filter
+
+    :param objects: xnat objects filtered
+    :param header: header for report
+    :return: None
+    """
+    # Print number of object find:
+    _format = '| %*s | %*s |'
+    print('INFO: Number of XNAT object found after filters:')
+    print('-------------------------------------------')
+    print(_format % (-20, 'Project ID', -17, 'Number of Objects'))
+    print('-------------------------------------------')
+    for proj in set([_obj['project_id'] for _obj in objects]):
+        _list = [_obj for _obj in objects
+                 if _obj['project_id'] == proj]
+        print(_format % (-20, proj, -17, len(_list)))
+    print('-------------------------------------------\n')
+
+    __logger__.info(','.join(header))
+    # sort the list of object by the subject label if present:
+    if 'subject_label' in objects[0]:
+        obj_list = sorted(objects, key=lambda k: k['subject_label'])
+    for obj in obj_list:
+        row = get_row(obj, header)
+        if not all(x is None for x in row):
+            __logger__.info(','.join(row))
+
+
+def get_row(obj_dict, header):
+    """
+    Method to convert object dictionary into a csv file row for display
+
+    :param obj_dict: list of object to display
+    :return: None
+    """
+    row = list()
+    _okeys = list(obj_dict.keys())
+    for field in header:
+        if field == 'object_type':
+            if 'scan_id' in _okeys:
+                row.append('scan')
+            elif 'assessor_label' in _okeys:
+                row.append('assessor')
+            elif 'session_label' in _okeys:
+                row.append('session')
+            else:
+                row.append('subject')
+        elif field == 'as_label':
+            if 'scan_id' in _okeys:
+                row.append(obj_dict.get('scan_id', ''))
+            elif 'assessor_label' in _okeys:
+                row.append(obj_dict.get('assessor_label', ''))
+            else:
+                row.append('')
+        elif field == 'as_type':
+            if 'scan_id' in _okeys:
+                row.append(obj_dict.get('type'))
+            elif 'assessor_label' in _okeys:
+                row.append(obj_dict.get('proctype', ''))
+            else:
+                row.append('')
+        elif field == 'as_description':
+            if 'scan_id' in _okeys:
+                row.append(obj_dict.get('series_description', ''))
+            elif 'assessor_label' in _okeys:
+                row.append(obj_dict.get('procstatus', ''))
+            else:
+                row.append('')
+        elif field == 'as_quality':
+            if 'scan_id' in _okeys:
+                row.append(obj_dict.get('quality', ''))
+            elif 'assessor_label' in _okeys:
+                row.append(obj_dict.get('qcstatus', ''))
+            else:
+                row.append('')
+        else:
+            row.append(obj_dict.get(field, ''))
+    return row
+
+
+def print_filters():
+    """
+    Print the filters available.
+
+    :return: None
+    """
+    _format = ' %*s | %*s | %*s | %*s | %*s '
+    length = 116
+    # Filters Header:
+    print('INFO: Printing the filters available: ')
+    print(_format % (-18, 'Variable', -8, 'Level',
+                     -42, 'Description', -20, 'format',
+                     -9, 'operator'))
+    utils.print_separators('-', length=length)
+
+    # Filters available:
+    for fdict in VAR_FILTERS:
+        print(_format % (-18, fdict['var'], -8, fdict['grp'],
+                         -42, fdict['value'], -20, fdict['format'],
+                         -9, fdict['operator']))
+    utils.print_separators('-', length=length)
+
+    # Warning
+    print('WARNING: Use Xnatupload --printmodality to know the different \
+choice for a Session Type\n')
+
+    _format = ' %*s | %*s | %*s '
+    # Filters Resources Header:
+    print('Resource filters available: ')
+    print(_format % (-12, 'Variable', -30, 'Value', -30, 'filters'))
+    utils.print_separators('-', length=length)
+
+    # Filters Resources available:
+    info1 = 'comma separated list of label'
+    info2 = 'format: Resource_variableOperatorValue separated by delimiter'
+    for var in ['scan_res', 'assessor_res', 'session_res', 'subject_res']:
+        print(_format % (-12, var, -30, info1, -30, info2))
+    utils.print_separators('-', length=length)
+
+    print('E.G for resource filters: scan_res=NIFTI,SNAPSHOTS--size>3mb--nbf=1\
+--fpath=t1.nii.gz\n')
+
+
+def print_format():
+    """
+    Print variables available for output.
+    """
+    print('INFO: Printing the variables available for output: ')
+    for key in utils.ORDER:
+        print('%s variables:' % key)
+        for value in VARIABLES_LIST[key]:
+            print(' * %*s ' % (-30, value))
+    print('\n')
+
+
+def run_xnat_check(args):
+    """
+    Main function for xnat check.
+
+    :param args: arguments parse by argparse
+    """
+    res_delimiter = (args.delimiter_filter_resourse
+                     if args.delimiter_filter_resourse
+                     else '--')
+
+    if args.csv_file:
+        handler = logging.FileHandler(args.csv_file, 'w')
+        __logger__.addHandler(handler)
+
+    utils.print_separators()
+    if args.print_filters:
+        print_filters()
+        utils.print_separators()
+
+    if args.print_format:
+        print_format()
+        utils.print_separators()
+
+    if not args.filters:
+        err = 'Argument --filters not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    elif not args.projects:
+        err = 'Argument -p/--project not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    else:
+        # Create filters from the string:
+        filters, filters_r = create_filters(args.filters,
+                                            res_delimiter)
+        # Generate the list of object from XNAT
+        objects = generate_xnat_object_list(
+            args.host, args.username, args.projects.split(','),
+            filters, filters_r)
+        header = utils.CSV_HEADER[:-2]
+        if args.format:
+            header = args.format.split(',')
+            if 'object_type' not in header:
+                header = ['object_type'] + header
+        if objects and (filters or filters_r):
+            print_report(objects, header)
+        else:
+            print('--> No object on XNAT found matching your filters.')
+
+    utils.print_end(__exe__)
+
+
+def add_to_parser(parser):
+    """
+    Method to add arguments to default parser for xnat_tools in utils.
+
+    :param parser: parser object
+    :return: parser object with new arguments
+    """
+    parser.add_argument("-p", "--project", dest="projects", default=None,
+                        help="Project(s) ID on XNAT")
+    _h = "List of filters separated by a space to apply to the search."
+    parser.add_argument("--filters", dest="filters", default=None,
+                        nargs='+', type=str, help=_h)
+    _h = "Resource filters delimiter. By default: --."
+    parser.add_argument("--delimiter", dest="delimiter_filter_resourse",
+                        default=None, help=_h)
+    parser.add_argument("--csv", dest="csv_file", default=None,
+                        help="File path to save the CSV output.")
+    _h = "Header for the csv. format: list of variables name comma-separated"
+    parser.add_argument("--format", dest="format", default=None, help=_h)
+    parser.add_argument("--printfilters", dest="print_filters",
+                        action='store_true', help="Print available filters.")
+    parser.add_argument("--printformat", dest="print_format",
+                        action='store_true',
+                        help="Print available format for display.")
+    return parser
+
+
+if __name__ == '__main__':
+    utils.run_tool(__exe__, __description__, add_to_parser, __purpose__,
+                   run_xnat_check)

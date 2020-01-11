@@ -1,0 +1,315 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Create REDCap csv report for a redcap project.
+
+Created on November 5, 2013
+Edited on February 22, 2017
+
+@author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
+'''
+
+
+
+from builtins import filter
+from builtins import str
+from builtins import range
+
+import os
+import sys
+import redcap
+
+from dax.errors import XnatToolsError
+import dax.xnat_tools_utils as utils
+
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__exe__ = os.path.basename(__file__)
+__author__ = 'byvernault'
+__purpose__ = 'Create REDCap report for a redcap project.'
+__logger__ = utils.setup_info_logger(__exe__)
+__description__ = '''What is the script doing :
+   *Extract data from REDCap as a csv file.
+
+Examples:
+   *Save the data in a csv file: Redcapreport -k KEY -c extract_redcap.csv
+   *print the libraries name: Redcapreport -k KEY -L
+   *print all fields name and label: Redcapreport -k KEY -F
+   *Extract values for all record: Redcapreport -k KEY --all
+   *Filter for specific project/subject/session/assessor type:
+    Redcapreport -k KEY -p PID -s 109387 -e 109387_1,109387_2 -t \
+FS,TRACULA_v1,dtiQA_v2
+   *Extract for specific assessor: Redcapreport -k KEY -p PID -a \
+PID-x-109387-x-109387_1-x-FS
+   *Extract for specific libraries type: Redcapreport -k KEY -p PID \
+-l library_name
+   *Extract only the fields described in the txt file: Redcapreport \
+-k KEY -x fields.txt
+'''
+
+DEFAULT_API_URL = 'https://redcap.vanderbilt.edu/api/'
+
+
+def print_lib(redcap_proj):
+    """
+    Print all the libraries name in your REDCap project
+
+    :param redcap_proj: REDCap project ID
+    :return: None
+    """
+    all_forms = list()
+    field_names, _ = redcap_proj.names_labels()
+    field_name = None
+    for field_name in field_names:
+        try:
+            field = [x for x in redcap_proj.metadata if x['field_name'] == field_name][0]
+            all_forms.append(field['form_name'])
+        except IndexError as e:
+            print('ERROR: IndexError when checking the libraries.')
+            print(e)
+            sys.exit()
+
+    # print the forms
+    unique_forms = set(all_forms)
+    print('INFO: Printing REDCap libraries name')
+    print('------------------------------------')
+    for form in unique_forms:
+        print(form)
+
+
+def get_records(args, redcap_proj):
+    """
+    Method to get records from REDCap
+
+    :param args: parser.parse_args()
+    :param redcap_proj: REDCap project ID
+    :return: list of records
+    """
+    list_records = utils.get_option_list(args.assessor)
+    projects_list = utils.get_option_list(args.project)
+    subjects_list = utils.get_option_list(args.subject)
+    sessions_list = utils.get_option_list(args.session)
+    proctypes_list = utils.get_option_list(args.proctype)
+
+    if args.all:
+        print('INFO: Export ALL records from redcap project...')
+        record_list = redcap_proj.export_records(
+            fields=[redcap_proj.def_field])
+        list_records = [r[redcap_proj.def_field] for r in record_list]
+    elif not list_records:
+        list_records = list()
+        print('INFO: Export SPECIFIC records from redcap project...')
+        rc_fields = ['record_id', 'project_xnat', 'subject_xnat',
+                     'experiment_xnat', 'process_name_xnat']
+        rc_list = redcap_proj.export_records(fields=rc_fields)
+        # Filter:
+        rc_list = [x for x in rc_list if is_good_record(x, projects_list,
+                                                        subjects_list,
+                                                        sessions_list,
+                                                        proctypes_list)]
+        # Get list:
+        list_records = [r['record_id'] for r in rc_list]
+    return list_records
+
+
+def is_good_record(obj_dict, projects_list, subjects_list, sessions_list,
+                   proctypes_list):
+    """
+    Method to check if a record is requested by user meaning
+     good project/subject/session/proctype
+
+    :param obj_dict: record on REDCap to check
+    :param projects_list: list of projects IDs from XNAT
+    :param subjects_list: list of subjects labels from XNAT
+    :param sessions_list: list of sessions labels from XNAT
+    :param proctypes_list: list of proctypes from XNAT
+    :return: True if record meet criteria, False otherwise
+    """
+    if projects_list and obj_dict['project_xnat'] not in projects_list:
+        return False
+    if subjects_list and obj_dict['subject_xnat'] not in subjects_list:
+        return False
+    if sessions_list and obj_dict['experiment_xnat'] not in sessions_list:
+        return False
+    if proctypes_list and obj_dict['process_name_xnat'] not in proctypes_list:
+        return False
+    return True
+
+
+def extract_redcap_data(redcap_proj, records, forms, fields):
+    """
+    Method to get the information out of REDCap Project
+
+    :param redcap_proj: REDCap project ID
+    :param records: list of records return by redcap project
+    :param forms: list of libraries on redcap
+    :param fields: list of fields for libraries from redcap
+    :return: csv string representing the data
+    """
+    if len(records) < 100:
+        msg = 'INFO: Export data from REDCap for the %s records that need \
+to be download...'
+        print(msg % (str(len(records))))
+        try:
+            csv_data = redcap_proj.export_records(records=records,
+                                                  forms=forms,
+                                                  fields=fields,
+                                                  format='csv')
+            return True, csv_data
+        except redcap.RedcapError as err:
+            msg = 'Error from PyCap: %s'
+            raise XnatToolsError(msg % err)
+        except Exception:
+            err = 'Connection to REDCap stopped.'
+            raise XnatToolsError(err)
+    else:
+        return chunked_export()
+
+
+def chunks(l, n):
+    """
+    Yield successive n-sized chunks from list l
+
+    :param l: list to chunk
+    :param n: size of each chunk
+    :return: None
+    """
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
+
+def chunked_export(redcap_proj, records, forms, fields, chunk_size=100):
+    """
+    Method to chunck the export of records into smaller batch of records
+    (default 100).
+
+    :param redcap_proj: REDCap project ID
+    :param records: list of records return by redcap project
+    :param forms: list of libraries on redcap
+    :param fields: list of fields for libraries from redcap
+    :param chunk_size: size for each chunk (default: 100)
+    :return: None
+    """
+    msg = 'INFO: Extracting data from REDCap 100 by 100 records for the \
+%s records that need to be download...'
+    print(msg % (str(len(records))))
+    try:
+        response = []
+        for index, record_chunk in enumerate(chunks(records, chunk_size)):
+            print(' > index: {}x100'.format(str(index)))
+            chunked_response = redcap_proj.export_records(
+                records=record_chunk,
+                forms=forms,
+                fields=fields,
+                format='csv')
+            response.extend(chunked_response)
+    except redcap.RedcapError:
+        msg = "Chunked export failed for chunk_size={:d}".format(chunk_size)
+        raise XnatToolsError(msg)
+
+    return True, response
+
+
+def run_redcapreport(args):
+    """
+    Main function for xnat check.xnat
+
+    :param args: arguments parse by argparse
+    """
+    # variables:
+    fields = utils.read_txt(args.txtfile)
+    if args.libraries:
+        forms = args.libraries.strip()\
+                              .replace(' ', '_')\
+                              .lower()\
+                              .split(',')
+
+    try:
+        print('INFO: Loading REDCap project...')
+        redcap_proj = redcap.Project(DEFAULT_API_URL, args.key)
+    except redcap.RedcapError:
+        err = 'Connection to REDCap failed. Check the key, options \
+-k/--key passed to the executable'
+        raise XnatToolsError(err)
+
+    utils.print_separators()
+    if args.names:
+        fnames, flabels = redcap_proj.names_labels(True)
+        print('INFO: Printing fields name and label')
+        print('------------------------------------')
+        for ind, fname in enumerate(fnames):
+            print("%s : %s" % (fname, flabels[ind]))
+        utils.print_separators()
+    if args.lib:
+        print_lib(redcap_proj)
+        utils.print_separators()
+    else:
+        records = get_records(args)
+        succeed, csv_data = extract_redcap_data(redcap_proj, records, forms,
+                                                fields)
+
+        if not succeed:
+            err = 'No values to write. Failed extracting data from REDCap.'
+            raise XnatToolsError(err)
+        else:
+            # write data
+            utils.write_csv(csv_data, args.csvfile, __exe__)
+
+    utils.print_end(__exe__)
+
+
+def add_to_parser(parser):
+    """
+    Method to add arguments to default parser for xnat_tools in utils.
+
+    :param parser: parser object
+    :return: parser object with new arguments
+    """
+    from argparse import ArgumentParser, RawDescriptionHelpFormatter
+    argp = ArgumentParser(prog=__exe__,
+                          description=__description__,
+                          formatter_class=RawDescriptionHelpFormatter)
+    argp.add_argument("-k", "--key", dest="key", required=True,
+                      help="API Token for REDCap project.")
+    argp.add_argument("-c", "--csvfile", dest="csvfile", default=None,
+                      help="csv file path where the report will be save.")
+    _h = 'txt file path with per line, the name of the variable on REDCap \
+you want to extract.'
+    argp.add_argument("-x", "--txtfile", dest="txtfile", default=None, help=_h)
+    _h = 'Extract values for processes for the projects chosen. E.G: \
+project1,project2'
+    argp.add_argument("-p", "--project", dest="project", default=None, help=_h)
+    _h = "Extract values for processes for the subjects chosen. E.G: \
+subject1,subject2"
+    argp.add_argument("-s", "--subject", dest="subject", default=None, help=_h)
+    _h = "Extract values for processes for the sessions chosen. E.G: \
+session1,session2"
+    argp.add_argument("-e", "--session", dest="session", default=None, help=_h)
+    _h = "Extract values for processors chosen. E.G: processor1,processor2"
+    argp.add_argument("-a", "--assessor", dest="assessor", default=None,
+                      help=_h)
+    _h = "Extract values for processes types chosen. E.G: fMRIQA,dtiQA"
+    argp.add_argument("-t", "--proctype", dest="proctype", default=None,
+                      help=_h)
+    _h = "file path with each line one processor label. Extract values for \
+processes types chosen."
+    argp.add_argument("-f", "--procfile", dest="procfile", default=None,
+                      help=_h)
+    _h = "Extract values for only the libraries specify. Check the project \
+for the libraries name. Switch spaces by '_' and everything lower case. E.G: \
+dti_quality_assurance. By default: all libraries"
+    argp.add_argument("-l", "--libraries", dest="libraries", default=None,
+                      help=_h)
+    argp.add_argument("-F", "--fields", dest="names", action="store_true",
+                      help="Print all field names and labels")
+    argp.add_argument("-L", "--printlib", dest="lib", action="store_true",
+                      help="Print all libraries names for the project.")
+    argp.add_argument("--all", dest="all", action="store_true",
+                      help="Extract values for all records.")
+    return argp
+
+
+if __name__ == '__main__':
+    utils.run_tool(__exe__, __description__, add_to_parser, __purpose__,
+                   run_redcapreport)

@@ -1,0 +1,248 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Query through Xnat
+
+@author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
+'''
+
+
+
+import os
+
+from dax import XnatUtils
+from dax.errors import XnatToolsUserError
+import dax.xnat_tools_utils as utils
+
+
+__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
+__exe__ = os.path.basename(__file__)
+__author__ = 'byvernault'
+__purpose__ = 'Query through XNAT at the level you want.'
+__description__ = """What is the script doing :
+   * Query on Xnat at any level.
+
+Examples:
+   *Show all the projects you have access to:
+        Xnatquery --me
+   *Show all projects:
+        Xnatquery --all
+   *Query a specific level (example scan/assessors for a session):
+        Xnatquery -p PID -s 109873 -e 109873
+   *Query a specific level with all objects under it :
+        Xnatquery -p PID -s 109873 --all"""
+
+
+def query_project(xnat, project, qall=False):
+    """
+    Method to query a project
+
+    :param project: project ID on XNAT
+    :return: None
+    """
+    if not project:
+        err = 'argument project not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    print('Project: %s' % (project))
+    subjects = xnat.get_subjects(project)
+    if not subjects:
+        err = 'no subjects found for project %s.' % project
+        raise XnatToolsUserError(__exe__, err)
+    for subject in subjects:
+        print('  + Subject: {}'.format(subject['label']))
+        if qall:
+            query_subject(xnat, project, subject['label'], qall)
+
+
+def query_subject(xnat, project, subject, qall=False):
+    """
+    Method to query a subject
+
+    :param project: project ID on XNAT
+    :param subject: subject label on XNAT
+    :return: None
+    """
+    if not project:
+        err = 'argument project not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    if not subject:
+        err = 'argument subject not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    sessions = xnat.get_sessions(project, subject)
+    if not sessions:
+        err = 'no sessions found for subject %s.' % project
+        raise XnatToolsUserError(__exe__, err)
+    for session in sessions:
+        print('    * Session: {}'.format(session['label']))
+        if qall:
+            query_session(xnat, project, subject, session['label'], qall)
+
+
+def query_session(xnat, project, subject, session, qall=False):
+    """
+    Method to query a session
+
+    :param project: project ID on XNAT
+    :param subject: subject label on XNAT
+    :param session: session label on XNAT
+    :return: None
+    """
+    if not project:
+        err = 'argument project not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    if not subject:
+        err = 'argument subject not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    if not session:
+        err = 'argument session not provided.'
+        raise XnatToolsUserError(__exe__, err)
+    scans = xnat.get_scans(project, subject, session)
+    if not scans:
+        err = 'no scans found for session %s.' % project
+        raise XnatToolsUserError(__exe__, err)
+    print('      *** SCANS ***')
+    for scan in scans:
+        query_scan(xnat, project, subject, session, scan['ID'], scan['type'],
+                   qall)
+
+    print('      *** PROCESSES ***')
+    assrs = XnatUtils.list_assessors(xnat, project, subject, session)
+    for assessor in assrs:
+        query_assessor(xnat, assessor['label'], qall)
+
+
+def query_scan(xnat, project, subject, session, scan, scantype, qall=False):
+    """
+    Method to query a scan
+
+    :param project: project ID on XNAT
+    :param subject: subject label on XNAT
+    :param session: session label on XNAT
+    :param scan: scan ID on XNAT
+    :param scantype: scan type for display
+    :return: None
+    """
+    print('       - %s -- %s' % (scan, scantype))
+    if qall:
+        for resource in XnatUtils.list_scan_resources(xnat, project, subject,
+                                                      session, scan):
+            print('         -> %s' % (resource['label']))
+
+
+def query_assessor(xnat, assessor_label, qall=False):
+    """
+    Method to query a assessor
+
+    :param assessor_label: assessor label on XNAT
+    :return: None
+    """
+    labels = assessor_label.split('-x-')
+    print('       - %s' % (assessor_label))
+    if qall:
+        list_assrs = xnat.get_assessor_out_resources(
+            labels[0], labels[1], labels[2], assessor_label)
+        for out_resource in list_assrs:
+            print('         -> %s' % (out_resource['label']))
+
+
+def run_xnat_query(args):
+    """
+    Main function for xnat query.
+
+    :param args: arguments parse by argparse
+    """
+    if args.host:
+        host = args.host
+    else:
+        host = os.environ['XNAT_HOST']
+    user = args.username
+
+    utils.print_separators()
+
+    with XnatUtils.get_interface(host=host, user=user) as xnat:
+        print('INFO: connection to xnat <%s>:' % host)
+        if args.me:
+            print('List of projects on XNAT you have access to:')
+            print('---------------------------------------')
+            for proj in xnat.get_projects():
+                if xnat.get_subjects(proj['ID']):
+                    print('%*s : %*s' % (-20, proj['ID'], -30, proj['name']))
+            print('---------------------------------------')
+
+        # if all projects
+        if args.assessor:
+            utils.print_separators()
+            labels = args.assessor.split('-x-')
+            utils.display_item(labels[0], labels[1], labels[2])
+            query_assessor(xnat, args.assessor, qall=True)
+
+        elif args.project == 'all' or args.all:
+            utils.print_separators()
+            projects_list = xnat.get_projects()
+            for project in projects_list:
+                query_project(xnat, project['ID'], qall=True)
+
+	#subject, session and scan
+        else:
+            if args.subject:
+                utils.print_separators()
+                if args.session:
+                    utils.display_item(args.project, args.subject,
+                                       args.session)
+                    if args.scan:
+                        scan_obj = XnatUtils.select_obj(
+                            xnat, args.project, args.subject, args.session,
+                            args.scan)
+                        scan_type = scan_obj.attrs.get('type')
+                        query_scan(args.project, args.subject, args.session,
+                                   args.scan, scan_type, qall=True)
+                    else:
+                        query_session(xnat, args.project, args.subject, args.session,
+                                      args.all)
+			print(args.subject)    #trying to debug
+                else:
+                    utils.display_item(args.project, args.subject)
+                    query_subject(xnat, args.project, args.subject, args.all)
+            elif args.project:
+                utils.print_separators()
+                utils.display_item(args.project)
+                query_project(xnat, args.project, args.all)
+            elif not args.me:
+                raise XnatToolsUserError(__exe__, 'No query selected.')
+
+    utils.print_end(__exe__)
+
+
+def add_to_parser(parser):
+    """
+    Method to add arguments to default parser for xnat_tools in utils.
+
+    :param parser: parser object
+    :return: parser object with new arguments
+    """
+    _h = "project ID on Xnat or 'all' to see all the project."
+    parser.add_argument("-p", "--project", dest="project", default=None,
+                        help=_h)
+    _h = "Subject label on Xnat"
+    parser.add_argument("-s", "--subject", dest="subject", default=None,
+                        help=_h)
+    _h = "Session label on Xnat"
+    parser.add_argument("-e", "--experiment", dest="session", default=None,
+                        help=_h)
+    _h = "Assessor/Process label on XNAT. E.G: VUSTP-x-VUSTP1-x-VUSTP1a-x-FS"
+    parser.add_argument("-a", "--assessor", dest="assessor", default=None,
+                        help=_h)
+    parser.add_argument("-c", "--scan", dest="scan", default=None,
+                        help="Scan ID on Xnat.")
+    _h = "Print all the objects on XNAT from the level you are at."
+    parser.add_argument("--all", dest="all", action="store_true",
+                        help=_h)
+    parser.add_argument("--me", dest="me", action="store_true",
+                        help="Give the projects ID that you have access.")
+    return parser
+
+
+if __name__ == '__main__':
+    utils.run_tool(__exe__, __description__, add_to_parser, __purpose__,
+                   run_xnat_query)
