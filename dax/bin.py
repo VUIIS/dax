@@ -98,7 +98,6 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
     logger.info('finished launcher, End Time: %s' % str(datetime.now()))
 
 
-# TODO:BenM/assessor_of_assessor/starting point
 def build(settings_path, logfile, debug, projects=None, sessions=None,
           mod_delta=None, proj_lastrun=None, start_sess=None):
     """
@@ -175,22 +174,6 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
         _launcher_obj.unlock_flagfile(flagfile)
 
     logger.info('finished updating tasks, End Time: %s' % str(datetime.now()))
-
-
-def pi_from_project(project):
-    """
-    Get the last name of PI who owns the project on XNAT
-
-    :param project: String of the ID of project on XNAT.
-    :return: String of the PIs last name
-
-    """
-    pi_name = ''
-    with XnatUtils.get_interface() as intf:
-        proj = intf.select.project(project)
-        pi_name = proj.attrs.get('xnat:projectdata/pi/lastname')
-
-    return pi_name
 
 
 def read_yaml_settings(yaml_file, logger):

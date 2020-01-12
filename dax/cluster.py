@@ -19,7 +19,6 @@ from .errors import ClusterError
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 DAX_SETTINGS = DAX_Settings()
 MAX_TRACE_DAYS = 30
-# Logger to print logs
 LOGGER = logging.getLogger('dax')
 
 
