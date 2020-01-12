@@ -92,21 +92,21 @@ xnat:imagescandata/file/label'''
 ASSESSOR_FS_POST_URI = '''?columns=ID,label,URI,xsiType,project,\
 xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,\
 xnat:imagesessiondata/label,URI,{fstype}/procstatus,\
-{fstype}/validation/status&xsiType={fstype}'''
+{fstype}/validation/status,{fstype}/validation/notes&xsiType={fstype}'''
 ASSESSOR_PR_POST_URI = '''?columns=ID,label,URI,xsiType,project,\
 xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,\
 xnat:imagesessiondata/label,{pstype}/procstatus,{pstype}/proctype,\
-{pstype}/validation/status&xsiType={pstype}'''
+{pstype}/validation/status,{pstype}/validation/notes&xsiType={pstype}'''
 ASSESSOR_FS_PROJ_POST_URI = '''?project={project}&xsiType={fstype}&columns=ID,\
 label,URI,xsiType,project,xnat:imagesessiondata/subject_id,subject_label,\
 xnat:imagesessiondata/id,xnat:imagesessiondata/label,URI,{fstype}/procstatus,\
-{fstype}/validation/status,{fstype}/procversion,{fstype}/jobstartdate,\
+{fstype}/validation/status,{fstype}/validation/notes,{fstype}/procversion,{fstype}/jobstartdate,\
 {fstype}/memused,{fstype}/walltimeused,{fstype}/jobid,{fstype}/jobnode,\
 {fstype}/out/file/label'''
 ASSESSOR_PR_PROJ_POST_URI = '''?project={project}&xsiType={pstype}&columns=ID,\
 label,URI,xsiType,project,xnat:imagesessiondata/subject_id,\
 xnat:imagesessiondata/id,xnat:imagesessiondata/label,{pstype}/procstatus,\
-{pstype}/proctype,{pstype}/validation/status,{pstype}/procversion,\
+{pstype}/proctype,{pstype}/validation/status,{pstype}/validation/notes,{pstype}/procversion,\
 {pstype}/jobstartdate,{pstype}/memused,{pstype}/walltimeused,\
 {pstype}/jobid,{pstype}/jobnode,{pstype}/inputs,{pstype}/out/file/label'''
 EXPERIMENT_POST_URI = '''?columns=ID,URI,subject_label,subject_ID,modality,\
@@ -576,6 +576,7 @@ class InterfaceTemp(Interface):
                         anew['procstatus'] = asse['%s/procstatus' % pfix]
                         anew['proctype'] = asse['%s/proctype' % pfix]
                         anew['qcstatus'] = asse['%s/validation/status' % pfix]
+                        anew['qcnotes'] = asse['%s/validation/notes' % pfix]
                         anew['version'] = asse['%s/procversion' % pfix]
                         anew['xsiType'] = asse['xsiType']
                         anew['jobid'] = asse.get('%s/jobid' % pfix)
@@ -982,6 +983,7 @@ class InterfaceTemp(Interface):
                         anew['procstatus'] = asse['%s/procstatus' % pfix]
                         anew['proctype'] = asse['%s/proctype' % pfix]
                         anew['qcstatus'] = asse['%s/validation/status' % pfix]
+                        anew['qcnotes'] = asse['%s/validation/notes' % pfix]
                         anew['version'] = asse['%s/procversion' % pfix]
                         anew['xsiType'] = asse['xsiType']
                         anew['jobid'] = asse.get('%s/jobid' % pfix)
@@ -2354,6 +2356,7 @@ class CachedImageAssessor(object):
                 # FreeSurfer
                 assr_info['procstatus'] = self.get('fs:procstatus')
                 assr_info['qcstatus'] = self.get('xnat:validation/status')
+                assr_info['qcnotes'] = self.get('xnat:validation/notes')
                 assr_info['version'] = self.get('fs:procversion')
                 assr_info['jobid'] = self.get('fs:jobid')
                 assr_info['jobstartdate'] = self.get('fs:jobstartdate')
@@ -2367,6 +2370,7 @@ class CachedImageAssessor(object):
                 assr_info['procstatus'] = self.get('proc:procstatus')
                 assr_info['proctype'] = self.get('proc:proctype')
                 assr_info['qcstatus'] = self.get('xnat:validation/status')
+                assr_info['qcnotes'] = self.get('xnat:validation/notes')
                 assr_info['version'] = self.get('proc:procversion')
                 assr_info['jobid'] = self.get('proc:jobid')
                 assr_info['jobstartdate'] = self.get('proc:jobstartdate')
