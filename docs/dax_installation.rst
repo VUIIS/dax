@@ -192,7 +192,6 @@ Run these commands:
 ::
 
     echo "export XNAT_USER=XXXXXXXX" >> ~/.xnat_profile
-    echo "export XNAT_PASS=XXXXXXXX" >> ~/.xnat_profile
     echo "export XNAT_HOST=http://XXXXXXXXXXX" >> ~/.xnat_profile 
 
 Replace the XXXXX by your personal information.
@@ -258,7 +257,6 @@ Run these commands:
 ::
 
     echo "export XNAT_USER=XXXXXXXX" >> ~/.xnat_profile
-    echo "export XNAT_PASS=XXXXXXXX" >> ~/.xnat_profile
     echo "export XNAT_HOST=http://xnat.vanderbilt.edu:8080/xnat" >> ~/.xnat_profile 
 
 Replace the XXXXX by your personal information.

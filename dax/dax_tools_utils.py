@@ -1381,8 +1381,6 @@ Missing args. 4 needed, %s found at line %s." % (str(len(row)), str(index)))
 settings file. Please use either JSON/PYTHON/CSV format.")
     else:  # if not file, use the environment variables and options
         _host = os.environ['XNAT_HOST']
-        username = None
-        password = None
         if host:
             _host = host
         if projects:
@@ -1395,12 +1393,7 @@ settings file. Please use either JSON/PYTHON/CSV format.")
                 MSG = "Please provide the password for user <%s> on xnat(%s):"
                 password = getpass.getpass(prompt=MSG % (username, _host))
                 if not password:
-                    raise DaxError('error: the password entered was empty. \
-please provide a password')
-            elif password in os.environ:
-                password = os.environ[password]
-            else:
-                password = password
+                    raise DaxError('empty password entered')
         else:
             netrc_obj = DAX_Netrc()
             username, password = netrc_obj.get_login(_host)

@@ -54,7 +54,7 @@ class DAX_Netrc(object):
     """Class for DAX NETRC file containing the information about XNAT logins.
     """
     def __init__(self):
-        self.netrc_file = os.path.join(os.path.expanduser('~'), '.daxnetrc')
+        self.netrc_file = os.path.join(os.path.expanduser('~'), '.netrc')
         if not os.path.exists(self.netrc_file):
             open(self.netrc_file, 'a').close()
             # Setting mode for the file:
