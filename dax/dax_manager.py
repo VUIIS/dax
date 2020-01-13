@@ -13,7 +13,7 @@ from dax import DAX_Settings
 from dax.launcher import BUILD_SUFFIX
 from dax import log
 
-# TODO: number of multiprocs - determine how many are available base on how 
+# TODO: number of multiprocs - determine how many are available based on how 
 # many locks exist when dax manager starts. so it e.g. 2 locks exists when we
 # start, only allow n - 2 in the pool
 
@@ -486,6 +486,7 @@ class DaxProjectSettingsManager(object):
 
 class DaxManager(object):
     FDATEFORMAT = '%Y%m%d-%H%M%S'
+    DDATEFORMAT = '%Y%m%d'
 
     def __init__(self, api_url, api_key_instances, api_key_projects):
 
@@ -548,8 +549,10 @@ class DaxManager(object):
         return proj
 
     def log_name(self, runtype, project, timestamp):
-        log = os.path.join(self.log_dir, '{}_{}_{}.log'.format(
-            runtype, project, datetime.strftime(timestamp, self.FDATEFORMAT)))
+        dname = '{}'.format(timestamp, self.DDATEFORMAT)
+        fname = '{}_{}_{}.log'.format(
+            runtype, project, datetime.strftime(timestamp, self.FDATEFORMAT))
+        log = os.path.join(self.log_dir, project, dname, fname)
 
         return log
 
