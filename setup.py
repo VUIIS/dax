@@ -130,6 +130,7 @@ REQUIRES = [
     'Sphinx>=%s' % SPHINX_MIN_VERSION,
     'pyxnat>=%s' % PYXNAT_MIN_VERSION,
     'pyyaml',
+    'pycap',
     'configparser'
 ]
 
