@@ -180,6 +180,10 @@ runs build, launch, update and upload.'
     version_desc = 'Print dax version.'
     dax_parser.add_parser('version', help=version_desc)
 
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
     return parser.parse_args()
 
 
