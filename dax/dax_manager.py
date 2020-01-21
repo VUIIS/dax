@@ -95,8 +95,13 @@ def is_locked(settings_path):
     return os.path.isfile(flagfile)
 
 
+def make_parents(path):
+    os.makedirs(os.path.dirname(), exist_ok=True)
+
+
 class DaxManagerError(Exception):
     """Custom exception raised with dax manager."""
+
     def __init__(self, message):
         Exception.__init__(self, 'Error with dax manager:{}'.format(message))
 
@@ -556,9 +561,6 @@ class DaxManager(object):
 
         return log
 
-    def make_parents(path):
-        os.makedirs(os.path.dirname(), exist_ok=True)
-
     def queue_builds(self, build_pool, settings_list):
         # TODO: sort builds by how long we expect them to take,
         # shortest to longest
@@ -570,7 +572,7 @@ class DaxManager(object):
         for i, settings_path in enumerate(settings_list):
             proj = self.project_from_settings(settings_path)
             log_path = self.log_name('build', proj, datetime.now())
-            self.make_parents(log_path)
+            make_parents(log_path)
             last_run = self.get_last_run(proj)
 
             LOGGER.info('SETTINGS:{}'.format(settings_path))
