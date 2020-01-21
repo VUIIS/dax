@@ -507,7 +507,7 @@ class DaxManager(object):
         self.refresh_settings()
 
     def load_instance_settings(
-            self,  redcap_url, redcap_key, main_form='main'):
+            self, redcap_url, redcap_key, main_form='main'):
 
         self._main_form = main_form
 
@@ -549,24 +549,28 @@ class DaxManager(object):
         return proj
 
     def log_name(self, runtype, project, timestamp):
-        dname = '{}'.format(timestamp, self.DDATEFORMAT)
+        dname = datetime.strftime(timestamp, self.DDATEFORMAT)
         fname = '{}_{}_{}.log'.format(
             runtype, project, datetime.strftime(timestamp, self.FDATEFORMAT))
         log = os.path.join(self.log_dir, project, dname, fname)
 
         return log
 
+    def make_parents(path):
+        os.makedirs(os.path.dirname(), exist_ok=True)
+
     def queue_builds(self, build_pool, settings_list):
         # TODO: sort builds by how long we expect them to take,
         # shortest to longest
 
         # Array to store result accessors
-        build_results = [None]*len(settings_list)
+        build_results = [None] * len(settings_list)
 
         # Run each
         for i, settings_path in enumerate(settings_list):
             proj = self.project_from_settings(settings_path)
             log_path = self.log_name('build', proj, datetime.now())
+            self.make_parents(log_path)
             last_run = self.get_last_run(proj)
 
             LOGGER.info('SETTINGS:{}'.format(settings_path))
