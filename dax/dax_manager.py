@@ -612,7 +612,7 @@ class DaxManager(object):
             self.run_launch(settings_path, log)
 
         # Upload - report to log if locked
-        log = self.log_name('upload', '', datetime.now())
+        log = self.log_name('upload', 'upload', datetime.now())
         upload_process = Process(
             target=self.run_upload,
             args=(None, log))
