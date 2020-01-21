@@ -13,7 +13,7 @@ from dax import DAX_Settings
 from dax.launcher import BUILD_SUFFIX
 from dax import log
 
-# TODO: number of multiprocs - determine how many are available based on how 
+# TODO: number of multiprocs - determine how many are available based on how
 # many locks exist when dax manager starts. so it e.g. 2 locks exists when we
 # start, only allow n - 2 in the pool
 
@@ -559,6 +559,9 @@ class DaxManager(object):
             runtype, project, datetime.strftime(timestamp, self.FDATEFORMAT))
         log = os.path.join(self.log_dir, project, dname, fname)
 
+        # Make sure the parent dirs exist
+        make_parents(log)
+
         return log
 
     def queue_builds(self, build_pool, settings_list):
@@ -571,16 +574,15 @@ class DaxManager(object):
         # Run each
         for i, settings_path in enumerate(settings_list):
             proj = self.project_from_settings(settings_path)
-            log_path = self.log_name('build', proj, datetime.now())
-            make_parents(log_path)
+            log = self.log_name('build', proj, datetime.now())
             last_run = self.get_last_run(proj)
 
             LOGGER.info('SETTINGS:{}'.format(settings_path))
             LOGGER.info('PROJECT:{}'.format(proj))
-            LOGGER.info('LOG:{}'.format(log_path))
+            LOGGER.info('LOG:{}'.format(log))
             LOGGER.info('LASTRUN:' + str(last_run))
             build_results[i] = build_pool.apply_async(
-                self.run_build, [proj, settings_path, log_path, last_run])
+                self.run_build, [proj, settings_path, log, last_run])
 
         return build_results
 
