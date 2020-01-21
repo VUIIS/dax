@@ -96,7 +96,7 @@ def is_locked(settings_path):
 
 
 def make_parents(path):
-    os.makedirs(os.path.dirname(), exist_ok=True)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
 
 
 class DaxManagerError(Exception):
