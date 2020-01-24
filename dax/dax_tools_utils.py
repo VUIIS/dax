@@ -469,7 +469,7 @@ DEL_UP = "=================================================================\
 
 def upload_tasks(logfile, debug, upload_settings=None,
                  host=None, username=None, password=None,
-                 projects=None, suffix=None, emailaddress=None,
+                 projects=None, suffix='', emailaddress=None,
                  uselocking=True):
     """
     Upload tasks from the queue folder.

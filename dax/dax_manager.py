@@ -615,7 +615,7 @@ class DaxManager(object):
         log = self.log_name('upload', 'upload', datetime.now())
         upload_process = Process(
             target=self.run_upload,
-            args=(None, log))
+            args=(log))
         LOGGER.info('starting upload')
         upload_process.start()
         LOGGER.info('waiting for upload')
@@ -663,8 +663,8 @@ class DaxManager(object):
         dax.bin.update_tasks(settings_file, log_file, debug=True)
         logging.getLogger('dax').handlers = []
 
-    def run_upload(self, settings_file, log_file):
-        dax.dax_tools_utils.upload_tasks(log_file, True, settings_file)
+    def run_upload(self, log_file):
+        dax.dax_tools_utils.upload_tasks(log_file, True)
         logging.getLogger('dax').handlers = []
 
     def all_ready(self, results):
