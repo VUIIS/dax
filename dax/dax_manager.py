@@ -615,7 +615,7 @@ class DaxManager(object):
         log = self.log_name('upload', 'upload', datetime.now())
         upload_process = Process(
             target=self.run_upload,
-            args=(log))
+            args=(log,))
         LOGGER.info('starting upload')
         upload_process.start()
         LOGGER.info('waiting for upload')
