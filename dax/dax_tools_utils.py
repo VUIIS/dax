@@ -1174,6 +1174,11 @@ def upload_thread(xnat, index, assessor_label, number_of_processes):
     else:
         LOGGER.warn('     --> wrong label')
 
+    # Disconnecting here because each thread actually acquires
+    # a unique JSESSIONOID, not sure why yet or if this is what we want
+    # but have confirmed this is what is happening - bdb 2020-01-28
+    xnat.disconnect()
+
 
 def upload_pbs(xnat, projects):
     """
