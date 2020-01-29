@@ -758,8 +758,8 @@ class MoreAutoProcessor(AutoProcessor):
         cmd += 'OUTDIR=$JOBDIR/OUTPUTS\n'
         cmd += 'DSTDIR={}\n\n'.format(dstdir)
         cmd += 'CONTAINERPATH={}\n\n'.format(self.container_path)
-        cmd += 'XNATHOST={}\n\n'.format(self.host)
-        cmd += 'XNATUSER={}\n\n'.format(self.user)
+        cmd += 'XNATHOST={}\n\n'.format(host)
+        cmd += 'XNATUSER={}\n\n'.format(user)
 
         # Append the main command
         cmd += 'MAINCMD=\"'
