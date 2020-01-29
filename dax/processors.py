@@ -702,8 +702,7 @@ class MoreAutoProcessor(AutoProcessor):
                     _val = sorted(cur_list)[-1]
 
                     # Build full uri
-                    _uri = '{}/data{}/out/resources/{}/files/{}'.format(
-                        assr._intf.host,
+                    _uri = 'data{}/out/resources/{}/files/{}'.format(
                         assr_path,
                         task.EDITS_RESOURCE,
                         _val)
@@ -757,6 +756,8 @@ class MoreAutoProcessor(AutoProcessor):
         cmd += 'OUTDIR=$JOBDIR/OUTPUTS\n'
         cmd += 'DSTDIR={}\n\n'.format(dstdir)
         cmd += 'CONTAINERPATH={}\n\n'.format(self.container_path)
+        cmd += 'XNATHOST={}\n\n'.format(self.xnat.host)
+        cmd += 'XNATUSER={}\n\n'.format(self.xnat.user)
 
         # Append the main command
         cmd += 'MAINCMD=\"'
