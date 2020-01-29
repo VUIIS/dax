@@ -726,11 +726,13 @@ class MoreAutoProcessor(AutoProcessor):
                 var2val[edit_in['varname']] = ''
 
         # Build the command text
-        cmd = self.build_text(var2val, input_list, assr_dir, dstdir)
+        cmd = self.build_text(
+            var2val, input_list, assr_dir, dstdir,
+            assr._intf.host, assr._intf.user )
 
         return [cmd]
 
-    def build_text(self, var2val, input_list, jobdir, dstdir):
+    def build_text(self, var2val, input_list, jobdir, dstdir, host, user):
         # Initialize commands
         cmd = '\n\n'
 
@@ -756,8 +758,8 @@ class MoreAutoProcessor(AutoProcessor):
         cmd += 'OUTDIR=$JOBDIR/OUTPUTS\n'
         cmd += 'DSTDIR={}\n\n'.format(dstdir)
         cmd += 'CONTAINERPATH={}\n\n'.format(self.container_path)
-        cmd += 'XNATHOST={}\n\n'.format(self.xnat.host)
-        cmd += 'XNATUSER={}\n\n'.format(self.xnat.user)
+        cmd += 'XNATHOST={}\n\n'.format(self.host)
+        cmd += 'XNATUSER={}\n\n'.format(self.user)
 
         # Append the main command
         cmd += 'MAINCMD=\"'
