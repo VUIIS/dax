@@ -52,8 +52,8 @@ resource_paths = {
 }
 
 uri_paths = {
-    'assessor': '{0}/data{1}/out/resources/{2}',
-    'scan': '{0}/data{1}/resources/{2}'
+    'assessor': 'data{1}/out/resources/{2}',
+    'scan': 'data{1}/resources/{2}'
 }
 
 
@@ -301,7 +301,6 @@ class ProcessorParser:
                     res_path = resource + '/files'
 
                 path_elements = [
-                    assr._intf.host,
                     vinput,
                     res_path
                 ]
