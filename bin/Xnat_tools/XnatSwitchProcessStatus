@@ -387,7 +387,7 @@ def set_qc_status(assessor_obj, status, username='NULL',
         note = 'NULL'
     else:
         user = username
-        date = '{:%d-%m-%Y}'.format(today)
+        date = '{:%Y%m%d}'.format(today)
         note = 'set by XnatSwitchProcessStatus'
     assessor_obj.attrs.mset({
         xsitype + '/validation/status': status,
@@ -525,7 +525,6 @@ assessors.')
     if not status:
         err = 'argument -s/--status not provided.'
         raise XnatToolsUserError(__exe__, err)
-
     print('INFO: Switching assessors status:')
     nb = str(len(assessors))
     sorted_list = sorted(assessors, key=lambda k: k['label'])
