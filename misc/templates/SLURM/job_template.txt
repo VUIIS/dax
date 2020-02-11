@@ -7,14 +7,11 @@
 #SBATCH --mem=${job_memory}mb
 #SBATCH -o ${job_output_file}
 
-smemwatch -k 90 -d 50 $$$$ &
+echo "Starting smemwatch"
+smemwatch -k 95 -d 50 $$$$ &
 
 uname -a # outputs node info (name, date&time, type, OS, etc)
 date
-
-#TMPDIR=$(mktemp -d) || { echo "Failed to create temp dir"; exit 1; }
-#cd $TMPDIR
-#echo $PWD
 
 #=============================================================================
 #VERSION=
@@ -24,40 +21,68 @@ date
 #DSTDIR=
 #INLIST=
 #OUTLIST=
+#CONTAINERPATH=
 #MAINCMD=
+#XNATHOST=
+#XNATUSER=
 ${job_cmds}
 #=============================================================================
+SESSLIMIT=50
+SLEEPMAX=300
+
 echo $DSTDIR
 echo $INDIR
 echo $OUTDIR
 echo $CONTAINERPATH
+echo $XNATHOST
+echo $XNATUSER
+echo $SESSLIMIT
+echo $SLEEPMAX
 
 mkdir -p $INDIR
 mkdir -p $OUTDIR
 
-# Sleep to prevent many jobs from downloading at once
-SLEEPSECS=$[ ( $RANDOM % 600 ) ]s && echo "Sleeping to prevent thundering herd:$SLEEPSECS" && sleep $SLEEPSECS
+# Check number of open sessions on host before we download
+echo "Checking that we can download"
+while true;do
+    SESSID=`curl -s -n "$XNATHOST/data/JSESSION"`
+    echo "JSESSIONID=$SESSID"
+    SESSCOUNT=`curl -s -b "JSESSIONID=$SESSID" "$XNATHOST/data/user/$XNATUSER/sessions" | cut -s -f2 -d ":" | cut -f1 -d "}"`
+    echo "$SESSCOUNT"
+    if (( "$SESSCOUNT" > "$SESSLIMIT" )); then
+        echo -n "Cannot download yet, too many open sessions, sleeping "
+        curl -s -b "JSESSIONID=$SESSID" -X DELETE "$XNATHOST/data/JSESSION"
+        SLEEPSECS=$[ ( $RANDOM % $SLEEPMAX ) ]s && echo "$SLEEPSECS" && sleep $SLEEPSECS
+    else
+        echo "Looks good, ready to download" 
+        break
+    fi
+done
+echo "DONE! JSESSIONID=$SESSID"
 
 # Collect inputs
 for IN in "${INLIST[@]}"; do
     IFS=',' read -r col1 col2 col3 <<< "$IN"
     if [ $col2 == "FILE" ]; then
-        CMD="curl -s -n $col3 -o $INDIR/$col1"
+        CMD="curl -s -b "JSESSIONID=$SESSID" $col3 -o $INDIR/$col1"
     elif [ $col2 == "DIRJ" ]; then
-        CMD="curl -s -n $col3?format=zip -o $INDIR/${col1}.zip && unzip -j $INDIR/${col1}.zip -d $INDIR/$col1"
+        CMD="curl -s -b "JSESSIONID=$SESSID" $col3?format=zip -o $INDIR/${col1}.zip && unzip -j $INDIR/${col1}.zip -d $INDIR/$col1"
     else
-        CMD="curl -s -n '$col3?format=zip&structure=simplified' -o $INDIR/${col1}.zip && unzip $INDIR/${col1}.zip -d $INDIR/$col1 && mv $INDIR/$col1/*/out/* $INDIR/$col1"
+        CMD="curl -s -b "JSESSIONID=$SESSID" '$col3?format=zip&structure=simplified' -o $INDIR/${col1}.zip && unzip $INDIR/${col1}.zip -d $INDIR/$col1 && mv $INDIR/$col1/*/out/* $INDIR/$col1"
     fi
     echo $CMD
     eval $CMD
 done
+
+# Disconnect XNAT
+curl -s -b "JSESSIONID=$SESSID" -X DELETE "$XNATHOST/data/JSESSION"
 
 # Run main command
 echo $_JAVA_OPTIONS
 echo $MAINCMD
 eval $MAINCMD
 
-# Write version file
+# Write version files
 mkdir -p $DSTDIR
 echo $VERSION > $DSTDIR/version.txt
 sha256sum $CONTAINERPATH | awk '{print $1}' > $DSTDIR/dax_docker_version.txt
@@ -92,5 +117,5 @@ else echo "COMPLETE" && touch $DSTDIR/READY_TO_UPLOAD.txt; fi
 
 rm -rf $INDIR $OUTDIR
 
-echo "DONE"
+echo "DONE!"
 
