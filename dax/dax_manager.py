@@ -13,10 +13,6 @@ from dax import DAX_Settings
 from dax.launcher import BUILD_SUFFIX
 from dax import log
 
-# TODO: number of multiprocs - determine how many are available based on how
-# many locks exist when dax manager starts. so it e.g. 2 locks exists when we
-# start, only allow n - 2 in the pool
-
 # TODO: archive old logs
 
 # TODO: only run launch and update if there are open jobs
@@ -503,6 +499,7 @@ class DaxManager(object):
 
         self.settings_dir = self.instance_settings['main_projectsettingsdir']
         self.log_dir = self.instance_settings['main_logdir']
+        self.max_build_count = int(self.instance_settings['main_buildlimit'])
 
         # Create our settings manager and update our settings directory
         self.settings_manager = DaxProjectSettingsManager(
@@ -587,8 +584,16 @@ class DaxManager(object):
         return build_results
 
     def run(self):
+        max_build_count = self.max_build_count
+
         # Build
-        num_build_threads = 10
+        lock_dir = os.path.join(DAX_SETTINGS.get_results_dir(), 'FlagFiles')
+        lock_list = os.listdir(lock_dir)
+        lock_list = [x for x in lock_list if x.endswith('_BUILD_RUNNING.txt')]
+        cur_build_count = len(lock_list)
+        LOGGER.info('count of already running builds:' + str(cur_build_count))
+
+        num_build_threads = max_build_count - cur_build_count
         build_pool = Pool(processes=num_build_threads)
         build_results = self.queue_builds(build_pool, self.settings_list)
         build_pool.close()  # Close the pool, I dunno if this matters
