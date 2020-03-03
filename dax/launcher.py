@@ -980,7 +980,7 @@ The project is not part of the settings."""
         :return: list of assessors for a project
         """
         # Get lists of assessors for this project
-        assr_list = XnatUtils.list_project_assessors(xnat, project_id)
+        assr_list = xnat.list_project_assessors(project_id)
 
         # filter the assessors to the sessions given as parameters if given
         if slocal and slocal.lower() != 'all':

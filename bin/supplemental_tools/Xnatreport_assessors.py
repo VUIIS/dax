@@ -17,7 +17,7 @@ print('Project: {}'.format(args.project))
 
 
 xnat = XnatUtils.get_interface()
-Assrs = XnatUtils.list_project_assessors(xnat, args.project)
+Assrs = xnat.list_project_assessors(args.project)
 xnat.disconnect()
 
 timestamp = time.strftime("%Y%m%d%H%M%S")
