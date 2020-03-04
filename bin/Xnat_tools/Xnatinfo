@@ -176,7 +176,7 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
             scans_found[scan_dict['type']] = 1
 
     # assessor loop
-    assessors_list = XnatUtils.list_project_assessors(xnat, project)
+    assessors_list = xnat.list_project_assessors(project)
     assessor_number = len(assessors_list)
     for assessor_dict in assessors_list:
         # add to dictionary of process

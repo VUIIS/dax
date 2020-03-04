@@ -129,7 +129,7 @@ if __name__ == '__main__':
         # print('diff aeg result='+str(res))
 
         # Upload the edits - brainmask, wm, aseg, control.dat,...
-        assessor_obj = XnatUtils.get_full_object(xnat, fs)
+        assessor_obj = xnat.get_full_object(fs)
         resource = assessor_obj.out_resource('EDITS')
         curtime = time.strftime("%Y%m%d-%H%M%S")
         brainmask_path = os.path.join(
