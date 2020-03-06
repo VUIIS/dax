@@ -186,8 +186,7 @@ download_report.csv if you want to start from scratch."""
             for project in projects_list:
                 self.scans.extend(self.xnat.get_project_scans(project))
                 if XnatUtils.has_dax_datatypes(self.xnat):
-                    self.assessors.extend(XnatUtils.list_project_assessors(
-                        self.xnat, project))
+                    self.assessors.extend(xnat.list_project_assessors(project))
 
             # Filter using the options if they are set only if full project:
             self.filter(args)

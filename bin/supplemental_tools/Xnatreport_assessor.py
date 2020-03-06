@@ -19,7 +19,7 @@ outfile = sys.argv[3]
 
 xnat = XnatUtils.get_interface()
 
-Assrs = XnatUtils.list_project_assessors(xnat, project)
+Assrs = xnat.list_project_assessors(project)
 
 R = list()
 for assr in Assrs :

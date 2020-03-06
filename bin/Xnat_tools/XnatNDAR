@@ -554,7 +554,7 @@ def get_scan_xnat(options, xnat, directory, subjects):
 
     # list of scans and assessors for the full project
     scan_list = xnat.get_project_scans(options.project)
-    assessor_list = XnatUtils.list_project_assessors(xnat, options.project)
+    assessor_list = xnat.list_project_assessors(options.project)
 
     # filter to keep only the scan we need and keep the assessor that we need
     # for the qc Scans
@@ -629,7 +629,7 @@ def get_processed_data_xnat(options, xnat, directory, subjects):
     scan_info, assessor_info = extract_info(proc_info)
 
     # list of scans and assessors for the full project
-    assessor_list = XnatUtils.list_project_assessors(xnat, options.project)
+    assessor_list = xnat.list_project_assessors(options.project)
     assessor_list = filter_list(subjects, 'subject_label', assessor_list)
 
     # From scan:
@@ -769,7 +769,7 @@ def download_scan_file(xnat, directory, scan, resources, fname):
         if not os.path.exists(res_path):
             os.makedirs(res_path)
         # Select the scan:
-        scan_obj = XnatUtils.get_full_object(xnat, scan)
+        scan_obj = xnat.get_full_object(scan)
         for resource in resources:
             if resource in ['bval', 'bvec']:
                 if scan_obj.resource(resource.lower()).exists():
@@ -817,7 +817,7 @@ def download_assessor_file(xnat, directory, assessor, resources, fname):
     else:
         if not os.path.exists(res_path):
             os.makedirs(res_path)
-        assessor_obj = XnatUtils.get_full_object(xnat, assessor)
+        assessor_obj = xnat.get_full_object(assessor)
         for resource in resources:
             if resource:
                 res_obj = assessor_obj.out_resource(resource)

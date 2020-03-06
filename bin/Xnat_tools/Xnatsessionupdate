@@ -143,7 +143,7 @@ def change_date_all(xnat, sessions_list):
     :return: None
     """
     for session_dict in sessions_list:
-        session_object = XnatUtils.get_full_object(xnat, session_dict)
+        session_object = xnat.get_full_object(session_dict)
         session_object.attrs.set('xnat:mrSessionData/original', ' ')
         msg = '   ->Session "%s" changed to need update.'
         print(msg % (session_dict['label']))
@@ -157,7 +157,7 @@ def get_xnat_subject_need_inputs(xnat, project):
     :param project: project ID on XNAT
     :return: unique list of sessions labels on XNAT
     """
-    assessors_list = XnatUtils.list_project_assessors(xnat, project)
+    assessors_list = xnat.list_project_assessors(project)
     assessors_list = [x for x in assessors_list
                       if x['procstatus'] == 'NEED_INPUTS']
     return list(set([x['session_label'] for x in assessors_list]))
