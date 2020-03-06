@@ -769,7 +769,7 @@ def download_scan_file(xnat, directory, scan, resources, fname):
         if not os.path.exists(res_path):
             os.makedirs(res_path)
         # Select the scan:
-        scan_obj = XnatUtils.get_full_object(xnat, scan)
+        scan_obj = xnat.get_full_object(scan)
         for resource in resources:
             if resource in ['bval', 'bvec']:
                 if scan_obj.resource(resource.lower()).exists():
@@ -817,7 +817,7 @@ def download_assessor_file(xnat, directory, assessor, resources, fname):
     else:
         if not os.path.exists(res_path):
             os.makedirs(res_path)
-        assessor_obj = XnatUtils.get_full_object(xnat, assessor)
+        assessor_obj = xnat.get_full_object(assessor)
         for resource in resources:
             if resource:
                 res_obj = assessor_obj.out_resource(resource)
