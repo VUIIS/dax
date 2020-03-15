@@ -265,8 +265,9 @@ class DaxProjectSettingsManager(object):
         dax_rec['filepath'] = rc_rec[file_key]
 
         # Parse arguments
-        if rc_rec[key_prefix + '_args']:
-            rlist = rc_rec[key_prefix + '_args'].strip().split('\r\n')
+        args_key = key_prefix + '_args'
+        if rc_rec[args_key] and len(rc_rec[args_key]) > 0:
+            rlist = rc_rec[args_key].strip().split('\r\n')
             rdict = {}
             for arg in rlist:
                 key, val = arg.split(':', 1)

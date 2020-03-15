@@ -1348,9 +1348,10 @@ class ClusterTask(Task):
         # Move output file
         src = self.outlog_path()
         dst = self.upload_outlog_dir()
-        mkdirp(dst)
-        LOGGER.debug('moving outlog file from %s to %s' % (src, dst))
-        shutil.move(src, dst)
+        if os.path.exists(src):
+            mkdirp(dst)
+            LOGGER.debug('moving outlog file from %s to %s' % (src, dst))
+            shutil.move(src, dst)
 
         # Touch file for dax_upload to check
         create_flag(os.path.join(RESULTS_DIR, self.assessor_label,
