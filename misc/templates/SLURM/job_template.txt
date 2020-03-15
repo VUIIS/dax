@@ -27,7 +27,7 @@ date
 #XNATUSER=
 ${job_cmds}
 #=============================================================================
-SESSLIMIT=50
+SESSLIMIT=25
 SLEEPMAX=300
 
 echo $DSTDIR
