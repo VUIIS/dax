@@ -84,7 +84,7 @@ for IN in "${INLIST[@]}"; do
     if test $result != '200' ; then
         echo "Download failed with code:$result, exiting..."
         curl -s -b "JSESSIONID=$SESSID" -X DELETE "$XNATHOST/data/JSESSION"
-        exit
+        exit 1
     fi
 done
 
