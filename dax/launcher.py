@@ -607,8 +607,6 @@ cluster queue"
             while mod_count < 3:
                 mess = """== Build modules (count:{count}) =="""
                 LOGGER.debug(mess.format(count=mod_count))
-                # NOTE: we keep starting time to check if something changes below
-                # start_time = datetime.now()
                 if sess_mod_list:
                     self.build_session_modules(intf, csess, sess_mod_list)
                 if scan_mod_list:
@@ -616,11 +614,8 @@ cluster queue"
                         LOGGER.debug('+SCAN: ' + cscan.info()['scan_id'])
                         self.build_scan_modules(intf, cscan, scan_mod_list)
 
-                # TODO: BenM/xnat refactor/this test should be encapsulated into a
-                # session object
                 reloaded = csess.refresh()
                 if not reloaded:
-                    # if not sess_was_modified(intf, sess_info, start_time):
                     break
 
                 # csess.reload()
@@ -631,12 +626,15 @@ cluster queue"
             LOGGER.debug('== Build auto processors ==')
             self.build_auto_processors(csess, auto_proc_list, sessions)
 
-        # Close sess log and upload it
+        # Close sess log
         LOGGER.handlers.pop()
-        res_obj = csess.full_object().resource('BUILD_LOGS')
-        print(res_obj)
-        LOGGER.debug('uploading session log:' + tmp_file)
-        XnatUtils.upload_file_to_obj(tmp_file, res_obj)
+
+        # Upload it only if session was changed, otherwise we'll change it here
+        if csess.refresh():
+            res_obj = csess.full_object().resource('BUILD_LOGS')
+            print(res_obj)
+            LOGGER.debug('uploading session log:' + tmp_file)
+            XnatUtils.upload_file_to_obj(tmp_file, res_obj)
 
     def build_session_modules(self, xnat, csess, sess_mod_list):
         """
