@@ -10,6 +10,7 @@ import sys
 import os
 import traceback
 import socket
+import tempfile
 
 from . import processors, modules, XnatUtils, task, cluster
 from .task import Task, ClusterTask, XnatTask
@@ -589,6 +590,16 @@ cluster queue"
         csess = find_with_pred(
             sessions, lambda s: sess_info['label'] == s.session_id())
 
+        # Create log file for this build of this session
+        tmp_file = os.path(
+            tempfile.mkdtemp(),
+            '{}_{}-{}.txt'.format(
+                csess.label(),
+                'build_log',
+                datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')))
+
+        LOGGER.addHandler(tmp_file)
+
         if sess_mod_list or scan_mod_list:
             # Modules
             mod_count = 0
@@ -618,6 +629,11 @@ cluster queue"
         if auto_proc_list:
             LOGGER.debug('== Build auto processors ==')
             self.build_auto_processors(csess, auto_proc_list, sessions)
+
+        # Close sess log and upload it
+        LOGGER.handlers.pop()
+        res_obj = csess.full_object().resources('BUILD_LOGS')
+        XnatUtils.upload_file_to_obj(tmp_file, res_obj)
 
     def build_session_modules(self, xnat, csess, sess_mod_list):
         """
