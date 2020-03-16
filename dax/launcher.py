@@ -596,8 +596,10 @@ cluster queue"
         tmp_dir = tempfile.mkdtemp()
         tmp_name = '{}_build_log-{}.txt'.format(sess_label, now_time)
         tmp_file = os.path.join(tmp_dir, tmp_name)
-        print(tmp_file)
-        LOGGER.addHandler(logging.FileHandler(tmp_file, 'w'))
+        handler = logging.FileHandler(tmp_file, 'w')
+        handler.setFormatter(logging.Formatter(
+            fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s'))
+        LOGGER.addHandler(handler)
 
         if sess_mod_list or scan_mod_list:
             # Modules
