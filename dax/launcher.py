@@ -592,10 +592,10 @@ cluster queue"
 
         # Create log file for this build of this session
         now_time = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
-        tmp_file = os.path(
-            tempfile.mkdtemp(),
-            '{}_build_log-{}.txt'.format(csess.label(), now_time))
-
+        sess_label = csess.label()
+        tmp_dir = tempfile.mkdtemp()
+        tmp_name = '{}_build_log-{}.txt'.format(sess_label, now_time)
+        tmp_file = os.path(tmp_dir, tmp_name)
         print(tmp_file)
 
         LOGGER.addHandler(tmp_file)
