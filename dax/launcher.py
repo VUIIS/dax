@@ -595,7 +595,7 @@ cluster queue"
         sess_label = csess.label()
         tmp_dir = tempfile.mkdtemp()
         tmp_name = '{}_build_log-{}.txt'.format(sess_label, now_time)
-        tmp_file = os.path(tmp_dir, tmp_name)
+        tmp_file = os.path.join(tmp_dir, tmp_name)
         print(tmp_file)
 
         LOGGER.addHandler(tmp_file)
