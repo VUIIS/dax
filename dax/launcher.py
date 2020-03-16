@@ -591,12 +591,10 @@ cluster queue"
             sessions, lambda s: sess_info['label'] == s.session_id())
 
         # Create log file for this build of this session
+        now_time = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
         tmp_file = os.path(
             tempfile.mkdtemp(),
-            '{}_{}-{}.txt'.format(
-                csess.label(),
-                'build_log',
-                datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')))
+            '{}_build_log-{}.txt'.format(csess.label(), now_time))
 
         print(tmp_file)
 
