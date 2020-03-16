@@ -598,6 +598,8 @@ cluster queue"
                 'build_log',
                 datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')))
 
+        print(tmp_file)
+
         LOGGER.addHandler(tmp_file)
 
         if sess_mod_list or scan_mod_list:
@@ -632,7 +634,9 @@ cluster queue"
 
         # Close sess log and upload it
         LOGGER.handlers.pop()
-        res_obj = csess.full_object().resources('BUILD_LOGS')
+        res_obj = csess.full_object().resource('BUILD_LOGS')
+        print(res_obj)
+        LOGGER.debug('uploading session log:' + tmp_file)
         XnatUtils.upload_file_to_obj(tmp_file, res_obj)
 
     def build_session_modules(self, xnat, csess, sess_mod_list):
