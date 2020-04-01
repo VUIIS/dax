@@ -86,14 +86,10 @@ if __name__ == '__main__':
         print('INFO: connection to xnat <{}>:'.format(host))
 
         # Find the FreeSurfer assessor
-        sess_list = xnat.get_sessions(projectid=proj_label)
         fs_list = []
-        for sess in sess_list:
-            if sess['label'] == sess_label:
-                alist = XnatUtils.list_assessors(
-                    xnat, proj_label, sess['subject_ID'], sess['ID'])
-
-                flist = [a for a in alist if a['proctype'].startswith('FS6_')]
+        alist = xnat.list_project_assessors(proj_label)
+        alist = [a for a in alist if a['session_label'] == sess_label]
+        flist = [a for a in alist if a['proctype'].startswith('FS6_')]
 
         if not flist:
             print('ERROR:FreeSurfer not found on XNAT')
@@ -129,7 +125,13 @@ if __name__ == '__main__':
         # print('diff aeg result='+str(res))
 
         # Upload the edits - brainmask, wm, aseg, control.dat,...
-        assessor_obj = xnat.get_full_object(fs)
+        #assessor_obj = XnatUtils.get_full_object(fs)
+        assessor_obj = xnat.select_assessor(
+            fs['project_label'],
+            fs['subject_label'],
+            fs['session_label'],
+            fs['label'])
+
         resource = assessor_obj.out_resource('EDITS')
         curtime = time.strftime("%Y%m%d-%H%M%S")
         brainmask_path = os.path.join(

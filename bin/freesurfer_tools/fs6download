@@ -72,16 +72,13 @@ if __name__ == '__main__':
         print('INFO:connection to xnat <{}>:'.format(host))
 
         # Find the FreeSurfer assessor
-        sess_list = xnat.get_sessions(projectid=proj_label)
         flist = []
+        print('start running list_project_assessors')
+        alist = xnat.list_project_assessors(proj_label)
+        print('finish running list_project_assessors')
 
-        # Find the session b/c we need subject label
-        for sess in sess_list:
-            if sess['label'] == sess_label:
-                alist = XnatUtils.list_assessors(
-                    xnat, proj_label, sess['subject_label'], sess['label'])
-
-                flist = [a for a in alist if a['proctype'].startswith('FS6_')]
+        alist = [a for a in alist if a['session_label'] == sess_label]
+        flist = [a for a in alist if a['proctype'].startswith('FS6_')]
 
         if not flist:
             print('ERROR:FreeSurfer not found for session')
