@@ -635,6 +635,8 @@ cluster queue"
             print(res_obj)
             LOGGER.debug('uploading session log:' + tmp_file)
             XnatUtils.upload_file_to_obj(tmp_file, res_obj)
+        else:
+            LOGGER.debug('session not modified, not uploading build log')
 
     def build_session_modules(self, xnat, csess, sess_mod_list):
         """
