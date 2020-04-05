@@ -629,8 +629,14 @@ cluster queue"
         # Close sess log
         LOGGER.handlers.pop()
 
+        # TODO:
         # Upload it only if session was changed, otherwise we'll change it here
-        if csess.refresh():
+        # if csess.refresh(): This ain't working need to figure out why, XNAT
+        # has suddenly stopped updating the last_modifed time,
+        # so will just upload the log everytime the build runs, unfortunately 
+        # this will mean real build won't actually run b/c the last_mod 
+        # time isn't changing
+        if True:
             res_obj = csess.full_object().resource('BUILD_LOGS')
             print(res_obj)
             LOGGER.debug('uploading session log:' + tmp_file)
