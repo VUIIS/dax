@@ -631,7 +631,10 @@ cluster queue"
 
         # Upload build log only if session was changed
         csess.refresh()
-        if csess.cached_timestamp > init_timestamp:
+        final_timestamp = csess.cached_timestamp 
+        LOGGER.debug('initial timestamp={}, final timestamp={}'.format(
+            init_timestamp, final_timestamp))
+        if final_timestamp > init_timestamp:
             res_obj = csess.full_object().resource('BUILD_LOGS')
             print(res_obj)
             LOGGER.debug('uploading session log:' + tmp_file)
