@@ -586,9 +586,10 @@ cluster queue"
         :param scan_mod_list: list of modules running on a scan
         :return: None
         """
-
         csess = find_with_pred(
             sessions, lambda s: sess_info['label'] == s.session_id())
+
+        init_timestamp = csess.cached_timestamp
 
         # Create log file for this build of this session
         now_time = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
@@ -618,7 +619,6 @@ cluster queue"
                 if not reloaded:
                     break
 
-                # csess.reload()
                 mod_count += 1
 
         # Auto Processors
@@ -629,14 +629,9 @@ cluster queue"
         # Close sess log
         LOGGER.handlers.pop()
 
-        # TODO:
-        # Upload it only if session was changed, otherwise we'll change it here
-        # if csess.refresh(): This ain't working need to figure out why, XNAT
-        # has suddenly stopped updating the last_modifed time,
-        # so will just upload the log everytime the build runs, unfortunately 
-        # this will mean real build won't actually run b/c the last_mod 
-        # time isn't changing
-        if True:
+        # Upload build log only if session was changed
+        csess.refresh()
+        if csess.cached_timestamp > init_timestamp:
             res_obj = csess.full_object().resource('BUILD_LOGS')
             print(res_obj)
             LOGGER.debug('uploading session log:' + tmp_file)
