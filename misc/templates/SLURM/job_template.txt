@@ -120,9 +120,9 @@ for OUT in "${OUTLIST[@]}"; do
     if [ $col3 == "PDF" ]; then
         if [ $col2 != "FILE" ]; then errors=1 && echo "ERROR:illegal type for PDF";
         elif [[ ${#pathlist[@]} != 1 ]]; then errors=1 && echo "ERROR:multiple PDFs";
-        else cp $OUTDIR/$col1 $DSTDIR/$col3 && haspdf=1; fi
-    elif [ $col2 == "FILE" ]; then cp $OUTDIR/$col1 $DSTDIR/$col3;
-    elif [ $col2 == "DIR" ]; then cp -r $OUTDIR/$col1/* $DSTDIR/$col3;
+        else haspdf=1 && cp $OUTDIR/$col1 $DSTDIR/$col3 || errors=1; fi
+    elif [ $col2 == "FILE" ]; then cp $OUTDIR/$col1 $DSTDIR/$col3 || errors=1;
+    elif [ $col2 == "DIR" ]; then cp -r $OUTDIR/$col1/* $DSTDIR/$col3 || errors=1;
     else errors=1 && echo "ERROR:invalid type:$col2"; fi
 done
 
