@@ -3,9 +3,8 @@ Installation of fs:fsData and proc:genProcData
 
 Prerequisites:
 
--  install a XNAT instance. Follow
-   https://wiki.xnat.org/display/XNAT16/XNAT+1.6+Installation+Guide to
-   install XNAT
+-  install an XNAT instance
+   https://wiki.xnat.org/documentation/getting-started-with-xnat
 
 On XNAT VM:
 ^^^^^^^^^^^
@@ -14,49 +13,15 @@ On XNAT VM:
 
 2) Stop tomcat
 
-3) Remove default FreeSurfer files if installed:
+3) Copy plugins to XNAT
 
-::
-
-    [root@xnat-server ~]#rm -r ${XNAT_HOME}/plugin-resources/project-skeletons/xnat/src/schemas/fs
-    [root@xnat-server ~]#rm -r ${XNAT_HOME}/projects/xnat/src/schemas/fs
-    [root@xnat-server ~]#rm -r ${XNAT_HOME}/deployments/xnat/src/schemas/fs
-
-You also need to delete FS files from tomcat webapps directory if
-already deployed.
-
-4) Add modules
-
-::
-
-    [root@xnat-server ~]#cd ${XNAT_HOME}
-    [root@xnat-server ~]#mkdir modules
-
-Copy the files from dax/xnat\_modules/jar\_files: fs\_module.jar &
-proc\_module.jar :sub:`:sub:`:sub:`~``` [root@xnat-server ~]#cp
-fs\_module.jar
-:math:`{XNAT_HOME}/modules/ [root@xnat-server ~]#cp proc_module.jar `\ {XNAT\_HOME}/modules/
-:sub:`:sub:`:sub:`~```
+Copy the files dax-plugin-fsData-1.0.0.jar and dax-plugin-genProcData-1.4.0.jar to ${XNAT_HOME}/plugins
 
 The jar\_files folder is located in dax package at the path
-dax/dax/xnat\_modules/jar\_files. You can download the files from github
+dax/dax/xnat\_datatypes/jar\_files. You can download the files from github
 repository: https://github.com/VUIIS/dax .
 
-5) Run xnat update
-
-::
-
-    [root@xnat-server ~]#cd ${XNAT_HOME}
-    [root@xnat-server ~]#bin/update.sh -Ddeploy=true
-
-6) Run sql update
-
-::
-
-    [root@xnat-server ~]# cd ${XNAT_HOME}/deployments/[xnat.project.name]/
-    [root@xnat-server ~]# psql -f sql/[xnat.project.name]-update.sql -U [db-user] [db-name]
-
-7) Start tomcat
+4) Start tomcat and confirm that plugins are installed
 
 ON XNAT webapp:
 ^^^^^^^^^^^^^^^
