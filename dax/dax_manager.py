@@ -643,8 +643,10 @@ class DaxManager(object):
 
             LOGGER.info('run_build:{},{}'.format(project, lastrun))
             self.set_last_build_start(project)
+            logging.getLogger('dax').handlers = []
             dax.bin.build(
                 settings_file, log_file, debug=True, proj_lastrun=proj_lastrun)
+            logging.getLogger('dax').handlers = []
 
             # TODO: check for errors in log file and set to RED if any found,
             # also could upload last log file
@@ -662,14 +664,17 @@ class DaxManager(object):
         return self.settings_manager.get_last_run(project)
 
     def run_launch(self, settings_file, log_file):
+        logging.getLogger('dax').handlers = []
         dax.bin.launch_jobs(settings_file, log_file, debug=True)
         logging.getLogger('dax').handlers = []
 
     def run_update(self, settings_file, log_file):
+        logging.getLogger('dax').handlers = []
         dax.bin.update_tasks(settings_file, log_file, debug=True)
         logging.getLogger('dax').handlers = []
 
     def run_upload(self, log_file):
+        logging.getLogger('dax').handlers = []
         dax.dax_tools_utils.upload_tasks(log_file, True)
         logging.getLogger('dax').handlers = []
 
