@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import multiprocessing
 import logging
 import sys
 
@@ -23,7 +23,8 @@ def setup_debug_logger(name, logfile):
         handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
 
-    logger = logging.getLogger(name)
+    # logger = logging.getLogger(name)
+    logger = multiprocessing.get_logger(name)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
     return logger
@@ -43,7 +44,8 @@ def setup_info_logger(name, logfile):
     else:
         handler = logging.StreamHandler(sys.stdout)
 
-    logger = logging.getLogger(name)
+    # logger = logging.get_logger(name)
+    logger = multiprocessing.get_logger(name)
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
     return logger
