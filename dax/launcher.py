@@ -10,6 +10,7 @@ import sys
 import os
 import traceback
 import socket
+import tempfile
 
 from . import processors, modules, XnatUtils, task, cluster
 from .task import Task, ClusterTask, XnatTask
@@ -585,9 +586,21 @@ cluster queue"
         :param scan_mod_list: list of modules running on a scan
         :return: None
         """
-
         csess = find_with_pred(
             sessions, lambda s: sess_info['label'] == s.session_id())
+
+        init_timestamp = csess.cached_timestamp
+
+        # Create log file for this build of this session
+        now_time = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
+        sess_label = csess.label()
+        tmp_dir = tempfile.mkdtemp()
+        tmp_name = '{}_build_log-{}.txt'.format(sess_label, now_time)
+        tmp_file = os.path.join(tmp_dir, tmp_name)
+        handler = logging.FileHandler(tmp_file, 'w')
+        handler.setFormatter(logging.Formatter(
+            fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s'))
+        LOGGER.addHandler(handler)
 
         if sess_mod_list or scan_mod_list:
             # Modules
@@ -595,8 +608,6 @@ cluster queue"
             while mod_count < 3:
                 mess = """== Build modules (count:{count}) =="""
                 LOGGER.debug(mess.format(count=mod_count))
-                # NOTE: we keep starting time to check if something changes below
-                # start_time = datetime.now()
                 if sess_mod_list:
                     self.build_session_modules(intf, csess, sess_mod_list)
                 if scan_mod_list:
@@ -604,20 +615,32 @@ cluster queue"
                         LOGGER.debug('+SCAN: ' + cscan.info()['scan_id'])
                         self.build_scan_modules(intf, cscan, scan_mod_list)
 
-                # TODO: BenM/xnat refactor/this test should be encapsulated into a
-                # session object
                 reloaded = csess.refresh()
                 if not reloaded:
-                    # if not sess_was_modified(intf, sess_info, start_time):
                     break
 
-                # csess.reload()
                 mod_count += 1
 
         # Auto Processors
         if auto_proc_list:
             LOGGER.debug('== Build auto processors ==')
             self.build_auto_processors(csess, auto_proc_list, sessions)
+
+        # Close sess log
+        LOGGER.handlers.pop()
+
+        # Upload build log only if session was changed
+        csess.refresh()
+        final_timestamp = csess.cached_timestamp
+        LOGGER.debug('initial timestamp={}, final timestamp={}'.format(
+            init_timestamp, final_timestamp))
+        if final_timestamp > init_timestamp:
+            res_obj = csess.full_object().resource('BUILD_LOGS')
+            print(res_obj)
+            LOGGER.debug('uploading session log:' + tmp_file)
+            XnatUtils.upload_file_to_obj(tmp_file, res_obj)
+        else:
+            LOGGER.debug('session not modified, not uploading build log')
 
     def build_session_modules(self, xnat, csess, sess_mod_list):
         """
