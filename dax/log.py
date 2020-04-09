@@ -24,7 +24,7 @@ def setup_debug_logger(name, logfile):
     handler.setFormatter(formatter)
 
     # logger = logging.getLogger(name)
-    logger = multiprocessing.get_logger(name)
+    logger = multiprocessing.get_logger()
     logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
     return logger
@@ -45,7 +45,7 @@ def setup_info_logger(name, logfile):
         handler = logging.StreamHandler(sys.stdout)
 
     # logger = logging.get_logger(name)
-    logger = multiprocessing.get_logger(name)
+    logger = multiprocessing.get_logger()
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
     return logger
