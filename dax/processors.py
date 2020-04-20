@@ -265,9 +265,11 @@ class AutoProcessor(Processor):
                 elif tags[-1] in list(self.extra_user_overrides.keys()):
                     self.extra_user_overrides[tags[-1]] = val
                 else:
-                    msg = 'key {} not found in the default inputs for \
-auto processor defined by yaml file {}'
-                    LOGGER.warn(msg.format(tags[-1], yaml_source.source_id))
+                    msg = 'key not found in default inputs:key={}, file={}'
+                    msg = msg.format(tags[-1], yaml_source.source_id)
+                    LOGGER.error(msg)
+                    raise AutoProcessorError(msg)
+
             elif key.startswith('inputs.xnat'):
                 # change value in self.xnat_inputs
                 if tags[2] not in list(self.xnat_inputs.keys()):
@@ -294,7 +296,6 @@ auto processor defined by yaml file {}'
                         # Match the resource name
                         robj = None
                         for obj in sobj['resources']:
-                            print('checking obj='+obj['varname'])
                             if tags[5] == obj['varname']:
                                 robj = obj
                                 break
@@ -304,7 +305,7 @@ auto processor defined by yaml file {}'
                             LOGGER.error(msg)
                             raise AutoProcessorError(msg)
 
-                        LOGGER.debug('overriding fmatch:{}'.format(key))
+                        LOGGER.debug('overriding fmatch:tag={}, val={}'.format(key, val))
                         robj['fmatch'] = val
                     else:
                         msg = 'invalid override:tag={}, file={}'
@@ -312,8 +313,7 @@ auto processor defined by yaml file {}'
                         LOGGER.error(msg)
                         raise AutoProcessorError(msg)
                 else:
-                    LOGGER.info('overriding setting:{}:{}'.format(
-                        tags[4], str(val)))
+                    LOGGER.info('overriding:{}:{}'.format(tags[4], str(val)))
                     obj[tags[4]] = val
                    
             elif key.startswith('attrs'):
@@ -321,9 +321,11 @@ auto processor defined by yaml file {}'
                 if tags[-1] in list(self.attrs.keys()):
                     self.attrs[tags[-1]] = val
                 else:
-                    msg = 'key {} not found in the attrs for auto processor \
-defined by yaml file {}'
-                    LOGGER.warn(msg.format(tags[-1], yaml_source.source_id))
+                    msg = 'key not found in attrs:key={}, file={}'
+                    msg = msg.format(tags[-1], yaml_source.source_id)
+                    LOGGER.error(msg)
+                    raise AutoProcessorError(msg)
+
 
     def _read_yaml(self, yaml_source):
         """
