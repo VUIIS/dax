@@ -305,7 +305,9 @@ class AutoProcessor(Processor):
                             LOGGER.error(msg)
                             raise AutoProcessorError(msg)
 
-                        LOGGER.debug('overriding fmatch:tag={}, val={}'.format(key, val))
+                        msg = 'overriding fmatch:tag={}, val={}'
+                        msg = msg.format(key, val)
+                        LOGGER.debug(msg)
                         robj['fmatch'] = val
                     else:
                         msg = 'invalid override:tag={}, file={}'
@@ -326,6 +328,11 @@ class AutoProcessor(Processor):
                     LOGGER.error(msg)
                     raise AutoProcessorError(msg)
 
+            else:
+                msg = 'invalid override:key={}, file={}'
+                msg = msg.format(key, yaml_source.source_id)
+                LOGGER.error(msg)
+                raise AutoProcessorError(msg)
 
     def _read_yaml(self, yaml_source):
         """
