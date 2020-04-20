@@ -288,7 +288,7 @@ class AutoProcessor(Processor):
                         break
 
                 if sobj is None:
-                    msg = 'invalid override:tag={}, file={}'
+                    msg = 'invalid override:key={}, file={}'
                     msg.format(key, yaml_name)
                     LOGGER.error(msg)
                     raise AutoProcessorError(msg)
@@ -303,16 +303,16 @@ class AutoProcessor(Processor):
                                 break
 
                         if robj is None:
-                            msg = 'invalid override:tag={}, file={}'
+                            msg = 'invalid override:key={}, file={}'
                             LOGGER.error(msg)
                             raise AutoProcessorError(msg)
 
-                        msg = 'overriding fmatch:tag={}, val={}'
+                        msg = 'overriding fmatch:key={}, val={}'
                         msg = msg.format(key, val)
                         LOGGER.debug(msg)
                         robj['fmatch'] = val
                     else:
-                        msg = 'invalid override:tag={}, file={}'
+                        msg = 'invalid override:key={}, file={}'
                         msg = msg.format(key, yaml_name)
                         LOGGER.error(msg)
                         raise AutoProcessorError(msg)
