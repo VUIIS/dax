@@ -256,7 +256,7 @@ class AutoProcessor(Processor):
             user_inputs = {'default.spider_path': /.../Spider....py'}
         """
         for key, val in list(user_inputs.items()):
-            LOGGER.debug('overriding setting:{},{}'.format(key,val))
+            LOGGER.debug('overriding setting:key={},val={}'.format(key,val))
             tags = key.split('.')
             if key.startswith('inputs.default'):
                 # change value in inputs
@@ -294,8 +294,8 @@ auto processor defined by yaml file {}'
                         # Match the resource name
                         robj = None
                         for obj in sobj['resources']:
-                            print('checking robj='+robj['varname'])
-                            if tags[5] == robj['varname']:
+                            print('checking obj='+obj['varname'])
+                            if tags[5] == obj['varname']:
                                 robj = obj
                                 break
 
