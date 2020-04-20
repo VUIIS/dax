@@ -255,8 +255,10 @@ class AutoProcessor(Processor):
         :param user_inputs: dictionary of tag, value. E.G:
             user_inputs = {'default.spider_path': /.../Spider....py'}
         """
+        yaml_name = yaml_source.source_id
+
         for key, val in list(user_inputs.items()):
-            LOGGER.debug('overriding setting:key={},val={}'.format(key,val))
+            LOGGER.debug('overriding:key={}, file={}'.format(key, yaml_name))
             tags = key.split('.')
             if key.startswith('inputs.default'):
                 # change value in inputs
@@ -266,7 +268,7 @@ class AutoProcessor(Processor):
                     self.extra_user_overrides[tags[-1]] = val
                 else:
                     msg = 'key not found in default inputs:key={}, file={}'
-                    msg = msg.format(tags[-1], yaml_source.source_id)
+                    msg = msg.format(tags[-1], yaml_name)
                     LOGGER.error(msg)
                     raise AutoProcessorError(msg)
 
@@ -274,7 +276,7 @@ class AutoProcessor(Processor):
                 # change value in self.xnat_inputs
                 if tags[2] not in list(self.xnat_inputs.keys()):
                     msg = 'key not found in xnat inputs:key={}, file={}'
-                    msg = msg.format(tags[3], yaml_source.source_id)
+                    msg = msg.format(tags[3], yaml_name)
                     LOGGER.error(msg)
                     raise AutoProcessorError(msg)
 
@@ -287,7 +289,7 @@ class AutoProcessor(Processor):
 
                 if sobj is None:
                     msg = 'invalid override:tag={}, file={}'
-                    msg.format(key, yaml_source.source_id)
+                    msg.format(key, yaml_name)
                     LOGGER.error(msg)
                     raise AutoProcessorError(msg)
 
@@ -311,7 +313,7 @@ class AutoProcessor(Processor):
                         robj['fmatch'] = val
                     else:
                         msg = 'invalid override:tag={}, file={}'
-                        msg = msg.format(key, yaml_source.source_id)
+                        msg = msg.format(key, yaml_name)
                         LOGGER.error(msg)
                         raise AutoProcessorError(msg)
                 else:
@@ -324,13 +326,13 @@ class AutoProcessor(Processor):
                     self.attrs[tags[-1]] = val
                 else:
                     msg = 'key not found in attrs:key={}, file={}'
-                    msg = msg.format(tags[-1], yaml_source.source_id)
+                    msg = msg.format(tags[-1], yaml_name)
                     LOGGER.error(msg)
                     raise AutoProcessorError(msg)
 
             else:
                 msg = 'invalid override:key={}, file={}'
-                msg = msg.format(key, yaml_source.source_id)
+                msg = msg.format(key, yaml_name)
                 LOGGER.error(msg)
                 raise AutoProcessorError(msg)
 
