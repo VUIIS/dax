@@ -859,7 +859,8 @@ class InterfaceTemp(Interface):
         resource_list = intf._get_json(post_uri)
         return resource_list
 
-    def get_assessor_out_resources(projectid, subjectid, sessionid, assessorid):
+    def get_assessor_out_resources(
+        self, projectid, subjectid, sessionid, assessorid):
         """
         Gets a list of all of the resources for an assessor associated to a
          session/subject/project requested by the user.
