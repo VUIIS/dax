@@ -1078,6 +1078,76 @@ class InterfaceTemp(Interface):
 
         return list(assr_types)
 
+    def get_assessors(self, projectid, subjectid, sessionid):
+        """
+        List all the assessors that you have access to based on passed
+         session/subject/project.
+        :param intf: pyxnat.Interface object
+        :param projectid: ID of a project on XNAT
+        :param subjectid: ID/label of a subject
+        :param sessionid: ID/label of a session
+        :return: List of all the assessors
+        """
+        new_list = list()
+
+        if has_fs_datatypes(intf):
+            # First get FreeSurfer
+            post_uri = ASSESSORS_URI.format(project=projectid,
+                                            subject=subjectid,
+                                            session=sessionid)
+            post_uri += ASSESSOR_FS_POST_URI.format(fstype=DEFAULT_FS_DATATYPE)
+            assessor_list = intf._get_json(post_uri)
+
+            pfix = DEFAULT_FS_DATATYPE.lower()
+            for asse in assessor_list:
+                anew = {}
+                anew['ID'] = asse['ID']
+                anew['label'] = asse['label']
+                anew['uri'] = asse['URI']
+                anew['assessor_id'] = asse['ID']
+                anew['assessor_label'] = asse['label']
+                anew['assessor_uri'] = asse['URI']
+                anew['project_id'] = projectid
+                anew['project_label'] = projectid
+                anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+                anew['session_id'] = asse['session_ID']
+                anew['session_label'] = asse['session_label']
+                anew['procstatus'] = asse['%s/procstatus' % pfix]
+                anew['qcstatus'] = asse['%s/validation/status' % pfix]
+                anew['proctype'] = 'FreeSurfer'
+                anew['xsiType'] = asse['xsiType']
+                new_list.append(anew)
+
+        if has_genproc_datatypes(intf):
+            # Then add genProcData
+            post_uri = ASSESSORS_URI.format(project=projectid,
+                                            subject=subjectid,
+                                            session=sessionid)
+            post_uri += ASSESSOR_PR_POST_URI.format(pstype=DEFAULT_DATATYPE)
+            assessor_list = intf._get_json(post_uri)
+
+            pfix = DEFAULT_DATATYPE.lower()
+            for asse in assessor_list:
+                anew = {}
+                anew['ID'] = asse['ID']
+                anew['label'] = asse['label']
+                anew['uri'] = asse['URI']
+                anew['assessor_id'] = asse['ID']
+                anew['assessor_label'] = asse['label']
+                anew['assessor_uri'] = asse['URI']
+                anew['project_id'] = projectid
+                anew['project_label'] = projectid
+                anew['subject_id'] = asse['xnat:imagesessiondata/subject_id']
+                anew['session_id'] = asse['session_ID']
+                anew['session_label'] = asse['session_label']
+                anew['procstatus'] = asse['%s/procstatus' % pfix]
+                anew['proctype'] = asse['%s/proctype' % pfix]
+                anew['qcstatus'] = asse['%s/validation/status' % pfix]
+                anew['xsiType'] = asse['xsiType']
+                new_list.append(anew)
+
+        return sorted(new_list, key=lambda k: k['label'])
+
 
 class AssessorHandler(object):
     """

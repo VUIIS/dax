@@ -925,7 +925,11 @@ def download_specific_assessor():
             OPTIONS.selectionAssessor.split('-x-')[0:3])))
         assessor_dict['label'] = OPTIONS.selectionAssessor
         assessor_dict['subject_id'] = 'proc:genProcData'
-        assessor_obj = XnatUtils.select_assessor(XNAT, assessor_dict['label'])
+        assessor_obj = xnat.select_assessor(
+            assessor_dict['project_id'],
+            assessor_dict['subject_label'],
+            assessor_dict['session_label'],
+            assessor_dict['assessor_label'])
         if not assessor_obj.exists():
             LOGGER.info('  ->WARNING: No processor with the label given.')
         else:

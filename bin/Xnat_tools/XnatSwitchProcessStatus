@@ -251,7 +251,7 @@ def filter_assessors(xnat, project, args, assessors, has_fs_datatypes=False,
 
     if args.sessions:
         if args.sessions == 'all':
-            sessions = XnatUtils.list_experiments(xnat, project)
+            sessions = xnat.get_sessions(project)
             for session in sessions:
                 assess.append(XnatUtils.filter_list_dicts_regex(assessors, 'session_label', session['session_label'], args.full_regex))
         elif args.sessions != 'all':
@@ -442,14 +442,15 @@ def set_need_inputs_proctype(xnat, assessor, need_inputs, full_regex=False):
     :param full_regex: use full regex when matching
     :return: None
     """
-    ni_assessors = XnatUtils.list_assessors(
-        xnat, assessor['project_id'], assessor['subject_label'],
+    ni_assessors = xnat.get_assessors(
+        assessor['project_id'],
+        assessor['subject_label'],
         assessor['session_label'])
     ni_assessors = XnatUtils.filter_list_dicts_regex(
         ni_assessors, 'proctype', need_inputs, full_regex=full_regex)
 
     for a_linked_dict in ni_assessors:
-        assessor_obj = XnatUtils.select_assessor(xnat, a_linked_dict['label'])
+        assessor_obj = xnat.select_assessor(a_linked_dict['label'])
         if assessor_obj.exists():
             if a_linked_dict['xsiType'] == XnatUtils.DEFAULT_FS_DATATYPE:
                 set_proc_status(assessor_obj, task.NEED_INPUTS,
@@ -457,8 +458,7 @@ def set_need_inputs_proctype(xnat, assessor, need_inputs, full_regex=False):
             else:
                 set_proc_status(assessor_obj, task.NEED_INPUTS)
 
-            li_assessors = XnatUtils.list_assessor_out_resources(
-                xnat,
+            li_assessors = xnat.get_assessor_out_resources(
                 a_linked_dict['project_id'],
                 a_linked_dict['subject_id'],
                 a_linked_dict['session_id'],
@@ -577,8 +577,7 @@ def set_status_assessor(xnat, assessor, status,
                 for resource in resources:
                     delete_assr_resource(assessor_obj, resource)
             else:
-                resources = XnatUtils.list_assessor_out_resources(
-                    xnat,
+                resources = xnat.get_assessor_out_resources(
                     assessor['project_id'], assessor['subject_label'],
                     assessor['session_label'], assessor['label'])
                 for resource in resources:

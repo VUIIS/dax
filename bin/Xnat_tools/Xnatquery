@@ -107,7 +107,7 @@ def query_session(xnat, project, subject, session, qall=False):
                    qall)
 
     print('      *** PROCESSES ***')
-    assrs = XnatUtils.list_assessors(xnat, project, subject, session)
+    assrs = xnat.get_assessors(project, subject, session)
     for assessor in assrs:
         query_assessor(xnat, assessor['label'], qall)
 
@@ -125,7 +125,7 @@ def query_scan(xnat, project, subject, session, scan, scantype, qall=False):
     """
     print('       - %s -- %s' % (scan, scantype))
     if qall:
-        for resource in XnatUtils.list_scan_resources(xnat, project, subject,
+        for resource in xnat.get_scan_resources(project, subject,
                                                       session, scan):
             print('         -> %s' % (resource['label']))
 
@@ -191,8 +191,8 @@ def run_xnat_query(args):
                     utils.display_item(args.project, args.subject,
                                        args.session)
                     if args.scan:
-                        scan_obj = XnatUtils.select_obj(
-                            xnat, args.project, args.subject, args.session,
+                        scan_obj = xnat.select_scan(
+                            args.project, args.subject, args.session,
                             args.scan)
                         scan_type = scan_obj.attrs.get('type')
                         query_scan(args.project, args.subject, args.session,
