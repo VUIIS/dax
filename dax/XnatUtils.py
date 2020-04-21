@@ -880,7 +880,7 @@ class InterfaceTemp(Interface):
                                           subject=subjectid,
                                           session=sessionid,
                                           assessor=assessorid)
-        resource_list = intf._get_json(post_uri)
+        resource_list = self._get_json(post_uri)
         return resource_list
 
     @staticmethod
@@ -1097,7 +1097,7 @@ class InterfaceTemp(Interface):
                                             subject=subjectid,
                                             session=sessionid)
             post_uri += ASSESSOR_FS_POST_URI.format(fstype=DEFAULT_FS_DATATYPE)
-            assessor_list = intf._get_json(post_uri)
+            assessor_list = self._get_json(post_uri)
 
             pfix = DEFAULT_FS_DATATYPE.lower()
             for asse in assessor_list:
@@ -1125,7 +1125,7 @@ class InterfaceTemp(Interface):
                                             subject=subjectid,
                                             session=sessionid)
             post_uri += ASSESSOR_PR_POST_URI.format(pstype=DEFAULT_DATATYPE)
-            assessor_list = intf._get_json(post_uri)
+            assessor_list = self._get_json(post_uri)
 
             pfix = DEFAULT_DATATYPE.lower()
             for asse in assessor_list:
