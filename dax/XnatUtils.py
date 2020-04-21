@@ -872,7 +872,7 @@ class InterfaceTemp(Interface):
         :return: List of resources for the assessor
         """
         # Check that the assessors types are present on XNAT
-        if not has_genproc_datatypes(intf):
+        if not has_genproc_datatypes(self):
             print('WARNING: DAX datatypes not found on XNAT')
             return list()
 
@@ -1091,7 +1091,7 @@ class InterfaceTemp(Interface):
         """
         new_list = list()
 
-        if has_fs_datatypes(intf):
+        if has_fs_datatypes(self):
             # First get FreeSurfer
             post_uri = ASSESSORS_URI.format(project=projectid,
                                             subject=subjectid,
@@ -1119,7 +1119,7 @@ class InterfaceTemp(Interface):
                 anew['xsiType'] = asse['xsiType']
                 new_list.append(anew)
 
-        if has_genproc_datatypes(intf):
+        if has_genproc_datatypes(self):
             # Then add genProcData
             post_uri = ASSESSORS_URI.format(project=projectid,
                                             subject=subjectid,
