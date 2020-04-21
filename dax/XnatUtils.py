@@ -841,6 +841,47 @@ class InterfaceTemp(Interface):
 
         return sorted(new_list, key=lambda k: k['label'])
 
+    def get_scan_resources(self, projectid, subjectid, sessionid, scanid):
+        """
+        Gets a list of all of the resources for a scan associated to a
+         session/subject/project requested by the user.
+        :param intf: pyxnat.Interface object
+        :param projectid: ID of a project on XNAT
+        :param subjectid: ID/label of a subject
+        :param sessionid: ID/label of a session
+        :param scanid: ID of a scan to get resources for
+        :return: List of resources for the scan
+        """
+        post_uri = SC_RESOURCES_URI.format(project=projectid,
+                                           subject=subjectid,
+                                           session=sessionid,
+                                           scan=scanid)
+        resource_list = intf._get_json(post_uri)
+        return resource_list
+
+    def get_assessor_out_resources(projectid, subjectid, sessionid, assessorid):
+        """
+        Gets a list of all of the resources for an assessor associated to a
+         session/subject/project requested by the user.
+        :param intf: pyxnat.Interface object
+        :param projectid: ID of a project on XNAT
+        :param subjectid: ID/label of a subject
+        :param sessionid: ID/label of a session
+        :param assessorid: ID/label of an assessor to get resources for
+        :return: List of resources for the assessor
+        """
+        # Check that the assessors types are present on XNAT
+        if not has_genproc_datatypes(intf):
+            print('WARNING: DAX datatypes not found on XNAT')
+            return list()
+
+        post_uri = A_RESOURCES_URI.format(project=projectid,
+                                          subject=subjectid,
+                                          session=sessionid,
+                                          assessor=assessorid)
+        resource_list = intf._get_json(post_uri)
+        return resource_list
+
     @staticmethod
     def object_type_from_path(path):
         elems = path.split('/')
