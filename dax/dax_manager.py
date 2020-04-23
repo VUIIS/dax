@@ -595,9 +595,13 @@ class DaxManager(object):
         LOGGER.info('count of already running builds:' + str(cur_build_count))
 
         num_build_threads = max_build_count - cur_build_count
-        build_pool = Pool(processes=num_build_threads)
-        build_results = self.queue_builds(build_pool, self.settings_list)
-        build_pool.close()  # Close the pool, I dunno if this matters
+        if num_build_threads < 1:
+            LOGGER.info('max builds already:{}'.format(str(cur_build_count)))
+        else:
+            LOGGER.info('starting {} more builds'.format(str(num_build_threads)))
+            build_pool = Pool(processes=num_build_threads)
+            build_results = self.queue_builds(build_pool, self.settings_list)
+            build_pool.close()  # Close the pool, I dunno if this matters
 
         # Update
         LOGGER.info('updating')
