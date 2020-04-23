@@ -255,7 +255,10 @@ class AutoProcessor(Processor):
         :param user_inputs: dictionary of tag, value. E.G:
             user_inputs = {'default.spider_path': /.../Spider....py'}
         """
+        yaml_name = yaml_source.source_id
+
         for key, val in list(user_inputs.items()):
+            LOGGER.debug('overriding:key={}, file={}'.format(key, yaml_name))
             tags = key.split('.')
             if key.startswith('inputs.default'):
                 # change value in inputs
@@ -264,35 +267,74 @@ class AutoProcessor(Processor):
                 elif tags[-1] in list(self.extra_user_overrides.keys()):
                     self.extra_user_overrides[tags[-1]] = val
                 else:
-                    msg = 'key {} not found in the default inputs for \
-auto processor defined by yaml file {}'
-                    LOGGER.warn(msg.format(tags[-1], yaml_source.source_id))
+                    msg = 'key not found in default inputs:key={}, file={}'
+                    msg = msg.format(tags[-1], yaml_name)
+                    LOGGER.error(msg)
+                    raise AutoProcessorError(msg)
+
             elif key.startswith('inputs.xnat'):
                 # change value in self.xnat_inputs
-                if tags[2] in list(self.xnat_inputs.keys()):
-                    # scan number or assessor number (e.g: scan1)
-                    for obj in self.xnat_inputs[tags[2]]:
-                        if tags[3] == obj['name']:
-                            if tags[4] == 'resources':
-                                msg = 'You can not change the resources \
-tag from the processor yaml file {}. Unauthorised operation.'
-                                LOGGER.warn(msg.format(yaml_source.source_id))
-                            else:
-                                LOGGER.info('overriding setting:{}:{}'.format(
-                                    tags[4], str(val)))
-                                obj[tags[4]] = val
+                if tags[2] not in list(self.xnat_inputs.keys()):
+                    msg = 'key not found in xnat inputs:key={}, file={}'
+                    msg = msg.format(tags[3], yaml_name)
+                    LOGGER.error(msg)
+                    raise AutoProcessorError(msg)
+
+                # Match the scan number or assessor number (e.g: scan1)
+                sobj = None
+                for obj in self.xnat_inputs[tags[2]]:
+                    if tags[3] == obj['name']:
+                        sobj = obj
+                        break
+
+                if sobj is None:
+                    msg = 'invalid override:key={}, file={}'
+                    msg.format(key, yaml_name)
+                    LOGGER.error(msg)
+                    raise AutoProcessorError(msg)
+
+                if tags[4] == 'resources':
+                    if tags[6] == 'fmatch':
+                        # Match the resource name
+                        robj = None
+                        for obj in sobj['resources']:
+                            if tags[5] == obj['varname']:
+                                robj = obj
+                                break
+
+                        if robj is None:
+                            msg = 'invalid override:key={}, file={}'
+                            LOGGER.error(msg)
+                            raise AutoProcessorError(msg)
+
+                        msg = 'overriding fmatch:key={}, val={}'
+                        msg = msg.format(key, val)
+                        LOGGER.debug(msg)
+                        robj['fmatch'] = val
+                    else:
+                        msg = 'invalid override:key={}, file={}'
+                        msg = msg.format(key, yaml_name)
+                        LOGGER.error(msg)
+                        raise AutoProcessorError(msg)
                 else:
-                    msg = 'key {} not found in the xnat inputs for auto \
-processor defined by yaml file {}'
-                    LOGGER.warn(msg.format(tags[3], yaml_source.source_id))
+                    LOGGER.info('overriding:{}:{}'.format(tags[4], str(val)))
+                    obj[tags[4]] = val
+                   
             elif key.startswith('attrs'):
                 # change value in self.attrs
                 if tags[-1] in list(self.attrs.keys()):
                     self.attrs[tags[-1]] = val
                 else:
-                    msg = 'key {} not found in the attrs for auto processor \
-defined by yaml file {}'
-                    LOGGER.warn(msg.format(tags[-1], yaml_source.source_id))
+                    msg = 'key not found in attrs:key={}, file={}'
+                    msg = msg.format(tags[-1], yaml_name)
+                    LOGGER.error(msg)
+                    raise AutoProcessorError(msg)
+
+            else:
+                msg = 'invalid override:key={}, file={}'
+                msg = msg.format(key, yaml_name)
+                LOGGER.error(msg)
+                raise AutoProcessorError(msg)
 
     def _read_yaml(self, yaml_source):
         """
