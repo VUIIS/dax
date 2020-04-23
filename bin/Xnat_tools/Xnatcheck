@@ -556,8 +556,7 @@ def get_resource_list(xnat, object_dict, variable_name):
     :return: list object
     """
     if 'scan' in variable_name:
-        return XnatUtils.list_scan_resources(
-            xnat,
+        return xnat.get_scan_resources(
             object_dict['project_id'],
             object_dict['subject_label'],
             object_dict['session_label'],
@@ -569,14 +568,14 @@ def get_resource_list(xnat, object_dict, variable_name):
             object_dict['session_label'],
             object_dict['label'])
     elif 'session' in variable_name:
-        return XnatUtils.list_experiment_resources(
-            xnat,
+        return xnat.get_session_resources(
             object_dict['project_id'],
             object_dict['subject_label'],
             object_dict['session_label'])
     else:
-        return xnat.get_subject_resources(object_dict['project_id'],
-                                          object_dict['subject_label'])
+        return xnat.get_subject_resources(
+            object_dict['project_id'], 
+            object_dict['subject_label'])
 
 
 def get_resource(xnat, object_dict, variable_name, resource_label):
@@ -590,30 +589,28 @@ def get_resource(xnat, object_dict, variable_name, resource_label):
     :return: pyxnat Eobject
     """
     if 'scan' in variable_name:
-        return XnatUtils.select_obj(xnat,
-                                    project_id=object_dict['project_id'],
-                                    subject_id=object_dict['subject_id'],
-                                    session_id=object_dict['session_id'],
-                                    scan_id=object_dict['scan_id'],
-                                    resource=resource_label)
+        return xnat.select_scan_resource(
+            object_dict['project_id'],
+            object_dict['subject_id'], 
+            object_dict['session_id'], 
+            object_dict['scan_id'], 
+            resource_label)
     elif 'assessor' in variable_name:
-        return XnatUtils.select_obj(xnat,
-                                    project_id=object_dict['project_id'],
-                                    subject_id=object_dict['subject_id'],
-                                    session_id=object_dict['session_id'],
-                                    assessor_id=object_dict['label'],
-                                    resource=resource_label)
+        return xnat.select_assessor_resource(
+            object_dict['project_id'],
+            object_dict['subject_id'],
+            object_dict['session_id'],
+            object_dict['label'],
+            resource_label)
     elif 'session' in variable_name:
-        return XnatUtils.select_obj(xnat,
-                                    project_id=object_dict['project_id'],
-                                    subject_id=object_dict['subject_id'],
-                                    session_id=object_dict['session_id'],
-                                    resource=resource_label)
+        return xnat.select_session(
+            object_dict['project_id'],
+            object_dict['subject_id'],
+            object_dict['session_id']).resource(resource_label)
     else:
-        return XnatUtils.select_obj(xnat,
-                                    project_id=object_dict['project_id'],
-                                    subject_id=object_dict['subject_id'],
-                                    resource=resource_label)
+        return xnat.select_subject(
+            object_dict['project_id'],
+            object_dict['subject_id']).resource(resource_label)
 
 
 def getmemory(memory_str):
@@ -837,7 +834,7 @@ def generate_xnat_object_list(host, username, projects, filters, filters_r):
         print(' WARNING: extracting information from XNAT for a full project \
 might take some time. Please be patient.\n')
         for project in projects:
-            _proj = XnatUtils.select_obj(xnat, project_id=project)
+            _proj = xnat.select_project(project)
             if not _proj.exists():
                 msg = ' - WARNING: Project <%s> does not exist on Xnat.'
                 print(msg % (project))

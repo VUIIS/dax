@@ -291,8 +291,7 @@ def upload_demographic_data(xnat, demographics):
     :return: None
     """
     for obj_dict in sorted(demographics, key=lambda k: k['project_id']):
-        subject_obj = XnatUtils.select_obj(
-            xnat,
+        subject_obj = xnat.select_subject(
             project_id=obj_dict['project_id'],
             subject_id=obj_dict['subject_label']
         )

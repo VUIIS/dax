@@ -86,7 +86,7 @@ The format is project-x-subject-x-session'
         subject = get_subject_id(session_label, sessions_list)
         session = session_label
 
-    project_obj = XnatUtils.select_obj(xnat, project)
+    project_obj = xnat.select_project(project)
     if not project_obj.exists():
         err = _err.format(label='Project', value=project)
         raise XnatToolsUserError(__exe__, err)
@@ -128,7 +128,7 @@ def change_date(xnat, project, session, sessions_list):
     :return: None
     """
     subject = get_subject_id(session, sessions_list)
-    session_obj = XnatUtils.select_obj(xnat, project, subject, session)
+    session_obj = xnat.select_project(project, subject, session)
     # set the date to nothing:
     session_obj.attrs.set('xnat:mrSessionData/original', ' ')
     print('   ->Session changed to need update.')
@@ -192,7 +192,7 @@ def run_xnat_session_update(args):
 
         projects = args.projects.split(',')
         for ind, project in enumerate(projects):
-            p_obj = XnatUtils.select_obj(xnat, project)
+            p_obj = xnat.select_project(project)
             if not p_obj.exists():
                 err = "project %s not found on XNAT."
                 raise XnatToolsUserError(__exe__, err % project)
