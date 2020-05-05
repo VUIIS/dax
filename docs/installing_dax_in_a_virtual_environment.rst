@@ -41,7 +41,7 @@ Ubuntu Setup
 Create the Virtual Environment
 ------------------------------
 
-In production accounts, dax1.0 is to be installed only on virtual environments(anaconda, virtualenv, etc) on Python-3.6. Current DAX1.0 virtual environment is in
+In production accounts, dax is to be installed only on virtual environments (anaconda, virtualenv, etc) on Python-3.6. Current DAX virtual environment is in
 
 ::
 
@@ -103,7 +103,7 @@ If everything ran properly, then the import should work without error.
 Installing Specific Versions of DAX
 -----------------------------------
 
-To install a specific version of DAX (this is for 1.0.0)
+To install a specific version of DAX by its tag in the github repository (this example is for 1.0.0)
 
 ::
 
@@ -122,3 +122,4 @@ Instead of using pip, we can clone the repository locally. This is more useful i
         XnatCheckLogin --host http://129.59.135.143:8080/xnat
         # When prompted, enter user/pwd combination
         # Yes to use as default host
+	
