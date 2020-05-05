@@ -22,11 +22,13 @@ Requirements
 
 --------------
 
-Requirements for DAX: \* Linux or MacOS operating system (has not been
-tested on windows yet). \* Python installed with version 2.7.X \* git or
-pip installed
+Requirements for DAX: 
 
-To check that your python version is 2.7.X:
+- Linux or MacOS operating system (has not been tested on windows yet). 
+- Python installed with version 3.X 
+-git or pip installed
+
+To check that your python version is 3.X:
 
 ::
 
@@ -174,7 +176,7 @@ With pip:
 
     sudo pip install dax
     #or 
-    pip install https://github.com/VUIIS/dax/archive/master.zip --upgrade    
+    pip install git+https://github.com/VUIIS/dax.git --upgrade    
     #to get the last version of dax and not the version on pip
 
 OR with git:
@@ -182,47 +184,16 @@ OR with git:
 ::
 
     git clone git://github.com/VUIIS/dax
-    cd dax
-    sudo python setup.py install
 
--  add the XNAT variables to your file ~/.xnat\_profile:
-
-Run these commands:
+Then:
 
 ::
 
-    echo "export XNAT_USER=XXXXXXXX" >> ~/.xnat_profile
-    echo "export XNAT_HOST=http://XXXXXXXXXXX" >> ~/.xnat_profile 
-
-Replace the XXXXX by your personal information.
-
--  Last step, you need to check that the file .xnat\_profile is called
-   in your .bash\_profile.
-
-To do so, use the following command to see the content of your file
-.bash\_profile:
-
-::
-
-    cat ~/.bash_profile
-
-If you don't see the line "source ~/.xnat\_profile" or ".
-~/.xnat\_profile", your configuration file is not linked to your
-bash\_profile.
-
-To do so, run:
-
-::
-
-    echo "source ~/.xnat_profile" >> ~/.bash_profile 
-
--  Apply the changes:
-
-Run this command:
-
-::
-
-    . ~/.xnat_profile
+    dax setup
+    XnatCheckLogin --host http://129.59.135.143:8080/xnat 
+    
+- When prompted, enter user/pwd combination
+- Say yes to use as default host
 
 You are ready to go.
 
@@ -239,7 +210,7 @@ With pip:
 
     sudo pip install dax
     # or 
-    pip install https://github.com/VUIIS/dax/archive/master.zip --upgrade    
+    pip install git+https://github.com/VUIIS/dax.git --upgrade  
     #to get the last version of dax and not the version on pip
 
 OR with git:
@@ -247,47 +218,16 @@ OR with git:
 ::
 
     git clone git://github.com/VUIIS/dax
-    cd dax
-    sudo python setup.py install
 
--  add the XNAT variables to your file ~/.xnat\_profile:
-
-Run these commands:
+Then:
 
 ::
 
-    echo "export XNAT_USER=XXXXXXXX" >> ~/.xnat_profile
-    echo "export XNAT_HOST=http://xnat.vanderbilt.edu:8080/xnat" >> ~/.xnat_profile 
-
-Replace the XXXXX by your personal information.
-
--  Last step, you need to check that the file .xnat\_profile is called
-   in your .bash\_profile.
-
-To do so, use the following command to see the content of your file
-.bash\_profile:
-
-::
-
-    cat ~/.bash_profile
-
-If you don't see the line "source ~/.xnat\_profile" or ".
-~/.xnat\_profile", your configuration file is not linked to your
-bash\_profile.
-
-To do so, run:
-
-::
-
-    echo "source ~/.xnat_profile" >> ~/.bash_profile 
-
--  Apply the changes:
-
-Run this command:
-
-::
-
-    . ~/.xnat_profile
+    dax setup
+    XnatCheckLogin --host http://129.59.135.143:8080/xnat 
+    
+- When prompted, enter user/pwd combination
+- Say yes to use as default host
 
 You are ready to go.
 
@@ -304,34 +244,11 @@ installation:
 ::
 
     git clone git://github.com/VUIIS/dax
-    cd dax
-    python setup.py install --user
-
-You will need to add the local folder of dax/Xnat\_tools executables to
-your PATH:
-
--  For Linux: echo "export PATH=\ :sub:`/.local/bin:$PATH">>`/.bashrc
-
--  For MacOS: echo "export PATH=~/Library/Python/2.7/bin/:$PATH" >>
-   ~/.profile
-
-If you don't see a line like "source ~/.profile" or ". ~/.profile" (same
-for .bashrc), your configuration file is not linked to your
-bash\_profile. To do so, run:
-
-::
-
-    echo "source ~/.profile" >> ~/.bash_profile    
-    # or for bashrc
-    echo "source ~/.bashrc" >> ~/.bash_profile
-
-Run your configuration file to apply the changes:
-
-::
-
-    . ~/.profile   
-    #or for bashrc
-    . ~/.bashrc
+    dax setup
+    XnatCheckLogin --host http://129.59.135.143:8080/xnat 
+    
+- When prompted, enter user/pwd combination
+- Say yes to use as default host
 
 --------------
 
