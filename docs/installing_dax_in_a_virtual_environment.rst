@@ -109,17 +109,4 @@ To install a specific version of DAX by its tag in the github repository (this e
 
 	pip install git+https://github.com/VUIIS/dax.git@v1.0.0
 
-----------------------------------
-Alternative Installation (non-pip)
-----------------------------------
 
-Instead of using pip, we can clone the repository locally. This is more useful if you might work on DAX development for instance:
-
-::
-
-	git clone https://github.com/VUIIS/dax.git /local/path/dax
-	dax setup
-        XnatCheckLogin --host http://129.59.135.143:8080/xnat
-        # When prompted, enter user/pwd combination
-        # Yes to use as default host
-	
