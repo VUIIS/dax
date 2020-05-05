@@ -32,7 +32,7 @@ ON XNAT webapp:
 
 3) click Setup Additional Data Type
 
-4) for fs:fsData
+4) for fs:fsData (NOTE: the fs:fsData datatype is deprecated. Install only if the need is known to exist)
 
 4.a) select fs:fsData and valid without adding anything at first.
 
