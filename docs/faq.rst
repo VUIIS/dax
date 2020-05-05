@@ -13,15 +13,6 @@ If you are not, you can read the XNAT documentation `here <https://wiki.xnat.org
 #. What are Spiders?
     Spiders are a python script. The purpose of the script is to download data from XNAT, run an image processing pipeline, and then prepare the data to be uploaded to XNAT. Spiders are run on the grid because they can take hours to days.
 
-#. My assessor says "NO_DATA". What does that mean?
-    An assessor procstatus of NO_DATA means that the job will never run, but the assessor is showing up to remind you that you set this spider to always run. For example, if you have a process that runs a pipeline and the can types don't exist in the session, the status would be NO_DATA. However, if at some later point you upload these scans back to the session, you will need to change the procstatus of the corresponding assessor to NO_DATA. This will not automatically be done for you.
-
-#. My assessor says "NEED_INPUTS". What does that mean?
-    An assessor procstatus of NEED_INPUTS means that something required for the job to run does not exist yet. Or more simply, the run dependencies have not yet been met. Such dependencies could be another assessor being completed and QA'd, waiting for a manually labeled ROI to be uploaded to a resource, or a custom conversion of an EDAT file.
-
-#. My assessor says "JOB_FAILED". What does that mean?
-    An assessor procstatus means that somehow your job failed on the grid. There are many different reasons why this could have happened. Your best bet is to consult the OUTLOG resource of the assesor. This will be the full log of what was printed to STDOUT and STDERR. If the OUTLOG resource doesn't exist yet, it has not yet been uploaded, but wil be automatically uploaded shortly.
-
 #. How do I know the EXACT command line call that was made?
     The PBS resource contains the script that was submitted to the grid scheduler for execution. You can view this file for the exact command line call(s) that were executed on the grid.
 
