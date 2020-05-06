@@ -32,10 +32,10 @@ Inside the package DAX, there is a dax_settings.py file. This file contains vari
 
 By default, the package is set to use the settings used by Vanderbilt University. It's set for SLURM cluster.
 
-How to Write a ProjectSettings.py File
+How to Write a ProjectSettings.yaml File
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Two of the DAX executables will need a ProjectSettings.py file to run. This file is a python script providing the description of each modules/processors that need to run for a project or a list of projects. You can learn on how to write a ProjectSettings.py file here: Writing a settings file.
+Two of the DAX executables will need a ProjectSettings.py file to run. This file is a python script providing the description of each modules/processors that need to run for a project or a list of projects. You can learn on how to write a ProjectSettings.yaml file here: Writing a settings file.
 
 ---------------
 DAX Executables
@@ -43,11 +43,11 @@ DAX Executables
 
 The main executables in the DAX package are:
 
-- dax_build
-- dax_update_tasks
-- dax_launch
-- dax_upload
-- dax_manager
+- dax build
+- dax update
+- dax launch
+- dax upload
+- dax manager
 
 See image below to understand the role of each executable:
 
@@ -56,12 +56,12 @@ See image below to understand the role of each executable:
 DAX Build
 ~~~~~~~~~
 
-dax_build will build all the projects in your ProjectSettings.py file. It will check each sessions of your project and run the different modules to generate raw images (e.g: converting dicom to nifti, generating preview, extracting physlog, etc...) and generates the assessors from the processors set in the ProjectSettings.py file.
+dax build will build all the projects in your ProjectSettings.yaml file. It will check each session of your project and run the different modules (e.g: converting dicom to nifti, generating preview, extracting physlog, etc...) and generates the assessors from the processors set in the ProjectSettings.yaml file.
 
-DAX Update Tasks
+DAX Update
 ~~~~~~~~~~~~~~~~
 
-dax_update_tasks handles assessors for all the projects in your ProjectSettings.py file. It will get the list of all the assessors that are "open", meaning with a status from the list below and update each assessors status.
+dax update handles assessors for all the projects in your ProjectSettings.yaml file. It will get the list of all the assessors that are "open", meaning with a status from the list below and update each assessors status.
 
 Open assessors status:
 
@@ -79,11 +79,11 @@ It will submit jobs to the cluster for each assessors that have the status NEED_
 DAX Upload
 ~~~~~~~~~~
 
-Each job on the cluster will not upload data directly to XNAT but copies the data to a temporary folder on the computer (configured in DAX_settings.py). dax_upload will read each processed data from this folder and will upload them on XNAT under an assessor that was previously created by dax_build
+Each job on the cluster will not upload data directly to XNAT but copies the data to a temporary folder on the computer. dax upload will read each processed data from this folder and will upload them on XNAT under an assessor that was previously created by dax build.
 
 DAX Manager
 ~~~~~~~~~~~
 
-dax_manager is a last feature of the package that allows users to manage multiple projects from REDCap (https://redcap.vanderbilt.edu). It will automatically generate a ProjectSettings.py file from the REDCap database and will run dax_build/dax_update_tasks/dax_launch from those files.
+dax manager allows users to manage multiple projects from REDCap (https://redcap.vanderbilt.edu). It will automatically generate a ProjectSettings.yaml file from the REDCap database and will run dax build/update/launch/upload from those files.
 
 On the REDCap project, each record corresponds to a project. Each library is a module or a processor that can be enabled and customized by the user.

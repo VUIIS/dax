@@ -8,7 +8,7 @@ If you are not, you can read the XNAT documentation `here <https://wiki.xnat.org
     DAX is an open source project that uses the pyxnat wrapper for the REST api to automate pipeline running on a DRMAA complaint grid.
 
 #. What are Modules?
-    Modules are a special class in DAX. They represent, generally, a task that should not be preformed on the grid. The purpose for this was to not fill up the grid queue with jobs that take 20-30 seconds. Examples of such tasks could be converting a DICOM to a NIfTI file, changing the scan type, archiving a session from the prearchive, or performing skull-stripping. As you can see, these tasks can all be considered "light-weight" and thus probably dont have a place on the grid.
+    Modules are a special class in DAX. They represent, generally, a task that should not be performed on the grid. The purpose for this was to not fill up the grid queue with jobs that take 20-30 seconds. Examples of such tasks could be converting a DICOM to a NIfTI file, changing the scan type, archiving a session from the prearchive, or performing skull-stripping. As you can see, these tasks can all be considered "light-weight" and thus probably dont have a place on the grid.
 
 #. What are Spiders?
     Spiders are a python script. The purpose of the script is to download data from XNAT, run an image processing pipeline, and then prepare the data to be uploaded to XNAT. Spiders are run on the grid because they can take hours to days.

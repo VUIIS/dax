@@ -15,10 +15,10 @@ On XNAT VM:
 
 3) Copy plugins to XNAT
 
-Copy the files dax-plugin-fsData-1.0.0.jar and dax-plugin-genProcData-1.4.0.jar to ${XNAT_HOME}/plugins
+Copy the files dax-plugin-fsData-X.Y.Z.jar and dax-plugin-genProcData-X.Y.Z.jar to ${XNAT_HOME}/plugins
 
-The jar\_files folder is located in dax package at the path
-dax/dax/xnat\_datatypes/jar\_files. You can download the files from github
+The plugins folder is located in the dax package at the path
+dax/misc/xnat-plugins/files. You can download the files from github
 repository: https://github.com/VUIIS/dax .
 
 4) Start tomcat and confirm that plugins are installed
@@ -88,5 +88,5 @@ be able to delete assessor with the following values:
 
 5.d) click submit and then accept defaults for subsequent screens
 
-You are now ready to use the two assessors fs:fsData and
+You are now ready to use the two assessor types fs:fsData and
 proc:genProcData

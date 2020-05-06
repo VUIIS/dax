@@ -36,7 +36,7 @@ To check that your python version is 3.X:
 
 --------------
 
-For Linux user
+For Linux user (Debian/Ubuntu)
 ~~~~~~~~~~~~~~
 
 pip install
@@ -62,12 +62,9 @@ To install git if you don't have it:
 For Mac user
 ~~~~~~~~~~~~
 
-SVN install
-^^^^^^^^^^^
-
-If svn command doesn't exist on you mac, install xcode from the Apple
+Install xcode from the Apple
 Store. Run it and go to Xcode -> Preferences -> Downloads -> Command
-Line Tools -> Install. Now, you can use svn.
+Line Tools -> Install.
 
 A quick way to check the installation of Xcode and command line
 developer is to run:

@@ -32,7 +32,7 @@ An assessor with the status JOB_FAILED means that the script failed to run on th
 Set/Reset Assessors to Run
 --------------------------
 
-If you need to set an assessors to run or reset a large number of assessors to run because they failed, you can use XnatSwitchProcessStatus. We are going to reset all the dtiQA_v2 assessors on our test project VUSTP to NEED_TO_RUN because we want them to rerun:
+If you need to set an assessor to run or reset a large number of assessors to run because they failed, you can use XnatSwitchProcessStatus. We are going to reset all the dtiQA_v2 assessors on our test project VUSTP to NEED_TO_RUN because we want them to rerun:
 
 - XnatSwitchProcessStatus -p VUSTP -s NEED_TO_RUN -t dtiQA_v2 -d
 
@@ -61,8 +61,6 @@ The result is the following:
 	################################################################
 	# XNATCHECK #
 	# #
-	# Developed by the masiLab Vanderbilt University, TN, USA. #
-	# If issues, email benjamin.c.yvernault@vanderbilt.edu #
 	# Usage: #
 	# Check XNAT data (subject/session/scan/assessor/resource) #
 	# Parameters : #
@@ -138,7 +136,7 @@ The result is the following:
 	      JOB_FAILED,Job Pending
 	===================================================================
 
-You can then check the different errors for each assessor and restart the assessors using XnatSwitchProcessStatus as we saw earlier. You can also modify the header of the output to have more information (see available header name with -printformat). For example to see the walltime and memory used as well as the starting date for the job that COMPLETE for the session VUSTP1a:
+You can then check the different errors for each assessor and restart the assessors using XnatSwitchProcessStatus as we saw earlier. You can also modify the header of the output to have more information (see available header name with -printformat). For example, to see the walltime and memory used as well as the starting date for the jobs that are COMPLETE for the session VUSTP1a:
 
 - Xnatcheck -p VUSTP --filters procstatus=COMPLETE session_label=VUSTP1a --format assessor_label,proctype,procstatus,walltimeused,memused,jobstartdate
 
@@ -165,41 +163,22 @@ The output now for the csv is:
 	assessor,VUSTP-x-VUSTP1-x-VUSTP1a-x-intra_sess_reg,intra_sess_reg,COMPLETE,
 	      00:03:34,318328,2015-02-04
 
--------------------------------------------
-Reset Sessions to Force DAX to Update Again
--------------------------------------------
-
-If a session doesn't get updated for a long time, it might be because the update date on XNAT has not been properly updated (automatically). If the session last update date from DAX is more recent that the last update date on XNAT, the session will be skipped during dax_update. A solution is to run Xnatsessionupdate to reset the last_update_date for DAX to be able to update the session during the next dax_update:
-
-- Xnatsessionupdate -p VUSTP -s VUSTP1
-
-You can also restart for all the sessions where there is an assessors with the status NEED_INPUTS (getting updating by dax_update as well):
-
-- Xnatsessionupdate -p VUSTP -n
-
-You can if you want restart all the sessions:
-
-- Xnatsessionupdate -p VUSTP --all
-
 -----------------------------------------------------
 Run dax_update Manually on a Project (Advanced Users)
 -----------------------------------------------------
 
-If you don't know about dax executables, you can check them at DAX executables. You can run manually dax_update on a project if you want to update directly a session and not wait for the next time it will run. To do so, you will need to use this command line:
+You can run manually dax_update on a project if you want to update directly a session and not wait for the next time it will run. To do so, you will need to use this command line:
 
-- dax_update ProjectSettings.py --project PID --sessions S_ID1,S_ID2
-
-If you don't know what is the file ProjectSettings.py, you should probably avoid running this command or you should follow the tutorial on Writing a settings file.
+- dax_update ProjectSettings.yaml --project PID --sessions S_ID1,S_ID2
 
 -----------------------------------------------------
 Run dax_launch Manually on a Project (Advanced Users)
 -----------------------------------------------------
 
-If you don't know about dax executables, you can check them at DAX executables. You can run manually a dax_launch on a project if you want to submit jobs (assessors with the status NEED_TO_RUN) to the cluster and not wait for the next time it automatically runs. To do so, you will need to use this command line:
+You can run manually a dax_launch on a project if you want to submit jobs (assessors with the status NEED_TO_RUN) to the cluster and not wait for the next time it automatically runs. To do so, you will need to use this command line:
 
 - dax_launch ProjectSettings.py --project PID --sessions S_ID1,S_ID2
 
-If you don't know what is the file ProjectSettings.py, you should probably avoid running this command or you should follow the tutorial on writing a settings file.
 
 --------------------------------------------
 Common and Spurious Errors You May Encounter
@@ -243,7 +222,7 @@ and not as
 
 - inputs.xnat.scans.resource.NIFTI.fmatch
 
-Adding Directories Caused by OSError
+Adding Directories Caused by OSError (only relevant to LDAX)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 [Errno 2] No such file or directory from CRITICAL messages in past 24 hours email
@@ -253,7 +232,7 @@ Usually check /scratch/$USER/Modules_tmp, which is based on the project name, no
 - OSError: [Errno 2] No such file or directory: '/scratch/vuiisccidev/Modules_tmp/MSSeg2016/MSSeg2016_preview_nifti_ginko_settings'
 - The MSSeg2016 and MSSeg2016/MSSeg2016_preview_nifti_ginko_settings directories would need to be created
 
-Settings Directory is Missing from tmp Folder
+Settings Directory is Missing from tmp Folder (only relevant to LDAX)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We need to check REDCap. Settings files should not be in the /tmp/ folder. Normally, they would be somewhere like: 
