@@ -11,7 +11,7 @@ Table of Contents
 5.  `Run dax_update Manually on a Project (Advanced Users) <#run-dax_update-manually-on-a-project-(advanced-users)>`__
 6.  `Run dax_launch Manually on a Project (Advanced Users) <#run-dax_launch-manually-on-a-project-(advanced-users)>`__
 7.  `Common and Spurious Errors You May Encounter <#common-and-spurious-errors-you-may-encounter>`__
-8.  `Unable to Read Experiments for Projoect: XXXXXXXX <#unable-to-read-experiments-for-project:-xxxxxxxx>`__
+8.  `Unable to Read Experiments for Project: XXXXXXXX <#unable-to-read-experiments-for-project:-xxxxxxxx>`__
 9.  `Restarting a Job <#restarting-a-job>`__
 10. `Project Settings Files <#project-settings-files>`__
 11. `Adding Directories Caused by OSError <#adding-directories-caused-by-oserror>`__
