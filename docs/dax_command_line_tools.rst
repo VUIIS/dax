@@ -1,8 +1,8 @@
 DAX Command Line Tools
 ======================
 
-Table of Contents:
-~~~~~~~~~~~~~~~~~~
+Table of Contents
+~~~~~~~~~~~~~~~~~
 
 1.  `List of the Tools <#list-of-the-tools>`__
 1.  `XnatSetup <#xnatsetup>`__
