@@ -1,6 +1,9 @@
 DAX Executables
 ===============
 
+Table of Contents
+~~~~~~~~~~~~~~~~~
+
 1.  `DAX Packages <#dax-packages>`__
 2.  `How Does it Work? <#how-does-it-work>`__
 3.  `DAX Settings <#dax-settings>`__
