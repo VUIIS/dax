@@ -18,7 +18,10 @@ Install the latest release with `pip <https://pypi.org/project/pip/>`_:
 .. code::
 
    pip install dax
-
+   dax setup
+   XnatCheckLogin --host http://129.59.135.143:8080/xnat
+   # When prompted, enter user/pwd combination
+   # Yes to use as default host
 
 Contents:
 
@@ -33,4 +36,8 @@ Contents:
    how_to_contribute
    faq
    processors
-   
+   assessors_in_vuiis_xnat
+   dax_command_line_tools
+   dax_executables
+   installing_dax_in_a_virtual_environment
+   manage_a_project
