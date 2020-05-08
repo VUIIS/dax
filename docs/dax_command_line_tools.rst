@@ -5,20 +5,20 @@ Table of Contents
 ~~~~~~~~~~~~~~~~~
 
 1.  `List of the Tools <#list-of-the-tools>`__
-1.  `XnatSetup <#xnatsetup>`__
-2.  `XnatQuery <#xnatquery>`__
-3.  `XnatCheck <#xnatcheck>`__
-4.  `XnatDownload <#xnatdownload>`__
-5.  `XnatUpload <#xnatupload>`__
-6.  `XnatReport <#xnatreport>`__
-7.  `XnatSwitchProcessStatus <#xnatswitchprocessstatus>`__
-8.  `XnatSetup <#xnatsetup>`__
-9.  `XnatProcessUpload <#xnatprocessupload>`__
-10. `XnatSubjectUpdate <#xnatsubjectupdate>`__
-11. `RedCapReport <#redcapreport>`__
-12. `XnatCheckLogin <#xnatchecklogin>`__
-13. `Xnatinfo <#xnatinfo>`__
-14. `Xnatsessionupdate <#xnatsessioninfo>`__
+2.  `XnatSetup <#xnatsetup>`__
+3.  `XnatQuery <#xnatquery>`__
+4.  `XnatCheck <#xnatcheck>`__
+5.  `XnatDownload <#xnatdownload>`__
+6.  `XnatUpload <#xnatupload>`__
+7.  `XnatReport <#xnatreport>`__
+8.  `XnatSwitchProcessStatus <#xnatswitchprocessstatus>`__
+9.  `XnatSetup <#xnatsetup>`__
+10.  `XnatProcessUpload <#xnatprocessupload>`__
+11. `XnatSubjectUpdate <#xnatsubjectupdate>`__
+12. `RedCapReport <#redcapreport>`__
+13. `XnatCheckLogin <#xnatchecklogin>`__
+14. `Xnatinfo <#xnatinfo>`__
+15. `Xnatsessionupdate <#xnatsessioninfo>`__
 
 -----------------
 List of the Tools
@@ -126,10 +126,7 @@ Xnatsetup is as you can guess a command tool to set up your computer. It will in
 	 --tutorial            Give you the step for the specific setup you are
 	                       asking.
 
-Contact
-~~~~~~~
-
-benjamin.c.yvernault@vanderbilt.edu
+Contact - benjamin.c.yvernault@vanderbilt.edu
 
 ---------
 XnatQuery
@@ -192,10 +189,7 @@ Extra Examples
 - Xnatquery -p projectID gives you all the subject in this project
 - Xnatquery -p projectID -s subject gives you all the experiment in this project
 
-Contact
-~~~~~~~
-
-benjamin.c.yvernault@vanderbilt.edu
+Contact - benjamin.c.yvernault@vanderbilt.edu
 
 ---------
 XnatCheck
@@ -276,10 +270,7 @@ Extra Examples
 - Xnatcheck -p BLSA -a fMRIQA returns all the subject/experiment were there is no fMRIQA assessor on the project BLSA.
 - Xnatcheck -p BLSA -a fMRIQA -r PDF returns all the subject/experiment were there is no fMRIQA assessor on the project BLSA and will check for the one that exists if there is a PDF resource.
 
-Contact
-~~~~~~~
-
-benjamin.c.yvernault@vanderbilt.edu
+Contact - benjamin.c.yvernault@vanderbilt.edu
 
 ------------
 XnatDownload
@@ -393,9 +384,7 @@ Example
 
 - Xnatdownload -p BLSA -d /home/benjamin/temp/ -a fMRIQA -s fMRI -r NIFTI,PDF downloads in /home/benjamin/temp the resources NIFTI and PDF for all the scan fMRI and the assessor fMRIQA for the project BLSA.
 
-Contact
-~~~~~~~
-benjamin.c.yvernault@vanderbilt.edu
+Contact - benjamin.c.yvernault@vanderbilt.edu
 
 ----------
 XnatUpload
@@ -492,10 +481,7 @@ Extra Examples
 - Xnatupload -p projectID -d /Path/to/directory --up2 --sess CT uploads the files in the directory with the second methode.
 - Xnatupload -d /Path/to/directory -o -T 1 --force uploads (only, no creation of subject/exp/scan) all the files from the directory into Xnat even if there is already a resources (options -force).
 
-Contact
-~~~~~~~
-
-benjamin.c.yvernault@vanderbilt.edu
+Contact - benjamin.c.yvernault@vanderbilt.edu
 
 ----------
 XnatReport
@@ -553,10 +539,7 @@ Extra Examples
 - Xnatreport -p BLSA,CTONS --csv -e email@email.com sends the report on BLSA and CTONS to your email address as a csv file. You need to set to variables gmail address and password used to sent the email in your bashrc.
 - Xnatreport -p BLSA,CTONS --csv writes the report as a ".csv" file that can be open with Excel. If not path specify, /tmp is the place where the report is save. -t will do the same but in a text file.
 
-Contact
-~~~~~~~
-
-benjamin.c.yvernault@vanderbilt.edu
+Contact - benjamin.c.yvernault@vanderbilt.edu
 
 -----------------------
 XnatSwitchProcessStatus
@@ -642,10 +625,7 @@ Extra Examples
 - XnatSwitchProcessStatus -p BLSA -f Failed -s NeedToRun -t dtiQA_v2,FreeSurfer -d changes the status for dtiQA_v2 and Freesurfer that have a Failed status to NeedToRun in project BLSA and it will delete all the resources on the assessor.
 - XnatSwitchProcessStatus --select BLSA-x-BLSA_0000-x-BLSA_0000_00-x-FreeSurfer -s NeedToRun -d changes the status for the specific FreeSurfer assessor in BLSA_0000_00 session to NeedToRun and delete the resources.
 
-Contact
-~~~~~~~
-
-benjamin.c.yvernault@vanderbilt.edu
+Contact - benjamin.c.yvernault@vanderbilt.edu
 
 -----------------
 XnatProcessUpload
@@ -679,10 +659,7 @@ Xnatprocessupload allows you to upload data for an assessor (you can't do it tha
 	                       Directory containing the different assessors folders that you want to upload.
 	 --force               Force the upload.
 
-Contact
-~~~~~~~
-
-benjamin.c.yvernault@vanderbilt.edu
+Contact - benjamin.c.yvernault@vanderbilt.edu
 
 -----------------
 XnatSubjectUpdate
@@ -711,10 +688,7 @@ Xnatsubjectupdate changes the last update date on XNAT to nothing. It will make 
 	 -s SUBJECT_LABELS, --subject=SUBJECT_LABELS
 	                       Subject label on Xnat or list of them.
 
-Contact
-~~~~~~~
-
-benjamin.c.yvernault@vanderbilt.edu
+Contact - benjamin.c.yvernault@vanderbilt.edu
 
 ------------
 RedCapReport
@@ -790,10 +764,7 @@ Redcapreport is a powertool to extract data from REDCap. It will download the da
 	  -L, --printlib        Print all libraries names for the project.
 	  --all                 Extract values for all records.
 
-Contact
-~~~~~~~
-
-benjamin.c.yvernault@vanderbilt.edu
+Contact - benjamin.c.yvernault@vanderbilt.edu
 
 --------------
 XnatCheckLogin
