@@ -36,7 +36,6 @@ DAX 1
 ----------------------------
 How to add a Module in DAX 1
 ----------------------------
-
 Variables used in a module must all start with the FULL module name. For example, consider "Module dcm2niix". All of the variables for this module must start with "module_dcm2niix_". There are 2 required variables. The first is the "Module File" variable. This variable for "Module dcm2niix" would be called "module_dcm2niix_file". The "Action Tags / Field Annotation" should be @DEFAULT="MODULE_NAME". See below for an example.
     .. image:: images/dax_manager/dcm2niix_file.PNG
 
@@ -46,7 +45,6 @@ The second required variable is the "Module Arguments" variable. In the case of 
 -----------------------------
 How to add a Process in DAX 1
 -----------------------------
-
 Processes are setup very similarly to Modules. There are 2 required variables, "Processor YAML File" and "Processor Arguments". The variable names use slighly different naming conventions as Modules. For example, consider "Processor slant_v1". The "Processor YAML File" variable should be named "slant_v1_file" and the "Action Tags / Field Annotation" field should contain the full name of the processor (@DEFAULT="slant_v1.0.0_processor.yaml"). See below for an example.
     .. image:: images/dax_manager/slant_file.PNG
 
