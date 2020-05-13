@@ -39,12 +39,7 @@ Ubuntu Setup
 ------------------------------
 Create the Virtual Environment
 ------------------------------
-
-In production accounts, dax is to be installed only on virtual environments (anaconda, virtualenv, etc) on Python-3.6. Current DAX virtual environment is in
-
-::
-
-	/data/mcr/centos7/venv/dax-1.0
+DAX is to be installed only on virtual environments (anaconda, virtualenv, etc) on Python-3.6. 
 
 Anaconda
 ~~~~~~~~
@@ -75,15 +70,9 @@ Once the virtual environment with Python3.6 is created, dax can be installed by 
 
 	pip3 install dax
 	dax setup
-	XnatCheckLogin --host http://129.59.135.143:8080/xnat
+	XnatCheckLogin --host <xnat_host_url>
 	# When prompted, enter user/pwd combination
 	# Yes to use as default host
-
-Alternately, all dependencies and dax are listed in the SOP document and they can be installed to the virtual environment by making a text file and using it like
-
-::
-
-	pip install -r
 
 Note that sudo is NOT required when you are in the virtual environment.
 

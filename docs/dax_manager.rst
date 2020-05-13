@@ -6,8 +6,12 @@ Table of Contents:
 
 1.  `About <#about>`__
 2.  `How to set it up <#how-to-set-it-up>`__
-3.  `How to add a Module <#how-to-add-a-module>`__
-4.  `How to add a Process <#how-to-add-a-process>`__
+3.  `DAX 1 <#dax-1>`__
+4.  `How to add a Module in DAX 1 <#how-to-add-a-module-in-dax-1>`__
+5.  `How to add a Process in DAX 1 <#how-to-add-a-process-in-dax-1>`__
+6.  `LDAX <#ldax>`__
+7.  `How to add a Module in LDAX <#how-to-add-a-module-in-ldax>`__
+8.  `How to add a Process in LDAX <#how-to-add-a-process-in-ldax>`__
 
 --------------
 
@@ -26,9 +30,33 @@ interface with DAX Manager appropriately. For convenience, a copy of the latest 
 and can be downloaded here for reference. It is suggested to use this version even if you do not plan on running all of the
 spiders because it is currently being used in production :file:`files/dax_manager/XNATProjectSettings_DataDictionary_2016-01-21.csv`.
 
--------------------
-How to add a Module
--------------------
+DAX 1
+~~~~~
+
+----------------------------
+How to add a Module in DAX 1
+----------------------------
+Variables used in a module must all start with the FULL module name. For example, consider "Module dcm2niix". All of the variables for this module must start with "module_dcm2niix_". There are 2 required variables. The first is the "Module File" variable. This variable for "Module dcm2niix" would be called "module_dcm2niix_file". The "Action Tags / Field Annotation" should be @DEFAULT="MODULE_NAME". See below for an example.
+    .. image:: images/dax_manager/dcm2niix_file.PNG
+
+The second required variable is the "Module Arguments" variable. In the case of "Module dcm2niix", this variable would be called "module_dcm2niix_args". See below for an example.
+    .. image:: images/dax_manager/dcm2niix_args.PNG
+
+-----------------------------
+How to add a Process in DAX 1
+-----------------------------
+Processes are setup very similarly to Modules. There are 2 required variables, "Processor YAML File" and "Processor Arguments". The variable names use slighly different naming conventions as Modules. For example, consider "Processor slant_v1". The "Processor YAML File" variable should be named "slant_v1_file" and the "Action Tags / Field Annotation" field should contain the full name of the processor (@DEFAULT="slant_v1.0.0_processor.yaml"). See below for an example.
+    .. image:: images/dax_manager/slant_file.PNG
+
+The second required variable, "Processor Arguments" follows the same naming conventions. See below for an example.
+    .. image:: images/dax_manager/slant_args.PNG
+
+LDAX
+~~~~
+
+---------------------------
+How to add a Module in LDAX
+---------------------------
 Variables used in a module must all start with the text immediately AFTER Module. For example, consider
 "Module dcm2nii philips". All of the variables for this module must start with "dcm2nii_philips_". One required variable
 is the "on" variable. This variable, again, in the case of "Module dcm2nii philips", would be called "dcm2nii_philips_on".
@@ -47,9 +75,9 @@ Additionally, for the sake of user-friendliness, all variables should use REDCap
 module is "on". It is important to note that in all cases, the REDCap "Field Label" is not used in any automated fashion,
 but should be something obvious to the users.
 
---------------------
-How to add a Process
---------------------
+----------------------------
+How to add a Process in LDAX
+----------------------------
 Just like in the case of Modules, Processes follow a close formatting pattern. Similarly, all process variables should
 start with the text immediately after "Process ". For this example, consider "Process Multi_Atlas". Just like in the case
 of the modules, the first variable should be a REDCap yes/no and should be called "multi_atlas_on". The remainder of the
@@ -68,5 +96,3 @@ There are several other required variables which will be enumerated below (suffi
 
 Just like in the case of a Module, all variables other than the "on" variable should use REDCap branching logic to only
 be visible when the process is "on".
-
-
