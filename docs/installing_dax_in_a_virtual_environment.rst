@@ -13,8 +13,7 @@ Table of Contents
 7.  `OS X Post Install <#os-x-post-install>`__
 8.  `Ubuntu Post Install <#ubuntu-post-install>`__
 9.  `Verify Installation <#verify-installation>`__
-10. `Installing Specific Versions of DAX`__
-11. `Alternative Installation (non-pip) <#alternative-installation-(non-pip)>`__
+10. `Installing Specific Versions of DAX <#installing-specific-versions-of-dax>`__
 
 -----
 Setup
