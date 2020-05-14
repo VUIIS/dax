@@ -4,16 +4,25 @@ Installing DAX in a Virtual Environment
 Table of Contents
 ~~~~~~~~~~~~~~~~~
 
-1.  `Setup <#setup>`__
-2.  `OS X Setup <#os-x-setup>`__
-3.  `Ubuntu Setup <#ubuntu-setup>`__
-4.  `Create the Virtual Environment <#create-the-virtual-environment>`__
-5.  `Install DAX <#install-dax>`__
-6.  `Post Install <#post-install>`__
-7.  `OS X Post Install <#os-x-post-install>`__
-8.  `Ubuntu Post Install <#ubuntu-post-install>`__
-9.  `Verify Installation <#verify-installation>`__
-10. `Installing Specific Versions of DAX <#installing-specific-versions-of-dax>`__
+1.  `Requirements <#requirements>`__
+2.  `Setup <#setup>`__
+  1.  `OS X Setup <#os-x-setup>`__
+  2.  `Ubuntu Setup <#ubuntu-setup>`__
+3.  `Create the Virtual Environment <#create-the-virtual-environment>`__
+  1.  `Anaconda <#anaconda>`__
+  2.  `VirtualEnv <#virtualenv>`__
+4.  `Install DAX <#install-dax>`__
+5.  `Verify Installation <#verify-installation>`__
+6. `Installing Specific Versions of DAX <#installing-specific-versions-of-dax>`__
+
+------------
+Requirements
+------------
+There are a few things required for DAX to work properly.
+
+* Python3
+* pip3
+* Some sort of virtual environment
 
 -----
 Setup
@@ -22,11 +31,40 @@ Setup
 OS X Setup
 ~~~~~~~~~~
 
-Python is installed already as part of OS X.
+Python 2 is installed already as part of OS X. We need to install Python 3 as well. Visit https://www.python.org/downloads/ to download and install the latest version. To verify Python 3 has been installed correctly:
+
+:: 
+
+	python3 --version
+	
+The output should be similar to:
 
 ::
 
-	sudo easy_install pip
+	Python 3.8.3
+
+The install directory can also be verified:
+
+::
+
+	which python3
+
+Once Python 3 is installed, pip3 can be installed by running the following:
+
+::
+
+	python3 get-pip.py
+
+And can be similarly verified by:
+
+::
+
+	which pip3
+	
+There are a few virtual environments that can be used, but to install virtualenv:
+
+::
+
 	pip install virtualenv
 
 Ubuntu Setup
