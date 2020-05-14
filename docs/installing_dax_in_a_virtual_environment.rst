@@ -22,7 +22,7 @@ There are a few things required for DAX to work properly.
 
 * Python3
 * pip3
-* Some sort of virtual environment
+* A virtual environment
 
 -----
 Setup
