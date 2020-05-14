@@ -93,7 +93,7 @@ To setup your virtual environment, do the following
 
 ::
 
-	python3.6 -m virtualenv venv/dax
+	python3 -m virtualenv venv/dax
 	source venv/dax/bin/activate
 
 If this ran properly there should be a "(dax)" in the front of your terminal prompt. The activate command can be added to e.g. `.bash_profile`.
@@ -102,7 +102,7 @@ If this ran properly there should be a "(dax)" in the front of your terminal pro
 Install DAX
 -----------
 
-Once the virtual environment with Python3.6 is created, dax can be installed by using
+Once the virtual environment with Python 3 is created, dax can be installed by using
 
 ::
 
