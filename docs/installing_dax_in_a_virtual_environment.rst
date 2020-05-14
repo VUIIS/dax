@@ -77,7 +77,7 @@ Ubuntu Setup
 ------------------------------
 Create the Virtual Environment
 ------------------------------
-DAX is to be installed only on virtual environments (anaconda, virtualenv, etc) on Python-3.6. 
+DAX is to be installed only on virtual environments (anaconda, virtualenv, etc) on Python 3. 
 
 Anaconda
 ~~~~~~~~
