@@ -65,7 +65,7 @@ There are a few virtual environments that can be used, but to install virtualenv
 
 ::
 
-	pip install virtualenv
+	pip3 install virtualenv
 
 Ubuntu Setup
 ~~~~~~~~~~~~
