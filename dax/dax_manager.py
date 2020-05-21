@@ -9,9 +9,10 @@ import yaml
 import redcap
 
 import dax
-from dax import DAX_Settings
-from dax.launcher import BUILD_SUFFIX
-from dax import log
+from . import DAX_Settings
+from .launcher import BUILD_SUFFIX
+from . import log
+from .errors import AutoProcessorError
 
 # TODO: archive old logs
 
@@ -606,20 +607,30 @@ class DaxManager(object):
         # Update
         LOGGER.info('updating')
         for settings_path in self.settings_list:
-            proj = self.project_from_settings(settings_path)
+            try:
+                proj = self.project_from_settings(settings_path)
 
-            LOGGER.info('updating jobs:' + proj)
-            log = self.log_name('update', proj, datetime.now())
-            self.run_update(settings_path, log)
+                LOGGER.info('updating jobs:' + proj)
+                log = self.log_name('update', proj, datetime.now())
+                self.run_update(settings_path, log)
+            except AutoProcessorError as e:
+                err = 'error while running update on project:{}'.format(proj)
+                LOGGER.error(err)
+                LOGGER.error(e)
 
         # Launch - report to log if locked
         LOGGER.info('launching')
         for settings_path in self.settings_list:
-            proj = self.project_from_settings(settings_path)
+            try:
+                proj = self.project_from_settings(settings_path)
 
-            LOGGER.info('launching jobs:' + proj)
-            log = self.log_name('launch', proj, datetime.now())
-            self.run_launch(settings_path, log)
+                LOGGER.info('launching jobs:' + proj)
+                log = self.log_name('launch', proj, datetime.now())
+                self.run_launch(settings_path, log)
+            except AutoProcessorError as e:
+                err = 'error while running launch on project:{}'.format(proj)
+                LOGGER.error(err)
+                LOGGER.error(e)
 
         # Upload - report to log if locked
         log = self.log_name('upload', 'upload', datetime.now())
