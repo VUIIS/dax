@@ -4,13 +4,11 @@ Installing DAX in a Virtual Environment
 Table of Contents
 ~~~~~~~~~~~~~~~~~
 
-1.  `Requirements <#requirements>`__
-2.  `Setup <#setup>`__
+1.  `Setup <#setup>`__
   1.  `OS X Setup <#os-x-setup>`__
-3.  `Create the Virtual Environment <#create-the-virtual-environment>`__
-4.  `Install DAX <#install-dax>`__
-5.  `Verify Installation <#verify-installation>`__
-6. `Installing Specific Versions of DAX <#installing-specific-versions-of-dax>`__
+2.  `Create the Virtual Environment <#create-the-virtual-environment>`__
+3.  `Install DAX <#install-dax>`__
+4.  `Verify Installation <#verify-installation>`__
 
 
 -----
