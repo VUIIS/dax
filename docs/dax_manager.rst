@@ -7,11 +7,11 @@ Table of Contents:
 1.  `About <#about>`__
 2.  `How to set it up <#how-to-set-it-up>`__
 3.  `DAX 1 <#dax-1>`__
-4.  `How to add a Module in DAX 1 <#how-to-add-a-module-in-dax-1>`__
-5.  `How to add a Process in DAX 1 <#how-to-add-a-process-in-dax-1>`__
-6.  `LDAX <#ldax>`__
-7.  `How to add a Module in LDAX <#how-to-add-a-module-in-ldax>`__
-8.  `How to add a Process in LDAX <#how-to-add-a-process-in-ldax>`__
+ 1.  `How to add a Module in DAX 1 <#how-to-add-a-module-in-dax-1>`__
+ 2.  `How to add a Process in DAX 1 <#how-to-add-a-process-in-dax-1>`__
+4.  `LDAX <#ldax>`__
+ 1.  `How to add a Module in LDAX <#how-to-add-a-module-in-ldax>`__
+ 2.  `How to add a Process in LDAX <#how-to-add-a-process-in-ldax>`__
 
 --------------
 
