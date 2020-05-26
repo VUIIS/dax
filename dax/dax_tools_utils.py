@@ -1136,24 +1136,24 @@ def upload_assessors(xnat, projects):
 
     num_threads = int(DAX_SETTINGS.get_upload_threads())
 
-    print(('Starting pool with: ' + str(num_threads) + ' threads'))
+    LOGGER.info(('Starting upload pool:{} threads'.format(str(num_threads))))
     sys.stdout.flush()
 
     pool = Pool(processes=num_threads)
     for index, assessor_label in enumerate(assessors_list):
-        print(index)
+        LOGGER.info(index)
         sys.stdout.flush()
 
         pool.apply_async(
             upload_thread, [xnat, index, assessor_label, number_of_processes])
 
-    print('Waiting for pool to finish...')
+    LOGGER.info('waiting for upload pool to finish...')
     sys.stdout.flush()
 
     pool.close()
     pool.join()
 
-    print('Pool finished')
+    LOGGER.info('upload pool finished')
     sys.stdout.flush()
 
     return warnings
@@ -1231,7 +1231,7 @@ def upload_pbs(xnat, projects):
                         status = XnatUtils.upload_file_to_obj(pbs_fpath,
                                                               resource_obj)
                     except XnatUtilsError as err:
-                        print((ERR_MSG % err))
+                        LOGGER.error((ERR_MSG % err))
                     if status:
                         os.remove(pbs_fpath)
 
@@ -1642,7 +1642,7 @@ class test_results(object):
                     co_list.append(csess)
 
         if len(co_list) == 0:
-            print("[WARNING] No object found for the Module.")
+            LOGGER.warn("[WARNING] No object found for the Module.")
             self.inc_warning()
 
         return co_list
