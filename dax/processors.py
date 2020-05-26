@@ -289,7 +289,7 @@ class AutoProcessor(Processor):
 
                 if sobj is None:
                     msg = 'invalid override:key={}, file={}'
-                    msg.format(key, yaml_name)
+                    msg = msg.format(key, yaml_name)
                     LOGGER.error(msg)
                     raise AutoProcessorError(msg)
 
