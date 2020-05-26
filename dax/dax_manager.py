@@ -58,7 +58,7 @@ def check_lockfile(file):
         if host != this_host:
             LOGGER.debug('different host, cannot check PID:{}', format(file))
         elif pid_exists(pid):
-            LOGGER.debug('host matches and PID still exists')
+            LOGGER.debug('host matches and PID exists:{}'.format(str(pid)))
         else:
             LOGGER.debug('host matches and PID not running, deleting lockfile')
             os.remove(file)
@@ -646,6 +646,7 @@ class DaxManager(object):
         # Wait for builds to finish
         LOGGER.info('waiting for builds to finish')
         build_pool.join()
+        LOGGER.info('run DONE!')
 
     def run_build(self, project, settings_file, log_file, lastrun):
         # Check for existing lock
