@@ -10,7 +10,6 @@ import yaml
 import redcap
 
 import dax
-from .utilities import send_email
 from . import DAX_Settings
 from .launcher import BUILD_SUFFIX
 from . import log
@@ -504,6 +503,7 @@ class DaxManager(object):
         self.settings_dir = self.instance_settings['main_projectsettingsdir']
         self.log_dir = self.instance_settings['main_logdir']
         self.max_build_count = int(self.instance_settings['main_buildlimit'])
+        self.run_errors = []
 
         # Create our settings manager and update our settings directory
         self.settings_manager = DaxProjectSettingsManager(
@@ -588,7 +588,7 @@ class DaxManager(object):
         return build_results
 
     def run(self):
-        run_errors = []
+        self.run_errors = []
         max_build_count = self.max_build_count
 
         # Build
@@ -619,7 +619,7 @@ class DaxManager(object):
             except AutoProcessorError as e:
                 err = 'error running update:proj={}:err={}'.format(proj, e)
                 LOGGER.error(err)
-                run_errors.append(err)
+                self.run_errors.append(err)
 
         # Launch - report to log if locked
         LOGGER.info('launching')
@@ -633,7 +633,7 @@ class DaxManager(object):
             except AutoProcessorError as e:
                 err = 'error running launch:proj={}:err={}'.format(proj, e)
                 LOGGER.error(err)
-                run_errors.append(err)
+                self.run_errors.append(err)
 
         # Upload - report to log if locked
         log = self.log_name('upload', 'upload', datetime.now())
@@ -650,8 +650,6 @@ class DaxManager(object):
         LOGGER.info('waiting for builds to finish')
         build_pool.join()
         LOGGER.info('run DONE!')
-
-        print('run errors=', run_errors)
 
         return run_errors
 
@@ -672,17 +670,10 @@ class DaxManager(object):
                     settings_file, log_file, debug=True, proj_lastrun=proj_lastrun)
                 logging.getLogger('dax').handlers = []
             except Exception:
-                _err = traceback.format_exc()
-                print('ERROR:build failed, emailing admin:', _err)
-
-                # email the exception
-                _msg = 'ERROR:{}'.format(_err)
-                _from = DAX_SETTINGS.get_smtp_from()
-                _host = DAX_SETTINGS.get_smtp_host()
-                _pass = DAX_SETTINGS.get_smtp_pass()
-                _to = DAX_SETTINGS.get_admin_email().split(',')
-                _subj = 'ERROR:dax build:{}'.format(settings_file)
-                send_email(_from, _host, _pass, _to, _subj, _msg)
+                err = 'error running build:proj={}:err={}'.format(
+                    proj, traceback.format_exc())
+                LOGGER.error(err)
+                self.run_errors.append(err)
 
             # TODO: check for errors in log file and set redcap 
             # to RED if any found, also could upload last log file
@@ -736,19 +727,6 @@ if __name__ == '__main__':
     manager = DaxManager(API_URL, API_KEY_I, API_KEY_P)
 
     # And run it
-    errors = manager.run()
-    print('run done')
-
-    print('errors=', errors)
-
-    if errors:
-        # email the errors
-        _msg = 'ERRORS:\n{}'.format('\n'.join(errors))
-        _from = DAX_SETTINGS.get_smtp_from()
-        _host = DAX_SETTINGS.get_smtp_host()
-        _pass = DAX_SETTINGS.get_smtp_pass()
-        _to = DAX_SETTINGS.get_admin_email().split(',')
-        _subj = 'ERROR:dax manager errors'
-        send_email(_from, _host, _pass, _to, _subj, _msg)
+    manager.run()
 
     LOGGER.info('ALL DONE!')
