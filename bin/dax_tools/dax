@@ -262,7 +262,7 @@ cluster section\n.')
             # email the errors
             _msg = 'ERRORS:\n\n'
             _msg += '\n\n'.join(errors)
-            _msg += '\n'
+            _msg += '\n\n'
             _from = DAX_SETTINGS.get_smtp_from()
             _host = DAX_SETTINGS.get_smtp_host()
             _pass = DAX_SETTINGS.get_smtp_pass()
