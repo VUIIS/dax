@@ -649,9 +649,23 @@ class DaxManager(object):
         # Wait for builds to finish
         LOGGER.info('waiting for builds to finish')
         build_pool.join()
-        LOGGER.info('run DONE!')
 
-        return run_errors
+        if self.run_errors:
+            print('ERROR:dax manager errors, emailing admin:', run_errors)
+
+            # email the errors
+            _msg = 'ERRORS:\n'
+            _msg += '\n\n'.join(run_errors)
+            _from = DAX_SETTINGS.get_smtp_from()
+            _host = DAX_SETTINGS.get_smtp_host()
+            _pass = DAX_SETTINGS.get_smtp_pass()
+            _to = DAX_SETTINGS.get_admin_email().split(',')
+            _subj = 'ERROR:dax manager'
+            send_email(_from, _host, _pass, _to, _subj, _msg)
+        else:
+            LOGGER.info('run DONE with no errors!')
+
+        return self.run_errors
 
     def run_build(self, project, settings_file, log_file, lastrun):
         # Check for existing lock
