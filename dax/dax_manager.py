@@ -587,7 +587,7 @@ class DaxManager(object):
         return build_results
 
     def run(self):
-        self.run_errors = []
+        run_errors = []
         max_build_count = self.max_build_count
 
         # Build
