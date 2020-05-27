@@ -636,7 +636,6 @@ cluster queue"
             init_timestamp, final_timestamp))
         if final_timestamp > init_timestamp:
             res_obj = csess.full_object().resource('BUILD_LOGS')
-            print(res_obj)
             LOGGER.debug('uploading session log:' + tmp_file)
             XnatUtils.upload_file_to_obj(tmp_file, res_obj)
         else:
