@@ -10,6 +10,7 @@ import yaml
 import redcap
 
 import dax
+from .utilities import send_email
 from . import DAX_Settings
 from .launcher import BUILD_SUFFIX
 from . import log
