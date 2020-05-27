@@ -270,5 +270,7 @@ cluster section\n.')
             _subj = 'ERROR:dax manager'
             send_email(_from, _host, _pass, _to, _subj, _msg)
 
+        print('ALL DONE!')
+
     elif args.command == 'version':
         print(dax.__version__)
