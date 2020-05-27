@@ -675,12 +675,9 @@ class DaxManager(object):
                 logging.getLogger('dax').handlers = []
             except Exception:
                 err = 'error running build:proj={}:err={}'.format(
-                    proj, traceback.format_exc())
+                    project, traceback.format_exc())
                 LOGGER.error(err)
                 self.run_errors.append(err)
-
-            # TODO: check for errors in log file and set redcap 
-            # to RED if any found, also could upload last log file
 
             self.set_last_build_complete(project)
             LOGGER.info('run_build:done:{}'.format(project))
