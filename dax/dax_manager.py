@@ -503,7 +503,6 @@ class DaxManager(object):
         self.settings_dir = self.instance_settings['main_projectsettingsdir']
         self.log_dir = self.instance_settings['main_logdir']
         self.max_build_count = int(self.instance_settings['main_buildlimit'])
-        self.run_errors = []
 
         # Create our settings manager and update our settings directory
         self.settings_manager = DaxProjectSettingsManager(
@@ -588,7 +587,7 @@ class DaxManager(object):
         return build_results
 
     def run(self):
-        self.run_errors = []
+        run_errors = []
         max_build_count = self.max_build_count
 
         # Build
@@ -606,6 +605,9 @@ class DaxManager(object):
             build_pool = Pool(processes=num_build_threads)
             build_results = self.queue_builds(build_pool, self.settings_list)
             build_pool.close()  # Close the pool, I dunno if this matters
+            LOGGER.info('build_results=', build_results)
+            build_errors = [x for x in build_results if x]
+            run_errors.extend(build_errors)
 
         # Update
         LOGGER.info('updating')
@@ -619,7 +621,7 @@ class DaxManager(object):
             except AutoProcessorError as e:
                 err = 'error running update:proj={}:err={}'.format(proj, e)
                 LOGGER.error(err)
-                self.run_errors.append(err)
+                run_errors.append(err)
 
         # Launch - report to log if locked
         LOGGER.info('launching')
@@ -633,7 +635,7 @@ class DaxManager(object):
             except AutoProcessorError as e:
                 err = 'error running launch:proj={}:err={}'.format(proj, e)
                 LOGGER.error(err)
-                self.run_errors.append(err)
+                run_errors.append(err)
 
         # Upload - report to log if locked
         log = self.log_name('upload', 'upload', datetime.now())
@@ -650,14 +652,16 @@ class DaxManager(object):
         LOGGER.info('waiting for builds to finish')
         build_pool.join()
 
-        if self.run_errors:
+        if run_errors:
             LOGGER.info('ERROR:dax manager DONE with errors')
         else:
             LOGGER.info('run DONE with no errors!')
 
-        return self.run_errors
+        return run_errors
 
     def run_build(self, project, settings_file, log_file, lastrun):
+        build_error = None
+
         # Check for existing lock
         if is_locked(settings_file):
             LOGGER.warn('cannot build, lock exists:{}'.format(settings_file))
@@ -671,16 +675,17 @@ class DaxManager(object):
             logging.getLogger('dax').handlers = []
             try:
                 dax.bin.build(
-                    settings_file, log_file, debug=True, proj_lastrun=proj_lastrun)
+                    settings_file, log_file, True, proj_lastrun=proj_lastrun)
                 logging.getLogger('dax').handlers = []
             except Exception:
                 err = 'error running build:proj={}:err={}'.format(
                     project, traceback.format_exc())
                 LOGGER.error(err)
-                self.run_errors.append(err)
+                build_error = err
 
             self.set_last_build_complete(project)
             LOGGER.info('run_build:done:{}'.format(project))
+            return build_error
 
     def set_last_build_start(self, project):
         self.settings_manager.set_last_build_start(project)
