@@ -605,6 +605,8 @@ class DaxManager(object):
             build_pool = Pool(processes=num_build_threads)
             build_results = self.queue_builds(build_pool, self.settings_list)
             build_pool.close()  # Close the pool, I dunno if this matters
+
+            # Extract any errors
             build_errors = [x.get() for x in build_results if x]
             LOGGER.info('build_errors=', build_errors)
             run_errors.extend(build_errors)
@@ -619,7 +621,7 @@ class DaxManager(object):
                 log = self.log_name('update', proj, datetime.now())
                 self.run_update(settings_path, log)
             except AutoProcessorError as e:
-                err = 'error running update:proj={}:err={}'.format(proj, e)
+                err = 'error running update:project={}\n{}'.format(proj, e)
                 LOGGER.error(err)
                 run_errors.append(err)
 
@@ -633,7 +635,7 @@ class DaxManager(object):
                 log = self.log_name('launch', proj, datetime.now())
                 self.run_launch(settings_path, log)
             except AutoProcessorError as e:
-                err = 'error running launch:proj={}:err={}'.format(proj, e)
+                err = 'error running launch:project={}\n{}'.format(proj, e)
                 LOGGER.error(err)
                 run_errors.append(err)
 
