@@ -10,7 +10,6 @@ import yaml
 import redcap
 
 import dax
-#from .utilities import send_email
 from . import DAX_Settings
 from .launcher import BUILD_SUFFIX
 from . import log
@@ -653,17 +652,6 @@ class DaxManager(object):
 
         if self.run_errors:
             LOGGER.info('ERROR:dax manager DONE with errors')
-        #    print('ERROR:dax manager errors, emailing admin:', self.run_errors)
-
-            # email the errors
-        #    _msg = 'ERRORS:\n'
-        #    _msg += '\n\n'.join(self.run_errors)
-        #    _from = DAX_SETTINGS.get_smtp_from()
-        #    _host = DAX_SETTINGS.get_smtp_host()
-        #    _pass = DAX_SETTINGS.get_smtp_pass()
-        #    _to = DAX_SETTINGS.get_admin_email().split(',')
-        #    _subj = 'ERROR:dax manager'
-        #    send_email(_from, _host, _pass, _to, _subj, _msg)
         else:
             LOGGER.info('run DONE with no errors!')
 
