@@ -606,10 +606,6 @@ class DaxManager(object):
             build_results = self.queue_builds(build_pool, self.settings_list)
             build_pool.close()  # Close the pool, I dunno if this matters
 
-            # Extract any errors and add to list
-            build_errors = [x.get() for x in build_results if x.get()]
-            run_errors.extend(build_errors)
-
         # Update
         LOGGER.info('updating')
         for settings_path in self.settings_list:
@@ -652,6 +648,10 @@ class DaxManager(object):
         # Wait for builds to finish
         LOGGER.info('waiting for builds to finish')
         build_pool.join()
+
+        # Extract any errors and add to list
+        build_errors = [x.get() for x in build_results if x.get()]
+        run_errors.extend(build_errors)
 
         if run_errors:
             LOGGER.info('ERROR:dax manager DONE with errors')
