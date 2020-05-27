@@ -606,9 +606,8 @@ class DaxManager(object):
             build_results = self.queue_builds(build_pool, self.settings_list)
             build_pool.close()  # Close the pool, I dunno if this matters
 
-            # Extract any errors
-            build_errors = [x.get() for x in build_results if x]
-            LOGGER.info('build_errors=', build_errors)
+            # Extract any errors and add to list
+            build_errors = [x.get() for x in build_results if x.get()]
             run_errors.extend(build_errors)
 
         # Update
