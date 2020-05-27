@@ -651,11 +651,11 @@ class DaxManager(object):
         build_pool.join()
 
         if self.run_errors:
-            print('ERROR:dax manager errors, emailing admin:', run_errors)
+            print('ERROR:dax manager errors, emailing admin:', self.run_errors)
 
             # email the errors
             _msg = 'ERRORS:\n'
-            _msg += '\n\n'.join(run_errors)
+            _msg += '\n\n'.join(self.run_errors)
             _from = DAX_SETTINGS.get_smtp_from()
             _host = DAX_SETTINGS.get_smtp_host()
             _pass = DAX_SETTINGS.get_smtp_pass()
