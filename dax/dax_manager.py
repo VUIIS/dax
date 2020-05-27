@@ -734,6 +734,7 @@ if __name__ == '__main__':
 
     # And run it
     errors = manager.run()
+    print('errors=', errors)
 
     if errors:
         # email the errors
