@@ -605,8 +605,8 @@ class DaxManager(object):
             build_pool = Pool(processes=num_build_threads)
             build_results = self.queue_builds(build_pool, self.settings_list)
             build_pool.close()  # Close the pool, I dunno if this matters
-            LOGGER.info('build_results=', build_results)
-            build_errors = [x for x in build_results if x]
+            build_errors = [x.get() for x in build_results if x]
+            LOGGER.info('build_errors=', build_errors)
             run_errors.extend(build_errors)
 
         # Update
