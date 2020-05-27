@@ -651,6 +651,8 @@ class DaxManager(object):
         build_pool.join()
         LOGGER.info('run DONE!')
 
+        print('run errors=', run_errors)
+
         return run_errors
 
     def run_build(self, project, settings_file, log_file, lastrun):
@@ -735,6 +737,8 @@ if __name__ == '__main__':
 
     # And run it
     errors = manager.run()
+    print('run done')
+
     print('errors=', errors)
 
     if errors:
