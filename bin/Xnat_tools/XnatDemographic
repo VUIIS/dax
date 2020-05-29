@@ -113,7 +113,7 @@ def read_csv(csv_file, session_vars, header_format, delimiter):
 the header.')
     print('INFO: Reading CSV -- if you see any warning, it means that the \
 information on the row will not be uploaded.')
-    with open(csv_file, 'rb') as csvfileread:
+    with open(csv_file, 'rt') as csvfileread:
         csvreader = csv.reader(csvfileread, delimiter=delimiter)
         for index, row in enumerate(csvreader):
             if index == 0:  # possible header, check it out
@@ -292,8 +292,8 @@ def upload_demographic_data(xnat, demographics):
     """
     for obj_dict in sorted(demographics, key=lambda k: k['project_id']):
         subject_obj = xnat.select_subject(
-            project_id=obj_dict['project_id'],
-            subject_id=obj_dict['subject_label']
+            project=obj_dict['project_id'],
+            subject=obj_dict['subject_label']
         )
 
         if not subject_obj.exists():
