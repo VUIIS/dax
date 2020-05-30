@@ -589,6 +589,8 @@ class DaxManager(object):
     def run(self):
         run_errors = []
         max_build_count = self.max_build_count
+        build_pool = None
+        build_results = None
 
         # Build
         lock_dir = os.path.join(DAX_SETTINGS.get_results_dir(), 'FlagFiles')
@@ -645,13 +647,14 @@ class DaxManager(object):
         upload_process.join()
         LOGGER.info('upload complete')
 
-        # Wait for builds to finish
-        LOGGER.info('waiting for builds to finish')
-        build_pool.join()
+        if num_build_threads > 0:
+            # Wait for builds to finish
+            LOGGER.info('waiting for builds to finish')
+            build_pool.join()
 
-        # Extract any errors and add to list
-        build_errors = [x.get() for x in build_results if x.get()]
-        run_errors.extend(build_errors)
+            # Extract any errors and add to list
+            build_errors = [x.get() for x in build_results if x.get()]
+            run_errors.extend(build_errors)
 
         if run_errors:
             LOGGER.info('ERROR:dax manager DONE with errors')
