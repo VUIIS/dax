@@ -580,7 +580,6 @@ for your dax installation.\n')
     # Set the settings for dax
     edit_settings = True
     dsh = DAX_Setup_Handler()
-    edit_settings = True
 
     if dsh.exists():
         print('Settings file ~/.dax_settings.ini found.\n')
