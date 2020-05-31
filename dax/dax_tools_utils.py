@@ -573,20 +573,22 @@ def setup_dax_package():
     print('########## DAX_SETUP ##########')
     print('Script to setup the ~/.dax_settings.ini files \
 for your dax installation.\n')
+
     # Set xnat credentials if needed
     set_xnat_netrc()
 
     # Set the settings for dax
     dsh = DAX_Setup_Handler()
+    edit_settings = True
 
     if dsh.exists():
         print('Settings file ~/.dax_settings.ini found.\n')
         if not xnat_tools_utils.prompt_user_yes_no('Do you want to edit it?'):
-            print('########## END ##########')
-            sys.exit()
+            edit_settings = False
 
-    dsh.config()
-    dsh.write()
+    if edit_settings is True:
+        dsh.config()
+        dsh.write()
 
     print('\n0 error(s) -- dax_setup done.')
     print('########## END ##########')
@@ -2341,7 +2343,7 @@ settings file?' % section
                 msg = OPTIONS_DESCRIPTION[option]['msg']
                 stdin = getpass.getpass(prompt=msg)
             else:
-                stdin = eval(input(OPTIONS_DESCRIPTION[option]['msg']))
+                stdin = input(OPTIONS_DESCRIPTION[option]['msg'])
             if OPTIONS_DESCRIPTION[option]['is_path'] and stdin:
                 if stdin.startswith('~/'):
                     stdin = os.path.join(os.path.expanduser('~'), stdin[2:])
@@ -2351,7 +2353,7 @@ settings file?' % section
                     print(("Path <%s> does not exists." % stdin))
                     stdin = self._prompt(section, option)
         else:
-            stdin = eval(input('Please enter %s: ' % option))
+            stdin = input('Please enter %s: ' % option)
         if not stdin:
             stdin = DEFAULTS[section][option]
 
@@ -2365,8 +2367,8 @@ settings file?' % section
         """
         cluster_type = '0'
         while cluster_type not in ['1', '2', '3']:
-            cluster_type = eval(input("Which cluster are you using? \
-[1.SGE 2.SLURM 3.MOAB] "))
+            cluster_type = input("Which cluster are you using? \
+[1.SGE 2.SLURM 3.MOAB] ")
         sys.stdout.write('Warning: You can edit the cluster templates files \
 at any time in ~/.dax_templates/\n')
 
@@ -2431,8 +2433,8 @@ def set_xnat_netrc():
         print('Warning: daxnetrc is empty. Setting XNAT login:')
         connection = False
         while not connection:
-            host = eval(input("Please enter your XNAT host: "))
-            user = eval(input("Please enter your XNAT username: "))
+            host = input("Please enter your XNAT host: ")
+            user = input("Please enter your XNAT username: ")
             pwd = getpass.getpass(prompt='Please enter your XNAT password: ')
             connection = test_connection_xnat(host, user, pwd)
         if connection:
