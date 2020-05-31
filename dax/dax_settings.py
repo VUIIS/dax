@@ -82,10 +82,12 @@ write access.'
 
     def add_host(self, host, user, pwd):
         """ Adding host to daxnetrc file."""
-        netrc_template = """machine {host}
-    login {user}
-    password {pwd}
-        """
+        netrc_template = \
+"""machine {host}
+login {user}
+password {pwd}
+
+"""
         with open(self.netrc_file, "a") as f_netrc:
             lines = netrc_template.format(host=host, user=user, pwd=pwd)
             f_netrc.writelines(lines)
