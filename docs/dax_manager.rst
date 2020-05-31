@@ -7,11 +7,11 @@ Table of Contents:
 1.  `About <#about>`__
 2.  `How to set it up <#how-to-set-it-up>`__
 3.  `DAX 1 <#dax-1>`__
-4.  `How to add a Module in DAX 1 <#how-to-add-a-module-in-dax-1>`__
-5.  `How to add a Process in DAX 1 <#how-to-add-a-process-in-dax-1>`__
-6.  `LDAX <#ldax>`__
-7.  `How to add a Module in LDAX <#how-to-add-a-module-in-ldax>`__
-8.  `How to add a Process in LDAX <#how-to-add-a-process-in-ldax>`__
+ 1.  `How to add a Module in DAX 1 <#how-to-add-a-module-in-dax-1>`__
+ 2.  `How to add a Process in DAX 1 <#how-to-add-a-process-in-dax-1>`__
+4.  `LDAX <#ldax>`__
+ 1.  `How to add a Module in LDAX <#how-to-add-a-module-in-ldax>`__
+ 2.  `How to add a Process in LDAX <#how-to-add-a-process-in-ldax>`__
 
 --------------
 
@@ -28,7 +28,9 @@ How to set it up
 The main instrument should be called General and contains a lot of standard variables that are required for DAX to
 interface with DAX Manager appropriately. For convenience, a copy of the latest data dictionary has been included
 and can be downloaded here for reference. It is suggested to use this version even if you do not plan on running all of the
-spiders because it is currently being used in production :file:`files/dax_manager/XNATProjectSettings_DataDictionary_2016-01-21.csv`.
+spiders because it is currently being used in production 
+
+https://github.com/VUIIS/dax/blob/master/docs/files/dax_manager/XNATProjectSettings_DataDictionary_2016-01-21.csv
 
 DAX 1
 ~~~~~
@@ -37,18 +39,22 @@ DAX 1
 How to add a Module in DAX 1
 ----------------------------
 Variables used in a module must all start with the FULL module name. For example, consider "Module dcm2niix". All of the variables for this module must start with "module_dcm2niix_". There are 2 required variables. The first is the "Module File" variable. This variable for "Module dcm2niix" would be called "module_dcm2niix_file". The "Action Tags / Field Annotation" should be @DEFAULT="MODULE_NAME". See below for an example.
+
     .. image:: images/dax_manager/dcm2niix_file.PNG
 
 The second required variable is the "Module Arguments" variable. In the case of "Module dcm2niix", this variable would be called "module_dcm2niix_args". See below for an example.
+
     .. image:: images/dax_manager/dcm2niix_args.PNG
 
 -----------------------------
 How to add a Process in DAX 1
 -----------------------------
 Processes are setup very similarly to Modules. There are 2 required variables, "Processor YAML File" and "Processor Arguments". The variable names use slighly different naming conventions as Modules. For example, consider "Processor slant_v1". The "Processor YAML File" variable should be named "slant_v1_file" and the "Action Tags / Field Annotation" field should contain the full name of the processor (@DEFAULT="slant_v1.0.0_processor.yaml"). See below for an example.
+
     .. image:: images/dax_manager/slant_file.PNG
 
 The second required variable, "Processor Arguments" follows the same naming conventions. See below for an example.
+
     .. image:: images/dax_manager/slant_args.PNG
 
 LDAX

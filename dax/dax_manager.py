@@ -663,6 +663,17 @@ class DaxManager(object):
 
         return run_errors
 
+        # Extract any errors and add to list
+        build_errors = [x.get() for x in build_results if x.get()]
+        run_errors.extend(build_errors)
+
+        if run_errors:
+            LOGGER.info('ERROR:dax manager DONE with errors')
+        else:
+            LOGGER.info('run DONE with no errors!')
+
+        return run_errors
+
     def run_build(self, project, settings_file, log_file, lastrun):
         build_error = None
 

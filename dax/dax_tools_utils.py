@@ -578,6 +578,7 @@ for your dax installation.\n')
     set_xnat_netrc()
 
     # Set the settings for dax
+    edit_settings = True
     dsh = DAX_Setup_Handler()
     edit_settings = True
 
