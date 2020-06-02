@@ -861,10 +861,10 @@ def dl_file(res_obj, fpath):
     res_obj.file(res_obj.files()[0].label()).get(fpath)
 
 
-def download_specific_scan():
+def download_specific_scan(XNAT):
     """
     Method to download a scan specified by the user
-
+    :param XNAT: pyxnat.Interface object
     :return: None
     """
     if OPTIONS.resourcesS:
@@ -904,10 +904,10 @@ def download_specific_scan():
         LOGGER.info('WARNING: selected scan found but no resource specified')
 
 
-def download_specific_assessor():
+def download_specific_assessor(xnat):
     """
     Method to download a assessor specified by the user
-
+    :param xnat: pyxnat.Interface object
     :return: None
     """
     if OPTIONS.resourcesA:
@@ -929,7 +929,7 @@ def download_specific_assessor():
             assessor_dict['project_id'],
             assessor_dict['subject_label'],
             assessor_dict['session_label'],
-            assessor_dict['assessor_label'])
+            assessor_dict['label'])
         if not assessor_obj.exists():
             LOGGER.info('  ->WARNING: No processor with the label given.')
         else:
@@ -1312,9 +1312,9 @@ scans.')
             if OPTIONS.selectionScan or OPTIONS.selectionAssessor:
                 CSVWRITER = None
                 if OPTIONS.selectionScan:
-                    download_specific_scan()
+                    download_specific_scan(XNAT)
                 if OPTIONS.selectionAssessor:
-                    download_specific_assessor()
+                    download_specific_assessor(XNAT)
             else:
                 PS_LIST, SC_LIST, A_LIST, LAST_D, OLD_ROWS = \
                     get_xnat_information()
