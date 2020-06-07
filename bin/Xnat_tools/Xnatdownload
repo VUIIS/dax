@@ -24,6 +24,7 @@ import shutil
 import getpass
 import logging
 from dax import XnatUtils
+from dax import XnatToBids
 from datetime import datetime
 
 
@@ -1031,6 +1032,11 @@ specified. Use -s or --WOS.')
         print('OPTION ERROR: resources selected for assessors but no types \
 specified. Use -a or --WOA.')
         return False
+    # Check BIDS direcotry given
+    if OPTIONS.xnat2bids and not OPTIONS.bids_dir:
+        print('OPTION ERROR: BIDS directory not specified. Use option \
+--bids_dir.')
+        return False
     return True
 
 
@@ -1148,6 +1154,13 @@ def main_display():
             print('#     %*s -> %*s#' % (-20, 'Overwrite mode', -33, 'on'))
         if OPTIONS.update:
             print('#     %*s -> %*s#' % (-20, 'Update mode', -33, 'on'))
+        # BIDS
+        if OPTIONS.xnat2bids:
+            print('#     %*s -> %*s#' % (-20, 'XNAT to BIDS mode', -33, 'on'))
+        if OPTIONS.bids_dir:
+            print('#     %*s -> %*s#' % (
+                -20, 'BIDS Directory',
+                -33, get_proper_str(OPTIONS.bids_dir, True)))
         if OPTIONS.outputfile:
             print('#     %*s -> %*s#' % (
                 -20, 'Output file',
@@ -1267,6 +1280,12 @@ OPTIONS.")
     # Ignore csv
     argp.add_argument("-i", "--ignore", dest="ignorecsv", action='store_true',
                       help="Ignore reading of the csv report file")
+    #BIDS
+    argp.add_argument("-b", "--bids", dest="xnat2bids", action='store_true',
+                      help="Transform to BIDS format after XNAT download")
+
+    argp.add_argument("--bids_dir", dest="bids_dir", default=None,
+                      help="Directory to store the bids dataset")
     return argp
 
 
