@@ -139,8 +139,8 @@ def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_f
 
     else:
         # If datatype is know, Create the BIDS directory and do the rest
-        sess_idx = "{0:0=2d}".format(sess_idx)
-        subj_idx = "{0:0=2d}".format(subj_idx)
+        sess_idx = "{0:0=2d}".format(int(sess_idx))
+        subj_idx = "{0:0=2d}".format(int(subj_idx))
         bids_dir = os.path.join(res_dir, "BIDS_DATA")
         if not os.path.exists(bids_dir):
             os.makedirs(bids_dir)
