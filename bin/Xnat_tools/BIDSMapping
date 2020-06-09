@@ -16,12 +16,40 @@ import argparse
 from dax import XnatUtils
 from datetime import datetime
 
+DESCRIPTION = """What is the script doing :
+   *Uploads BIDS datatype, tasktype and repitition time mapping to XNAT project level using the \
+different OPTIONS.
+
+Examples:
+   *Create a new datatype mapping for scan_type of XNAT scans:
+        BIDSMapping -p PID --xnatinfo scan_type --type datatype --create /tmp/projectID_datataype.csv
+   *The correct format for /tmp/projectID_datataype.csv
+        scan_type,datatype
+        Resting State,func
+   *Create a new datatype mapping for series_description of XNAT scans:
+        BIDSMapping -p PID --xnatinfo series_description --type datatype --create /tmp/projectID_datataype.csv
+   *Create a new tasktype mapping for scan_type of XNAT scans:
+        BIDSMapping -p PID --xnatinfo scan_type --type tasktype --create /tmp/projectID_tasktype.csv 
+   *Replace tasktype mapping for scan_type of XNAT scans: (It removes the old mapping and upload the new mapping)
+        BIDSMapping -p PID --xnatinfo scan_type --type tasktype --replace /tmp/projectID_tasktype.csv
+   *Update tasktype mapping for scan_type of XNAT scans: (This is ONLY add new mapping rules, CANT remove rules \
+     use --replace to remove and add mapping rules)
+        BIDSMapping -p PID --xnatinfo scan_type --type tasktype --update /tmp/projectID_tasktype.csv
+   *Create default datatype mapping for scan_type of XNAT scans: (There is no default for series_description \
+     use --create)
+        BIDSMapping -p PID --xnatinfo scan_type --type datatype --create_default 
+   *Download the current mapping on XNAT:
+        BIDSMapping -p PID --xnatinfo scan_type --type datatype --download /tmp/download.csv 
+    *Download the scan_types on project on XNAT:
+        BIDSMapping -p PID --template /tmp/scan_type_template.csv 
+"""
+
 def add_parser_args():
     """
     Method to parse all the arguments for the tool on ArgumentParser
     :return: parser object
     """
-    argp = argparse.ArgumentParser(description='details', usage='use "%(prog)s --help" for more information',
+    argp = argparse.ArgumentParser(description=DESCRIPTION, usage='use "%(prog)s --help" for more information',
                                    formatter_class=argparse.RawTextHelpFormatter)
     # Connect to XNAT
     argp.add_argument('--host', dest='host', default=None,
@@ -31,16 +59,16 @@ def add_parser_args():
     argp.add_argument("-o", "--logfile", dest="logfile", default=None,
                       help="Write the display/output in a file given to this OPTIONS.")
     # Specify Project [Required]
-    argp.add_argument('--project', dest="project", default=None,
+    argp.add_argument("-p",'--project', dest="project", default=None,
                       help='Project to create/update BIDS mapping file')
     # Specify Type of BIDS Mapping [Required]
-    argp.add_argument('--type', dest="type", default=None,
+    argp.add_argument('-t','--type', dest="type", default=None,
                       help='The type of mapping either datatype, tasktype or repetition_time_sec')
     # Specify XNAT type for mapping [Required]
-    argp.add_argument('--xnatinfo', dest="xnatinfo", default=None,
+    argp.add_argument('-x','--xnatinfo', dest="xnatinfo", default=None,
                       help='The type of xnat info to use for mapping either scan_type or series_description')
     # Create mapping rules at Project level
-    argp.add_argument('--create', dest="create", action=None,
+    argp.add_argument('-c','--create', dest="create", action=None,
                       help='Create the given BIDS new mapping file at project level. (EG. --create <mappingfile>.csv)\n'
                            'Default create creates the default mapping at project file. (EG. --create)\n'
                            'csvfile EG:\n'
@@ -48,25 +76,25 @@ def add_parser_args():
                            'T1W/3D/TFE,anat\n'
                            'Resting State,func\n')
     # Create default mapping rules at Project level (default mapping is regex on LANDMAN project)
-    argp.add_argument('--create_default', dest="create_default", action='store_true',
+    argp.add_argument('-cd','--create_default', dest="create_default", action='store_true',
                       help='Default create creates the default mapping at project file. (EG. --create_default)')
     # Update mapping rules (it can only add new rules) at Project level
-    argp.add_argument('--update', dest="update", default=None,
-                      help='Update the existing BIDS mapping file at project level. (EG. --update <mappingfile>.csv)'
+    argp.add_argument('-u','--update', dest="update", default=None,
+                      help='Update the existing BIDS mapping file at project level. (EG. --update <mappingfile>.csv)\n'
                            'This option can only add rules')
     # Replace mapping rules (it will remove previous rules and add new rules) at Project level
-    argp.add_argument('--replace', dest="replace",  default=None,
-                      help='Replace the existing BIDS mapping file at project level. (EG. --replace <mappingfile>.csv)'
+    argp.add_argument('-rp','--replace', dest="replace",  default=None,
+                      help='Replace the existing BIDS mapping file at project level. (EG. --replace <mappingfile>.csv)\n'
                            'This option can remove and add new rules')
     # Change the mapping rules to a specific time from the LOGFILE at the Project level
-    argp.add_argument('--revert', dest="revert", default=None,
-                      help='Revert to an old mapping from a specific date/time. (EG: --revert 10-17-19-21:32:15'
+    argp.add_argument('-rv','--revert', dest="revert", default=None,
+                      help='Revert to an old mapping from a specific date/time. (EG: --revert 10-17-19-21:32:15\n'
                            'or --revert 10-17-19). Check the LOGFILE at project level for the date')
     # Download current mapping rules at the Project level
-    argp.add_argument('--download', dest="download",  action=None,
+    argp.add_argument('-d','--download', dest="download",  action=None,
                       help='Downloads the current BIDS mapping file (EG: --download <foldername>)')
     # Get a list of scan_type of the Project
-    argp.add_argument('--template', dest="template", action=None,
+    argp.add_argument('-t','--template', dest="template", action=None,
                       help='Default mapping template (EG: --template <template file>)')
 
     return argp
