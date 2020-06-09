@@ -79,7 +79,7 @@ def add_parser_args():
     argp.add_argument('-cd','--create_default', dest="create_default", action='store_true',
                       help='Default create creates the default mapping at project file. (EG. --create_default)')
     # Update mapping rules (it can only add new rules) at Project level
-    argp.add_argument('-u','--update', dest="update", default=None,
+    argp.add_argument('-ud','--update', dest="update", default=None,
                       help='Update the existing BIDS mapping file at project level. (EG. --update <mappingfile>.csv)\n'
                            'This option can only add rules')
     # Replace mapping rules (it will remove previous rules and add new rules) at Project level
@@ -94,7 +94,7 @@ def add_parser_args():
     argp.add_argument('-d','--download', dest="download",  action=None,
                       help='Downloads the current BIDS mapping file (EG: --download <foldername>)')
     # Get a list of scan_type of the Project
-    argp.add_argument('-t','--template', dest="template", action=None,
+    argp.add_argument('-tp','--template', dest="template", action=None,
                       help='Default mapping template (EG: --template <template file>)')
 
     return argp
