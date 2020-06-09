@@ -71,6 +71,9 @@ Examples:
 --rs NIFTI --overwrite
    *Download data described by a csvfile (follow template) :
         Xnatdownload -d /tmp/downloadPID -c  upload_sheet.csv
+   *Transform the XnatDownload data in BIDS format for all sessions, scantype and resources:
+        Xnatdownload -p PID --sess all -d /tmp/downloadPID -s all --rs all \
+--bids --bids_dir /tmp/BIDS_dataset
 """
 
 
