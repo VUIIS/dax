@@ -19,6 +19,7 @@ Table of Contents
 13. `XnatCheckLogin <#xnatchecklogin>`__
 14. `Xnatinfo <#xnatinfo>`__
 15. `Xnatsessionupdate <#xnatsessioninfo>`__
+16. `BIDSMapping <#bidsmapping>`__
 
 -----------------
 List of the Tools
@@ -185,9 +186,23 @@ Xnatquery will show you the tree on xnat. Xnatquery is a tool to query objects o
 Extra Examples
 ~~~~~~~~~~~~~~
 
-- Xnatquery -p projectID --info gives you information on the project.
-- Xnatquery -p projectID gives you all the subject in this project
-- Xnatquery -p projectID -s subject gives you all the experiment in this project
+- To get information on the project
+
+::
+
+	Xnatquery -p projectID --info 
+
+- To get all the subjects in this project
+
+::
+
+	Xnatquery -p projectID 
+
+- To get all the experiments in this project 
+
+::
+
+	Xnatquery -p projectID -s subject 
 
 Contact - benjamin.c.yvernault@vanderbilt.edu
 
@@ -265,10 +280,29 @@ Xnatcheck is a quick way to check directly on your terminal if there is the reso
 Extra Examples
 ~~~~~~~~~~~~~~
 
-- Xnatcheck -p BLSA -r NIFTI returns all the scans were there is no NIFTI on the project BLSA.
-- Xnatcheck -p BLSA -r PDF -l 1 returns all the assessor were there is no PDF on the project BLSA.
-- Xnatcheck -p BLSA -a fMRIQA returns all the subject/experiment were there is no fMRIQA assessor on the project BLSA.
-- Xnatcheck -p BLSA -a fMRIQA -r PDF returns all the subject/experiment were there is no fMRIQA assessor on the project BLSA and will check for the one that exists if there is a PDF resource.
+- To return all the scans where there is no NIFTI on the project BLSA
+
+::
+
+	Xnatcheck -p BLSA -r NIFTI
+
+- To return all the assessors where there is no PDF on the project BLSA
+
+::
+
+	Xnatcheck -p BLSA -r PDF -l 1 
+
+- To return all the subjects/experiments where there is no fMRIQA assessor on the project BLSA
+
+::
+
+	Xnatcheck -p BLSA -a fMRIQA 
+
+- To return all the subjects/experiments where there is no fMRIQA assessor on the project BLSA and check for the one that exists if there is a PDF resource
+
+::
+
+	Xnatcheck -p BLSA -a fMRIQA -r PDF 
 
 Contact - benjamin.c.yvernault@vanderbilt.edu
 
@@ -316,6 +350,8 @@ Xnatdownload will download all the resources that you asked for in a directory. 
 	        Xnatdownload -p PID -d /tmp/downloadPID --sess 109309,189308 -s all --rs NIFTI --overwrite
 	   *Download data described by a csvfile (follow template) :
 	        Xnatdownload -d /tmp/downloadPID -c  upload_sheet.csv
+   	   *Transform the XnatDownload data in BIDS format for all sessions, scantype and resources:
+    		Xnatdownload -p PID --sess all -d /tmp/downloadPID -s all --rs all --bids --bids_dir /tmp/BIDS_dataset 
 	
 	optional arguments:
 	  -h, --help            show this help message and exit
@@ -378,11 +414,19 @@ Xnatdownload will download all the resources that you asked for in a directory. 
 	  -o OUTPUTFILE, --output OUTPUTFILE
 	                        Write the display in a file giving to this OPTIONS.
 	  -i, --ignore          Ignore reading of the csv report file
+	  -b, --bids        	Transform to BIDS format after XNAT download
+  	  --bids_dir BIDS_DIR   Directory to store the bids dataset
+
+
 	
 Example
 ~~~~~~~
 
-- Xnatdownload -p BLSA -d /home/benjamin/temp/ -a fMRIQA -s fMRI -r NIFTI,PDF downloads in /home/benjamin/temp the resources NIFTI and PDF for all the scan fMRI and the assessor fMRIQA for the project BLSA.
+- Downloads in /home/benjamin/temp the resources NIFTI and PDF for all the scan fMRI and the assessor fMRIQA for the project BLSA
+
+::
+
+	Xnatdownload -p BLSA -d /home/benjamin/temp/ -a fMRIQA -s fMRI -r NIFTI,PDF 
 
 Contact - benjamin.c.yvernault@vanderbilt.edu
 
@@ -476,10 +520,29 @@ Warning: the project must already exist on XNAT. You can add a new project via t
 Extra Examples
 ~~~~~~~~~~~~~~
 
-- Xnatupload -d /Path/to/directory --report --up1 shows on the terminal what kind of data the command is going to upload and where with methode 1.
-- Xnatupload -p projectID -d /Path/to/directory -up1 -sess MR uploads the files in the directory with the first methode.
-- Xnatupload -p projectID -d /Path/to/directory --up2 --sess CT uploads the files in the directory with the second methode.
-- Xnatupload -d /Path/to/directory -o -T 1 --force uploads (only, no creation of subject/exp/scan) all the files from the directory into Xnat even if there is already a resources (options -force).
+- Shows on the terminal what kind of data the command is going to upload and where with method 1
+
+::
+
+	Xnatupload -d /Path/to/directory --report --up1 
+
+- Uploads the files in the directory with the first method
+
+::
+
+	Xnatupload -p projectID -d /Path/to/directory -up1 -sess MR 
+
+- Uploads the files in the directory with the second method
+
+::
+
+	Xnatupload -p projectID -d /Path/to/directory --up2 --sess CT 
+
+- Uploads (only, no creation of subject/exp/scan) all the files from the directory into Xnat even if there is already a resources (options -force)
+
+::
+
+	Xnatupload -d /Path/to/directory -o -T 1 --force 
 
 Contact - benjamin.c.yvernault@vanderbilt.edu
 
@@ -535,9 +598,23 @@ Xnatreport will give you a report on one ore more projects. It will show all the
 Extra Examples
 ~~~~~~~~~~~~~~
 
-- Xnatreport -p BLSA,CTONS creates a report for BLSA and CTONS and will print it on the screen/terminal.
-- Xnatreport -p BLSA,CTONS --csv -e email@email.com sends the report on BLSA and CTONS to your email address as a csv file. You need to set to variables gmail address and password used to sent the email in your bashrc.
-- Xnatreport -p BLSA,CTONS --csv writes the report as a ".csv" file that can be open with Excel. If not path specify, /tmp is the place where the report is save. -t will do the same but in a text file.
+- Creates a report for BLSA and CTONS and will print it on the screen/terminal
+
+::
+
+	Xnatreport -p BLSA,CTONS 
+
+- Sends the report on BLSA and CTONS to your email address as a csv file. You need to set to variables gmail address and password used to sent the email in your bashrc
+
+::
+
+	Xnatreport -p BLSA,CTONS --csv -e email@email.com 
+
+- Writes the report as a ".csv" file that can be open with Excel. If not path specify, /tmp is the place where the report is save. -t will do the same but in a text file
+
+::
+
+	Xnatreport -p BLSA,CTONS --csv 
 
 Contact - benjamin.c.yvernault@vanderbilt.edu
 
@@ -621,9 +698,23 @@ XnatSwitchProcessStatus is one of the most powerful and used of the Xnat_tools. 
 Extra Examples
 ~~~~~~~~~~~~~~
 
-- XnatSwitchProcessStatus -p BLSA -f Failed -s NeedToRun -t dtiQA_v2,FreeSurfer changes the status for dtiQA_v2 and Freesurfer that have a Failed status to NeedToRun in project BLSA.
-- XnatSwitchProcessStatus -p BLSA -f Failed -s NeedToRun -t dtiQA_v2,FreeSurfer -d changes the status for dtiQA_v2 and Freesurfer that have a Failed status to NeedToRun in project BLSA and it will delete all the resources on the assessor.
-- XnatSwitchProcessStatus --select BLSA-x-BLSA_0000-x-BLSA_0000_00-x-FreeSurfer -s NeedToRun -d changes the status for the specific FreeSurfer assessor in BLSA_0000_00 session to NeedToRun and delete the resources.
+- Changes the status for dtiQA_v2 and Freesurfer that have a Failed status to NeedToRun in project BLSA
+
+::
+
+	XnatSwitchProcessStatus -p BLSA -f Failed -s NeedToRun -t dtiQA_v2,FreeSurfer 
+
+- Changes the status for dtiQA_v2 and Freesurfer that have a Failed status to NeedToRun in project BLSA and it will delete all the resources on the assessor
+
+::
+
+	XnatSwitchProcessStatus -p BLSA -f Failed -s NeedToRun -t dtiQA_v2,FreeSurfer -d 
+
+- Changes the status for the specific FreeSurfer assessor in BLSA_0000_00 session to NeedToRun and delete the resources
+
+::
+
+	XnatSwitchProcessStatus --select BLSA-x-BLSA_0000-x-BLSA_0000_00-x-FreeSurfer -s NeedToRun -d 
 
 Contact - benjamin.c.yvernault@vanderbilt.edu
 
@@ -825,7 +916,8 @@ Xnatinfo is the tool to get fast statistics information on a project (number of 
 	                        Path to a txt file to save the report
 	  -f, --failed          Add this flag to print out failed jobs
 	  -r, --running         Add this flag to print out running jobs
-	  --ignoreUnusable      Ignore print statement of unusable scans		    --ignoreScans         Ignore print statement of scans
+	  --ignoreUnusable      Ignore print statement of unusable scans		    
+	  --ignoreScans         Ignore print statement of scans
 
 -----------------
 Xnatsessionupdate
@@ -876,3 +968,84 @@ Xnatsessionupdate resets the last update date on XNAT on a session. It will forc
 	  -x TXT_FILE, --txtfile TXT_FILE
 	                        File txt with at each line the label of the assessor or just the Session label where the Subject date need to be changed. E.G for label: project-x-subject-x-experiment-x-scan-x-process_name.
 	  -a, --all             Change for all sessions.
+	  
+-----------	  
+BIDSMapping
+-----------
+
+BIDSMapping tool allows the user to create, update or replace rules/mapping at the project level on XNAT. These rules are essential as they entail the link between scan type or series description on XNAT to the BIDS datatype, task type and repetition time. XnatToBids function uses these mapping at the project to transform XNAT data into the BIDS compliant data with BIDS filenames and folder structure. 
+
+::
+
+	################################################################
+	#                     BIDSMAPPING                  #
+	#                                                              #
+	# Developed by the MASI Lab Vanderbilt University, TN, USA.    #
+	# If issues, please start a thread here:                       #
+	# https://groups.google.com/forum/#!forum/vuiis-cci            #
+	# Usage:                                                       #
+	#     Upload rules/mapping to Project level on XNAT.              #
+	# Examples:                                                    #
+	#     Check the help for examples by running --help            #
+	################################################################
+	
+	usage: use "BIDSMapping --help" for more information
+	
+	What is the script doing :
+	   *Uploads BIDS datatype, tasktype and repitition time mapping to XNAT project level using the different OPTIONS.
+	
+	Examples:
+	   *Create a new datatype mapping for scan_type of XNAT scans:
+	    	BIDSMapping -p PID --xnatinfo scan_type --type datatype --create /tmp/projectID_datataype.csv
+	   *The correct format for /tmp/projectID_datataype.csv
+	    	scan_type,datatype
+	    	Resting State,func
+	   *Create a new datatype mapping for series_description of XNAT scans:
+	    	BIDSMapping -p PID --xnatinfo series_description --type datatype --create /tmp/projectID_datataype.csv
+	   *Create a new tasktype mapping for scan_type of XNAT scans:
+	    	BIDSMapping -p PID --xnatinfo scan_type --type tasktype --create /tmp/projectID_tasktype.csv
+	   *Replace tasktype mapping for scan_type of XNAT scans: (It removes the old mapping and upload the new mapping)
+	    	BIDSMapping -p PID --xnatinfo scan_type --type tasktype --replace /tmp/projectID_tasktype.csv
+	   *Update tasktype mapping for scan_type of XNAT scans: (This is ONLY add new mapping rules, CANT remove rules use --replace to remove and add mapping rules)
+    		BIDSMapping -p PID --xnatinfo scan_type --type tasktype --update /tmp/projectID_tasktype.csv	
+	   *Create default datatype mapping for scan_type of XNAT scans: (There is no default for series_description use --create)
+	    	BIDSMapping -p PID --xnatinfo scan_type --type datatype --create_default
+	   *Download the current mapping on XNAT:
+	    	BIDSMapping -p PID --xnatinfo scan_type --type datatype --download /tmp/download.csv
+	   *Download the scan_types on project on XNAT:
+	    	BIDSMapping -p PID --template /tmp/scan_type_template.csv
+	
+	optional arguments:
+	  -h, --help        	show this help message and exit
+	  --host HOST       	Host for XNAT. Default: using $XNAT_HOST.
+	  -u USERNAME, --username USERNAME
+	                    	Username for XNAT. Default: using $XNAT_USER.
+	  -o LOGFILE, --logfile LOGFILE
+	                    	Write the display/output in a file given to this OPTIONS.
+	  -p PROJECT, --project PROJECT
+	                    	Project to create/update BIDS mapping file
+	  -t TYPE, --type TYPE  The type of mapping either datatype, tasktype or repetition_time_sec
+	  -x XNATINFO, --xnatinfo XNATINFO
+	                    	The type of xnat info to use for mapping either scan_type or series_description
+	  -c CREATE, --create CREATE
+	                    	Create the given BIDS new mapping file at project level. (EG. --create <mappingfile>.csv)
+	                    	Default create creates the default mapping at project file. (EG. --create)
+	                    	csvfile EG:
+	                    	scan_type,datatype
+	                    	T1W/3D/TFE,anat
+	                    	Resting State,func
+	  -cd, --create_default
+	                    	Default create creates the default mapping at project file. (EG. --create_default)
+	  -ud UPDATE, --update UPDATE
+	                    	Update the existing BIDS mapping file at project level. (EG. --update <mappingfile>.csv)
+	                    	This option can only add rules
+	  -rp REPLACE, --replace REPLACE
+	                    	Replace the existing BIDS mapping file at project level. (EG. --replace <mappingfile>.csv)
+	                    	This option can remove and add new rules
+	  -rv REVERT, --revert REVERT
+	                    	Revert to an old mapping from a specific date/time. (EG: --revert 10-17-19-21:32:15
+	                    	or --revert 10-17-19). Check the LOGFILE at project level for the date
+	  -d DOWNLOAD, --download DOWNLOAD
+	                    	Downloads the current BIDS mapping file (EG: --download <foldername>)
+	  -tp TEMPLATE, --template TEMPLATE
+	                    	Default mapping template (EG: --template <template file>)
