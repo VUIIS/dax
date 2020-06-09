@@ -266,46 +266,77 @@ class InterfaceTemp(Interface):
     # Put proper validation in place for these methods
 
     def get_project_path(self, project):
+        """Given project (string),
+           returns project path (string)
+        """
         return InterfaceTemp.P_XPATH.format(project=project)
 
     def select_project(self, project):
+        """Given project (string),
+           returns project object
+        """
         xpath = self.get_project_path(project)
         return self.select(xpath)
 
     def get_subject_path(self, project, subject):
+        """Given project, subject (strings),
+           returns subject path (string)
+        """
         return InterfaceTemp.S_XPATH.format(project=project,
                                             subject=subject)
 
     def select_subject(self, project, subject):
+        """Given project, subject (strings),
+           returns subject object
+        """
         xpath = self.get_subject_path(project, subject)
         return self.select(xpath)
 
     def get_experiment_path(self, project, subject, session):
+        """Given project, subject, session (strings),
+           returns session path (string)
+        """
         return InterfaceTemp.E_XPATH.format(project=project,
                                             subject=subject,
                                             session=session)
 
     def select_experiment(self, project, subject, session):
+        """Given project, subject, session (strings),
+           returns session (experiment object)
+           Same as select_session
+        """
         xpath = self.get_experiment_path(project, subject, session)
         return self.select(xpath)
 
     def select_session(self, project, subject, session):
+        """Given project, subject, session (strings),
+           returns session (experiment object)
+           Same as select_experiment
+        """
         xpath = self.get_experiment_path(project, subject, session)
         return self.select(xpath)
 
     def get_scan_path(self, project, subject, session, scan):
+        """Given project, subject, session, scan (strings),
+           returns scan path (string)
+        """
         return InterfaceTemp.C_XPATH.format(project=project,
                                             subject=subject,
                                             session=session,
                                             scan=scan)
 
     def select_scan(self, project, subject, session, scan):
+        """Given project, subject, session, scan (strings),
+           returns scan object
+        """
         xpath = self.get_scan_path(project, subject, session, scan)
         return self.select(xpath)
 
     def get_scan_resource_path(self,
                                project, subject, session, scan, resource):
-
+        """Given project, subject, session, scan, resource (strings),
+           returns scan resource path (string)
+        """
         return InterfaceTemp.CR_XPATH.format(project=project,
                                              subject=subject,
                                              session=session,
@@ -313,22 +344,34 @@ class InterfaceTemp(Interface):
                                              resource=resource)
 
     def select_scan_resource(self, project, subject, session, scan, resource):
+        """Given project, subject, session, scan, resource (strings),
+           returns scan resource object
+        """
         xpath = self.get_scan_resource_path(
             project, subject, session, scan, resource)
         return self.select(xpath)
 
     def get_assessor_path(self, project, subject, session, assessor):
+        """Given project, subject, session, assessor (strings),
+           returns assessor path (string)
+        """
         return InterfaceTemp.A_XPATH.format(project=project,
                                             subject=subject,
                                             session=session,
                                             assessor=assessor)
 
     def select_assessor(self, project, subject, session, assessor):
+        """Given project, subject, session, assessor (strings),
+           returns assessor object
+        """
         xpath = self.get_assessor_path(project, subject, session, assessor)
         return self.select(xpath)
 
     def get_assessor_resource_path(
             self, project, subject, session, assessor, resource):
+        """Given project, subject, session, assessor, resource (strings),
+           returns assessor resource path (string)
+        """
         return InterfaceTemp.AR_XPATH.format(project=project,
                                              subject=subject,
                                              session=session,
@@ -337,6 +380,9 @@ class InterfaceTemp(Interface):
 
     def select_assessor_resource(
             self, project, subject, session, assessor, resource):
+        """Given project, subject, session, assessor, resource (strings),
+           returns assessor resource object
+        """
         xpath = self.get_assessor_resource_path(
             project, subject, session, assessor, resource)
         return self.select(xpath)
@@ -351,9 +397,8 @@ class InterfaceTemp(Interface):
         """
         List all the scans that you have access to based on passed project.
 
-        :param intf: pyxnat.Interface object
-        :param projectid: ID of a project on XNAT
-        :param include_shared: include the shared data in this project
+        :param projectid (string): ID of a project on XNAT
+        :param include_shared (boolean): include the shared data in this project
         :return: List of all the scans for the project
         """
         scans_dict = dict()
