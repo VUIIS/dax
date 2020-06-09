@@ -16,7 +16,6 @@ import argparse
 from dax import XnatUtils
 from datetime import datetime
 
-
 def add_parser_args():
     """
     Method to parse all the arguments for the tool on ArgumentParser
@@ -71,6 +70,78 @@ def add_parser_args():
                       help='Default mapping template (EG: --template <template file>)')
 
     return argp
+
+def main_display():
+    """
+    Main display for the tool
+    """
+    print('################################################################')
+    print('#                         BIDSMAPPING                          #')
+    print('#                                                              #')
+    print('# Developed by the MASI Lab Vanderbilt University, TN, USA.    #')
+    print('# If issues, please start a thread here:                       #')
+    print('# https://groups.google.com/forum/#!forum/vuiis-cci            #')
+    print('# Usage:                                                       #')
+    print('#     Upload rules/mapping to Project level on XNAT            #')
+    print('# Parameters :                                                 #')
+
+    if OPTIONS.host:
+        print('#     %*s -> %*s#' % (
+            -20, 'XNAT Host', -33, get_proper_str(OPTIONS.host)))
+    if OPTIONS.username:
+        print('#     %*s -> %*s#' % (
+            -20, 'XNAT User', -33, get_proper_str(OPTIONS.username)))
+    if OPTIONS.project:
+        print('#     %*s -> %*s#' % (
+            -20, 'Project ID',
+            -33, get_proper_str(OPTIONS.project)))
+    if OPTIONS.xnatinfo:
+        print('#     %*s -> %*s#' % (
+            -20, 'XNAT mapping type',
+            -33, get_proper_str(OPTIONS.xnatinfo, True)))
+    if OPTIONS.type:
+        print('#     %*s -> %*s#' % (
+            -20, 'BIDS mapping type',
+            -33, get_proper_str(OPTIONS.type, True)))
+    if OPTIONS.create_default:
+        print('#     %*s -> %*s#' % (-20, 'Create default mode', -33, 'on'))
+    if OPTIONS.create:
+        print('#     %*s -> %*s#' % (
+            -20, 'Create mapping with',
+            -33, get_proper_str(OPTIONS.create, True)))
+    if OPTIONS.update:
+        print('#     %*s -> %*s#' % (
+            -20, 'Update mapping with',
+            -33, get_proper_str(OPTIONS.update, True)))
+    if OPTIONS.replace:
+        print('#     %*s -> %*s#' % (
+            -20, 'Replace mapping with',
+            -33, get_proper_str(OPTIONS.replace, True)))
+    if OPTIONS.revert:
+        print('#     %*s -> %*s#' % (
+            -20, 'Revert mapping to',
+            -33, get_proper_str(OPTIONS.revert, True)))
+    if OPTIONS.download:
+        print('#     %*s -> %*s#' % (
+            -20, 'Download current mapping to',
+            -33, get_proper_str(OPTIONS.download, True)))
+    print('################################################################')
+
+def get_proper_str(str_option, end=False):
+    """
+    Method to shorten a string into the proper size for display
+
+    :param str_option: string to shorten
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
+    if len(str_option) > 32:
+        if end:
+            return '...' + str_option[-29:]
+        else:
+            return str_option[:29] + '...'
+    else:
+        return str_option
 
 def setup_info_logger(name, logfile):
     """
@@ -390,6 +461,7 @@ def mapping_download():
 if __name__ == '__main__':
     parser = add_parser_args()
     OPTIONS = parser.parse_args()
+    main_display()
     if OPTIONS.host:
         HOST = OPTIONS.host
     else:
