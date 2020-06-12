@@ -253,10 +253,10 @@ def command_found(cmd='qsub'):
 
 class PBS(object):   # The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
-    def __init__(self, filename, outfile, cmds, walltime_str, rungroup, mem_mb=2048,
+    def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
                  ppn=1, env=None, email=None,
-                 email_options=DAX_SETTINGS.get_email_opts(), xnat_host=None,
-                 job_template=None):
+                 email_options=DAX_SETTINGS.get_email_opts(), rungroup=None,
+                 xnat_host=None, job_template=None):
         """
         Entry point for the PBS class
 
@@ -269,6 +269,7 @@ class PBS(object):   # The script file generator class
         :param env: Environment file to source  for the script
         :param email: email address to set for the script
         :param email_options: email options to set for the script
+        :param rungroup: group to run job under on the cluster
         :param xnat_host: set the XNAT_HOST for the job (export)
         :return: None
         """

@@ -222,8 +222,8 @@ class DaxProjectSettingsManager(object):
         rec['attrs'] = {}
         rec['attrs']['queue_limit'] = int(ins['main_queuelimit'])
         rec['attrs']['job_email_options'] = ins['main_jobemailoptions']
-        rec['attrs']['xnat_host'] = ins['main_xnathost']
         rec['attrs']['job_rungroup'] = ins['main_rungroup']
+        rec['attrs']['xnat_host'] = ins['main_xnathost']
 
         return rec
 

@@ -80,7 +80,7 @@ class Launcher(object):
                  queue_limit=DAX_SETTINGS.get_queue_limit(),
                  root_job_dir=DAX_SETTINGS.get_root_job_dir(),
                  xnat_user=None, xnat_pass=None, xnat_host=None, cr=None,
-                 job_email=None, job_email_options='bae', max_age=7,
+                 job_email=None, job_email_options='bae', job_rungroup=None, max_age=7,
                  launcher_type=DAX_SETTINGS.get_launcher_type()):
 
         """
@@ -98,6 +98,7 @@ class Launcher(object):
         :param xnat_pass: XNAT Password. By default, use env variable.
         :param job_email: job email address for report
         :param job_email_options: email options for the jobs
+        :param job_rungroup: cluster group to run the job under
         :param max_age: maximum time before updating again a session
         :return: None
         """
@@ -160,6 +161,7 @@ name as a key and list of yaml filepaths as values.'
 
         self.job_email = job_email
         self.job_email_options = job_email_options
+        self.job_rungroup = job_rungroup
         self.max_age = DAX_SETTINGS.get_max_age()
         self.launcher_type = launcher_type
 
@@ -749,7 +751,8 @@ in session %s'
                             assessor[0], sessions,
                             self.root_job_dir,
                             self.job_email,
-                            self.job_email_options)
+                            self.job_email_options,
+                            self.job_rungroup)
                         deg = 'proc_status=%s, qc_status=%s'
                         LOGGER.debug(deg % (proc_status, qc_status))
 
