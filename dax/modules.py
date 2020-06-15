@@ -192,7 +192,7 @@ class ScanModule(Module):
         Print warning or error for a project/subject/session/scan
 
         :param message: message to print
-        :param scan_info: dictionary containing scan information from XNAT
+        :param scan_info: dictionary e.g. <XnatUtils.CachedImageScan>.info()
         :param error: True if the message is an error and not a warning
         :return: None
         """
@@ -259,7 +259,7 @@ class SessionModule(Module):
         Print warning or error for a project/subject/session
 
         :param message: message to print
-        :param sess_info: dictionary containing session information from XNAT
+        :param sess_info: dictionary e.g. <XnatUtils.CachedImageSession>.info()
         :param error: True if the message is an error and not a warning
         :return: None
         """

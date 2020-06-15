@@ -266,46 +266,77 @@ class InterfaceTemp(Interface):
     # Put proper validation in place for these methods
 
     def get_project_path(self, project):
+        """Given project (string),
+           returns project path (string)
+        """
         return InterfaceTemp.P_XPATH.format(project=project)
 
     def select_project(self, project):
+        """Given project (string),
+           returns project object
+        """
         xpath = self.get_project_path(project)
         return self.select(xpath)
 
     def get_subject_path(self, project, subject):
+        """Given project, subject (strings),
+           returns subject path (string)
+        """
         return InterfaceTemp.S_XPATH.format(project=project,
                                             subject=subject)
 
     def select_subject(self, project, subject):
+        """Given project, subject (strings),
+           returns subject object
+        """
         xpath = self.get_subject_path(project, subject)
         return self.select(xpath)
 
     def get_experiment_path(self, project, subject, session):
+        """Given project, subject, session (strings),
+           returns session path (string)
+        """
         return InterfaceTemp.E_XPATH.format(project=project,
                                             subject=subject,
                                             session=session)
 
     def select_experiment(self, project, subject, session):
+        """Given project, subject, session (strings),
+           returns session (experiment object)
+           Same as select_session
+        """
         xpath = self.get_experiment_path(project, subject, session)
         return self.select(xpath)
 
     def select_session(self, project, subject, session):
+        """Given project, subject, session (strings),
+           returns session (experiment object)
+           Same as select_experiment
+        """
         xpath = self.get_experiment_path(project, subject, session)
         return self.select(xpath)
 
     def get_scan_path(self, project, subject, session, scan):
+        """Given project, subject, session, scan (strings),
+           returns scan path (string)
+        """
         return InterfaceTemp.C_XPATH.format(project=project,
                                             subject=subject,
                                             session=session,
                                             scan=scan)
 
     def select_scan(self, project, subject, session, scan):
+        """Given project, subject, session, scan (strings),
+           returns scan object
+        """
         xpath = self.get_scan_path(project, subject, session, scan)
         return self.select(xpath)
 
     def get_scan_resource_path(self,
                                project, subject, session, scan, resource):
-
+        """Given project, subject, session, scan, resource (strings),
+           returns scan resource path (string)
+        """
         return InterfaceTemp.CR_XPATH.format(project=project,
                                              subject=subject,
                                              session=session,
@@ -313,22 +344,34 @@ class InterfaceTemp(Interface):
                                              resource=resource)
 
     def select_scan_resource(self, project, subject, session, scan, resource):
+        """Given project, subject, session, scan, resource (strings),
+           returns scan resource object
+        """
         xpath = self.get_scan_resource_path(
             project, subject, session, scan, resource)
         return self.select(xpath)
 
     def get_assessor_path(self, project, subject, session, assessor):
+        """Given project, subject, session, assessor (strings),
+           returns assessor path (string)
+        """
         return InterfaceTemp.A_XPATH.format(project=project,
                                             subject=subject,
                                             session=session,
                                             assessor=assessor)
 
     def select_assessor(self, project, subject, session, assessor):
+        """Given project, subject, session, assessor (strings),
+           returns assessor object
+        """
         xpath = self.get_assessor_path(project, subject, session, assessor)
         return self.select(xpath)
 
     def get_assessor_resource_path(
             self, project, subject, session, assessor, resource):
+        """Given project, subject, session, assessor, resource (strings),
+           returns assessor resource path (string)
+        """
         return InterfaceTemp.AR_XPATH.format(project=project,
                                              subject=subject,
                                              session=session,
@@ -337,6 +380,9 @@ class InterfaceTemp(Interface):
 
     def select_assessor_resource(
             self, project, subject, session, assessor, resource):
+        """Given project, subject, session, assessor, resource (strings),
+           returns assessor resource object
+        """
         xpath = self.get_assessor_resource_path(
             project, subject, session, assessor, resource)
         return self.select(xpath)
@@ -351,9 +397,8 @@ class InterfaceTemp(Interface):
         """
         List all the scans that you have access to based on passed project.
 
-        :param intf: pyxnat.Interface object
-        :param projectid: ID of a project on XNAT
-        :param include_shared: include the shared data in this project
+        :param projectid (string): ID of a project on XNAT
+        :param include_shared (boolean): include the shared data in this project
         :return: List of all the scans for the project
         """
         scans_dict = dict()
@@ -469,7 +514,7 @@ class InterfaceTemp(Interface):
         """
         List all the assessors that you have access to based on passed project.
 
-        :param projectid: ID of a project on XNAT
+        :param projectid (string): ID of a project on XNAT
         :return: List of all the assessors for the project
         """
         assessors_dict = dict()
@@ -601,6 +646,7 @@ class InterfaceTemp(Interface):
         return sorted(list(assessors_dict.values()), key=lambda k: k['label'])
 
     def get_subjects(self, project_id):
+        """Given project_id (string), return list of subjects in project"""
         if project_id:
             post_uri = SUBJECTS_URI.format(project=project_id)
         else:
@@ -624,12 +670,14 @@ class InterfaceTemp(Interface):
         return sorted(subject_list, key=lambda k: k['subject_label'])
 
     def get_subject_resources(self, project_id, subject_id):
+        """Given project and subject (strings), return list of subject's resources"""
         post_uri = SU_RESOURCES_URI.format(
             project=project_id, subject=subject_id)
         resource_list = self._get_json(post_uri)
         return resource_list
 
     def get_resources(self, project_id):
+        """Given project (string), return list of project's resources"""
         return self._getjson(P_RESOURCES_URI.format(project=project_id))
 
     def get_sessions(self, projectid=None, subjectid=None):
@@ -639,7 +687,6 @@ class InterfaceTemp(Interface):
          or
             2) in a single project (and single subject) based on kargs
 
-        :param intf: pyxnat.Interface object
         :param projectid: ID of a project on XNAT
         :param subjectid: ID/label of a subject
         :return: List of sessions
@@ -783,10 +830,9 @@ class InterfaceTemp(Interface):
         Gets a list of all of the resources for a session associated to a
          subject/project requested by the user
 
-        :param intf: pyxnat.Interface object
-        :param projectid: ID of a project on XNAT
-        :param subjectid: ID/label of a subject
-        :param sessionid: ID/label of a session to get resources for
+        :param projectid (string): ID of a project on XNAT
+        :param subjectid (string): ID/label of a subject
+        :param sessionid (string): ID/label of a session to get resources for
         :return: List of resources for the session
 
         """
@@ -800,10 +846,9 @@ class InterfaceTemp(Interface):
         List all the scans that you have access to based on passed
          session/subject/project.
 
-        :param intf: pyxnat.Interface object
-        :param projectid: ID of a project on XNAT
-        :param subjectid: ID/label of a subject
-        :param sessionid: ID/label of a session
+        :param projectid (string): ID of a project on XNAT
+        :param subjectid (string): ID/label of a subject
+        :param sessionid (string): ID/label of a session
         :return: List of all the scans
         """
         post_uri = SESSIONS_URI.format(project=projectid, subject=subjectid)
@@ -845,11 +890,10 @@ class InterfaceTemp(Interface):
         """
         Gets a list of all of the resources for a scan associated to a
          session/subject/project requested by the user.
-        :param intf: pyxnat.Interface object
-        :param projectid: ID of a project on XNAT
-        :param subjectid: ID/label of a subject
-        :param sessionid: ID/label of a session
-        :param scanid: ID of a scan to get resources for
+        :param projectid (string): ID of a project on XNAT
+        :param subjectid (string): ID/label of a subject
+        :param sessionid (string): ID/label of a session
+        :param scanid (string): ID of a scan to get resources for
         :return: List of resources for the scan
         """
         post_uri = SC_RESOURCES_URI.format(project=projectid,
@@ -864,11 +908,10 @@ class InterfaceTemp(Interface):
         """
         Gets a list of all of the resources for an assessor associated to a
          session/subject/project requested by the user.
-        :param intf: pyxnat.Interface object
-        :param projectid: ID of a project on XNAT
-        :param subjectid: ID/label of a subject
-        :param sessionid: ID/label of a session
-        :param assessorid: ID/label of an assessor to get resources for
+        :param projectid (string): ID of a project on XNAT
+        :param subjectid (string): ID/label of a subject
+        :param sessionid (string): ID/label of a session
+        :param assessorid (string): ID/label of an assessor to get resources for
         :return: List of resources for the assessor
         """
         # Check that the assessors types are present on XNAT
@@ -918,7 +961,7 @@ class InterfaceTemp(Interface):
         """
         List all the assessors that you have access to based on passed project.
 
-        :param projectid: ID of a project on XNAT
+        :param projectid (string): ID of a project on XNAT
         :return: List of all the assessors for the project
         """
         assessors_dict = dict()
@@ -1053,7 +1096,7 @@ class InterfaceTemp(Interface):
         """
         List all the assessors that you have access to based on passed project.
 
-        :param projectid: ID of a project on XNAT
+        :param projectid (string): ID of a project on XNAT
         :return: List of all the assessors for the project
         """
         assr_types = []
@@ -1083,10 +1126,9 @@ class InterfaceTemp(Interface):
         """
         List all the assessors that you have access to based on passed
          session/subject/project.
-        :param intf: pyxnat.Interface object
-        :param projectid: ID of a project on XNAT
-        :param subjectid: ID/label of a subject
-        :param sessionid: ID/label of a session
+        :param projectid (string): ID of a project on XNAT
+        :param subjectid (string): ID/label of a subject
+        :param sessionid (string): ID/label of a session
         :return: List of all the assessors
         """
         new_list = list()
@@ -1821,6 +1863,7 @@ def upload_reference(reference, assessor_obj, resource):
     Upload path by reference
 
     :param reference: Full path of the directory on xnat server to be uploaded
+    :param assessor_obj: pyxnat EObject of the assessor to upload to
     :param resource: pyxnat object resource to be uploaded
     """
     _uri = '{}/out/resources/{}/files?overwrite=True&label={}&reference={}'
@@ -1837,7 +1880,7 @@ def upload_assessor_snapshots(assessor_obj, original, thumbnail):
     Upload the snapshots of the assessor PDF.
      (both the original and the thumbnail)
 
-    :param assessor_obj: pyxnat EObject of the assessor to upload the snapshots
+    :param assessor_obj: pyxnat EObject of the assessor to upload to
     :param original: The original file (full size)
     :param thumbnail: The thumbnail of the original file
     :return: True if it uploaded OK, False if it failed.
@@ -2169,6 +2212,7 @@ class CachedImageScan(object):
         """
         Entry point for the CachedImageScan class
 
+        :param intf: pyxnat.Interface or XnatUtils.InterfaceTemp interface object
         :param scan_element: XML string corresponding to a scan
         :param parent: Parent XML string of the session
         :return: None
@@ -2342,6 +2386,7 @@ class CachedImageAssessor(object):
         """
         Entry point for the CachedImageAssessor class on XNAT
 
+        :param intf: pyxnat.Interface or XnatUtils.InterfaceTemp interface object
         :param assr_element: the assessor XML string on XNAT
         :param parent: the parent element of the assessor
         :return: None
