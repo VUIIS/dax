@@ -1,5 +1,12 @@
 BIDSMapping: Walkthrough Tutorial
 =================================
+Introduction
+~~~~~~~~~~~~
+
+This is a tutorial for using BIDSMapping tool, a DAX command line tool (https://github.com/VUIIS/dax). The BIDSMapping tool allows the user to create, update or replace rules/mapping at the project level on XNAT. For using BIDSMapping tool you require 
+- the lastest verion of DAX installed. Please check https://dax.readthedocs.io/en/latest/installing_dax_in_a_virtual_environment.html to install DAX in a virtual environment.
+- A project on XNAT with imaging data. 
+- A dcm2niix module turned on for the project. Preferred if the dcm2niix_bids module is turned on for the project. The dcm2niix_bids will add the required json sidecar. However, the BIDSMapping tool is capable of adding the json sidecar when missing.
 
 Table of Contents
 ~~~~~~~~~~~~~~~~~
@@ -27,7 +34,7 @@ Open a CSV file
 
 ::
 
-	vim (or nano or any editor you like) woodward_datatype.csv
+	(dax) $ vim (or nano or any editor you like) woodward_datatype.csv
 
 Type the scan_type and datatype you want to map
 
@@ -37,17 +44,28 @@ Type the scan_type and datatype you want to map
 	T1W/3D/TFE,anat
 	Resting State,func
 
-Please note, instead of scan_type in column 1 header series_description can also be used. Make sure the scan_type or series_description is from the scan on XNAT and datatype is either anat, func, fmap or dwi.
+
+Please note, instead of scan_type in column 1 header series_description can also be used. Make sure the scan_type or series_description is from the scan on XNAT. Image below shows where the information can be found on XNAT
+
+        .. image:: images/BIDS_walkthrough/Step1.1.PNG
+
+Datatype column correspond to the BIDS datatype folder (https://bids.neuroimaging.io/) for the scan to be in. BIDS datatype folder is either 
+- anat (structural imaging such as T1,T2,etc.), 
+- func (task based and resting state functional MRI), 
+- fmap (field inhomogeneity mapping data such as fieldmaps) or 
+- dwi (diffusion weighted imaging).
+For more information checkout page 4 and 8 in https://www.biorxiv.org/content/biorxiv/suppl/2016/05/12/034561.DC4/034561-1.pdf
 
 --------------------------------------
 Step 2 Upload Datatype Mapping to XNAT
 --------------------------------------
 
-Then, upload the mapping CSV file to XNAT project level using BIDSMapping tool. If series_description is used as column 1 header in Step 1, use --xnatinfo series_description option.
+This step allows the user to upload datatype mapping rules to XNAT. These mapping rules are then later used by XnatToBids function to organise the scan from XNAT in the respective BIDS datatype folder. 
+Upload the CSV file (from Step 1) with the mapping rules to XNAT project level using BIDSMapping --create. If series_description is used as column 1 header in Step 1, use --xnatinfo series_description option. 
 
 ::
 
-	BIDSMapping --project WOODWARD_TCP --create /Users/kanakap/woodward_datatype.csv --type datatype --xnatinfo scan_type
+	(dax) $ BIDSMapping --project WOODWARD_TCP --create woodward_datatype.csv --type datatype --xnatinfo scan_type
 
 ::
 
@@ -63,7 +81,7 @@ Then, upload the mapping CSV file to XNAT project level using BIDSMapping tool. 
 	#     Project ID           -> WOODWARD_TCP                     #
         #     XNAT mapping type    -> scan_type                        #
         #     BIDS mapping type    -> datatype                         #
-        #     Create mapping with  -> .../woodward_datatype.csv        #
+        #     Create mapping with  -> woodward_datatype.csv            #
 	################################################################
 	
 	INFO: connection to xnat <http://129.59.135.143:8080/xnat>:
@@ -77,19 +95,22 @@ Then, upload the mapping CSV file to XNAT project level using BIDSMapping tool. 
 Step 3 Check Project Level File Manager
 ---------------------------------------
 
-Check Manage Files on XNAT project level. There will be two Resources created. 
+Check Manage Files on XNAT project level. There will be two Resources created; one for XNAT type and the other for datatype mapping. XNAT type will have text file with either scan_type or series_description in it. Datatype mapping will have a .json file of the mapping and a LOGFILE.txt with the logging of rules added and deleted.
 
         .. image:: images/BIDS_walkthrough/Step3.1.PNG
 
+Steps 4 through 8 are ONLY FOR FUNCTIONAL SCANS
 ---------------------------------
 Step 4 Mapping Tasktype and Scans
 ---------------------------------
 
-For functional scans, tasktype and repetition time mapping (Step 6 and 7) is required. Similar to Step 1, create tasktype CSV mapping.
+For functional scans, tasktype mapping is necessary. These mapping rules are to map the scan in XNAT to the task. The task refers to the task performed by the subject during the MRI acquisition (For example: rest for resting state). The task could be any activity. The task is required for BIDS filenaming. For more information check out page 11 in https://www.biorxiv.org/content/biorxiv/suppl/2016/05/12/034561.DC4/034561-1.pdf
+
+Similar to Step 1, create tasktype CSV mapping.
 
 ::
 
-	vim (or nano or any editor you like) woodward_tasktype.csv
+	(dax) $ vim (or nano or any editor you like) woodward_tasktype.csv
 
 ::
 
@@ -100,11 +121,13 @@ For functional scans, tasktype and repetition time mapping (Step 6 and 7) is req
 Step 5 Upload Tasktype Mapping to XNAT
 --------------------------------------
 
-Similar to Step 2, upload to above Step 4 mapping to XNAT using BIDMapping tool.
+This step allows the user to upload tasktype mapping rules to XNAT. The XnatToBids in DAX uses this tasktype mapping to name the funcational scans in the BIDS folder. If there is no tasktype mapping the BIDS conversion will fail for functional scans.
+
+Similar to Step 2, upload the Step 4 CSV mapping to XNAT using BIDMapping tool. 
 
 ::
 
-	BIDSMapping --project WOODWARD_TCP --create /Users/kanakap/woodward_tasktype.csv --type tasktype --xnatinfo scan_type
+	(dax) $ BIDSMapping --project WOODWARD_TCP --create woodward_tasktype.csv --type tasktype --xnatinfo scan_type
 
 ::
 
@@ -120,7 +143,7 @@ Similar to Step 2, upload to above Step 4 mapping to XNAT using BIDMapping tool.
 	#     Project ID           -> WOODWARD_TCP                     #
         #     XNAT mapping type    -> scan_type                        #
         #     BIDS mapping type    -> tasktype                         #
-        #     Create mapping with  -> .../woodward_tasktype.csv        #
+        #     Create mapping with  -> woodward_tasktype.csv            #
 	################################################################
 	
 	INFO: connection to xnat <http://129.59.135.143:8080/xnat>:
@@ -133,12 +156,12 @@ Similar to Step 2, upload to above Step 4 mapping to XNAT using BIDMapping tool.
 Step 6 Upload Repetition Time Mapping to XNAT
 ---------------------------------------------
 
-For functional scan, create repetition CSV mapping.
+For functional scan, repetition time (TR) CSV mapping is necessary. This is because there could be some error in the TR found in the NIFTI header or in the JSON sidecar. In order to get the correct TR, we require the user to upload TR and XNAT scan mapping. 
 
 
 ::
 
-	vim (or nano or any editor you like) woodward_repetition_time.csv
+	(dax) $ vim (or nano or any editor you like) woodward_repetition_time.csv
 
 ::
 
@@ -148,13 +171,14 @@ For functional scan, create repetition CSV mapping.
 ---------------------------------------------
 Step 7 Upload Repetition Time Mapping to XNAT
 ---------------------------------------------
+ 
+This step allows the user to upload TR mapping rules to XNAT. TR value is vital during processing. If there is no repetition time mapping the BIDS conversion will fail for functional scans. 
 
-Upload the above Step 6 mapping to XNAT using the BIDSMapping tool.
+Upload the above Step 6 mapping to XNAT using the BIDSMapping tool
 
 ::
 
-	BIDSMapping --project WOODWARD_TCP --create /Users/kanakap/woodward_repetition_time.csv --type repetition_time_sec
-	--xnatinfo scan_type
+	(dax) $ BIDSMapping --project WOODWARD_TCP --create woodward_repetition_time.csv --type repetition_time_sec --xnatinfo scan_type
 
 ::
 
@@ -170,7 +194,7 @@ Upload the above Step 6 mapping to XNAT using the BIDSMapping tool.
 	#     Project ID           -> WOODWARD_TCP                     #
         #     XNAT mapping type    -> scan_type                        #
         #     BIDS mapping type    -> repetition_time_sec              #
-        #     Create mapping with  -> .../woodward_repetition_time.csv #
+        #     Create mapping with  -> woodward_repetition_time.csv     #
 	################################################################
 	
 	INFO: connection to xnat <http://129.59.135.143:8080/xnat>:
@@ -191,7 +215,9 @@ Additional Useful BIDSMapping Tool Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-Please note, the steps 9-11 can be followed for using the option --update in the BIDSMapping tool. This option allows you to ONLY add new mapping rules to existing mapping at the project level.
+There are additional options such as --update and --replace 
+- The user can use --update option to add new mapping rules to the existing mapping at the project level. This is useful when the user added new scans with new scan types to a project and would like to add mapping rules for these scan types. Please note, the steps 9-11 can be followed for using the option --update in the BIDSMapping tool. 
+- The user can use --replace option to remove existing rules and add new rules. This is useful when the user made a mistake in creating the rules and the rules need to be deleted and replaced by new ones.
 
 ------------------
 Step 9 New Mapping
@@ -201,7 +227,7 @@ To replace a mapping at project level, create the new CSV mapping. Here, we are 
 
 ::
 
-	vim (or nano or any editor you like) woodward_repetition_time.csv
+	(dax) $ vim (or nano or any editor you like) woodward_repetition_time.csv
 
 ::
 
@@ -216,7 +242,7 @@ Use option --replace in the BIDSMapping tool. --replace removes the old mapping 
 
 ::
 
-	BIDSMapping --project WOODWARD_TCP --replace /Users/kanakap/woodward_repetition_time.csv --type repetition_time_sec 		--xnatinfo scan_type
+	(dax) $ BIDSMapping --project WOODWARD_TCP --replace /Users/kanakap/woodward_repetition_time.csv --type repetition_time_sec --xnatinfo scan_type
 
 ::
 
