@@ -13,9 +13,9 @@ Table of Contents
 7.  `Step 7 Upload Functional Scan <#step-7-upload-functional-scan>`__
 8.  `Step 8 Project Level File Manage <#step-8-project-level-file-manage>`__
 9.  `Additional Useful BIDSMapping Tool Options <#additional-useful-bidsmapping-tool-options>`__
-9.  `Step 9 Replace Mapping <#step-9-replace-mapping>`__
-10. `Step 10 Replace BIDSMapping Tool <#step-10-replace-bidsmapping-tool>`__
-11. `Step 11 Checking LOGFILE <#step-11-checking-logfile>`__
+10.  `Step 9 Replace Mapping <#step-9-replace-mapping>`__
+11. `Step 10 Replace BIDSMapping Tool <#step-10-replace-bidsmapping-tool>`__
+12. `Step 11 Checking LOGFILE <#step-11-checking-logfile>`__
 
 ---------------------------------
 Step 1 Mapping Datatype and Scans
