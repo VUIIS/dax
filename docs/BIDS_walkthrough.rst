@@ -32,6 +32,7 @@ Open a CSV file
 Type the scan_type and datatype you want to map
 
 ::
+
 	scan_type,datatype
 	T1W/3D/TFE,anat
 	Resting State,func
@@ -45,6 +46,7 @@ Step 2 Upload Datatype Mapping to XNAT
 Then, upload the mapping CSV file to XNAT project level using BIDSMapping tool. If series_description is used as column 1 header in Step 1, use --xnatinfo series_description option.
 
 ::
+
 	BIDSMapping --project WOODWARD_TCP --create /Users/kanakap/woodward_datatype.csv --type datatype --xnatinfo scan_type
 
 ::
@@ -90,6 +92,7 @@ For functional scans, tasktype and repetition time mapping (Step 6 and 7) is req
 	vim (or nano or any editor you like) woodward_tasktype.csv
 
 ::
+
 	scan_type,tasktype
 	Resting State,rest
 
@@ -100,6 +103,7 @@ Step 5 Upload Tasktype Mapping to XNAT
 Similar to Step 2, upload to above Step 4 mapping to XNAT using BIDMapping tool.
 
 ::
+
 	BIDSMapping --project WOODWARD_TCP --create /Users/kanakap/woodward_tasktype.csv --type tasktype --xnatinfo scan_type
 
 ::
@@ -137,6 +141,7 @@ For functional scan, create repetition CSV mapping.
 	vim (or nano or any editor you like) woodward_repetition_time.csv
 
 ::
+
 	scan_type,repetition_time_sec
 	Resting State,2
 
@@ -147,6 +152,7 @@ Step 7 Upload Repetition Time Mapping to XNAT
 Upload the above Step 6 mapping to XNAT using the BIDSMapping tool.
 
 ::
+
 	BIDSMapping --project WOODWARD_TCP --create /Users/kanakap/woodward_repetition_time.csv --type repetition_time_sec
 	--xnatinfo scan_type
 
@@ -198,6 +204,7 @@ To replace a mapping at project level, create the new CSV mapping. Here, we are 
 	vim (or nano or any editor you like) woodward_repetition_time.csv
 
 ::
+
 	scan_type,repetition_time_sec
 	Resting State,0.826
 
@@ -208,6 +215,7 @@ Step 10 Replace Existing Mapping
 Use option --replace in the BIDSMapping tool. --replace removes the old mapping rules and adds new ones.
 
 ::
+
 	BIDSMapping --project WOODWARD_TCP --replace /Users/kanakap/woodward_repetition_time.csv --type repetition_time_sec 		--xnatinfo scan_type
 
 ::
