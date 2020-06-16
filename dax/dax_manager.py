@@ -13,7 +13,7 @@ import dax
 from . import DAX_Settings
 from .launcher import BUILD_SUFFIX
 from . import log
-from .errors import AutoProcessorError
+from .errors import AutoProcessorError, DaxError
 
 # TODO: archive old logs
 
@@ -617,7 +617,7 @@ class DaxManager(object):
                 LOGGER.info('updating jobs:' + proj)
                 log = self.log_name('update', proj, datetime.now())
                 self.run_update(settings_path, log)
-            except AutoProcessorError as e:
+            except (AutoProcessorError, DaxError) as e:
                 err = 'error running update:project={}\n{}'.format(proj, e)
                 LOGGER.error(err)
                 run_errors.append(err)
@@ -631,7 +631,7 @@ class DaxManager(object):
                 LOGGER.info('launching jobs:' + proj)
                 log = self.log_name('launch', proj, datetime.now())
                 self.run_launch(settings_path, log)
-            except AutoProcessorError as e:
+            except (AutoProcessorError, DaxError) as e:
                 err = 'error running launch:project={}\n{}'.format(proj, e)
                 LOGGER.error(err)
                 run_errors.append(err)
