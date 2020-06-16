@@ -1049,3 +1049,7 @@ BIDSMapping tool allows the user to create, update or replace rules/mapping at t
 	                    	Downloads the current BIDS mapping file (EG: --download <foldername>)
 	  -tp TEMPLATE, --template TEMPLATE
 	                    	Default mapping template (EG: --template <template file>)
+
+
+For a walkthrough tutorial of BIDSMapping check out https://dax.readthedocs.io/en/latest/BIDS_walkthrough.html
+Contact - praitayini.kanakaraj@vanderbilt.edu
