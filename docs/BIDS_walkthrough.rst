@@ -4,8 +4,11 @@ Introduction
 ~~~~~~~~~~~~
 
 This is a tutorial for using BIDSMapping tool, a DAX command line tool (https://github.com/VUIIS/dax). The BIDSMapping tool allows the user to create, update or replace rules/mapping at the project level on XNAT. For using BIDSMapping tool you require 
+
 - the lastest verion of DAX installed. Please check https://dax.readthedocs.io/en/latest/installing_dax_in_a_virtual_environment.html to install DAX in a virtual environment.
+
 - A project on XNAT with imaging data. 
+
 - A dcm2niix module turned on for the project. Preferred if the dcm2niix_bids module is turned on for the project. The dcm2niix_bids will add the required json sidecar. However, the BIDSMapping tool is capable of adding the json sidecar when missing.
 
 Table of Contents
@@ -216,7 +219,9 @@ Additional Useful BIDSMapping Tool Options
 
 
 There are additional options such as --update and --replace 
+
 - The user can use --update option to add new mapping rules to the existing mapping at the project level. This is useful when the user added new scans with new scan types to a project and would like to add mapping rules for these scan types. Please note, the steps 9-11 can be followed for using the option --update in the BIDSMapping tool. 
+
 - The user can use --replace option to remove existing rules and add new rules. This is useful when the user made a mistake in creating the rules and the rules need to be deleted and replaced by new ones.
 
 ------------------
