@@ -40,3 +40,4 @@ Contents:
    dax_executables
    installing_dax_in_a_virtual_environment
    manage_a_project
+   BIDS_walkthrough
