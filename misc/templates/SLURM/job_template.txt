@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --mail-user=${job_email}
 #SBATCH --mail-type=${job_email_options}
+#SBATCH --account=${job_rungroup}
 #SBATCH --nodes=1
 #SBATCH --ntasks=${job_ppn}
 #SBATCH --time=${job_walltime}

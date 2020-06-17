@@ -461,7 +461,7 @@ undo_processing...')
 
     def launch(self, jobdir, job_email=None,
                job_email_options=DAX_SETTINGS.get_email_opts(),
-               xnat_host=None, writeonly=False, pbsdir=None,
+               job_rungroup=None,xnat_host=None, writeonly=False, pbsdir=None,
                force_no_qsub=False):
         """
         Method to launch a job on the grid
@@ -470,6 +470,7 @@ undo_processing...')
         :param job_email: who to email if the job fails
         :param job_email_options: grid-specific job email options (e.g.,
          fails, starts, exits etc)
+        :param job_rungroup: grid-specific group to run the job under
         :param xnat_host: set the XNAT_HOST in the PBS job
         :param writeonly: write the job files without submitting them
         :param pbsdir: folder to store the pbs file
@@ -484,10 +485,17 @@ undo_processing...')
         outlog = self.outlog_path()
         outlog_dir = os.path.dirname(outlog)
         mkdirp(outlog_dir)
-        pbs = PBS(pbsfile, outlog, cmds, self.processor.walltime_str,
-                  self.processor.memreq_mb, self.processor.ppn,
-                  self.processor.env, job_email,
-                  job_email_options, xnat_host,
+        pbs = PBS(pbsfile,
+                  outlog,
+                  cmds,
+                  self.processor.walltime_str,
+                  self.processor.memreq_mb,
+                  self.processor.ppn,
+                  self.processor.env,
+                  job_email,
+                  job_email_options,
+                  job_rungroup,
+                  xnat_host,
                   self.processor.job_template)
         pbs.write()
         if writeonly:
@@ -1529,6 +1537,7 @@ undo_processing...')
     def build_task(self, assr, sessions,
                    jobdir, job_email=None,
                    job_email_options=DEFAULT_EMAIL_OPTS,
+                   job_rungroup=None,
                    xnat_host=None):
         """
         Method to build a job
@@ -1547,6 +1556,7 @@ undo_processing...')
                         self.processor.env,
                         job_email,
                         job_email_options,
+                        job_rungroup,
                         xnat_host,
                         self.processor.job_template)
             LOGGER.info('writing:' + batch_file)

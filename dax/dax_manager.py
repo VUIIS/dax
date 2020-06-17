@@ -222,6 +222,7 @@ class DaxProjectSettingsManager(object):
         rec['attrs'] = {}
         rec['attrs']['queue_limit'] = int(ins['main_queuelimit'])
         rec['attrs']['job_email_options'] = ins['main_jobemailoptions']
+        rec['attrs']['job_rungroup'] = ins['main_rungroup']
         rec['attrs']['xnat_host'] = ins['main_xnathost']
 
         return rec
@@ -523,8 +524,9 @@ class DaxManager(object):
         instance_name = get_this_instance()
         LOGGER.debug('instance={}'.format(instance_name))
 
-        # Return the reocrd associate with this instance_name
-        return self._redcap.export_records(records=[instance_name])[0]
+        # Return the record associated with this instance_name
+        return self._redcap.export_records(
+            records=[instance_name], raw_or_label='label')[0]
 
     def refresh_settings(self):
         # Delete existing settings files

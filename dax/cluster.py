@@ -255,8 +255,8 @@ class PBS(object):   # The script file generator class
     """ PBS class to generate/submit the cluster file to run a task """
     def __init__(self, filename, outfile, cmds, walltime_str, mem_mb=2048,
                  ppn=1, env=None, email=None,
-                 email_options=DAX_SETTINGS.get_email_opts(), xnat_host=None,
-                 job_template=None):
+                 email_options=DAX_SETTINGS.get_email_opts(), rungroup=None,
+                 xnat_host=None, job_template=None):
         """
         Entry point for the PBS class
 
@@ -269,6 +269,7 @@ class PBS(object):   # The script file generator class
         :param env: Environment file to source  for the script
         :param email: email address to set for the script
         :param email_options: email options to set for the script
+        :param rungroup: group to run job under on the cluster
         :param xnat_host: set the XNAT_HOST for the job (export)
         :return: None
         """
@@ -279,6 +280,7 @@ class PBS(object):   # The script file generator class
         self.mem_mb = mem_mb
         self.email = email
         self.email_options = email_options
+        self.rungroup = rungroup
         self.ppn = ppn
         self.job_template = job_template
         if env:
@@ -303,6 +305,7 @@ class PBS(object):   # The script file generator class
         # Write the Bedpost script (default value)
         job_data = {'job_email': self.email,
                     'job_email_options': self.email_options,
+                    'job_rungroup': self.rungroup,
                     'job_ppn': str(self.ppn),
                     'job_env': str(self.env),
                     'job_walltime': str(self.walltime_str),
