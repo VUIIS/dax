@@ -18,7 +18,6 @@ import logging
 import os
 import platform
 import random
-import readline
 import shutil
 import smtplib
 import socket
@@ -55,17 +54,6 @@ from .git_revision import git_revision as __git_revision__
 
 # Global Variables
 LOGGER = logging.getLogger('dax')
-
-
-# Global variables for setup:
-def complete(text, state):
-    """Function to help tab completion path when using dax_setup."""
-    return (glob.glob(text + '*') + [None])[state]
-
-
-readline.set_completer_delims(' \t\n;')
-readline.parse_and_bind("tab: complete")
-readline.set_completer(complete)
 
 BASH_PROFILE_XNAT = """# Xnat Host for default dax executables:
 {export_cmd}
