@@ -171,8 +171,8 @@ For functional scan, repetition time (TR) CSV mapping is necessary. This is beca
 ::
 
 	series_description,repetition_time_sec
-	gonogo1,2
-	gonogo2,2
+	gonogo1,0.862
+	gonogo2,0.862
 
 ---------------------------------------------
 Step 7 Upload Repetition Time Mapping to XNAT
@@ -240,8 +240,8 @@ To replace a mapping at project level, create the new CSV mapping. Here, we are 
 ::
 
 	series_description,repetition_time_sec
-	gonogo1,0.826
-	gonogo2,0.826
+	gonogo1,2
+	gonogo2,2
 
 --------------------------------
 Step 10 Replace Existing Mapping
