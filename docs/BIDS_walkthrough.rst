@@ -213,7 +213,7 @@ Upload the above Step 6 mapping to XNAT using the BIDSMapping tool
 Step 8 Check Project Level File Manager 
 ---------------------------------------
 
-Check Manage Files on XNAT project level. There should be four Resources. 
+Check Manage Files on XNAT project level. There should be two more BIDS Resources created. One for TR mapping and another for tasktype mapping. 
 
         .. image:: images/BIDS_walkthrough/Step8.1.PNG
 
