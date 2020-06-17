@@ -37,15 +37,16 @@ Open a CSV file
 
 ::
 
-	(dax) $ vim (or nano or any editor you like) woodward_datatype.csv
+	(dax) $ vim (or nano or any editor you like) datatype.csv
 
-Type the scan_type and datatype you want to map
+Type the series_description and datatype you want to map
 
 ::
 
-	scan_type,datatype
-	T1W/3D/TFE,anat
-	Resting State,func
+	series_description,datatype
+	T1,anat
+	gonogo1,func
+	gonogo2,func
 
 
 Please note, instead of scan_type in column 1 header series_description can also be used. Make sure the scan_type or series_description is from the scan on XNAT. Image below shows where the information can be found on XNAT
@@ -64,11 +65,11 @@ Step 2 Upload Datatype Mapping to XNAT
 --------------------------------------
 
 This step allows the user to upload datatype mapping rules to XNAT. These mapping rules are then later used by XnatToBids function to organise the scan from XNAT in the respective BIDS datatype folder. 
-Upload the CSV file (from Step 1) with the mapping rules to XNAT project level using BIDSMapping --create. If series_description is used as column 1 header in Step 1, use --xnatinfo series_description option. 
+Upload the CSV file (from Step 1) with the mapping rules to XNAT project level using BIDSMapping --create. If scan_type is used as column 1 header in Step 1, use --xnatinfo scan_type option. 
 
 ::
 
-	(dax) $ BIDSMapping --project WOODWARD_TCP --create woodward_datatype.csv --type datatype --xnatinfo scan_type
+	(dax) $ BIDSMapping --project ZALD_TTS --create datatype.csv --type datatype --xnatinfo series_description
 
 ::
 
@@ -81,17 +82,17 @@ Upload the CSV file (from Step 1) with the mapping rules to XNAT project level u
 	# Usage:                                                       #
 	#     Upload rules/mapping to Project level on XNAT.           #
 	# Parameters:                                                  #
-	#     Project ID           -> WOODWARD_TCP                     #
-        #     XNAT mapping type    -> scan_type                        #
+	#     Project ID           -> ZALD_TTS                         #
+        #     XNAT mapping type    -> series_description               #
         #     BIDS mapping type    -> datatype                         #
-        #     Create mapping with  -> woodward_datatype.csv            #
+        #     Create mapping with  -> datatype.csv                     #
 	################################################################
 	
 	INFO: connection to xnat <http://129.59.135.143:8080/xnat>:
-	The info used from XNAT is scan_type
+	The info used from XNAT is series_description
 	CSV mapping format is good
-	date 15-06-20-12:00:06
-	CREATED: New mapping file 06-15-20-12:00:06_datatype.json is uploaded
+	date 16-06-20-20:05:56
+	CREATED: New mapping file 06-16-20-20:05:56_datatype.json is uploaded
 	
 
 ---------------------------------------
@@ -113,12 +114,13 @@ Similar to Step 1, create tasktype CSV mapping.
 
 ::
 
-	(dax) $ vim (or nano or any editor you like) woodward_tasktype.csv
+	(dax) $ vim (or nano or any editor you like) tasktype.csv
 
 ::
 
-	scan_type,tasktype
-	Resting State,rest
+	series_description,tasktype
+	gonogo1,gonogo
+	gonogo2,gonogo
 
 --------------------------------------
 Step 5 Upload Tasktype Mapping to XNAT
@@ -130,7 +132,7 @@ Similar to Step 2, upload the Step 4 CSV mapping to XNAT using BIDMapping tool.
 
 ::
 
-	(dax) $ BIDSMapping --project WOODWARD_TCP --create woodward_tasktype.csv --type tasktype --xnatinfo scan_type
+	(dax) $ BIDSMapping --project ZALD_TTS --create tasktype.csv --type tasktype --xnatinfo series_description
 
 ::
 
@@ -143,17 +145,17 @@ Similar to Step 2, upload the Step 4 CSV mapping to XNAT using BIDMapping tool.
 	# Usage:                                                       #
 	#     Upload rules/mapping to Project level on XNAT.           #
 	# Parameters:                                                  #
-	#     Project ID           -> WOODWARD_TCP                     #
-        #     XNAT mapping type    -> scan_type                        #
+	#     Project ID           -> ZALD_TTS                         #
+        #     XNAT mapping type    -> series_description               #
         #     BIDS mapping type    -> tasktype                         #
-        #     Create mapping with  -> woodward_tasktype.csv            #
+        #     Create mapping with  -> tasktype.csv                     #
 	################################################################
 	
 	INFO: connection to xnat <http://129.59.135.143:8080/xnat>:
-	The info used from XNAT is scan_type
+	The info used from XNAT is series_description
 	CSV mapping format is good
-	date 15-06-20-12:22:10
-	CREATED: New mapping file 06-15-20-12:22:10_tasktype.json is uploaded
+	date 16-06-20-20:12:12
+	CREATED: New mapping file 06-16-20-20:12:12_tasktype.json is uploaded
 
 ---------------------------------------------
 Step 6 Upload Repetition Time Mapping to XNAT
@@ -164,12 +166,13 @@ For functional scan, repetition time (TR) CSV mapping is necessary. This is beca
 
 ::
 
-	(dax) $ vim (or nano or any editor you like) woodward_repetition_time.csv
+	(dax) $ vim (or nano or any editor you like) repetition_time.csv
 
 ::
 
-	scan_type,repetition_time_sec
-	Resting State,2
+	series_description,repetition_time_sec
+	gonogo1,2
+	gonogo2,2
 
 ---------------------------------------------
 Step 7 Upload Repetition Time Mapping to XNAT
@@ -181,7 +184,7 @@ Upload the above Step 6 mapping to XNAT using the BIDSMapping tool
 
 ::
 
-	(dax) $ BIDSMapping --project WOODWARD_TCP --create woodward_repetition_time.csv --type repetition_time_sec --xnatinfo scan_type
+	(dax) $ BIDSMapping --project ZALD_TTS --create repetition_time.csv --type repetition_time_sec --xnatinfo series_description
 
 ::
 
@@ -194,17 +197,17 @@ Upload the above Step 6 mapping to XNAT using the BIDSMapping tool
 	# Usage:                                                       #
 	#     Upload rules/mapping to Project level on XNAT.           #
 	# Parameters:                                                  #
-	#     Project ID           -> WOODWARD_TCP                     #
-        #     XNAT mapping type    -> scan_type                        #
+	#     Project ID           -> ZALD_TTS                         #
+        #     XNAT mapping type    -> series_description               #
         #     BIDS mapping type    -> repetition_time_sec              #
-        #     Create mapping with  -> woodward_repetition_time.csv     #
+        #     Create mapping with  -> repetition_time.csv              #
 	################################################################
 	
 	INFO: connection to xnat <http://129.59.135.143:8080/xnat>:
-	The info used from XNAT is scan_type
+	The info used from XNAT is series_description
 	CSV mapping format is good
-	date 15-06-20-12:27:40
-	CREATED: New mapping file 06-15-20-12:27:40_tasktype.json is uploaded
+	date 16-06-20-20:15:50
+	CREATED: New mapping file 06-16-20-20:15:50_repetition_time_sec.json is uploaded
 
 ---------------------------------------
 Step 8 Check Project Level File Manager 
@@ -232,12 +235,13 @@ To replace a mapping at project level, create the new CSV mapping. Here, we are 
 
 ::
 
-	(dax) $ vim (or nano or any editor you like) woodward_repetition_time.csv
+	(dax) $ vim (or nano or any editor you like) correct_repetition_time.csv
 
 ::
 
-	scan_type,repetition_time_sec
-	Resting State,0.826
+	series_description,repetition_time_sec
+	gonogo1,0.826
+	gonogo2,0.826
 
 --------------------------------
 Step 10 Replace Existing Mapping
@@ -247,7 +251,7 @@ Use option --replace in the BIDSMapping tool. --replace removes the old mapping 
 
 ::
 
-	(dax) $ BIDSMapping --project WOODWARD_TCP --replace /Users/kanakap/woodward_repetition_time.csv --type repetition_time_sec --xnatinfo scan_type
+	(dax) $ BIDSMapping --project ZALD_TTS --replace correct_repetition_time.csv --type repetition_time_sec --xnatinfo series_description
 
 ::
 
@@ -260,17 +264,16 @@ Use option --replace in the BIDSMapping tool. --replace removes the old mapping 
 	# Usage:                                                       #
 	#     Upload rules/mapping to Project level on XNAT.           #
 	# Parameters:                                                  #
-	#     Project ID           -> WOODWARD_TCP                     #
+	#     Project ID           -> ZALD_TTS                         #
         #     XNAT mapping type    -> scan_type                        #
         #     BIDS mapping type    -> repetition_time_sec              #
-        #     Create mapping with  -> .../woodward_repetition_time.csv #
+        #     Create mapping with  -> correct_repetition_time.csv      #
 	################################################################
 	
 	INFO: connection to xnat <http://129.59.135.143:8080/xnat>:
-	The info used from XNAT is scan_type
+	The info used from XNAT is series_description
 	CSV mapping format is good
-	date 15-06-20-12:35:50
-	UPDATED: New mapping file 06-15-20-12:35:50_tasktype.json is uploaded
+	UUPDATED: uploaded mapping file 06-16-20-20:25:47_repetition_time_sec.json
 
 ---------------------
 Step 11 Check LOGFILE
