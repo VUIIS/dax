@@ -163,6 +163,7 @@ if __name__ == '__main__':
           test_suite='nose.collector',
           tests_require=TESTS_REQUIRES,
           install_requires=REQUIRES,
+          python_requires='~=3.6',
           zip_safe=True,
           scripts=glob(os.path.join('bin', '*', '*')),
           classifiers=CLASSIFIERS)
