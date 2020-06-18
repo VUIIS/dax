@@ -1,3 +1,4 @@
 pyxnat
 pyyaml
 pycap
+nibabel

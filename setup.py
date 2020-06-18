@@ -131,7 +131,8 @@ REQUIRES = [
     'pyxnat>=%s' % PYXNAT_MIN_VERSION,
     'pyyaml',
     'pycap',
-    'configparser'
+    'configparser',
+    'nibabel'
 ]
 
 TESTS_REQUIRES = ['nose']
