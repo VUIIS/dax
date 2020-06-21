@@ -1,1 +1,0 @@
-squeue -j ${jobid} --noheader | awk {'print $5'}
