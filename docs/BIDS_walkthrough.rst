@@ -26,9 +26,9 @@ Table of Contents
 10.  `Step 9 Correct Old Mapping <#step-9-correct-out-mapping>`__
 11. `Step 10 Replace Existing Mapping <#step-10-replace-existing-mapping>`__
 12. `Step 11 Check Corrected LOGFILE <#step-11-check-corrected-logfile>`__
-10.  `Step 12 Add New Mapping <#step-9-add-new-mapping>`__
-11. `Step 13 Update Existing Mapping <#step-10-update-existing-mapping>`__
-12. `Step 14 Check Updated LOGFILE <#step-11-check-updated-logfile>`__
+13. `Step 12 Add New Mapping <#step-12-add-new-mapping>`__
+14. `Step 13 Update Existing Mapping <#step-13-update-existing-mapping>`__
+15. `Step 14 Check Updated LOGFILE <#step-14-check-updated-logfile>`__
 
 
 ---------------------------------
