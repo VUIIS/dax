@@ -23,9 +23,13 @@ Table of Contents
 7.  `Step 7 Upload Repetition Time Mapping to XNAT <#step-7-upload-repetition-time-mapping-to-xnat>`__
 8.  `Step 8 Check Project Level File Manager <#step-8-check-project-level-file-manager>`__
 9.  `Additional Useful BIDSMapping Tool Options <#additional-useful-bidsmapping-tool-options>`__
-10.  `Step 9 New Mapping <#step-9-new-mapping>`__
+10.  `Step 9 Correct Old Mapping <#step-9-correct-out-mapping>`__
 11. `Step 10 Replace Existing Mapping <#step-10-replace-existing-mapping>`__
-12. `Step 11 Check LOGFILE <#step-11-check-logfile>`__
+12. `Step 11 Check Corrected LOGFILE <#step-11-check-corrected-logfile>`__
+10.  `Step 12 Add New Mapping <#step-9-add-new-mapping>`__
+11. `Step 13 Update Existing Mapping <#step-10-update-existing-mapping>`__
+12. `Step 14 Check Updated LOGFILE <#step-11-check-updated-logfile>`__
+
 
 ---------------------------------
 Step 1 Mapping Datatype and Scans
@@ -47,6 +51,11 @@ Type the series_description and datatype you want to map
 	T1,anat
 	gonogo1,func
 	gonogo2,func
+	cap1,func
+	cap2,func
+	mid1,func
+	mid2,func
+	mid3,func
 
 
 Please note, instead of scan_type in column 1 header series_description can also be used. Make sure the scan_type or series_description is from the scan on XNAT. Image below shows where the information can be found on XNAT
@@ -121,6 +130,11 @@ Similar to Step 1, create tasktype CSV mapping.
 	series_description,tasktype
 	gonogo1,gonogo
 	gonogo2,gonogo
+	cap1,cap1
+	cap2,cap2
+	mid1,mid1
+	mid2,mid2
+	mid3,mid3
 
 --------------------------------------
 Step 5 Upload Tasktype Mapping to XNAT
@@ -221,15 +235,15 @@ Additional Useful BIDSMapping Tool Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-There are additional options such as --update and --replace 
+There are additional options such as --replace and --update
 
-- The user can use --update option to add new mapping rules to the existing mapping at the project level. This is useful when the user added new scans with new scan types to a project and would like to add mapping rules for these scan types. Please note, the steps 9-11 can be followed for using the option --update in the BIDSMapping tool. 
+- The user can use --replace option to remove existing rules and add new rules. This is useful when the user made a mistake in creating the rules and the rules need to be deleted and replaced by new ones. Please note, the steps 9-11 can be followed for using the option --replace in the BIDSMapping tool. 
 
-- The user can use --replace option to remove existing rules and add new rules. This is useful when the user made a mistake in creating the rules and the rules need to be deleted and replaced by new ones.
+- The user can use --update option to add new mapping rules to the existing mapping at the project level. This is useful when the user added new scans with new scan types to a project and would like to add mapping rules for these scan types. Please note, the steps 12-14 can be followed for using the option --update in the BIDSMapping tool.
 
-------------------
-Step 9 New Mapping
-------------------
+--------------------------
+Step 9 Correct Old Mapping 
+--------------------------
 
 To replace a mapping at project level, create the new CSV mapping. Here, we are replacing repetition_time mapping.
 
@@ -265,7 +279,7 @@ Use option --replace in the BIDSMapping tool. --replace removes the old mapping 
 	#     Upload rules/mapping to Project level on XNAT.           #
 	# Parameters:                                                  #
 	#     Project ID           -> ZALD_TTS                         #
-        #     XNAT mapping type    -> scan_type                        #
+        #     XNAT mapping type    -> series_description               #
         #     BIDS mapping type    -> repetition_time_sec              #
         #     Create mapping with  -> correct_repetition_time.csv      #
 	################################################################
@@ -273,12 +287,75 @@ Use option --replace in the BIDSMapping tool. --replace removes the old mapping 
 	INFO: connection to xnat <http://129.59.135.143:8080/xnat>:
 	The info used from XNAT is series_description
 	CSV mapping format is good
-	UUPDATED: uploaded mapping file 06-16-20-20:25:47_repetition_time_sec.json
+	UPDATED: uploaded mapping file 06-16-20-20:25:47_repetition_time_sec.json
 
----------------------
-Step 11 Check LOGFILE
----------------------
+-------------------------------
+Step 11 Check Corrected LOGFILE
+-------------------------------
 
 Check the LOGFILE.txt or json mapping at the XNAT project level under the repetition time Resources.
 
         .. image:: images/BIDS_walkthrough/Step11.1.PNG
+
+-----------------------
+Step 12 Add New Mapping 
+-----------------------
+
+To update a mapping at project level, create the new CSV mapping. Here, we are updating repetition_time mapping.
+
+::
+
+	(dax) $ vim (or nano or any editor you like) add_new_repetition_time.csv
+
+::
+
+	series_description,repetition_time_sec
+	cap1,2
+	cap2,2
+	mid1,2
+	mid2,2
+	mid3,2
+
+--------------------------------
+Step 13 Update Existing Mapping
+--------------------------------
+
+Use option --update in the BIDSMapping tool. --update add the new mapping rules to the existing mapping rules.
+
+::
+
+	(dax) $ BIDSMapping --project ZALD_TTS --update add_new_repetition_time.csv --type repetition_time_sec --xnatinfo series_description
+
+::
+
+	################################################################
+	#                     BIDSMAPPING                              #
+	#                                                              #
+	# Developed by the MASI Lab Vanderbilt University, TN, USA.    #
+	# If issues, please start a thread here:                       #
+	# https://groups.google.com/forum/#!forum/vuiis-cci            #
+	# Usage:                                                       #
+	#     Upload rules/mapping to Project level on XNAT.           #
+	# Parameters:                                                  #
+	#     Project ID           -> ZALD_TTS                         #
+        #     XNAT mapping type    -> series_description               #
+        #     BIDS mapping type    -> repetition_time_sec              #
+        #     Create mapping with  -> add_new_repetition_time.csv      #
+	################################################################
+	
+	INFO: connection to xnat <http://129.59.135.143:8080/xnat>:
+	The info used from XNAT is series_description
+	CSV mapping format is good
+	UPDATED: uploaded mapping file 06-23-20-16:36:36_repetition_time_sec.json
+
+-----------------------------
+Step 14 Check Updated LOGFILE
+-----------------------------
+
+Check the LOGFILE.txt or json mapping at the XNAT project level under the repetition time Resources.
+
+        .. image:: images/BIDS_walkthrough/Step14.1.PNG
+	
+	
+	
+	
