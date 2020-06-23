@@ -1,1 +1,0 @@
-sacct -j ${jobid}.batch --format MaxRss --noheader | awk '{print $1+0}'
