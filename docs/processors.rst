@@ -15,8 +15,6 @@ Processor Repos
 There are several existing processors that can be used without modification. The processors in these
 repositories can also provide valuable examples.
 
-https://github.com/bud42/dax-processors
-
 https://github.com/VUIIS/dax_yaml_processor_examples
 
 https://github.com/VUIIS/yaml_processors (private, internal use only)
