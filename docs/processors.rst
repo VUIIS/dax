@@ -103,8 +103,8 @@ xnat scans
 ---------------
 Each **xnat scans** item requires a **types** field. The **types** field is used to match against the scan type attribute on XNAT. The value can be a single string or a comma-separated list. Wildcards are also supported.
 
-By default, any scan that matches will be included. You can exclude scans with a quality of *unusable* on XNAT by including the field **needs_qc** with value of *True*. The default is to run anything, i.e. value of *False*.
-Note that questionable is treated the same as *usable*, so they'll always run.
+By default, any scan that matches will be included. You can exclude scans with a quality of *unusable* on XNAT by including the field **needs_qc** with value of *True*. The default is to run anything, i.e. a **needs_qc** value of *False*.
+Note that *questionable* is treated the same as *usable*, so they'll always run.
 
 The **resources** subsection of each xnat scan should contain a list of resources to download from the matched scan. Each resource requires fields for **ftype** and **var**. 
 
@@ -119,7 +119,7 @@ xnat assessors
 ---------------
 Each xnat assessor item requires a **proctype** field. The **proctype** field is used to match against the assessor proctype attribute on XNAT. The value can be a single string or a comma-separated list. Wildcards are also supported.
 
-By default, any assessor that matches **proctype** will be included. If you want to only run if an assessor is "good", you set **needs_qc** to *True*, This will not include assessors with an XNAT qcstatus of "NEEDS_QA". It will run on "Passed", "Good", etc. A qcstatus that's "bad" or "Failed" will also be excluded.
+By default, any assessor that matches **proctype** will be included. However if **needs_qc** is set to *True*, assessors with a qcstatus of "Needs QA", "Bad", "Failed", "Poor", or "Do Not Run" will be excluded.
 
 The **resources** subsection of each xnat assessor should contain a list of resources to download from the matched scan. Each resource requires fields for **ftype** and **var**. 
 
