@@ -198,18 +198,25 @@ def yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, scan_file,
                   'Use BidsMapping tool. Func folder not created' % xnat_mapping_type))
             print("ERROR: BIDS Conversion not complete")
             sys.exit()
-        bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_task-' + task_type + '_acq-' + scan_id + '_run-01' \
-                     + '_' + 'bold' + '.' + ".".join(scan_file.split('.')[1:])
+        # Get the run_number for the scan
+        rn_dict = sd_run_mapping(XNAT, project)
+        # Map scan and with run_number, if run_number
+        # not present for scan then 01 is used
+        run_number = rn_dict.get(xnat_mapping_type, "01")
+        bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_task-' + task_type + '_acq-' + scan_id + '_run-' \
+                     + run_number + '_bold' + '.' + ".".join(scan_file.split('.')[1:])
         return bids_fname
 
     elif data_type == "dwi":
+        rn_dict = sd_run_mapping(XNAT, project)
+        run_number = rn_dict.get(xnat_mapping_type, "01")
         if scan_file.endswith('bvec.txt'):
-            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + scan_id + '_' + 'dwi' + '.' + 'bvec'
+            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + run_number + '_dwi.bvec'
 
         elif scan_file.endswith('bval.txt'):
-            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + scan_id + '_' + 'dwi' + '.' + 'bval'
+            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + run_number + '_dwi.bval'
         else:
-            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + scan_id + '_' + 'dwi' + \
+            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + run_number + '_dwi' + \
                          '.' + ".".join(scan_file.split('.')[1:])
         return bids_fname
 
@@ -449,6 +456,27 @@ def sd_tasktype_mapping(XNAT, project):
             json.dump(tk_dict, f, indent=2)
     return tk_dict
 
+
+def sd_run_mapping(XNAT, project):
+    """
+    Method to get the Run number mapping at Project level
+    :param XNAT: XNAT interface
+    :param project: XNAT Project ID
+    :return: Dictonary with scan_type/series_description and run number mapping
+    """
+    rn_dict = {}
+    if XNAT.select('/data/projects/' + project + '/resources/BIDS_run_number').exists():
+        for res in XNAT.select('/data/projects/' + project + '/resources/BIDS_run_number/files').get():
+            if res.endswith('.json'):
+                with open(XNAT.select('/data/projects/' + project + '/resources/BIDS_run_number/files/'
+                                      + res).get(), "r+") as f:
+                    datatype_mapping = json.load(f)
+                    rn_dict = datatype_mapping[project]
+
+    else:
+        print("\t\t>WARNING: No Run number mapping at project level. Using 01 as run number")
+
+    return rn_dict
 
 def dataset_description_file(BIDS_DIR, XNAT, project):
     """
