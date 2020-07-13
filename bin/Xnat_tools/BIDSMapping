@@ -200,7 +200,7 @@ def template():
     # Get all the unique scans in the project
     scans_list_global = XNAT.get_project_scans(project)
     for sd in scans_list_global:
-        sd_list.append(sd['scan_type'])
+        sd_list.append(sd[xnat_type])
     sd_set = set(sd_list)
     uniq_sd = [_f for _f in list(sd_set) if _f]
     # Write the list to directory given by the user
@@ -208,7 +208,7 @@ def template():
         wr = csv.writer(f)
         for row in uniq_sd:
             wr.writerow([row])
-    LOGGER.info('Template with scan_type at %s', template_dir)
+    LOGGER.info('Template with %s is uploaded at %s' % (xnat_type, template_dir))
 
 def default():
     """
@@ -518,49 +518,49 @@ if __name__ == '__main__':
         LOGGER.info("WARNING: Project is require. Use --project")
     else:
         project = OPTIONS.project
-        if OPTIONS.template:
-            template()
+        # Put the XNAT type info at project level in xnat_type.txt
+        xnat_type_file = XNAT.select('/data/projects/' + project + '/resources/BIDS_xnat_type/files/xnat_type.txt')
+        if not OPTIONS.xnatinfo:
+            LOGGER.info("WARNING: Xnatinfo is required. Use --xnatinfo")
+        elif OPTIONS.xnatinfo not in ["scan_type", "series_description"]:
+            LOGGER.error("ERROR: Type must be scan_type or series_description")
         else:
-            # Put the XNAT type info at project level in xnat_type.txt
-            xnat_type_file = XNAT.select('/data/projects/' + project + '/resources/BIDS_xnat_type/files/xnat_type.txt')
-            if not OPTIONS.xnatinfo:
-                LOGGER.info("WARNING: Xnatinfo is required. Use --xnatinfo")
-            elif OPTIONS.xnatinfo not in ["scan_type", "series_description"]:
-                LOGGER.error("ERROR: Type must be scan_type or series_description")
+            xnat_type = OPTIONS.xnatinfo
+            LOGGER.info("The info used from XNAT is " + xnat_type)
+            xnat_type_file.put(src=xnat_type, overwrite=True)
+            XNAT.select(os.path.join('/data/projects/' + project + '/resources/', 'LOGFILE.txt'))
+            if OPTIONS.template:
+                template()
+                sys.exit()
+            if not OPTIONS.type:
+                LOGGER.info("WARNING: Type is required. Use --type")
+            elif OPTIONS.type not in ["datatype", "tasktype", "repetition_time_sec", "run_number"]:
+                LOGGER.error("ERROR: Type must be datatype or tasktype or repetition_time_sec or run_number")
             else:
-                xnat_type = OPTIONS.xnatinfo
-                LOGGER.info("The info used from XNAT is " + xnat_type)
-                xnat_type_file.put(src=xnat_type, overwrite=True)
-                XNAT.select(os.path.join('/data/projects/' + project + '/resources/', 'LOGFILE.txt'))
-                if not OPTIONS.type:
-                    LOGGER.info("WARNING: Type is required. Use --type")
-                elif OPTIONS.type not in ["datatype", "tasktype", "repetition_time_sec", "run_number"]:
-                    LOGGER.error("ERROR: Type must be datatype or tasktype or repetition_time_sec or run_number")
-                else:
-                    mapping_type = OPTIONS.type
-                    CSVWRITER = None
-                    res_files = '/data/projects/' + project + '/resources/BIDS_' + mapping_type + '/files'
-                    xnat_logfile = XNAT.select(os.path.join(res_files, 'LOGFILE.txt'))
-                    if not xnat_logfile.exists():
-                        # If LOGFILE does not exist revert cant be done
-                        if OPTIONS.revert:
-                            LOGGER.error('Cannot perform --revert. Create mapping with --create option first')
-                            sys.exit()
-                        xnat_logfile.put(src="Logfile\n")
-                    LOGFILE = xnat_logfile.get()
-                    csvfilewrite = open(LOGFILE, 'a')
-                    CSVWRITER = csv.writer(csvfilewrite, delimiter=',')
-                    if OPTIONS.create:
-                        create()
-                    if OPTIONS.create_default:
-                        default()
-                    if OPTIONS.update or OPTIONS.replace:
-                        update_or_replace()
+                mapping_type = OPTIONS.type
+                CSVWRITER = None
+                res_files = '/data/projects/' + project + '/resources/BIDS_' + mapping_type + '/files'
+                xnat_logfile = XNAT.select(os.path.join(res_files, 'LOGFILE.txt'))
+                if not xnat_logfile.exists():
+                    # If LOGFILE does not exist revert cant be done
                     if OPTIONS.revert:
-                        revert()
-                    if OPTIONS.download:
-                        mapping_download()
+                        LOGGER.error('Cannot perform --revert. Create mapping with --create option first')
+                        sys.exit()
+                    xnat_logfile.put(src="Logfile\n")
+                LOGFILE = xnat_logfile.get()
+                csvfilewrite = open(LOGFILE, 'a')
+                CSVWRITER = csv.writer(csvfilewrite, delimiter=',')
+                if OPTIONS.create:
+                    create()
+                if OPTIONS.create_default:
+                    default()
+                if OPTIONS.update or OPTIONS.replace:
+                    update_or_replace()
+                if OPTIONS.revert:
+                    revert()
+                if OPTIONS.download:
+                    mapping_download()
 
-                    csvfilewrite.close()
-                    XNAT.select(os.path.join(res_files, 'LOGFILE.txt')).put(src=LOGFILE, overwrite=True)
+                csvfilewrite.close()
+                XNAT.select(os.path.join(res_files, 'LOGFILE.txt')).put(src=LOGFILE, overwrite=True)
 

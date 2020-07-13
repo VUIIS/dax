@@ -80,7 +80,8 @@ def transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, LOGGER):
                 subj_idx = subj_idx + 1
                 LOGGER.info("\t>Removing XNAT subject %s folder" % (subj))
                 os.rmdir(os.path.join(DIRECTORY, proj, subj))
-    dataset_description_file(BIDS_DIR, XNAT, project)
+    BIDS_PROJ_DIR = os.path.join(BIDS_DIR, project)
+    dataset_description_file(BIDS_PROJ_DIR, XNAT, project)
 
 
 def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_file, sess_idx, subj_idx):
@@ -478,10 +479,10 @@ def sd_run_mapping(XNAT, project):
 
     return rn_dict
 
-def dataset_description_file(BIDS_DIR, XNAT, project):
+def dataset_description_file(BIDS_PROJ_DIR, XNAT, project):
     """
     Build BIDS dataset description json file
-    :param BIDS_DIR: BIDS directory
+    :param BIDS_PROJ_DIR: Project BIDS directory
     :param XNAT: XNAT interface
     :param project: XNAT Project
     """
@@ -497,8 +498,7 @@ def dataset_description_file(BIDS_DIR, XNAT, project):
         dataset_description['Author'] = PI_element[0][1].text, PI_element[0][0].text
     else:
         dataset_description['Author'] = "No Author defined on XNAT"
-    dd_file = os.path.join(BIDS_DIR, project)
-    if not os.path.exists(dd_file):
-        os.makedirs(dd_file)
-    with open(os.path.join(dd_file, 'dataset_description.json'), 'w+') as f:
+    if not os.path.exists(BIDS_PROJ_DIR):
+        os.makedirs(BIDS_PROJ_DIR)
+    with open(os.path.join(BIDS_PROJ_DIR, 'dataset_description.json'), 'w+') as f:
         json.dump(dataset_description, f, indent=2)
