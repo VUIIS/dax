@@ -17,7 +17,7 @@ from dax import XnatUtils
 from datetime import datetime
 
 DESCRIPTION = """What is the script doing :
-   *Uploads BIDS datatype, tasktype and repitition time mapping to XNAT project level using the \
+   *Uploads BIDS datatype, tasktype, repitition time and run number mapping to XNAT project level using the \
 different OPTIONS.
 
 Examples:
@@ -41,7 +41,7 @@ Examples:
    *Download the current mapping on XNAT:
         BIDSMapping -p PID --xnatinfo scan_type --type datatype --download /tmp/download.csv 
     *Download the scan_types on project on XNAT:
-        BIDSMapping -p PID --template /tmp/scan_type_template.csv 
+        BIDSMapping -p PID --template /tmp/scan_type_template.csv --xnatinfo scan_types
 """
 
 def add_parser_args():
@@ -200,7 +200,7 @@ def template():
     # Get all the unique scans in the project
     scans_list_global = XNAT.get_project_scans(project)
     for sd in scans_list_global:
-        sd_list.append(sd['scan_type'])
+        sd_list.append(sd[xnat_type])
     sd_set = set(sd_list)
     uniq_sd = [_f for _f in list(sd_set) if _f]
     # Write the list to directory given by the user
@@ -208,7 +208,7 @@ def template():
         wr = csv.writer(f)
         for row in uniq_sd:
             wr.writerow([row])
-    LOGGER.info('Template with scan_type at %s', template_dir)
+    LOGGER.info('Template with %s is uploaded at %s' % (xnat_type, template_dir))
 
 def default():
     """
@@ -218,44 +218,46 @@ def default():
     """
     new_mapping = dict()
     new_mapping[project] = {}
-    # Since Repetition time should be given by user, it has no default mapping
-    if mapping_type == 'repetition_time_sec':
-        LOGGER.info('Repetition time does not have default mapping, use --create')
+    # Since Repetition time and Run number should be given by user, it has no default mapping
+    if mapping_type == 'repetition_time_sec' or mapping_type == 'run_number':
+        LOGGER.info('%s does not have default mapping, use --create' % mapping_type)
+
     else:
-        # Get the scan type from LANDMAN and use regex to create mapping for those scans and BIDS datatype
         if mapping_type == 'datatype':
-            scans_list_global = XNAT.get_project_scans('LANDMAN')
+            # Get the scan type/series description from project ID and
+            # use regex to create mapping for those scans and BIDS datatype
+            scans_list_global = XNAT.get_project_scans(project)
 
             for sd in scans_list_global:
-                c = re.search('T1|T2|T1W', sd['scan_type'])
+                c = re.search('T1|T2|T1W', sd[xnat_type])
                 if not c == None:
-                    sd_anat = sd['scan_type']
+                    sd_anat = sd[xnat_type]
                     new_mapping[project][sd_anat] = "anat"
 
             for sd in scans_list_global:
-                c = re.search('rest|Resting state', sd['scan_type'], flags=re.IGNORECASE)
+                c = re.search('rest|Resting state', sd[xnat_type], flags=re.IGNORECASE)
                 if not c == None:
                     sd_func = sd['scan_type']
                     new_mapping[project][sd_func] = "func"
 
             for sd in scans_list_global:
-                c = re.search('dwi|dti', sd['scan_type'], flags=re.IGNORECASE)
+                c = re.search('dwi|dti', sd[xnat_type], flags=re.IGNORECASE)
                 if not c == None:
                     sd_dwi = sd['scan_type']
                     new_mapping[project][sd_dwi] = "dwi"
 
             for sd in scans_list_global:
-                c = re.search('Field', sd['scan_type'], flags=re.IGNORECASE)
+                c = re.search('Field', sd[xnat_type], flags=re.IGNORECASE)
                 if not c == None:
                     sd_fmap = sd['scan_type']
                     new_mapping[project][sd_fmap] = "fmap"
 
         if mapping_type == 'tasktype':
-            scans_list_global = XNAT.get_project_scans('LANDMAN')
+            scans_list_global = XNAT.get_project_scans(project)
             for sd in scans_list_global:
-                c = re.search('rest', sd['scan_type'], flags=re.IGNORECASE)
+                c = re.search('rest', sd[xnat_type], flags=re.IGNORECASE)
                 if not c == None:
-                    sd_func = sd['scan_type']
+                    sd_func = sd[xnat_type]
                     new_mapping[project][sd_func] = "rest"
 
         new_json_name = d_m_y + '_' + mapping_type + '.json'
@@ -301,6 +303,8 @@ def create():
                 new_mapping[project][sd] = rows['tasktype']
             elif mapping_type == 'repetition_time_sec':
                 new_mapping[project][sd] = rows['repetition_time_sec']
+            elif mapping_type == 'run_number':
+                new_mapping[project][sd] = rows['run_number']
     LOGGER.info('date %s' % (date.strftime("%d-%m-%y-%H:%M:%S")))
 
     # If  mapping is not present upload the new_mapping from the CSV, if not throw an error
@@ -350,6 +354,8 @@ def update_or_replace():
                 new_mapping[project][sd] = rows['tasktype']
             elif mapping_type == 'repetition_time_sec':
                 new_mapping[project][sd] = rows['repetition_time_sec']
+            elif mapping_type == 'run_number':
+                new_mapping[project][sd] = rows['run_number']
     # Get the json mapping from XNAT
     if len(XNAT.select(res_files).get()) > 1:
         for res in XNAT.select(res_files).get():
@@ -383,7 +389,7 @@ def csv_check(src_path):
     with open(src_path, 'r') as csvFile:
         csvReader = csv.DictReader(csvFile)
         if csvReader.fieldnames[0] in ["scan_type","series_description"] and csvReader.fieldnames[1] in \
-                ["datatype", "tasktype", "repetition_time_sec"] and csvReader.fieldnames[0] == xnat_type and csvReader.fieldnames[1] == mapping_type:
+                ["datatype", "tasktype", "repetition_time_sec", "run_number"] and csvReader.fieldnames[0] == xnat_type and csvReader.fieldnames[1] == mapping_type:
             if csvReader.fieldnames[1] == "datatype":
                 for rows in csvReader:
                     if rows['datatype'] not in ["anat", "dwi", "func", "fmap"]:
@@ -394,7 +400,7 @@ def csv_check(src_path):
                 LOGGER.info("CSV mapping format is good")
         else:
             LOGGER.error("ERROR in CSV column headers. Check 1) if the xnat_info and column header match, 2) if the type and column header match, "
-                         "3) column headers should be series_description or scan_type and datatype, tasktype or repetition_time_sec")
+                         "3) column headers should be series_description or scan_type and datatype, tasktype, repetition_time_sec, or run_number")
             sys.exit()
 
 def revert():
@@ -512,49 +518,49 @@ if __name__ == '__main__':
         LOGGER.info("WARNING: Project is require. Use --project")
     else:
         project = OPTIONS.project
-        if OPTIONS.template:
-            template()
+        # Put the XNAT type info at project level in xnat_type.txt
+        xnat_type_file = XNAT.select('/data/projects/' + project + '/resources/BIDS_xnat_type/files/xnat_type.txt')
+        if not OPTIONS.xnatinfo:
+            LOGGER.info("WARNING: Xnatinfo is required. Use --xnatinfo")
+        elif OPTIONS.xnatinfo not in ["scan_type", "series_description"]:
+            LOGGER.error("ERROR: Type must be scan_type or series_description")
         else:
-            # Put the XNAT type info at project level in xnat_type.txt
-            xnat_type_file = XNAT.select('/data/projects/' + project + '/resources/BIDS_xnat_type/files/xnat_type.txt')
-            if not OPTIONS.xnatinfo:
-                LOGGER.info("WARNING: Xnatinfo is required. Use --xnatinfo")
-            elif OPTIONS.xnatinfo not in ["scan_type", "series_description"]:
-                LOGGER.error("ERROR: Type must be scan_type or series_description")
+            xnat_type = OPTIONS.xnatinfo
+            LOGGER.info("The info used from XNAT is " + xnat_type)
+            xnat_type_file.put(src=xnat_type, overwrite=True)
+            XNAT.select(os.path.join('/data/projects/' + project + '/resources/', 'LOGFILE.txt'))
+            if OPTIONS.template:
+                template()
+                sys.exit()
+            if not OPTIONS.type:
+                LOGGER.info("WARNING: Type is required. Use --type")
+            elif OPTIONS.type not in ["datatype", "tasktype", "repetition_time_sec", "run_number"]:
+                LOGGER.error("ERROR: Type must be datatype or tasktype or repetition_time_sec or run_number")
             else:
-                xnat_type = OPTIONS.xnatinfo
-                LOGGER.info("The info used from XNAT is " + xnat_type)
-                xnat_type_file.put(src=xnat_type, overwrite=True)
-                XNAT.select(os.path.join('/data/projects/' + project + '/resources/', 'LOGFILE.txt'))
-                if not OPTIONS.type:
-                    LOGGER.info("WARNING: Type is required. Use --type")
-                elif OPTIONS.type not in ["datatype", "tasktype", "repetition_time_sec"]:
-                    LOGGER.error("ERROR: Type must be datatype or tasktype or repetition_time_sec")
-                else:
-                    mapping_type = OPTIONS.type
-                    CSVWRITER = None
-                    res_files = '/data/projects/' + project + '/resources/BIDS_' + mapping_type + '/files'
-                    xnat_logfile = XNAT.select(os.path.join(res_files, 'LOGFILE.txt'))
-                    if not xnat_logfile.exists():
-                        # If LOGFILE does not exist revert cant be done
-                        if OPTIONS.revert:
-                            LOGGER.error('Cannot perform --revert. Create mapping with --create option first')
-                            sys.exit()
-                        xnat_logfile.put(src="Logfile\n")
-                    LOGFILE = xnat_logfile.get()
-                    csvfilewrite = open(LOGFILE, 'a')
-                    CSVWRITER = csv.writer(csvfilewrite, delimiter=',')
-                    if OPTIONS.create:
-                        create()
-                    if OPTIONS.create_default:
-                        default()
-                    if OPTIONS.update or OPTIONS.replace:
-                        update_or_replace()
+                mapping_type = OPTIONS.type
+                CSVWRITER = None
+                res_files = '/data/projects/' + project + '/resources/BIDS_' + mapping_type + '/files'
+                xnat_logfile = XNAT.select(os.path.join(res_files, 'LOGFILE.txt'))
+                if not xnat_logfile.exists():
+                    # If LOGFILE does not exist revert cant be done
                     if OPTIONS.revert:
-                        revert()
-                    if OPTIONS.download:
-                        mapping_download()
+                        LOGGER.error('Cannot perform --revert. Create mapping with --create option first')
+                        sys.exit()
+                    xnat_logfile.put(src="Logfile\n")
+                LOGFILE = xnat_logfile.get()
+                csvfilewrite = open(LOGFILE, 'a')
+                CSVWRITER = csv.writer(csvfilewrite, delimiter=',')
+                if OPTIONS.create:
+                    create()
+                if OPTIONS.create_default:
+                    default()
+                if OPTIONS.update or OPTIONS.replace:
+                    update_or_replace()
+                if OPTIONS.revert:
+                    revert()
+                if OPTIONS.download:
+                    mapping_download()
 
-                    csvfilewrite.close()
-                    XNAT.select(os.path.join(res_files, 'LOGFILE.txt')).put(src=LOGFILE, overwrite=True)
+                csvfilewrite.close()
+                XNAT.select(os.path.join(res_files, 'LOGFILE.txt')).put(src=LOGFILE, overwrite=True)
 

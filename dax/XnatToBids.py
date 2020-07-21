@@ -80,7 +80,8 @@ def transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, LOGGER):
                 subj_idx = subj_idx + 1
                 LOGGER.info("\t>Removing XNAT subject %s folder" % (subj))
                 os.rmdir(os.path.join(DIRECTORY, proj, subj))
-    dataset_description_file(BIDS_DIR, XNAT, project)
+    BIDS_PROJ_DIR = os.path.join(BIDS_DIR, project)
+    dataset_description_file(BIDS_PROJ_DIR, XNAT, project)
 
 
 def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_file, sess_idx, subj_idx):
@@ -198,18 +199,25 @@ def yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, scan_file,
                   'Use BidsMapping tool. Func folder not created' % xnat_mapping_type))
             print("ERROR: BIDS Conversion not complete")
             sys.exit()
-        bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_task-' + task_type + '_acq-' + scan_id + '_run-01' \
-                     + '_' + 'bold' + '.' + ".".join(scan_file.split('.')[1:])
+        # Get the run_number for the scan
+        rn_dict = sd_run_mapping(XNAT, project)
+        # Map scan and with run_number, if run_number
+        # not present for scan then 01 is used
+        run_number = rn_dict.get(xnat_mapping_type, "01")
+        bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_task-' + task_type + '_acq-' + scan_id + '_run-' \
+                     + run_number + '_bold' + '.' + ".".join(scan_file.split('.')[1:])
         return bids_fname
 
     elif data_type == "dwi":
+        rn_dict = sd_run_mapping(XNAT, project)
+        run_number = rn_dict.get(xnat_mapping_type, "01")
         if scan_file.endswith('bvec.txt'):
-            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + scan_id + '_' + 'dwi' + '.' + 'bvec'
+            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + run_number + '_dwi.bvec'
 
         elif scan_file.endswith('bval.txt'):
-            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + scan_id + '_' + 'dwi' + '.' + 'bval'
+            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + run_number + '_dwi.bval'
         else:
-            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + scan_id + '_' + 'dwi' + \
+            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + run_number + '_dwi' + \
                          '.' + ".".join(scan_file.split('.')[1:])
         return bids_fname
 
@@ -450,10 +458,31 @@ def sd_tasktype_mapping(XNAT, project):
     return tk_dict
 
 
-def dataset_description_file(BIDS_DIR, XNAT, project):
+def sd_run_mapping(XNAT, project):
+    """
+    Method to get the Run number mapping at Project level
+    :param XNAT: XNAT interface
+    :param project: XNAT Project ID
+    :return: Dictonary with scan_type/series_description and run number mapping
+    """
+    rn_dict = {}
+    if XNAT.select('/data/projects/' + project + '/resources/BIDS_run_number').exists():
+        for res in XNAT.select('/data/projects/' + project + '/resources/BIDS_run_number/files').get():
+            if res.endswith('.json'):
+                with open(XNAT.select('/data/projects/' + project + '/resources/BIDS_run_number/files/'
+                                      + res).get(), "r+") as f:
+                    datatype_mapping = json.load(f)
+                    rn_dict = datatype_mapping[project]
+
+    else:
+        print("\t\t>WARNING: No Run number mapping at project level. Using 01 as run number")
+
+    return rn_dict
+
+def dataset_description_file(BIDS_PROJ_DIR, XNAT, project):
     """
     Build BIDS dataset description json file
-    :param BIDS_DIR: BIDS directory
+    :param BIDS_PROJ_DIR: Project BIDS directory
     :param XNAT: XNAT interface
     :param project: XNAT Project
     """
@@ -469,8 +498,7 @@ def dataset_description_file(BIDS_DIR, XNAT, project):
         dataset_description['Author'] = PI_element[0][1].text, PI_element[0][0].text
     else:
         dataset_description['Author'] = "No Author defined on XNAT"
-    dd_file = os.path.join(BIDS_DIR, project)
-    if not os.path.exists(dd_file):
-        os.makedirs(dd_file)
-    with open(os.path.join(dd_file, 'dataset_description.json'), 'w+') as f:
+    if not os.path.exists(BIDS_PROJ_DIR):
+        os.makedirs(BIDS_PROJ_DIR)
+    with open(os.path.join(BIDS_PROJ_DIR, 'dataset_description.json'), 'w+') as f:
         json.dump(dataset_description, f, indent=2)
