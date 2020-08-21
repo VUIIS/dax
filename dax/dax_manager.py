@@ -183,6 +183,7 @@ class DaxProjectSettingsManager(object):
         self._redcap = redcap.Project(redcap_url, redcap_key)
 
     def write_each(self):
+        errors = []
         now = datetime.now()
 
         # First load the settings from our defaults project
@@ -191,14 +192,22 @@ class DaxProjectSettingsManager(object):
         for name in self.project_names():
             settings = copy.deepcopy(default_settings)
 
-            LOGGER.info('Loading project: ' + name)
-            project = self.load_project(settings, name)
-            settings.add_project(project)
+            try:
+                LOGGER.info('Loading project: ' + name)
+                project = self.load_project(settings, name)
+                settings.add_project(project)
 
-            # Write project file
-            filename = os.path.join(
-                self._local_dir, 'settings-{}.yaml'.format(name))
-            self.write_settings_file(filename, settings, now)
+                # Write project file
+                filename = os.path.join(
+                    self._local_dir, 'settings-{}.yaml'.format(name))
+                self.write_settings_file(filename, settings, now)
+            except DaxManagerError as e:
+                err = 'error in project settings:project={}\n{}'.format(
+                    project, e)
+                LOGGER.info(err)
+                errors.append(err)
+
+        return errors
 
     def write_settings_file(self, filename, settings, timestamp):
         LOGGER.info('Writing settings to file:' + filename)
@@ -510,7 +519,7 @@ class DaxManager(object):
             api_url, api_key_projects,
             self.instance_settings, self.settings_dir)
 
-        self.refresh_settings()
+        self.settings_errors = self.refresh_settings()
 
     def load_instance_settings(
             self, redcap_url, redcap_key, main_form='main'):
@@ -534,11 +543,13 @@ class DaxManager(object):
             os.remove(filename)
 
         # Write settings files
-        self.settings_manager.write_each()
+        errors = self.settings_manager.write_each()
 
         # Load settings files
         self.settings_list = self.list_settings_files(self.settings_dir)
         LOGGER.info(self.settings_list)
+
+        return errors
 
     def list_settings_files(self, settings_dir):
         slist = os.listdir(settings_dir)
@@ -589,7 +600,7 @@ class DaxManager(object):
         return build_results
 
     def run(self):
-        run_errors = []
+        run_errors = self.settings_errors
         max_build_count = self.max_build_count
         build_pool = None
         build_results = None
@@ -605,7 +616,8 @@ class DaxManager(object):
         if num_build_threads < 1:
             LOGGER.info('max builds already:{}'.format(str(cur_build_count)))
         else:
-            LOGGER.info('starting {} more builds'.format(str(num_build_threads)))
+            LOGGER.info('starting {} more builds'.format(
+                str(num_build_threads)))
             build_pool = Pool(processes=num_build_threads)
             build_results = self.queue_builds(build_pool, self.settings_list)
             build_pool.close()  # Close the pool, I dunno if this matters
@@ -739,6 +751,13 @@ if __name__ == '__main__':
     manager = DaxManager(API_URL, API_KEY_I, API_KEY_P)
 
     # And run it
-    manager.run()
+    errors = manager.run()
+
+    # Show errors
+    if errors:
+        msg = 'ERRORS:\n'
+        msg += '\n\n'.join(errors)
+        msg += '\n\n'
+        LOGGER.info(msg)
 
     LOGGER.info('ALL DONE!')
