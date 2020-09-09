@@ -6,9 +6,9 @@ Table of Contents
 
 1.  `Setup <#setup>`__
   1.  `OS X Setup <#os-x-setup>`__
-2.  `Create the Virtual Environment <#create-the-virtual-environment>`__
-3.  `Install DAX <#install-dax>`__
-4.  `Verify Installation <#verify-installation>`__
+    1.  `Create the Virtual Environment <#create-the-virtual-environment>`__
+    2.  `Install DAX <#install-dax>`__
+    3.  `Verify Installation <#verify-installation>`__
 
 
 -----
@@ -103,6 +103,13 @@ Next, run XnatCheckLogin, which will verify that the xnat host that was just add
 	  Connecting to host <new_xnat_host_url> with user <username>...
 	   --> Good login.
 	Login saved.
+
+Finally, add the same xnat_host to the .bashrc file
+
+::
+
+	# Set default XNAT host for this session
+	export XNAT_HOST=<xnat_host_url>
 
 -------------------
 Verify Installation
