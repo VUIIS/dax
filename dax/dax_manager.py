@@ -5,6 +5,7 @@ import copy
 import logging
 import socket
 import traceback
+import random
 
 import yaml
 import redcap
@@ -638,7 +639,9 @@ class DaxManager(object):
 
         # Launch - report to log if locked
         LOGGER.info('launching')
-        for settings_path in self.settings_list:
+        # TODO: implement a better sorting method here so that launching
+        # is explicitly fair. This random shuffle is a temporarly solution.
+        for settings_path in random.shuffle(self.settings_list):
             try:
                 proj = self.project_from_settings(settings_path)
 
