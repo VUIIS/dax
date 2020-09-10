@@ -254,7 +254,9 @@ class InterfaceTemp(Interface):
                     # Do nothing
                     LOGGER.debug('retry {} timed out'.format(str(i + 1)))
                     pass
-
+        except DatabaseError as err:
+            raise Exception('Kindly reach out to Xnat Administrator. Possible web server reset required' \
+                            ).with_traceback(err._traceback__)
         if result is None:
             # None of the retries worked
             raise XnatUtilsError('XNAT timeout')
