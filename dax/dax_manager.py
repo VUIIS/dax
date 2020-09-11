@@ -640,8 +640,9 @@ class DaxManager(object):
         # Launch - report to log if locked
         LOGGER.info('launching')
         # TODO: implement a better sorting method here so that launching
-        # is explicitly fair. This random shuffle is a temporarly solution.
-        for settings_path in random.shuffle(self.settings_list):
+        # is explicitly fair. This random sample is a temporary solution.
+        for settings_path in random.sample(
+                self.settings_list, len(self.settings_list)):
             try:
                 proj = self.project_from_settings(settings_path)
 
