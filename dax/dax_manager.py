@@ -520,7 +520,8 @@ class DaxManager(object):
             api_url, api_key_projects,
             self.instance_settings, self.settings_dir)
 
-        self.settings_errors = self.refresh_settings()
+    def is_enabled_instance(self):
+        return (self.instance_settings['main_complete'] == '2')
 
     def load_instance_settings(
             self, redcap_url, redcap_key, main_form='main'):
@@ -601,6 +602,9 @@ class DaxManager(object):
         return build_results
 
     def run(self):
+        # Refresh project settings
+        self.settings_errors = self.refresh_settings()
+
         run_errors = self.settings_errors
         max_build_count = self.max_build_count
         build_pool = None
@@ -754,14 +758,17 @@ if __name__ == '__main__':
     # Make our dax manager
     manager = DaxManager(API_URL, API_KEY_I, API_KEY_P)
 
-    # And run it
-    errors = manager.run()
+    if manager.is_enabled_instance():
+        # And run it
+        errors = manager.run()
 
-    # Show errors
-    if errors:
-        msg = 'ERRORS:\n'
-        msg += '\n\n'.join(errors)
-        msg += '\n\n'
-        LOGGER.info(msg)
+        # Show errors
+        if errors:
+            msg = 'ERRORS:\n'
+            msg += '\n\n'.join(errors)
+            msg += '\n\n'
+            LOGGER.info(msg)
+    else:
+        LOGGER.info('this instance is currently disabled in REDCap.')
 
     LOGGER.info('ALL DONE!')
