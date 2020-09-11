@@ -521,7 +521,7 @@ class DaxManager(object):
             self.instance_settings, self.settings_dir)
 
     def is_enabled_instance(self):
-        return (self.instance_settings['main_complete'] == '2')
+        return (self.instance_settings['main_complete'] == 'Complete')
 
     def load_instance_settings(
             self, redcap_url, redcap_key, main_form='main'):
@@ -536,8 +536,9 @@ class DaxManager(object):
         LOGGER.debug('instance={}'.format(instance_name))
 
         # Return the record associated with this instance_name
+        fields = self._redcap.field_names + [main_form + '_complete']
         return self._redcap.export_records(
-            records=[instance_name], raw_or_label='label')[0]
+            records=[instance_name], fields=fields, raw_or_label='label')[0]
 
     def refresh_settings(self):
         # Delete existing settings files
