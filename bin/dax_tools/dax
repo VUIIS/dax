@@ -254,21 +254,28 @@ cluster section\n.')
         dax_manager.clean_lockfiles()
 
         # Make and run our dax manager
-        errors = dax_manager.DaxManager(API_URL, API_KEY_I, API_KEY_P).run()
+        manager = dax_manager.DaxManager(API_URL, API_KEY_I, API_KEY_P)
 
-        if errors:
-            print('ERROR:dax manager errors, emailing admin:', errors)
+        if manager.is_enabled_instance():
+            # And run it
+            errors = manager.run()
 
-            # email the errors
-            _msg = 'ERRORS:\n\n'
-            _msg += '\n\n'.join(errors)
-            _msg += '\n\n'
-            _from = DAX_SETTINGS.get_smtp_from()
-            _host = DAX_SETTINGS.get_smtp_host()
-            _pass = DAX_SETTINGS.get_smtp_pass()
-            _to = DAX_SETTINGS.get_admin_email().split(',')
-            _subj = 'ERROR:dax manager'
-            send_email(_from, _host, _pass, _to, _subj, _msg)
+            if errors:
+                print('ERROR:dax manager errors, emailing admin:', errors)
+
+                # email the errors
+                _msg = 'ERRORS:\n\n'
+                _msg += '\n\n'.join(errors)
+                _msg += '\n\n'
+                _from = DAX_SETTINGS.get_smtp_from()
+                _host = DAX_SETTINGS.get_smtp_host()
+                _pass = DAX_SETTINGS.get_smtp_pass()
+                _to = DAX_SETTINGS.get_admin_email().split(',')
+                _subj = 'ERROR:dax manager'
+                send_email(_from, _host, _pass, _to, _subj, _msg)
+
+        else:
+            print('This instance is currently disabled in REDCap.')
 
         print('ALL DONE!')
 
