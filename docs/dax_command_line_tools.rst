@@ -18,7 +18,7 @@ Table of Contents
 12. `RedCapReport <#redcapreport>`__
 13. `XnatCheckLogin <#xnatchecklogin>`__
 14. `Xnatinfo <#xnatinfo>`__
-15. `Xnatsessionupdate <#xnatsessioninfo>`__
+15. `Xnatsessionupdate <#xnatsessionupdate>`__
 16. `BIDSMapping <#bidsmapping>`__
 
 -----------------
@@ -183,8 +183,7 @@ Xnatquery will show you the tree on xnat. Xnatquery is a tool to query objects o
 	  --all                 Print all the objects on XNAT from the level you are at.
 	  --me                  Give the projects ID that you have access.
 
-Extra Examples
-~~~~~~~~~~~~~~
+**Extra Examples**
 
 - To get information on the project
 
@@ -277,8 +276,7 @@ Xnatcheck is a quick way to check directly on your terminal if there is the reso
 	  --printfilters        Print available filters.
 	  --printformat         Print available format for display.
 	
-Extra Examples
-~~~~~~~~~~~~~~
+**Extra Examples**
 
 - To return all the scans where there is no NIFTI on the project BLSA
 
@@ -419,8 +417,7 @@ Xnatdownload will download all the resources that you asked for in a directory. 
 
 
 	
-Example
-~~~~~~~
+**Example**
 
 - Downloads in /home/benjamin/temp the resources NIFTI and PDF for all the scan fMRI and the assessor fMRIQA for the project BLSA
 
@@ -445,8 +442,12 @@ where:
 - as_description corresponds to procstatus or series description for the scan
 - quality corresponds to qastatus or quality for scan
 
-Methods
-~~~~~~~
+It should be similar to this (project in the example is CIBS-TEST):
+
+object_type,project_id,subject_label,session_type,session_label,as_label,as_type,as_description,quality,resource,fpath
+scan,CIBS-TEST,CIBS-TEST_01,MR,CIBS-TEST_01,401,BRAIN2_3DT1,BRAIN2_3DT1,usable,NIFTI,/Users/<USER>/Downloads/Archive/DICOM_T1W_3D_TFE.nii.gz
+
+**Methods**
 
 Warning: the project must already exist on XNAT. You can add a new project via the XNAT web GUI. Follow one of the three methods to upload:
 
@@ -517,8 +518,7 @@ Warning: the project must already exist on XNAT. You can add a new project via t
 	  -o OUTPUT_FILE, --output OUTPUT_FILE
 	                        File path to store the script logs.
 
-Extra Examples
-~~~~~~~~~~~~~~
+**Extra Examples**
 
 - Shows on the terminal what kind of data the command is going to upload and where with method 1
 
@@ -595,8 +595,7 @@ Xnatreport will give you a report on one ore more projects. It will show all the
 	  --format FORMAT       Header for the csv. format: variables name separated by comma.
 	  --printformat         Print available variables names for the option --format.
 
-Extra Examples
-~~~~~~~~~~~~~~
+**Extra Examples**
 
 - Creates a report for BLSA and CTONS and will print it on the screen/terminal
 
@@ -695,8 +694,7 @@ XnatSwitchProcessStatus is one of the most powerful and used of the Xnat_tools. 
 	  --init                Init the assessors by switching status to NEED_INPUTS for assessors that have been set to NO_DATA.
 	  --rerundiskq          Rerun the assessor that have the status JOB_FAILED: switching status to NEED_INPUTS from JOB_FAILED and delete previous resources.
 
-Extra Examples
-~~~~~~~~~~~~~~
+**Extra Examples**
 
 - Changes the status for dtiQA_v2 and Freesurfer that have a Failed status to NeedToRun in project BLSA
 
