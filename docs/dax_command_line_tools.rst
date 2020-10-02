@@ -5,25 +5,24 @@ Table of Contents
 ~~~~~~~~~~~~~~~~~
 
 1.  `List of the Tools <#list-of-the-tools>`__
-2.  `XnatSetup <#xnatsetup>`__
-3.  `XnatQuery <#xnatquery>`__
-4.  `XnatCheck <#xnatcheck>`__
-5.  `XnatDownload <#xnatdownload>`__
-6.  `XnatUpload <#xnatupload>`__
-7.  `XnatReport <#xnatreport>`__
-8.  `XnatSwitchProcessStatus <#xnatswitchprocessstatus>`__
-9.  `XnatSetup <#xnatsetup>`__
-10.  `XnatProcessUpload <#xnatprocessupload>`__
-11. `XnatSubjectUpdate <#xnatsubjectupdate>`__
-12. `RedCapReport <#redcapreport>`__
-13. `XnatCheckLogin <#xnatchecklogin>`__
-14. `Xnatinfo <#xnatinfo>`__
-15. `Xnatsessionupdate <#xnatsessionupdate>`__
-16. `BIDSMapping <#bidsmapping>`__
+ 1.  `XnatSetup <#xnatsetup>`__
+ 2.  `XnatQuery <#xnatquery>`__
+ 3.  `XnatCheck <#xnatcheck>`__
+ 4.  `XnatDownload <#xnatdownload>`__
+ 5.  `XnatUpload <#xnatupload>`__
+ 6.  `XnatReport <#xnatreport>`__
+ 7.  `XnatSwitchProcessStatus <#xnatswitchprocessstatus>`__
+ 8.  `XnatSetup <#xnatsetup>`__
+ 9.  `XnatProcessUpload <#xnatprocessupload>`__
+ 10. `XnatSubjectUpdate <#xnatsubjectupdate>`__
+ 11. `RedCapReport <#redcapreport>`__
+ 12. `XnatCheckLogin <#xnatchecklogin>`__
+ 13. `Xnatinfo <#xnatinfo>`__
+ 14. `Xnatsessionupdate <#xnatsessionupdate>`__
+ 15. `BIDSMapping <#bidsmapping>`__
 
------------------
 List of the Tools
------------------
+~~~~~~~~~~~~~~~~~
 
 Each tool has a help option and some examples on how to use the tools. You can call each tool with no arguments to see the help.
 
