@@ -23,7 +23,7 @@ Our currently running versions of dax are:
 
   - Legacy Dax - Please use DAX 1
 
-To install please reference our `Install Page <https://github.com/VUIIS/dax/edit/master/docs/index.rst>`_
+To install please reference our `Install Page <https://dax.readthedocs.io/en/latest/installing_dax_in_a_virtual_environment.html>`_
 
 Contents:
 
