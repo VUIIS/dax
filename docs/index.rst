@@ -10,18 +10,20 @@ DAX allows you to:
 - run pipelines on your data in XNAT via a cluster (processors)
 
 
-Installation
-------------
+Versions and Installation
+-------------------------
 
-Install the latest release with `pip <https://pypi.org/project/pip/>`_:
+Our currently running versions of dax are:
 
-.. code::
+- Dax 1 - 1.5.0 - As of September 11, 2020
+  
+  - Used for most purposes
 
-   pip install dax
-   dax setup
-   XnatCheckLogin --host http://129.59.135.143:8080/xnat
-   # When prompted, enter user/pwd combination
-   # Yes to use as default host
+- LDAX latest - 0.7.10 - As of October 7, 2020
+
+  - Legacy Dax - Please use DAX 1
+
+To install please reference our `Install Page <https://github.com/VUIIS/dax/edit/master/docs/index.rst>`_
 
 Contents:
 
