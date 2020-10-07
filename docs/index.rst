@@ -27,7 +27,7 @@ These can be verified with
 
 ::
 
-  pip freeze | grep Dax
+  pip freeze | grep dax
   # or
   python3 -m pip freeze | grep dax
 
