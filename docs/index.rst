@@ -30,6 +30,7 @@ Contents:
 .. toctree::
    :maxdepth: 3
    
+   installing_dax_in_a_virtual_environment
    dax_xnat_dataypes_install
    dax
    dax_manager
@@ -40,6 +41,5 @@ Contents:
    assessors_in_vuiis_xnat
    dax_command_line_tools
    dax_executables
-   installing_dax_in_a_virtual_environment
    manage_a_project
    BIDS_walkthrough
