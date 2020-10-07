@@ -22,6 +22,14 @@ Our currently running versions of dax are:
 - LDAX latest - 0.7.10 - As of October 7, 2020
 
   - Legacy Dax - Please use DAX 1
+  
+These can be verified with
+
+::
+
+  pip freeze | grep Dax
+  # or
+  python3 -m pip freeze | grep dax
 
 To install please reference our `Install Page <https://dax.readthedocs.io/en/latest/installing_dax_in_a_virtual_environment.html>`_
 
