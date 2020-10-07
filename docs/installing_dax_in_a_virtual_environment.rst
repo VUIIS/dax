@@ -5,18 +5,14 @@ Table of Contents
 ~~~~~~~~~~~~~~~~~
 
 1.  `Setup <#setup>`__
-  1.  `OS X Setup <#os-x-setup>`__
-    1.  `Create the Virtual Environment <#create-the-virtual-environment>`__
-    2.  `Install DAX <#install-dax>`__
-    3.  `Verify Installation <#verify-installation>`__
+  1.  `Create the Virtual Environment <#create-the-virtual-environment>`__
+  2.  `Install DAX <#install-dax>`__
+  3.  `Verify Installation <#verify-installation>`__
 
 
 -----
 Setup
 -----
-
-OS X Setup
-~~~~~~~~~~
 
 To install miniconda3 go to https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html . Then choose 'Regular Installation', 'MacOS', and finally 'MiniConda Installer for MacOS'. Download the Python 3.7 bash file and open the terminal. Run the following where the file was downloaded:
 
