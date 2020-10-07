@@ -50,4 +50,5 @@ Contents:
    dax_command_line_tools
    dax_executables
    manage_a_project
-   BIDS_walkthrough
+   BIDS_walkthrough 
+   pip_requirements
