@@ -487,7 +487,8 @@ def is_file(fpath):
     if os.path.isfile(fpath):
         return True, fpath
     else:
-        if len(glob.glob(os.path.join(fpath, '*'))) == 1:
+        if len(glob.glob(os.path.join(fpath, '*'))) == 1  \
+                and os.path.isfile(glob.glob(os.path.join(fpath, '*'))[0]):
             return True, glob.glob(os.path.join(fpath, '*'))[0]
         else:
             if fpath[-1] == '/':
