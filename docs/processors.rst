@@ -203,5 +203,5 @@ If **proctype** is specified, it will override everything else to determine proc
 -------------------
 Notes on Singularity run options
 -------------------
---cleanenv avoids env confusion. However we need to avoid --contain for the most part, because it removes access to temp space on the host that many spiders will need, e.g. Freesurfer and /dev/shm. For compiled Matlab spiders (at least), we need to provide --home $INDIR to avoid .mcrCache collisions in temp space when multiple spiders are running.
+--cleanenv avoids env confusion, and --contain prevents accidentally using code from the host filesystem. However, with --contain, some spiders will need to have specific temp space on the host attached. E.g. for some versions of Freesurfer, --bind ${INDIR}:/dev/shm. For compiled Matlab spiders, we need to provide --home $INDIR to avoid .mcrCache collisions in temp space when multiple spiders are running. And, some cases may require ${INDIR}:/tmp or /tmp:/tmp.
 
