@@ -51,4 +51,3 @@ Contents:
    dax_executables
    manage_a_project
    BIDS_walkthrough 
-   pip_requirements
