@@ -2,4 +2,4 @@ pyxnat
 pyyaml
 pycap
 nibabel
-fpdf
+fpdf2
