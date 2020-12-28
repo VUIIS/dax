@@ -228,7 +228,7 @@ class ProcessorParser:
                 # Check status of each input scan
                 for vinput in artv:
                     qstatus = XnatUtils.get_scan_status(sessions, vinput)
-                    if qstatus == 'unusable':
+                    if qstatus.lower() == 'unusable':
                         raise NeedInputsException(artk + ': Not Usable')
             else:
                 # Check status of each input assr
