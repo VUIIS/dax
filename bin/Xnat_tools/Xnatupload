@@ -315,8 +315,9 @@ def generate_previews(ra_dict):
     :return: new dictionary containing snapshots original and preview
     """
     _format = ' Warning: generate_previews -- %s -- %s'
-    cmd_o = 'gs -q -o %s -sDEVICE=pngalpha -dLastPage=1 %s'
-    cmd_p = 'convert %s -resize x200 %s'
+    cmd_o = 'gs -q -o "%s" -sDEVICE=pngalpha -dLastPage=1 "%s"'
+    cmd_p = 'convert "%s" -resize x200 "%s"'
+
     for label, resource_dict in list(ra_dict.items()):
         if 'PDF' in list(resource_dict.keys()):
             pdf_path = check_pdf_path(resource_dict['PDF'], label)
@@ -329,14 +330,18 @@ def generate_previews(ra_dict):
                 tmp_path = os.path.join('/tmp', '%s_snapshots' % (label))
                 if not os.path.exists(tmp_path):
                     os.makedirs(tmp_path)
+
                 # Make the snapshots for the assessors with ghostscript
                 snapshot_original = os.path.join(tmp_path, SNAPSHOT_O)
                 os.system(cmd_o % (snapshot_original, pdf_path))
+
                 # Name of the preview snapshot
                 if os.path.exists(snapshot_original):
                     snapshot_preview = os.path.join(tmp_path, SNAPSHOT_P)
+
                     # Make the snapshot_thumbnail
                     os.system(cmd_p % (snapshot_original, snapshot_preview))
+
                 if not os.path.exists(snapshot_original) or \
                    not os.path.exists(snapshot_preview):
                     msg = 'Failed to create preview/original for snapshots.'
