@@ -2766,8 +2766,24 @@ def has_resource(cobj, resource_label):
     :return: True if cobj has the resource and there is at least one file,
              False if not.
     """
+    has_it = False
+
     res_list = [r for r in cobj.get_resources() if r['label'] == resource_label]
-    return (len(res_list) > 0) and (int(res_list[0]['file_count']) > 0)
+    if len(res_list) > 0:
+        # We have resources, so grab the first one
+        res = res_list[0]
+
+        # If the resource is empty, the file_count will be blank, not 0
+        if res['file_count'] != '':
+
+            # Convert the file count to an integer
+            file_count = int(res_list[0]['file_count'])
+
+            if file_count > 0:
+                # at least one file, so yep
+                has_it = True
+
+    return has_it
 
 
 def is_cscan_unusable(cscan):
