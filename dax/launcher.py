@@ -239,7 +239,8 @@ name as a key and list of yaml filepaths as values.'
             LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
             task_list = load_task_queue(
                 status=task.NEED_TO_RUN,
-                proj_filter=project_list)
+                proj_filter=project_list,
+                sess_filter=sessions_local)
 
             msg = '%s tasks that need to be launched found'
             LOGGER.info(msg % str(len(task_list)))
@@ -269,6 +270,9 @@ name as a key and list of yaml filepaths as values.'
         :param force_no_qsub: run the job locally on the computer (serial mode)
         :return: None
         """
+
+        # TODO: determine if writeonly still does anything?
+
         if force_no_qsub:
             LOGGER.info('No qsub - Running job locally on your computer.')
         else:
@@ -1077,17 +1081,20 @@ The project is not part of the settings."""
         return len(proc_types.difference(assr_types)) > 0
 
 
-def load_task_queue(status=None, proj_filter=None):
+def load_task_queue(status=None, proj_filter=None, sess_filter=None):
     """ Load the task queue for DiskQ"""
     task_list = list()
     diskq_dir = os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ')
     results_dir = DAX_SETTINGS.get_results_dir()
 
     for t in os.listdir(os.path.join(diskq_dir, 'BATCH')):
-        # TODO:complete filtering by project/subject/session/type
-        if proj_filter:
+        if proj_filter or sess_filter:
             assr = XnatUtils.AssessorHandler(t)
-            if assr.get_project_id() not in proj_filter:
+            if proj_filter and assr.get_project_id() not in proj_filter:
+                LOGGER.debug('ignoring:' + t)
+                continue
+
+            if sess_filter and assr.get_session_label() not in sess_filter:
                 LOGGER.debug('ignoring:' + t)
                 continue
 
