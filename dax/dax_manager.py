@@ -15,6 +15,10 @@ from . import DAX_Settings
 from .launcher import BUILD_SUFFIX
 from . import log
 from .errors import AutoProcessorError, DaxError
+from . import utilities
+
+# dax manager has 3 main classes: DaxManager has a DaxProjectSettingsManager
+# which is a collection of DaxProjectSettings.
 
 # TODO: archive old logs
 
@@ -24,6 +28,11 @@ from .errors import AutoProcessorError, DaxError
 DAX_SETTINGS = DAX_Settings()
 
 LOGGER = log.setup_debug_logger('manager', None)
+
+
+def project_from_settings(settings_file):
+    proj = settings_file.split('settings-')[1].split('.yaml')[0]
+    return proj
 
 
 def get_this_instance():
@@ -179,11 +188,62 @@ class DaxProjectSettingsManager(object):
         self._general_form = general_form
         self._local_dir = local_dir
         self._instance_settings = instance_settings
-
-        # Initialize redcap project
+        self.module_names = []
+        self.processor_names = []
+        self.rebuild_projects = []
+        self.records = {}
         self._redcap = redcap.Project(redcap_url, redcap_key)
 
-    def write_each(self):
+        # Initialize by loading from redcap project
+        self.load()
+
+    def list_settings_files(self):
+        slist = os.listdir(self._local_dir)
+
+        # Make full paths
+        slist = [os.path.join(self._local_dir, f) for f in slist]
+
+        # Only yaml files
+        slist = [f for f in slist if f.endswith('.yaml') and os.path.isfile(f)]
+
+        return slist
+
+    def _load_metadata(self):
+        self.metadata = self._redcap.metadata
+
+    def _load_records(self):
+        # Build the list of _complete fields from lists of modules/procesors
+        field_list = self._redcap.field_names + ['general_complete']
+
+        p = DaxProjectSettingsManager.PROC_PREFIX
+        s = '_complete'
+        field_list += [p + f + s for f in self.processor_names]
+
+        p = DaxProjectSettingsManager.MOD_PREFIX
+        s = '_complete'
+        field_list += [p + f + s for f in self.module_names]
+
+        self.records = self._redcap.export_records(
+            fields=field_list, raw_or_label='label')
+
+    def load(self):
+        self._load_module_names()
+        self._load_processor_names()
+        self._load_metadata()
+        self._load_records()
+        LOGGER.info('loaded {} records'.format(len(self.records)))
+
+    def get_record(self, project):
+        # Get the record from the dataframe
+        rec = None
+        for r in self.records:
+            if r['project_name'] == project:
+                rec = r
+                break
+
+        return rec
+
+    def update_each(self):
         errors = []
         now = datetime.now()
 
@@ -198,10 +258,18 @@ class DaxProjectSettingsManager(object):
                 project = self.load_project(settings, name)
                 settings.add_project(project)
 
-                # Write project file
                 filename = os.path.join(
                     self._local_dir, 'settings-{}.yaml'.format(name))
-                self.write_settings_file(filename, settings, now)
+
+                if self.settings_match(settings, filename):
+                    LOGGER.info('settings unchanged:{}'.format(filename))
+                else:
+                    # Write project file
+                    self.write_settings_file(filename, settings, now)
+
+                    # Append project name to our list of rebuild projects
+                    self.rebuild_projects.append(name)
+
             except DaxManagerError as e:
                 err = 'error in project settings:project={}\n{}'.format(
                     project, e)
@@ -209,6 +277,20 @@ class DaxProjectSettingsManager(object):
                 errors.append(err)
 
         return errors
+
+    def settings_match(self, settings, filename):
+        if not os.path.exists(filename):
+            # No existing file so we it changed
+            return False
+
+        # now compare old to new
+        new_settings = settings.dump()
+        old_settings = self.load_settings_file(filename)
+        return (new_settings == old_settings)
+
+    def load_settings_file(self, filename):
+        settings = utilities.read_yaml(filename)
+        return settings
 
     def write_settings_file(self, filename, settings, timestamp):
         LOGGER.info('Writing settings to file:' + filename)
@@ -243,39 +325,92 @@ class DaxProjectSettingsManager(object):
 
         return settings
 
-    def load_module_names(self):
+    def _load_module_names(self):
         p = DaxProjectSettingsManager.MOD_PREFIX
-        return [x.split(p)[1] for x in self._redcap.forms if x.startswith(p)]
+        self.module_names = sorted([
+            x.split(p)[1] for x in self._redcap.forms if x.startswith(p)])
 
-    def load_processor_names(self):
+    def _load_processor_names(self):
         p = DaxProjectSettingsManager.PROC_PREFIX
-        return [x.split(p)[1] for x in self._redcap.forms if x.startswith(p)]
+        self.processor_names = sorted([
+            x.split(p)[1] for x in self._redcap.forms if x.startswith(p)])
 
-    def load_module_record(self, module, project):
+    def get_module_keys(self, module):
+        _m = self.metadata
         prefix = DaxProjectSettingsManager.MOD_PREFIX
         form = prefix + module
-        rc_rec = self._redcap.export_records(
-            forms=[form], records=[project])[0]
-        dax_rec = {'name': module}
 
-        # Find module prefix
-        key = [x for x in rc_rec.keys() if x.endswith('_file')]
-        if len(key) > 1:
+        # Get all the fields for the module's form
+        all_list = [f['field_name'] for f in _m if f['form_name'] == form]
+
+        # Find the args key for this module
+        args_list = [f for f in all_list if f.endswith('_args')]
+        if len(args_list) > 1:
             msg = 'multiple _file keys for module:{}'.format(module)
             raise DaxManagerError(msg)
-        elif len(key) == 0:
+        elif len(args_list) == 0:
             msg = 'no _file key for module:{}'.format(module)
             raise DaxManagerError(msg)
 
-        file_key = key[0]
-        key_prefix = file_key.split('_file')[0]
+        args_key = args_list[0]
 
-        # Get the filepath
+        # Find the file key for this module
+        file_list = [f for f in all_list if f.endswith('_file')]
+        if len(file_list) > 1:
+            msg = 'multiple _file keys for module:{}'.format(module)
+            raise DaxManagerError(msg)
+        elif len(file_list) == 0:
+            msg = 'no _file key for module:{}'.format(module)
+            raise DaxManagerError(msg)
+
+        file_key = file_list[0]
+
+        return (file_key, args_key)
+
+    def get_processor_keys(self, processor):
+        _m = self.metadata
+
+        # Get all the fields for the module's form
+        prefix = DaxProjectSettingsManager.PROC_PREFIX
+        form = prefix + processor
+        all_list = [f['field_name'] for f in _m if f['form_name'] == form]
+
+        # Find the args key for this module
+        args_list = [f for f in all_list if f.endswith('_args')]
+        if len(args_list) > 1:
+            msg = 'multiple _file keys for processor:{}'.format(processor)
+            raise DaxManagerError(msg)
+        elif len(args_list) == 0:
+            msg = 'no _file key for processor:{}'.format(processor)
+            raise DaxManagerError(msg)
+
+        args_key = args_list[0]
+
+        # Find the file key for this module
+        file_list = [f for f in all_list if f.endswith('_file')]
+        if len(file_list) > 1:
+            msg = 'multiple _file keys for processor:{}'.format(processor)
+            raise DaxManagerError(msg)
+        elif len(file_list) == 0:
+            msg = 'no _file key for processor:{}'.format(processor)
+            raise DaxManagerError(msg)
+
+        file_key = file_list[0]
+
+        return (file_key, args_key)
+
+    def load_module_record(self, module, project):
+        rc_rec = self.get_record(project)
+        dax_rec = {'name': module}
+
+        # Get the _file and _args field name for this module
+        file_key, args_key = self.get_module_keys(module)
+
+        # Get the filepath using the file key
         dax_rec['filepath'] = rc_rec[file_key]
 
         # Parse arguments
-        args_key = key_prefix + '_args'
-        if rc_rec[args_key] and len(rc_rec[args_key]) > 0:
+        if args_key in rc_rec and len(rc_rec[args_key].strip()) > 0:
             rlist = rc_rec[args_key].strip().split('\r\n')
             rdict = {}
             for arg in rlist:
@@ -287,30 +422,18 @@ class DaxProjectSettingsManager(object):
         return dax_rec
 
     def load_processor_record(self, processor, project):
-        prefix = DaxProjectSettingsManager.PROC_PREFIX
-        form = prefix + processor
-        rc_rec = self._redcap.export_records(
-            forms=[form], records=[project])[0]
+        rc_rec = self.get_record(project)
         dax_rec = {'name': processor}
 
-        # Find processor prefix
-        key = [x for x in rc_rec.keys() if x.endswith('_file')]
-        if len(key) > 1:
-            msg = 'multiple _file keys for proc:{}'.format(processor)
-            raise DaxManagerError(msg)
-        elif len(key) == 0:
-            msg = 'no _file key found for proc:{}'.format(processor)
-            raise DaxManagerError(msg)
-
-        file_key = key[0]
-        key_prefix = file_key.split('_file')[0]
+        # Get the _file and _args field name for this processor
+        file_key, args_key = self.get_processor_keys(processor)
 
         # Get the filepath
         dax_rec['filepath'] = rc_rec[file_key]
 
         # Check for arguments
-        if rc_rec[key_prefix + '_args']:
-            rlist = rc_rec[key_prefix + '_args'].strip().split('\r\n')
+        if args_key in rc_rec and len(rc_rec[args_key].strip()) > 0:
+            rlist = rc_rec[args_key].strip().split('\r\n')
             rdict = {}
             for arg in rlist:
                 key, val = arg.split(':', 1)
@@ -323,41 +446,36 @@ class DaxProjectSettingsManager(object):
     def is_enabled_module(self, module, project):
         prefix = DaxProjectSettingsManager.MOD_PREFIX
         form = prefix + module
-        rec = self._redcap.export_records(forms=[form], records=[project])[0]
+        rec = self.get_record(project)
         complete = rec[form + '_complete']
-        return (complete == '2')
+        return (complete == 'Complete')
 
     def is_enabled_processor(self, processor, project):
         prefix = DaxProjectSettingsManager.PROC_PREFIX
         form = prefix + processor
-        rec = self._redcap.export_records(forms=[form], records=[project])[0]
+        rec = self.get_record(project)
         complete = rec[form + '_complete']
-        return (complete == '2')
+        return (complete == 'Complete')
 
     def project_names(self):
         complete_field = self._general_form + '_complete'
         instance_field = 'gen_daxinstance'
-        name_field = 'project_name'
 
-        # Get projects from REDCap
-        plist = self._redcap.export_records(
-            fields=[name_field, instance_field, complete_field],
-            raw_or_label='label')
-
-        # Filter to only include projects for this instance
+        # Filter to only include projects for this instance that are Complete
         this_instance = get_this_instance()
-        plist = [x for x in plist if x[instance_field] == this_instance]
+        plist = [
+            r['project_name'] for r in self.records if
+            r[instance_field] == this_instance and
+            r[complete_field] == 'Complete']
 
-        # Return project names that are enabled
-        return [x[name_field] for x in plist if x[complete_field] == 'Complete']
+        return plist
 
     def load_project(self, settings, project):
         proj_proc = []
         proj_mod = []
 
         # Get the project modules
-        mod_names = self.load_module_names()
-        for name in mod_names:
+        for name in self.module_names:
             if not self.is_enabled_module(name, project):
                 continue
 
@@ -365,15 +483,14 @@ class DaxProjectSettingsManager(object):
             mod = self.load_module_record(name, project)
             mod['name'] = name
 
-            # Add the custom module to our settings
+            # Add the module to our settings
             settings.add_module(mod)
 
             # Append it to list for this project
             proj_mod.append(name)
 
         # Get the project processors
-        proc_names = self.load_processor_names()
-        for name in proc_names:
+        for name in self.processor_names:
             if not self.is_enabled_processor(name, project):
                 continue
 
@@ -389,46 +506,40 @@ class DaxProjectSettingsManager(object):
 
         return {
             'project': project,
-            'modules': ','.join(proj_mod),
-            'yamlprocessors': ','.join(proj_proc)}
+            'modules': ','.join(sorted(proj_mod)),
+            'yamlprocessors': ','.join(sorted(proj_proc))}
 
     def delete_disabled(self):
-        # Get disabled project names from REDCap
-        field = self._general_form + '_complete'
-        rlist = self._redcap.export_records(fields=['project_name', field])
-        disabled_list = [x['project_name'] for x in rlist if x[field] != '2']
-
         # Delete disabled project settings files
-        for name in disabled_list:
-            filename = os.path.join(
-                self._local_dir, 'settings-{}.yaml'.format(name))
-            if os.path.exists(filename):
-                LOGGER.info('deleting disabled project:{}'.format(filename))
-                os.remove(filename)
+        enabled_projects = self.project_names()
+        for curf in self.list_settings_files():
+            curp = project_from_settings(curf)
+            if curp not in enabled_projects:
+                LOGGER.info('deleting disabled project:{}'.format(curf))
+                os.remove(curf)
 
         return
 
     def get_last_start_time(self, project):
-        rec = self._redcap.export_records(
-            fields=['build_laststarttime'],
-            records=[project])[0]
+        rec = self.get_record(project)
 
         return rec['build_laststarttime']
 
     def get_last_run(self, project):
-        rec = self._redcap.export_records(
-            fields=[
-                'build_lastcompletestarttime', 'build_lastcompletefinishtime'],
-            records=[project])[0]
+        if project in self.rebuild_projects:
+            return None
 
+        # Find the record for this project
+        rec = self.get_record(project)
+
+        # Get the start/finish times of last complete build
         last_start = rec['build_lastcompletestarttime']
         last_finish = rec['build_lastcompletefinishtime']
-        last_run = None
 
         if last_start != '' and last_finish != '' and last_start < last_finish:
-            last_run = datetime.strptime(last_start, self.RCDATEFORMAT)
-
-        return last_run
+            return datetime.strptime(last_start, self.RCDATEFORMAT)
+        else:
+            return None
 
     def set_last_build_start(self, project):
         last_start = datetime.strftime(datetime.now(), self.RCDATEFORMAT)
@@ -443,11 +554,16 @@ class DaxProjectSettingsManager(object):
             last_start))
 
         try:
+            print('importing records')
             response = self._redcap.import_records([rec])
             assert 'count' in response
-        except AssertionError as err:
+        except Exception as e:
             err = 'redcap import failed'
             LOGGER.info(err)
+            LOGGER.info(e)
+        except AssertionError as e:
+            err = 'redcap import failed'
+            LOGGER.info(e)
             raise DaxManagerError(err)
         except Exception as e:
             err = 'connection to REDCap interrupted'
@@ -517,8 +633,10 @@ class DaxManager(object):
 
         # Create our settings manager and update our settings directory
         self.settings_manager = DaxProjectSettingsManager(
-            api_url, api_key_projects,
-            self.instance_settings, self.settings_dir)
+            api_url,
+            api_key_projects,
+            self.instance_settings,
+            self.settings_dir)
 
     def is_enabled_instance(self):
         return (self.instance_settings['main_complete'] == 'Complete')
@@ -528,7 +646,7 @@ class DaxManager(object):
 
         self._main_form = main_form
 
-        # Initialize redcap project
+        # Initialize redcap projec
         self._redcap = redcap.Project(redcap_url, redcap_key)
 
         # get this instance name
@@ -541,33 +659,17 @@ class DaxManager(object):
             records=[instance_name], fields=fields, raw_or_label='label')[0]
 
     def refresh_settings(self):
-        # Delete existing settings files
-        for filename in self.list_settings_files(self.settings_dir):
-            os.remove(filename)
+        # Update settings files, only writing if something changed
+        errors = self.settings_manager.update_each()
 
-        # Write settings files
-        errors = self.settings_manager.write_each()
+        # Delete any left over settings files
+        self.settings_manager.delete_disabled()
 
         # Load settings files
-        self.settings_list = self.list_settings_files(self.settings_dir)
+        self.settings_list = self.settings_manager.list_settings_files()
         LOGGER.info(self.settings_list)
 
         return errors
-
-    def list_settings_files(self, settings_dir):
-        slist = os.listdir(settings_dir)
-
-        # Make full paths
-        slist = [os.path.join(settings_dir, f) for f in slist]
-
-        # Only yaml files
-        slist = [f for f in slist if f.endswith('.yaml') and os.path.isfile(f)]
-
-        return slist
-
-    def project_from_settings(self, settings_file):
-        proj = settings_file.split('settings-')[1].split('.yaml')[0]
-        return proj
 
     def log_name(self, runtype, project, timestamp):
         dname = datetime.strftime(timestamp, self.DDATEFORMAT)
@@ -589,7 +691,7 @@ class DaxManager(object):
 
         # Run each
         for i, settings_path in enumerate(settings_list):
-            proj = self.project_from_settings(settings_path)
+            proj = project_from_settings(settings_path)
             log = self.log_name('build', proj, datetime.now())
             last_run = self.get_last_run(proj)
 
@@ -632,7 +734,7 @@ class DaxManager(object):
         LOGGER.info('updating')
         for settings_path in self.settings_list:
             try:
-                proj = self.project_from_settings(settings_path)
+                proj = project_from_settings(settings_path)
 
                 LOGGER.info('updating jobs:' + proj)
                 log = self.log_name('update', proj, datetime.now())
@@ -649,7 +751,7 @@ class DaxManager(object):
         for settings_path in random.sample(
                 self.settings_list, len(self.settings_list)):
             try:
-                proj = self.project_from_settings(settings_path)
+                proj = project_from_settings(settings_path)
 
                 LOGGER.info('launching jobs:' + proj)
                 log = self.log_name('launch', proj, datetime.now())
@@ -697,7 +799,7 @@ class DaxManager(object):
             # dax.bin.build expects a map of project to lastrun
             proj_lastrun = {project: lastrun}
 
-            LOGGER.info('run_build:{},{}'.format(project, lastrun))
+            LOGGER.info('run_build:start:{},{}'.format(project, lastrun))
             self.set_last_build_start(project)
             logging.getLogger('dax').handlers = []
             try:
