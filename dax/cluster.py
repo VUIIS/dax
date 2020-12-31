@@ -316,8 +316,9 @@ class PBS(object):   # The script file generator class
                     'xnat_host': self.xnat_host}
 
         with open(self.filename, 'w') as f_obj:
-            f_obj.write(DAX_SETTINGS.get_job_template(self.job_template)
-                                    .safe_substitute(job_data))
+            _tmp = DAX_SETTINGS.get_job_template(self.job_template)
+            _str = _tmp.safe_substitute(job_data)
+            f_obj.write(_str)
 
     def submit(self, outlog=None, force_no_qsub=False):
         """

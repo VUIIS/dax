@@ -11,6 +11,7 @@ import yaml
 import redcap
 
 import dax
+from . import dax_tools_utils
 from . import DAX_Settings
 from .launcher import BUILD_SUFFIX
 from . import log
@@ -40,19 +41,6 @@ def get_this_instance():
     this_host = socket.gethostname().split('.')[0]
     this_user = os.environ['USER']
     return '{}@{}'.format(this_user, this_host)
-
-
-def clean_lockfiles():
-    lock_dir = os.path.join(DAX_SETTINGS.get_results_dir(), 'FlagFiles')
-    lock_list = os.listdir(lock_dir)
-
-    # Make full paths
-    lock_list = [os.path.join(lock_dir, f) for f in lock_list]
-
-    # Check each lock file
-    for file in lock_list:
-        LOGGER.debug('checking lock file:{}'.format(file))
-        check_lockfile(file)
 
 
 def check_lockfile(file):
@@ -92,12 +80,9 @@ def pid_exists(pid):
         return True  # no error, we can send a signal to the process
 
 
-def is_locked(settings_path):
-    lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
-    flagfile = os.path.join(
-        DAX_SETTINGS.get_results_dir(),
-        'FlagFiles',
-        '{}_{}'.format(lockfile_prefix, BUILD_SUFFIX))
+def is_locked(settings_path, lock_dir):
+    _prefix = os.path.splitext(os.path.basename(settings_path))[0]
+    flagfile = os.path.join(lock_dir, '{}_{}'.format(_prefix, BUILD_SUFFIX))
 
     LOGGER.debug('checking for flag file:{}'.format(flagfile))
     return os.path.isfile(flagfile)
@@ -311,6 +296,9 @@ class DaxProjectSettingsManager(object):
         rec['processorlib'] = ins['main_processorlib']
         rec['modulelib'] = ins['main_modulelib']
         rec['singularity_imagedir'] = ins['main_singularityimagedir']
+        rec['resdir'] = ins['main_resdir']
+        rec['jobtemplate'] = ins['main_jobtemplate']
+        rec['admin_email'] = ins['main_adminemail']
         rec['attrs'] = {}
         rec['attrs']['queue_limit'] = int(ins['main_queuelimit'])
         rec['attrs']['job_email_options'] = ins['main_jobemailoptions']
@@ -554,7 +542,6 @@ class DaxProjectSettingsManager(object):
             last_start))
 
         try:
-            print('importing records')
             response = self._redcap.import_records([rec])
             assert 'count' in response
         except Exception as e:
@@ -621,6 +608,9 @@ class DaxManager(object):
 
     def __init__(self, api_url, api_key_instances, api_key_projects):
 
+        # TODO: test the api keys or catch errors from pycap to
+        # handle when redcap is down
+
         # Load settings for this instance
         self.instance_settings = self.load_instance_settings(
             api_url, api_key_instances)
@@ -630,6 +620,10 @@ class DaxManager(object):
         self.settings_dir = self.instance_settings['main_projectsettingsdir']
         self.log_dir = self.instance_settings['main_logdir']
         self.max_build_count = int(self.instance_settings['main_buildlimit'])
+        self.res_dir = self.instance_settings['main_resdir']
+        self.admin_email = self.instance_settings['main_adminemail']
+        self.lock_dir = os.path.join(self.res_dir, 'FlagFiles')
+        self.job_template = self.instance_settings['main_jobtemplate']
 
         # Create our settings manager and update our settings directory
         self.settings_manager = DaxProjectSettingsManager(
@@ -682,15 +676,15 @@ class DaxManager(object):
 
         return log
 
-    def queue_builds(self, build_pool, settings_list):
+    def queue_builds(self, build_pool):
         # TODO: sort builds by how long we expect them to take,
         # shortest to longest
 
         # Array to store result accessors
-        build_results = [None] * len(settings_list)
+        build_results = [None] * len(self.settings_list)
 
         # Run each
-        for i, settings_path in enumerate(settings_list):
+        for i, settings_path in enumerate(self.settings_list):
             proj = project_from_settings(settings_path)
             log = self.log_name('build', proj, datetime.now())
             last_run = self.get_last_run(proj)
@@ -714,8 +708,7 @@ class DaxManager(object):
         build_results = None
 
         # Build
-        lock_dir = os.path.join(DAX_SETTINGS.get_results_dir(), 'FlagFiles')
-        lock_list = os.listdir(lock_dir)
+        lock_list = os.listdir(self.lock_dir)
         lock_list = [x for x in lock_list if x.endswith('_BUILD_RUNNING.txt')]
         cur_build_count = len(lock_list)
         LOGGER.info('count of already running builds:' + str(cur_build_count))
@@ -727,7 +720,7 @@ class DaxManager(object):
             LOGGER.info('starting {} more builds'.format(
                 str(num_build_threads)))
             build_pool = Pool(processes=num_build_threads)
-            build_results = self.queue_builds(build_pool, self.settings_list)
+            build_results = self.queue_builds(build_pool)
             build_pool.close()  # Close the pool, I dunno if this matters
 
         # Update
@@ -792,7 +785,7 @@ class DaxManager(object):
         build_error = None
 
         # Check for existing lock
-        if is_locked(settings_file):
+        if is_locked(settings_file, self.lock_dir):
             LOGGER.warn('cannot build, lock exists:{}'.format(settings_file))
             # TODO: check if it's really running, if not send a notification
         else:
@@ -837,7 +830,7 @@ class DaxManager(object):
 
     def run_upload(self, log_file):
         logging.getLogger('dax').handlers = []
-        dax.dax_tools_utils.upload_tasks(log_file, True)
+        dax_tools_utils.upload_tasks(log_file, debug=True, resdir=self.res_dir)
         logging.getLogger('dax').handlers = []
 
     def all_ready(self, results):
@@ -849,19 +842,39 @@ class DaxManager(object):
 
         return ready
 
+    def email_errors(self, errors):
+        # email the errors
+        _msg = 'ERRORS:\n\n'
+        _msg += '\n\n'.join(errors)
+        _msg += '\n\n'
+        _to = self.admin_email
+        _subj = 'ERROR:dax manager'
+        utilities.send_email_netrc(_to, _subj, _msg)
+
+    def clean_lockfiles(self):
+        lock_list = os.listdir(self.lock_dir)
+
+        # Make full paths
+        lock_list = [os.path.join(self.lock_dir, f) for f in lock_list]
+
+        # Check each lock file
+        for file in lock_list:
+            LOGGER.debug('checking lock file:{}'.format(file))
+            check_lockfile(file)
+
 
 if __name__ == '__main__':
     API_URL = os.environ['API_URL']
     API_KEY_P = os.environ['API_KEY_DAX_PROJECTS']
     API_KEY_I = os.environ['API_KEY_DAX_INSTANCES']
 
-    # Clean up existing lock files
-    clean_lockfiles()
-
     # Make our dax manager
     manager = DaxManager(API_URL, API_KEY_I, API_KEY_P)
 
     if manager.is_enabled_instance():
+        # Clean up existing lock files
+        manager.clean_lockfiles()
+
         # And run it
         errors = manager.run()
 

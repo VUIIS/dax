@@ -9,7 +9,6 @@ Packaging for dax
 from glob import glob
 import os
 from setuptools import setup, find_packages
-import shutil
 import subprocess
 
 
@@ -73,14 +72,9 @@ DAX: Distributed Automation for XNAT
 
 *DAX*, is  a python package developed at Vanderbilt University, Nashville, TN,
 USA. It's available on github at the address: https://github.com/VUIIS/dax.
-See the different tutorials bellow to learn more about this package and how
-to use it.
 
-XNAT gives an incredible flexible imaging informatics software platform to
-organise, manage any imaging data. It also provides a Pipeline Engine to run
-processings on your data. The pipeline engines has an important learning curve
-and doesn't provide a way to run processes when your XNAT instance isn't
-connected to your cluster.
+XNAT provides a flexible imaging informatics software platform to
+organize and manage imaging data.
 
 *DAX*, an open-source initiative under the umbrella of Vanderbilt University
 Institute of Imaging Science (VUIIS), is a Python project that provides a
@@ -139,11 +133,6 @@ TESTS_REQUIRES = ['nose']
 
 
 if __name__ == '__main__':
-    if not os.path.exists(os.path.join(os.path.expanduser('~'),
-                                       '.dax_settings.ini')):
-        shutil.copy('dax/dax_settings.ini',
-                    os.path.join(os.path.expanduser('~'), '.dax_settings.ini'))
-
     write_git_revision_py()
 
     setup(name=NAME,
