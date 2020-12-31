@@ -54,7 +54,7 @@ _OUTLOG = 'OUTLOG'
 _TRASH = 'TRASH'
 _PBS = 'PBS'
 _FLAG_FILES = 'FlagFiles'
-_UPLOAD_SKIP_LIST = [_OUTLOG, _TRASH, _PBS, _FLAG_FILES]
+_UPLOAD_SKIP_LIST = [_OUTLOG, _TRASH, _PBS, _FLAG_FILES, 'TRIALSQ', 'SAVE', 'DISKQ']
 SNAPSHOTS_ORIGINAL = 'snapshot_original.png'
 SNAPSHOTS_PREVIEW = 'snapshot_preview.png'
 DEFAULT_HEADER = ['host', 'username', 'password', 'projects']
@@ -191,14 +191,23 @@ def get_assessor_list(projects, resdir):
         if not os.path.isdir(assessor_path):
             continue
         if os.path.exists(os.path.join(assessor_path, _EMAILED_FLAG_FILE)):
+            LOGGER.debug('skipping, exists on XNAT:{}'.format(assessor_label))
             continue
+
         rflag = os.path.join(assessor_path, _READY_FLAG_FILE)
         fflag = os.path.join(assessor_path, _FAILED_FLAG_FILE)
         cflag = os.path.join(assessor_path, _COMPLETE_FLAG_FILE)
-        if (os.path.exists(rflag) or os.path.exists(fflag)) and \
-           (not is_diskq_assessor(assessor_label) or os.path.exists(cflag)):
-            # Passed all checks, so add it to upload list
-            assessor_label_list.append(assessor_label)
+
+        if not (os.path.exists(rflag) or os.path.exists(fflag)):
+            LOGGER.debug('skipping, still running:{}'.format(assessor_label))
+            continue
+
+        if not os.path.exists(cflag):
+            LOGGER.debug('skipping, not completed:{}'.format(assessor_label))
+            continue
+
+        # Passed all checks, so add it to upload list
+        assessor_label_list.append(assessor_label)
 
     return assessor_label_list
 
@@ -436,7 +445,7 @@ def upload_assessor(xnat, assessor_dict, assessor_path, resdir):
         xsitype = assessor_obj.datatype()
         # Before Upload
         generate_snapshots(assessor_path)
-        copy_outlog(assessor_dict, assessor_path)
+        copy_outlog(assessor_dict, assessor_path, resdir)
 
         # Upload the XML if FreeSurfer
         if xsitype == DEFAULT_FS_DATATYPE:
@@ -470,7 +479,7 @@ unable to find XML file: %s'
                     return
 
         # after Upload
-        if is_diskq_assessor(os.path.basename(assessor_path)):
+        if is_diskq_assessor(os.path.basename(assessor_path), resdir):
             # was this run using the DISKQ option
             # Read attributes
             ctask = ClusterTask(assessor_dict['label'], resdir, diskq_dir)
@@ -600,7 +609,8 @@ def upload_assessors(xnat, projects, resdir, num_threads=1):
         sys.stdout.flush()
 
         pool.apply_async(
-            upload_thread, [xnat, index, assessor_label, number_of_processes])
+            upload_thread,
+            [xnat, index, assessor_label, number_of_processes, resdir])
 
     LOGGER.info('waiting for upload pool to finish...')
     sys.stdout.flush()
@@ -749,7 +759,6 @@ def upload_results(upload_settings, emailaddress, resdir):
     :return: None
     """
     # TODO: move resdir into upload_sttings
-
     if len(os.listdir(resdir)) == 0:
         LOGGER.warn('No data need to be uploaded.\n')
         sys.exit()

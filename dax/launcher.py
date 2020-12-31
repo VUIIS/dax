@@ -354,7 +354,7 @@ cluster queue"
         else:
             msg = 'Loading task queue from: %s'
             LOGGER.info(msg % os.path.join(self.resdir, 'DISKQ'))
-            task_list = load_task_queue(proj_filter=project_list)
+            task_list = load_task_queue(self.resdir, proj_filter=project_list)
 
             LOGGER.info('%s tasks found.' % str(len(task_list)))
 

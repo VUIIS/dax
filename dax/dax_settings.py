@@ -95,7 +95,7 @@ class DAX_Settings(object):
         return SLURM_COUNTJOBS
 
     def get_cmd_get_job_status(self):
-        return SLURM_JOBSTATUS
+        return Template(SLURM_JOBSTATUS)
 
     def get_queue_status(self):
         return SLURM_QUEUED
@@ -107,13 +107,13 @@ class DAX_Settings(object):
         return SLURM_COMPLETE
 
     def get_cmd_get_job_memory(self):
-        return SLURM_JOBMEM
+        return Template(SLURM_JOBMEM)
 
     def get_cmd_get_job_walltime(self):
-        return SLURM_JOBTIME
+        return Template(SLURM_JOBTIME)
 
     def get_cmd_get_job_node(self):
-        return SLURM_JOBNODE
+        return Template(SLURM_JOBNODE)
 
     def get_job_extension_file(self):
         return SLURM_EXT
