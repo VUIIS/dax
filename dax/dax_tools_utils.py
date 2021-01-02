@@ -25,7 +25,7 @@ from . import utilities
 from . import assessor_utils
 from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
                            DEFAULT_FS_DATATYPE)
-from .errors import (DaxUploadError, DaxError, DaxNetrcError)
+from .errors import (DaxUploadError, DaxError, DaxNetrcError, DaxSetupError)
 
 from .task import (READY_TO_COMPLETE, COMPLETE, UPLOADING, JOB_FAILED,
                    JOB_PENDING, NEEDS_QA)
@@ -38,7 +38,7 @@ from .git_revision import git_revision as __git_revision__
 # Global Variables
 LOGGER = logging.getLogger('dax')
 
-BASH_PROFILE_XNAT = """# Xnat Host for default dax executables:
+BASH_PROFILE_XNAT = """# XNAT host for dax:
 {export_cmd}
 """
 
@@ -884,3 +884,87 @@ def print_upload_settings(upload_settings, resdir):
         msg = 'XNAT Host: %s -- Xnat Username: %s -- projects: %s'
         LOGGER.info(msg % (info['host'], user_str, proj_str))
     LOGGER.info('Upload Directory: %s ' % (resdir))
+
+
+def setup_dax_package():
+    """ Setup dax package """
+    print('########## DAX_SETUP ##########')
+
+    # Set xnat credentials if needed
+    set_xnat_netrc()
+
+    print('########## END ##########')
+
+
+def test_connection_xnat(host, user, pwd):
+    """
+    Method to check connection to XNAT using host, user, pwd.
+
+    :param host: Host for XNAT
+    :param user: User for XNAT
+    :param pwd: Password for XNAT
+    :return: True if succeeded, False otherwise.
+    """
+    from pyxnat.core.errors import DatabaseError
+    from pyxnat import Interface
+    try:
+        xnat = Interface(host, user, pwd)
+        # try deleting SESSION connection
+        xnat._exec('/data/JSESSION', method='DELETE')
+        print(' --> Good login.')
+        return True
+    except DatabaseError:
+        print(' --> error: Wrong login.')
+        return False
+
+
+def set_xnat_netrc():
+    """Ask User for xnat credentials and store it in xnatnetrc file.
+
+    :return: None
+    """
+    netrc_obj = DAX_Netrc()
+    if netrc_obj.is_empty():
+        LOGGER.warn('Setting XNAT login, netrc is empty.')
+        connection = False
+        while not connection:
+            host = input("Please enter your XNAT host: ")
+            user = input("Please enter your XNAT username: ")
+            pwd = getpass.getpass(prompt='Please enter your XNAT password: ')
+            connection = test_connection_xnat(host, user, pwd)
+
+        # Add host to your netrc
+        netrc_obj.add_host(host, user, pwd)
+
+        # add XNAT_HOST to your profile file:
+        init_profile(host)
+    else:
+        print('dax setup is already complete')
+
+
+def init_profile(host):
+    """Function to init your profile file to call xnat_profile.
+
+    :param host: Host of XNAT to add to your profile
+    :return: None
+    """
+    # link the file in the bashrc or profile
+    profile = os.path.join(os.path.expanduser('~'), '.bash_profile')
+
+    if os.path.exists(os.path.join(os.path.expanduser('~'), '.bash_profile')):
+        profile = os.path.join(os.path.expanduser('~'), '.bash_profile')
+    elif os.path.exists(os.path.join(os.path.expanduser('~'), '.bashrc')):
+        profile = os.path.join(os.path.expanduser('~'), '.bashrc')
+    elif os.path.exists(os.path.join(os.path.expanduser('~'), '.profile')):
+        profile = os.path.join(os.path.expanduser('~'), '.profile')
+    else:
+        raise DaxSetupError("could not find your profile file.")
+
+    # Add the line to the profile
+    if 'XNAT_HOST' not in open(profile).read():
+        print('Adding XNAT_HOST to your profile:{}'.format(profile))
+        line_to_add = 'export XNAT_HOST=%s' % host
+        with open(profile, "a") as f_profile:
+            f_profile.write(BASH_PROFILE_XNAT.format(export_cmd=line_to_add))
+    else:
+        print('XNAT_HOST already in profile:{}'.format(profile))

@@ -184,6 +184,9 @@ if __name__ == '__main__':
             args.username, args.password, args.projects, args.suffix,
             args.emailaddress, args.uselocking)
 
+    elif args.command == 'setup':
+        dax_tools.setup_dax_package()
+
     elif args.command == 'manager':
         API_URL = os.environ['API_URL']
         API_KEY_P = os.environ['API_KEY_DAX_PROJECTS']

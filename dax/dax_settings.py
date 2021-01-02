@@ -2,6 +2,7 @@ import os
 import stat
 import netrc
 from string import Template
+from urllib.parse import urlparse
 
 from .errors import DaxNetrcError
 
@@ -58,13 +59,28 @@ class DAX_Netrc(object):
         """ Return True if host present."""
         return host in list(self.netrc_obj.hosts.keys())
 
+    def add_host(self, host, user, pwd):
+        """ Adding host to daxnetrc file."""
+        netrc_template = \
+"""machine {host}
+login {user}
+password {pwd}
+"""
+        parsed_host = urlparse(host).hostname
+
+        with open(self.netrc_file, "a") as f_netrc:
+            lines = netrc_template.format(host=parsed_host, user=user, pwd=pwd)
+            f_netrc.writelines(lines)
+
     def get_hosts(self):
         """ Rerutn list of hosts from netrc file."""
         return list(self.netrc_obj.hosts.keys())
 
     def get_login(self, host):
         """ Getting login for a host from .netrc file."""
-        netrc_info = self.netrc_obj.authenticators(host)
+        parsed_host = urlparse(host).hostname
+
+        netrc_info = self.netrc_obj.authenticators(parsed_host)
         if not netrc_info:
             msg = 'Host {} not found in netrc file.'.format(host)
             raise DaxNetrcError(msg)
