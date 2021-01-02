@@ -138,7 +138,8 @@ class InterfaceTemp(Interface):
     AR_XPATH = '%s/out/resources/{resource}' % A_XPATH
 
     def __init__(self, xnat_host=None, xnat_user=None, xnat_pass=None,
-                 timeout_email=True,
+                 smtp_host=None,
+                 timeout_emails=None,
                  xnat_timeout=300,
                  xnat_retries=4,
                  xnat_wait=600):
@@ -155,6 +156,7 @@ class InterfaceTemp(Interface):
         self.host = xnat_host
         self.user = xnat_user
         self.pwd = xnat_pass
+        self.smtp_host = smtp_host
         if not xnat_host:
             self.host = os.environ['XNAT_HOST']
         # User:
@@ -169,7 +171,7 @@ class InterfaceTemp(Interface):
         self.xnat_timeout = xnat_timeout
         self.xnat_retries = xnat_retries
         self.xnat_wait = xnat_wait
-        self.timeout_email = timeout_email
+        self.timeout_emails = timeout_emails
 
         self.authenticate()
 
@@ -220,20 +222,18 @@ class InterfaceTemp(Interface):
                 timeout=self.xnat_timeout, **kwargs)
         except (requests.Timeout, requests.ConnectionError):
             _err = traceback.format_exc()
-            if self.timeout_email:
+            if self.timeout_emails:
                 LOGGER.warn('XNAT timeout, emailing admin')
 
                 # email the exception
                 _msg = '{}\n\n'.format(uri)
                 _msg += 'ERROR:{}'.format(_err)
-                _from = DAX_SETTINGS.get_smtp_from()
-                _host = DAX_SETTINGS.get_smtp_host()
-                _pass = DAX_SETTINGS.get_smtp_pass()
-                _to = DAX_SETTINGS.get_admin_email().split(',')
+                _host = self.smtp_host
+                _to = self.timeout_emails
                 _subj = 'ERROR:XNAT timeout'
-                utilities.send_email(_from, _host, _pass, _to, _subj, _msg)
+                utilities.send_email_netrc(_host, _to, _subj, _msg)
             else:
-                LOGGER.warn('XNAT timeout, email disabled', _err)
+                LOGGER.warn('XNAT timeout, email disabled:{}'.format(_err))
 
             # Retries
             for i in range(self.xnat_retries):
@@ -1633,7 +1633,7 @@ def get_proctype(spider, suffix=None):
 ###############################################################################
 #                     2) Query XNAT and Access XNAT obj                       #
 ###############################################################################
-def get_interface(host=None, user=None, pwd=None):
+def get_interface(host=None, user=None, pwd=None, smtp_host=None, timeout_emails=None):
     """
     Opens a connection to XNAT.
 
@@ -1643,7 +1643,7 @@ def get_interface(host=None, user=None, pwd=None):
     :return: InterfaceTemp object which extends functionaly of pyxnat.Interface
 
     """
-    return InterfaceTemp(host, user, pwd)
+    return InterfaceTemp(host, user, pwd, smtp_host, timeout_emails)
 
 
 def has_dax_datatypes(intf):

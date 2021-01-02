@@ -289,6 +289,8 @@ def read_yaml_settings(yaml_file, logger):
 
     attrs['resdir'] = doc.get('resdir')
     attrs['job_template'] = doc.get('jobtemplate')
+    attrs['timeout_emails'] = doc.get('timeout_emails')
+    attrs['smtp_host'] = doc.get('smtp_host')
 
     # Return a launcher with specified arguments
     return launcher.Launcher(**attrs)

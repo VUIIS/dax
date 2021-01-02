@@ -424,8 +424,12 @@ class DaxProjectSettingsManager(object):
             rlist = rc_rec[args_key].strip().split('\r\n')
             rdict = {}
             for arg in rlist:
-                key, val = arg.split(':', 1)
-                rdict[key] = val.strip()
+                try:
+                    key, val = arg.split(':', 1)
+                    rdict[key] = val.strip()
+                except ValueError as e:
+                    msg = 'invalid arguments:{}'.format(e)
+                    raise DaxManagerError(msg)
 
             dax_rec['arguments'] = rdict
 
@@ -621,9 +625,10 @@ class DaxManager(object):
         self.log_dir = self.instance_settings['main_logdir']
         self.max_build_count = int(self.instance_settings['main_buildlimit'])
         self.res_dir = self.instance_settings['main_resdir']
-        self.admin_email = self.instance_settings['main_adminemail']
+        self.admin_emails = self.instance_settings['main_adminemail'].split(',')
         self.lock_dir = os.path.join(self.res_dir, 'FlagFiles')
         self.job_template = self.instance_settings['main_jobtemplate']
+        self.smtp_host = self.instance_settings['main_smtphost']
 
         # Create our settings manager and update our settings directory
         self.settings_manager = DaxProjectSettingsManager(
@@ -847,9 +852,9 @@ class DaxManager(object):
         _msg = 'ERRORS:\n\n'
         _msg += '\n\n'.join(errors)
         _msg += '\n\n'
-        _to = self.admin_email
+        _to = self.admin_emails
         _subj = 'ERROR:dax manager'
-        utilities.send_email_netrc(_to, _subj, _msg)
+        utilities.send_email_netrc(self.smtp_host, _to, _subj, _msg)
 
     def clean_lockfiles(self):
         lock_list = os.listdir(self.lock_dir)

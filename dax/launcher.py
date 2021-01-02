@@ -91,7 +91,9 @@ class Launcher(object):
                  xnat_user=None, xnat_pass=None, xnat_host=None, cr=None,
                  job_email=None, job_email_options='FAIL', job_rungroup=None,
                  launcher_type='diskq-combined',
-                 job_template='~/job_template.txt'):
+                 job_template='~/job_template.txt',
+                 smtp_host=None,
+                 timeout_emails=None):
 
         """
         Entry point for the Launcher class
@@ -115,6 +117,8 @@ class Launcher(object):
         self.queue_limit = queue_limit
         self.root_job_dir = root_job_dir
         self.resdir = resdir
+        self.smtp_host = smtp_host
+        self.timeout_emails = timeout_emails
 
         # Processors:
         if not isinstance(project_process_dict, dict):
@@ -405,8 +409,13 @@ cluster queue"
                                         type_update=1, start_end=1)
 
         LOGGER.info('Connecting to XNAT at %s' % self.xnat_host)
-        with XnatUtils.get_interface(self.xnat_host, self.xnat_user,
-                                     self.xnat_pass) as intf:
+        with XnatUtils.get_interface(
+            self.xnat_host,
+            self.xnat_user,
+            self.xnat_pass,
+            self.smtp_host,
+            self.timeout_emails
+        ) as intf:
 
             if not XnatUtils.has_dax_datatypes(intf):
                 err = 'error: dax datatypes are not installed on xnat <%s>'
