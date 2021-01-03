@@ -616,29 +616,44 @@ class DaxManager(object):
         # handle when redcap is down
 
         # Load settings for this instance
-        self.instance_settings = self.load_instance_settings(
+        instance_settings = self.load_instance_settings(
             api_url, api_key_instances)
 
-        LOGGER.debug(self.instance_settings)
+        LOGGER.debug(instance_settings)
 
-        self.settings_dir = self.instance_settings['main_projectsettingsdir']
-        self.log_dir = self.instance_settings['main_logdir']
-        self.max_build_count = int(self.instance_settings['main_buildlimit'])
-        self.res_dir = self.instance_settings['main_resdir']
-        self.admin_emails = self.instance_settings['main_adminemail'].split(',')
+        self.settings_dir = instance_settings['main_projectsettingsdir']
+        self.log_dir = instance_settings['main_logdir']
+        self.max_build_count = int(instance_settings['main_buildlimit'])
+        self.res_dir = instance_settings['main_resdir']
+        self.admin_emails = instance_settings['main_adminemail'].split(',')
         self.lock_dir = os.path.join(self.res_dir, 'FlagFiles')
-        self.job_template = self.instance_settings['main_jobtemplate']
-        self.smtp_host = self.instance_settings['main_smtphost']
+        self.job_template = instance_settings['main_jobtemplate']
+        self.smtp_host = instance_settings['main_smtphost']
+        self.mode = instance_settings['main_mode']
+        self.enabled = (instance_settings['main_complete'] == 'Complete')
 
         # Create our settings manager and update our settings directory
         self.settings_manager = DaxProjectSettingsManager(
             api_url,
             api_key_projects,
-            self.instance_settings,
+            instance_settings,
             self.settings_dir)
 
     def is_enabled_instance(self):
-        return (self.instance_settings['main_complete'] == 'Complete')
+        return (self.enabled)
+
+    def is_enabled_build(self):
+        return ('build' in self.mode.lower())
+
+    def is_enabled_launch(self):
+        return ('launch' in self.mode.lower())
+
+    def is_enabled_upload(self):
+        return ('upload' in self.mode.lower())
+
+    def is_enabled_update(self):
+        # update is tied to upload here
+        return ('upload' in self.mode.lower())
 
     def load_instance_settings(
             self, redcap_url, redcap_key, main_form='main'):
@@ -705,72 +720,77 @@ class DaxManager(object):
 
     def run(self):
         # Refresh project settings
-        self.settings_errors = self.refresh_settings()
+        settings_errors = self.refresh_settings()
 
-        run_errors = self.settings_errors
+        run_errors = settings_errors
         max_build_count = self.max_build_count
         build_pool = None
         build_results = None
+        num_build_threads = 0
 
-        # Build
-        lock_list = os.listdir(self.lock_dir)
-        lock_list = [x for x in lock_list if x.endswith('_BUILD_RUNNING.txt')]
-        cur_build_count = len(lock_list)
-        LOGGER.info('count of already running builds:' + str(cur_build_count))
+        if self.is_enabled_build():
+            # Build
+            lock_list = os.listdir(self.lock_dir)
+            lock_list = [x for x in lock_list if x.endswith('_BUILD_RUNNING.txt')]
+            cur_build_count = len(lock_list)
+            LOGGER.info('count of already running builds:' + str(cur_build_count))
 
-        num_build_threads = max_build_count - cur_build_count
-        if num_build_threads < 1:
-            LOGGER.info('max builds already:{}'.format(str(cur_build_count)))
-        else:
-            LOGGER.info('starting {} more builds'.format(
-                str(num_build_threads)))
-            build_pool = Pool(processes=num_build_threads)
-            build_results = self.queue_builds(build_pool)
-            build_pool.close()  # Close the pool, I dunno if this matters
+            num_build_threads = max_build_count - cur_build_count
+            if num_build_threads < 1:
+                LOGGER.info('max builds already:{}'.format(str(cur_build_count)))
+            else:
+                LOGGER.info('starting {} more builds'.format(
+                    str(num_build_threads)))
+                build_pool = Pool(processes=num_build_threads)
+                build_results = self.queue_builds(build_pool)
+                build_pool.close()  # Close the pool, I dunno if this matters
 
-        # Update
-        LOGGER.info('updating')
-        for settings_path in self.settings_list:
-            try:
-                proj = project_from_settings(settings_path)
+        if self.is_enabled_update():
+            # Update
+            LOGGER.info('updating')
+            for settings_path in self.settings_list:
+                try:
+                    proj = project_from_settings(settings_path)
 
-                LOGGER.info('updating jobs:' + proj)
-                log = self.log_name('update', proj, datetime.now())
-                self.run_update(settings_path, log)
-            except (AutoProcessorError, DaxError) as e:
-                err = 'error running update:project={}\n{}'.format(proj, e)
-                LOGGER.error(err)
-                run_errors.append(err)
+                    LOGGER.info('updating jobs:' + proj)
+                    log = self.log_name('update', proj, datetime.now())
+                    self.run_update(settings_path, log)
+                except (AutoProcessorError, DaxError) as e:
+                    err = 'error running update:project={}\n{}'.format(proj, e)
+                    LOGGER.error(err)
+                    run_errors.append(err)
 
-        # Launch - report to log if locked
-        LOGGER.info('launching')
-        # TODO: implement a better sorting method here so that launching
-        # is explicitly fair. This random sample is a temporary solution.
-        for settings_path in random.sample(
-                self.settings_list, len(self.settings_list)):
-            try:
-                proj = project_from_settings(settings_path)
+        if self.is_enabled_launch():
+            # Launch - report to log if locked
+            LOGGER.info('launching')
+            # TODO: implement a better sorting method here so that launching
+            # is explicitly fair. This random sample is a temporary solution.
+            for settings_path in random.sample(
+                    self.settings_list, len(self.settings_list)):
+                try:
+                    proj = project_from_settings(settings_path)
 
-                LOGGER.info('launching jobs:' + proj)
-                log = self.log_name('launch', proj, datetime.now())
-                self.run_launch(settings_path, log)
-            except (AutoProcessorError, DaxError) as e:
-                err = 'error running launch:project={}\n{}'.format(proj, e)
-                LOGGER.error(err)
-                run_errors.append(err)
+                    LOGGER.info('launching jobs:' + proj)
+                    log = self.log_name('launch', proj, datetime.now())
+                    self.run_launch(settings_path, log)
+                except (AutoProcessorError, DaxError) as e:
+                    err = 'error running launch:project={}\n{}'.format(proj, e)
+                    LOGGER.error(err)
+                    run_errors.append(err)
 
-        # Upload - report to log if locked
-        log = self.log_name('upload', 'upload', datetime.now())
-        upload_process = Process(
-            target=self.run_upload,
-            args=(log,))
-        LOGGER.info('starting upload')
-        upload_process.start()
-        LOGGER.info('waiting for upload')
-        upload_process.join()
-        LOGGER.info('upload complete')
+        if self.is_enabled_upload():
+            # Upload - report to log if locked
+            log = self.log_name('upload', 'upload', datetime.now())
+            upload_process = Process(
+                target=self.run_upload,
+                args=(log,))
+            LOGGER.info('starting upload')
+            upload_process.start()
+            LOGGER.info('waiting for upload')
+            upload_process.join()
+            LOGGER.info('upload complete')
 
-        if num_build_threads > 0:
+        if self.is_enabled_build() and num_build_threads > 0:
             # Wait for builds to finish
             LOGGER.info('waiting for builds to finish')
             build_pool.join()
