@@ -70,8 +70,8 @@ long_description = """
 DAX: Distributed Automation for XNAT
 ========================================================
 
-*DAX*, is  a python package developed at Vanderbilt University, Nashville, TN,
-USA. It's available on github at the address: https://github.com/VUIIS/dax.
+*DAX*, is a python package developed at Vanderbilt University, Nashville, TN,
+USA. It's available on github at: https://github.com/VUIIS/dax.
 
 XNAT provides a flexible imaging informatics software platform to
 organize and manage imaging data.
@@ -121,13 +121,14 @@ SPHINX_MIN_VERSION = '1.4'
 PYXNAT_MIN_VERSION = '1.1.0.2'
 
 REQUIRES = [
-    'Sphinx>=%s' % SPHINX_MIN_VERSION,
     'pyxnat>=%s' % PYXNAT_MIN_VERSION,
-    'pyyaml',
-    'pycap',
-    'configparser',
-    'nibabel'
-]
+    'pyyaml']
+
+MANAGER_REQUIRES = ['pycap']
+
+BIDS_REQUIRES = ['nibabel', 'fpdf2']
+
+DOCS_REQUIRES = ['Sphinx>=%s' % SPHINX_MIN_VERSION]
 
 TESTS_REQUIRES = ['nose']
 
@@ -155,4 +156,9 @@ if __name__ == '__main__':
           python_requires='~=3.6',
           zip_safe=True,
           scripts=glob(os.path.join('bin', '*', '*')),
-          classifiers=CLASSIFIERS)
+          classifiers=CLASSIFIERS,
+          extras_require={
+              'docs': DOCS_REQUIRES,
+              'bids': BIDS_REQUIRES,
+              'manager': MANAGER_REQUIRES
+          })
