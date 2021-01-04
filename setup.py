@@ -124,9 +124,9 @@ REQUIRES = [
     'pyxnat>=%s' % PYXNAT_MIN_VERSION,
     'pyyaml']
 
-MANAGER_REQUIRES = ['pycap']
-
 BIDS_REQUIRES = ['nibabel', 'fpdf2']
+
+MANAGER_REQUIRES = ['pycap'] + BIDS_REQUIRES
 
 DOCS_REQUIRES = ['Sphinx>=%s' % SPHINX_MIN_VERSION]
 
