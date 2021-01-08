@@ -1,14 +1,13 @@
 """ Module classes for Scan and Sessions """
 
 from datetime import datetime
-from email.mime.text import MIMEText
 import logging
 import os
-import smtplib
 import shutil
 
 from . import XnatUtils
 from .dax_settings import DAX_Settings
+from . import utilities
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
@@ -23,7 +22,7 @@ class Module(object):
         Module runs directly during a build on a session or scan
         to generate inputs data for scans/sessions
     """
-    def __init__(self, mod_name, directory, email, text_report):
+    def __init__(self, mod_name, directory, email, text_report, smtp_host=None):
         """
         Entry point of the Base Module Class.
 
@@ -39,6 +38,7 @@ class Module(object):
                                               default_val=None)
         self.text_report = text_report
         self.send_an_email = 0
+        self.smtp_host = smtp_host
 
     def needs_run(self):
         """
@@ -141,26 +141,12 @@ class Module(object):
                         Default: **ERROR/WARNING for modname**
         :return: None
         """
-        if DAX_SETTINGS.get_smtp_host() and \
-           DAX_SETTINGS.get_smtp_from() and \
-           DAX_SETTINGS.get_smtp_pass() and self.email:
-            # Create the container (outer) email message.
-            msg = MIMEText(self.text_report)
+        if self.smtp_host and self.email:
             if not subject:
-                subject = "** ERROR/WARNING for %s **" % self.mod_name
-            msg['Subject'] = subject
-            # me == the sender's email address
-            # family = the list of all recipients' email addresses
-            msg['From'] = DAX_SETTINGS.get_smtp_from()
-            msg['To'] = ",".join(self.email)
-            # Send the email via our own SMTP server.
-            smtp = smtplib.SMTP(DAX_SETTINGS.get_smtp_host())
-            smtp.starttls()
-            smtp.login(DAX_SETTINGS.get_smtp_from(),
-                       DAX_SETTINGS.get_smtp_pass())
-            smtp.sendmail(DAX_SETTINGS.get_smtp_from(), self.email,
-                          msg.as_string())
-            smtp.quit()
+                subject = "** ERROR/WARNING for {} **".format(self.mod_name)
+
+            utilities.send_email_netrc(
+                self.smtp_host, self.email, subject, self.text_report)
 
 
 class ScanModule(Module):
