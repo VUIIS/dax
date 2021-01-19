@@ -14,7 +14,7 @@ Table of Contents
 Setup
 -----
 
-To install miniconda3 go to https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html . Then choose 'Regular Installation', 'MacOS', and finally 'MiniConda Installer for MacOS'. Download the Python 3.7 bash file and open the terminal. Run the following where the file was downloaded:
+To install miniconda3 go to https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html . Then choose 'Regular Installation', 'MacOS', and finally 'MiniConda Installer for MacOS'. Download the Python 3.7 or newer bash file and open the terminal (using 3.8 as an example here). Run the following where the file was downloaded:
 
 ::
 
@@ -30,11 +30,11 @@ Follow the prompts until miniconda is installed. Then close and reopen terminal.
 Create the Virtual Environment
 ------------------------------
 
-DAX is to be installed only on virtual environments on Python 3. To create a new environment in Miniconda with Python 3.6:
+DAX is to be installed only on virtual environments on Python 3. To create a new environment in Miniconda with Python 3.8:
 
 ::
 
-	conda create -n dax python=3.6
+	conda create -n dax python=3.8
 
 which can then be activated or deactivated with:
 
