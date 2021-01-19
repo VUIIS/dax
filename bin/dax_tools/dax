@@ -152,8 +152,8 @@ if __name__ == '__main__':
             print('ERROR:build failed:', _err)
 
     elif args.command == 'launch':
-        dax.bin.launch_jobs(args.settings_path, args.logfile, args.debug,
-                            args.project, args.sessions, args.writeonly,
+        dax.bin.launch_jobs(args.settings_path, args.logfile, True,
+                            args.project, args.sessions, False,
                             args.pbsfolder, args.no_qsub)
 
     elif args.command == 'update':
