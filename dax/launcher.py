@@ -51,6 +51,14 @@ def str_to_timedelta(delta_str):
         raise ValueError('invalid timedelta string value')
 
 
+def check_res_dir(resdir):
+    check_dir(os.path.join(resdir, 'DISKQ'))
+    check_dir(os.path.join(os.path.join(resdir, 'DISKQ'), 'INPUTS'))
+    check_dir(os.path.join(os.path.join(resdir, 'DISKQ'), 'OUTLOG'))
+    check_dir(os.path.join(os.path.join(resdir, 'DISKQ'), 'BATCH'))
+    check_dir(os.path.join(resdir, 'FlagFiles'))
+
+
 def check_dir(dir_path):
     try:
         os.makedirs(dir_path)
@@ -73,15 +81,19 @@ class Launcher(object):
     """ Launcher object to manage a list of projects from a settings file """
 
     def __init__(self,
+                 resdir,
                  project_process_dict=dict(),
                  project_modules_dict=dict(),
                  yaml_dict=dict(),
                  priority_project=None,
-                 queue_limit=DAX_SETTINGS.get_queue_limit(),
-                 root_job_dir=DAX_SETTINGS.get_root_job_dir(),
+                 queue_limit='10',
+                 root_job_dir='/tmp',
                  xnat_user=None, xnat_pass=None, xnat_host=None, cr=None,
-                 job_email=None, job_email_options='bae', job_rungroup=None, max_age=7,
-                 launcher_type=DAX_SETTINGS.get_launcher_type()):
+                 job_email=None, job_email_options='FAIL', job_rungroup=None,
+                 launcher_type='diskq-combined',
+                 job_template='~/job_template.txt',
+                 smtp_host=None,
+                 timeout_emails=None):
 
         """
         Entry point for the Launcher class
@@ -104,6 +116,9 @@ class Launcher(object):
         """
         self.queue_limit = queue_limit
         self.root_job_dir = root_job_dir
+        self.resdir = resdir
+        self.smtp_host = smtp_host
+        self.timeout_emails = timeout_emails
 
         # Processors:
         if not isinstance(project_process_dict, dict):
@@ -162,16 +177,11 @@ name as a key and list of yaml filepaths as values.'
         self.job_email = job_email
         self.job_email_options = job_email_options
         self.job_rungroup = job_rungroup
-        self.max_age = DAX_SETTINGS.get_max_age()
         self.launcher_type = launcher_type
+        self.job_template = job_template
 
-        # Creating Folders for flagfile/pbs/outlog in RESULTS_DIR
-        res_dir = DAX_SETTINGS.get_results_dir()
-        check_dir(os.path.join(res_dir, 'DISKQ'))
-        check_dir(os.path.join(os.path.join(res_dir, 'DISKQ'), 'INPUTS'))
-        check_dir(os.path.join(os.path.join(res_dir, 'DISKQ'), 'OUTLOG'))
-        check_dir(os.path.join(os.path.join(res_dir, 'DISKQ'), 'BATCH'))
-        check_dir(os.path.join(res_dir, 'FlagFiles'))
+        # Create Folders for flagfile/pbs/outlog in RESULTS_DIR
+        check_res_dir(resdir)
 
         self.xnat_host = xnat_host
         if not self.xnat_host:
@@ -225,8 +235,7 @@ name as a key and list of yaml filepaths as values.'
         LOGGER.info('-------------- Launch Tasks --------------')
         LOGGER.info('launcher_type = %s' % self.launcher_type)
 
-        res_dir = DAX_SETTINGS.get_results_dir()
-        flagfile = os.path.join(os.path.join(res_dir, 'FlagFiles'),
+        flagfile = os.path.join(os.path.join(self.resdir, 'FlagFiles'),
                                 '%s_%s' % (lockfile_prefix, LAUNCH_SUFFIX))
 
         project_list = self.init_script(flagfile, project_local,
@@ -236,10 +245,12 @@ name as a key and list of yaml filepaths as values.'
             LOGGER.info('no projects to launch')
         else:
             msg = 'Loading task queue from: %s'
-            LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
+            LOGGER.info(msg % os.path.join(self.resdir, 'DISKQ'))
             task_list = load_task_queue(
+                self.resdir,
                 status=task.NEED_TO_RUN,
-                proj_filter=project_list)
+                proj_filter=project_list,
+                sess_filter=sessions_local)
 
             msg = '%s tasks that need to be launched found'
             LOGGER.info(msg % str(len(task_list)))
@@ -269,6 +280,9 @@ name as a key and list of yaml filepaths as values.'
         :param force_no_qsub: run the job locally on the computer (serial mode)
         :return: None
         """
+
+        # TODO: determine if writeonly still does anything?
+
         if force_no_qsub:
             LOGGER.info('No qsub - Running job locally on your computer.')
         else:
@@ -334,8 +348,7 @@ cluster queue"
         LOGGER.info('-------------- Update Tasks --------------')
         LOGGER.info('launcher_type = %s' % self.launcher_type)
 
-        res_dir = DAX_SETTINGS.get_results_dir()
-        flagfile = os.path.join(os.path.join(res_dir, 'FlagFiles'),
+        flagfile = os.path.join(os.path.join(self.resdir, 'FlagFiles'),
                                 '%s_%s' % (lockfile_prefix, UPDATE_SUFFIX))
         project_list = self.init_script(flagfile, project_local,
                                         type_update=2, start_end=1)
@@ -344,8 +357,8 @@ cluster queue"
             LOGGER.info('no projects to launch')
         else:
             msg = 'Loading task queue from: %s'
-            LOGGER.info(msg % os.path.join(res_dir, 'DISKQ'))
-            task_list = load_task_queue(proj_filter=project_list)
+            LOGGER.info(msg % os.path.join(self.resdir, 'DISKQ'))
+            task_list = load_task_queue(self.resdir, proj_filter=project_list)
 
             LOGGER.info('%s tasks found.' % str(len(task_list)))
 
@@ -390,15 +403,19 @@ cluster queue"
         LOGGER.info('launcher_type = %s' % self.launcher_type)
         LOGGER.info('mod delta = %s' % str(mod_delta))
 
-        res_dir = DAX_SETTINGS.get_results_dir()
-        flagfile = os.path.join(os.path.join(res_dir, 'FlagFiles'),
+        flagfile = os.path.join(os.path.join(self.resdir, 'FlagFiles'),
                                 '%s_%s' % (lockfile_prefix, BUILD_SUFFIX))
         project_list = self.init_script(flagfile, project_local,
                                         type_update=1, start_end=1)
 
         LOGGER.info('Connecting to XNAT at %s' % self.xnat_host)
-        with XnatUtils.get_interface(self.xnat_host, self.xnat_user,
-                                     self.xnat_pass) as intf:
+        with XnatUtils.get_interface(
+            self.xnat_host,
+            self.xnat_user,
+            self.xnat_pass,
+            self.smtp_host,
+            self.timeout_emails
+        ) as intf:
 
             if not XnatUtils.has_dax_datatypes(intf):
                 err = 'error: dax datatypes are not installed on xnat <%s>'
@@ -706,7 +723,6 @@ in session %s'
         :return: None
         """
         # sess_info = csess.info()
-        res_dir = DAX_SETTINGS.get_results_dir()
         xnat_session = csess.full_object()
 
         for auto_proc in auto_proc_list:
@@ -740,8 +756,8 @@ in session %s'
                     procstatus = assessor[2]
                     qcstatus = assessor[3]
                     if task_needs_to_run(procstatus, qcstatus):
-                        xtask = XnatTask(auto_proc, assessor[0], res_dir,
-                                         os.path.join(res_dir, 'DISKQ'))
+                        xtask = XnatTask(auto_proc, assessor[0], self.resdir,
+                                         os.path.join(self.resdir, 'DISKQ'))
 
                         if task_needs_status_update(qcstatus):
                             xtask.update_status()
@@ -936,8 +952,7 @@ The project is not part of the settings."""
 
         # Get lists of processors for this project
         pp_dict = self.project_process_dict.get(project_id, None)
-        auto_procs =\
-            processors.processors_by_type(pp_dict)
+        auto_procs = processors.processors_by_type(pp_dict)
 
         # Get lists of assessors for this project
         assr_list = self.get_assessors_list(xnat, project_id, sessions_local)
@@ -991,7 +1006,7 @@ The project is not part of the settings."""
                                         assr_info['subject_id'],
                                         assr_info['session_id'],
                                         assr_info['ID'])
-            cur_task = Task(task_proc, assr, DAX_SETTINGS.get_results_dir())
+            cur_task = Task(task_proc, assr, self.resdir)
             return cur_task
 
     @staticmethod
@@ -1077,22 +1092,24 @@ The project is not part of the settings."""
         return len(proc_types.difference(assr_types)) > 0
 
 
-def load_task_queue(status=None, proj_filter=None):
+def load_task_queue(resdir, status=None, proj_filter=None, sess_filter=None):
     """ Load the task queue for DiskQ"""
     task_list = list()
-    diskq_dir = os.path.join(DAX_SETTINGS.get_results_dir(), 'DISKQ')
-    results_dir = DAX_SETTINGS.get_results_dir()
+    diskq_dir = os.path.join(resdir, 'DISKQ')
 
     for t in os.listdir(os.path.join(diskq_dir, 'BATCH')):
-        # TODO:complete filtering by project/subject/session/type
-        if proj_filter:
+        if proj_filter or sess_filter:
             assr = XnatUtils.AssessorHandler(t)
-            if assr.get_project_id() not in proj_filter:
+            if proj_filter and assr.get_project_id() not in proj_filter:
+                LOGGER.debug('ignoring:' + t)
+                continue
+
+            if sess_filter and assr.get_session_label() not in sess_filter:
                 LOGGER.debug('ignoring:' + t)
                 continue
 
         LOGGER.debug('loading:' + t)
-        task = ClusterTask(os.path.splitext(t)[0], results_dir, diskq_dir)
+        task = ClusterTask(os.path.splitext(t)[0], resdir, diskq_dir)
         LOGGER.debug('status = ' + task.get_status())
 
         if not status or task.get_status() == status:

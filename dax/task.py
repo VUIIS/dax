@@ -75,7 +75,6 @@ OPEN_QA_LIST = [RERUN, REPROC]
 BAD_QA_STATUS = [FAILED, BAD, POOR, DONOTRUN]
 
 # Other Constants
-RESULTS_DIR = DAX_SETTINGS.get_results_dir()
 DEFAULT_EMAIL_OPTS = DAX_SETTINGS.get_email_opts()
 JOB_EXTENSION_FILE = DAX_SETTINGS.get_job_extension_file()
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
@@ -507,6 +506,8 @@ undo_processing...')
                                            force_no_qsub=force_no_qsub)
 
             if jobid == '' or jobid == '0':
+                # TODO: check to be sure it didn't really launch, then
+                # try one more time
                 LOGGER.error('failed to launch job on cluster')
                 raise ClusterLaunchException
             else:
@@ -764,7 +765,7 @@ undo_processing...')
          be submitted to the scheduler for execution.
 
         """
-        res_dir = os.path.join(DAX_SETTINGS.get_results_dir())
+        res_dir = self.upload_dir
         j_ext = DAX_SETTINGS.get_job_extension_file()
         assessor_label = assessor_utils.full_label_from_assessor(
             self.assessor)
@@ -775,7 +776,10 @@ undo_processing...')
             else:
                 return os.path.join(os.path.join(res_dir, 'TRASH'), filename)
         else:
-            return os.path.join(os.path.join(res_dir, 'PBS'), filename)
+            if pbsdir:
+                return os.path.join(pbsdir, filename)
+            else:
+                return os.path.join(os.path.join(res_dir, 'PBS'), filename)
 
     def outlog_path(self):
         """
@@ -1362,7 +1366,8 @@ class ClusterTask(Task):
             shutil.move(src, dst)
 
         # Touch file for dax_upload to check
-        create_flag(os.path.join(RESULTS_DIR, self.assessor_label,
+        res_dir = self.upload_dir
+        create_flag(os.path.join(res_dir, self.assessor_label,
                     '%s.txt' % READY_TO_COMPLETE))
 
         return COMPLETE
@@ -1386,11 +1391,12 @@ class ClusterTask(Task):
         shutil.move(src, dst)
 
         # Touch file for dax_upload that job failed
-        create_flag(os.path.join(RESULTS_DIR, self.assessor_label,
+        res_dir = self.upload_dir
+        create_flag(os.path.join(res_dir, self.assessor_label,
                     '%s.txt' % JOB_FAILED))
 
         # Touch file for dax_upload to check
-        create_flag(os.path.join(RESULTS_DIR, self.assessor_label,
+        create_flag(os.path.join(res_dir, self.assessor_label,
                     '%s.txt' % READY_TO_COMPLETE))
 
         return JOB_FAILED
@@ -1544,7 +1550,8 @@ undo_processing...')
         """
         (old_proc_status, old_qc_status, _) = self.get_statuses(sessions)
         try:
-            cmds = self.build_commands(assr, sessions, jobdir)
+            resdir = self.upload_dir
+            cmds = self.build_commands(assr, sessions, jobdir, resdir)
             batch_file = self.batch_path()
             outlog = self.outlog_path()
             batch = PBS(batch_file,
@@ -1577,7 +1584,7 @@ undo_processing...')
 
         return (new_proc_status, new_qc_status)
 
-    def build_commands(self, assr, sessions, jobdir):
+    def build_commands(self, assr, sessions, jobdir, resdir):
         """
         Call the build_cmds method of the class Processor.
 
@@ -1591,4 +1598,5 @@ undo_processing...')
             assr,
             self.assessor_label,
             sessions,
-            jobdir)
+            jobdir,
+            resdir)

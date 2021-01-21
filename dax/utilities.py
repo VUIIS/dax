@@ -193,3 +193,11 @@ def send_email(smtp_from, smtp_host, smtp_pass, to_addr, subject, content):
     smtp.login(smtp_from, smtp_pass)
     smtp.sendmail(smtp_from, to_addr, msg.as_string())
     smtp.quit()
+
+
+def send_email_netrc(smtp_host, to_addr, subject, content):
+    import netrc
+
+    (smtp_from, _, smtp_pass) = netrc.netrc().authenticators(smtp_host)
+
+    send_email(smtp_from, smtp_host, smtp_pass, to_addr, subject, content)

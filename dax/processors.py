@@ -14,12 +14,12 @@ from . import processor_parser
 from . import yaml_doc
 from .errors import AutoProcessorError
 from .dax_settings import DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE
-from .dax_settings import DAX_Settings
 from .task import NeedInputsException
 
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ['Processor', 'AutoProcessor']
+
 # Logger for logs
 LOGGER = logging.getLogger('dax')
 
@@ -319,7 +319,7 @@ class AutoProcessor(Processor):
                 else:
                     LOGGER.info('overriding:{}:{}'.format(tags[4], str(val)))
                     obj[tags[4]] = val
-                   
+
             elif key.startswith('attrs'):
                 # change value in self.attrs
                 if tags[-1] in list(self.attrs.keys()):
@@ -373,8 +373,17 @@ class AutoProcessor(Processor):
         self.spider_path = self.user_overrides.get('spider_path')
         self.name = self.proctype
 
-        # Set template
-        self.job_template = doc.get('jobtemplate', None)
+        # Override template
+        if doc.get('jobtemplate'):
+            _tmp = doc.get('jobtemplate')
+
+            # Make sure we have the full path
+            if not os.path.isabs(_tmp):
+                # If only filename, we assume it is same folder as default
+                _tmp = os.path.join(os.path.dirname(self.job_template), _tmp)
+
+            # Override it
+            self.job_template = os.path.join(_tmp)
 
     def _check_default_keys(self, source_id, doc):
         """ Static method to raise error if key not found in dictionary from
@@ -498,7 +507,7 @@ class MoreAutoProcessor(AutoProcessor):
     """ More Auto Processor class for AutoSpider using YAML files"""
 
     def __init__(self, xnat, yaml_source, user_inputs=None,
-                 singularity_imagedir=None):
+                 singularity_imagedir=None, job_template='~/job_template.txt'):
 
         """
         Entry point for the auto processor
@@ -513,6 +522,10 @@ class MoreAutoProcessor(AutoProcessor):
 
         # Save location of singularity imagedir
         self.singularity_imagedir = singularity_imagedir
+
+        # Set the template to the global default, it could be overwritten by
+        # processor yaml
+        self.job_template = job_template
 
         super(MoreAutoProcessor, self).__init__(xnat, yaml_source, user_inputs)
 
@@ -595,8 +608,17 @@ class MoreAutoProcessor(AutoProcessor):
         # Set Outputs from Yaml
         self.outputs = doc.get('outputs')
 
-        # Set template
-        self.job_template = doc.get('jobtemplate', None)
+        # Override template
+        if doc.get('jobtemplate'):
+            _tmp = doc.get('jobtemplate')
+
+            # Make sure we have the full path
+            if not os.path.isabs(_tmp):
+                # If only filename, we assume it is same folder as default
+                _tmp = os.path.join(os.path.dirname(self.job_template), _tmp)
+
+            # Override it
+            self.job_template = os.path.join(_tmp)
 
     def _check_default_keys(self, source_id, doc):
         """ Static method to raise error if key not found in dictionary from
@@ -657,13 +679,11 @@ class MoreAutoProcessor(AutoProcessor):
 
         return tmp
 
-    def build_cmds(self, assr, assr_label, sessions, jobdir):
+    def build_cmds(self, assr, assr_label, sessions, jobdir, resdir):
         """Method to generate the spider command for cluster job.
         :param jobdir: jobdir where the job's output will be generated
         :return: command to execute the spider in the job script
         """
-        assr_dir = os.path.join(jobdir, assr_label)
-        dstdir = os.path.join(DAX_Settings().get_results_dir(), assr_label)
         assr_inputs = XnatUtils.get_assessor_inputs(assr, sessions)
 
         # Make every input a list, so we can iterate later
@@ -769,9 +789,11 @@ class MoreAutoProcessor(AutoProcessor):
                 var2val[edit_in['varname']] = ''
 
         # Build the command text
+        dstdir = os.path.join(resdir, assr_label)
+        assr_dir = os.path.join(jobdir, assr_label)
         cmd = self.build_text(
             var2val, input_list, assr_dir, dstdir,
-            assr._intf.host, assr._intf.user )
+            assr._intf.host, assr._intf.user)
 
         return [cmd]
 
@@ -835,17 +857,16 @@ def processors_by_type(proc_list):
 
 
 def load_from_yaml(xnat, filepath, user_inputs=None,
-                   singularity_imagedir=None):
+                   singularity_imagedir=None, job_template=None):
 
     """
     Load processor from yaml
     :param filepath: path to yaml file
     :return: processor
     """
-
     yaml_obj = yaml_doc.YamlDoc().from_file(filepath)
     if yaml_obj.contents.get('moreauto'):
         return MoreAutoProcessor(xnat, yaml_obj, user_inputs,
-                                 singularity_imagedir)
+                                 singularity_imagedir, job_template)
     else:
         return AutoProcessor(xnat, yaml_obj, user_inputs)

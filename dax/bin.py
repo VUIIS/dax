@@ -82,16 +82,16 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
                                   force_no_qsub=force_no_qsub)
     except KeyboardInterrupt:
         logger.warn('Killed by user.')
-        flagfile = os.path.join(os.path.join(
-            DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
+        flagfile = os.path.join(
+            os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.LAUNCH_SUFFIX))
         _launcher_obj.unlock_flagfile(flagfile)
     except Exception as e:
         logger.critical('Caught exception launching jobs in bin.launch_jobs')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
                                                                 str(e)))
-        flagfile = os.path.join(os.path.join(
-            DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
+        flagfile = os.path.join(
+            os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.LAUNCH_SUFFIX))
         _launcher_obj.unlock_flagfile(flagfile)
 
@@ -123,16 +123,17 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
                             start_sess=start_sess)
     except KeyboardInterrupt:
         logger.warn('Killed by user.')
-        flagfile = os.path.join(os.path.join(
-            DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
+        # TODO: pass in the flag file path
+        flagfile = os.path.join(
+            os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
         _launcher_obj.unlock_flagfile(flagfile)
     except Exception as e:
         logger.critical('Caught exception building Project in bin.build')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
                                                                 str(e)))
-        flagfile = os.path.join(os.path.join(
-            DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
+        flagfile = os.path.join(
+            os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
         _launcher_obj.unlock_flagfile(flagfile)
 
@@ -160,16 +161,16 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
         _launcher_obj.update_tasks(lockfile_prefix, projects, sessions)
     except KeyboardInterrupt:
         logger.warn('Killed by user.')
-        flagfile = os.path.join(os.path.join(
-            DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
+        flagfile = os.path.join(
+            os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.UPDATE_SUFFIX))
         _launcher_obj.unlock_flagfile(flagfile)
     except Exception as e:
         logger.critical('Caught exception updating tasks in bin.update_tasks')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
                                                                 str(e)))
-        flagfile = os.path.join(os.path.join(
-            DAX_SETTINGS.get_results_dir(), 'FlagFiles'),
+        flagfile = os.path.join(
+            os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.UPDATE_SUFFIX))
         _launcher_obj.unlock_flagfile(flagfile)
 
@@ -197,6 +198,7 @@ def read_yaml_settings(yaml_file, logger):
 
     # Set singularity image dir
     singularity_imagedir = doc.get('singularity_imagedir')
+    job_template = doc.get('jobtemplate')
 
     # Read modules
     modulelib = doc.get('modulelib')
@@ -241,7 +243,7 @@ def read_yaml_settings(yaml_file, logger):
 
         yamlprocs[yaml_dict.get('name')] = load_from_file(
             yaml_path, yaml_dict.get('arguments'),
-            logger, singularity_imagedir)
+            logger, singularity_imagedir, job_template)
 
     # Read projects
     proj_mod = dict()
@@ -285,6 +287,11 @@ def read_yaml_settings(yaml_file, logger):
     # Delete unsupported arguments
     attrs.pop('skip_lastupdate', None)
 
+    attrs['resdir'] = doc.get('resdir')
+    attrs['job_template'] = doc.get('jobtemplate')
+    attrs['timeout_emails'] = doc.get('timeout_emails')
+    attrs['smtp_host'] = doc.get('smtp_host')
+
     # Return a launcher with specified arguments
     return launcher.Launcher(**attrs)
 
@@ -311,7 +318,7 @@ def raise_yaml_error_if_no_key(doc, yaml_file, key):
         raise DaxError(err.format(yaml_file, key))
 
 
-def load_from_file(filepath, args, logger, singularity_imagedir=None):
+def load_from_file(filepath, args, logger, singularity_imagedir=None, job_template=None):
     """
     Check if a file exists and if it's a python file
     :param filepath: path to the file to test
@@ -339,6 +346,6 @@ def load_from_file(filepath, args, logger, singularity_imagedir=None):
 
     elif filepath.endswith('.yaml'):
         return processors.load_from_yaml(
-            XnatUtils, filepath, args, singularity_imagedir)
+            XnatUtils, filepath, args, singularity_imagedir, job_template)
 
     return None
