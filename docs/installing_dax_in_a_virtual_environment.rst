@@ -48,13 +48,20 @@ which can then be activated or deactivated with:
 Install DAX
 -----------
 
+If you already have an instance of dax, but something went wrong and need to reinstall, you will need to remove
+
+1. .dax_settings.ini
+2. .daxnetrc
+3. .xnat_profile
+4. ALL xnat environment variables in .netrc
+
 Once the virtual environment with Python 3 is created, dax can be installed by using
 
 ::
 
 	(dax) $ pip install dax
 	
-If you are not planning on using dax manager, you can skip this step. To setup dax, run the following
+If you are not planning on using dax manager, you can skip this step. To setup dax manager, run the following
 
 ::
 
@@ -101,7 +108,15 @@ Next, run XnatCheckLogin, which will verify that the xnat host that was just add
 	   --> Good login.
 	Login saved.
 
-Finally, add the same xnat_host to the .bashrc file
+Your .netrc file should now look like 
+
+::
+
+	machine <xnat_host>
+	login
+	password
+
+Now, restart your dax virtual environment or source the .bashrc (preferable to restart). Finally, make sure the same xnat_host is in the .bashrc file
 
 ::
 
@@ -124,6 +139,13 @@ This should provide 'Good Login' in the prompt or
 	>>> import dax
 
 which should import without error.
+
+Echoing XNAT_HOST should also provide you with the host entered in the XnatCheckLogin step.
+
+::
+
+	echo $XNAT_HOST
+	<xnat_host_url>
 
 ---------------
 Troubleshooting
