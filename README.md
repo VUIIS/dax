@@ -55,7 +55,7 @@ pip install git+https://github.com/VUIIS/dax.git@branch_name --upgrade
 ~~~~~~~~
 
 # Docs
-[![Documentation Status](https://readthedocs.org/projects/dax/badge/?version=master)](http://dax.readthedocs.org/en/master/?badge=master)
+[![Documentation Status](https://readthedocs.org/projects/dax/badge/?version=latest)](http://dax.readthedocs.org/en/latest/?badge=latest)
 
 <!-- Disabled since masijenkins is no longer in use for this purpose 
 # Build
