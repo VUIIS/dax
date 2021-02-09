@@ -81,7 +81,7 @@ WARNING_SUBJECT = 'ERROR/WARNING: dax_upload'
 def default_resdir():
     return os.path.join(
         '/scratch',
-        os.environ['USER'],
+        os.environ.get(['USER'], 'USER'),
         'Spider_Upload_Dir')
 
 
