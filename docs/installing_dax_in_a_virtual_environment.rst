@@ -55,10 +55,12 @@ If you already have an instance of dax, but something went wrong and need to rei
 3. .xnat_profile
 4. ALL xnat environment variables in .netrc
 
-Once the virtual environment with Python 3 is created, dax can be installed by using
+Once the virtual environment with Python 3 is created, you'll need to install some dependencies and dax itself
 
 ::
 
+        (dax) $ pip install pycap
+	(dax) $ pip install nibabel
 	(dax) $ pip install dax
 	
 If you are not planning on using dax manager, you can skip this step. To setup dax manager, run the following
