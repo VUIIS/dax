@@ -8,8 +8,6 @@ Table of Contents
   1.  `Create the Virtual Environment <#create-the-virtual-environment>`__
   2.  `Install DAX <#install-dax>`__
   3.  `Verify Installation <#verify-installation>`__
-2.  `Troubleshooting <#troubleshooting>`__
-  1.  `Dax Setup Errors <#dax-setup-errors>`__
 
 -----
 Setup
@@ -148,24 +146,3 @@ Echoing XNAT_HOST should also provide you with the host entered in the XnatCheck
 
 	echo $XNAT_HOST
 	<xnat_host_url>
-
----------------
-Troubleshooting
----------------
-
-----------------
-Dax Setup Errors
-----------------
-
-1. I am currently trying to download DAX onto my computer to use Xnat. I downloaded MiniConda with python 3.8, and have set-up the virtual environment. But when I try to use “dax setup”, I receive the following error:
-
-::
-
-	Traceback (most recent call last):
-	  File "/Users/xxxxxxx/miniconda3/envs/dax/bin/dax", line 14, in <module>
- 	   from dax import dax_manager
-	  File "/Users/xxxxxxx/miniconda3/envs/dax/lib/python3.8/site-packages/dax/dax_manager.py", line 11, in <module>
-	    import redcap
-	ModuleNotFoundError: No module named 'redcap'
-	
-If you are not planning on running dax manager, you can skip the dax setup step. If you do want to run dax manager, grab the pycap library from here: https://github.com/redcap-tools/PyCap and retry dax setup.
