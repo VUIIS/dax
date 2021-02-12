@@ -122,11 +122,10 @@ PYXNAT_MIN_VERSION = '1.1.0.2'
 
 REQUIRES = [
     'pyxnat>=%s' % PYXNAT_MIN_VERSION,
-    'pyyaml']
-
-BIDS_REQUIRES = ['nibabel', 'fpdf2']
-
-MANAGER_REQUIRES = ['pycap'] + BIDS_REQUIRES
+    'pyyaml',
+    'pycap',
+    'nibabel',
+    'fpdf2']
 
 DOCS_REQUIRES = ['Sphinx>=%s' % SPHINX_MIN_VERSION]
 
@@ -158,7 +157,5 @@ if __name__ == '__main__':
           scripts=glob(os.path.join('bin', '*', '*')),
           classifiers=CLASSIFIERS,
           extras_require={
-              'docs': DOCS_REQUIRES,
-              'bids': BIDS_REQUIRES,
-              'manager': MANAGER_REQUIRES
+              'docs': DOCS_REQUIRES
           })
