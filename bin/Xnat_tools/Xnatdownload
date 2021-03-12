@@ -1212,6 +1212,8 @@ def parse_args():
                       help="Project(s) ID on Xnat")
     argp.add_argument("-d", "--directory", dest="directory", default=None,
                       help="Directory where the data will be download")
+    argp.add_argument("--rename",dest="rename", action="store_true" , \
+                      help="Rename assessor directories with scan ID in directory name")
     argp.add_argument("-D", "--oneDirectory", dest="oneDir",
                       action="store_true",
                       help="Data will be downloaded in the same directory. \
