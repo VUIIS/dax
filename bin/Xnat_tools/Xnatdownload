@@ -634,6 +634,11 @@ def download_data_xnat():
                                      assessor_dict['qcstatus']])
             else:
                 row = None
+            assessor_obj = XNAT.select_assessor(assessor_dict['project_label'], \
+                            assessor_dict['subject_label'], \
+                            assessor_dict['session_label'], \
+                            assessor_dict['assessor_label'])
+            proc_path = XnatUtils.rename_directory_with_assessor_inputs(assessor_obj,proc_path)
             download_assessor(proc_path, assessor_dict, asses_res_list, row,
                               LAST_D)
 
@@ -948,6 +953,8 @@ def download_specific_assessor(xnat):
                 if not OPTIONS.oneDir:
                     assessor_path = os.path.join(
                         DIRECTORY, assessor_dict['label'])
+                    assessor_path = XnatUtils.rename_directory_with_assessor_inputs\
+                        (assessor_obj,assessor_path)
                 out_reslist = get_resources_list(
                     assessor_dict, assessors_resources)
                 for rname in out_reslist:
