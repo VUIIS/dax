@@ -634,6 +634,13 @@ def download_data_xnat():
                                      assessor_dict['qcstatus']])
             else:
                 row = None
+
+            if OPTIONS.rename:
+                assessor_obj = XNAT.select_assessor(assessor_dict['project_label'], \
+                            assessor_dict['subject_label'], \
+                            assessor_dict['session_label'], \
+                            assessor_dict['assessor_label'])
+                proc_path = XnatUtils.rename_directory_with_assessor_inputs(assessor_obj,proc_path)
             download_assessor(proc_path, assessor_dict, asses_res_list, row,
                               LAST_D)
 
@@ -948,6 +955,9 @@ def download_specific_assessor(xnat):
                 if not OPTIONS.oneDir:
                     assessor_path = os.path.join(
                         DIRECTORY, assessor_dict['label'])
+                    if OPTIONS.rename:
+                        assessor_path = XnatUtils.rename_directory_with_assessor_inputs\
+                                (assessor_obj,assessor_path)
                 out_reslist = get_resources_list(
                     assessor_dict, assessors_resources)
                 for rname in out_reslist:
@@ -988,6 +998,11 @@ the csvfile.')
             print('OPTION ERROR: You need to set the OPTIONS -p with the \
 projects ID from Xnat.')
             return False
+    # Checking for rename option-> only with assessors
+    if OPTIONS.rename and \
+        not (OPTIONS.selectionAssessor or OPTIONS.assessortype):
+        print('OPTIONS ERROR: You used the option --rename but have not filtered \
+               for assessors with --selectionP or --a')
     if OPTIONS.update:
         if not os.path.exists(os.path.abspath(OPTIONS.directory)):
             print('OPTION ERROR: You used the option --continue but the \
@@ -1205,6 +1220,8 @@ def parse_args():
                       help="Project(s) ID on Xnat")
     argp.add_argument("-d", "--directory", dest="directory", default=None,
                       help="Directory where the data will be download")
+    argp.add_argument("--rename",dest="rename", action="store_true" , \
+                      help="Rename assessor directories with scan ID in directory name")
     argp.add_argument("-D", "--oneDirectory", dest="oneDir",
                       action="store_true",
                       help="Data will be downloaded in the same directory. \

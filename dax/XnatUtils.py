@@ -218,7 +218,7 @@ class InterfaceTemp(Interface):
 
         try:
             result = super()._exec(
-                uri, method, body, headers, force_preemptive_auth,
+                    uri, method, body, headers, force_preemptive_auth,
                 timeout=self.xnat_timeout, **kwargs)
         except (requests.Timeout, requests.ConnectionError):
             _err = traceback.format_exc()
@@ -1711,6 +1711,29 @@ def get_assessor_inputs(assessor, cached_sessions=None):
 #                     Download/Upload resources from XNAT                     #
 ###############################################################################
 
+def rename_directory_with_assessor_inputs(assessor,directory_path):
+    """
+    Gets download directory path for Xnatdownload and renames with scan id inclusion
+    :param assessor: pyxnat Assessor object
+    :param directory_path: string of directory path with assessor label
+    :return assessor_path: Appending scan ID to inputs list
+    """
+    inputs = get_assessor_inputs(assessor)
+    if inputs is not None:
+        inputs_list = list(set(get_assessor_inputs(assessor).values()))  # getting a unique list of
+                                                                # input list from assessor object
+        scan_id_of_inputs = '-'.join([input.split('/')[-1] for input in inputs_list if \
+                            'scans' in input])
+        if not scan_id_of_inputs:
+            return directory_path
+        directory_path_parts = os.path.basename(directory_path).split('-x-')
+        assessor_path = os.path.dirname(directory_path) + "/" + '-x-'.join([directory_path_parts[0], \
+                                    directory_path_parts[1], directory_path_parts[2], \
+                                    scan_id_of_inputs, directory_path_parts[3], \
+                                    directory_path_parts[4]])
+    else:
+        assessor_path = directory_path
+    return assessor_path
 
 def upload_file_to_obj(
         filepath, resource_obj, remove=False, removeall=False, fname=None):
