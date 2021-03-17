@@ -995,6 +995,11 @@ the csvfile.')
             print('OPTION ERROR: You need to set the OPTIONS -p with the \
 projects ID from Xnat.')
             return False
+    # Checking for rename option-> only with assessors
+    if OPTIONS.rename and \
+        not (OPTIONS.selectionAssessor or OPTIONS.assessortype):
+        print('OPTIONS ERROR: You used the option --rename but have not filtered \
+               for assessors with --selectionP or --a')
     if OPTIONS.update:
         if not os.path.exists(os.path.abspath(OPTIONS.directory)):
             print('OPTION ERROR: You used the option --continue but the \
