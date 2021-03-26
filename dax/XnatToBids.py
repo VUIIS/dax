@@ -8,13 +8,14 @@ import os
 import re
 import sys
 import json
+import bond
 import shutil
 import nibabel as nib
 from distutils.dir_util import copy_tree
 from xml.etree import cElementTree as ET
 
 
-def transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, LOGGER):
+def transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, xnat_tag, LOGGER):
     """
     Method to move the data from XNAT folders to BIDS format (based on datatype) by looping through
     subjects/projects.
@@ -56,7 +57,7 @@ def transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, LOGGER):
                                         nii_file = scan_file
                                         # Call the main BIDS function that is compatible with yaml
                                         bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_file,
-                                                  sess_idx, subj_idx)
+                                                  sess_idx, subj_idx, xnat_tag)
                                         # Create the BIDS directory
                                         if not os.path.exists(os.path.join(BIDS_DIR, project)):
                                             os.makedirs(os.path.join(BIDS_DIR, project))
@@ -84,7 +85,7 @@ def transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, LOGGER):
     dataset_description_file(BIDS_PROJ_DIR, XNAT, project)
 
 
-def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_file, sess_idx, subj_idx):
+def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_file, sess_idx, subj_idx, xnat_tag):
     """
     Main method to put the scans in the BIDS datatype folder, create json
     sidecar and remane filenames based on the BIDS format.
@@ -140,11 +141,16 @@ def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_f
 
     else:
         # If datatype is know, Create the BIDS directory and do the rest
+        # If XNAT_TAG is false the format is subj_<01>-ses-<01>
         sess_idx = "{0:0=2d}".format(int(sess_idx))
         subj_idx = "{0:0=2d}".format(int(subj_idx))
         bids_dir = os.path.join(res_dir, "BIDS_DATA")
         if not os.path.exists(bids_dir):
             os.makedirs(bids_dir)
+        # If XNAT_TAG is true the format is subj_<SUBJID>-ses-<SESSID>
+        if xnat_tag:
+            sess_idx = sess
+            subj_idx = subj
         data_type_dir = os.path.join(bids_dir, "sub-" + subj_idx, "ses-" + sess_idx, data_type)
         if not os.path.exists(os.path.join(bids_dir, data_type_dir)):
             os.makedirs(os.path.join(bids_dir, data_type_dir))
@@ -186,7 +192,9 @@ def yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, scan_file,
     :return: BIDS filename
     """
     if data_type == "anat":
-        bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_' + 'T1w' + \
+        rn_dict = sd_run_mapping(XNAT, project)
+        run_number = rn_dict.get(xnat_mapping_type, scan_id)
+        bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + series_description + '_run-' + run_number + '_T1w' + \
                      '.' + ".".join(scan_file.split('.')[1:])
         return bids_fname
 
@@ -203,26 +211,29 @@ def yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, scan_file,
         rn_dict = sd_run_mapping(XNAT, project)
         # Map scan and with run_number, if run_number
         # not present for scan then 01 is used
-        run_number = rn_dict.get(xnat_mapping_type, "01")
-        bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_task-' + task_type + '_acq-' + scan_id + '_run-' \
+        run_number = rn_dict.get(xnat_mapping_type, scan_id)
+        bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_task-' + task_type + '_acq-' + series_description + '_run-' \
                      + run_number + '_bold' + '.' + ".".join(scan_file.split('.')[1:])
         return bids_fname
 
     elif data_type == "dwi":
         rn_dict = sd_run_mapping(XNAT, project)
-        run_number = rn_dict.get(xnat_mapping_type, "01")
+        run_number = rn_dict.get(xnat_mapping_type, scan_id)
         if scan_file.endswith('bvec.txt'):
-            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + run_number + '_dwi.bvec'
+            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + series_description + '_run-' + run_number + '_dwi.bvec'
 
         elif scan_file.endswith('bval.txt'):
-            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + run_number + '_dwi.bval'
+            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + series_description + '_run-' + run_number + '_dwi.bval'
         else:
-            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_run-' + run_number + '_dwi' + \
+            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + series_description + '_run-' + run_number + '_dwi' + \
                          '.' + ".".join(scan_file.split('.')[1:])
         return bids_fname
 
     elif data_type == "fmap":
-        bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + scan_id + '_bold' + \
+        rn_dict = sd_run_mapping(XNAT, project)
+        run_number = rn_dict.get(xnat_mapping_type, scan_id)
+        #TODO: Include all the four different cases for fieldmap
+        bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + series_description + '_run-' + run_number + '_fieldmap' + \
                      '.' + ".".join(scan_file.split('.')[1:])
         return bids_fname
 
@@ -502,3 +513,17 @@ def dataset_description_file(BIDS_PROJ_DIR, XNAT, project):
         os.makedirs(BIDS_PROJ_DIR)
     with open(os.path.join(BIDS_PROJ_DIR, 'dataset_description.json'), 'w+') as f:
         json.dump(dataset_description, f, indent=2)
+
+class XNATBond(object):
+    def __init__(self, bids_dir):
+        self.bids_dir = bids_dir
+
+    def generate_params(self, bond_dir):
+        print(self.bids_path)
+        if not os.path.exists(bond_dir):
+            os.makedirs(bond_dir)
+        bond.BOnD(self.bids_dir).get_CSVs(os.path.join(bond_dir, 'keyparam_original'))
+
+    def edit_params(self, keyparam_edited,keyparam_files,new_keyparam_prefix):
+        print(self.bids_dir,keyparam_edited,keyparam_files,new_keyparam_prefix)
+        bond.BOnD(self.bids_dir).apply_csv_changes(keyparam_edited,keyparam_files,new_keyparam_prefix)
