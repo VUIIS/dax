@@ -28,6 +28,7 @@ from dax import XnatToBids
 from datetime import datetime
 
 
+
 DEFAULT_REPORT_NAME = 'download_report.csv'
 DEFAULT_COMMAND_LINE = 'download_commandLine.txt'
 DEFAULT_CSV_LIST = ['object_type', 'project_id', 'subject_label',
@@ -1051,10 +1052,10 @@ specified. Use -s or --WOS.')
 specified. Use -a or --WOA.')
         return False
     # Check BIDS direcotry given
-    if OPTIONS.xnat2bids and not OPTIONS.bids_dir:
-        print('OPTION ERROR: BIDS directory not specified. Use option \
---bids_dir.')
-        return False
+#     if OPTIONS.xnat2bids and not OPTIONS.bids_dir:
+#         print('OPTION ERROR: BIDS directory not specified. Use option \
+# --bids_dir.')
+#         return False
     return True
 
 
@@ -1173,8 +1174,6 @@ def main_display():
         if OPTIONS.update:
             print('#     %*s -> %*s#' % (-20, 'Update mode', -33, 'on'))
         # BIDS
-        if OPTIONS.xnat2bids:
-            print('#     %*s -> %*s#' % (-20, 'XNAT to BIDS mode', -33, 'on'))
         if OPTIONS.bids_dir:
             print('#     %*s -> %*s#' % (
                 -20, 'BIDS Directory',
@@ -1301,11 +1300,12 @@ OPTIONS.")
     argp.add_argument("-i", "--ignore", dest="ignorecsv", action='store_true',
                       help="Ignore reading of the csv report file")
     #BIDS
-    argp.add_argument("-b", "--bids", dest="xnat2bids", action='store_true',
-                      help="Transform to BIDS format after XNAT download")
-
-    argp.add_argument("--bids_dir", dest="bids_dir", default=None,
-                      help="Directory to store the bids dataset")
+    argp.add_argument("-b", "--bids", dest="bids_dir", default=None,
+                      help="Directory to store the XNAT to BIDS curated data")
+    argp.add_argument("-xt", "--xnat_tag", dest="xnat_tag", action='store_true',
+                      help="Download BIDS data with XNAT subjID and sessID")
+    argp.add_argument("--bond_dir", dest="bond_dir", default=None,
+                      help="Download the Key groups and Param groups in BIDS data")
     return argp
 
 
@@ -1375,10 +1375,14 @@ scans.')
                 else:
                     CSVWRITER = None
                     download_data_xnat()
-        if OPTIONS.xnat2bids:
+        if OPTIONS.bids_dir:
             project = OPTIONS.project
             BIDS_DIR = OPTIONS.bids_dir
+            XNAT_TAG = OPTIONS.xnat_tag
             # TRANFOMR XNAT2BIDS REFACTOR
-            XnatToBids.transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, LOGGER)
+            XnatToBids.transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, XNAT_TAG, LOGGER)
+            if OPTIONS.bond_dir:
+                XnatToBids.XNATBond(OPTIONS.bids_dir).generate_params(OPTIONS.bond_dir)
+                
 
     LOGGER.info('============================================================')
