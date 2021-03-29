@@ -624,6 +624,7 @@ class DaxManager(object):
         self.settings_dir = instance_settings['main_projectsettingsdir']
         self.log_dir = instance_settings['main_logdir']
         self.max_build_count = int(instance_settings['main_buildlimit'])
+        self.max_upload_count = int(instance_settings['main_uploadlimit'])
         self.res_dir = instance_settings['main_resdir']
         self.admin_emails = instance_settings['main_adminemail'].split(',')
         self.lock_dir = os.path.join(self.res_dir, 'FlagFiles')
@@ -855,7 +856,8 @@ class DaxManager(object):
 
     def run_upload(self, log_file):
         logging.getLogger('dax').handlers = []
-        dax_tools_utils.upload_tasks(log_file, debug=True, resdir=self.res_dir)
+        dax_tools_utils.upload_tasks(log_file, debug=True, resdir=self.res_dir,
+                                     upload_threads=self.max_upload_count)
         logging.getLogger('dax').handlers = []
 
     def all_ready(self, results):

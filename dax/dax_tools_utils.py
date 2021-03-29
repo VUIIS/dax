@@ -88,7 +88,7 @@ def default_resdir():
 def upload_tasks(logfile, debug, upload_settings=None,
                  host=None, username=None, password=None,
                  projects=None, suffix='', emailaddress=None,
-                 uselocking=True, resdir=default_resdir()):
+                 uselocking=True, resdir=default_resdir(), num_threads=1):
     """
     Upload tasks from the queue folder.
 
@@ -118,7 +118,7 @@ def upload_tasks(logfile, debug, upload_settings=None,
         return
 
     try:
-        upload_results(upload_settings, emailaddress, resdir)
+        upload_results(upload_settings, emailaddress, resdir, num_threads)
     finally:
         if uselocking:
             # remove flagfile
@@ -750,7 +750,7 @@ def upload_outlog(xnat, projects, resdir):
                             os.remove(outlog_fpath)
 
 
-def upload_results(upload_settings, emailaddress, resdir):
+def upload_results(upload_settings, emailaddress, resdir, num_threads=1):
     """
     Main function to upload the results / PBS / OUTLOG of assessors
      from the queue folder
@@ -784,7 +784,8 @@ def upload_results(upload_settings, emailaddress, resdir):
                 LOGGER.info('Uploading results for assessors')
 
                 warnings.extend(
-                    upload_assessors(intf, upload_dict['projects'], resdir))
+                    upload_assessors(intf, upload_dict['projects'], resdir,
+                                     num_threads))
 
                 # 2) Upload the PBS files
                 # For each file, upload it to the PBS resource
