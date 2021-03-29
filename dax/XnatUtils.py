@@ -903,7 +903,7 @@ class InterfaceTemp(Interface):
                                            subject=subjectid,
                                            session=sessionid,
                                            scan=scanid)
-        resource_list = intf._get_json(post_uri)
+        resource_list = self._get_json(post_uri)
         return resource_list
 
     def get_assessor_out_resources(
