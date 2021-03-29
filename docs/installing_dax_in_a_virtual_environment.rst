@@ -114,7 +114,7 @@ Your .netrc file should now look like
 	login <username>
 	password <password>
 
-Make sure that tthe xnat_host is formatted similarly to 'xnat.website.com' NOT 'https://xnat.website.com/xnat'. The full url is not required and WILL NOT WORK properly.
+Make sure that the xnat_host is formatted similarly to 'xnat.website.com' NOT 'https://xnat.website.com/xnat'. The full url is not required and WILL NOT WORK properly.
 
 Now, restart your dax virtual environment or source the .bashrc (preferable to restart). Finally, make sure the same xnat_host is in the .bashrc file
 
