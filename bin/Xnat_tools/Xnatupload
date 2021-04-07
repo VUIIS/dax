@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/local/VANDERBILT/kanakap/miniconda3/envs/bids_enchanement/bin/python
 # -*- coding: utf-8 -*-
 
 '''
@@ -12,8 +12,8 @@ from datetime import datetime
 import glob
 import logging
 import os
-
 from dax import XnatUtils
+from dax import BidsToXnat
 from dax.errors import XnatToolsUserError
 import dax.xnat_tools_utils as utils
 
@@ -382,16 +382,21 @@ def get_display(obj):
                 -15, _sct, -15, _sd, -15, _qc, -58, _re)
 
 
-def print_report(csv_file, session_type):
+def print_report(args):
     """
     Print report on the upload to verify the options from the user
 
-    :param csv_file: csv file containg the upload information
+    :param csv_file or bids_dir: csv file containg the upload information
     :param session_type: type of session to upload to XNAT
     :return: None
     """
     _fmt = ' %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s '
-    scans, assessors = read_csv_for_upload(csv_file, session_type, report=True)
+    #BIDS
+    if args.bids_dir:
+        scans = BidsToXnat.transform_to_xnat(args.bids_dir, args.project)
+        assessors = []
+    else:
+        scans, assessors = read_csv_for_upload(csv_file, session_type, report=True)
     _header = _fmt % (
         -10, 'ObjectType', -10, 'Project', -10, 'Subject', -10, 'SessType',
         -15, 'Session', -30, 'Label', -15, 'Type', -15, 'Description',
@@ -779,10 +784,16 @@ def run_xnat_upload(args):
     if args.output_file:
         handler = logging.FileHandler(args.output_file, 'w')
         __logger__.addHandler(handler)
+    
+    #BIDS Raise error if bids dir or csv file is not given
+    if not ((args.bids_dir and args.project) or args.csv_file):
+        err = "Xnatupload: error: the following arguments are required: -c/--csv or -b/--bids_dir and -p/--project."
+        raise XnatToolsUserError(__exe__, err)
 
-    if not os.path.exists(args.csv_file):
-        err = "Argument -c/--csvfile: path '%s' does not exist."
-        raise XnatToolsUserError(__exe__, err % args.csvfile)
+    if args.csv_file:
+        if not os.path.exists(args.csv_file):
+            err = "Argument -c/--csvfile: path '%s' does not exist."
+            raise XnatToolsUserError(__exe__, err % args.csv_file)
 
     if args.session_type and \
        args.session_type not in list(utils.XNAT_MODALITIES.keys()):
@@ -793,9 +804,11 @@ def run_xnat_upload(args):
         utils.print_separators()
         print_modality()
 
+    #BIDS 
     if args.report:
         utils.print_separators()
-        print_report(args.csv_file, args.session_type)
+        print_report(args)
+
     else:
 
         if args.host:
@@ -809,8 +822,14 @@ def run_xnat_upload(args):
 
             # has_fs_datatypes = XnatUtils.has_fs_datatypes(xnat)
 
-            scans, assessors = read_csv_for_upload(args.csv_file,
+            #BIDS
+            if args.bids_dir:
+                scans = BidsToXnat.transform_to_xnat(args.bids_dir, args.project)
+                assessors = []
+            else:
+                scans, assessors = read_csv_for_upload(args.csv_file,
                                                    args.session_type)
+            print(scans, assessors)
             if assessors and not XnatUtils.has_dax_datatypes(xnat):
                 err = 'Your XNAT instance does not have the assessor \
 datatypes required by dax. Please install them. Check \
@@ -829,7 +848,8 @@ def add_to_parser(parser):
     :return: parser object with new arguments
     """
     _h = 'CSV file with the information for uploading data to XNAT. Header: %s'
-    parser.add_argument("-c", "--csv", dest="csv_file", required=True,
+    #BIDS Changed required to False, because for BIDS doesnt require a csv
+    parser.add_argument("-c", "--csv", dest="csv_file", required=False,
                         help=_h % ','.join(utils.CSV_HEADER))
     _h = 'Session type on Xnat. Use printmodality to see the options.'
     parser.add_argument("--sess", dest="session_type", default=None, help=_h)
@@ -849,6 +869,11 @@ def add_to_parser(parser):
                         action="store_true")
     parser.add_argument("-o", "--output", dest="output_file", default=None,
                         help="File path to store the script logs.")
+    #BIDS
+    parser.add_argument("-b", "--bids", dest="bids_dir", default=None,
+                      help="BIDS Directory to convert to XNAT and then upload")
+    parser.add_argument("-p", "--project", dest="project", default=None,
+                      help="BIDS Directory to convert to XNAT and then upload")
     return parser
 
 
