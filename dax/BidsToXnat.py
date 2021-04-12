@@ -7,15 +7,6 @@ Extract the information from BIDS for Xnatupload
 
 '''
 import os
-import re
-import sys
-import json
-import bond
-import shutil
-import nibabel as nib
-from dax import XnatToBids
-from distutils.dir_util import copy_tree
-from xml.etree import cElementTree as ET
 
 #check if valid bids
 #extract and map to dict. 
