@@ -511,7 +511,7 @@ def sd_run_mapping(XNAT, project):
                     rn_dict = datatype_mapping[project]
 
     else:
-        print("\t\t>WARNING: No Run number mapping at project level. Using 01 as run number")
+        print("\t\t>WARNING: No Run number mapping at project level. Using scan id as run number")
 
     return rn_dict
 
