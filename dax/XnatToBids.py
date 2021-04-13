@@ -166,7 +166,7 @@ def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_f
         # For only nifti scans, handle json sidecar should be checked and the json sidecar filename should changed
         if scan_file.endswith('.nii.gz'):
             xnat_prov = yaml_create_json(XNAT, data_type, res_dir, scan_file, uri, project, xnat_mapping_type, sess,
-                                         is_json_present, nii_file, json_file, series_description
+                                         is_json_present, nii_file, json_file, series_description,
                                          acquisition_site, scanner, manufacturer, model)
             with open(os.path.join(res_dir, json_file), "w+") as f:
                 json.dump(xnat_prov, f, indent=2)
