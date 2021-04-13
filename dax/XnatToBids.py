@@ -154,11 +154,20 @@ def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_f
         data_type_dir = os.path.join(bids_dir, "sub-" + subj_idx, "ses-" + sess_idx, data_type)
         if not os.path.exists(os.path.join(bids_dir, data_type_dir)):
             os.makedirs(os.path.join(bids_dir, data_type_dir))
+
+        # XNAT Project Scanner info
+        session_info = XNAT.select('/project/' + project + '/subject/' + subj + '/experiment/' + sess).get()
+        session_info = ET.fromstring(session_info)
+        acquisition_site = session_info.find('{http://nrg.wustl.edu/xnat}acquisition_site').text
+        scanner = session_info.find('{http://nrg.wustl.edu/xnat}scanner').text
+        manufacturer = session_info.findall('{http://nrg.wustl.edu/xnat}scanner').attrib['manufacturer']
+        model = session_info.findall('{http://nrg.wustl.edu/xnat}scanner').attrib['model']
+
         # For only nifti scans, handle json sidecar should be checked and the json sidecar filename should changed
         if scan_file.endswith('.nii.gz'):
             xnat_prov = yaml_create_json(XNAT, data_type, res_dir, scan_file, uri, project, xnat_mapping_type, sess,
-                                         is_json_present,
-                                         nii_file, json_file, series_description)
+                                         is_json_present, nii_file, json_file, series_description
+                                         acquisition_site, scanner, manufacturer, model)
             with open(os.path.join(res_dir, json_file), "w+") as f:
                 json.dump(xnat_prov, f, indent=2)
             bids_fname_json = yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, json_file,
@@ -167,6 +176,7 @@ def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_f
             shutil.move(os.path.join(res_dir, bids_fname_json), data_type_dir)
 
         # Change the filename and move the file
+
         bids_fname = yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, scan_file, xnat_mapping_type,
                                         sess_idx, subj_idx, series_description)
         os.rename(os.path.join(res_dir, nii_file), os.path.join(res_dir, bids_fname))
@@ -239,8 +249,7 @@ def yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, scan_file,
 
 
 def yaml_create_json(XNAT, data_type, res_dir, scan_file, uri, project, xnat_mapping_type, sess, is_json_present,
-                     nii_file,
-                     json_file, series_description):
+                     nii_file, json_file, series_description, acquisition_site, scanner, manufacturer, model):
     """
     :param XNAT: XNAT interface
     :param data_type: BIDS datatype of the scan
@@ -260,7 +269,12 @@ def yaml_create_json(XNAT, data_type, res_dir, scan_file, uri, project, xnat_map
     if data_type != 'func':
         xnat_detail = {"XNATfilename": scan_file,
                        "XNATProvenance": uri,
-                       "SeriesDescription": series_description}
+                       "SeriesDescription": series_description,
+                       "AcquisitionSite": acquisition_site,
+                       "ScannerManufacturer": manufacturer,
+                       "Scanner": scanner,
+                       "ScannerModel": model}
+
         if not is_json_present:
             print('\t\t>No json sidecar. Created json sidecar with xnat info.')
             xnat_prov = xnat_detail
@@ -274,14 +288,13 @@ def yaml_create_json(XNAT, data_type, res_dir, scan_file, uri, project, xnat_map
     else:
         # For func check out details in nifti and json is required
         xnat_prov = yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xnat_mapping_type,
-                                           nii_file,
-                                           is_json_present, sess, json_file)
+                                           nii_file, is_json_present, sess, json_file, series_description,
+                                           acquisition_site, scanner, manufacturer, model)
     return xnat_prov
 
 
 def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xnat_mapping_type, nii_file,
-                           is_json_present,
-                           sess, json_file):
+                           is_json_present, sess, json_file, series_description, acquisition_site, scanner, manufacturer, model):
     """
 
     :param XNAT: XNAT interface
@@ -322,8 +335,14 @@ def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xn
     if not is_json_present:
         xnat_prov = {"XNATfilename": scan_file,
                      "XNATProvenance": uri,
-                     "TaskName": task_type}
-        if TR_nifti == TR_bidsmap:
+                     "TaskName": task_type,
+                     "SeriesDescription": series_description,
+                     "AcquisitionSite": acquisition_site,
+                     "ScannerManufacturer": manufacturer,
+                     "Scanner": scanner,
+                     "ScannerModel": model}
+
+        if float(TR_nifti) == float(TR_bidsmap):
             print((
                 '\t\t>No existing json. TR %.3f sec in BIDS mapping and NIFTI header. Using TR %.3f sec in nifti header ' \
                 'for scan file %s in session %s. ' % (TR_bidsmap, TR_bidsmap, scan_file, sess)))
@@ -345,8 +364,14 @@ def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xn
             TR_json = round((xnat_prov['RepetitionTime']), 3)
             xnat_detail = {"XNATfilename": scan_file,
                            "XNATProvenance": uri,
-                           "TaskName": task_type}
-            if TR_json != TR_bidsmap:
+                           "TaskName": task_type,
+                           "SeriesDescription": series_description,
+                            "AcquisitionSite": acquisition_site,
+                            "ScannerManufacturer": manufacturer,
+                            "Scanner": scanner,
+                            "ScannerModel": model}
+
+            if float(TR_json) != float(TR_bidsmap):
                 print((
                     '\t\t>JSON sidecar exists. WARNING: TR is %.3f sec in project level BIDS mapping, which does not match the TR in JSON sidecar %.3f.\n ' \
                     '\t\tUPDATING JSON with TR %.3f sec in BIDS mapping and UPDATING NIFTI header for scan %s in session %s.' \
