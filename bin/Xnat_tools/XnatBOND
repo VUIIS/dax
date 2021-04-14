@@ -6,7 +6,7 @@ XNATBond support
 
 @author: Praitayini Kanakaraj, Electrical Engineering, Vanderbilt University
 
-WARNING: In process. alpha version
+Alpha version
 '''         
 import bond
 import logging
@@ -28,7 +28,7 @@ def add_parser_args():
     Method to parse all the arguments for the tool on ArgumentParser
     :return: parser object
     """
-    argp = argparse.ArgumentParser(description=DESCRIPTION, usage='use "%(prog)s --help" for more information',
+    argp = argparse.ArgumentParser(prog='XnatBOND', description=DESCRIPTION,
                                    formatter_class=argparse.RawTextHelpFormatter)
     # Connect to XNAT
     argp.add_argument('--bids_dir', dest='bids_dir', required=True,
@@ -108,7 +108,7 @@ if __name__ == '__main__':
     parser = add_parser_args()
     OPTIONS = parser.parse_args()
     main_display()
-    LOGGER = setup_info_logger('BidsMapping', OPTIONS.logfile)
+    LOGGER = setup_info_logger('XnatBOND', OPTIONS.logfile)
     if OPTIONS.bond_dir:
         LOGGER.info("Detecting Key and Parameter Groups")
         XnatToBids.XNATBond(OPTIONS.bids_dir).generate_params(OPTIONS.bond_dir)
