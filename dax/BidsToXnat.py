@@ -13,7 +13,7 @@ import os
 def transform_to_xnat(bids_dir, project):
     #Check bids dir path exists
     if not os.path.exists(bids_dir):
-        print('ERROR: %s path does not exists' %s (bids_dir))
+        print('ERROR: %s path does not exists' % (bids_dir))
         exit()
 
     #Extract the values from the bids data
