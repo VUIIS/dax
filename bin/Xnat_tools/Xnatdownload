@@ -1382,7 +1382,10 @@ scans.')
             # TRANFOMR XNAT2BIDS REFACTOR
             XnatToBids.transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, XNAT_TAG, LOGGER)
             if OPTIONS.bond_dir:
+                LOGGER.info('--------------- BOND --------------')
+                LOGGER.info("Detecting Key and Parameter Groups")
                 XnatToBids.XNATBond(OPTIONS.bids_dir).generate_params(OPTIONS.bond_dir)
+                LOGGER.info("Finished: Key and Parameter Groups stored in %s" % (bond_dir))
                 
 
     LOGGER.info('============================================================')
