@@ -170,13 +170,14 @@ def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_f
                                          acquisition_site, scanner, manufacturer, model)
             with open(os.path.join(res_dir, json_file), "w+") as f:
                 json.dump(xnat_prov, f, indent=2)
+            print('\t\tHandling json file')
             bids_fname_json = yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, json_file,
                                                  xnat_mapping_type, sess_idx, subj_idx, series_description)
             os.rename(os.path.join(res_dir, json_file), os.path.join(res_dir, bids_fname_json))
             shutil.move(os.path.join(res_dir, bids_fname_json), data_type_dir)
 
         # Change the filename and move the file
-
+        print('\t\tHandling nifti/bvec/bval file')
         bids_fname = yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, scan_file, xnat_mapping_type,
                                         sess_idx, subj_idx, series_description)
         os.rename(os.path.join(res_dir, nii_file), os.path.join(res_dir, bids_fname))
