@@ -829,7 +829,6 @@ def run_xnat_upload(args):
             else:
                 scans, assessors = read_csv_for_upload(args.csv_file,
                                                    args.session_type)
-            print(scans, assessors)
             if assessors and not XnatUtils.has_dax_datatypes(xnat):
                 err = 'Your XNAT instance does not have the assessor \
 datatypes required by dax. Please install them. Check \
@@ -873,7 +872,7 @@ def add_to_parser(parser):
     parser.add_argument("-b", "--bids", dest="bids_dir", default=None,
                       help="BIDS Directory to convert to XNAT and then upload")
     parser.add_argument("-p", "--project", dest="project", default=None,
-                      help="BIDS Directory to convert to XNAT and then upload")
+                      help="Project for BIDS XNAT upload")
     return parser
 
 
