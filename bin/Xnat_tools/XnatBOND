@@ -20,9 +20,8 @@ DESCRIPTION = """What is the script doing :
 Examples:
    *Generate orginial key and parameter groups:
         XnatBOND --bids_dir BIDS_DIR --bond_dir BOND_DIR 
-   *The 
-        scan_type,datatype
-        Resting State,func
+   *Update the key and parameter groups:
+        XnatBOND --bids_dir BIDS_DIR --modify_keyparam 
 """
 def add_parser_args():
     """
@@ -39,8 +38,6 @@ def add_parser_args():
     argp.add_argument('-m', '--modify_keyparam', dest='modify_keyparam', default=None, action='append',nargs=3,
                       metavar=('keyparam_edited','keyparam_files','new_keyparam_prefix'),
                       help='Values to modify the keyparam in bids.')
-    argp.add_argument("-o", "--logfile", dest="logfile", default=None,
-                      help="Write the display/output in a file given to this OPTIONS.")
     return argp
 
 def get_proper_str(str_option, end=False):
@@ -113,11 +110,13 @@ if __name__ == '__main__':
     main_display()
     LOGGER = setup_info_logger('BidsMapping', OPTIONS.logfile)
     if OPTIONS.bond_dir:
-        LOGGER.info("Generating Key and Parameter Groups")
+        LOGGER.info("Detecting Key and Parameter Groups")
         XnatToBids.XNATBond(OPTIONS.bids_dir).generate_params(OPTIONS.bond_dir)
+        LOGGER.info("Finished: Key and Parameter Groups stored in %s" % (bond_dir))
     if OPTIONS.modify_keyparam:
         keyparam_edited = OPTIONS.modify_keyparam[0][0]
         keyparam_files = OPTIONS.modify_keyparam[0][1]
         new_keyparam_prefix =OPTIONS.modify_keyparam[0][2]
         LOGGER.info("Modifying Key and Parameter Group Assignments")
         XnatToBids.XNATBond(OPTIONS.bids_dir).edit_params(keyparam_edited,keyparam_files,new_keyparam_prefix)
+        LOGGER.info("Finished: Key and Parameter Groups from %s modified file stored as %s" % (keyparam_edited,new_keyparam_prefix))

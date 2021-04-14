@@ -545,7 +545,6 @@ class XNATBond(object):
         self.bids_dir = bids_dir
 
     def generate_params(self, bond_dir):
-        print(self.bids_path)
         if not os.path.exists(bond_dir):
             os.makedirs(bond_dir)
         bond.BOnD(self.bids_dir).get_CSVs(os.path.join(bond_dir, 'keyparam_original'))
