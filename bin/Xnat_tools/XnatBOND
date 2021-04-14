@@ -32,7 +32,7 @@ def add_parser_args():
     argp = argparse.ArgumentParser(description=DESCRIPTION, usage='use "%(prog)s --help" for more information',
                                    formatter_class=argparse.RawTextHelpFormatter)
     # Connect to XNAT
-    argp.add_argument('--bids_dir', dest='bids_dir', default=None,
+    argp.add_argument('--bids_dir', dest='bids_dir', required=True,
                       help='BIDS data directory.')
     argp.add_argument('-b', '--bond_dir', dest='bond_dir', default=None,
                       help='BOND data directory.')
@@ -70,7 +70,7 @@ def main_display():
     print('# If issues, please start a thread here:                       #')
     print('# https://groups.google.com/forum/#!forum/vuiis-cci            #')
     print('# Usage:                                                       #')
-    print('#     Upload rules/mapping to Project level on XNAT            #')
+    print('#     Generate and alternate key params in BIDS using BOND     #')
     print('# Parameters :                                                 #')
 
     if OPTIONS.bids_dir:
