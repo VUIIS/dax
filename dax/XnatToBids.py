@@ -317,7 +317,7 @@ def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xn
         print(('\t\t>ERROR: Scan type %s does not have a TR mapping' % xnat_mapping_type))
         print("\t\t>ERROR: BIDS Conversion not complete")
         sys.exit()
-    TR_bidsmap = round(img.header['pixdim'][4].item(), 3)
+    TR_bidsmap = round((float(TR_bidsmap)), 3)
     tk_dict = sd_tasktype_mapping(XNAT, project)
     task_type = tk_dict.get(xnat_mapping_type)
     img = nib.load(os.path.join(res_dir, nii_file))
@@ -328,7 +328,7 @@ def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xn
         func_folder = os.path.dirname(bids_res_path)
         os.rmdir(func_folder)
         sys.exit()
-    TR_nifti = round((img.header['pixdim'][4]), 3)
+    TR_nifti = round(img.header['pixdim'][4].item(), 3)
     # If json not present - if TR in nifti and XNAT (project level) is equal, USE TR FROM NIFTI
     #                       if TR in nifti and XNAT (project level) is not equal, USE TR FROM XNAT (Project level) and
     #                                                                             UPDATE THE NIFTI HEADER
