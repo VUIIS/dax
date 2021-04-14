@@ -38,6 +38,8 @@ def add_parser_args():
     argp.add_argument('-m', '--modify_keyparam', dest='modify_keyparam', default=None, action='append',nargs=3,
                       metavar=('keyparam_edited','keyparam_files','new_keyparam_prefix'),
                       help='Values to modify the keyparam in bids.')
+    argp.add_argument("-o", "--logfile", dest="logfile", default=None,
+                      help="Write the display/output in a file given to this OPTIONS.")
     return argp
 
 def get_proper_str(str_option, end=False):
