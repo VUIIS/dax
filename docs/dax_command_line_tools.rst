@@ -1083,24 +1083,24 @@ XnatBOND takes in a BIDS directory and detects the Key and Parameter Groups. Thi
 	#     Check the help for examples by running --help            #
 	################################################################
 	
-usage: XnatBOND [-h] --bids_dir BIDS_DIR [-b BOND_DIR] [-m keyparam_edited keyparam_files new_keyparam_prefix] [-o LOGFILE]
+	usage: XnatBOND [-h] --bids_dir BIDS_DIR [-b BOND_DIR] [-m keyparam_edited keyparam_files new_keyparam_prefix] [-o LOGFILE]
 
-What is the script doing :
-   *Generate the csv files that have the summary of key groups and param groups from the
-   bidsdata and modify them in the bids data.
+	What is the script doing :
+   		*Generate the csv files that have the summary of key groups and param groups from the
+   		bidsdata and modify them in the bids data.
 
-Examples:
-   *Generate orginial key and parameter groups:
-        XnatBOND --bids_dir BIDS_DIR --bond_dir BOND_DIR
-   *Update the key and parameter groups:
-        XnatBOND --bids_dir BIDS_DIR --modify_keyparam
+	Examples:
+   		*Generate orginial key and parameter groups:
+        		XnatBOND --bids_dir BIDS_DIR --bond_dir BOND_DIR
+   		*Update the key and parameter groups:
+        		XnatBOND --bids_dir BIDS_DIR --modify_keyparam
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --bids_dir BIDS_DIR   BIDS data directory.
-  -b BOND_DIR, --bond_dir BOND_DIR
-                        BOND data directory.
-  -m keyparam_edited keyparam_files new_keyparam_prefix, --modify_keyparam keyparam_edited keyparam_files new_keyparam_prefix
-                        Values to modify the keyparam in bids.
-  -o LOGFILE, --logfile LOGFILE
-                        Write the display/output in a file given to this OPTIONS.
+	optional arguments:
+  	-h, --help            show this help message and exit
+  	--bids_dir BIDS_DIR   BIDS data directory.
+  	-b BOND_DIR, --bond_dir BOND_DIR
+                              BOND data directory.
+  	-m keyparam_edited keyparam_files new_keyparam_prefix, --modify_keyparam keyparam_edited keyparam_files new_keyparam_prefix
+                              Values to modify the keyparam in bids.
+  	-o LOGFILE, --logfile LOGFILE
+                              Write the display/output in a file given to this OPTIONS.
