@@ -160,8 +160,8 @@ def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_f
         session_info = ET.fromstring(session_info)
         acquisition_site = session_info.find('{http://nrg.wustl.edu/xnat}acquisition_site').text
         scanner = session_info.find('{http://nrg.wustl.edu/xnat}scanner').text
-        manufacturer = session_info.findall('{http://nrg.wustl.edu/xnat}scanner').attrib['manufacturer']
-        model = session_info.findall('{http://nrg.wustl.edu/xnat}scanner').attrib['model']
+        manufacturer = session_info.find('{http://nrg.wustl.edu/xnat}scanner').attrib['manufacturer']
+        model = session_info.find('{http://nrg.wustl.edu/xnat}scanner').attrib['model']
 
         # For only nifti scans, handle json sidecar should be checked and the json sidecar filename should changed
         if scan_file.endswith('.nii.gz'):
