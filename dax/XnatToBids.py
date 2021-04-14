@@ -317,7 +317,7 @@ def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xn
         print(('\t\t>ERROR: Scan type %s does not have a TR mapping' % xnat_mapping_type))
         print("\t\t>ERROR: BIDS Conversion not complete")
         sys.exit()
-    TR_bidsmap = round((float(TR_bidsmap)), 3)
+    TR_bidsmap = round(img.header['pixdim'][4].item(), 3)
     tk_dict = sd_tasktype_mapping(XNAT, project)
     task_type = tk_dict.get(xnat_mapping_type)
     img = nib.load(os.path.join(res_dir, nii_file))
@@ -342,7 +342,7 @@ def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xn
                      "Scanner": scanner,
                      "ScannerModel": model}
 
-        if float(TR_nifti) == float(TR_bidsmap):
+        if TR_nifti == TR_bidsmap:
             print((
                 '\t\t>No existing json. TR %.3f sec in BIDS mapping and NIFTI header. Using TR %.3f sec in nifti header ' \
                 'for scan file %s in session %s. ' % (TR_bidsmap, TR_bidsmap, scan_file, sess)))
@@ -371,7 +371,7 @@ def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xn
                             "Scanner": scanner,
                             "ScannerModel": model}
 
-            if float(TR_json) != float(TR_bidsmap):
+            if TR_json != TR_bidsmap:
                 print((
                     '\t\t>JSON sidecar exists. WARNING: TR is %.3f sec in project level BIDS mapping, which does not match the TR in JSON sidecar %.3f.\n ' \
                     '\t\tUPDATING JSON with TR %.3f sec in BIDS mapping and UPDATING NIFTI header for scan %s in session %s.' \
