@@ -47,6 +47,10 @@ Examples:
    * Upload with delete every resources for the object (SCAN/ASSESSOR) before \
 uploading:
         Xnatupload -c upload_sheet.csv --deleteAll
+    * Upload BIDS data in XNAT format for scan 
+        Xnatupload -b /tmp/bidsDataset -p PID 
+    * Check BIDS data in XNAT  
+        Xnatupload -b /tmp/bidsDataset -p PID --report
 """
 
 SCAN_HEADER = ['object_type', 'project_id', 'subject_label', 'session_type',
