@@ -692,6 +692,10 @@ def upload_resources(xnat, args, obj, obj_dict):
                         resource_obj = obj.resource(resource_label)
                     else:
                         resource_obj = obj.out_resource(resource_label)
+                        
+                    if args.bids_dir:
+                        delete_resource(resource_obj, resource_label,
+                                args.force)
 
                     upload_path(resource_obj, resource_label, fpath,
                                 args.force, args.delete,
@@ -722,6 +726,23 @@ def upload_path(resource_obj, resource_label, fpath, force, delete, extract):
             fpath, resource_obj, resource_label,
             remove=force, removeall=delete, extract=extract)
 
+def delete_resource(resource_obj, resource_label, remove=False):
+    """
+    Method to delete resources if force is used
+
+    :param resource_obj: pyxnat EObject to upload the file to.
+                         Note this should be a resource
+    :param resource_label: resource label
+    :param remove: Remove the file if it exists
+    :return: None
+    """
+    if resource_obj.exists():
+            if remove:
+                resource_obj.delete()
+            else:
+                print(("WARNING: delete_resources_with_extension in Xnatupload: resource %s \
+already exists. Use --force to upload." % resource_label))
+                exit()
 
 def delete_all_resources(xnat, obj, obj_dict):
     """
