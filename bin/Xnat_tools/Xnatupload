@@ -51,6 +51,8 @@ uploading:
         Xnatupload -b /tmp/bidsDataset -p PID 
     * Check BIDS data in XNAT  
         Xnatupload -b /tmp/bidsDataset -p PID --report
+    * Force upload BIDS data to upload XNAT
+        Xnatupload -b /tmp/bidsDataset -p PID --force
 """
 
 SCAN_HEADER = ['object_type', 'project_id', 'subject_label', 'session_type',
@@ -692,7 +694,7 @@ def upload_resources(xnat, args, obj, obj_dict):
                         resource_obj = obj.resource(resource_label)
                     else:
                         resource_obj = obj.out_resource(resource_label)
-                        
+
                     if args.bids_dir:
                         delete_resource(resource_obj, resource_label,
                                 args.force)
