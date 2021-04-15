@@ -507,6 +507,8 @@ Warning: the project must already exist on XNAT. You can add a new project via t
                 Xnatupload -b /tmp/bidsDataset -p PID 
            * Check BIDS data to XNAT  
                 Xnatupload -b /tmp/bidsDataset -p PID --report
+	   * Force upload BIDS data to upload XNAT   
+                Xnatupload -b /tmp/bidsDataset -p PID --force
 	
 	optional arguments:
 	  -h, --help            show this help message and exit
