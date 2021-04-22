@@ -75,6 +75,10 @@ Examples:
    *Transform the XnatDownload data in BIDS format for all sessions, scantype and resources:
         Xnatdownload -p PID --sess all -d /tmp/downloadPID -s all --rs all \
 --bids /tmp/BIDS_dataset
+    *Transform the XnatDownload data in BIDS format for all sessions, scantype and resources with xnat tag:
+    	Xnatdownload -p PID --sess all -d /tmp/downloadPID -s all --rs all --bids /tmp/BIDS_dataset -xt
+	*Transform the XnatDownload data in BIDS format for all sessions, scantype and resources with xnat tag and perform bond:
+    	Xnatdownload -p PID --sess all -d /tmp/downloadPID -s all --rs all --bids /tmp/BIDS_dataset -xt --bond /tmp/BOND_dir
 """
 
 
