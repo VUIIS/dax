@@ -1381,7 +1381,7 @@ scans.')
                     CSVWRITER = None
                     download_data_xnat()
         if OPTIONS.bids_dir and PS_LIST == 0:
-        LOGGER.info("--------------- BIDS --------------")
+            LOGGER.info("--------------- BIDS --------------")
             LOGGER.info('No new XNAT data downloaded. No data for BIDS conversion. \
             Please check folders and remove any rogue folders')
         else:    
