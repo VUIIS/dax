@@ -351,6 +351,10 @@ Xnatdownload will download all the resources that you asked for in a directory. 
 	        Xnatdownload -d /tmp/downloadPID -c  upload_sheet.csv
    	   *Transform the XnatDownload data in BIDS format for all sessions, scantype and resources:
     		Xnatdownload -p PID --sess all -d /tmp/downloadPID -s all --rs all --bids /tmp/BIDS_dataset
+	   *Transform the XnatDownload data in BIDS format for all sessions, scantype and resources with xnat tag:
+    		Xnatdownload -p PID --sess all -d /tmp/downloadPID -s all --rs all --bids /tmp/BIDS_dataset -xt
+	   *Transform the XnatDownload data in BIDS format for all sessions, scantype and resources with xnat tag and perform bond:
+    		Xnatdownload -p PID --sess all -d /tmp/downloadPID -s all --rs all --bids /tmp/BIDS_dataset -xt --bond /tmp/BOND_dir
 	
 	optional arguments:
 	  -h, --help            show this help message and exit
@@ -416,7 +420,7 @@ Xnatdownload will download all the resources that you asked for in a directory. 
           -b BIDS_DIR, --bids BIDS_DIR
                                 Directory to store the XNAT to BIDS curated data
           -xt, --xnat_tag       Download BIDS data with XNAT subjID and sessID
-          --bond_dir BOND_DIR   Download the Key groups and Param groups in BIDS data
+          --bond_dir BOND_DIR   Download the Key groups and Param groups in BIDS data to BOND_DIR
 
 
 	
