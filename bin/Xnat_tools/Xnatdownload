@@ -585,6 +585,7 @@ def download_data_xnat():
     asses_res_list = get_option_list(OPTIONS.resourcesA)
     # Number of subjects
     number = len(PS_LIST)
+    print(number)
     # Download:
     LOGGER.info('INFO: Downloading Data for each pair project/subject..')
     for index, ps in enumerate(sorted(PS_LIST)):
@@ -1391,6 +1392,5 @@ scans.')
                 LOGGER.info("Output from BOND generate_params:")
                 XnatToBids.XNATBond(OPTIONS.bids_dir).generate_params(OPTIONS.bond_dir)
                 LOGGER.info("Finished: Key and Parameter Groups stored in %s" % (OPTIONS.bond_dir))
-                
 
     LOGGER.info('============================================================')
