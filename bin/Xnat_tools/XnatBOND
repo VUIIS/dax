@@ -114,7 +114,7 @@ if __name__ == '__main__':
     if OPTIONS.bond_dir:
         LOGGER.info("Detecting Key and Parameter Groups")
         XnatToBids.XNATBond(OPTIONS.bids_dir).generate_params(OPTIONS.bond_dir)
-        LOGGER.info("Finished: Key and Parameter Groups stored in %s" % (bond_dir))
+        LOGGER.info("Finished: Key and Parameter Groups stored in %s" % (OPTIONS.bond_dir))
     if OPTIONS.modify_keyparam:
         keyparam_edited = OPTIONS.modify_keyparam[0][0]
         keyparam_files = OPTIONS.modify_keyparam[0][1]

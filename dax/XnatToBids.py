@@ -25,7 +25,6 @@ def transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, xnat_tag, LOGGER):
     :param BIDS_DIR: BIDS Directory
     :param LOGGER: Logging
     """
-    LOGGER.info("--------------- BIDS --------------")
     LOGGER.info("INFO: Moving files to the BIDS folder...")
     # All the BIDS datattype
     data_type_l = ["anat", "func", "fmap", "dwi", "unknown_bids"]

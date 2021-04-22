@@ -585,7 +585,7 @@ def download_data_xnat():
     asses_res_list = get_option_list(OPTIONS.resourcesA)
     # Number of subjects
     number = len(PS_LIST)
-    print(number)
+
     # Download:
     LOGGER.info('INFO: Downloading Data for each pair project/subject..')
     for index, ps in enumerate(sorted(PS_LIST)):
@@ -1380,11 +1380,15 @@ scans.')
                 else:
                     CSVWRITER = None
                     download_data_xnat()
-        if OPTIONS.bids_dir:
+        if OPTIONS.bids_dir and PS_LIST == 0:
+        LOGGER.info("--------------- BIDS --------------")
+            LOGGER.info('No new XNAT data downloaded. No data for BIDS conversion. \
+            Please check folders and remove any rogue folders')
+        else:    
+            # transform xnat to bids 
             project = OPTIONS.project
             BIDS_DIR = OPTIONS.bids_dir
             XNAT_TAG = OPTIONS.xnat_tag
-            # TRANFOMR XNAT2BIDS REFACTOR
             XnatToBids.transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, XNAT_TAG, LOGGER)
             if OPTIONS.bond_dir:
                 LOGGER.info('--------------- BOND --------------')
