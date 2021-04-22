@@ -1055,11 +1055,11 @@ specified. Use -s or --WOS.')
         print('OPTION ERROR: resources selected for assessors but no types \
 specified. Use -a or --WOA.')
         return False
-    # Check BIDS direcotry given
-#     if OPTIONS.xnat2bids and not OPTIONS.bids_dir:
-#         print('OPTION ERROR: BIDS directory not specified. Use option \
-# --bids_dir.')
-#         return False
+    # Check BIDS direcotry given with BOND
+    if OPTIONS.bond_dir and not OPTIONS.bids_dir:
+        print('OPTION ERROR: BIDS directory not specified. Use option \
+--bids.')
+        return False
     return True
 
 
@@ -1388,8 +1388,9 @@ scans.')
             if OPTIONS.bond_dir:
                 LOGGER.info('--------------- BOND --------------')
                 LOGGER.info("Detecting Key and Parameter Groups")
+                LOGGER.info("Output from BOND generate_params:")
                 XnatToBids.XNATBond(OPTIONS.bids_dir).generate_params(OPTIONS.bond_dir)
-                LOGGER.info("Finished: Key and Parameter Groups stored in %s" % (bond_dir))
+                LOGGER.info("Finished: Key and Parameter Groups stored in %s" % (OPTIONS.bond_dir))
                 
 
     LOGGER.info('============================================================')
