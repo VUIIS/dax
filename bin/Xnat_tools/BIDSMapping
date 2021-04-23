@@ -41,7 +41,20 @@ Examples:
    *Download the current mapping on XNAT:
         BIDSMapping -p PID --xnatinfo scan_type --type datatype --download /tmp/download.csv 
     *Download the scan_types on project on XNAT:
-        BIDSMapping -p PID --template /tmp/scan_type_template.csv --xnatinfo scan_types
+* csv file example
+    * BIDS datatype
+        scan_type,datatype
+        T1W/3D/TFE,anat
+        Resting State,func
+    * BIDS tasktype 
+        scan_type,tasktype
+        Resting State,rest
+    * BIDS repetition_time_sec
+        scan_type,repetition_time_sec
+        Resting State,2.0
+    * BIDS run_number
+        scan_type,run_number
+        Resting State,01
 """
 
 def add_parser_args():
