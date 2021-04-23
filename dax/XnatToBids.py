@@ -159,19 +159,19 @@ def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_f
         session_info = ET.fromstring(session_info)
         try:
             acquisition_site = session_info.find('{http://nrg.wustl.edu/xnat}acquisition_site').text
-        except NoneType:
+        except AttributeError:
             acquisition_site = 'NA'
         try:
             scanner = session_info.find('{http://nrg.wustl.edu/xnat}scanner').text
-        except NoneType:
+        except AttributeError:
             scanner = 'NA'
         try:
             manufacturer = session_info.find('{http://nrg.wustl.edu/xnat}scanner').attrib['manufacturer']
-        except NoneType:
+        except AttributeError:
             manufacturer = 'NA'
         try:
             model = session_info.find('{http://nrg.wustl.edu/xnat}scanner').attrib['model']
-        except NoneType:
+        except AttributeError:
             model = 'NA'
 
         # For only nifti scans, handle json sidecar should be checked and the json sidecar filename should changed
