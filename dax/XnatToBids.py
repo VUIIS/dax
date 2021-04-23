@@ -127,7 +127,7 @@ def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_f
             # print(xnat_mapping_type)
     else:
         print(
-            "ERROR: The type of xnat map info (for eg. scan_type or series_description) is not given. Use BidsMapping Tool")
+            "ERROR: The type of XNAT to BIDS mapping info (for eg. scan_type or series_description) is not given. Use BidsMapping Tool")
         print("ERROR: BIDS Conversion not complete")
         sys.exit()
 
@@ -157,10 +157,22 @@ def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_f
         # XNAT Project Scanner info
         session_info = XNAT.select('/project/' + project + '/subject/' + subj + '/experiment/' + sess).get()
         session_info = ET.fromstring(session_info)
-        acquisition_site = session_info.find('{http://nrg.wustl.edu/xnat}acquisition_site').text
-        scanner = session_info.find('{http://nrg.wustl.edu/xnat}scanner').text
-        manufacturer = session_info.find('{http://nrg.wustl.edu/xnat}scanner').attrib['manufacturer']
-        model = session_info.find('{http://nrg.wustl.edu/xnat}scanner').attrib['model']
+        try:
+            acquisition_site = session_info.find('{http://nrg.wustl.edu/xnat}acquisition_site').text
+        except NoneType:
+            acquisition_site = 'NA'
+        try:
+            scanner = session_info.find('{http://nrg.wustl.edu/xnat}scanner').text
+        except NoneType:
+            scanner = 'NA'
+        try:
+            manufacturer = session_info.find('{http://nrg.wustl.edu/xnat}scanner').attrib['manufacturer']
+        except NoneType:
+            manufacturer = 'NA'
+        try:
+            model = session_info.find('{http://nrg.wustl.edu/xnat}scanner').attrib['model']
+        except NoneType:
+            model = 'NA'
 
         # For only nifti scans, handle json sidecar should be checked and the json sidecar filename should changed
         if scan_file.endswith('.nii.gz'):
