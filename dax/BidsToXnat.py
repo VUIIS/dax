@@ -58,6 +58,6 @@ def transform_to_xnat(bids_dir, project):
                 bids_dict['session_type'] = 'MR'
                 bids_dict['quality'] = 'questionable'
 
-                upload_scan.append(bids_dict)
+                upload_scan.append(bids_dict.copy())
     return upload_scan
     
