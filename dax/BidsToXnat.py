@@ -44,6 +44,7 @@ def transform_to_xnat(bids_dir, project):
                 bids_dict['series_description'] = [(i.split('-')[1]) for i in bids_filename_contents if i.startswith('acq')][0]                
                 
                 #label <project>-x-<subject>-x-<session>-x-<ID>
+                scan_id = json_contents['ScanID']
                 bids_dict['label'] = '-'.join((project,subject,session,scan_id)) 
                 
                 #type quality from json
