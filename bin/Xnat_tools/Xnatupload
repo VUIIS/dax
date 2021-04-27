@@ -400,6 +400,7 @@ def print_report(args):
     #BIDS
     if args.bids_dir:
         scans, filepaths_list = BidsToXnat.transform_to_xnat(args.bids_dir, args.project)
+        BidsToXnat.filename_to_bids(filepaths_list)
         assessors = []
     else:
         scans, assessors = read_csv_for_upload(csv_file, session_type, report=True)
