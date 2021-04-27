@@ -112,7 +112,7 @@ def bids_yaml(XNAT, project, scan_id, subj, res_dir, scan_file, uri, sess, nii_f
     # Get the series_description and scan_type of the scan in XNAT
     project_scans = XNAT.get_project_scans(project)
     for x in project_scans:
-        if x['ID'] == scan_id and x['subject_label'] == subj:
+        if x['ID'] == scan_id and x['subject_label'] == subj and x['session_label'] == sess:
             scan_type = x['type']
             series_description = x['series_description']
             scan_quality = x['scan_quality']
