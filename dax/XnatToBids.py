@@ -262,7 +262,7 @@ def yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, scan_file,
 
 
 def yaml_create_json(XNAT, data_type, res_dir, scan_file, uri, project, xnat_mapping_type, sess, is_json_present,
-                     nii_file, json_file, series_description, scan_type, scan_quality, acquisition_site, scanner, manufacturer, model):
+                     nii_file, json_file, scan_id, series_description, scan_type, scan_quality, acquisition_site, scanner, manufacturer, model):
     """
     :param XNAT: XNAT interface
     :param data_type: BIDS datatype of the scan
@@ -282,6 +282,7 @@ def yaml_create_json(XNAT, data_type, res_dir, scan_file, uri, project, xnat_map
     if data_type != 'func':
         xnat_detail = {"XNATfilename": scan_file,
                        "XNATProvenance": uri,
+                       "ScanID": scan_id,
                        "SeriesDescription": series_description,
                        "ScanType": scan_type,
                        "ScanQuality": scan_quality,
@@ -303,13 +304,13 @@ def yaml_create_json(XNAT, data_type, res_dir, scan_file, uri, project, xnat_map
     else:
         # For func check out details in nifti and json is required
         xnat_prov = yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xnat_mapping_type,
-                                           nii_file, is_json_present, sess, json_file, series_description, scan_type,
+                                           nii_file, is_json_present, sess, json_file, scan_id, series_description, scan_type,
                                            scan_quality, acquisition_site, scanner, manufacturer, model)
     return xnat_prov
 
 
 def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xnat_mapping_type, nii_file,
-                           is_json_present, sess, json_file, series_description, scan_type, scan_quality, 
+                           is_json_present, sess, json_file, scan_id, series_description, scan_type, scan_quality, 
                            acquisition_site, scanner, manufacturer, model):
     """
 
@@ -352,6 +353,7 @@ def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xn
         xnat_prov = {"XNATfilename": scan_file,
                      "XNATProvenance": uri,
                      "TaskName": task_type,
+                     "ScanID": scan_id,
                      "SeriesDescription": series_description,
                      "ScanType": scan_type,
                      "ScanQuality": scan_quality,
@@ -382,6 +384,7 @@ def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xn
             TR_json = round((xnat_prov['RepetitionTime']), 3)
             xnat_detail = {"XNATfilename": scan_file,
                            "XNATProvenance": uri,
+                           "ScanID": scan_id,
                            "TaskName": task_type,
                            "SeriesDescription": series_description,
                            "ScanType": scan_type,
