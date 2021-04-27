@@ -71,7 +71,7 @@ def transform_to_xnat(bids_dir, project):
                 bids_dict['session_type'] = 'MR'
 
                 upload_scan.append(bids_dict.copy())
-                filepaths_list.apped(filepath_set)
+                filepaths_list.append(filepath_set)
     return upload_scan, filepaths_list
 
 def filename_to_bids(filepaths_list):
