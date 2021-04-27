@@ -32,23 +32,23 @@ def transform_to_xnat(bids_dir, project):
                 with open(os.path.join(root,json_file), 'r') as f:
                     json_contents = json.load(f)
 
-                #subj on xnat
-                subject = [(i.split('-')[1]) for i in bids_filename_contents if i.startswith('sub')][0]
+                #subj from json
+                subject = json_contents['XNATProvenance'].split('/')[8]
                 bids_dict['subject_label'] = subject 
 
-                #sess on xnat
-                session = [(i.split('-')[1]) for i in bids_filename_contents if i.startswith('ses')][0]
+                #sess from json
+                session = json_contents['XNATProvenance'].split('/')[10]
                 bids_dict['session_label'] = session
 
-                #series des on xnat
+                #series des (on xnat/bidsmap) from bids
                 bids_dict['series_description'] = [(i.split('-')[1]) for i in bids_filename_contents if i.startswith('acq')][0]                
                 
                 #label <project>-x-<subject>-x-<session>-x-<ID>
-                scan_id = json_contents['ScanID']
+                scan_id = json_contents['XNATProvenance'].split('/')[12]
                 bids_dict['label'] = '-'.join((project,subject,session,scan_id)) 
                 
                 #type quality from json
-                bids_dict['ID'] = json_contents['ScanID']
+                bids_dict['ID'] = scan_id
                 bids_dict['type'] = json_contents['ScanType']
                 bids_dict['quality'] = json_contents['ScanQuality']
 
