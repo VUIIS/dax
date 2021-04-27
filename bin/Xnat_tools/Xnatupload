@@ -833,7 +833,6 @@ def run_xnat_upload(args):
             if args.bids_dir:
                 scans, filepaths_list = BidsToXnat.transform_to_xnat(args.bids_dir, args.project)
                 assessors = []
-                BidsToXnat.filename_to_bids(filepaths_list)
             else:
                 scans, assessors = read_csv_for_upload(args.csv_file,
                                                    args.session_type)
@@ -843,6 +842,10 @@ datatypes required by dax. Please install them. Check \
 https://github.com/VUIIS/dax wiki.'
                 raise XnatToolsUserError(__exe__, err)
             upload_data_xnat(xnat, args, scans, assessors)
+
+            #BIDS
+            if args.bids_dir:
+                BidsToXnat.filename_to_bids(filepaths_list)            
 
     utils.print_end(__exe__)
 
