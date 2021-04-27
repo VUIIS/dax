@@ -57,6 +57,7 @@ def transform_to_xnat(bids_dir, project):
                 bids_filepath = os.path.join(root,i)
                 xnat_filepath = os.path.join(root,json_contents['XNATfilename'])
                 os.rename(bids_filepath, xnat_filepath)
+                filepath_set = (bids_filepath, xnat_filepath)
 
                 if bids_filepath.endswith('nii.gz'):
                     bids_dict['resource'] = {'NIFTI': [xnat_filepath]}
