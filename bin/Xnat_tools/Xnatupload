@@ -403,7 +403,7 @@ def print_report(args):
         BidsToXnat.filename_to_bids(filepaths_list)
         assessors = []
     else:
-        scans, assessors = read_csv_for_upload(csv_file, session_type, report=True)
+        scans, assessors = read_csv_for_upload(args.csv_file, args.session_type, report=True)
     _header = _fmt % (
         -10, 'ObjectType', -10, 'Project', -10, 'Subject', -10, 'SessType',
         -15, 'Session', -30, 'Label', -15, 'Type', -15, 'Description',
