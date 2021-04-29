@@ -399,8 +399,8 @@ def print_report(args):
     _fmt = ' %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s '
     #BIDS
     if args.bids_dir:
-        scans, filepaths_list = BidsToXnat.transform_to_xnat(args.bids_dir, args.project)
-        BidsToXnat.filename_to_bids(filepaths_list)
+        scans, filepaths_list, xnat_dataset = BidsToXnat.transform_to_xnat(args.bids_dir, args.project)
+        BidsToXnat.filename_to_bids(filepaths_list, xnat_dataset)
         assessors = []
     else:
         scans, assessors = read_csv_for_upload(args.csv_file, args.session_type, report=True)
@@ -831,7 +831,7 @@ def run_xnat_upload(args):
 
             #BIDS
             if args.bids_dir:
-                scans, filepaths_list = BidsToXnat.transform_to_xnat(args.bids_dir, args.project)
+                scans, filepaths_list, xnat_dataset = BidsToXnat.transform_to_xnat(args.bids_dir, args.project)
                 assessors = []
             else:
                 scans, assessors = read_csv_for_upload(args.csv_file,
@@ -845,7 +845,7 @@ https://github.com/VUIIS/dax wiki.'
 
             #BIDS
             if args.bids_dir:
-                BidsToXnat.filename_to_bids(filepaths_list)            
+                BidsToXnat.filename_to_bids(filepaths_list, xnat_dataset)            
 
     utils.print_end(__exe__)
 
