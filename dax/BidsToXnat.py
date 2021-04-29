@@ -8,6 +8,7 @@ Extract the information from BIDS for Xnatupload
 '''
 import os
 import json
+import glob
 
 #check if valid bids
 #extract and map to dict. 
@@ -21,12 +22,13 @@ def transform_to_xnat(bids_dir, project):
     bids_dict = {}
     upload_scan = []
     filepaths_list = []
+    xnat_dataset = dataset_source_xnat(bids_dir)
     for root, dir, files in os.walk(bids_dir):
         for i in files:
             if i.endswith('nii.gz') or i.endswith('.bvec') or i.endswith('.bval'):
                 bids_filename_contents = i.split('_')
 
-                if dataset_source_xnat(bids_dir):
+                if xnat_dataset:
 
                     #get info from json file
                     bids_filename = i.split('.')[0]
@@ -111,11 +113,12 @@ def transform_to_xnat(bids_dir, project):
 
                 upload_scan.append(bids_dict.copy())
                 
-    return upload_scan, filepaths_list
+    return upload_scan, filepaths_list, xnat_dataset
 
-def filename_to_bids(filepaths_list):
-    for i in filepaths_list:
-        os.rename(i[1], i[0])
+def filename_to_bids(filepaths_list, xnat_dataset):
+    if xnat_dataset:
+        for i in filepaths_list:
+            os.rename(i[1], i[0])
 
 def dataset_source_xnat(bids_dir):
     dataset_description_file = glob.glob(bids_dir + "/**/dataset_description.json", recursive = True)
