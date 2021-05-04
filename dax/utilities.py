@@ -1,6 +1,6 @@
 import itertools as it
 import json
-from html.parser import HTMLParser
+import html
 import fnmatch
 import yaml
 import os
@@ -12,16 +12,13 @@ from email.mime.text import MIMEText
 from .errors import DaxError
 
 
-h = HTMLParser()
-
-
 def decode_url_json_string(json_string):
     """
     Load a string representing serialised json into
     :param json_string:
     :return:
     """
-    strings = json.loads(h.unescape(json_string),
+    strings = json.loads(html.unescape(json_string),
                          object_pairs_hook=parse_json_pairs)
     return strings
 
