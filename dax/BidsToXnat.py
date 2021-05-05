@@ -22,6 +22,7 @@ def transform_to_xnat(bids_dir, project):
     bids_dict = {}
     upload_scan = []
     filepaths_list = []
+    unq_scan_id = 1 
     xnat_dataset = dataset_source_xnat(bids_dir)
     for root, dir, files in os.walk(bids_dir):
         for i in files:
@@ -80,10 +81,11 @@ def transform_to_xnat(bids_dir, project):
                         session = subject
                     bids_dict['session_label'] = session
 
-                    #id, label from bids datatype
-                    datatype = root.split('/')[-1]
-                    bids_dict['ID'] = datatype
+                    #id increment unique value
+                    bids_dict['ID'] = "{0:0=2d}".format(unq_scan_id)
+                    unq_scan_id = unq_scan_id + 1
 
+                    # label from bids datatype
                     scan_id = datatype
                     bids_dict['label'] = '-'.join((project,subject,session,scan_id))
 

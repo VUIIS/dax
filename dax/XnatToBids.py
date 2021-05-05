@@ -214,6 +214,7 @@ def yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, scan_file,
     :param series_description: series_description of the scan
     :return: BIDS filename
     """
+    series_description = series_description.replace(" ","").replace('/', "").replace(":", "")
     if data_type == "anat":
         rn_dict = sd_run_mapping(XNAT, project)
         run_number = rn_dict.get(xnat_mapping_type, scan_id)
