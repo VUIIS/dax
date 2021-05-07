@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
-from dax import XnatUtils
 import argparse
 import tempfile
+
+from dax import XnatUtils
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--srcproj', help='Source project', required=True)
