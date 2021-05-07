@@ -23,13 +23,13 @@ with XnatUtils.get_interface() as xnat:
 		if dstscan.exists():
 			raise Exception('Destination scan already exists')
 
-		params = {
+		dstparams = {
 			'ID':f'{args.srcsess}_{srcscan["scan_id"]}',
 			'type':srcscan['scan_type'],
 			'xnat:mrScanData/quality':'questionable',
 			'xnat:mrScanData/series_description':srcscan['scan_description']
 			}
-		dstscan.create(**params)
+		dstscan.create(**dstparams)
 		
 		srcrsrcs = xnat.get_scan_resources(srcscan['project_id'],srcscan['subject_id'],
 			srcscan['session_id'],srcscan['scan_id'])
@@ -42,7 +42,7 @@ with XnatUtils.get_interface() as xnat:
 			with tempfile.TemporaryDirectory() as tmpdir:
 				files = r.get(tmpdir,extract=True)
 				r2 = xnat.select_scan_resource(args.dstproj,args.dstsubj,
-					args.dstsess,dstscan,srcrsrc['label'])
+					args.dstsess,dstparams['ID'],srcrsrc['label'])
 				r2.put(files)
 
 
