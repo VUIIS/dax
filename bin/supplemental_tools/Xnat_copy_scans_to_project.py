@@ -65,7 +65,7 @@ with XnatUtils.get_interface() as xnat:
 			)
 		
 		for srcrsrc in srcrsrcs:
-			print(f'  {srcrsrc["label"]}')
+			print(f'  Copying resource {srcrsrc["label"]}')
 			r = xnat.select_scan_resource(
 				srcscan['project_id'],
 				srcscan['subject_id'],
