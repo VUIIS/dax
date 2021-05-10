@@ -22,16 +22,23 @@ def transform_to_xnat(bids_dir, project):
     bids_dict = {}
     upload_scan = []
     filepaths_list = []
-    unq_scan_id = 1 
+    unq_scan_id = 1
+    pre_dir = None
     xnat_dataset = dataset_source_xnat(bids_dir)
-    for root, dir, files in os.walk(bids_dir):
+    for root, dirs, files in os.walk(bids_dir):
+
+        #increment scan id if the previous dir is different
+        cur_dir = root.rsplit('/', 1)[0]
+        if pre_dir is not None and cur_dir != pre_dir:
+            unq_scan_id = 1
+        pre_dir = cur_dir
+
         for i in files:
             if i.endswith('nii.gz') or i.endswith('.bvec') or i.endswith('.bval'):
                 bids_filename_contents = i.split('_')
 
                 if xnat_dataset:
-
-                    #get info from json file
+                    #get info from json file for data dervied from XNAT
                     bids_filename = i.split('.')[0]
                     json_file = bids_filename + '.json'
                     with open(os.path.join(root,json_file), 'r') as f:
@@ -46,7 +53,7 @@ def transform_to_xnat(bids_dir, project):
                     bids_dict['session_label'] = session
 
                     #series des (on xnat/bidsmap) from bids
-                    bids_dict['series_description'] = [(i.split('-')[1]) for i in bids_filename_contents if i.startswith('acq')][0]                
+                    bids_dict['series_description'] = json_contents['SeriesDescription']                
                     
                     #label <project>-x-<subject>-x-<session>-x-<ID>
                     scan_id = json_contents['XNATProvenance'].split('/')[12]
@@ -72,6 +79,7 @@ def transform_to_xnat(bids_dir, project):
                     filepaths_list.append(filepath_set)
 
                 else:
+                    #get data from filename for public bids dataset
                     #sub, sess from bids
                     subject = [(i.split('-')[1]) for i in bids_filename_contents if i.startswith('sub')][0]
                     bids_dict['subject_label'] = subject
@@ -86,6 +94,7 @@ def transform_to_xnat(bids_dir, project):
                     unq_scan_id = unq_scan_id + 1
 
                     # label from bids datatype
+                    datatype = root.split('/')[-1]
                     scan_id = datatype
                     bids_dict['label'] = '-'.join((project,subject,session,scan_id))
 
@@ -111,7 +120,11 @@ def transform_to_xnat(bids_dir, project):
                 #other keys
                 bids_dict['object_type'] = 'scan'
                 bids_dict['project_id']  = project
-                bids_dict['session_type'] = 'MR'
+                #check the 4 datatypes for MR
+                if bids_filepath.split('/')[-2] == 'anat' or 'func' or 'dwi' or 'fmap':
+                    bids_dict['session_type'] = 'MR'
+                else:
+                    sys.exit()
 
                 upload_scan.append(bids_dict.copy())
                 
