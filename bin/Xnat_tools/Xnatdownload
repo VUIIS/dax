@@ -1380,10 +1380,10 @@ scans.')
                 else:
                     CSVWRITER = None
                     download_data_xnat()
-        if OPTIONS.bids_dir and len(PS_LIST) == 0:
+        if OPTIONS.bids_dir is not None and len(PS_LIST) == 0:
             LOGGER.info("--------------- BIDS --------------")
             LOGGER.info('No new XNAT data downloaded. No data for BIDS conversion. Please check folders and remove any rogue xnat download folders')
-        else:    
+        elif OPTIONS.bids_dir is not None:    
             # transform xnat to bids 
             project = OPTIONS.project
             BIDS_DIR = OPTIONS.bids_dir
