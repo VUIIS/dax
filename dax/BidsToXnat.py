@@ -7,12 +7,20 @@ Extract the information from BIDS for Xnatupload
 
 '''
 import os
+import sys
 import json
 import glob
 
 #check if valid bids
 #extract and map to dict. 
 def transform_to_xnat(bids_dir, project):
+    """
+    Method to transfrom bids to xnat
+
+    :param bids_dir: BIDS Directory
+    :param project: XNAT project ID
+    :return: uplaod_scan -> the dict with info of scans to upload
+    """ 
     #Check bids dir path exists
     if not os.path.exists(bids_dir):
         print('ERROR: %s path does not exists' % (bids_dir))
@@ -21,7 +29,6 @@ def transform_to_xnat(bids_dir, project):
     #Extract the values from the bids data
     bids_dict = {}
     upload_scan = []
-    filepaths_list = []
     unq_scan_id = 1
     pre_dir = None
     xnat_dataset = dataset_source_xnat(bids_dir)
@@ -66,17 +73,13 @@ def transform_to_xnat(bids_dir, project):
 
                     #resource and resource path
                     bids_filepath = os.path.join(root,i)
-                    xnat_filepath = os.path.join(root,json_contents['XNATfilename'])
-                    os.rename(bids_filepath, xnat_filepath)
-                    filepath_set = (bids_filepath, xnat_filepath)
 
                     if bids_filepath.endswith('nii.gz'):
-                        bids_dict['resource'] = {'NIFTI': [xnat_filepath]}
+                        bids_dict['resource'] = {'NIFTI': [bids_filepath]}
                     if bids_filepath.endswith('bvec.gz'):
-                        bids_dict['resource'] = {'BVEC': [xnat_filepath]}
+                        bids_dict['resource'] = {'BVEC': [bids_filepath]}
                     if bids_filepath.endswith('bval.gz'):
-                        bids_dict['resource'] = {'BVAL': [xnat_filepath]}
-                    filepaths_list.append(filepath_set)
+                        bids_dict['resource'] = {'BVAL': [bids_filepath]}
 
                 else:
                     #get data from filename for public bids dataset
@@ -128,14 +131,15 @@ def transform_to_xnat(bids_dir, project):
 
                 upload_scan.append(bids_dict.copy())
                 
-    return upload_scan, filepaths_list, xnat_dataset
-
-def filename_to_bids(filepaths_list, xnat_dataset):
-    if xnat_dataset:
-        for i in filepaths_list:
-            os.rename(i[1], i[0])
+    return upload_scan
 
 def dataset_source_xnat(bids_dir):
+    """
+    Method to check if the data was downloaded from xnat
+
+    :param bids_dir: BIDS Directory
+    :return: True or False
+    """    
     dataset_description_file = glob.glob(bids_dir + "/**/dataset_description.json", recursive = True)
     if not os.path.exists(dataset_description_file[0]):
         return False

@@ -399,8 +399,7 @@ def print_report(args):
     _fmt = ' %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s '
     #BIDS
     if args.bids_dir:
-        scans, filepaths_list, xnat_dataset = BidsToXnat.transform_to_xnat(args.bids_dir, args.project)
-        BidsToXnat.filename_to_bids(filepaths_list, xnat_dataset)
+        scans = BidsToXnat.transform_to_xnat(args.bids_dir, args.project)
         assessors = []
     else:
         scans, assessors = read_csv_for_upload(args.csv_file, args.session_type, report=True)
@@ -696,6 +695,11 @@ def upload_resources(xnat, args, obj, obj_dict):
                     else:
                         resource_obj = obj.out_resource(resource_label)
 
+                    #BIDS delete resource with --force
+                    if args.bids_dir:
+                        delete_resource(resource_obj, resource_label,
+                                args.force)
+
                     upload_path(resource_obj, resource_label, fpath,
                                 args.force, args.delete,
                                 extract=not args.no_extract)
@@ -725,6 +729,23 @@ def upload_path(resource_obj, resource_label, fpath, force, delete, extract):
             fpath, resource_obj, resource_label,
             remove=force, removeall=delete, extract=extract)
 
+#BIDS Upload Check if recourse exists 
+def delete_resource(resource_obj, resource_label, remove=False):
+    """
+    Method to delete resources if force is used
+    :param resource_obj: pyxnat EObject to upload the file to.
+                         Note this should be a resource
+    :param resource_label: resource label
+    :param remove: Remove the file if it exists
+    :return: None
+    """
+    if resource_obj.exists():
+            if remove:
+                resource_obj.delete()
+            else:
+                print(("WARNING: delete_resources_with_extension in Xnatupload: resource %s \
+already exists. Use --force to upload." % resource_label))
+                exit()
 
 def delete_all_resources(xnat, obj, obj_dict):
     """
@@ -831,7 +852,7 @@ def run_xnat_upload(args):
 
             #BIDS
             if args.bids_dir:
-                scans, filepaths_list, xnat_dataset = BidsToXnat.transform_to_xnat(args.bids_dir, args.project)
+                scans = BidsToXnat.transform_to_xnat(args.bids_dir, args.project)
                 assessors = []
             else:
                 scans, assessors = read_csv_for_upload(args.csv_file,
@@ -841,11 +862,7 @@ def run_xnat_upload(args):
 datatypes required by dax. Please install them. Check \
 https://github.com/VUIIS/dax wiki.'
                 raise XnatToolsUserError(__exe__, err)
-            upload_data_xnat(xnat, args, scans, assessors)
-
-            #BIDS
-            if args.bids_dir:
-                BidsToXnat.filename_to_bids(filepaths_list, xnat_dataset)            
+            upload_data_xnat(xnat, args, scans, assessors)         
 
     utils.print_end(__exe__)
 
