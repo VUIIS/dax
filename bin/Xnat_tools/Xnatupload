@@ -743,7 +743,7 @@ def delete_resource(resource_obj, resource_label, remove=False):
             if remove:
                 resource_obj.delete()
             else:
-                print(("WARNING: delete_resources_with_extension in Xnatupload: resource %s \
+                print(("WARNING: delete_resource in Xnatupload: resource %s \
 already exists. Use --force to upload." % resource_label))
                 exit()
 
