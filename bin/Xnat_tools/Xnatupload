@@ -695,10 +695,12 @@ def upload_resources(xnat, args, obj, obj_dict):
                     else:
                         resource_obj = obj.out_resource(resource_label)
 
-                    #BIDS delete resource with --force
+                    #BIDS delete resource with --force if not continue
                     if args.bids_dir:
-                        delete_resource(resource_obj, resource_label,
+                        del_resource = delete_resource(resource_obj, resource_label,
                                 args.force)
+                        if not del_resource:
+                            continue
 
                     upload_path(resource_obj, resource_label, fpath,
                                 args.force, args.delete,
@@ -723,6 +725,7 @@ def upload_path(resource_obj, resource_label, fpath, force, delete, extract):
         __logger__.info(_format_f % (os.path.basename(fpath)))
         XnatUtils.upload_file_to_obj(
             fpath, resource_obj, remove=force, removeall=delete)
+        
     else:
         __logger__.info(_format_p % (os.path.basename(fpath)))
         XnatUtils.upload_folder_to_obj(
@@ -737,7 +740,7 @@ def delete_resource(resource_obj, resource_label, remove=False):
                          Note this should be a resource
     :param resource_label: resource label
     :param remove: Remove the file if it exists
-    :return: None
+    :return: True/False
     """
     if resource_obj.exists():
             if remove:
@@ -745,7 +748,9 @@ def delete_resource(resource_obj, resource_label, remove=False):
             else:
                 print(("WARNING: delete_resource in Xnatupload: resource %s \
 already exists. Use --force to upload." % resource_label))
-                exit()
+                return False
+    return True
+            
 
 def delete_all_resources(xnat, obj, obj_dict):
     """
