@@ -5,7 +5,7 @@ import re
 import os
 import json
 import itertools
-import urllib.parse
+import requests
 
 from uuid import uuid4
 from datetime import date
@@ -806,7 +806,7 @@ class MoreAutoProcessor(AutoProcessor):
         # Append the list of inputs, URL-encoding the fpath to handle special chars in URLs
         cmd += 'INLIST=(\n'
         for cur in input_list:
-            cur['fpath'] = urllib.parse.quote(cur['fpath'],safe="/")
+            cur['fpath'] = requests.utils.quote(cur['fpath'],safe="/")
             cmd += '{fdest},{ftype},{fpath},{ddest}\n'.format(**cur)
 
         cmd += ')\n\n'
