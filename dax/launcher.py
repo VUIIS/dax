@@ -728,8 +728,18 @@ in session %s'
         for auto_proc in auto_proc_list:
             # return a mapping between the assessor input sets and existing
             # assessors that map to those input sets
-            auto_proc.parse_session(csess, sessions)
-            mapping = auto_proc.get_assessor_mapping()
+
+            # BDB 6/5/21
+            # For now, we will not process pet sessions here, but will
+            # include them as additional params for mr sessions.
+            if csess.datatype() == 'xnat:petSessionData':
+                LOGGER.debug('pet session, skipping auto processors')
+                continue
+            else:
+                pets = [x for x in sessions if x.datatype() == 'xnat:petSessionData']
+                mrs = [x for x in sessions if x.datatype() != 'xnat:petSessionData']
+
+            mapping = auto_proc.parse_session(csess, mrs, pets)
 
             if mapping is None:
                 continue
@@ -746,6 +756,7 @@ in session %s'
                 else:
                     assessors = []
                     for p in p_assrs:
+                        # BDB 6/5/21 is there ever more than one assessor here?
                         info = p.info()
                         procstatus = info['procstatus']
                         qcstatus = info['qcstatus']
