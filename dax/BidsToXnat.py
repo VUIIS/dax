@@ -146,7 +146,9 @@ def dataset_source_xnat(bids_dir):
     else:
         with open(dataset_description_file[0], 'r') as f:
             json_contents = json.load(f)
-            if not json_contents['DatasetDOI'].endswith('xnat'):
+            if 'DatasetDOI' not in json_contents:
+                return False
+            elif not json_contents['DatasetDOI'].endswith('xnat'):
                 return False
     return True
 
