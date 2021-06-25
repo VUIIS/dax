@@ -69,6 +69,12 @@ uri_paths = {
 #   on the state of the artefacts listed in the command parameters
 #   . if one or more artefacts are of inappropriate quality
 
+
+# BDB 6/5/21
+# Removed inputs_by_type and related functions b/c it was not actually used.
+# Also removed several class objects from ProcessorParser that 
+# were only used within scope of parse_session function
+
 class ParserArtefact:
     def __init__(self, path, resources, entity):
         self.name = path.split('/')[-1]
@@ -109,22 +115,12 @@ class ProcessorParser:
     }
 
     def __init__(self, yaml_source, proctype=None):
-        self.yaml_source = yaml_source
-
-        (self.inputs, self.inputs_by_type, self.iteration_sources,
+        (self.inputs, self.iteration_sources,
             self.iteration_map, self.prior_session_count) =\
             ProcessorParser.parse_inputs(yaml_source)
 
         self.match_filters = ProcessorParser.parse_match_filters(yaml_source)
         self.variables_to_inputs = ProcessorParser.parse_variables(self.inputs)
-
-        self.csess = None
-        self.sessions_ = None
-        self.artefacts = None
-        self.artefacts_by_input = None
-        self.parameter_matrix = None
-        self.assessor_parameter_map = None
-
         self.xsitype = yaml_source['attrs'].get('xsitype', 'proc:genProcData')
 
         if proctype:
@@ -135,7 +131,7 @@ class ProcessorParser:
 
         self.is_longitudinal_ = ProcessorParser.is_longitudinal(yaml_source)
 
-    def parse_session(self, csess, sessions):
+    def parse_session(self, csess, sessions, pets=[]):
         """
         Parse a session to determine whether new assessors should be created.
         This call populates assessor_parameter_map.
@@ -144,13 +140,6 @@ class ProcessorParser:
         subject
         :return: None
         """
-        self.csess = None
-        self.sessions_ = sessions
-        self.artefacts = None
-        self.artefacts_by_input = None
-        self.parameter_matrix = None
-        self.assessor_parameter_map = None
-
         for i in range(len(sessions) - 1):
             if sessions[i].creation_timestamp() <\
                   sessions[i+1].creation_timestamp():
@@ -162,12 +151,47 @@ class ProcessorParser:
             index = sessions.index(csess)
             relevant_sessions = sessions[index:]
 
-        artefacts = ProcessorParser.parse_artefacts(relevant_sessions)
+        # BDB 6/5/21
+        # only include pets if this is the first mr session
+        if sessions.index(csess) == (len(sessions) - 1):
+            LOGGER.debug('session is first, including pets')
+        else:
+            LOGGER.debug('session is not first, not including pets')
+            pets = []
 
-        artefacts_by_input = \
-            ProcessorParser.map_artefacts_to_inputs(relevant_sessions,
-                                                    self.inputs,
-                                                    self.inputs_by_type)
+        artefacts = ProcessorParser.parse_artefacts(relevant_sessions, pets)
+
+        # BDB 6/5/21
+        # The artefacts are a dictionary where the index key is the 
+        # relative path of scan or assessor:
+        # /projects/PROJ/subjects/SUBJ/experiments/SESS/assessors/ASSR
+        # for every single assessor or scan. the value in the dictionary
+        # is a ParserArtefact object the includes a list of the scan/assr's
+        # resources and a CachedAssessor object. This can be used later
+        # to quickly access this information
+
+        # BDB 6/5/21
+        # next we will create a dictionary of just the artefacts for each of
+        # the inputs map the artefacts to the inputs, this is where
+        # we filter down the whole session to the types of scan/assessors we
+        # want. Then we decide what to do with the different combinations of
+        # those scans/assessors if we find multiple per input. 
+        # maybe we should change the names?
+        # artefacts --> all_artefacts or all_session_arefacts
+        # artefacts_by_inputs --> input_artefacts_by_input or something
+
+        artefacts_by_input = ProcessorParser.map_artefacts_to_inputs(
+                relevant_sessions, self.inputs, pets)
+
+        # BDB 6/5/21
+        # at this point the pet scan should be just like any other input or 
+        # artefact, it's just a path
+
+        # BDB 6/5/21
+        # artefacts_by_input is a dictionary where the key is the
+        # input name and the value is a list of artefact paths that match
+        # the input.
+        # These artefact paths are keys into the artefacts dictionary.
 
         parameter_matrix = \
             ProcessorParser.generate_parameter_matrix(
@@ -177,21 +201,44 @@ class ProcessorParser:
                 artefacts,
                 artefacts_by_input)
 
+        # BDB 6/5/21
+        # parameter_matrix is the combinations of inputs from the lists in
+        # artefacts_by_inputs. I think these are the cartesian product
+        # of lists in artefacts_by_input.
+
+        # BDB 6/5/21
+        # Next we filter down the combinations by applying
+        # any filters included in the yaml. currently
+        # the only filter supported is a match filter
+        # which help us only include combinations where one of the inputs
+        # is the same, e.g. the same T1 input
+        # This functions uses the artefacts dictionary to get the inputs field
+        # from each artefact for comparison.
+
         parameter_matrix = ProcessorParser.filter_matrix(
             parameter_matrix,
             self.match_filters,
             artefacts)
 
+        # BDB 6/5/21
+        # And now we use the parameter matrix as a list of what set of inputs 
+        # we need assessors for
+        # by mapping to what assessors already exist by comparing
+        # the inputs field on existing assessors with our list of inputs
         assessor_parameter_map = \
             ProcessorParser.compare_to_existing(relevant_sessions,
                                                 self.proctype,
                                                 parameter_matrix)
 
-        self.csess = csess
-        self.artefacts = artefacts
-        self.artefacts_by_input = artefacts_by_input
-        self.parameter_matrix = parameter_matrix
-        self.assessor_parameter_map = list(assessor_parameter_map)
+        # BDB 6/5/21
+        # assessor_parameter_map is list of tuples
+        # where each tuple is (inputs, assessor(s)) (if assesors exists already),
+        # if assessors don't exist assessors will empty list
+
+        # BDB 6/5/21
+        # so what we are returning is a list of tuples
+        # (set of inputs, existing asessors for these inputs)
+        return list(assessor_parameter_map)
 
     def get_variable_set(self, assr):
         assr_inputs = XnatUtils.get_assessor_inputs(assr)
@@ -271,8 +318,8 @@ class ProcessorParser:
                     resource_paths[artefact_type].format(
                         vinput, resource))
 
-                # Get list of all files in the resource
-                file_list = robj.files().get()
+                # Get list of all files in the resource, relative paths
+                file_list = [x._urn for x in robj.files().get('path')]
                 if len(file_list) == 0:
                     LOGGER.debug('empty or missing resource')
                     raise NeedInputsException('No Resource')
@@ -292,6 +339,10 @@ class ProcessorParser:
                     # Filter list based on regex matching
                     regex = utilities.extract_exp(fmatch, full_regex=False)
                     file_list = [x for x in file_list if regex.match(x)]
+
+                    if len(file_list) == 0:
+                        LOGGER.debug('no matching files found on resource')
+                        raise NeedInputsException('No Files')
 
                     # Make a comma separated list of files
                     uri_list = ['{}/files/{}'.format(
@@ -485,13 +536,6 @@ class ProcessorParser:
             iteration_map[name] = iteration_args[1]
 
     @staticmethod
-    def _register_input_types(input_types, inputs_by_type, name):
-        for t in input_types:
-            ts = inputs_by_type.get(t, set())
-            ts.add(name)
-            inputs_by_type[t] = ts
-
-    @staticmethod
     def _input_name(artefact):
         # candidates = list(filter(lambda v: v[1] is None, scan.iteritems()))
         # if len(candidates) != 1:
@@ -507,7 +551,6 @@ class ProcessorParser:
         # . no repeated input names
         # . ambiguous overlaps for input types (this may not be a problem)?
 
-        inputs_by_type = {}
         iteration_sources = set()
         iteration_map = {}
 
@@ -541,8 +584,6 @@ class ProcessorParser:
                 iteration_map)
 
             types = [_.strip() for _ in s['types'].split(',')]
-            ProcessorParser._register_input_types(types, inputs_by_type, name)
-
             resources = s.get('resources', [])
             artefact_required = False
             for r in resources:
@@ -581,8 +622,6 @@ class ProcessorParser:
                 iteration_map)
 
             types = [_.strip() for _ in a['proctypes'].split(',')]
-            ProcessorParser._register_input_types(types, inputs_by_type, name)
-
             resources = a.get('resources', [])
             artefact_required = False
             for r in resources:
@@ -602,7 +641,32 @@ class ProcessorParser:
             prior_session_count =\
                 max(prior_session_count, parsed_session_select.delta)
 
-        return (inputs, inputs_by_type, iteration_sources, iteration_map,
+        # Handle petscans section
+        petscans = xnat.get('petscans', list())
+        for p in petscans:
+            name = ProcessorParser._input_name(p)
+            select = a.get('select', None)
+            parsed_select = ProcessorParser._parse_select(select)
+            parsed_session_select =\
+                ProcessorParser._parse_session_select(session_select)
+            ProcessorParser._register_iteration_references(
+                name,
+                parsed_select,
+                iteration_sources,
+                iteration_map)
+            types = [x.strip() for x in p['scantypes'].split(',')]
+            tracer = [x.strip() for x in p['tracer'].split(',')]
+            inputs[name] = {
+                'types': types,
+                'select': parsed_select,
+                'select-session': parsed_session_select,
+                'artefact_type': 'scan',
+                'needs_qc': p.get('needs_qc', False),
+                'resources': p.get('resources', []),
+                'required': True,
+                'tracer': tracer}
+
+        return (inputs, iteration_sources, iteration_map,
                 prior_session_count)
 
     @staticmethod
@@ -649,7 +713,7 @@ class ProcessorParser:
         return variables_to_inputs
 
     @staticmethod
-    def parse_artefacts(csesses):
+    def parse_artefacts(csesses, pets=[]):
         def parse(carts, arts):
             for cart in carts:
                 resources = {}
@@ -665,13 +729,31 @@ class ProcessorParser:
             parse(csess.scans(), artefacts)
             parse(csess.assessors(), artefacts)
 
+        # BDB 6/5/21
+        # Add the pet scans (we are not supporting pet assessors at this time)
+        for p in pets:
+            parse(p.scans(), artefacts)
+
         return artefacts
 
     @staticmethod
-    def map_artefacts_to_inputs(csesses, inputs, inputs_by_type):
+    def map_artefacts_to_inputs(csesses, inputs, pets):
+
+        # BDB 6/5/21
+        # here is where we should do something different with for
+        # the pet scans I think? are we treating assessors scans differently
+        # here or not?
 
         artefacts_by_input = {k: [] for k in inputs}
+
         for i, iv in list(inputs.items()):
+            # BDB 6/5/21 
+            # here we do something to filter the list of sessions based
+            # on the select types in the inputs???
+            # I'm not sure what's going on here, are we only selecting
+            # one of the sessions at this point? when and where
+            # do we use multiple sessions?
+
             if iv['select-session'].mode in ['prior', 'prior-with']:
                 if iv['select-session'].delta >= len(csesses):
                     csess = None
@@ -682,7 +764,42 @@ class ProcessorParser:
             else:
                 csess = csesses[0]
 
-            if csess is not None:
+            # BDB 6/5/21 why would csess ever be None here??
+            if csess is None:
+                continue
+
+            if 'tracer' in iv:
+                # The input is a petscan so look in the pets
+                for p in pets:
+                    # Match the tracer name
+                    tracer_name = p.get('xnat:tracer/name')
+                    tracer_match = False
+                    for expression in iv['tracer']:
+                        regex = utilities.extract_exp(expression)
+                        if regex.match(tracer_name):
+                            # found a match so exit the loop
+                            tracer_match = True
+                            break
+
+                    if not tracer_match:
+                        # None of the expressions matched
+                        LOGGER.debug('tracer no matchy:{}:{}'.format(
+                            tracer_name, iv['tracer']))
+                        continue
+                    
+                    # Now try to match the scan type
+                    for pscan in p.scans():
+                        for expression in iv['types']:
+                            regex = utilities.extract_exp(expression)
+                            if regex.match(pscan.type()):
+                                # Found a match, now check quality
+                                if pscan.info().get('quality') == 'unusable':
+                                    LOGGER.info('excluding unusable scan')
+                                else:
+                                    artefacts_by_input[i].append(pscan.full_path())
+
+            else:
+                # Iterate each scan on the session
                 for cscan in csess.scans():
                     for expression in iv['types']:
                         regex = utilities.extract_exp(expression)
@@ -833,6 +950,8 @@ class ProcessorParser:
 
             for pi, p in enumerate(parameter_matrix):
                 if inputs == p:
+                    # BDB 6/5/21 do we ever have more than one assessor
+                    # with the same set of inputs?
                     assessors[pi].append(casr)
 
         return list(zip(copy.deepcopy(parameter_matrix), assessors))
