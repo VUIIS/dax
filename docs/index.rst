@@ -15,18 +15,20 @@ Versions and Installation
 
 Our currently running versions of dax are:
 
-- Dax 1 - 1.5.0 - As of September 11, 2020
+- Dax 2 - 2.2.1 - As of July 8, 2021
   
   - Used for most purposes
 
 - LDAX latest - 0.7.10 - As of October 7, 2020
 
-  - Legacy Dax - Please use DAX 1
+  - Legacy Dax - Please use DAX 2
   
 These can be verified with
 
 ::
 
+  dax version
+  # or 
   pip freeze | grep dax
   # or
   python3 -m pip freeze | grep dax
