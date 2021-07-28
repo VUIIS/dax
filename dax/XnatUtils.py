@@ -394,7 +394,7 @@ class InterfaceTemp(Interface):
         return intf.select('/project/')
 
     def get_projects(self):
-        return self._getjson(PROJECTS_URI)
+        return self._get_json(PROJECTS_URI)
 
     def get_project_scans(self, project_id, include_shared=True):
         """
@@ -681,7 +681,7 @@ class InterfaceTemp(Interface):
 
     def get_resources(self, project_id):
         """Given project (string), return list of project's resources"""
-        return self._getjson(P_RESOURCES_URI.format(project=project_id))
+        return self._get_json(P_RESOURCES_URI.format(project=project_id))
 
     def get_sessions(self, projectid=None, subjectid=None):
         """

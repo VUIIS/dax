@@ -857,7 +857,7 @@ class DaxManager(object):
     def run_upload(self, log_file):
         logging.getLogger('dax').handlers = []
         dax_tools_utils.upload_tasks(log_file, debug=True, resdir=self.res_dir,
-                                     upload_threads=self.max_upload_count)
+                                     num_threads=self.max_upload_count)
         logging.getLogger('dax').handlers = []
 
     def all_ready(self, results):
