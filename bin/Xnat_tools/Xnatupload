@@ -489,6 +489,7 @@ def is_file(fpath):
     :param fpath: path that need to be check
     :return: True if it's a file or False otherwise, path of the file
     """
+    fpath = glob.escape(fpath)
     if os.path.isfile(fpath):
         return True, fpath
     else:
