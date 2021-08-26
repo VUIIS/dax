@@ -23,6 +23,7 @@ import time
 import shutil
 import getpass
 import logging
+import urllib
 from dax import XnatUtils
 from dax import XnatToBids
 from datetime import datetime
@@ -859,6 +860,7 @@ unzipping it...' % (res_obj.label()))
         output_dir = os.path.join(directory, res_obj.label())
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
+        res_fname=urllib.parse.quote(res_fname) if res_obj.file(urllib.parse.quote(res_fname)).exists() else res_fname
         res_obj.file(res_fname).get(os.path.join(output_dir, res_fname))
         if os.path.join(directory, res_fname)[-3:] == 'zip':
             fpath = os.path.join(output_dir, res_fname)

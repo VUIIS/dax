@@ -116,6 +116,11 @@ option if you use different XNAT_HOST).'
         dest='uselocking',
         action='store_false',
         help='Disable use of locking flag file.')
+    upload_parser.add_argument(
+        '--resdir',
+        dest='resdir',
+        default=dax_tools.default_resdir(),
+        help='Results Directory, defaults to /scratch/USER/Spider_Upload_Dir')
 
     # manager:
     manager_desc = 'Extracts settings from REDCap, then \
@@ -165,7 +170,7 @@ if __name__ == '__main__':
         dax_tools.upload_tasks(
             args.logfile, args.debug, args.upload_settings, args.host,
             args.username, args.password, args.projects, args.suffix,
-            args.emailaddress, args.uselocking)
+            args.emailaddress, args.uselocking, args.resdir)
 
     elif args.command == 'setup':
         dax_tools.setup_dax_package()

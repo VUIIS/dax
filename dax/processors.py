@@ -5,6 +5,8 @@ import re
 import os
 import json
 import itertools
+import requests
+
 from uuid import uuid4
 from datetime import date
 
@@ -420,10 +422,7 @@ class AutoProcessor(Processor):
             err = 'YAML source {} does not have {} defined. See example.'
             raise AutoProcessorError(err.format(source_id, key))
 
-    def get_assessor_mapping(self):
-        return self.parser.assessor_parameter_map
-
-    def parse_session(self, csess, sessions):
+    def parse_session(self, csess, sessions, pets=None):
         """
         Method to run the processor parser on this session, in order to
         calculate the pattern matches for this processor and the sessions
@@ -436,7 +435,7 @@ class AutoProcessor(Processor):
         considered for longitudinal studies.
         :return: None
         """
-        self.parser.parse_session(csess, sessions)
+        return self.parser.parse_session(csess, sessions, pets)
 
     def get_proctype(self):
         return self.name
@@ -490,7 +489,7 @@ class AutoProcessor(Processor):
         # TODO: BenM/assessor_of_assessor/each assessor is separate and
         # has a different label; change the code to fetch the label from
         # the assessor
-        # Add assr and jobidr:
+        # Add assr and jobdir:
         assr_full_name =\
             assessor_utils.full_label_from_assessor(assr)
         if ' -a ' not in cmd and ' --assessor ' not in cmd:
@@ -801,9 +800,10 @@ class MoreAutoProcessor(AutoProcessor):
         # Initialize commands
         cmd = '\n\n'
 
-        # Append the list of inputs
+        # Append the list of inputs, URL-encoding the fpath to handle special chars in URLs
         cmd += 'INLIST=(\n'
         for cur in input_list:
+            cur['fpath'] = requests.utils.quote(cur['fpath'],safe=":/")
             cmd += '{fdest},{ftype},{fpath},{ddest}\n'.format(**cur)
 
         cmd += ')\n\n'

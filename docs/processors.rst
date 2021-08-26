@@ -58,6 +58,11 @@ A "Simple" Example
   command: >-
     singularity
     run
+    --contain
+    --cleanenv
+    --home $INDIR
+    --bind $INDIR:/dev/shm
+    --bind $INDIR:/tmp
     --bind $INDIR:/INPUTS
     --bind $OUTDIR:/OUTPUTS
     {container_path}
