@@ -90,7 +90,8 @@ def transform_to_xnat(bids_dir, project):
                         session = [(i.split('-')[1]) for i in bids_filename_contents if i.startswith('ses')][0]
                     except IndexError:
                         session = subject
-                    bids_dict['session_label'] = session
+                    # xnatupload needs unique session id
+                    bids_dict['session_label'] = subject + '-' + session
 
                     #id increment unique value
                     bids_dict['ID'] = "{0:0=2d}".format(unq_scan_id)
