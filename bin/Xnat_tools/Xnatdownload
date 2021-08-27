@@ -1192,7 +1192,7 @@ def main_display():
         if OPTIONS.bond_dir:
             print('#     %*s -> %*s#' % (
                 -20, 'BOND Directory',
-                -33, get_proper_str(OPTIONS.bids_dir, True)))
+                -33, get_proper_str(OPTIONS.bond_dir, True)))
         if OPTIONS.xnat_tag:
             print('#     %*s -> %*s#' % (-20, 'XNAT tag', -33, 'on'))
         if OPTIONS.outputfile:
