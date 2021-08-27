@@ -1063,6 +1063,10 @@ specified. Use -a or --WOA.')
         print('OPTION ERROR: BIDS directory not specified. Use option \
 --bids.')
         return False
+    if OPTIONS.xnat_tag and not OPTIONS.bids_dir:
+        print('OPTION ERROR: BIDS directory not specified. Use option \
+--bids.')
+        return False
     return True
 
 
@@ -1185,6 +1189,12 @@ def main_display():
             print('#     %*s -> %*s#' % (
                 -20, 'BIDS Directory',
                 -33, get_proper_str(OPTIONS.bids_dir, True)))
+        if OPTIONS.bond_dir:
+            print('#     %*s -> %*s#' % (
+                -20, 'BOND Directory',
+                -33, get_proper_str(OPTIONS.bids_dir, True)))
+        if OPTIONS.xnat_tag:
+            print('#     %*s -> %*s#' % (-20, 'XNAT tag', -33, 'on'))
         if OPTIONS.outputfile:
             print('#     %*s -> %*s#' % (
                 -20, 'Output file',
