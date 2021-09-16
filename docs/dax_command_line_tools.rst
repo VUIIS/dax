@@ -20,6 +20,7 @@ Table of Contents
  13. `Xnatinfo <#xnatinfo>`__
  14. `Xnatsessionupdate <#xnatsessionupdate>`__
  15. `BIDSMapping <#bidsmapping>`__
+ 16. `XnatBOND <#xnatbond>`__
 
 List of the Tools
 ~~~~~~~~~~~~~~~~~
@@ -327,7 +328,8 @@ Xnatdownload will download all the resources that you asked for in a directory. 
 	                    [--qcstatus QCSTATUS] [-c CSVFILE] [--rs RESOURCESS]
 	                    [--ra RESOURCESA] [--selectionS SELECTIONSCAN]
 	                    [--selectionP SELECTIONASSESSOR] [--overwrite] [--update]
-	                    [--fullRegex] [-o OUTPUTFILE] [-i]
+	                    [--fullRegex] [-o OUTPUTFILE] [-i] [-b BIDS_DIR] [-xt]
+                            [--bond_dir BOND_DIR]
 	
 	What is the script doing :
 	   *Download filtered data from XNAT to your local computer using the different OPTIONS.
@@ -348,7 +350,11 @@ Xnatdownload will download all the resources that you asked for in a directory. 
 	   *Download data described by a csvfile (follow template) :
 	        Xnatdownload -d /tmp/downloadPID -c  upload_sheet.csv
    	   *Transform the XnatDownload data in BIDS format for all sessions, scantype and resources:
-    		Xnatdownload -p PID --sess all -d /tmp/downloadPID -s all --rs all --bids --bids_dir /tmp/BIDS_dataset 
+    		Xnatdownload -p PID --sess all -d /tmp/downloadPID -s all --rs all --bids /tmp/BIDS_dataset
+	   *Transform the XnatDownload data in BIDS format for all sessions, scantype and resources with xnat tag:
+    		Xnatdownload -p PID --sess all -d /tmp/downloadPID -s all --rs all --bids /tmp/BIDS_dataset -xt
+	   *Transform the XnatDownload data in BIDS format for all sessions, scantype and resources with xnat tag and perform bond:
+    		Xnatdownload -p PID --sess all -d /tmp/downloadPID -s all --rs all --bids /tmp/BIDS_dataset -xt --bond /tmp/BOND_dir
 	
 	optional arguments:
 	  -h, --help            show this help message and exit
@@ -411,8 +417,10 @@ Xnatdownload will download all the resources that you asked for in a directory. 
 	  -o OUTPUTFILE, --output OUTPUTFILE
 	                        Write the display in a file giving to this OPTIONS.
 	  -i, --ignore          Ignore reading of the csv report file
-	  -b, --bids        	Transform to BIDS format after XNAT download
-  	  --bids_dir BIDS_DIR   Directory to store the bids dataset
+          -b BIDS_DIR, --bids BIDS_DIR
+                                Directory to store the XNAT to BIDS curated data
+          -xt, --xnat_tag       Download BIDS data with XNAT subjID and sessID
+          --bond_dir BOND_DIR   Download the Key groups and Param groups in BIDS data to BOND_DIR
 
 
 	
@@ -474,7 +482,7 @@ Warning: the project must already exist on XNAT. You can add a new project via t
 	usage: XnatUpload [-h] [--host HOST] [-u USERNAME] -c CSV_FILE
 	                  [--sess SESSION_TYPE] [--report] [--force] [--delete]
 	                  [--deleteAll] [--noextract] [--printmodality]
-	                  [-o OUTPUT_FILE]
+	                  [-o OUTPUT_FILE] [-b BIDS_DIR] [-p PROJECT]
 	
 	What is the script doing :
 	   * Upload data to XNAT following the csv file information.
@@ -499,6 +507,12 @@ Warning: the project must already exist on XNAT. You can add a new project via t
 	        Xnatupload -c upload_sheet.csv --delete
 	   * Upload with delete every resources for the object (SCAN/ASSESSOR) before uploading:
 	        Xnatupload -c upload_sheet.csv --deleteAll
+	   * Upload BIDS data to XNAT format for scan 
+                Xnatupload -b /tmp/bidsDataset -p PID 
+           * Check BIDS data to XNAT  
+                Xnatupload -b /tmp/bidsDataset -p PID --report
+	   * Force upload BIDS data to upload XNAT   
+                Xnatupload -b /tmp/bidsDataset -p PID --force
 	
 	optional arguments:
 	  -h, --help            show this help message and exit
@@ -516,7 +530,11 @@ Warning: the project must already exist on XNAT. You can add a new project via t
 	  --printmodality       Display the different modality available on XNAT for a session.
 	  -o OUTPUT_FILE, --output OUTPUT_FILE
 	                        File path to store the script logs.
-
+	  -b BIDS_DIR, --bids BIDS_DIR
+                                BIDS Directory to convert to XNAT and then upload
+          -p PROJECT, --project PROJECT
+                                Project for BIDS XNAT upload
+        
 **Extra Examples**
 
 - Shows on the terminal what kind of data the command is going to upload and where with method 1
@@ -975,13 +993,13 @@ BIDSMapping tool allows the user to create, update or replace rules/mapping at t
 ::
 
 	################################################################
-	#                     BIDSMAPPING                  #
+	#                     BIDSMAPPING                              #
 	#                                                              #
 	# Developed by the MASI Lab Vanderbilt University, TN, USA.    #
 	# If issues, please start a thread here:                       #
 	# https://groups.google.com/forum/#!forum/vuiis-cci            #
 	# Usage:                                                       #
-	#     Upload rules/mapping to Project level on XNAT.              #
+	#     Upload rules/mapping to Project level on XNAT.           #
 	# Examples:                                                    #
 	#     Check the help for examples by running --help            #
 	################################################################
@@ -1050,3 +1068,45 @@ BIDSMapping tool allows the user to create, update or replace rules/mapping at t
 
 For a walkthrough tutorial of BIDSMapping check out https://dax.readthedocs.io/en/latest/BIDS_walkthrough.html
 Contact - praitayini.kanakaraj@vanderbilt.edu
+
+-----------------
+XnatBOND
+-----------------
+
+XnatBOND takes in a BIDS directory and detects the Key and Parameter Groups. This tool can be used to Modifying Key and Parameter Group Assignment. For more details on the package used look at https://bids-bond.readthedocs.io/en/latest/readme.html
+
+::
+
+	################################################################
+	#                             XnatBond                         #
+	#                                                              #
+	# Developed by the MASI Lab Vanderbilt University, TN, USA.    #
+	# If issues, please start a thread here:                       #
+	# https://groups.google.com/forum/#!forum/vuiis-cci            #
+	# Usage:                                                       #
+	#     Generate and alternate key params in BIDS using BOND     #
+	# Examples:                                                    #
+	#     Check the help for examples by running --help            #
+	################################################################
+	
+	usage: XnatBOND [-h] --bids_dir BIDS_DIR [-b BOND_DIR] [-m keyparam_edited keyparam_files new_keyparam_prefix] [-o LOGFILE]
+
+	What is the script doing :
+   		*Generate the csv files that have the summary of key groups and param groups from the
+   		bidsdata and modify them in the bids data.
+
+	Examples:
+   		*Generate orginial key and parameter groups:
+        		XnatBOND --bids_dir BIDS_DIR --bond_dir BOND_DIR
+   		*Update the key and parameter groups:
+        		XnatBOND --bids_dir BIDS_DIR --modify_keyparam
+
+	optional arguments:
+  	-h, --help            show this help message and exit
+  	--bids_dir BIDS_DIR   BIDS data directory.
+  	-b BOND_DIR, --bond_dir BOND_DIR
+                              BOND data directory.
+  	-m keyparam_edited keyparam_files new_keyparam_prefix, --modify_keyparam keyparam_edited keyparam_files new_keyparam_prefix
+                              Values to modify the keyparam in bids.
+  	-o LOGFILE, --logfile LOGFILE
+                              Write the display/output in a file given to this OPTIONS.

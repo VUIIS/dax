@@ -1,0 +1,124 @@
+#!/home/local/VANDERBILT/kanakap/miniconda3/envs/bids_enchanement/bin/python
+# -*- coding: utf-8 -*-
+
+'''
+XNATBond support
+
+@author: Praitayini Kanakaraj, Electrical Engineering, Vanderbilt University
+
+Alpha version
+'''         
+import bond
+import logging
+import argparse
+from dax import XnatToBids
+
+DESCRIPTION = """What is the script doing :
+   *Generate the csv files that have the summary of key groups and param groups from the 
+   bidsdata and modify them in the bids data.
+
+Examples:
+   *Generate orginial key and parameter groups:
+        XnatBOND --bids_dir BIDS_DIR --bond_dir BOND_DIR 
+   *Update the key and parameter groups:
+        XnatBOND --bids_dir BIDS_DIR --modify_keyparam 
+"""
+def add_parser_args():
+    """
+    Method to parse all the arguments for the tool on ArgumentParser
+    :return: parser object
+    """
+    argp = argparse.ArgumentParser(prog='XnatBOND', description=DESCRIPTION,
+                                   formatter_class=argparse.RawTextHelpFormatter)
+    # Connect to XNAT
+    argp.add_argument('--bids_dir', dest='bids_dir', required=True,
+                      help='BIDS data directory.')
+    argp.add_argument('-b', '--bond_dir', dest='bond_dir', default=None,
+                      help='BOND data directory.')
+    argp.add_argument('-m', '--modify_keyparam', dest='modify_keyparam', default=None, action='append',nargs=3,
+                      metavar=('keyparam_edited','keyparam_files','new_keyparam_prefix'),
+                      help='Values to modify the keyparam in bids.')
+    argp.add_argument("-o", "--logfile", dest="logfile", default=None,
+                      help="Write the display/output in a file given to this OPTIONS.")
+    return argp
+
+def get_proper_str(str_option, end=False):
+    """
+    Method to shorten a string into the proper size for display
+
+    :param str_option: string to shorten
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
+    if len(str_option) > 32:
+        if end:
+            return '...' + str_option[-29:]
+        else:
+            return str_option[:29] + '...'
+    else:
+        return str_option
+
+def main_display():
+    """
+    Main display for the tool
+    """
+    print('################################################################')
+    print('#                         XNATBOND                             #')
+    print('#                                                              #')
+    print('# Developed by the MASI Lab Vanderbilt University, TN, USA.    #')
+    print('# If issues, please start a thread here:                       #')
+    print('# https://groups.google.com/forum/#!forum/vuiis-cci            #')
+    print('# Usage:                                                       #')
+    print('#     Generate and alternate key params in BIDS using BOND     #')
+    print('# Parameters :                                                 #')
+
+    if OPTIONS.bids_dir:
+        print('#     %*s -> %*s#' % (
+            -20, 'BIDS Directory', -33, get_proper_str(OPTIONS.bids_dir)))
+    if OPTIONS.bond_dir:
+        print('#     %*s -> %*s#' % (
+            -20, 'BONDS Directory', -33, get_proper_str(OPTIONS.bond_dir)))
+    if OPTIONS.modify_keyparam:
+        print('#     %*s -> %*s#' % (
+            -20, 'Keyparam edited file', -33, get_proper_str(OPTIONS.modify_keyparam[0][0])))
+        print('#     %*s -> %*s#' % (
+            -20, 'Keyparam files csv', -33, get_proper_str(OPTIONS.modify_keyparam[0][1])))
+        print('#     %*s -> %*s#' % (
+            -20, 'New Keyparam prefix', -33, get_proper_str(OPTIONS.modify_keyparam[0][2])))
+    print('################################################################')
+
+def setup_info_logger(name, logfile):
+    """
+    Using logger for the executables output.
+     Setting the information for the logger.
+
+    :param name: Name of the logger
+    :param logfile: log file path to write outputs
+    :return: logging object
+    """
+    if logfile:
+        handler = logging.FileHandler(logfile, 'w')
+    else:
+        handler = logging.StreamHandler()
+
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    return logger
+
+if __name__ == '__main__':
+    parser = add_parser_args()
+    OPTIONS = parser.parse_args()
+    main_display()
+    LOGGER = setup_info_logger('XnatBOND', OPTIONS.logfile)
+    if OPTIONS.bond_dir:
+        LOGGER.info("Detecting Key and Parameter Groups")
+        XnatToBids.XNATBond(OPTIONS.bids_dir).generate_params(OPTIONS.bond_dir)
+        LOGGER.info("Finished: Key and Parameter Groups stored in %s" % (OPTIONS.bond_dir))
+    if OPTIONS.modify_keyparam:
+        keyparam_edited = OPTIONS.modify_keyparam[0][0]
+        keyparam_files = OPTIONS.modify_keyparam[0][1]
+        new_keyparam_prefix =OPTIONS.modify_keyparam[0][2]
+        LOGGER.info("Modifying Key and Parameter Group Assignments")
+        XnatToBids.XNATBond(OPTIONS.bids_dir).edit_params(keyparam_edited,keyparam_files,new_keyparam_prefix)
+        LOGGER.info("Finished: Key and Parameter Groups from %s modified file stored as %s" % (keyparam_edited,new_keyparam_prefix))
