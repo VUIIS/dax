@@ -1,0 +1,4 @@
+git clone --branch vX.Y.Z https://github.com/VUIIS/dax.git --single-branch
+cd dax
+python setup.py sdist bdist_wheel
+twine upload dist/*
