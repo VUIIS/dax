@@ -17,66 +17,71 @@ to your XNAT system. This will also install customizations to the XNAT interface
 
 Before installing the DAX plugin, save the current state of your XNAT so you can undo the changes. Specifically, make a backup of your XNAT_HOME, postgres db, and tomcat deployment.
 
-When you are ready to install, stop tomcat and copy the plugin to your server. The DAX plugin is a jar file named dax-plugin-genProcData-X.Y.Z.jar and should be copied to the plugin subdirectory of your XNAT_HOME. With the jar file in place, start tomcat. For more on plugins, consult the XNAT documentation at xnat.org.
+Download the current plugin version `dax-plugin-genProcData-1.4.2.jar <https://github.com/VUIIS/dax/blob/b616dcb7afa2c895de7f03f7b0a8bff7cd0b2b42/misc/xnat-plugins/dax-plugin-genProcData-1.4.2.jar>`_
+
+When you are ready to install, stop tomcat and copy the plugin to your server. The jar file named should be copied to the plugin subdirectory of your XNAT_HOME. With the jar file in place, start tomcat. When XNAT comes back online, it will load plugin contents on top of the base XNAT intallation. For more on plugins, consult the XNAT documentation at xnat.org.
 
 #######################
 Prepare DAX environment
 #######################
-1. Log onto the system where you want to run DAX. You will need access to XNAT and be able to run slurm commands.
+1. Log onto the system where you want to run DAX. You will need to be able to access XNAT via the REST api and be able to run slurm commands.
 
 2. Create this directory structure in home or anywhere else with sufficient space
 ::
-DAX/
-	Spider_Upload_Dir/
-   	containers/
-   	processors/
-	settings/
+   DAX/
+     Spider_Upload_Dir/
+     containers/
+     processors/
+     settings/
 
 3. job_template.txt
 
 4. Pull the FS6 container
 This will download to a SIF file that is 2.6 GB, so you may want to check for sufficient space before running the download.
 .. code-block:: bash
-cd containers
-singularity pull shub://bud42/FS6:v1.2.3
+   cd containers
+   singularity pull shub://bud42/FS6:v1.2.3
 
 Rename the downloaded file to match the name we are expecting later.
 .. code-block:: bash
-mv FS6v1.2.3.sif FS6_v1.2.3.simg
+   mv FS6v1.2.3.sif FS6_v1.2.3.simg
 
 5. Create a virtual environment for DAX 
 (Skip if you already have dax installed)
 
 .. code-block:: bash
-python3 -m venv daxvenv
-source daxvenv/bin/activate
-pip install dax
+   python3 -m venv daxvenv
+   source daxvenv/bin/activate
+   pip install dax
 
 6. Download the FS6 processor yaml file 
 `FS6 processor.yaml <https://raw.githubusercontent.com/ccmvumc/dax_processors/f4f65c744da1c147ea328c587f90eb1e575bd0d1/FS6_v1.2.3_processor.yaml>`_
 
-7. Move the downloaded file to your DAX/processors directory
+7. Copy the downloaded file to your DAX/processors directory
 
 8. Next create a settings file named settings.yaml with the contents
 .. code-block:: yaml
----
-processorlib: DAX/processors
-singularity_imagedir: DAX/containers
-resdir: DAX/Spider_Upload_Dir
-jobtemplate: DAX/job_template.txt
-admin_email: YOUR_EMAIL_ADDRESS
-attrs:
-  queue_limit: 1
-  job_email_options: FAIL
-  job_rungroup: YOUR_SLURM_GROUP
-  xnat_host: YOUR_XNAT_HOST
-yamlprocessors:
-  - name: fs6
-    filepath: FS6_v1.2.3_processor.yaml
-projects:
-  - project: PROJ1
-    yamlprocessors: fs6
+   ---
+   processorlib: DAX/processors
+   singularity_imagedir: DAX/containers
+   resdir: DAX/Spider_Upload_Dir
+   jobtemplate: DAX/job_template.txt
+   admin_email: YOUR_EMAIL_ADDRESS
+   attrs:
+     queue_limit: 1
+     job_email_options: FAIL
+     job_rungroup: YOUR_SLURM_GROUP
+     xnat_host: YOUR_XNAT_HOST
+   yamlprocessors:
+     - name: fs6
+       filepath: FS6_v1.2.3_processor.yaml
+   projects:
+     - project: PROJ1
+       yamlprocessors: fs6
 
+#####################################
+Run the processor on a single session
+#####################################
 Now we test the processor on a single MR session. Find or create a session on XNAT with a scan named "T1". This scan should have a resource named NIFTI with a gzipped nifti file. 
 
 We will use dax to build the slurm batch script, run it on the cluster, and upload the results. 
@@ -84,7 +89,7 @@ We will use dax to build the slurm batch script, run it on the cluster, and uplo
 
 To build the batch, run:
 .. code-block:: bash
-dax build --session SESS1 settings.yaml
+   dax build --session SESS1 settings.yaml
 
 This will create a new assessor on the session and then write a file in your Spider_Upload_Dir in the subdirectory DISKQ/BATCH. The file will be named the same as the assessor that was created. 
 
@@ -92,7 +97,7 @@ You can check over the file to see if all let's correct. You can also try runnin
 
 To launch the batch, run:
 .. code-block:: bash
-dax launch --session SESS1 settings.yaml
+   dax launch --session SESS1 settings.yaml
 
 where PROJECT is the label of the project in XNAT that contains the session and
 SESSION is the label of the session. This will submit the batch to SLURM.
@@ -104,13 +109,13 @@ It will have to be run at least once after the job fully completes according to 
 
 To update, run:
 .. code-block:: bash
-dax update settings.yaml
+   dax update settings.yaml
 
 After update has been run on the completed job, we will upload the results to xnat.
 
 To upload, run: 
 .. code-block:: bash
-dax upload --project PROJ1
+   dax upload --project PROJ1
 
 This will upload jobs to XNAT for the project named PROJ1. 
 
@@ -124,8 +129,8 @@ This repo is configured to required approval by another user. With approval, you
 
 After the PR is merged, we pull the updates to the production accounts.
 .. code-block:: bash
-cd /data/mcr/centos7/dax_processors
-git pull origin running_processors
+  cd /data/mcr/centos7/dax_processors
+  git pull origin running_processors
 
 If the singularity image is not already in place, you need to put a copy on the production account.
 The location on ACCRE is /data/mcr/centos7/singularity
@@ -134,7 +139,7 @@ We can copy a singularity SIF image to ACCRE, or pull from singularity hub (no l
 
 The FS6_v1 can also be pulled from docker if shub is not accessible.
 .. code-block:: bash
-singularity pull docker://bud42/FS6:v1.2.3
+  singularity pull docker://bud42/FS6:v1.2.3
 
 Use the above as a template for testing a new processor. You will need to substitute the processor yaml file and singularity container for those you created for your pipeline. (Link to processors page for help creating a processor yaml.)
 
