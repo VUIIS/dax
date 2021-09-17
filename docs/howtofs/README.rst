@@ -38,7 +38,7 @@ Prepare DAX environment
      settings/
      templates/
 
-3. Copy job_template.txt to the templates subdirectory `job_template.txt <https://raw.githubusercontent.com/VUIIS/dax_templates/2a3d492904d87ab7e4f012b883661d8d72591ecd/job_template.txt>'_
+3. Copy job_template.txt to the templates subdirectory `job_template.txt <https://raw.githubusercontent.com/VUIIS/dax_templates/2a3d492904d87ab7e4f012b883661d8d72591ecd/job_template.txt>`_
 
 4. Pull the FS6 container. This will download to a SIF file that is 2.6 GB, so you may want to check for sufficient space before running the download.
 
