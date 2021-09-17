@@ -56,6 +56,7 @@ Prepare DAX environment
 
 .. code-block:: bash
 
+   cd ../
    python3 -m venv daxvenv
    source daxvenv/bin/activate
    pip install dax
