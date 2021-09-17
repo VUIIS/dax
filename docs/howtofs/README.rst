@@ -1,4 +1,6 @@
-# How to run FreeSurfer with DAX in singularity on SLURM
+============================================
+FreeSurfer with DAX in Singularity on SLURM
+============================================
 
 This tutorial will guide you through how to use DAX to run FreeSurfer 6 recon-all using singularity containers on a SLURM cluster with all data stored on XNAT.
 
@@ -7,7 +9,9 @@ You can use this guide as a template to get started running your own pipelines w
 We assume that you have T1-weighted MR images loaded into XNAT(link) in NIFTI format. We also will assume that one of these NIFTI files is named T1.nii.gz and is located in a project named PROJ1 in a subject named SUBJ1 in session SESS1 in scan SCAN1 with resource NIFTI. And the scan type of SCAN1 is T1. So, the hierarchy looks like:
 PROJ1/SUBJ1/SESS1/SCAN1/NIFTI/T1.nii.gz (link to example in XNAT central?)
 
-# Install DAX data types
+###################### 
+Install DAX data types
+######################
 In order to store the output from DAX pipelines such as FS6_v1, your XNAT must have the DAX data type installed. This data type can be installed by adding the DAX plugin
 to your XNAT system. This will also install customizations to the XNAT interface for DAX. These include custom Image Session pages and displays.
 
@@ -15,20 +19,22 @@ Before installing the DAX plugin, save the current state of your XNAT so you can
 
 When you are ready to install, stop tomcat and copy the plugin to your server. The DAX plugin is a jar file named dax-plugin-genProcData-X.Y.Z.jar and should be copied to the plugin subdirectory of your XNAT_HOME. With the jar file in place, start tomcat. For more on plugins, consult the XNAT documentation at xnat.org.
 
-## Prepare DAX environment
-
+#######################
+Prepare DAX environment
+#######################
 1. Log onto the system where you want to run DAX. You will need access to XNAT and be able to run slurm commands.
 
-1. Create this directory structure in home or anywhere else with sufficient space
+2. Create this directory structure in home or anywhere else with sufficient space
+::
 DAX/
-	Spider_Upload_Dir
-	containers
-	processors
-	settings
+	Spider_Upload_Dir/
+   	containers/
+   	processors/
+	settings/
 
-1. job_template.txt
+3. job_template.txt
 
-1. Pull the FS6 container
+4. Pull the FS6 container
 This will download to a SIF file that is 2.6 GB, so you may want to check for sufficient space before running the download.
 .. code-block:: bash
 cd containers
@@ -38,7 +44,7 @@ Rename the downloaded file to match the name we are expecting later.
 .. code-block:: bash
 mv FS6v1.2.3.sif FS6_v1.2.3.simg
 
-1. Create a virtual environment for DAX 
+5. Create a virtual environment for DAX 
 (Skip if you already have dax installed)
 
 .. code-block:: bash
@@ -46,12 +52,12 @@ python3 -m venv daxvenv
 source daxvenv/bin/activate
 pip install dax
 
-1. Download the FS6 processor yaml file 
+6. Download the FS6 processor yaml file 
 `FS6 processor.yaml <https://raw.githubusercontent.com/ccmvumc/dax_processors/f4f65c744da1c147ea328c587f90eb1e575bd0d1/FS6_v1.2.3_processor.yaml>`_
 
-1. Move the downloaded file to your DAX/processors directory
+7. Move the downloaded file to your DAX/processors directory
 
-1. Next create a settings file named settings.yaml with the contents
+8. Next create a settings file named settings.yaml with the contents
 .. code-block:: yaml
 ---
 processorlib: DAX/processors
@@ -77,6 +83,7 @@ We will use dax to build the slurm batch script, run it on the cluster, and uplo
 
 
 To build the batch, run:
+.. code-block:: bash
 dax build --session SESS1 settings.yaml
 
 This will create a new assessor on the session and then write a file in your Spider_Upload_Dir in the subdirectory DISKQ/BATCH. The file will be named the same as the assessor that was created. 
@@ -84,6 +91,7 @@ This will create a new assessor on the session and then write a file in your Spi
 You can check over the file to see if all let's correct. You can also try running the script directly from the command line. When you're ready to launch it on the cluster go to the next step.
 
 To launch the batch, run:
+.. code-block:: bash
 dax launch --session SESS1 settings.yaml
 
 where PROJECT is the label of the project in XNAT that contains the session and
@@ -95,16 +103,18 @@ The next step is to run dax update after the job is complete. You can run dax up
 It will have to be run at least once after the job fully completes according to SLURM. 
 
 To update, run:
+.. code-block:: bash
 dax update settings.yaml
 
 After update has been run on the completed job, we will upload the results to xnat.
 
 To upload, run: 
+.. code-block:: bash
 dax upload --project PROJ1
 
 This will upload jobs to XNAT for the project named PROJ1. 
 
-After successfully testing, we can configure this processor in the production account.
+After successfully testing, we can configure this processor in a production account.
 
 At Vanderbilt, we maintain a private github repository where we store all of the processor yaml files that we are currently running.
 
@@ -130,8 +140,6 @@ Use the above as a template for testing a new processor. You will need to substi
 
 You may eventually have enough processors/projects to manage that you will want to use dax manager. This will require access to a REDCap system where you an create new projects for operational purposes. (More here link.)
 
-For this demo, we will run FreeSurfer 6 recon-all with FS6_v1. So we need the FS6 processor and a settings file.
-
 Now we can "turn on" the processor in our project settings REDCap. But first,
 we need to make a new instrument in REDCap for the new processor.
 
@@ -139,7 +147,9 @@ ProcessorFS6v1_2021-09-16_2043.zip
 General_2021-09-16_2043.zip
 BuildStatus_2021-09-16_2043.zip
 
-1. Add a new instrument for your new processor
+
+Add a new instrument for your new processor
+###########################################
 Open your DAX project settings in REDCap and add an instrument for the processor. The instruments needs two fields, one to specify the processor file and another to optionally provide arguments.
 
 The file name field is labeled "Processor YAML File". The variable name should begin with the processor name and must have the suffix "_file". For example, the FS6 
@@ -169,17 +179,13 @@ If your REDCap has existing processor instruments, a convenient way to add a new
 1. Click Submit Changes for Review (these changes should be automatically accepted)
 
 
-# Enable a Processor on a Project
+Enable a Processor on a Project
+###############################
 1. Go to DAX Project Settings REDcap project
-1. Click Record Status Dashboard
-1. Click the project
-1. Click the processor to turn on
-1. Change 'Complete?' field to 'Complete' and 'Save & Exit Form'
-
-
-Use the above as a template for testing a new processor. You will need to substitute the processor yaml file and singularity container for those you created for your pipeline. (Link to processors page for help creating a processor yaml.)
-
-You may eventually have enough processors/projects to manage that you will want to use dax manager. This will require access to a REDCap system where you an create new projects for operational purposes. (More here link.)
+2. Click Record Status Dashboard
+3. Click the project
+4. Click the processor to turn on
+5. Change 'Complete?' field to 'Complete' and 'Save & Exit Form'
 
 
 (TODO: how to run dcm2niix in DAX. So users can convert DICOM to NIFTI before running FS6)
