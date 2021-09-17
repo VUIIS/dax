@@ -18,7 +18,7 @@ Before installing the DAX plugin, save the current state of your XNAT so you can
 
 Download the current plugin version `dax-plugin-genProcData-1.4.2.jar <https://github.com/VUIIS/dax/blob/b616dcb7afa2c895de7f03f7b0a8bff7cd0b2b42/misc/xnat-plugins/dax-plugin-genProcData-1.4.2.jar>`_
 
-When you are ready to install, stop tomcat and copy the plugin to your server. The jar file named should be copied to the plugin subdirectory of your XNAT_HOME. With the jar file in place, start tomcat. When XNAT comes back online, it will load plugin contents on top of the base XNAT intallation. For more on plugins, consult the XNAT documentation at xnat.org.
+When you are ready to install, stop tomcat and copy the plugin to your server. The jar file should be copied to the plugin subdirectory of your XNAT_HOME. With the jar file in place, start tomcat. When XNAT comes back online, it will load plugin contents on top of the base XNAT intallation. For more on plugins, consult the XNAT documentation at xnat.org.
 
 #######################
 Prepare DAX environment
@@ -132,9 +132,9 @@ After update has been run on the completed job, we will upload the results to xn
 
 This will upload jobs to XNAT for the project named PROJ1. 
 
-Use the above as a template for testing a new processor. You will need to substitute the processor yaml file and singularity container for those you created for your pipeline. (Link to processors page for help creating a processor yaml.)
+Use the above as a template for testing a new processor. You will need to substitute the processor yaml file and singularity container for those you created for your pipeline. Consult the processors docs for help creating a processor yaml.
 
-You may eventually have enough processors/projects to manage that you will want to use dax manager. This will require access to a REDCap system where you an create new projects for operational purposes. (link)
+You may eventually have enough processors/projects to manage that you will want to use dax manager. This will require access to a REDCap system where you an create new projects for operational purposes.
 
 ################################
 Configure REDCap for DAX manager
@@ -193,7 +193,7 @@ file variable name is fs6_v1_args.
 Add processor to existing REDCap
 ------------------------------------
 
-If your REDCap has existing processor instruments, a convenient way to add a new procesor is to copy and edit.
+If your REDCap has existing processor instruments, a convenient way to add a new processor is to copy and edit.
 
 #. Click Designer
 #. Click Enter Draft Mode (this allows you to make tentative changes to the REDCAp database and then submit your changes)
@@ -202,12 +202,13 @@ If your REDCap has existing processor instruments, a convenient way to add a new
 #. Leave the suffix as "_v2" and click copy instrument
 #. Reorder the newly created instrument to be alphabetical in the list
 #. Click the newly created instrument to open it
-#. Click the pencil to edit the field Processor YAML File
+#. Click the pencil to edit the field *Processor YAML File*
 #. Remove "_v2" from the Variable Name and rename it to match the new processor
 #. In ActionTags/Field Annotations, change the @DEFAULT value to the new processor yaml file name, e.g. Processor FS6_v1 should have @DEFAULT="FS6_v1.2.3_processor.yaml"
-#. Click Save to save changes to the field Processor YAML File
-#. Click the pencil to edit the field Processor Arguments
-#. Remove "_v2" from the Variable Name and rename it to match the new processor, e.g. fs6_v1_file
+#. Click Save to save changes to the field *Processor YAML File*
+#. Click the pencil to edit the field *Processor Arguments*
+#. Remove "_v2" from the Variable Name and rename it to match the new processor, e.g. fs6_v1_args
+#. Click Save to save changes to the field *Processor Arguments*
 #. Click Submit Changes for Review (these changes should be automatically accepted)
 
 
@@ -216,19 +217,18 @@ Enable a Processor on a Project
 ###############################
 #. Go to DAX Project Settings in REDcap
 #. Click Record Status Dashboard
-#. Click the project
-#. Click the processor to turn on
-#. Change 'Complete?' field to 'Complete' and 'Save & Exit Form'
+#. Click the project you want to modify
+#. Click the processor you want to turn on
+#. Change 'Complete?' field to 'Complete' (we use Complete to indicate ON, any other values indicates OFF)
+#. Click Save & Exit Form
 
+###
+TBD
+###
 
-(TODO: how to run dcm2niix in DAX. So users can convert DICOM to NIFTI before running FS6)
-
-(TODO: how to check for the DAX datatype on your XNAT)
-
-(TODO: how to use nrg docker-compose to set up a test xnat instance an load a test image for FS6)
-
-(TODO: how to test slurm commands used by DAX)
-
-(TODO: how to make changes to settings files)
-
-(TODO: how to use a scan named something other than T1)
+- how to run dcm2niix in DAX, to allow users to convert DICOM to NIFTI before running FS6
+- how to check for the DAX datatype on your XNAT
+- how to use nrg docker-compose to set up a test xnat instance an load a test image for FS6
+- how to test slurm commands used by DAX
+- how to make changes to settings files
+- how to use a scan named something other than T1
