@@ -6,8 +6,7 @@ This tutorial will guide you through how to use DAX to run FreeSurfer 6 recon-al
 
 You can use this guide as a template to get started running your own pipelines with XNAT and DAX.
 
-We assume that you have T1-weighted MR images loaded into XNAT(link) in NIFTI format. We also will assume that one of these NIFTI files is named T1.nii.gz and is located in a project named PROJ1 in a subject named SUBJ1 in session SESS1 in scan SCAN1 with resource NIFTI. And the scan type of SCAN1 is T1. So, the hierarchy looks like:
-PROJ1/SUBJ1/SESS1/SCAN1/NIFTI/T1.nii.gz (link to example in XNAT central?)
+We assume that you have T1-weighted MR images loaded into XNAT in NIFTI format. We also will assume that one of these NIFTI files is named T1.nii.gz and is located in a project named PROJ1 in a subject named SUBJ1 in session SESS1 in scan SCAN1 with resource NIFTI. And the scan type of SCAN1 is T1. So, the hierarchy looks like: PROJ1/SUBJ1/SESS1/SCAN1/NIFTI/T1.nii.gz
 
 ###################### 
 Install DAX data types
@@ -51,9 +50,9 @@ Prepare DAX environment
 
 .. code-block:: bash
 
-   mv FS6v1.2.3.sif FS6_v1.2.3.simg
+   mv FS6_v1.2.3.sif FS6_v1.2.3.simg
 
-6. Create a virtual environment for DAX (Skip if you already have dax installed)
+6. Create a virtual environment for DAX (skip if you have already installed dax)
 
 .. code-block:: bash
 
@@ -65,7 +64,7 @@ Prepare DAX environment
 
 8. Copy the downloaded file to your DAX/processors directory
 
-9. Create a settings file named settings.yaml with the contents
+9. In your settings subdirectory, create a settings file named settings.yaml with the contents
 
 .. code-block:: yaml
 
@@ -81,11 +80,11 @@ Prepare DAX environment
      job_rungroup: YOUR_SLURM_GROUP
      xnat_host: YOUR_XNAT_HOST
    yamlprocessors:
-     - name: fs6
+     - name: FS6
        filepath: FS6_v1.2.3_processor.yaml
    projects:
      - project: PROJ1
-       yamlprocessors: fs6
+       yamlprocessors: FS6
 
 #####################################
 Run the processor on a single session
@@ -152,7 +151,7 @@ BuildStatus_2021-09-16_2043.zip
 Configure the processor for production
 ######################################
 
-After successfully testing, we can configure this processor in a production account.
+After successfully testing, we can configure this processor to be used in a production account.
 
 At Vanderbilt, we maintain a private github repository where we store all of the processor yaml files that we are currently running.
 
