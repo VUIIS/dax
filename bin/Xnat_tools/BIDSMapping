@@ -265,6 +265,12 @@ def default():
                     sd_fmap = sd['scan_type']
                     new_mapping[project][sd_fmap] = "fmap"
 
+            for sd in scans_list_global:
+                c = re.search('ASL|CASL|pCASL', sd[xnat_type], flags=re.IGNORECASE)
+                if not c == None:
+                    sd_fmap = sd['scan_type']
+                    new_mapping[project][sd_fmap] = "perf"
+
         if mapping_type == 'tasktype':
             scans_list_global = XNAT.get_project_scans(project)
             for sd in scans_list_global:
@@ -405,8 +411,8 @@ def csv_check(src_path):
                 ["datatype", "tasktype", "repetition_time_sec", "run_number"] and csvReader.fieldnames[0] == xnat_type and csvReader.fieldnames[1] == mapping_type:
             if csvReader.fieldnames[1] == "datatype":
                 for rows in csvReader:
-                    if rows['datatype'] not in ["anat", "dwi", "func", "fmap"]:
-                        LOGGER.error("ERROR in CSV unknown datatype column. Datatype should be anat, dwi, fmap or func")
+                    if rows['datatype'] not in ["anat", "dwi", "func", "fmap","perf"]:
+                        LOGGER.error("ERROR in CSV unknown datatype column. Datatype should be anat, dwi, fmap, func, or perf")
                         sys.exit()
                 LOGGER.info("CSV mapping format is good")
             else:
