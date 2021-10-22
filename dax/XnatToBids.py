@@ -23,11 +23,12 @@ def transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, xnat_tag, LOGGER):
     :param DIRECTORY: XNAT Directory
     :param project: XNAT Project ID
     :param BIDS_DIR: BIDS Directory
+    :param xnat_tag: boolean check for xnat tag
     :param LOGGER: Logging
     """
     LOGGER.info("INFO: Moving files to the BIDS folder...")
     # All the BIDS datattype
-    data_type_l = ["anat", "func", "fmap", "dwi", "unknown_bids"]
+    data_type_l = ["anat", "func", "fmap", "dwi", "perf", "unknown_bids"]
     # Loop throught the XNAT folders
     for proj in os.listdir(DIRECTORY):
         if proj == project and os.path.isdir(os.path.join(DIRECTORY, proj)):
@@ -261,6 +262,18 @@ def yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, scan_file,
                      '.' + ".".join(scan_file.split('.')[1:])
         return bids_fname
 
+    elif data_type == "perf":
+        rn_dict = sd_run_mapping(XNAT, project)
+        run_number = rn_dict.get(xnat_mapping_type, scan_id)
+        
+        if 'm0' or 'M0' in series_description:
+            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + series_description + '_run-' + run_number + '_m0scan' + \
+                     '.' + ".".join(scan_file.split('.')[1:])
+        else:
+            bids_fname = "sub-" + subj_idx + '_' + "ses-" + sess_idx + '_acq-' + series_description + '_run-' + run_number + '_asl' + \
+                     '.' + ".".join(scan_file.split('.')[1:])           
+
+        return bids_fname
 
 def yaml_create_json(XNAT, data_type, res_dir, scan_file, uri, project, xnat_mapping_type, sess, is_json_present,
                      nii_file, json_file, series_description, scan_type, scan_quality, acquisition_site, scanner, manufacturer, model):
@@ -454,6 +467,7 @@ def sd_datatype_mapping(XNAT, project):
                     print(('\t\t>Using BIDS datatype mapping in project level %s' % (project)))
 
     else:
+        # Edit here to set default mapping options
         print(('\t\t>WARNING: No BIDS datatype mapping in project %s - using default mapping' % (project)))
         scans_list_global = XNAT.get_project_scans('LANDMAN')
 

@@ -411,6 +411,7 @@ def csv_check(src_path):
                 ["datatype", "tasktype", "repetition_time_sec", "run_number"] and csvReader.fieldnames[0] == xnat_type and csvReader.fieldnames[1] == mapping_type:
             if csvReader.fieldnames[1] == "datatype":
                 for rows in csvReader:
+                    # for more data types, add name below
                     if rows['datatype'] not in ["anat", "dwi", "func", "fmap","perf"]:
                         LOGGER.error("ERROR in CSV unknown datatype column. Datatype should be anat, dwi, fmap, func, or perf")
                         sys.exit()
