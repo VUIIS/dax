@@ -707,10 +707,10 @@ def download_assessor(directory, assessor_dict, resources_list, row,
     :return: None
     """
     assessor_obj = XNAT.select_assessor(
-        assessor_dict['project_label'],
+        assessor_dict['project_label'] if 'project_label' in assessor_dict.keys() else assessor_dict['project_id'],
         assessor_dict['subject_label'],
         assessor_dict['session_label'],
-        assessor_dict['assessor_label'])
+        assessor_dict['assessor_label'] if 'assessor_label' in assessor_dict.keys() else assessor_dict['label'])
     if not assessor_obj.exists():
         LOGGER.info('  ->WARNING: No processor with the label given.')
     else:
