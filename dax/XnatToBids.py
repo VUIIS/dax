@@ -264,7 +264,7 @@ def yaml_bids_filename(XNAT, data_type, scan_id, subj, sess, project, scan_file,
 
     elif data_type == "perf":
         asl_dict = sd_asltype_mapping(XNAT, project)
-        asl_type = asl_dict.get(xnat_mapping_type)
+        asl_type = asl_dict.get(xnat_mapping_type, scan_id)
         if asl_type == None:
             print(('ERROR: Scan type %s does not have a BIDS asltype mapping at default and project level ' \
                   'Use BidsMapping tool. Perf folder not created' % xnat_mapping_type))
