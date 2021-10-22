@@ -52,6 +52,10 @@ Examples:
     * BIDS repetition_time_sec
         scan_type,repetition_time_sec
         Resting State,2.0
+    * BIDS asltype
+        scan_type, asltype
+        casl_m0, m0scan
+        casl, asl
     * BIDS run_number
         scan_type,run_number
         Resting State,01
@@ -76,7 +80,7 @@ def add_parser_args():
                       help='Project to create/update BIDS mapping file')
     # Specify Type of BIDS Mapping [Required]
     argp.add_argument('-t','--type', dest="type", default=None,
-                      help='The type of mapping either datatype, tasktype or repetition_time_sec')
+                      help='The type of mapping either datatype, tasktype, repetition_time_sec, or asltype')
     # Specify XNAT type for mapping [Required]
     argp.add_argument('-x','--xnatinfo', dest="xnatinfo", default=None,
                       help='The type of xnat info to use for mapping either scan_type or series_description')
@@ -232,7 +236,7 @@ def default():
     new_mapping = dict()
     new_mapping[project] = {}
     # Since Repetition time and Run number should be given by user, it has no default mapping
-    if mapping_type == 'repetition_time_sec' or mapping_type == 'run_number':
+    if mapping_type == 'repetition_time_sec' or mapping_type == 'run_number' or mapping_type == 'asltype':
         LOGGER.info('%s does not have default mapping, use --create' % mapping_type)
 
     else:
@@ -266,7 +270,7 @@ def default():
                     new_mapping[project][sd_fmap] = "fmap"
 
             for sd in scans_list_global:
-                c = re.search('ASL|CASL|pCASL', sd[xnat_type], flags=re.IGNORECASE)
+                c = re.search('asl|ASL|CASL|pCASL|pASL', sd[xnat_type], flags=re.IGNORECASE)
                 if not c == None:
                     sd_fmap = sd['scan_type']
                     new_mapping[project][sd_fmap] = "perf"
@@ -324,6 +328,8 @@ def create():
                 new_mapping[project][sd] = rows['repetition_time_sec']
             elif mapping_type == 'run_number':
                 new_mapping[project][sd] = rows['run_number']
+            elif mapping_type == 'asltype':
+                new_mapping[project][sd] = rows['asltype']
     LOGGER.info('date %s' % (date.strftime("%d-%m-%y-%H:%M:%S")))
 
     # If  mapping is not present upload the new_mapping from the CSV, if not throw an error
@@ -375,6 +381,8 @@ def update_or_replace():
                 new_mapping[project][sd] = rows['repetition_time_sec']
             elif mapping_type == 'run_number':
                 new_mapping[project][sd] = rows['run_number']
+            elif mapping_type == 'asltype':
+                new_mapping[project][sd] = rows['asltype']
     # Get the json mapping from XNAT
     if len(XNAT.select(res_files).get()) > 1:
         for res in XNAT.select(res_files).get():
@@ -408,7 +416,7 @@ def csv_check(src_path):
     with open(src_path, 'r') as csvFile:
         csvReader = csv.DictReader(csvFile)
         if csvReader.fieldnames[0] in ["scan_type","series_description"] and csvReader.fieldnames[1] in \
-                ["datatype", "tasktype", "repetition_time_sec", "run_number"] and csvReader.fieldnames[0] == xnat_type and csvReader.fieldnames[1] == mapping_type:
+                ["datatype", "tasktype", "repetition_time_sec", "run_number","asltype"] and csvReader.fieldnames[0] == xnat_type and csvReader.fieldnames[1] == mapping_type:
             if csvReader.fieldnames[1] == "datatype":
                 for rows in csvReader:
                     # for more data types, add name below
@@ -554,8 +562,8 @@ if __name__ == '__main__':
                 sys.exit()
             if not OPTIONS.type:
                 LOGGER.info("WARNING: Type is required. Use --type")
-            elif OPTIONS.type not in ["datatype", "tasktype", "repetition_time_sec", "run_number"]:
-                LOGGER.error("ERROR: Type must be datatype or tasktype or repetition_time_sec or run_number")
+            elif OPTIONS.type not in ["datatype", "tasktype", "repetition_time_sec", "run_number","asltype"]:
+                LOGGER.error("ERROR: Type must be datatype or tasktype or repetition_time_sec or run_number or asltype")
             else:
                 mapping_type = OPTIONS.type
                 CSVWRITER = None
