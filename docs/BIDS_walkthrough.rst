@@ -297,7 +297,7 @@ Upload the above Step 9 mapping to XNAT using the BIDSMapping tool
 	The info used from XNAT is series_description
 	CSV mapping format is good
 	date 16-06-20-20:15:50
-	CREATED: New mapping file 06-16-20-20:15:50_repetition_time_sec.json is uploaded
+	CREATED: New mapping file 06-16-20-20:15:50_asltype.json is uploaded
 
 ---------------------------------------
 Step 11 Check Project Level File Manager 
