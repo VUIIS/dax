@@ -475,6 +475,7 @@ def sd_asltype_mapping(XNAT, project):
         print("\t\t>ERROR: no asl mapping at project level. Perf folder not created")
         print("\t\t>ERROR: BIDS Conversion not complete")
         sys.exit()
+    print(asl_dict)
     return asl_dict
 
 def sd_datatype_mapping(XNAT, project):
