@@ -22,13 +22,16 @@ Table of Contents
 6.  `Step 6 Mapping Repetition Time and Scans <#step-6-mapping-repetition-time-and-scans>`__
 7.  `Step 7 Upload Repetition Time Mapping to XNAT <#step-7-upload-repetition-time-mapping-to-xnat>`__
 8.  `Step 8 Check Project Level File Manager <#step-8-check-project-level-file-manager>`__
-9.  `Additional Useful BIDSMapping Tool Options <#additional-useful-bidsmapping-tool-options>`__
-10.  `Step 9 Correct Old Mapping <#step-9-correct-out-mapping>`__
-11. `Step 10 Replace Existing Mapping <#step-10-replace-existing-mapping>`__
-12. `Step 11 Check Corrected LOGFILE <#step-11-check-corrected-logfile>`__
-13. `Step 12 Add New Mapping <#step-12-add-new-mapping>`__
-14. `Step 13 Update Existing Mapping <#step-13-update-existing-mapping>`__
-15. `Step 14 Check Updated LOGFILE <#step-14-check-updated-logfile>`__
+9.  `Step 9 Mapping Perfusion Imaging Type <#step-9-bids-map-perfusion>`__
+10. `Step 10 Upload Perfusion Type to XNAT <#step-10-upload-asl-type>`__
+11. `Step 11 Check Project Level File Manager <#step-11-check-project-level-file-manager>`__
+12. `Additional Useful BIDSMapping Tool Options <#additional-useful-bidsmapping-tool-options>`__
+13. `Step 12 Correct Old Mapping <#step-12-correct-out-mapping>`__
+14. `Step 13 Replace Existing Mapping <#step-13-replace-existing-mapping>`__
+15. `Step 14 Check Corrected LOGFILE <#step-14-check-corrected-logfile>`__
+16. `Step 15 Add New Mapping <#step-15-add-new-mapping>`__
+17. `Step 16 Update Existing Mapping <#step-16-update-existing-mapping>`__
+18. `Step 17 Check Updated LOGFILE <#step-17-check-updated-logfile>`__
 
 
 ---------------------------------
@@ -231,6 +234,80 @@ Check Manage Files on XNAT project level. There should be two more BIDS Resource
 
         .. image:: images/BIDS_walkthrough/Step8.1.PNG
 
+-------------------------------------
+Step 9 Mapping Perfusion Imaging Type
+-------------------------------------
+
+For perfusion imaging, you need to create a mapping for BIDS perfusion type on XNAT. First, create the CSV file of the mapping that you would like to upload to XNAT.
+
+Open a CSV file
+
+::
+
+	(dax) $ vim (or nano or any editor you like) asltype.csv
+
+Type the series_description and asltype you want to map
+
+::
+
+	series_description,asltype
+	ASL,asl
+	pCASL,asl
+	ASL_m0,m0scan
+	pCASL_M0,m0scan
+
+
+ASLtype column correspond to the required BIDS naming structure for perfusion imaging type (https://bids.neuroimaging.io/). BIDS datatype folder is either 
+- asl (Perfusion imaging scan such as ASL,CASL,pCASL,pASL,etc.), 
+- m0scan (Reference scan for blood flow calculation. If included in asl image, do not map.), 
+
+For more information check out https://docs.google.com/document/d/15tnn5F10KpgHypaQJNNGiNKsni9035GtDqJzWqkkP6c
+
+
+-------------------------------------
+Step 10 Upload Perfusion Type to XNAT
+-------------------------------------
+
+This step allows the user to upload asltype mapping rules to XNAT. If there is no asltype mapping the BIDS conversion will fail for perfusion scans. 
+
+Upload the above Step 9 mapping to XNAT using the BIDSMapping tool
+
+::
+
+	(dax) $ BIDSMapping --project ZALD_TTS --create asltype.csv --type asltype --xnatinfo series_description
+
+::
+
+	################################################################
+	#                     BIDSMAPPING                              #
+	#                                                              #
+	# Developed by the MASI Lab Vanderbilt University, TN, USA.    #
+	# If issues, please start a thread here:                       #
+	# https://groups.google.com/forum/#!forum/vuiis-cci            #
+	# Usage:                                                       #
+	#     Upload rules/mapping to Project level on XNAT.           #
+	# Parameters:                                                  #
+	#     Project ID           -> EmotionBrain                     #
+        #     XNAT mapping type    -> series_description               #
+        #     BIDS mapping type    -> asltype		               #
+        #     Create mapping with  -> asltype.csv                      #
+	################################################################
+	
+	INFO: connection to xnat <http://129.59.135.143:8080/xnat>:
+	The info used from XNAT is series_description
+	CSV mapping format is good
+	date 16-06-20-20:15:50
+	CREATED: New mapping file 06-16-20-20:15:50_repetition_time_sec.json is uploaded
+
+---------------------------------------
+Step 11 Check Project Level File Manager 
+---------------------------------------
+
+Check Manage Files on XNAT project level. There should be one more BIDS Resource created for asltype mapping.
+
+        .. image:: images/BIDS_walkthrough/Step11.1.PNG
+
+
 Additional Useful BIDSMapping Tool Options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -242,7 +319,7 @@ There are additional options such as --replace and --update
 - The user can use --update option to add new mapping rules to the existing mapping at the project level. This is useful when the user added new scans with new scan types to a project and would like to add mapping rules for these scan types. Please note, the steps 12-14 can be followed for using the option --update in the BIDSMapping tool.
 
 --------------------------
-Step 9 Correct Old Mapping 
+Step 12 Correct Old Mapping 
 --------------------------
 
 To replace a mapping at project level, create the new CSV mapping. Here, we are replacing repetition_time mapping.
@@ -258,7 +335,7 @@ To replace a mapping at project level, create the new CSV mapping. Here, we are 
 	gonogo2,2
 
 --------------------------------
-Step 10 Replace Existing Mapping
+Step 13 Replace Existing Mapping
 --------------------------------
 
 Use option --replace in the BIDSMapping tool. --replace removes the old mapping rules and adds new ones.
@@ -290,15 +367,15 @@ Use option --replace in the BIDSMapping tool. --replace removes the old mapping 
 	UPDATED: uploaded mapping file 06-16-20-20:25:47_repetition_time_sec.json
 
 -------------------------------
-Step 11 Check Corrected LOGFILE
+Step 14 Check Corrected LOGFILE
 -------------------------------
 
 Check the LOGFILE.txt or json mapping at the XNAT project level under the repetition time Resources.
 
-        .. image:: images/BIDS_walkthrough/Step11.1.PNG
+        .. image:: images/BIDS_walkthrough/Step14.1.PNG
 
 -----------------------
-Step 12 Add New Mapping 
+Step 15 Add New Mapping 
 -----------------------
 
 To update a mapping at project level, create the new CSV mapping. Here, we are updating repetition_time mapping.
@@ -317,7 +394,7 @@ To update a mapping at project level, create the new CSV mapping. Here, we are u
 	mid3,2
 
 --------------------------------
-Step 13 Update Existing Mapping
+Step 16 Update Existing Mapping
 --------------------------------
 
 Use option --update in the BIDSMapping tool. --update add the new mapping rules to the existing mapping rules.
@@ -349,12 +426,12 @@ Use option --update in the BIDSMapping tool. --update add the new mapping rules 
 	UPDATED: uploaded mapping file 06-23-20-16:36:36_repetition_time_sec.json
 
 -----------------------------
-Step 14 Check Updated LOGFILE
+Step 17 Check Updated LOGFILE
 -----------------------------
 
 Check the LOGFILE.txt or json mapping at the XNAT project level under the repetition time Resources.
 
-        .. image:: images/BIDS_walkthrough/Step14.1.PNG
+        .. image:: images/BIDS_walkthrough/Step17.1.PNG
 	
 	
 	
