@@ -33,6 +33,7 @@ from .task import ClusterTask
 from .XnatUtils import XnatUtilsError
 from .version import VERSION as __version__
 from .git_revision import git_revision as __git_revision__
+from .suppdf import suppdf
 
 
 # Global Variables
@@ -289,6 +290,7 @@ def generate_snapshots(assessor_path):
         # Make the snapshots for the assessors with ghostscript
         cmd = GS_CMD.format(original=snapshot_original,
                             assessor_path=assessor_path)
+        print('cmd=', cmd)
         os.system(cmd)
     # Create the preview snapshot from the original if Snapshots exist :
     if os.path.exists(snapshot_original):
@@ -296,6 +298,8 @@ def generate_snapshots(assessor_path):
         # Make the snapshot_thumbnail
         cmd = CONVERT_CMD.format(original=snapshot_original,
                                  preview=snapshot_preview)
+
+        print('cmd=', cmd)
         os.system(cmd)
 
 
@@ -444,6 +448,8 @@ def upload_assessor(xnat, assessor_dict, assessor_path, resdir):
                               version):
         xsitype = assessor_obj.datatype()
         # Before Upload
+        print('BEFORE UPLOAD stuffs')
+        suppdf(assessor_path, assessor_obj)
         generate_snapshots(assessor_path)
         copy_outlog(assessor_dict, assessor_path, resdir)
 

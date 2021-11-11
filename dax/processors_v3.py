@@ -1,4 +1,13 @@
-""" Processor class define for Scan and Session."""
+# TODO: start by using copying code for moreauto to here, make sure it runs
+# for files specified as version 3. then start changing the behavior. 
+# first sup the pdf then change the yaml spec.
+# Eventually collapse all this classes into 1 Processor_v3
+# currenty any v3 processor will use this code for Processor/AutoProcessor
+# want to get rid of those and also try to combine with code 
+# from processor_parser,
+# and ultimately switch the roles of processor and parser (swap "has a")
+# Need a "validate_yaml" function
+# Need a "validate_filename" function b/c we want version from filename
 
 import logging
 import re
@@ -17,7 +26,7 @@ from . import yaml_doc
 from .errors import AutoProcessorError
 from .dax_settings import DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE
 from .task import NeedInputsException
-from .processors_v3 import Processor_v3 as Processor_v3
+
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ['Processor', 'AutoProcessor']
@@ -184,7 +193,7 @@ class Processor(object):
                     _proj = assessor.parent().parent().parent().label()
                     _subj = assessor.parent().parent().label()
                     _sess = assessor.parent().label()
-                    label = '-x-'.join([_proj, _subj, _sess, self.name, guid])
+                    label = '-x-'.join([_proj, _subj, _sess, self.name, guid[:8]])
                 else:
                     label = guid
 
@@ -502,10 +511,10 @@ class AutoProcessor(Processor):
         return commands
 
 
-class MoreAutoProcessor(AutoProcessor):
+class Processor_v3(AutoProcessor):
     """ More Auto Processor class for AutoSpider using YAML files"""
 
-    def __init__(self, xnat, yaml_source, user_inputs=None,
+    def __init__(self, xnat, yaml_file, user_inputs=None,
                  singularity_imagedir=None, job_template='~/job_template.txt'):
 
         """
@@ -525,8 +534,13 @@ class MoreAutoProcessor(AutoProcessor):
         # Set the template to the global default, it could be overwritten by
         # processor yaml
         self.job_template = job_template
+    
+        yaml_source = yaml_doc.YamlDoc().from_file(yaml_file)
+        super(Processor_v3, self).__init__(xnat, yaml_source, user_inputs)
 
-        super(MoreAutoProcessor, self).__init__(xnat, yaml_source, user_inputs)
+        self.procyamlversion = '3.0.0-dev.0'
+        self.yaml_file = yaml_file
+        self.user_inputs = user_inputs
 
     def _read_yaml(self, yaml_source):
         """
@@ -798,7 +812,8 @@ class MoreAutoProcessor(AutoProcessor):
         # Initialize commands
         cmd = '\n\n'
 
-        # Append the list of inputs, URL-encoding the fpath to handle special chars in URLs
+        # Append the list of inputs, URL-encoding the fpath to
+        # handle special chars in URLs
         cmd += 'INLIST=(\n'
         for cur in input_list:
             cur['fpath'] = requests.utils.quote(cur['fpath'],safe=":/")
@@ -831,46 +846,26 @@ class MoreAutoProcessor(AutoProcessor):
 
         return cmd
 
+    def write_processor_spec(self, filename):
+        # Write a file with the path to the base processor and any overrides
+        # The file is intended to be written to diskq using the assessor
+        # label as the filename
+        with open(filename, 'w') as f:
+            # write processor yaml filename
+            f.write('{}\n'.format(self.yaml_file))
 
-def processors_by_type(proc_list):
-    """
-    Organize the processor types and return a list of session processors
-     first, then scan
+            # write customizations
+            if self.user_inputs:
+                for k, v in self.user_inputs:
+                    f.write('{}={}\n'.format(k, v))
 
-    :param proc_list: List of Processor classes from the DAX settings file
-    :return: Lists of processors by type
+            # singularity_imagedir
+            f.write('{}={}\n'.format(
+                'singularity_imagedir', self.singularity_imagedir))
 
-    """
-    auto_proc_list = list()
+            # job_template
+            f.write('{}={}\n'.format(
+                'job_template', self.job_template))
 
-    # Build list of processors by type
-    if proc_list is not None:
-        for proc in proc_list:
-            if isinstance(proc, Processor_v3):
-                auto_proc_list.append(proc)
-            elif issubclass(proc.__class__, AutoProcessor):
-                auto_proc_list.append(proc)
-            else:
-                LOGGER.warn('unknown processor type: %s' % proc)
-
-    return auto_proc_list
-
-
-def load_from_yaml(xnat, filepath, user_inputs=None,
-                   singularity_imagedir=None, job_template=None):
-
-    """
-    Load processor from yaml
-    :param filepath: path to yaml file
-    :return: processor
-    """
-    yaml_obj = yaml_doc.YamlDoc().from_file(filepath)
-    if yaml_obj.contents.get('procyamlversion', '') == '3.0.0-dev.0':
-        LOGGER.debug('loading as Processor_v3:{}'.format(filepath))
-        return Processor_v3(
-            xnat, filepath, user_inputs, singularity_imagedir, job_template)
-    elif yaml_obj.contents.get('moreauto'):
-        return MoreAutoProcessor(xnat, yaml_obj, user_inputs,
-                                 singularity_imagedir, job_template)
-    else:
-        return AutoProcessor(xnat, yaml_obj, user_inputs)
+            # extra blank line
+            f.write('\n')

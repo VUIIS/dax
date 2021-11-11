@@ -1266,6 +1266,14 @@ class ClusterTask(Task):
         f_out = '%s.txt' % self.assessor_label
         return os.path.join(self.diskq, OUTLOG_DIRNAME, f_out)
 
+    def processor_spec_path(self):
+        """
+        Method to return the path of processor file for the job
+
+        :return: A string that is the absolute path to the file.
+        """
+        return os.path.join(self.diskq, 'processor', self.assessor_label)
+
     def upload_pbs_dir(self):
         """
         Method to return the path of dir for the PBS
@@ -1528,6 +1536,14 @@ undo_processing...')
         f_txt = '%s.txt' % self.assessor_label
         return os.path.join(self.diskq, OUTLOG_DIRNAME, f_txt)
 
+    def processor_spec_path(self):
+        """
+        Method to return the path of processor file for the job
+
+        :return: A string that is the absolute path to the file.
+        """
+        return os.path.join(self.diskq, 'processor', self.assessor_label)
+
     def check_running(self):
         """
         Check to see if a job specified by the scheduler ID is still running
@@ -1539,6 +1555,11 @@ undo_processing...')
 
         """
         raise NotImplementedError()
+
+    def write_processor_spec(self):
+        filename = self.processor_spec_path()
+        mkdirp(os.path.dirname(filename))
+        self.processor.write_processor_spec(filename)
 
     def build_task(self, assr, sessions,
                    jobdir, job_email=None,
@@ -1569,8 +1590,20 @@ undo_processing...')
             LOGGER.info('writing:' + batch_file)
             batch.write()
 
+            # Set new statuses to be updated
             new_proc_status = JOB_RUNNING
             new_qc_status = JOB_PENDING
+
+            # Write processor spec file for version 3
+            try:
+                if (self.processor.procyamlversion == '3.0.0-dev.0'):
+                    # write processor spec file
+                    LOGGER.debug('writing processor spec file')
+                    self.write_processor_spec()
+            except AttributeError as err:
+                # older processor does not have version
+                LOGGER.debug('procyamlversion not found'.format(err))
+
         except NeedInputsException as e:
             new_proc_status = NEED_INPUTS
             new_qc_status = e.value
