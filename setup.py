@@ -125,7 +125,8 @@ REQUIRES = [
     'pyyaml',
     'pycap',
     'nibabel',
-    'fpdf2']
+    'fpdf2',
+    'bond @ git+https://github.com/PennLINC/BOnD.git@v0.1.0']
 
 DOCS_REQUIRES = ['Sphinx>=%s' % SPHINX_MIN_VERSION]
 
