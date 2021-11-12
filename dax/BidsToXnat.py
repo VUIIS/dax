@@ -125,7 +125,7 @@ def transform_to_xnat(bids_dir, project):
                 bids_dict['object_type'] = 'scan'
                 bids_dict['project_id']  = project
                 #check the 4 datatypes for MR
-                if bids_filepath.split('/')[-2] == 'anat' or 'func' or 'dwi' or 'fmap':
+                if bids_filepath.split('/')[-2] == 'anat' or 'func' or 'dwi' or 'fmap' or 'perf':
                     bids_dict['session_type'] = 'MR'
                 else:
                     sys.exit()
