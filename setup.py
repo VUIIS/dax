@@ -126,7 +126,7 @@ REQUIRES = [
     'pycap',
     'nibabel',
     'fpdf2',
-    'bond @ git+https://github.com/PennLINC/BOnD.git@v0.1.0']
+    'cubids-bond-fork']
 
 DOCS_REQUIRES = ['Sphinx>=%s' % SPHINX_MIN_VERSION]
 
