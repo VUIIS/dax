@@ -21,6 +21,8 @@ from .version import VERSION as dax_version
 # What would be the default location? This could default to use the
 # "main container" if it is set.
 
+LOGGER = logging.getLogger('dax')
+
 
 def make_overpdf(overfile, info, pagenum, pagecount):
     # Assessor name top left of header
@@ -66,7 +68,7 @@ def make_lastpdf(lastfile, info):
     pdf = FPDF(orientation="P", unit='in', format='letter')
     pdf.add_page()
 
-    print('making lastpdf', lastfile)
+    LOGGER.debug('making last page for PDF')
 
     # Session Info
     pdf.ln(0.05)
@@ -145,12 +147,11 @@ def make_lastpdf(lastfile, info):
     pdf.multi_cell(0, .2, txt=info['description'])
 
     # Save to file
-    print('saving to file', lastfile)
+    LOGGER.debug('saving last page of PDF to file:{}'.format(lastfile))
     try:
         pdf.output(lastfile)
     except Exception as err:
-        print('error', err)
-
+        LOGGER.error('saving PDF:{}:{}'.format(lastfile, err))
 
 def make_suppdf(outfile, info, infile=None, overlay=True):
     # Make the overlay PDF
@@ -164,7 +165,7 @@ def make_suppdf(outfile, info, infile=None, overlay=True):
     except Exception as err:
         import traceback
         traceback.print_stack()
-        print('error making PDF', lastfile, err)
+        LOGGER.error('error making PDF:{}:{}'.format(lastfile, err))
  
     # Append last page(s)
     merger = PdfFileMerger()
@@ -243,7 +244,7 @@ def load_description(assr_path):
 
 def load_procyamlversion(assr_path):
     processor_path = load_attr(assr_path, 'processor')
-    print('loading procyamlversion from file:{}'.format(processor_path))
+    LOGGER.error('loading procyamlversion from file:{}'.format(processor_path))
     with open(processor_path, "r") as yaml_stream:
         doc = yaml.load(yaml_stream, Loader=yaml.FullLoader)
 
@@ -265,6 +266,38 @@ def load_outputs(assr_path):
 
     doc = read_yaml(processor_path)
     outputs = doc.get('outputs', [])
+    for c in outputs:
+        # Check for keywords
+        if 'pdf' in c:
+            _path = c['pdf']
+            _type = 'FILE'
+            _res = 'PDF'
+        elif 'dir' in c:
+            _path = c['dir']
+            _type = 'DIR'
+            _res = c['dir']
+        elif 'stats' in c:
+            _path = c['stats']
+            _type = 'FILE'
+            _res = 'STATS'
+
+        # Get explicitly set path, type, resource
+        # These will override anything set by keywords
+        if 'path' in c:
+            _path = c['path']
+
+        if 'type' in c:
+            _type = c['type']
+
+        if 'resource' in c:
+            _res = c['resource']
+
+        # Add to our outputs list
+        outputs.append({
+            'path': _path,
+            'type': _type,
+            'resource': _res})
+
     return outputs
 
 
@@ -314,11 +347,11 @@ def suppdf(assr_path, assr_obj):
     try:
         info = load_info(assr_path, assr_obj)
         if info['procyamlversion'] != '3.0.0-dev.0':
-            print('skipping suppdf:{}, procyamlversion={}'.format(
+            LOGGER.debug('skipping suppdf:{}, procyamlversion={}'.format(
                 assr_path, info['procyamlversion']))
             return False
     except Exception:
-        print('skipping suppdf:{}'.format(assr_path))
+        LOGGER.debug('skipping suppdf:{}'.format(assr_path))
         return False
 
     # find the input pdf
@@ -331,7 +364,7 @@ def suppdf(assr_path, assr_obj):
     outputpdf = '{}/PDF/report_{}.pdf'.format(assr_path, info['assessor'])
 
     if inputpdf == outputpdf:
-        print('PDF already supped')
+        LOGGER.debug('PDF already supped:{}'.format(inputpdf))
         return
 
     # supplement it by adding header/footer overlays
@@ -339,5 +372,5 @@ def suppdf(assr_path, assr_obj):
 
     # delete the input pdf
     if inputpdf and os.path.exists(outputpdf):
-        print('deleting input PDF:{}'.format(inputpdf))
+        LOGGER.debug('deleting input PDF:{}'.format(inputpdf))
         os.remove(inputpdf)
