@@ -1,293 +1,155 @@
-# TODO: start by using copying code for moreauto to here, make sure it runs
-# for files specified as version 3. then start changing the behavior. 
-# first sup the pdf then change the yaml spec.
-# Eventually collapse all this classes into 1 Processor_v3
-# currenty any v3 processor will use this code for Processor/AutoProcessor
-# want to get rid of those and also try to combine with code 
-# from processor_parser,
-# and ultimately switch the roles of processor and parser (swap "has a")
-# Need a "validate_yaml" function
-# Need a "validate_filename" function b/c we want version from filename
-
 import logging
 import re
 import os
 import json
-import itertools
 import requests
-
+import itertools
+import copy
 from uuid import uuid4
 from datetime import date
 
 from . import XnatUtils, task
-from . import assessor_utils
-from . import processor_parser
 from . import yaml_doc
 from .errors import AutoProcessorError
-from .dax_settings import DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE
 from .task import NeedInputsException
+from .task import (
+    NEED_INPUTS,
+    OPEN_STATUS_LIST,
+    BAD_QA_STATUS,
+    JOB_PENDING,
+    REPROC,
+    RERUN,
+    FAILED_NEEDS_REPROC,
+    NEEDS_QA,
+)
+from . import utilities
 
+# Processor handles the pipeline specifications and builds each pipeline on
+# given inputs.
 
-__copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
-__all__ = ['Processor', 'AutoProcessor']
+# TODO: figure out if we can reduce the complexity of "parse_inputs", 
+# and find better names for everything
+
+# This regex is used to match YAML file names, e.g. my_proc_v1.0.0.yaml
+# The prefix can be any word characters plus the dash character.
+# The suffix must be an underscore followed by the letter v and then the
+# semantic versioning version X.Y.Z and finally it must end with .yaml
+YAML_PATTERN = '^[\w-]*_v[\d]*\.[\d]*\.[\d]*\.yaml$'
 
 # Logger for logs
 LOGGER = logging.getLogger('dax')
 
-
-class Processor(object):
-    """ Base class for processor """
-    def __init__(self, walltime_str, memreq_mb, spider_path,
-                 version=None, ppn=1, env=None, suffix_proc='',
-                 xsitype='proc:genProcData',
-                 job_template=None):
-        """
-        Entry point of the Base class for processor.
-
-        :param walltime_str: Amount of walltime to request for the process
-        :param memreq_mb: Number of megabytes of memory to use
-        :param spider_path: Fully qualified path to the spider to run
-        :param version: Version of the spider
-        :param ppn: Number of processors per job to use.
-        :param env: Environment file to source.
-        :param suffix_proc: Processor suffix (if desired)
-        :param xsitype: the XNAT xsiType.
-        :return: None
-
-        """
-        self.job_template = job_template
-        self.walltime_str = walltime_str  # 00:00:00 format
-        self.memreq_mb = memreq_mb   # memory required in megabytes
-        # default values:
-        self.version = "1.0.0"
-        # Suffix
-        if suffix_proc and suffix_proc[0] != '_':
-            self.suffix_proc = '_%s' % suffix_proc
-        else:
-            self.suffix_proc = suffix_proc
-        self.suffix_proc = re.sub('[^a-zA-Z0-9]', '_', self.suffix_proc)
-        self.name = None
-        self.spider_path = spider_path
-        self.ppn = ppn
-        if env:
-            self.env = env
-        else:
-            self.env = os.path.join(os.environ['HOME'], '.bashrc')
-        self.xsitype = xsitype
-        # getting name and version from spider_path
-        self.set_spider_settings(spider_path, version)
-        # if suffix_proc is empty, set it to "" for the spider call:
-        if not suffix_proc:
-            self.suffix_proc = ''
-
-    # get the spider_path right with the version:
-    def set_spider_settings(self, spider_path, version):
-        """
-        Method to set the spider version, path, and name from filepath
-
-        :param spider_path: Fully qualified path and file of the spider
-        :param version: version of the spider
-        :return: None
-
-        """
-        if version:
-            # get the proc_name
-            proc_name = os.path.basename(spider_path)[7:-3]
-            # remove any version if there is one
-            proc_name = re.split("/*_v[0-9]/*", proc_name)[0]
-            # setting the version and name of the spider
-            self.version = version
-            nformat = '''{procname}_v{version}{suffix}'''
-            self.name = nformat.format(procname=proc_name,
-                                       version=self.version.split('.')[0],
-                                       suffix=self.suffix_proc)
-            sformat = '''Spider_{procname}_v{version}.py'''
-            spider_name = sformat.format(procname=proc_name,
-                                         version=version.replace('.', '_'))
-            self.spider_path = os.path.join(os.path.dirname(spider_path),
-                                            spider_name)
-        else:
-            self.default_settings_spider(spider_path)
-
-    def default_settings_spider(self, spider_path):
-        """
-        Get the default spider version and name
-
-        :param spider_path: Fully qualified path and file of the spider
-        :return: None
-
-        """
-        # set spider path
-        self.spider_path = spider_path
-        # set the name and the version of the spider
-        if len(re.split("/*_v[0-9]/*", spider_path)) > 1:
-            basename = os.path.basename(spider_path)
-            self.version = basename[7:-3].split('_v')[-1].replace('_', '.')
-            spidername = basename[7:-3]
-            self.name = '''{procname}_v{version}{suffix}'''.format(
-                procname=re.split("/*_v[0-9]/*", spidername)[0],
-                version=self.version.split('.')[0], suffix=self.suffix_proc)
-        else:
-            self.name = os.path.basename(spider_path)[7:-3] + self.suffix_proc
-
-    def get_proctype(self):
-        """
-        Return the processor name for this processor. Override this method if
-        you are inheriting from a non-yaml processor.
-        :return: the name of the processor type
-        """
-
-        return None
-
-    def get_assessor_input_types(self):
-        """
-        Enumerate the assessor input types for this. The default implementation
-        returns an empty collection; override this method if you are inheriting
-        from a non-yaml processor.
-        :return: a list of input assessor types
-        """
-        return []
-
-    # should_run - is the object of the proper object type?
-    # e.g. is it a scan? and is it the required scan type?
-    # e.g. is it a T1?
-    # other arguments here, could be Proj/Subj/Sess/Scan/Assessor depending
-    # on processor type?
-    def should_run(self):
-        """
-        Responsible for determining if the assessor should shouw up in session.
-
-        :raises: NotImplementedError if not overridden.
-        :return: None
-
-        """
-        raise NotImplementedError()
-
-    def build_cmds(self, cobj, dir):
-
-        """
-        Build the commands that will go in the PBS/SLURM script
-        :raises: NotImplementedError if not overridden from base class.
-        :return: None
-        """
-        raise NotImplementedError()
-
-    def create_assessor(self, xnatsession, inputs, relabel=False):
-        attempts = 0
-        while attempts < 100:
-            guid = str(uuid4())
-            assessor = xnatsession.assessor(guid)
-            if not assessor.exists():
-                kwargs = {}
-                if self.xsitype.lower() == DEFAULT_FS_DATATYPE.lower():
-                    fsversion = '{}/fsversion'.format(self.xsitype.lower())
-                    kwargs[fsversion] = 0
-                elif self.xsitype.lower() == DEFAULT_DATATYPE.lower():
-                    proctype = '{}/proctype'.format(self.xsitype.lower())
-                    kwargs[proctype] = self.name
-                    procversion = '{}/procversion'.format(self.xsitype.lower())
-                    kwargs[procversion] = self.version
-                input_key = '{}/inputs'.format(self.xsitype.lower())
-                kwargs[input_key] = self._serialize_inputs(inputs)
-                if relabel:
-                    _proj = assessor.parent().parent().parent().label()
-                    _subj = assessor.parent().parent().label()
-                    _sess = assessor.parent().label()
-                    label = '-x-'.join([_proj, _subj, _sess, self.name, guid[:8]])
-                else:
-                    label = guid
-
-                # Set creation date to today
-                date_key = '{}/date'.format(self.xsitype.lower())
-                date_val = str(date.today())
-                kwargs[date_key] = date_val
-
-                # Create the assessor
-                assessor.create(assessors=self.xsitype.lower(),
-                                ID=guid, label=label,
-                                **kwargs)
-                return assessor
-
-            attempts += 1
-
-    def _serialize_inputs(self, inputs):
-        return json.dumps(inputs)
-
-    def _deserialize_inputs(self, assessor):
-        return json.loads(
-            XnatUtils.parse_assessor_inputs(assessor.attrs.get('inputs')))
+# The default singularity run command that includes the cleanenv option and
+# binds an INPUTS and OUTPUTS. The command is included in the job_template
+# which will already have the variables set for $INDIR and $OUTDIR
+SINGULARITY_RUN = 'singularity run -e -H $INDIR -B $INDIR:/INPUTS -B $OUTDIR:/OUTPUTS'
 
 
-class AutoProcessor(Processor):
-    """ Auto Processor class for AutoSpider using YAML files"""
-    def __init__(self, xnat, yaml_source, user_inputs=None):
+class ParserArtefact:
+    def __init__(self, path, resources, entity):
+        self.name = path.split('/')[-1]
+        self.path = path
+        self.resources = resources
+        self.entity = entity
+
+    def __repr__(self):
+        return '{}(path = {}, resources = {}, entity = {})'.format(
+            self.__class__.__name__, self.path, self.resources, self.entity
+        )
+
+
+def validate_yaml_filename(filename):
+    # Try to match against our pattern
+    if not re.match(YAML_PATTERN, os.path.basename(filename)):
+        raise AutoProcessorError('invalid filename:{}'.format(filename))
+
+    return True
+
+
+class Processor_v3(object):
+    """Processor class for v3 YAML files"""
+
+    def __init__(
+        self,
+        xnat,
+        yaml_file,
+        user_inputs=None,
+        singularity_imagedir=None,
+        job_template='~/job_template.txt',
+    ):
+
         """
         Entry point for the auto processor
-        :param xnat: xnat context object (XnatUtils in production contexts)
-        :param yaml_source: dictionary containing source_type -> string,\
-                            source_id -> string, document -> yaml document
-        :param user_inputs: a dictionary of user overrides to the yaml\
-                            source document
+
+        :param yaml_file: yaml file defining the processor
         :return: None
 
         """
-        if not xnat:
-            raise AutoProcessorError("Parameter 'xnat' must be provided")
-        if not yaml_source:
-            raise AutoProcessorError(
-                "Parameter 'yaml_source' must be provided")
 
+        # Initialize class members
+        self.proc_inputs = {}
+        self.iteration_sources = set()
+        self.match_filters = {}
+        self.variables_to_inputs = {}
+        self.xnat_inputs = {}
+        self.command = {}
+        self.container_path = None
+        self.walltime_str = None
+        self.memreq_mb = None
+        self.ppn = 1
+        self.env = None
+        self.outputs = []
+        self.user_overrides = {}
+        self.extra_user_overrides = {}
+        self.xsitype = "proc:genProcData"
+
+        validate_yaml_filename(yaml_file)
+        # TODO: validate_yaml_file conents(yaml_file)
+
+        # Cache input file path
+        self.yaml_file = yaml_file
+
+        # Cache location of singularity imagedir
+        self.singularity_imagedir = singularity_imagedir
+
+        # Init job template as global default, could be overwritten by yaml
+        self.job_template = job_template
+
+        # Cache connection back to xnat
         self.xnat = xnat
-        self.user_overrides = dict()
-        self.extra_user_overrides = dict()
 
-        self._read_yaml(yaml_source)
+        # Get processor name/type/version from yaml file name
+        self.proctype = parse_proctype(yaml_file)
+        self.procversion = parse_procversion(yaml_file)
+        self.name = self.proctype  # launcher.py still uses "name"
 
-        # Edit the values from user inputs:
-        if user_inputs is not None:
-            self._edit_inputs(user_inputs, yaml_source)
+        # Load the yaml
+        self._read_yaml(yaml_file)
 
-        self.parser = processor_parser.ProcessorParser(
-            yaml_source.contents, self.proctype)
+        # Edit the values based on user inputs
+        if user_inputs:
+            self.user_inputs = user_inputs
+            self._edit_inputs(self.user_inputs)
+        else:
+            self.user_inputs = {}
 
-        # Set up attrs:
-        self.walltime_str = self.attrs.get('walltime')
-        self.memreq_mb = self.attrs.get('memory')
-        self.ppn = self.attrs.get('ppn', 1)
-        self.env = self.attrs.get('env', None)
-        self.xsitype = self.attrs.get('xsitype', 'proc:genProcData')
-        self.full_regex = self.attrs.get('fullregex', False)
-        self.suffix = self.attrs.get('suffix', None)
-
-    def _edit_inputs(self, user_inputs, yaml_source):
+    def _edit_inputs(self, user_inputs):
         """
         Method to edit the inputs from the YAML file by the user inputs.
 
         :param user_inputs: dictionary of tag, value. E.G:
             user_inputs = {'default.spider_path': /.../Spider....py'}
         """
-        yaml_name = yaml_source.source_id
+        print('user_inputs=', user_inputs)
 
-        for key, val in list(user_inputs.items()):
-            LOGGER.debug('overriding:key={}, file={}'.format(key, yaml_name))
+        for key, val in user_inputs.items():
+            LOGGER.debug('overriding:key={}'.format(key))
             tags = key.split('.')
-            if key.startswith('inputs.default'):
-                # change value in inputs
-                if tags[-1] in list(self.user_overrides.keys()):
-                    self.user_overrides[tags[-1]] = val
-                elif tags[-1] in list(self.extra_user_overrides.keys()):
-                    self.extra_user_overrides[tags[-1]] = val
-                else:
-                    msg = 'key not found in default inputs:key={}, file={}'
-                    msg = msg.format(tags[-1], yaml_name)
-                    LOGGER.error(msg)
-                    raise AutoProcessorError(msg)
-
-            elif key.startswith('inputs.xnat'):
+            if key.startswith('inputs.xnat'):
                 # change value in self.xnat_inputs
                 if tags[2] not in list(self.xnat_inputs.keys()):
-                    msg = 'key not found in xnat inputs:key={}, file={}'
-                    msg = msg.format(tags[3], yaml_name)
+                    msg = 'key not found in xnat inputs:key={}'
+                    msg = msg.format(tags[3])
                     LOGGER.error(msg)
                     raise AutoProcessorError(msg)
 
@@ -299,8 +161,8 @@ class AutoProcessor(Processor):
                         break
 
                 if sobj is None:
-                    msg = 'invalid override:key={}, file={}'
-                    msg = msg.format(key, yaml_name)
+                    msg = 'invalid override:key={}'
+                    msg = msg.format(key)
                     LOGGER.error(msg)
                     raise AutoProcessorError(msg)
 
@@ -314,17 +176,17 @@ class AutoProcessor(Processor):
                                 break
 
                         if robj is None:
-                            msg = 'invalid override:key={}, file={}'
+                            msg = 'invalid override:key={}'
                             LOGGER.error(msg)
                             raise AutoProcessorError(msg)
 
-                        msg = 'overriding fmatch:key={}, val={}'
+                        msg = 'overriding fmatch:key={}'
                         msg = msg.format(key, val)
                         LOGGER.debug(msg)
                         robj['fmatch'] = val
                     else:
-                        msg = 'invalid override:key={}, file={}'
-                        msg = msg.format(key, yaml_name)
+                        msg = 'invalid override:key={}'
+                        msg = msg.format(key)
                         LOGGER.error(msg)
                         raise AutoProcessorError(msg)
                 else:
@@ -336,35 +198,44 @@ class AutoProcessor(Processor):
                 if tags[-1] in list(self.attrs.keys()):
                     self.attrs[tags[-1]] = val
                 else:
-                    msg = 'key not found in attrs:key={}, file={}'
-                    msg = msg.format(tags[-1], yaml_name)
+                    msg = 'key not found in attrs:key={}'
+                    msg = msg.format(tags[-1])
                     LOGGER.error(msg)
                     raise AutoProcessorError(msg)
 
             else:
-                msg = 'invalid override:key={}, file={}'
-                msg = msg.format(key, yaml_name)
+                msg = 'invalid override:key={}'
+                msg = msg.format(key)
                 LOGGER.error(msg)
                 raise AutoProcessorError(msg)
 
-    def _read_yaml(self, yaml_source):
+    def _read_yaml(self, yaml_file):
         """
-        Method to parse the processor arguments and their default values.
+        Method to read the processor
 
-        :param yaml_source: YamlDoc object containing the yaml file contents
+        :param yaml_file: path to yaml file defining the processor
         """
-        if yaml_source.source_type is None:
-            raise AutoProcessorError('Empty yaml source provided')
+        doc = yaml_doc.YamlDoc().from_file(yaml_file).contents
 
-        doc = yaml_source.contents
+        # NOTE: we are assuming this yaml has already been validated
+
+        # Set version from yaml
+        self.procyamlversion = doc.get('procyamlversion')
+
+        # Set requirements from Yaml
+        reqs = doc.get('requirements')
+        self.walltime_str = reqs.get('walltime', '0-2')
+        self.memreq_mb = reqs.get('memory', '16G')
+        self.ppn = reqs.get('ppn', 1)
+        self.env = reqs.get('env', None)
+
+        # Load the command text
+        self.command = doc.get('command')
 
         # Set Inputs from Yaml
-        self._check_default_keys(yaml_source.source_id, doc)
-        self.attrs = doc.get('attrs')
-        self.command = doc.get('command')
         inputs = doc.get('inputs')
         self.xnat_inputs = inputs.get('xnat')
-        for key, value in list(inputs.get('default').items()):
+        for key, value in inputs.get('vars', {}).items():
             # If value is a key in command
             k_str = '{{{}}}'.format(key)
             if k_str in self.command:
@@ -375,14 +246,39 @@ class AutoProcessor(Processor):
                 elif value and value != 'None':
                     self.extra_user_overrides[key] = value
 
-        # Getting proctype from Yaml
-        self.proctype, self.version = self.xnat.get_proctype(
-            self.user_overrides.get('spider_path'),
-            self.attrs.get('suffix', None))
+        # Load xnat inputs from yaml
+        self._parse_xnat_inputs(self.xnat_inputs)
 
-        # Set attributes:
-        self.spider_path = self.user_overrides.get('spider_path')
-        self.name = self.proctype
+        # Containers
+        self.containers = []
+        for c in doc.get('containers'):
+            curc = copy.deepcopy(c)
+
+            # Set container path
+            cpath = curc['path']
+
+            if not os.path.isabs(cpath) and self.singularity_imagedir:
+                # Prepend singularity imagedir
+                curc['path'] = os.path.join(self.singularity_imagedir, cpath)
+
+            if curc.get('primary', False):
+                self.container_path = curc.get('path')
+                print(curc.get('primary'))
+
+            # Add to our containers list
+            self.containers.append(curc)
+
+        # Check primary container
+        if not self.container_path:
+            if len(self.containers) == 1:
+                self.container_path = self.containers[0].get('path')
+            else:
+                msg = 'multiple containers requires a primary to be set'
+                LOGGER.error(msg)
+                raise AutoProcessorError(msg)
+
+        # Outputs from Yaml
+        self._parse_outputs(doc.get('outputs'))
 
         # Override template
         if doc.get('jobtemplate'):
@@ -396,307 +292,48 @@ class AutoProcessor(Processor):
             # Override it
             self.job_template = os.path.join(_tmp)
 
-    def _check_default_keys(self, source_id, doc):
-        """ Static method to raise error if key not found in dictionary from
-        yaml file.
+    def _parse_outputs(self, outputs):
+        self.outputs = []
 
-        :param source_id: dictionary containing source_type -> string,\
-                            source_id -> string, document -> yaml document
-        :param key: key to check in the doc
-        """
-        # first level
-        for key in ['inputs', 'command', 'attrs']:
-            self._raise_yaml_error_if_no_key(doc, source_id, key)
-        # Second level in inputs and attrs:
-        inputs = doc.get('inputs')
-        attrs = doc.get('attrs')
-        for _doc, key in [(inputs, 'default'), (inputs, 'xnat'),
-                          (attrs, 'memory'),
-                          (attrs, 'walltime')]:
-            self._raise_yaml_error_if_no_key(_doc, source_id, key)
-        # third level for default:
-        default = doc.get('inputs').get('default')
-        for key in ['spider_path']:
-            self._raise_yaml_error_if_no_key(default, source_id, key)
+        for c in outputs:
+            # Check for keywords
+            if 'pdf' in c:
+                _path = c['pdf']
+                _type = 'FILE'
+                _res = 'PDF'
+            elif 'dir' in c:
+                _path = c['dir']
+                _type = 'DIR'
+                _res = c['dir']
+            elif 'stats' in c:
+                _path = c['stats']
+                _type = 'FILE'
+                _res = 'STATS'
 
-    @ staticmethod
-    def _raise_yaml_error_if_no_key(doc, source_id, key):
-        """Method to raise an execption if the key is not in the dict
+            # Get explicitly set path, type, resource
+            # These will override anything set by keywords
+            if 'path' in c:
+                _path = c['path']
 
-        :param doc: dict to check
-        :param source_id: YAML source identifier string for logging
-        :param key: key to search
-        """
-        if key not in list(doc.keys()):
-            err = 'YAML source {} does not have {} defined. See example.'
-            raise AutoProcessorError(err.format(source_id, key))
+            if 'type' in c:
+                _type = c['type']
 
-    def parse_session(self, csess, sessions, pets=None):
-        """
-        Method to run the processor parser on this session, in order to
-        calculate the pattern matches for this processor and the sessions
-        provided
-        :param csess: the active session. For non-longitudinal studies, this is
-        the session that the pattern matching is performed on. For longitudinal
-        studies, this is the 'current' session from which all prior sessions
-        are numbered for the purposes of pattern matching
-        :param sessions: the full, time-ordered list of sessions that should be
-        considered for longitudinal studies.
-        :return: None
-        """
-        return self.parser.parse_session(csess, sessions, pets)
+            if 'resource' in c:
+                _res = c['resource']
+
+            # Add to our outputs list
+            self.outputs.append({'path': _path, 'type': _type, 'resource': _res})
 
     def get_proctype(self):
-        return self.name
-    # ***** Names still need fixing! *****
-
-    def get_assessor_input_types(self):
-        """
-        Enumerate the assessor input types for this. The default implementation
-        returns an empty collection; override this method if you are inheriting
-        from a non-yaml processor.
-        :return: a list of input assessor types
-        """
-        assessor_inputs = [i for i in list(self.parser.inputs.values()) if i['artefact_type'] == 'assessor']
-        assessors = [i['types'] for i in assessor_inputs]
-
-        return list(itertools.chain.from_iterable(assessors))
-
-    # TODO: BenM/assessor_of_assessor/this method is no longer suitable for
-    # execution on a single assessor, as it generates commands for the whole
-    # session. In any case, the command should be written out to the xnat
-    # assessor schema so that it can simply be launched, rather than performing
-    # this reconstruction each time the dax launch command is called
-    def get_cmds(self, assr, jobdir):
-        """Method to generate the spider command for cluster job.
-
-        :param assessor: pyxnat assessor object
-        :param jobdir: jobdir where the job's output will be generated
-        :return: command to execute the spider in the job script
-        """
-
-        # TODO: BenM/assessor_of_assessors/parse each scan / assessor and
-        # any select statements and generate one or more corresponding commands
-
-        # self.parser.generate_command(cassr, )
-
-        # combine the user overrides with the input parameters for each
-        # distinct command
-        commands = []
-        variable_set = self.parser.get_variable_set(assr)
-        combined_params = {}
-        for k, v in list(variable_set.items()):
-            combined_params[k] = v
-        for k, v in list(self.user_overrides.items()):
-            combined_params[k] = v
-
-        cmd = self.command.format(**combined_params)
-
-        for key, value in list(self.extra_user_overrides.items()):
-            cmd = '{} --{} {}'.format(cmd, key, value)
-
-        # TODO: BenM/assessor_of_assessor/each assessor is separate and
-        # has a different label; change the code to fetch the label from
-        # the assessor
-        # Add assr and jobdir:
-        assr_full_name =\
-            assessor_utils.full_label_from_assessor(assr)
-        if ' -a ' not in cmd and ' --assessor ' not in cmd:
-            cmd = '{} -a {}'.format(cmd, assr_full_name)
-        if ' -d ' not in cmd:
-            cmd = '{} -d {}'.format(cmd, jobdir)
-
-        commands.append(cmd)
-
-        return commands
-
-
-class Processor_v3(AutoProcessor):
-    """ More Auto Processor class for AutoSpider using YAML files"""
-
-    def __init__(self, xnat, yaml_file, user_inputs=None,
-                 singularity_imagedir=None, job_template='~/job_template.txt'):
-
-        """
-        Entry point for the auto processor
-
-        :param yaml_file: yaml file defining the processor
-        :return: None
-
-        """
-
-        # Load outputs
-        self.outputs = dict()
-
-        # Save location of singularity imagedir
-        self.singularity_imagedir = singularity_imagedir
-
-        # Set the template to the global default, it could be overwritten by
-        # processor yaml
-        self.job_template = job_template
-    
-        yaml_source = yaml_doc.YamlDoc().from_file(yaml_file)
-        super(Processor_v3, self).__init__(xnat, yaml_source, user_inputs)
-
-        self.procyamlversion = '3.0.0-dev.0'
-        self.yaml_file = yaml_file
-        self.user_inputs = user_inputs
-
-    def _read_yaml(self, yaml_source):
-        """
-        Method to read the processor arguments and there default value.
-
-        :param yaml_file: path to yaml file defining the processor
-        """
-        if yaml_source.source_type is None:
-            raise AutoProcessorError('Empty yaml source provided')
-
-        doc = yaml_source.contents
-
-        # Set Inputs from Yaml
-        self._check_default_keys(yaml_source.source_id, doc)
-        self.attrs = doc.get('attrs')
-        self.command = doc.get('command')
-
-        # Set Inputs from Yaml
-        inputs = doc.get('inputs')
-        self.xnat_inputs = inputs.get('xnat')
-        for key, value in list(inputs.get('default').items()):
-            # If value is a key in command
-            k_str = '{{{}}}'.format(key)
-            if k_str in self.command:
-                self.user_overrides[key] = value
-            else:
-                if isinstance(value, bool) and value is True:
-                    self.extra_user_overrides[key] = ''
-                elif value and value != 'None':
-                    self.extra_user_overrides[key] = value
-
-        # Container path, prepend singularity imagedir
-        self.container_path = inputs.get('default').get('container_path')
-        if ((self.container_path.endswith('.simg') or
-                self.container_path.endswith('.img') or
-                self.container_path.endswith('.sif')) and
-                not os.path.isabs(self.container_path) and
-                self.singularity_imagedir):
-            self.container_path = os.path.join(
-                self.singularity_imagedir, self.container_path)
-
-        # Overwrite container_path for building script
-        self.user_overrides['container_path'] = self.container_path
-
-        # Getting proctype and version from Yaml
-        if doc.get('procversion'):
-            self.version = doc.get('procversion')
-        else:
-            self.version = self.parse_procversion()
-
-        if doc.get('procname'):
-            procname = doc.get('procname')
-        else:
-            procname = self.parse_procname()
-
-        if doc.get('proctype'):
-            self.proctype = doc.get('proctype')
-        else:
-            self.proctype = '{}_v{}'.format(
-                procname, self.version.split('.')[0]
-            )
-
-        suffix = self.attrs.get('suffix', None)
-        if suffix:
-            if suffix[0] != '_':
-                suffix = '_{}'.format(suffix)
-
-            suffix = re.sub('[^a-zA-Z0-9]', '_', suffix)
-
-            if suffix[-1] == '_':
-                suffix = suffix[:-1]
-
-            self.proctype = '{}{}'.format(self.proctype, suffix)
-
-        # Set attributes:
-        self.name = self.proctype
-
-        # Set Outputs from Yaml
-        self.outputs = doc.get('outputs')
-
-        # Override template
-        if doc.get('jobtemplate'):
-            _tmp = doc.get('jobtemplate')
-
-            # Make sure we have the full path
-            if not os.path.isabs(_tmp):
-                # If only filename, we assume it is same folder as default
-                _tmp = os.path.join(os.path.dirname(self.job_template), _tmp)
-
-            # Override it
-            self.job_template = os.path.join(_tmp)
-
-    def _check_default_keys(self, source_id, doc):
-        """ Static method to raise error if key not found in dictionary from
-        yaml file.
-
-        :param yaml_file: path to yaml file defining the processor
-        :param doc: doc dictionary extracted from the yaml file
-        :param key: key to check in the doc
-        """
-        # first level
-        for key in ['inputs', 'command', 'attrs', 'outputs']:
-            self._raise_yaml_error_if_no_key(doc, source_id, key)
-
-        # Second level in inputs and attrs:
-        inputs = doc.get('inputs')
-        attrs = doc.get('attrs')
-        for _doc, key in [(inputs, 'default'), (inputs, 'xnat'),
-                          (attrs, 'memory'),
-                          (attrs, 'walltime')]:
-            self._raise_yaml_error_if_no_key(_doc, source_id, key)
-
-        # third level for default:
-        default = doc.get('inputs').get('default')
-
-        for key in ['container_path']:
-            self._raise_yaml_error_if_no_key(default, source_id, key)
-
-    def parse_procname(self):
-        tmp = self.container_path
-        tmp = tmp.split('://')[-1]
-        tmp = tmp.rsplit('/')[-1]
-
-        if len(re.split('/*[_:]v[0-9]/*', tmp)) > 1:
-            tmp = re.split('/*[_:]v[0-9]/*', tmp)[0]
-
-        if tmp.startswith('Spider_'):
-            tmp = tmp[len('Spider_'):]
-
-        return tmp
-
-    def parse_procversion(self):
-        tmp = self.container_path
-
-        tmp = tmp.split('://')[-1]
-        tmp = tmp.rsplit('/')[-1]
-
-        if tmp.endswith('.img'):
-            tmp = tmp.split('.img')[0]
-        elif tmp.endswith('.simg'):
-            tmp = tmp.split('.simg')[0]
-        elif tmp.endswith('.py'):
-            tmp = tmp.split('.py')[0]
-
-        if len(re.split('/*_v[0-9]/*', tmp)) > 1:
-            tmp = tmp.split('_v')[-1].replace('_', '.')
-        elif len(re.split('/*:v[0-9]/*', tmp)) > 1:
-            tmp = tmp.split(':v')[-1].replace('_', '.')
-
-        return tmp
+        return self.proctype
 
     def build_cmds(self, assr, assr_label, sessions, jobdir, resdir):
         """Method to generate the spider command for cluster job.
         :param jobdir: jobdir where the job's output will be generated
         :return: command to execute the spider in the job script
         """
+
+        # Query xnat for the artefact inputs
         assr_inputs = XnatUtils.get_assessor_inputs(assr, sessions)
 
         # Make every input a list, so we can iterate later
@@ -705,14 +342,16 @@ class Processor_v3(AutoProcessor):
                 assr_inputs[k] = [assr_inputs[k]]
 
         # Find values for the xnat inputs
-        var2val, input_list = self.parser.find_inputs(
-            assr, sessions, assr_inputs)
+        print('assr_inputs=', assr_inputs)
+        var2val, input_list = self.find_inputs(assr, sessions, assr_inputs)
+        print('var2val=', var2val)
+        print('input_list=', input_list)
 
         # Append other stuff
-        for k, v in list(self.user_overrides.items()):
+        for k, v in self.user_overrides.items():
             var2val[k] = v
 
-        for k, v in list(self.extra_user_overrides.items()):
+        for k, v in self.extra_user_overrides.items():
             var2val[k] = v
 
         # Include the assessor label
@@ -733,13 +372,15 @@ class Processor_v3(AutoProcessor):
                 _ref = attr_in['ref']
                 _refval = [a.rsplit('/', 1)[1] for a in assr_inputs[_ref]]
                 _val = ','.join(
-                    [assr.parent().scan(r).attrs.get(_attr) for r in _refval])
+                    [assr.parent().scan(r).attrs.get(_attr) for r in _refval]
+                )
             elif _obj == 'assessor':
                 if 'ref' in attr_in:
                     _ref = attr_in['ref']
                     _refval = [a.rsplit('/', 1)[1] for a in assr_inputs[_ref]]
                     _val = ','.join(
-                        [assr.parent().assessor(r).attrs.get(_attr) for r in _refval])
+                        [assr.parent().assessor(r).attrs.get(_attr) for r in _refval]
+                    )
                 else:
                     _val = assr.attrs.get(_attr)
             else:
@@ -760,8 +401,8 @@ class Processor_v3(AutoProcessor):
                 assr.parent().parent().parent().label(),
                 assr.parent().parent().label(),
                 assr.parent().label(),
-                assr.label()
-                )
+                assr.label(),
+            )
 
             for edit_in in self.xnat_inputs.get('edits', list()):
                 _fpref = edit_in['fpref']
@@ -776,21 +417,16 @@ class Processor_v3(AutoProcessor):
 
                     # Build full uri
                     _uri = '{}/data{}/out/resources/{}/files/{}'.format(
-                        assr._intf.host,
-                        assr_path,
-                        task.EDITS_RESOURCE,
-                        _val)
+                        assr._intf.host, assr_path, task.EDITS_RESOURCE, _val
+                    )
 
                     # Append to inputs to be downloaded
-                    input_list.append({
-                        'fdest': _fpref,
-                        'ftype': 'FILE',
-                        'fpath': _uri,
-                        'ddest': ''
-                    })
+                    input_list.append(
+                        {'fdest': _fpref, 'ftype': 'FILE', 'fpath': _uri, 'ddest': ''}
+                    )
 
                     # Set the value for command text
-                    var2val[_var] = '/INPUTS/'+_fpref
+                    var2val[_var] = '/INPUTS/' + _fpref
 
                 else:
                     # None found
@@ -803,8 +439,8 @@ class Processor_v3(AutoProcessor):
         dstdir = os.path.join(resdir, assr_label)
         assr_dir = os.path.join(jobdir, assr_label)
         cmd = self.build_text(
-            var2val, input_list, assr_dir, dstdir,
-            assr._intf.host, assr._intf.user)
+            var2val, input_list, assr_dir, dstdir, assr._intf.host, assr._intf.user
+        )
 
         return [cmd]
 
@@ -812,24 +448,15 @@ class Processor_v3(AutoProcessor):
         # Initialize commands
         cmd = '\n\n'
 
-        # Append the list of inputs, URL-encoding the fpath to
-        # handle special chars in URLs
-        cmd += 'INLIST=(\n'
-        for cur in input_list:
-            cur['fpath'] = requests.utils.quote(cur['fpath'],safe=":/")
-            cmd += '{fdest},{ftype},{fpath},{ddest}\n'.format(**cur)
+        # Append the list of inputs
+        print('input_list=', input_list)
+        cmd += self.build_inputs_text(input_list)
 
-        cmd += ')\n\n'
-
-        # Append the list on outputs
-        cmd += 'OUTLIST=(\n'
-        for cur in self.outputs:
-            cmd += '{path},{type},{resource}\n'.format(**cur)
-
-        cmd += ')\n\n'
+        # Append the list of outputs
+        cmd += self.build_outputs_text(self.outputs)
 
         # Append other paths
-        cmd += 'VERSION={}\n'.format(self.version)
+        cmd += 'VERSION={}\n'.format(self.procversion)
         cmd += 'JOBDIR=$(mktemp -d "{}.XXXXXXXXX") || '.format(jobdir)
         cmd += '{ echo "mktemp failed"; exit 1; }\n'
         cmd += 'INDIR=$JOBDIR/INPUTS\n'
@@ -839,12 +466,92 @@ class Processor_v3(AutoProcessor):
         cmd += 'XNATHOST={}\n\n'.format(host)
         cmd += 'XNATUSER={}\n\n'.format(user)
 
-        # Append the main command
-        cmd += 'MAINCMD=\"'
-        cmd += self.command.format(**var2val)
-        cmd += '\"\n'
+        # Append main commands
+        cmd += self.build_main_text(var2val)
 
         return cmd
+
+    def build_main_text(self, var2val):
+        # Get the command dictionary
+        command = self.command
+        print('command=', command)
+
+        txt = 'MAINCMD=\"'
+
+        # TODO: Build and append the pre command
+
+        # Build and append the main command
+        if 'type' not in command:
+            err = 'command type not set'
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
+
+        if command['type'] == 'singularity_run':
+            # TODO: move this to a function build_singularity_run()
+            if 'container' not in command:
+                err = 'singularity_run requires a container to be set'
+                LOGGER.error(err)
+                raise AutoProcessorError(err)
+
+            # Use the container name to get the path
+            cpath = self.get_container_path(command['container'])
+
+            if not cpath:
+                err = 'container path not found'
+                LOGGER.error(err)
+                raise AutoProcessorError(err)
+
+            cargs = command.get('args', None)
+
+            # Append container name to singularity run
+            command_txt = '{} {}'.format(SINGULARITY_RUN, cpath)
+            print(command_txt)
+
+            # TODO: override options
+
+            # Append arguments for the singularity entrypoint
+            if cargs:
+                command_txt = '{} {}'.format(command_txt, cargs)
+
+            print(command_txt)
+
+            # Replace vars with values from var2val
+            command_txt = command_txt.format(**var2val)
+
+            print(command_txt)
+
+        else:
+            err = 'invalid command type:{}'.format(command['type'])
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
+
+        # TODO: Build the post command
+
+        # Concatenate commands
+        txt += command_txt
+        txt += '\"\n'
+        return txt
+
+    def build_outputs_text(self, outputs):
+        txt = 'OUTLIST=(\n'
+
+        for cur in outputs:
+            txt += '{path},{type},{resource}\n'.format(**cur)
+
+        txt += ')\n\n'
+
+        return txt
+
+    def build_inputs_text(self, inputs):
+        txt = 'INLIST=(\n'
+
+        for cur in inputs:
+            cur['fpath'] = requests.utils.quote(cur['fpath'], safe=":/")
+            txt += '{fdest},{ftype},{fpath},{ddest}\n'.format(**cur)
+
+        txt += ')\n\n'
+
+        return txt
 
     def write_processor_spec(self, filename):
         # Write a file with the path to the base processor and any overrides
@@ -856,16 +563,688 @@ class Processor_v3(AutoProcessor):
 
             # write customizations
             if self.user_inputs:
-                for k, v in self.user_inputs:
+                for k, v in self.user_inputs.items():
                     f.write('{}={}\n'.format(k, v))
 
             # singularity_imagedir
-            f.write('{}={}\n'.format(
-                'singularity_imagedir', self.singularity_imagedir))
+            f.write('{}={}\n'.format('singularity_imagedir', self.singularity_imagedir))
 
             # job_template
-            f.write('{}={}\n'.format(
-                'job_template', self.job_template))
+            f.write('{}={}\n'.format('job_template', self.job_template))
 
             # extra blank line
             f.write('\n')
+
+    def create_assessor(self, xnatsession, inputs, relabel=False):
+        attempts = 0
+        while attempts < 100:
+            attempts += 1
+            guid = str(uuid4())
+            assessor = xnatsession.assessor(guid)
+            if assessor.exists():
+                print('assessor already exists')
+                continue
+
+            kwargs = {}
+            proctype = '{}/proctype'.format(self.xsitype.lower())
+            kwargs[proctype] = self.proctype
+            procversion = '{}/procversion'.format(self.xsitype.lower())
+            kwargs[procversion] = self.procversion
+            input_key = '{}/inputs'.format(self.xsitype.lower())
+            kwargs[input_key] = self._serialize_inputs(inputs)
+            if relabel:
+                _proj = assessor.parent().parent().parent().label()
+                _subj = assessor.parent().parent().label()
+                _sess = assessor.parent().label()
+                _type = self.proctype
+                label = '-x-'.join([_proj, _subj, _sess, _type, guid[:6]])
+            else:
+                label = guid
+
+            # Set creation date to today
+            date_key = '{}/date'.format(self.xsitype.lower())
+            date_val = str(date.today())
+            kwargs[date_key] = date_val
+
+            # Create the assessor
+            assessor.create(
+                assessors=self.xsitype.lower(), ID=guid, label=label, **kwargs
+            )
+            return assessor
+
+    def _serialize_inputs(self, inputs):
+        return json.dumps(inputs)
+
+    def _deserialize_inputs(self, assessor):
+        return json.loads(XnatUtils.parse_assessor_inputs(assessor.attrs.get('inputs')))
+
+    def get_assessor_input_types(self):
+        """
+        Enumerate the assessor input types for this. The default implementation
+        returns an empty collection; override this method if you are inheriting
+        from a non-yaml processor.
+        :return: a list of input assessor types
+        """
+        assessor_inputs = [
+            i
+            for i in list(self.parser.proc_inputs.values())
+            if i['artefact_type'] == 'assessor'
+        ]
+        assessors = [i['types'] for i in assessor_inputs]
+
+        return list(itertools.chain.from_iterable(assessors))
+
+    def parse_session(self, csess, sessions, pets=None):
+        """
+        Parse a session to determine what assessors should exist for
+        this processor and identify any that already exist.
+        This call populates assessor_parameter_map.
+
+        :param csess: the session in question
+        :param sessions: the full list of sessions, including csess, for the
+        subject
+
+        :return: None
+        """
+        print('parse_session', csess.label())
+
+        # BDB 6/5/21
+        # only include pets if this is the first mr session
+        if sessions.index(csess) == (len(sessions) - 1):
+            LOGGER.debug('session is first, including pets')
+        else:
+            LOGGER.debug('session is not first, not including pets')
+            pets = []
+
+        artefacts = parse_artefacts(csess, pets)
+        # print('parse_artefacts', artefacts)
+
+        # BDB 6/5/21
+        # The artefacts are a dictionary where the index key is the
+        # relative path of scan or assessor:
+        # /projects/PROJ/subjects/SUBJ/experiments/SESS/assessors/ASSR
+        # for every single assessor or scan. the value in the dictionary
+        # is a ParserArtefact object the includes a list of the scan/assr's
+        # resources and a CachedAssessor object. This can be used later
+        # to quickly access this information
+
+        # BDB 6/5/21
+        # next we will create a dictionary of just the artefacts for each of
+        # the inputs map the artefacts to the inputs, this is where
+        # we filter down the whole session to the types of scan/assessors we
+        # want. Then we decide what to do with the different combinations of
+        # those scans/assessors if we find multiple per input.
+        # maybe we should change the names?
+        # artefacts --> all_artefacts or all_session_arefacts
+        # artefacts_by_inputs --> input_artefacts_by_input or something
+
+        artefacts_by_input = self._map_artefacts_to_inputs(csess, pets)
+        print('map_artefacts_to_inputs', artefacts_by_input)
+
+        # BDB 6/5/21
+        # at this point the pet scan should be just like any other input or
+        # artefact, it's just a path
+
+        # BDB 6/5/21
+        # artefacts_by_input is a dictionary where the key is the
+        # input name and the value is a list of artefact paths that match
+        # the input.
+        # These artefact paths are keys into the artefacts dictionary.
+
+        parameter_matrix = self._generate_parameter_matrix(
+            artefacts, artefacts_by_input
+        )
+        print('generate_parameter_matrix', parameter_matrix)
+
+        # BDB 6/5/21
+        # parameter_matrix is the combinations of inputs from the lists in
+        # artefacts_by_inputs. I think these are the cartesian product
+        # of lists in artefacts_by_input.
+
+        # BDB 6/5/21
+        # Next we filter down the combinations by applying
+        # any filters included in the yaml. currently
+        # the only filter supported is a match filter
+        # which help us only include combinations where one of the inputs
+        # is the same, e.g. the same T1 input
+        # This functions uses the artefacts dictionary to get the inputs field
+        # from each artefact for comparison.
+        parameter_matrix = self._filter_matrix(parameter_matrix, artefacts)
+        print('filter_matrix', parameter_matrix)
+
+        # BDB 6/5/21
+        # And now we use the parameter matrix as a list of what set of inputs
+        # we need assessors for
+        # by mapping to what assessors already exist by comparing
+        # the inputs field on existing assessors with our list of inputs
+        assessor_parameter_map = self._compare_to_existing(csess, parameter_matrix)
+        print('compare_to_existing', assessor_parameter_map)
+
+        # BDB 6/5/21
+        # assessor_parameter_map is list of tuples
+        # where each tuple is(inputs, assessor(s))(if assesors exists already),
+        # if assessors don't exist assessors will empty list
+        # so what we are returning is a list of tuples
+        # (set of inputs, existing assessors for these inputs)
+        print('assessor_parameter_map n=', len(list(assessor_parameter_map)))
+        return list(assessor_parameter_map)
+
+    def get_container_path(self, name):
+        cpath = None
+
+        # Find the matching container
+        for c in self.containers:
+            if c['name'] == name:
+                cpath = c['path']
+                break
+
+        return cpath
+
+    def find_inputs(self, assr, sessions, assr_inputs):
+        """
+        Find the files or directories on xnat for the inputs
+
+        takes an assessor, its input artefacts, its relevant sessions
+        and returns the full paths to the input files/directories
+
+        :param assr:
+        :param sessions:
+        :param assr_inputs:
+
+        :return: variable_set, input_list:
+
+        """
+        variable_set = {}
+        input_list = []
+
+        # Check artefact status
+        LOGGER.debug('checking status of each artefact')
+        for artk, artv in list(assr_inputs.items()):
+            LOGGER.debug('checking status:' + artk)
+            inp = self.proc_inputs[artk]
+            art_type = inp['artefact_type']
+
+            if art_type == 'scan' and not inp['needs_qc']:
+                # Not checking qc status
+                continue
+
+            if art_type == 'scan':
+                # Check status of each input scan
+                for vinput in artv:
+                    qstatus = XnatUtils.get_scan_status(sessions, vinput)
+                    if qstatus.lower() == 'unusable':
+                        raise NeedInputsException(artk + ': Not Usable')
+            else:
+                # Check status of each input assr
+                for vinput in artv:
+                    pstatus, qstatus = XnatUtils.get_assr_status(sessions, vinput)
+                    if pstatus in OPEN_STATUS_LIST + [NEED_INPUTS]:
+                        raise NeedInputsException(artk + ': Not Ready')
+
+                    if qstatus in [JOB_PENDING, REPROC, RERUN]:
+                        raise NeedInputsException(artk + ': Not Ready')
+
+                    if not inp['needs_qc']:
+                        # Not checking qc status
+                        continue
+
+                    if qstatus in [FAILED_NEEDS_REPROC, NEEDS_QA]:
+                        raise NeedInputsException(artk + ': Needs QC')
+
+                    for badstatus in BAD_QA_STATUS:
+                        if badstatus.lower() in qstatus.split(' ')[0].lower():
+                            raise NeedInputsException(artk + ': Bad QC')
+
+        # Map from parameters to input resources
+        LOGGER.debug('mapping params to artefact resources')
+        for k, v in list(self.variables_to_inputs.items()):
+            LOGGER.debug('mapping:' + k)
+            inp = self.proc_inputs[v['input']]
+            resource = v['resource']
+
+            # Find the resource
+            cur_res = None
+            for inp_res in inp['resources']:
+                if inp_res['varname'] == k:
+                    cur_res = inp_res
+                    break
+
+            # TODO: optimize this to get resource list only once
+            for vnum, vinput in enumerate(assr_inputs[v['input']]):
+                robj = get_resource(assr._intf, vinput, resource)
+
+                # Get list of all files in the resource, relative paths
+                file_list = [x._urn for x in robj.files().get('path')]
+                if len(file_list) == 0:
+                    LOGGER.debug('empty or missing resource')
+                    raise NeedInputsException('No Resource')
+
+                if 'fmatch' in cur_res:
+                    fmatch = cur_res['fmatch']
+                elif cur_res['ftype'] == 'FILE':
+                    # Default to all
+                    fmatch = '*'
+                else:
+                    fmatch = None
+
+                if 'filepath' in cur_res:
+                    fpath = cur_res['filepath']
+                    res_path = resource + '/files/' + fpath
+                elif fmatch:
+                    # Filter list based on regex matching
+                    regex = utilities.extract_exp(fmatch, full_regex=False)
+                    file_list = [x for x in file_list if regex.match(x)]
+
+                    if len(file_list) == 0:
+                        LOGGER.debug('no matching files found on resource')
+                        raise NeedInputsException('No Files')
+
+                    # Make a comma separated list of files
+                    uri_list = ['{}/files/{}'.format(resource, f) for f in file_list]
+                    res_path = ','.join(uri_list)
+                else:
+                    res_path = resource + '/files'
+
+                variable_set[k] = get_uri(assr._intf.host, vinput, res_path)
+
+                if len(assr_inputs[v['input']]) > 1:
+                    fdest = str(vnum) + cur_res['fdest']
+                else:
+                    fdest = cur_res['fdest']
+
+                if 'ddest' in cur_res:
+                    ddest = cur_res['ddest']
+                else:
+                    ddest = ''
+
+                # Append to inputs to be downloaded
+                input_list.append(
+                    {
+                        'fdest': fdest,
+                        'ftype': cur_res['ftype'],
+                        'fpath': variable_set[k],
+                        'ddest': ddest,
+                    }
+                )
+
+                # Replace path with destination path after download
+                if 'varname' in cur_res:
+                    variable_set[k] = fdest
+
+        LOGGER.debug('finished mapping params to artefact resources')
+
+        return variable_set, input_list
+
+    def _parse_xnat_inputs(self, xnat_inputs):
+        # get scans
+        scans = xnat_inputs.get('scans', list())
+        for s in scans:
+            name = s.get('name')
+            self.iteration_sources.add(name)
+
+            types = [_.strip() for _ in s['types'].split(',')]
+
+            resources = s.get('resources', [])
+
+            if 'nifti' in s:
+                # Add a resource with name XNAT and fdest set to value of nifti
+                resources.append({'resource': 'NIFTI', 'fdest': s['nifti']})
+
+            # 2021-11-14 bdb Is anyone using this?
+            artefact_required = False
+            for r in resources:
+                r['required'] = r.get('required', True)
+                artefact_required = artefact_required or r['required']
+
+            needs_qc = s.get('needs_qc', False)
+
+            self.proc_inputs[name] = {
+                'types': types,
+                'artefact_type': 'scan',
+                'needs_qc': needs_qc,
+                'resources': resources,
+                'required': artefact_required,
+            }
+
+        # get assessors
+        asrs = xnat_inputs.get('assessors', list())
+        for a in asrs:
+            name = a.get('name')
+            self.iteration_sources.add(name)
+
+            types = [_.strip() for _ in a['proctypes'].split(',')]
+            resources = a.get('resources', [])
+            artefact_required = False
+            for r in resources:
+                r['required'] = r.get('required', True)
+            artefact_required = artefact_required or r['required']
+
+            self.proc_inputs[name] = {
+                'types': types,
+                'artefact_type': 'assessor',
+                'needs_qc': a.get('needs_qc', False),
+                'resources': resources,
+                'required': artefact_required,
+            }
+
+        # Handle petscans section
+        petscans = xnat_inputs.get('petscans', list())
+        for p in petscans:
+            name = p.get('name')
+            self.iteration_sources.add(name)
+            types = [x.strip() for x in p['scantypes'].split(',')]
+            tracer = [x.strip() for x in p['tracer'].split(',')]
+
+            resources = p.get('resources')
+
+            self.proc_inputs[name] = {
+                'types': types,
+                'artefact_type': 'scan',
+                'needs_qc': p.get('needs_qc', False),
+                'resources': p.get('resources', []),
+                'required': True,
+                'tracer': tracer,
+            }
+
+        if 'filters' in xnat_inputs:
+            self._parse_filters(xnat_inputs.get('filters'))
+
+        self._populate_proc_inputs()
+        self._parse_variables()
+
+    def _parse_filters(self, filters):
+        match_list = []
+
+        # Parse out filters, currently only filters of type match are supported
+        for f in filters:
+            _type = f['type']
+            if _type == 'match':
+                # Split the comma-separated list of inputs
+                _inputs = f['inputs'].split(',')
+                match_list.append(_inputs)
+            else:
+                LOGGER.error('invalid filter type:{}'.format(_type))
+
+        self.match_filters = match_list
+
+    def _map_artefacts_to_inputs(self, csess, pets):
+        inputs = self.proc_inputs
+
+        # BDB 6/5/21
+        # here is where we should do something different for
+        # the pet scans I think? are we treating assessors scans differently
+        # here or not?
+        artefacts_by_input = {k: [] for k in inputs}
+
+        for i, iv in list(inputs.items()):
+            # BDB 6/5/21
+            # here we do something to filter the list of sessions based
+            # on the select types in the inputs???
+            # I'm not sure what's going on here, are we only selecting
+            # one of the sessions at this point? when and where
+            # do we use multiple sessions?
+
+            if 'tracer' in iv:
+                # The input is a petscan so look in the pets
+                for p in pets:
+                    # Match the tracer name
+                    tracer_name = p.get('xnat:tracer/name')
+                    tracer_match = False
+                    for expression in iv['tracer']:
+                        regex = utilities.extract_exp(expression)
+                        if regex.match(tracer_name):
+                            # found a match so exit the loop
+                            tracer_match = True
+                            break
+
+                    if not tracer_match:
+                        # None of the expressions matched
+                        LOGGER.debug(
+                            'tracer no matchy:{}:{}'.format(tracer_name, iv['tracer'])
+                        )
+                        continue
+
+                    # Now try to match the scan type
+                    for pscan in p.scans():
+                        for expression in iv['types']:
+                            regex = utilities.extract_exp(expression)
+                            if regex.match(pscan.type()):
+                                # Found a match, now check quality
+                                if pscan.info().get('quality') == 'unusable':
+                                    LOGGER.info('excluding unusable scan')
+                                else:
+                                    artefacts_by_input[i].append(pscan.full_path())
+
+            else:
+                # Iterate each scan on the session
+                for cscan in csess.scans():
+                    for expression in iv['types']:
+                        regex = utilities.extract_exp(expression)
+                        if regex.match(cscan.type()):
+                            artefacts_by_input[i].append(cscan.full_path())
+                            # Break here so we don't match multiple times
+                            break
+
+                for cassr in csess.assessors():
+                    if cassr.type() in iv['types']:
+                        artefacts_by_input[i].append(cassr.full_path())
+
+        return artefacts_by_input
+
+    def _generate_parameter_matrix(self, artefacts, artefacts_by_input):
+        inputs = self.proc_inputs
+        iteration_sources = self.iteration_sources
+
+        # generate n dimensional input matrix based on iteration sources
+        all_inputs = []
+        input_dimension_map = []
+
+        # check whether all inputs are present
+        for i, iv in list(inputs.items()):
+            if len(artefacts_by_input[i]) == 0 and iv['required'] is True:
+                return []
+
+        # add in None for optional inputs so that the matrix can be generated
+        # without artefacts present for those inputs
+        sanitised_inputs = {}
+        for i, iv in list(inputs.items()):
+            if len(artefacts_by_input[i]) == 0:
+                sanitised_inputs[i] = [list().append(None)]
+            else:
+                sanitised_inputs[i] = artefacts_by_input[i]
+
+        for i in iteration_sources:
+            # find other inputs that map to this iteration source
+            mapped_inputs = [i]
+            cur_input_vector = sanitised_inputs[i][:]
+
+            # build up the set of mapped input vectors one by one based on
+            # the select mode of the mapped input
+            combined_input_vector = [cur_input_vector]
+
+            # 'trim' the input vectors to the number of entries of the
+            # shortest vector. We don't actually truncate the datasets but
+            # just use the number when transposing, below
+            min_entry_count = min((len(e) for e in combined_input_vector))
+
+            # transpose from list of input vectors to input entry lists,
+            # one per combination of inputs
+            merged_input_vector = [
+                [None for col in range(len(combined_input_vector))]
+                for row in range(min_entry_count)
+            ]
+            for row in range(min_entry_count):
+                for col in range(len(combined_input_vector)):
+                    merged_input_vector[row][col] = combined_input_vector[col][row]
+
+            all_inputs.append(mapped_inputs)
+            input_dimension_map.append(merged_input_vector)
+
+        # perform a cartesian product of the dimension map entries to get the
+        # final input combinations
+        matrix = [
+            list(itertools.chain.from_iterable(x))
+            for x in itertools.product(*input_dimension_map)
+        ]
+
+        matrix_headers = list(itertools.chain.from_iterable(all_inputs))
+
+        # rebuild the matrix to order the inputs consistently
+        final_matrix = []
+        for r in matrix:
+            row = dict()
+            for i in range(len(matrix_headers)):
+                row[matrix_headers[i]] = r[i]
+            final_matrix.append(row)
+
+        return final_matrix
+
+    def _compare_to_existing(self, csess, parameter_matrix):
+        proc_type = self.proctype
+
+        assessors = [[] for _ in range(len(parameter_matrix))]
+
+        for casr in [a for a in csess.assessors() if a.type() == proc_type]:
+            inputs = casr.get_inputs()
+            if inputs is None:
+                LOGGER.warn('skipping, inputs field is empty:' + casr.label())
+                return list()
+
+            for pi, p in enumerate(parameter_matrix):
+                if inputs == p:
+                    # BDB 6/5/21 do we ever have more than one assessor
+                    # with the same set of inputs?
+                    assessors[pi].append(casr)
+
+        return list(zip(copy.deepcopy(parameter_matrix), assessors))
+
+    def _filter_matrix(self, parameter_matrix, artefacts):
+        match_filters = self.match_filters
+
+        filtered_matrix = []
+        for cur_param in parameter_matrix:
+            # Reset matching for this param set
+            all_match = True
+
+            for cur_filter in match_filters:
+                # Get the first value to compare with others
+                first_val = get_input_value(cur_filter[0], cur_param, artefacts)
+
+                # Compare other values with first value
+                for cur_input in cur_filter[1:]:
+                    cur_val = get_input_value(cur_input, cur_param, artefacts)
+
+                    if cur_val is None:
+                        LOGGER.warn('cannot match, empty inputs:{}'.format(cur_input))
+                        all_match = False
+                        break
+
+                    if cur_val != first_val:
+                        # A single non-match breaks the whole thing
+                        all_match = False
+                        break
+
+            if all_match:
+                # Keep this param set if everything matches
+                filtered_matrix.append(cur_param)
+
+        return filtered_matrix
+
+    def _populate_proc_inputs(self):
+        for ik, iv in self.proc_inputs.items():
+            for r in iv['resources']:
+                # Complete varname
+                if 'varname' not in r:
+                    r['varname'] = '{}-{}'.format(ik, r['resource'])
+
+                # Complete ftype
+                if 'ftype' not in r:
+                    r['ftype'] = 'FILE'
+
+    def _parse_variables(self):
+        for ik, iv in self.proc_inputs.items():
+            for r in iv['resources']:
+                v = r.get('varname')
+                self.variables_to_inputs[v] = {'input': ik, 'resource': r['resource']}
+
+
+def get_input_value(input_name, parameter, artefacts):
+    if '/' not in input_name:
+        # Matching on parent so keep this value
+        _val = parameter[input_name]
+    else:
+        # Match is on a parent so parse out the parent/child
+        (_parent_name, _child_name) = input_name.split('/')
+        _parent_val = parameter[_parent_name]
+        _parent_art = artefacts[_parent_val]
+
+        _parent_art_inputs = _parent_art.entity.get_inputs()
+        if _parent_art_inputs is None:
+            # Check that inputs field is not empty
+            LOGGER.warn('inputs field is empty:' + _parent_val)
+            _val = None
+        else:
+            # Get the inputs field from the child
+            _parent_inputs = _parent_art_inputs
+            _val = _parent_inputs[_child_name]
+
+    return _val
+
+
+def parse_artefacts(csess, pets=[]):
+    def parse(carts, arts):
+        for cart in carts:
+            resources = {}
+            for cres in cart.resources():
+                resources[cres.label()] = cres
+            full_path = cart.full_path()
+            arts[full_path] = ParserArtefact(full_path, resources, cart)
+
+    artefacts = {}
+    parse(csess.scans(), artefacts)
+    parse(csess.assessors(), artefacts)
+
+    # BDB 6/5/21
+    # Add the pet scans (we are not supporting pet assessors at this time)
+    for p in pets:
+        parse(p.scans(), artefacts)
+
+    return artefacts
+
+
+def get_uri(host, input_path, resource_path):
+    if '/scans/' in input_path:
+        uri_path = '{0}/data{1}/resources/{2}'.format(host, input_path, resource_path)
+    else:
+        uri_path = '{0}/data{1}/out/resources/{2}'.format(
+            host, input_path, resource_path
+        )
+
+    return uri_path
+
+
+def get_resource(xnat, input_path, resource):
+    if '/scans/' in input_path:
+        resource_path = '{0}/resources/{1}'
+    else:
+        resource_path = '{0}/out/resources/{1}'
+
+    rpath = resource_path.format(input_path, resource)
+    robj = xnat.select(rpath)
+
+    return robj
+
+
+def parse_proctype(yaml_file):
+    # At this point we assume the yaml file name is valid
+    tmp = os.path.basename(yaml_file)
+    tmp = tmp.rsplit('.')[-4]
+    return tmp
+
+
+def parse_procversion(yaml_file):
+    # At this point we assume the yaml file name is valid
+    tmp = os.path.basename(yaml_file)
+    tmp = os.path.splitext(yaml_file)[0]
+    tmp = tmp.rsplit('_v')[1]
+    return tmp
