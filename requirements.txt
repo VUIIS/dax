@@ -4,3 +4,4 @@ pycap
 nibabel
 fpdf2
 cubids-bond-fork
+docutils<0.18
