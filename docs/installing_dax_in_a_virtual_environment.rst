@@ -4,10 +4,10 @@ Installing DAX in a Virtual Environment
 Table of Contents
 ~~~~~~~~~~~~~~~~~
 
-1.  `Setup <#setup>`__
-  1.  `Create the Virtual Environment <#create-the-virtual-environment>`__
-  2.  `Install DAX <#install-dax>`__
-  3.  `Verify Installation <#verify-installation>`__
+  1.  `Setup <#setup>`__
+  2.  `Create the Virtual Environment <#create-the-virtual-environment>`__
+  3.  `Install DAX <#install-dax>`__
+  4.  `Verify Installation <#verify-installation>`__
 
 -----
 Setup
@@ -49,6 +49,7 @@ Install DAX
 Once the virtual environment with Python 3 is created, you'll need to install dax itself
 
 ::
+
 	(daxvenv) $ pip install dax
 
 
@@ -56,13 +57,16 @@ Configure an environment variable named XNAT_HOST set to the full url of your xn
 be incuded in your startup file (such as .bashrc or .bash_profile).
 
 ::
-  (daxvenv) $ export XNAT_HOST=https://central.xnat.org
+
+	(daxvenv) $ export XNAT_HOST=https://central.xnat.org
 
 Configure your credentials in a file named ".netrc" in your home directory.
+
 ::
-  machine <SERVER>
-  login <USER>
-  password <PASSWORD>
+
+	machine <SERVER>
+	login <USER>
+	password <PASSWORD>
 
 Here SERVER is the server name only. For example, central.xnat.org, not https://xnat.website.com/xnat.
 Make sure that the xnat_host is formatted similarly to 'xnat.website.com' NOT 'https://xnat.website.com/xnat'
@@ -73,15 +77,15 @@ The full url WILL NOT WORK properly.
 Verify Installation
 -------------------
 
-Next, run XnatCheckLogin, which will verify that the xnat host is usable.
+Next, run XnatCheckLogin, which will verify that you can log on successfully.
 
 ::
 
-  (daxvenv) $ XnatCheckLogin
-  ================================================================
-  Checking your settings for XNAT
-  No host specified, using XNAT_HOST environment variable.
-  Checking login for host=https://central.xnat.org
-  Checking connection:host=https://central.xnat.org, user=someusername
-  --> Good login.
-  ================================================================
+	(daxvenv) $ XnatCheckLogin
+	================================================================
+	Checking your settings for XNAT
+	No host specified, using XNAT_HOST environment variable.
+	Checking login for host=https://central.xnat.org
+	Checking connection:host=https://central.xnat.org, user=someusername
+	--> Good login.
+	================================================================
