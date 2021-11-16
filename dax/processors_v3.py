@@ -887,8 +887,12 @@ class Processor_v3(object):
             resources = s.get('resources', [])
 
             if 'nifti' in s:
-                # Add a resource with name XNAT and fdest set to value of nifti
+                # Add a NIFTI resource using value as fdest
                 resources.append({'resource': 'NIFTI', 'fdest': s['nifti']})
+
+            if 'edat' in s:
+                # Add a EDAT resource using value as fdest
+                resources.append({'resource': 'EDAT', 'fdest': s['edat']})
 
             # 2021-11-14 bdb Is anyone using this?
             artefact_required = False
