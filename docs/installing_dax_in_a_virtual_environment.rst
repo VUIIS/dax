@@ -49,7 +49,6 @@ Install DAX
 Once the virtual environment with Python 3 is created, you'll need to install dax itself
 
 ::
-
 	(daxvenv) $ pip install dax
 
 
@@ -57,12 +56,10 @@ Configure an environment variable named XNAT_HOST set to the full url of your xn
 be incuded in your startup file (such as .bashrc or .bash_profile).
 
 ::
-
   (daxvenv) $ export XNAT_HOST=https://central.xnat.org
 
 Configure your credentials in a file named ".netrc" in your home directory.
 ::
-
   machine <SERVER>
   login <USER>
   password <PASSWORD>
@@ -79,8 +76,9 @@ Verify Installation
 Next, run XnatCheckLogin, which will verify that the xnat host is usable.
 
 ::
-	(daxvenv) $ XnatCheckLogin
-	================================================================
+
+  (daxvenv) $ XnatCheckLogin
+  ================================================================
   Checking your settings for XNAT
   No host specified, using XNAT_HOST environment variable.
   Checking login for host=https://central.xnat.org
