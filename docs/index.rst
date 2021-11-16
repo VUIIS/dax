@@ -9,6 +9,32 @@ DAX allows you to:
 - extract information from XNAT via scripts (Xnat_tools)
 - run pipelines on your data in XNAT via a cluster (processors)
 
+Quick Install
+-------------------------
+Create a `python3 virtual environment <https://docs.python.org/3/library/venv.html>`_ with dax and all dependencies.
+
+::
+
+  python3 -m venv daxvenv
+  source daxvenv/bin/activate
+  pip install dax
+
+
+Configure an environment variable named XNAT_HOST set to the full url of your xnat server. This can 
+be incuded in your .bashrc/.bash_profile file.
+::
+
+  export XNAT_HOST=https://central.xnat.org
+
+Configure your credentials in a file named ".netrc" in your home directory.
+::
+
+  machine <SERVER>
+  login <USER>
+  password <PASSWORD>
+
+Here SERVER is the server name only. For example, central.xnat.org, not https://xnat.website.com/xnat.
+
 
 Versions and Installation
 -------------------------
