@@ -33,116 +33,57 @@ DAX is to be installed only on virtual environments on Python 3. To create a new
 
 ::
 
-	conda create -n dax python=3.8
+	conda create -n daxvenv python=3.8
 
 which can then be activated or deactivated with:
 
 ::
 
-	conda activate dax    # Activation of environment
-	conda deactivate      # Deactivation of environment
+	conda activate daxvenv    # Activation of environment
+	conda deactivate          # Deactivation of environment
 
 -----------
 Install DAX
 -----------
 
-If you already have an instance of dax, but something went wrong and need to reinstall, you will need to remove
-
-1. .dax_settings.ini
-2. .daxnetrc
-3. .xnat_profile
-4. ALL xnat environment variables in .netrc
-
 Once the virtual environment with Python 3 is created, you'll need to install dax itself
 
 ::
 
-	(dax) $ pip install dax
-	
-If you are not planning on using dax manager, you can skip this step. To setup dax manager, run the following
+	(daxvenv) $ pip install dax
+
+
+Configure an environment variable named XNAT_HOST set to the full url of your xnat server. This can 
+be incuded in your startup file (such as .bashrc or .bash_profile).
 
 ::
 
-	(dax) $ dax setup
-	########## DAX_SETUP ##########
-	Script to setup the ~/.dax_settings.ini files for your dax installation.
-	
-	Warning: daxnetrc is empty. Setting XNAT login:
-	Please enter your XNAT host: <xnat_host_url>
-	Please enter your XNAT username: <username>
-	Please enter your XNAT password: <password>
-	 --> Good login.
-	
-	Starting to config the dax_settings.ini file:
-	  - Section: admin
-	    Do you want to set/modify the section [admin] in the settings file? [yes/no] no
-	  - Section: cluster
-	    Do you want to set/modify the section [cluster] in the settings file? [yes/no] no
-	  - Section: dax_manager
-	    Do you want to set/modify the section [dax_manager] in the settings file? [yes/no] no
-	
-	0 error(s) -- dax_setup done.
-	########## END ##########
+  (daxvenv) $ export XNAT_HOST=https://central.xnat.org
 
-As you can see above, you will be prompted for the XNAT host, the user's XNAT username, and the user's XNAT password. It will also ask whether the admin, cluster, or dax_manager sections of the settings file should be updated. Usually, these settings will not need to be modified and should only really be changed if you're confident of what you're doing.
-
-Next, run XnatCheckLogin, which will verify that the xnat host that was just added through dax setup is usable. XnatCheckLogin can also be used to add new hosts (see below).
-
+Configure your credentials in a file named ".netrc" in your home directory.
 ::
 
-	(dax) $ XnatCheckLogin
-	================================================================
-	Checking your settings for XNAT in xnatnetrc file:
-	Do you want to see the xnat host saved? [yes/no] yes
-	XNAT Hosts stored:
-	  - <saved_xnat_host_url>
-	Please enter the XNAT host you want to check/add: <new_xnat_host_url>
-	Warning: no information stored for host <new_xnat_host_url>.
-	Do you want to save XNAT host <new_xnat_host_url> information? [yes/no] yes
-	Please enter your XNAT username: <username>
-	Please enter your XNAT password: <password>
-	Checking XNAT logins for host: <new_xnat_host_url>
-	  Connecting to host <new_xnat_host_url> with user <username>...
-	   --> Good login.
-	Login saved.
+  machine <SERVER>
+  login <USER>
+  password <PASSWORD>
 
-Your .netrc file should now look like 
+Here SERVER is the server name only. For example, central.xnat.org, not https://xnat.website.com/xnat.
+Make sure that the xnat_host is formatted similarly to 'xnat.website.com' NOT 'https://xnat.website.com/xnat'
+The full url WILL NOT WORK properly.
 
-::
-
-	machine <xnat_host>
-	login <username>
-	password <password>
-
-Make sure that the xnat_host is formatted similarly to 'xnat.website.com' NOT 'https://xnat.website.com/xnat'. The full url is not required and WILL NOT WORK properly.
-
-Now, restart your dax virtual environment or source the .bashrc (preferable to restart). Finally, make sure the same xnat_host is in the .bashrc file
-
-::
-
-	# Set default XNAT host for this session
-	export XNAT_HOST=<xnat_host_url>
 
 -------------------
 Verify Installation
 -------------------
 
-::
-
-	(dax) $ XnatCheckLogin --host <xnat_host_url>
-
-This should provide 'Good Login' in the prompt or
+Next, run XnatCheckLogin, which will verify that the xnat host is usable.
 
 ::
-
-	(dax) $ python
-	>>> import dax
-
-which should import without error.
-
-Echoing XNAT_HOST should also provide you with the host entered in the XnatCheckLogin step.
-
-::
-
-	echo $XNAT_HOST
-	<xnat_host_url>
+	(daxvenv) $ XnatCheckLogin
+	================================================================
+  Checking your settings for XNAT
+  No host specified, using XNAT_HOST environment variable.
+  Checking login for host=https://central.xnat.org
+  Checking connection:host=https://central.xnat.org, user=someusername
+  --> Good login.
+  ================================================================
