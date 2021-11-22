@@ -3,4 +3,5 @@ pyyaml
 pycap
 nibabel
 fpdf2
+pypdf2
 cubids-bond-fork
