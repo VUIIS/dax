@@ -3,6 +3,7 @@ import os
 import glob
 import socket
 import yaml
+import logging
 
 from fpdf import FPDF
 from PyPDF2 import PdfFileWriter, PdfFileReader, PdfFileMerger
