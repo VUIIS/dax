@@ -627,7 +627,7 @@ class Processor_v3(object):
         """
         assessor_inputs = [
             i
-            for i in list(self.parser.proc_inputs.values())
+            for i in list(self.proc_inputs.values())
             if i['artefact_type'] == 'assessor'
         ]
         assessors = [i['types'] for i in assessor_inputs]
