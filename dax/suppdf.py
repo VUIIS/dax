@@ -307,6 +307,9 @@ def load_info(assr_path, assr_obj):
 
     # Load info
     assr = parse_full_assessor_name(os.path.basename(assr_path))
+
+    LOGGER.debug('loading info:{}'.format(assr))
+
     info['assessor'] = assr['label']
     info['session'] = {
         'PROJECT': assr['project_id'],
@@ -314,31 +317,38 @@ def load_info(assr_path, assr_obj):
         'SESSION': assr['session_label']}
 
     # Load
+    LOGGER.debug('loading version')
     info['procversion'] = load_version(assr_path)
     info['proctype'] = info['assessor'].split('-x-')[3]
     info['procdate'] = load_attr(assr_path, 'jobstartdate')
 
     # Load job info
+    LOGGER.debug('loading job info')
     info['job'] = {
         'jobid': load_attr(assr_path, 'jobid'),
         'duration': load_attr(assr_path, 'walltimeused'),
         'memory': load_attr(assr_path, 'memused')}
 
     # Load proc info
+    LOGGER.debug('loading proc info')
     info['proc'] = {
         'dax_version': str(dax_version),
         'dax_manager': get_this_instance()}
 
     # Load procyaml version
+    LOGGER.debug('suppdf:load_info:load_procyamlversion')
     info['procyamlversion'] = load_procyamlversion(assr_path)
 
     # Load the description from the processor yaml
+    LOGGER.debug('suppdf:load_info:load_description')
     info['description'] = load_description(assr_path)
 
     # Load inputs from XNAT assessor/inputs
+    LOGGER.debug('suppdf:load_info:load_inputs')
     info['inputs'] = load_inputs(assr_obj)
     
     # Load outputs from the processor yaml
+    LOGGER.debug('suppdf:load_info:load_inputs')
     info['outputs'] = load_outputs(assr_path)
 
     return info
@@ -354,6 +364,8 @@ def suppdf(assr_path, assr_obj):
     except Exception:
         LOGGER.debug('skipping suppdf:{}'.format(assr_path))
         return False
+
+    LOGGER.debug('suppdf:={}'.format(info))
 
     # find the input pdf
     try:
