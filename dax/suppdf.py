@@ -263,11 +263,12 @@ def load_inputs(assr_obj):
 
 
 def load_outputs(assr_path):
+    outputs = []
     processor_path = load_attr(assr_path, 'processor')
 
     doc = read_yaml(processor_path)
-    outputs = doc.get('outputs', [])
-    for c in outputs:
+
+    for c in  doc.get('outputs', []):
         LOGGER.debug('suppdf:load_outputs:{}'.format(c))
         # Check for keywords
         if 'pdf' in c:
