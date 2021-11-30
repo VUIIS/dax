@@ -268,6 +268,7 @@ def load_outputs(assr_path):
     doc = read_yaml(processor_path)
     outputs = doc.get('outputs', [])
     for c in outputs:
+        LOGGER.debug('suppdf:load_outputs:{}'.format(c))
         # Check for keywords
         if 'pdf' in c:
             _path = c['pdf']
@@ -348,9 +349,10 @@ def load_info(assr_path, assr_obj):
     info['inputs'] = load_inputs(assr_obj)
     
     # Load outputs from the processor yaml
-    LOGGER.debug('suppdf:load_info:load_inputs')
+    LOGGER.debug('suppdf:load_info:load_outputs')
     info['outputs'] = load_outputs(assr_path)
 
+    LOGGER.debug('suppdf:load_info:finished')
     return info
 
 
