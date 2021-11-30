@@ -245,7 +245,7 @@ def load_description(assr_path):
 
 def load_procyamlversion(assr_path):
     processor_path = load_attr(assr_path, 'processor')
-    LOGGER.error('loading procyamlversion from file:{}'.format(processor_path))
+    LOGGER.debug('loading procyamlversion from file:{}'.format(processor_path))
     with open(processor_path, "r") as yaml_stream:
         doc = yaml.load(yaml_stream, Loader=yaml.FullLoader)
 
