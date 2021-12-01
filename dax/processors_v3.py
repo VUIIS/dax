@@ -478,7 +478,7 @@ class Processor_v3(object):
 
         txt = 'MAINCMD=\"'
 
-        # TODO: Build and append the pre command
+        # TODO: Build and append the pre command that runs before main
 
         # Build and append the main command
         if 'type' not in command:
@@ -501,19 +501,25 @@ class Processor_v3(object):
                 LOGGER.error(err)
                 raise AutoProcessorError(err)
 
-            cargs = command.get('args', None)
-
-            # Append container name to singularity run
-            command_txt = '{} {}'.format(SINGULARITY_RUN, cpath)
+            # Initialize command
+            command_txt = '{}'.format(SINGULARITY_RUN)
             print(command_txt)
 
-            # TODO: override options
+            # Append extra options
+            _extra = command.get('extraopts', None)
+            if _extra:
+                command_txt = '{} {}'.format(command_txt, _extra)
+                print(command_txt)
+
+            # Append container name
+            command_txt = '{} {}'.format(command_txt, cpath)
+            print(command_txt)
 
             # Append arguments for the singularity entrypoint
+            cargs = command.get('args', None)
             if cargs:
                 command_txt = '{} {}'.format(command_txt, cargs)
-
-            print(command_txt)
+                print(command_txt)
 
             # Replace vars with values from var2val
             command_txt = command_txt.format(**var2val)
@@ -525,7 +531,7 @@ class Processor_v3(object):
             LOGGER.error(err)
             raise AutoProcessorError(err)
 
-        # TODO: Build the post command
+        # TODO: Build the post command that runs after main
 
         # Concatenate commands
         txt += command_txt
