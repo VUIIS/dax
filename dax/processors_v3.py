@@ -598,6 +598,8 @@ class Processor_v3(object):
             kwargs[procversion] = self.procversion
             input_key = '{}/inputs'.format(self.xsitype.lower())
             kwargs[input_key] = self._serialize_inputs(inputs)
+            procstatus = '{}/procstatus'.format(self.xsitype.lower())
+            kwargs[procstatus] = NEED_INPUTS
             if relabel:
                 _proj = assessor.parent().parent().parent().label()
                 _subj = assessor.parent().parent().label()
