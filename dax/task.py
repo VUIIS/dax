@@ -1425,7 +1425,7 @@ class ClusterTask(Task):
     def delete(self):
         # Delete attributes
         attr_list = ['jobid', 'jobnode', 'procstatus', 'walltimeused',
-                     'memused', 'jobstartdate']
+                     'memused', 'jobstartdate', 'processor']
         for attr in attr_list:
             self.delete_attr(attr)
 
