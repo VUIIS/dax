@@ -376,6 +376,12 @@ def suppdf(assr_path, assr_obj):
     except Exception:
         inputpdf = None
 
+    # Make sure the output dir exists
+    try:
+        os.mkdir(os.path.join(assr_path, 'PDF'))
+    except FileExistsError:
+        pass
+
     # Name the output with assessor name
     outputpdf = '{}/PDF/report_{}.pdf'.format(assr_path, info['assessor'])
 
