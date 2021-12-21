@@ -88,9 +88,9 @@ def make_lastpdf(lastfile, info):
     for r in info['inputs']:
         pdf.set_font('courier', size=12)
         pdf.cell(w=1.25, h=.3, txt=r[0], border=0)
-        pdf.cell(w=1, h=.3, txt=r[1][-8:], border=1, align='C')
+        pdf.cell(w=1, h=.3, txt=r[1][-6:], border=1, align='C')
         pdf.set_font('courier', size=7)
-        pdf.cell(w=6, h=.3, txt=r[2][-90:], border=0, ln=1)
+        pdf.cell(w=6, h=.3, txt=(r[2].split('/assessors/')[-1])[-90:], border=0, ln=1)
 
     # Outputs
     pdf.ln(0.5)
