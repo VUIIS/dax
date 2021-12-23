@@ -582,6 +582,7 @@ class Processor_v3(object):
             f.write('\n')
 
     def create_assessor(self, xnatsession, inputs, relabel=False):
+        guidchars = 8  # how many characters in the guid?
         attempts = 0
         while attempts < 100:
             attempts += 1
@@ -605,7 +606,7 @@ class Processor_v3(object):
                 _subj = assessor.parent().parent().label()
                 _sess = assessor.parent().label()
                 _type = self.proctype
-                label = '-x-'.join([_proj, _subj, _sess, _type, guid[:6]])
+                label = '-x-'.join([_proj, _subj, _sess, _type, guid[:guidchars]])
             else:
                 label = guid
 
