@@ -140,7 +140,6 @@ class Processor_v3(object):
         :param user_inputs: dictionary of tag, value. E.G:
             user_inputs = {'default.spider_path': /.../Spider....py'}
         """
-        #print('user_inputs=', user_inputs)
 
         for key, val in user_inputs.items():
             LOGGER.debug('overriding:key={}'.format(key))
@@ -263,7 +262,6 @@ class Processor_v3(object):
 
             if curc.get('primary', False):
                 self.container_path = curc.get('path')
-                #print(curc.get('primary'))
 
             # Add to our containers list
             self.containers.append(curc)
@@ -578,7 +576,6 @@ class Processor_v3(object):
             guid = str(uuid4())
             assessor = xnatsession.assessor(guid)
             if assessor.exists():
-                #print('assessor already exists')
                 continue
 
             kwargs = {}
@@ -675,7 +672,6 @@ class Processor_v3(object):
         # artefacts_by_inputs --> input_artefacts_by_input or something
 
         artefacts_by_input = self._map_artefacts_to_inputs(csess, pets)
-        #print('map_artefacts_to_inputs', artefacts_by_input)
 
         # BDB 6/5/21
         # at this point the pet scan should be just like any other input or
@@ -690,7 +686,6 @@ class Processor_v3(object):
         parameter_matrix = self._generate_parameter_matrix(
             artefacts, artefacts_by_input
         )
-        #print('generate_parameter_matrix', parameter_matrix)
 
         # BDB 6/5/21
         # parameter_matrix is the combinations of inputs from the lists in
@@ -706,7 +701,6 @@ class Processor_v3(object):
         # This functions uses the artefacts dictionary to get the inputs field
         # from each artefact for comparison.
         parameter_matrix = self._filter_matrix(parameter_matrix, artefacts)
-        #print('filter_matrix', parameter_matrix)
 
         # BDB 6/5/21
         # And now we use the parameter matrix as a list of what set of inputs
@@ -714,7 +708,6 @@ class Processor_v3(object):
         # by mapping to what assessors already exist by comparing
         # the inputs field on existing assessors with our list of inputs
         assessor_parameter_map = self._compare_to_existing(csess, parameter_matrix)
-        #print('compare_to_existing', assessor_parameter_map)
 
         # BDB 6/5/21
         # assessor_parameter_map is list of tuples
@@ -722,7 +715,6 @@ class Processor_v3(object):
         # if assessors don't exist assessors will empty list
         # so what we are returning is a list of tuples
         # (set of inputs, existing assessors for these inputs)
-        #print('assessor_parameter_map n=', len(list(assessor_parameter_map)))
         return list(assessor_parameter_map)
 
     def get_container_path(self, name):
