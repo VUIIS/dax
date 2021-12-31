@@ -59,8 +59,9 @@ SNAPSHOTS_PREVIEW = 'snapshot_preview.png'
 DEFAULT_HEADER = ['host', 'username', 'password', 'projects']
 
 # Cmd:
-GS_CMD = """gs -q -o {original} -sDEVICE=pngalpha -sPageList=1 {pdf_path}"""
+GS_CMD = """gs -q -o {original} -sDEVICE=pngalpha -dLastPage=1 {pdf_path}"""
 CONVERT_CMD = """convert {original} -resize x200 {preview}"""
+GS_CMD2 = """gs -q -o {original} -sDEVICE=pngalpha {pdf_path}"""
 
 # WARNING content for emails
 WARNING_START_CONTENT = """
@@ -280,6 +281,7 @@ def generate_snapshots(assessor_path):
     snapshot_original = os.path.join(snapshot_dir, SNAPSHOTS_ORIGINAL)
     snapshot_preview = os.path.join(snapshot_dir, SNAPSHOTS_PREVIEW)
     pdf_path = glob.glob(assessor_path + '/PDF/*.pdf')[0]
+
     if not os.path.exists(snapshot_original):
         LOGGER.debug('    +creating original of SNAPSHOTS')
 
@@ -288,6 +290,12 @@ def generate_snapshots(assessor_path):
 
         # Make the snapshots for the assessors with ghostscript
         cmd = GS_CMD.format(original=snapshot_original, pdf_path=pdf_path)
+        LOGGER.debug(cmd)
+        os.system(cmd)
+
+    if not os.path.exists(snapshot_original):
+        # Try the alternate ghostscript call
+        cmd = GS_CMD2.format(original=snapshot_original, pdf_path=pdf_path)
         LOGGER.debug(cmd)
         os.system(cmd)
 
