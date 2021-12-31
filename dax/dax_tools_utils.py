@@ -15,9 +15,9 @@ import logging
 import os
 import shutil
 import sys
-
-
 from multiprocessing import Pool
+
+from pdf2image import convert_from_path
 
 from . import bin
 from . import XnatUtils
@@ -288,17 +288,32 @@ def generate_snapshots(assessor_path):
         if not os.path.exists(snapshot_dir):
             os.mkdir(snapshot_dir)
         # Make the snapshots for the assessors with ghostscript
-        cmd = GS_CMD.format(original=snapshot_original,
-                            assessor_path=assessor_path)
-        os.system(cmd)
+        #cmd = GS_CMD.format(original=snapshot_original,
+        #                    assessor_path=assessor_path)
+        #os.system(cmd)
+        convert_from_path(
+            pdf_path,
+            output_folder=snapshot_dir,
+            first_page=1,
+            last_page=1,
+            single_file=True,
+            output_file=SNAPSHOTS_ORIGINAL)
+
     # Create the preview snapshot from the original if Snapshots exist :
     if os.path.exists(snapshot_original):
         LOGGER.debug('    +creating preview of SNAPSHOTS')
         # Make the snapshot_thumbnail
-        cmd = CONVERT_CMD.format(original=snapshot_original,
-                                 preview=snapshot_preview)
-
-        os.system(cmd)
+        #cmd = CONVERT_CMD.format(original=snapshot_original,
+        #                         preview=snapshot_preview)
+        #os.system(cmd)
+        convert_from_path(
+            pdf_path,
+            output_folder=snapshot_dir,
+            first_page=1,
+            last_page=1,
+            single_file=True,
+            output_file=snapshot_preview,
+            size=(None, 200))
 
 
 def copy_outlog(assessor_dict, assessor_path, resdir):
