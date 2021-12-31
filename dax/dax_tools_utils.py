@@ -293,7 +293,10 @@ def generate_snapshots(assessor_path):
         LOGGER.debug(cmd)
         os.system(cmd)
 
-    if not os.path.exists(snapshot_original):
+    # Check for empty file
+    if os.path.exists(snapshot_original) and os.stat(snapshot_original).st_size == 0:
+        os.remove(snapshot_original)
+
         # Try the alternate ghostscript call
         cmd = GS_CMD2.format(original=snapshot_original, pdf_path=pdf_path)
         LOGGER.debug(cmd)
