@@ -61,7 +61,7 @@ SNAPSHOTS_PREVIEW = 'snapshot_preview.png'
 DEFAULT_HEADER = ['host', 'username', 'password', 'projects']
 
 # Cmd:
-GS_CMD = """gs -q -o {original} -sDEVICE=pngalpha -dLastPage=1 {assessor_path}\
+GS_CMD = """gs -q -o {original} -sDEVICE=png16m -dLastPage=1 {assessor_path}\
 /PDF/*.pdf"""
 CONVERT_CMD = """convert {original} -resize x200 {preview}"""
 
