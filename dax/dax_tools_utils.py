@@ -17,8 +17,6 @@ import shutil
 import sys
 from multiprocessing import Pool
 
-from pdf2image import convert_from_path
-
 from . import bin
 from . import XnatUtils
 from . import utilities
@@ -61,8 +59,7 @@ SNAPSHOTS_PREVIEW = 'snapshot_preview.png'
 DEFAULT_HEADER = ['host', 'username', 'password', 'projects']
 
 # Cmd:
-GS_CMD = """gs -q -o {original} -sDEVICE=png16m -dLastPage=1 {assessor_path}\
-/PDF/*.pdf"""
+GS_CMD = """gs -q -o {original} -sDEVICE=pngalpha -sPageList=1 {pdf_path}"""
 CONVERT_CMD = """convert {original} -resize x200 {preview}"""
 
 # WARNING content for emails
@@ -279,47 +276,30 @@ def generate_snapshots(assessor_path):
     :param assessor_path: path for the assessor
     :return: None
     """
-    from pdf2image.exceptions import PDFInfoNotInstalledError, PDFPageCountError, PDFSyntaxError
-
     snapshot_dir = os.path.join(assessor_path, 'SNAPSHOTS')
     snapshot_original = os.path.join(snapshot_dir, SNAPSHOTS_ORIGINAL)
     snapshot_preview = os.path.join(snapshot_dir, SNAPSHOTS_PREVIEW)
     pdf_path = glob.glob(assessor_path + '/PDF/*.pdf')[0]
-    try:
-        if not os.path.exists(snapshot_original):
-            LOGGER.debug('    +creating original of SNAPSHOTS')
-            if not os.path.exists(snapshot_dir):
-                os.mkdir(snapshot_dir)
-            # Make the snapshots for the assessors with ghostscript
-            #cmd = GS_CMD.format(original=snapshot_original,
-            #                    assessor_path=assessor_path)
-            #os.system(cmd)
-            convert_from_path(
-                pdf_path,
-                output_folder=snapshot_dir,
-                first_page=1,
-                last_page=1,
-                single_file=True,
-                output_file=SNAPSHOTS_ORIGINAL)
+    if not os.path.exists(snapshot_original):
+        LOGGER.debug('    +creating original of SNAPSHOTS')
 
-        # Create the preview snapshot from the original if Snapshots exist :
-        if os.path.exists(snapshot_original):
-            LOGGER.debug('    +creating preview of SNAPSHOTS')
-            # Make the snapshot_thumbnail
-            #cmd = CONVERT_CMD.format(original=snapshot_original,
-            #                         preview=snapshot_preview)
-            #os.system(cmd)
-            convert_from_path(
-                pdf_path,
-                output_folder=snapshot_dir,
-                first_page=1,
-                last_page=1,
-                single_file=True,
-                output_file=snapshot_preview,
-                size=(None, 200))
+        if not os.path.exists(snapshot_dir):
+            os.mkdir(snapshot_dir)
 
-    except (PDFInfoNotInstalledError, PDFPageCountError, PDFSyntaxError) as err:
-        print(err)
+        # Make the snapshots for the assessors with ghostscript
+        cmd = GS_CMD.format(original=snapshot_original, pdf_path=pdf_path)
+        LOGGER.debug(cmd)
+        os.system(cmd)
+
+    # Create the preview snapshot from the original if Snapshots exist :
+    if os.path.exists(snapshot_original):
+        # Make the snapshot_thumbnail
+        LOGGER.debug('    +creating preview of SNAPSHOTS')
+        cmd = CONVERT_CMD.format(
+            original=snapshot_original, preview=snapshot_preview)
+        LOGGER.debug(cmd)
+        os.system(cmd)
+
 
 
 def copy_outlog(assessor_dict, assessor_path, resdir):
