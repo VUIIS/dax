@@ -291,6 +291,7 @@ def generate_snapshots(assessor_path):
         cmd = GS_CMD.format(original=snapshot_original,
                             assessor_path=assessor_path)
         print('cmd=', cmd)
+        os.system('ls {}'.format(assessor_path))
         os.system(cmd)
     # Create the preview snapshot from the original if Snapshots exist :
     if os.path.exists(snapshot_original):
@@ -448,7 +449,6 @@ def upload_assessor(xnat, assessor_dict, assessor_path, resdir):
                               version):
         xsitype = assessor_obj.datatype()
         # Before Upload
-        print('BEFORE UPLOAD stuffs')
         suppdf(assessor_path, assessor_obj)
         generate_snapshots(assessor_path)
         copy_outlog(assessor_dict, assessor_path, resdir)
