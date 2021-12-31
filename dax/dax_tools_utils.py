@@ -318,7 +318,7 @@ def generate_snapshots(assessor_path):
                 single_file=True,
                 output_file=snapshot_preview,
                 size=(None, 200))
-    except PDFInfoNotInstalledError, PDFPageCountError, PDFSyntaxError as err:
+    except (PDFInfoNotInstalledError, PDFPageCountError, PDFSyntaxError) as err:
         print(err)
 
 
