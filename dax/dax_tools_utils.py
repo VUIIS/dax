@@ -291,7 +291,7 @@ def generate_snapshots(assessor_path):
         cmd = GS_CMD.format(original=snapshot_original,
                             assessor_path=assessor_path)
         print('cmd=', cmd)
-        os.system('ls {}'.format(assessor_path))
+        os.system('ls {}/PDF'.format(assessor_path))
         os.system(cmd)
     # Create the preview snapshot from the original if Snapshots exist :
     if os.path.exists(snapshot_original):
