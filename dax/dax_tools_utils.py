@@ -284,10 +284,9 @@ def generate_snapshots(assessor_path):
     snapshot_dir = os.path.join(assessor_path, 'SNAPSHOTS')
     snapshot_original = os.path.join(snapshot_dir, SNAPSHOTS_ORIGINAL)
     snapshot_preview = os.path.join(snapshot_dir, SNAPSHOTS_PREVIEW)
-
+    pdf_path = glob.glob(assessor_path + '/PDF/*.pdf')[0]
     try:
-        if not os.path.exists(snapshot_original) and\
-           os.path.exists(os.path.join(assessor_path, 'PDF')):
+        if not os.path.exists(snapshot_original):
             LOGGER.debug('    +creating original of SNAPSHOTS')
             if not os.path.exists(snapshot_dir):
                 os.mkdir(snapshot_dir)
@@ -318,6 +317,7 @@ def generate_snapshots(assessor_path):
                 single_file=True,
                 output_file=snapshot_preview,
                 size=(None, 200))
+
     except (PDFInfoNotInstalledError, PDFPageCountError, PDFSyntaxError) as err:
         print(err)
 
