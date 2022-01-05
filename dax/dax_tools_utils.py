@@ -280,7 +280,11 @@ def generate_snapshots(assessor_path):
     snapshot_dir = os.path.join(assessor_path, 'SNAPSHOTS')
     snapshot_original = os.path.join(snapshot_dir, SNAPSHOTS_ORIGINAL)
     snapshot_preview = os.path.join(snapshot_dir, SNAPSHOTS_PREVIEW)
-    pdf_path = glob.glob(assessor_path + '/PDF/*.pdf')[0]
+    try:
+        pdf_path = glob.glob(assessor_path + '/PDF/*.pdf')[0]
+    except Exception as err:
+        LOGGER.debug('skipping generate_snapshots:{}:err={}'.format(assessor_path, err))
+        return False
 
     if not os.path.exists(snapshot_original):
         LOGGER.debug('    +creating original of SNAPSHOTS')
