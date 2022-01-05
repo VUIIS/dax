@@ -458,8 +458,11 @@ def upload_assessor(xnat, assessor_dict, assessor_path, resdir):
                               version):
         xsitype = assessor_obj.datatype()
         # Before Upload
+        LOGGER.debug('suppdf')
         suppdf(assessor_path, assessor_obj)
+        LOGGER.debug('generate_snapshots')
         generate_snapshots(assessor_path)
+        LOGGER.debug('copy_outlog')
         copy_outlog(assessor_dict, assessor_path, resdir)
 
         # Upload the XML if FreeSurfer

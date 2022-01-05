@@ -364,8 +364,8 @@ def suppdf(assr_path, assr_obj):
             LOGGER.debug('skipping suppdf:{}, procyamlversion={}'.format(
                 assr_path, info['procyamlversion']))
             return False
-    except Exception:
-        LOGGER.debug('skipping suppdf:{}'.format(assr_path))
+    except Exception as err:
+        LOGGER.debug('skipping suppdf:{}:err={}'.format(assr_path, err))
         return False
 
     LOGGER.debug('suppdf:={}'.format(info))
