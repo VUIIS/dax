@@ -5,3 +5,4 @@ nibabel
 fpdf2
 PyPDF2
 cubids-bond-fork
+pandas==1.1.5
