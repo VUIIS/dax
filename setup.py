@@ -127,7 +127,8 @@ REQUIRES = [
     'nibabel',
     'fpdf2',
     'PyPDF2',
-    'cubids-bond-fork']
+    'cubids-bond-fork',
+    'numpy']
 
 DOCS_REQUIRES = ['Sphinx>=%s' % SPHINX_MIN_VERSION]
 
