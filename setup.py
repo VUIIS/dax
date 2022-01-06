@@ -117,7 +117,7 @@ PLATFORMS = ["MacOs",
 VERSION = get_version()
 
 # versions
-SPHINX_MIN_VERSION = '1.4'
+SPHINX_MIN_VERSION = '4'
 PYXNAT_MIN_VERSION = '1.1.0.2'
 
 REQUIRES = [
@@ -130,8 +130,7 @@ REQUIRES = [
     'cubids-bond-fork']
 
 DOCS_REQUIRES = [
-    'Sphinx>=%s' % SPHINX_MIN_VERSION,
-    'pandas==1.1.5']
+    'Sphinx>=%s' % SPHINX_MIN_VERSION]
 
 TESTS_REQUIRES = ['nose']
 

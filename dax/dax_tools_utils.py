@@ -299,6 +299,7 @@ def generate_snapshots(assessor_path):
 
     # Check for empty file
     if os.path.exists(snapshot_original) and os.stat(snapshot_original).st_size == 0:
+        # Delete the empty file
         os.remove(snapshot_original)
 
         # Try the alternate ghostscript call
@@ -306,7 +307,7 @@ def generate_snapshots(assessor_path):
         LOGGER.debug(cmd)
         os.system(cmd)
 
-    # Create the preview snapshot from the original if Snapshots exist :
+    # Create the preview snapshot from the original if Snapshots exist
     if os.path.exists(snapshot_original):
         # Make the snapshot_thumbnail
         LOGGER.debug('    +creating preview of SNAPSHOTS')
