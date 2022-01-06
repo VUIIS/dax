@@ -12,7 +12,7 @@ import traceback
 import socket
 import tempfile
 
-from . import processors, modules, XnatUtils, task, cluster
+from . import processors, modules, XnatUtils, task, cluster, processors_v3
 from .task import Task, ClusterTask, XnatTask
 from .dax_settings import DAX_Settings, DAX_Netrc
 from .errors import (ClusterCountJobsException, ClusterLaunchException,
@@ -148,7 +148,9 @@ name as a key and list of yaml filepaths as values.'
         # Add processors to project_process_dict:
         for project, yaml_objs in list(yaml_dict.items()):
             for yaml_obj in yaml_objs:
-                if isinstance(yaml_obj, processors.AutoProcessor):
+                if isinstance(yaml_obj, processors_v3.Processor_v3):
+                    proc = yaml_obj
+                elif isinstance(yaml_obj, processors.AutoProcessor):
                     proc = yaml_obj
                 elif isinstance(yaml_obj, str):
                     # TODO: BenM/general_refactor/this logic should be handled

@@ -17,7 +17,7 @@ from . import yaml_doc
 from .errors import AutoProcessorError
 from .dax_settings import DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE
 from .task import NeedInputsException
-
+from .processors_v3 import Processor_v3 as Processor_v3
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ['Processor', 'AutoProcessor']
@@ -727,8 +727,6 @@ class MoreAutoProcessor(AutoProcessor):
                     _val = ','.join(
                         [assr.parent().assessor(r).attrs.get(_attr) for r in _refval])
                 else:
-                    print(_attr)
-                    print((assr.label()))
                     _val = assr.attrs.get(_attr)
             else:
                 LOGGER.error('invalid YAML')
@@ -848,7 +846,9 @@ def processors_by_type(proc_list):
     # Build list of processors by type
     if proc_list is not None:
         for proc in proc_list:
-            if issubclass(proc.__class__, AutoProcessor):
+            if isinstance(proc, Processor_v3):
+                auto_proc_list.append(proc)
+            elif issubclass(proc.__class__, AutoProcessor):
                 auto_proc_list.append(proc)
             else:
                 LOGGER.warn('unknown processor type: %s' % proc)
@@ -865,7 +865,11 @@ def load_from_yaml(xnat, filepath, user_inputs=None,
     :return: processor
     """
     yaml_obj = yaml_doc.YamlDoc().from_file(filepath)
-    if yaml_obj.contents.get('moreauto'):
+    if yaml_obj.contents.get('procyamlversion', '') == '3.0.0-dev.0':
+        LOGGER.debug('loading as Processor_v3:{}'.format(filepath))
+        return Processor_v3(
+            xnat, filepath, user_inputs, singularity_imagedir, job_template)
+    elif yaml_obj.contents.get('moreauto'):
         return MoreAutoProcessor(xnat, yaml_obj, user_inputs,
                                  singularity_imagedir, job_template)
     else:

@@ -15,8 +15,6 @@ import logging
 import os
 import shutil
 import sys
-
-
 from multiprocessing import Pool
 
 from . import bin
@@ -33,6 +31,7 @@ from .task import ClusterTask
 from .XnatUtils import XnatUtilsError
 from .version import VERSION as __version__
 from .git_revision import git_revision as __git_revision__
+from .suppdf import suppdf
 
 
 # Global Variables
@@ -60,9 +59,9 @@ SNAPSHOTS_PREVIEW = 'snapshot_preview.png'
 DEFAULT_HEADER = ['host', 'username', 'password', 'projects']
 
 # Cmd:
-GS_CMD = """gs -q -o {original} -sDEVICE=pngalpha -dLastPage=1 {assessor_path}\
-/PDF/*.pdf"""
+GS_CMD = """gs -q -o {original} -sDEVICE=pngalpha -dLastPage=1 {pdf_path}"""
 CONVERT_CMD = """convert {original} -resize x200 {preview}"""
+GS_CMD2 = """gs -q -o {original} -sDEVICE=pngalpha {pdf_path}"""
 
 # WARNING content for emails
 WARNING_START_CONTENT = """
@@ -281,22 +280,41 @@ def generate_snapshots(assessor_path):
     snapshot_dir = os.path.join(assessor_path, 'SNAPSHOTS')
     snapshot_original = os.path.join(snapshot_dir, SNAPSHOTS_ORIGINAL)
     snapshot_preview = os.path.join(snapshot_dir, SNAPSHOTS_PREVIEW)
-    if not os.path.exists(snapshot_original) and\
-       os.path.exists(os.path.join(assessor_path, 'PDF')):
+    try:
+        pdf_path = glob.glob(assessor_path + '/PDF/*.pdf')[0]
+    except Exception as err:
+        LOGGER.debug('skipping generate_snapshots:{}:err={}'.format(assessor_path, err))
+        return False
+
+    if not os.path.exists(snapshot_original):
         LOGGER.debug('    +creating original of SNAPSHOTS')
+
         if not os.path.exists(snapshot_dir):
             os.mkdir(snapshot_dir)
+
         # Make the snapshots for the assessors with ghostscript
-        cmd = GS_CMD.format(original=snapshot_original,
-                            assessor_path=assessor_path)
+        cmd = GS_CMD.format(original=snapshot_original, pdf_path=pdf_path)
+        LOGGER.debug(cmd)
         os.system(cmd)
+
+    # Check for empty file
+    if os.path.exists(snapshot_original) and os.stat(snapshot_original).st_size == 0:
+        os.remove(snapshot_original)
+
+        # Try the alternate ghostscript call
+        cmd = GS_CMD2.format(original=snapshot_original, pdf_path=pdf_path)
+        LOGGER.debug(cmd)
+        os.system(cmd)
+
     # Create the preview snapshot from the original if Snapshots exist :
     if os.path.exists(snapshot_original):
-        LOGGER.debug('    +creating preview of SNAPSHOTS')
         # Make the snapshot_thumbnail
-        cmd = CONVERT_CMD.format(original=snapshot_original,
-                                 preview=snapshot_preview)
+        LOGGER.debug('    +creating preview of SNAPSHOTS')
+        cmd = CONVERT_CMD.format(
+            original=snapshot_original, preview=snapshot_preview)
+        LOGGER.debug(cmd)
         os.system(cmd)
+
 
 
 def copy_outlog(assessor_dict, assessor_path, resdir):
@@ -444,7 +462,11 @@ def upload_assessor(xnat, assessor_dict, assessor_path, resdir):
                               version):
         xsitype = assessor_obj.datatype()
         # Before Upload
+        LOGGER.debug('suppdf')
+        suppdf(assessor_path, assessor_obj)
+        LOGGER.debug('generate_snapshots')
         generate_snapshots(assessor_path)
+        LOGGER.debug('copy_outlog')
         copy_outlog(assessor_dict, assessor_path, resdir)
 
         # Upload the XML if FreeSurfer
