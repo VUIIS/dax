@@ -879,7 +879,7 @@ class Processor_v3(object):
                 resources.append({'resource': 'NIFTI', 'fdest': s['nifti']})
 
             if 'edat' in s:
-                # Add a EDAT resource using value as fdest
+                # Add an EDAT resource using value as fdest
                 resources.append({'resource': 'EDAT', 'fdest': s['edat']})
 
             # 2021-11-14 bdb Is anyone using this?
