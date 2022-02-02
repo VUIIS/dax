@@ -799,6 +799,7 @@ class Processor_v3(object):
 
             # TODO: optimize this to get resource list only once
             for vnum, vinput in enumerate(assr_inputs[v['input']]):
+                fname = None
                 robj = get_resource(assr._intf, vinput, resource)
 
                 # Get list of all files in the resource, relative paths
@@ -818,6 +819,9 @@ class Processor_v3(object):
                 if 'filepath' in cur_res:
                     fpath = cur_res['filepath']
                     res_path = resource + '/files/' + fpath
+
+                    # Get base file name to be downloaded
+                    fname = os.path.basename(fpath)
                 elif fmatch:
                     # Filter list based on regex matching
                     regex = utilities.extract_exp(fmatch, full_regex=False)
@@ -827,15 +831,31 @@ class Processor_v3(object):
                         LOGGER.debug('no matching files found on resource')
                         raise NeedInputsException('No Files')
 
-                    # Make a comma separated list of files
-                    uri_list = ['{}/files/{}'.format(resource, f) for f in file_list]
-                    res_path = ','.join(uri_list)
+                    if len(file_list) > 1:
+                        # TODO: decide how we want to handle multiple files
+                        # Make a comma separated list of files
+                        #uri_list = ['{}/files/{}'.format(resource, f) for f in file_list]
+                        #res_path = ','.join(uri_list)
+                        LOGGER.debug('multiple files, using first only')
+
+                    # Create the full path to the file on the resource
+                    res_path = '{}/files/{}'.format(resource, file_list[0])
+
+                    # Get just the filename for later
+                    fname = os.path.basename(file_list[0])
                 else:
+                    # We want the whole resource
                     res_path = resource + '/files'
+
+                    # Get just the resource name for later
+                    fname = resource
 
                 variable_set[k] = get_uri(assr._intf.host, vinput, res_path)
 
-                if len(assr_inputs[v['input']]) > 1:
+                if 'fdest' not in cur_res:
+                    # Use the original file/resource name
+                    fdest = fname
+                elif len(assr_inputs[v['input']]) > 1:
                     fdest = str(vnum) + cur_res['fdest']
                 else:
                     fdest = cur_res['fdest']
