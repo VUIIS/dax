@@ -834,12 +834,12 @@ class Processor_v3(object):
 
                     if len(file_list) > 1:
                         # Multiple files found, we only support explicit
-                        # declaration of fmulti==any, which tells dax to use
+                        # declaration of fmulti==any1, which tells dax to use
                         # any of the multiple files. We may later support
                         # other options
 
-                        if 'fmulti' in cur_res and cur_res['fmulti'] == 'any':
-                            LOGGER.debug('multiple files, fmulti==any, using first found')
+                        if 'fmulti' in cur_res and cur_res['fmulti'] == 'any1':
+                            LOGGER.debug('multiple files, fmulti==any1, using first found')
                         else:
                             LOGGER.debug('multiple files, fmulti not set')
                             raise NeedInputsException(artk + ': multiple files')
