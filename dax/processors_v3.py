@@ -833,11 +833,16 @@ class Processor_v3(object):
                         raise NeedInputsException('No Files')
 
                     if len(file_list) > 1:
-                        # TODO: decide how we want to handle multiple files
-                        # Make a comma separated list of files
-                        #uri_list = ['{}/files/{}'.format(resource, f) for f in file_list]
-                        #res_path = ','.join(uri_list)
-                        LOGGER.debug('multiple files, using first only')
+                        # Multiple files found, we only support explicit
+                        # declaration of fmulti==any, which tells dax to use
+                        # any of the multiple files. We may later support
+                        # other options
+
+                        if 'fmulti' in cur_res and cur_res['fmulti'] == 'any':
+                            LOGGER.debug('multiple files, fmulti==any, using first found')
+                        else:
+                            LOGGER.debug('multiple files, fmulti not set')
+                            raise NeedInputsException(artk + ': multiple files')
 
                     # Create the full path to the file on the resource
                     res_path = '{}/files/{}'.format(resource, file_list[0])
