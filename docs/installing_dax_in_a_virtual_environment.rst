@@ -42,11 +42,16 @@ which can then be activated or deactivated with:
 	conda activate daxvenv    # Activation of environment
 	conda deactivate          # Deactivation of environment
 
+After activating the new environment, git version 2.11+ should be installed. 
+
+ - For ACCRE users, refer to the instructions here: https://dax.readthedocs.io/en/latest/requirements_for_dax_on_accre.html
+ - Otherwise, install git using these instructions: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
+
 -----------
 Install DAX
 -----------
 
-Once the virtual environment with Python 3 is created, you'll need to install dax itself
+Once the virtual environment with Python 3 is created and the correct version of git is installed, you'll need to install dax itself
 
 ::
 
