@@ -813,11 +813,11 @@ class ProcessorParser:
                             break
 
                 for cassr in csess.assessors():
-                    LOGGER.info(cassr)
-                    LOGGER.info(dir(cassr))
-                    LOGGER.info(cassr.type())
-                    LOGGER.info(cassr.proctype())
-                    LOGGER.info(cassr.full_label())
+                    LOGGER.info('1 - ' + cassr)
+                    LOGGER.info('2 - ' + dir(cassr))
+                    LOGGER.info('3 - ' + cassr.type())
+                    LOGGER.info('4 - ' + cassr.proctype)
+                    LOGGER.info('5 - ' + cassr.full_label)
                     if cassr.type() in iv['types']:
                         artefacts_by_input[i].append(cassr.full_path())
 
