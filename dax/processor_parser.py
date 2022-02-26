@@ -818,7 +818,10 @@ class ProcessorParser:
                     LOGGER.info(dir(cassr))
                     LOGGER.info(dir(cassr.assr_element))
                     for baxter in cassr.assr_element.iter():
-                        LOGGER.info(dir(baxter))
+                        #LOGGER.info(dir(baxter))
+                        # 2022-02-26 17:11:22,678 - INFO - processor_parser - ['__class__', '__copy__', '__deepcopy__', '__delattr__', '__delitem__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__getstate__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__len__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setitem__', '__setstate__', '__sizeof__', '__str__', '__subclasshook__', 'append', 'attrib', 'clear', 'extend', 'find', 'findall', 'findtext', 'get', 'getchildren', 'getiterator', 'insert', 'items', 'iter', 'iterfind', 'itertext', 'keys', 'makeelement', 'remove', 'set', 'tag', 'tail', 'text']
+                        LOGGER.info(baxter.tag)
+                        LOGGER.info(baxter.keys)
                         LOGGER.info(baxter.attrib)
                     LOGGER.info('cassr.type() - ' + cassr.type())
                     if cassr.type() in iv['types']:
