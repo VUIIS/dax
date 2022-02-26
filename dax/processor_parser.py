@@ -815,9 +815,8 @@ class ProcessorParser:
                 for cassr in csess.assessors():
                     LOGGER.info(cassr)
                     LOGGER.info(dir(cassr))
-                    LOGGER.info('3 - ' + cassr.full_label())
-                    LOGGER.info('4 - ' + cassr.proctype())
-                    LOGGER.info('5 - ' + cassr.type())
+                    LOGGER.info('cassr.full_label() - ' + cassr.full_label())
+                    LOGGER.info('cassr.type() - ' + cassr.type())
                     if cassr.type() in iv['types']:
                         artefacts_by_input[i].append(cassr.full_path())
 
