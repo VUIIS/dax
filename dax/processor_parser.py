@@ -814,7 +814,7 @@ class ProcessorParser:
 
                 for cassr in csess.assessors():
                     LOGGER.info(cassr)
-                    LOGGER.info('2 - ' + dir(cassr))
+                    LOGGER.info(dir(cassr))
                     LOGGER.info('3 - ' + cassr.type())
                     LOGGER.info('4 - ' + cassr.proctype)
                     LOGGER.info('5 - ' + cassr.full_label)
