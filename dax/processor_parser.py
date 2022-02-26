@@ -816,6 +816,8 @@ class ProcessorParser:
                     LOGGER.info(cassr)
                     LOGGER.info(dir(cassr))
                     LOGGER.info(dir(cassr.assr_element))
+                    for baxter in cassr.assr_element.iter():
+                        print(baxter.attrib)
                     LOGGER.info('cassr.full_label() - ' + cassr.full_label())
                     LOGGER.info('cassr.type() - ' + cassr.type())
                     if cassr.type() in iv['types']:
