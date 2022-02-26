@@ -813,7 +813,7 @@ class ProcessorParser:
                             break
 
                 for cassr in csess.assessors():
-                    LOGGER.info('1 - ' + cassr)
+                    LOGGER.info(cassr)
                     LOGGER.info('2 - ' + dir(cassr))
                     LOGGER.info('3 - ' + cassr.type())
                     LOGGER.info('4 - ' + cassr.proctype)
