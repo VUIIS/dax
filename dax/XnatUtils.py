@@ -2481,12 +2481,12 @@ class CachedImageAssessor(object):
         """
         value = self.assr_element.get(name)
         if value is not None:
-            LOGGER.info('get - value1 - ' + str(value))
+            LOGGER.info(f'get {name} - value1 - {str(value)}')
             return value
 
         element = self.assr_element.find(name, NS)
         if element is not None:
-            LOGGER.info('get - value2 - ' + str(value))
+            LOGGER.info(f'get {name} - value2 - {str(value)}')
             return element.text
 
         # tag, attr = name.rsplit('/', 1)
@@ -2503,10 +2503,10 @@ class CachedImageAssessor(object):
             if element is not None:
                 value = element.get(attr)
                 if value is not None:
-                    LOGGER.info('get - value3 - ' + str(value))
+                    LOGGER.info(f'get {name} - value3 - {str(value)}')
                     return value
 
-        LOGGER.info('get - value4 - NONE FOUND')
+        LOGGER.info(f'get {name} - value4 - NONE FOUND')
         return ''
 
     def type(self):
