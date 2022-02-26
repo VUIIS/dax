@@ -813,6 +813,8 @@ class ProcessorParser:
                             break
 
                 for cassr in csess.assessors():
+                    print(cassr)
+                    print(dir(cassr))
                     if cassr.type() in iv['types']:
                         artefacts_by_input[i].append(cassr.full_path())
 
