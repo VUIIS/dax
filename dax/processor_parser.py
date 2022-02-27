@@ -813,9 +813,12 @@ class ProcessorParser:
                             break
 
                 for cassr in csess.assessors():
-                    if cassr.type() in iv['types']:
-                        artefacts_by_input[i].append(cassr.full_path())
-
+                    try:
+                        if cassr.type() in iv['types']:
+                            artefacts_by_input[i].append(cassr.full_path())
+                    except:
+                        LOGGER.error(f'Failed to add {cassr.full_label()} to processing list')
+                        
         return artefacts_by_input
 
     # TODO: BenM improve name of generate_parameter_matrix
