@@ -946,7 +946,7 @@ class ProcessorParser:
 
         assessors = [[] for _ in range(len(parameter_matrix))]
 
-        for casr in csess.assessors()
+        for casr in csess.assessors():
             try:
                 if casr.type() == proc_type:
                     inputs = casr.get_inputs()
