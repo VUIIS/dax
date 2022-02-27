@@ -43,7 +43,7 @@ LOGGER = logging.getLogger('dax')
 # The default singularity run command that includes the cleanenv option and
 # binds an INPUTS and OUTPUTS. The command is included in the job_template
 # which will already have the variables set for $INDIR and $OUTDIR
-SINGULARITY_RUN = 'singularity run -e -H $INDIR -B $INDIR:/INPUTS -B $OUTDIR:/OUTPUTS'
+SINGULARITY_RUN = 'singularity run --contain --cleanenv --home $INDIR --bind $INDIR:/INPUTS --bind $OUTDIR:/OUTPUTS'
 
 
 class ParserArtefact:
