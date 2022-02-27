@@ -946,11 +946,16 @@ class ProcessorParser:
 
         assessors = [[] for _ in range(len(parameter_matrix))]
 
-        for casr in [a for a in csess.assessors() if a.type() == proc_type]:
-            inputs = casr.get_inputs()
-            if inputs is None:
-                LOGGER.warn('skipping, inputs field is empty:' + casr.label())
-                return list()
+        for casr in csess.assessors()
+            try:
+                if casr.type() == proc_type:
+                    inputs = casr.get_inputs()
+                    if inputs is None:
+                        LOGGER.warn('skipping, inputs field is empty:' + casr.label())
+                        return list()
+            except:
+                LOGGER.error(f'Failed to process {casr.full_label()} in compare')
+                continue
 
             for pi, p in enumerate(parameter_matrix):
                 if inputs == p:
