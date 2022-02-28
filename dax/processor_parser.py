@@ -962,7 +962,7 @@ class ProcessorParser:
             for pi, p in enumerate(parameter_matrix):
                 if inputs == p:
                     # BDB 6/5/21 do we ever have more than one assessor
-                    # with the same set of inputs?
+                    # with the same set of inputs?  BPR 2/28/22 in principle we could
                     assessors[pi].append(casr)
 
         return list(zip(copy.deepcopy(parameter_matrix), assessors))
