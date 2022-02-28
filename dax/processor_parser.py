@@ -948,14 +948,16 @@ class ProcessorParser:
 
         for casr in csess.assessors():
             try:
-                if casr.type() == proc_type:
-                    inputs = casr.get_inputs()
-                    if inputs is None:
-                        LOGGER.warn('skipping, inputs field is empty:' + casr.label())
-                        return list()
+                proc_type_matches = (casr.type() == proc_type)
             except:
-                LOGGER.error(f'Failed to process {casr.full_label()} in compare')
+                LOGGER.error(f'Failed to check type of {casr.label()}')
                 continue
+            
+            if proc_type_matches:
+                inputs = casr.get_inputs()
+                if inputs is None:
+                    LOGGER.warn(f'Empty inputs - skipping {casr.label()}')
+                    continue
 
             for pi, p in enumerate(parameter_matrix):
                 if inputs == p:
