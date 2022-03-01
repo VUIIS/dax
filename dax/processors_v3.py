@@ -1132,17 +1132,24 @@ class Processor_v3(object):
 
         assessors = [[] for _ in range(len(parameter_matrix))]
 
-        for casr in [a for a in csess.assessors() if a.type() == proc_type]:
-            inputs = casr.get_inputs()
-            if inputs is None:
-                LOGGER.warn('skipping, inputs field is empty:' + casr.label())
-                return list()
+        for casr in csess.assessors():
+            try:
+                proc_type_matches = (casr.type() == proc_type)
+            except:
+                LOGGER.error(f'Failed to check type of {casr.label()}')
+                continue
+            
+            if proc_type_matches:
+                inputs = casr.get_inputs()
+                if inputs is None:
+                    LOGGER.warn(f'Empty inputs - skipping {casr.label()}')
+                    continue
 
-            for pi, p in enumerate(parameter_matrix):
-                if inputs == p:
-                    # BDB 6/5/21 do we ever have more than one assessor
-                    # with the same set of inputs?
-                    assessors[pi].append(casr)
+                for pi, p in enumerate(parameter_matrix):
+                    if inputs == p:
+                        # BDB  6/5/21 do we ever have more than one assessor
+                        #             with the same set of inputs?
+                        assessors[pi].append(casr)
 
         return list(zip(copy.deepcopy(parameter_matrix), assessors))
 
