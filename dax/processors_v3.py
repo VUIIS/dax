@@ -1050,9 +1050,13 @@ class Processor_v3(object):
                             break
 
                 for cassr in csess.assessors():
-                    if cassr.type() in iv['types']:
-                        artefacts_by_input[i].append(cassr.full_path())
-
+                    try:
+                        if cassr.type() in iv['types']:
+                            artefacts_by_input[i].append(cassr.full_path())
+                    except:
+                        # Perhaps type/proctype is missing
+                        LOGGER.error(f'Failed to add {cassr.label()} to processing list')
+                        
         return artefacts_by_input
 
     def _generate_parameter_matrix(self, artefacts, artefacts_by_input):
