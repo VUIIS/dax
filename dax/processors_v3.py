@@ -40,11 +40,11 @@ YAML_PATTERN = '^[\w-]*_v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]
 # Logger for logs
 LOGGER = logging.getLogger('dax')
 
-# The default singularity run command that includes the cleanenv option and
+# The default singularity command includes the cleanenv/contain options and
 # binds an INPUTS and OUTPUTS. The command is included in the job_template
 # which will already have the variables set for $INDIR and $OUTDIR
-SINGULARITY_RUN = (
-    'singularity run --contain --cleanenv '
+SINGULARITY_BASEOPTS = (
+    '--contain --cleanenv '
     '--home $JOBDIR '
     '--bind $INDIR:/INPUTS '
     '--bind $OUTDIR:/OUTPUTS '
@@ -472,6 +472,47 @@ class Processor_v3(object):
 
         return cmd
 
+    def build_singularity_cmd(runexec, command, var2val):
+        
+        if 'container' not in command:
+            err = 'singularity modes require a container to be set'
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
+        
+        if not runexec in ['run', 'exec']:
+            err = f'singularity mode {runexec} not known'
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
+
+        # Use the container name to get the path
+        cpath = self.get_container_path(command['container'])
+
+        if not cpath:
+            err = 'container path not found'
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
+
+        # Initialize command
+        command_txt = f'singularity {runexec} {SINGULARITY_BASEOPTS}'
+
+        # Append extra options
+        _extra = command.get('extraopts', None)
+        if _extra:
+            command_txt = '{} {}'.format(command_txt, _extra)
+
+        # Append container name
+        command_txt = '{} {}'.format(command_txt, cpath)
+
+        # Append arguments for the singularity entrypoint
+        cargs = command.get('args', None)
+        if cargs:
+            command_txt = '{} {}'.format(command_txt, cargs)
+
+        # Replace vars with values from var2val
+        command_txt = command_txt.format(**var2val)
+        
+        return command_txt
+
     def build_main_text(self, var2val):
         # Get the command dictionary
         command = self.command
@@ -487,41 +528,13 @@ class Processor_v3(object):
             raise AutoProcessorError(err)
 
         if command['type'] == 'singularity_run':
-            # TODO: move this to a function build_singularity_run()
-            if 'container' not in command:
-                err = 'singularity_run requires a container to be set'
-                LOGGER.error(err)
-                raise AutoProcessorError(err)
-
-            # Use the container name to get the path
-            cpath = self.get_container_path(command['container'])
-
-            if not cpath:
-                err = 'container path not found'
-                LOGGER.error(err)
-                raise AutoProcessorError(err)
-
-            # Initialize command
-            command_txt = '{}'.format(SINGULARITY_RUN)
-
-            # Append extra options
-            _extra = command.get('extraopts', None)
-            if _extra:
-                command_txt = '{} {}'.format(command_txt, _extra)
-
-            # Append container name
-            command_txt = '{} {}'.format(command_txt, cpath)
-
-            # Append arguments for the singularity entrypoint
-            cargs = command.get('args', None)
-            if cargs:
-                command_txt = '{} {}'.format(command_txt, cargs)
-
-            # Replace vars with values from var2val
-            command_txt = command_txt.format(**var2val)
+            command_txt = build_singularity_cmd('run', command, var2val)
+        
+        elif command['type'] == 'singularity_exec':
+            command_txt = build_singularity_cmd('exec', command, var2val)
 
         else:
-            err = 'invalid command type:{}'.format(command['type'])
+            err = 'invalid command type: {}'.format(command['type'])
             LOGGER.error(err)
             raise AutoProcessorError(err)
 
