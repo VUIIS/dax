@@ -1099,7 +1099,7 @@ class Processor_v3(object):
                         artefacts_by_input[i] = [sorted_info[0][0]]
                         LOGGER.info(
                             f'Keeping only the first scan found for '
-                            f'{iv["name"]}: {sorted_info[0][0]}'
+                            f'{i}: {sorted_info[0][0]}'
                             )
 
                     elif iv['keep_multis'] != 'all':
