@@ -709,7 +709,7 @@ class Processor_v3(object):
         #
         # Really insidious error case here: if an element of artefacts_by_input
         # is not a list, the build will "leak" past what has been requested and
-        # start building every project.
+        # start building every project. This is now checked in _map_artefacts_to_inputs
 
         parameter_matrix = self._generate_parameter_matrix(
             artefacts, artefacts_by_input
@@ -1114,7 +1114,8 @@ class Processor_v3(object):
                             LOGGER.warning(f'Unable to check match of {cassr.label()} - ignoring')
         
         # Validate - each value of artefacts_by_input must be a list
-        for k, v in artefacts_by_input:
+        print(f'TYPE IS {type(artefacts_by_input)}')
+        for abi in artefacts_by_input:
             if not isinstance(v, list):
                 msg = f'Non-list found in artefacts_by_input field {k}: {v}'
                 LOGGER.error(msg)
