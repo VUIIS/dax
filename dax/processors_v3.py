@@ -935,7 +935,11 @@ class Processor_v3(object):
 
             needs_qc = s.get('needs_qc', False)
 
+            # Consider an MR scan for an input if it's marked Unusable?
             skip_unusable = s.get('skip_unusable', False)
+
+            # Include the 'first', or 'all', matching scans as possible inputs
+            keep_multis = s.get('keep_multis', 'all')
 
             self.proc_inputs[name] = {
                 'types': types,
@@ -944,6 +948,7 @@ class Processor_v3(object):
                 'resources': resources,
                 'required': artefact_required,
                 'skip_unusable': skip_unusable,
+                'keep_multis': keep_multis,
             }
 
         # get assessors
@@ -1067,6 +1072,15 @@ class Processor_v3(object):
                                 else:
                                     artefacts_by_input[i].append(cscan.full_path())
                                     break  # don't match multiple times for same scan
+                    # BPR TODO Check here for multiple same-named scans in the list
+                    if iv['keep_multis'] == 'first':
+                        msg = 'keep_multis "first" not yet implemented'
+                        LOGGER.error(msg)
+                        raise AutoProcessorError(msg)
+                    elif iv['keep_multis'] != 'all':
+                        msg = 'keep_multis must be "first" or "all"'
+                        LOGGER.error(msg)
+                        raise AutoProcessorError(msg)
 
                 elif iv['artefact_type'] == 'assessor':
                     for cassr in csess.assessors():
