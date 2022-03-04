@@ -1082,24 +1082,17 @@ class Processor_v3(object):
                                     # vs a different requested type
                                     artefacts_by_input[i].append(cscan.full_path())
                                     artefact_ids_by_input[i].append(cscan.info().get('ID'))
-                                    artefact_types_by_input[i].append(cscan.type())
                                     break
                                     
-                    # If requested, check for multiple same-named scans in the list and only keep
+                    # If requested, check for multiple matching scans in the list and only keep
                     # the first. Sort lowercase by alpha, on scan ID.
                     if iv['keep_multis'] == 'first':
                         scan_info = zip(
                             artefacts_by_input[i],
                             artefact_ids_by_input[i],
-                            artefact_types_by_input[i],
                             )
                         sorted_info = sorted(scan_info, key=lambda x: str(x[1]).lower())
-                        seen_types = []
-                        for inf in sorted_info:
-                            if inf[2] in seen_types:
-                                artefacts_by_input[i].remove(inf[0])
-                            else:
-                                seen_types.append(inf[2])
+                        artefacts_by_input[i] = sorted_info[0][0]
                                 
                     elif iv['keep_multis'] != 'all':
                         msg = 'keep_multis must be "first" or "all"'
