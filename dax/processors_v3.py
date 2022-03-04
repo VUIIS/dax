@@ -702,6 +702,10 @@ class Processor_v3(object):
         # input name and the value is a list of artefact paths that match
         # the input.
         # These artefact paths are keys into the artefacts dictionary.
+        
+        # BPR 4 Mar 2022
+        # artefacts_by_input has been filtered already in _map_artefacts_to_inputs
+        # by the skip_unusable and keep_multis options, if so requested.
 
         parameter_matrix = self._generate_parameter_matrix(
             artefacts, artefacts_by_input
@@ -1063,7 +1067,8 @@ class Processor_v3(object):
                                     artefacts_by_input[i].append(pscan.full_path())
 
             else:
-                # Iterate each scan or assessor on the session
+                
+                # Find matching scans in the session, if asked for a scan
                 if iv['artefact_type'] == 'scan':
                     for cscan in csess.scans():
                         for expression in iv['types']:
@@ -1072,11 +1077,16 @@ class Processor_v3(object):
                                 if iv['skip_unusable'] and cscan.info().get('quality') == 'unusable':
                                     LOGGER.info(f'Excluding unusable scan {cscan.label()}')
                                 else:
+                                    # Get scan path, scan ID, and scan type for each matching scan.
+                                    # Break if the scan matches so we don't find it again comparing
+                                    # vs a different requested type
                                     artefacts_by_input[i].append(cscan.full_path())
                                     artefact_ids_by_input[i].append(cscan.info().get('ID'))
                                     artefact_types_by_input[i].append(cscan.type())
-                                    break  # don't match multiple times for same scan
-                    # Check for multiple same-named scans in the list. Sort lowercase by alpha
+                                    break
+                                    
+                    # If requested, check for multiple same-named scans in the list and only keep
+                    # the first. Sort lowercase by alpha, on scan ID.
                     if iv['keep_multis'] == 'first':
                         scan_info = zip(
                             artefacts_by_input[i],
@@ -1090,11 +1100,13 @@ class Processor_v3(object):
                                 artefacts_by_input[i].remove(inf[0])
                             else:
                                 seen_types.append(inf[2])
+                                
                     elif iv['keep_multis'] != 'all':
                         msg = 'keep_multis must be "first" or "all"'
                         LOGGER.error(msg)
                         raise AutoProcessorError(msg)
 
+                # Find matching assessors in the session, if asked for an assessor
                 elif iv['artefact_type'] == 'assessor':
                     for cassr in csess.assessors():
                         try:
