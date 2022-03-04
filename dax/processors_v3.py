@@ -935,12 +935,15 @@ class Processor_v3(object):
 
             needs_qc = s.get('needs_qc', False)
 
+            skip_unusable = s.get('skip_unusable', False)
+
             self.proc_inputs[name] = {
                 'types': types,
                 'artefact_type': 'scan',
                 'needs_qc': needs_qc,
                 'resources': resources,
                 'required': artefact_required,
+                'skip_unusable': skip_unusable,
             }
 
         # get assessors
@@ -1059,9 +1062,12 @@ class Processor_v3(object):
                         for expression in iv['types']:
                             regex = utilities.extract_exp(expression)
                             if regex.match(cscan.type()):
-                                artefacts_by_input[i].append(cscan.full_path())
-                                # Break here so we don't match multiple times for same scan
-                                break
+                                if iv['skip_unusable'] and cscan.info().get('quality') == 'unusable':
+                                    LOGGER.info(f'Excluding unusable scan {cscan.label()}')
+                                else:
+                                    artefacts_by_input[i].append(cscan.full_path())
+                                    break  # don't match multiple times for same scan
+
                 elif iv['artefact_type'] == 'assessor':
                     for cassr in csess.assessors():
                         try:
