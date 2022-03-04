@@ -1022,6 +1022,7 @@ class Processor_v3(object):
 
     def _map_artefacts_to_inputs(self, csess, pets):
         inputs = self.proc_inputs
+        print(inputs)
 
         # BDB 6/5/21
         # here is where we should do something different for
@@ -1072,7 +1073,6 @@ class Processor_v3(object):
             else:
                 
                 # Find matching scans in the session, if asked for a scan
-                print(iv['artefact_type'])
                 if iv['artefact_type'] == 'scan':
                     for cscan in csess.scans():
                         for expression in iv['types']:
