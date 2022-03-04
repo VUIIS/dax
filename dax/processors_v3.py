@@ -1040,7 +1040,7 @@ class Processor_v3(object):
                     if not tracer_match:
                         # None of the expressions matched
                         LOGGER.debug(
-                            'tracer no matchy:{}:{}'.format(tracer_name, iv['tracer'])
+                            'tracer not matched:{}:{}'.format(tracer_name, iv['tracer'])
                         )
                         continue
 
