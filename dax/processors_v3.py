@@ -1114,8 +1114,7 @@ class Processor_v3(object):
                             LOGGER.warning(f'Unable to check match of {cassr.label()} - ignoring')
         
         # Validate - each value of artefacts_by_input must be a list
-        print(f'TYPE IS {type(artefacts_by_input)}')
-        for abi in artefacts_by_input:
+        for k, v in artefacts_by_input.items():
             if not isinstance(v, list):
                 msg = f'Non-list found in artefacts_by_input field {k}: {v}'
                 LOGGER.error(msg)
