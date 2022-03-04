@@ -1072,6 +1072,7 @@ class Processor_v3(object):
             else:
                 
                 # Find matching scans in the session, if asked for a scan
+                print(iv['artefact_type'])
                 if iv['artefact_type'] == 'scan':
                     for cscan in csess.scans():
                         for expression in iv['types']:
