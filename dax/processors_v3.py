@@ -1020,6 +1020,8 @@ class Processor_v3(object):
         # the pet scans I think? are we treating assessors scans differently
         # here or not?
         artefacts_by_input = {k: [] for k in inputs}
+        artefact_ids_by_input = {k: [] for k in inputs}
+        artefact_types_by_input = {k: [] for k in inputs}
 
         for i, iv in list(inputs.items()):
             # BDB 6/5/21
@@ -1071,17 +1073,16 @@ class Processor_v3(object):
                                     LOGGER.info(f'Excluding unusable scan {cscan.label()}')
                                 else:
                                     artefacts_by_input[i].append(cscan.full_path())
+                                    artefact_ids_by_input[i].append(cscan.info().get('ID'))
+                                    artefact_types_by_input[i].append(cscan.type())
                                     break  # don't match multiple times for same scan
                     # Check for multiple same-named scans in the list. Sort lowercase by alpha
                     if iv['keep_multis'] == 'first':
-                        scan_paths = []
-                        scan_ids = []
-                        scan_types = []
-                        for scan_path in artefacts_by_input[i]:
-                            scan_paths.append(scan_path)
-                            scan_ids.append(artefacts[scan_path].entity.info['ID'])
-                            scan_types.append(artefacts[scan_path].entity.info['type'])
-                        scan_info = zip(scan_paths, scan_ids, scan_types)
+                        scan_info = zip(
+                            artefacts_by_input[i],
+                            artefact_ids_by_input[i],
+                            artefact_types_by_input[i],
+                            )
                         sorted_info = sorted(scan_info.items(), key=lambda x: lower(str(x[1])))
                         seen_types = []
                         for inf in sorted_info:
