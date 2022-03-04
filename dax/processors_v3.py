@@ -1083,7 +1083,7 @@ class Processor_v3(object):
                             artefact_ids_by_input[i],
                             artefact_types_by_input[i],
                             )
-                        sorted_info = sorted(scan_info.items(), key=lambda x: lower(str(x[1])))
+                        sorted_info = sorted(scan_info, key=lambda x: lower(str(x[1])))
                         seen_types = []
                         for inf in sorted_info:
                             if inf[2] in seen_types:
