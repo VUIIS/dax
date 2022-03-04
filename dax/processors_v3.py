@@ -1072,11 +1072,23 @@ class Processor_v3(object):
                                 else:
                                     artefacts_by_input[i].append(cscan.full_path())
                                     break  # don't match multiple times for same scan
-                    # BPR TODO Check here for multiple same-named scans in the list
+                    # Check for multiple same-named scans in the list. Sort lowercase by alpha
                     if iv['keep_multis'] == 'first':
-                        msg = 'keep_multis "first" not yet implemented'
-                        LOGGER.error(msg)
-                        raise AutoProcessorError(msg)
+                        scan_paths = []
+                        scan_ids = []
+                        scan_types = []
+                        for scan_path in artefacts_by_input[i]:
+                            scan_paths.append(scan_path)
+                            scan_ids.append(artefacts[scan_path].entity.info['ID'])
+                            scan_types.append(artefacts[scan_path].entity.info['type'])
+                        scan_info = zip(scan_paths, scan_ids, scan_types)
+                        sorted_info = sorted(scan_info.items(), key=lambda x: lower(str(x[1])))
+                        seen_types = []
+                        for inf in sorted_info:
+                            if inf[2] in seen_types:
+                                artefacts_by_input[i].remove(inf[0])
+                            else:
+                                seen_types.append(inf[2])
                     elif iv['keep_multis'] != 'all':
                         msg = 'keep_multis must be "first" or "all"'
                         LOGGER.error(msg)
