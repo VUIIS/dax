@@ -1096,7 +1096,7 @@ class Processor_v3(object):
                             artefact_ids_by_input[i],
                             )
                         sorted_info = sorted(scan_info, key=lambda x: str(x[1]).lower())
-                        artefacts_by_input[i] = sorted_info[0][0]
+                        artefacts_by_input[i] = [sorted_info[0][0]]
                                 
                     elif iv['keep_multis'] != 'all':
                         msg = 'keep_multis must be "first" or "all"'
