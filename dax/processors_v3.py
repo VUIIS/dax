@@ -1053,22 +1053,23 @@ class Processor_v3(object):
                                     artefacts_by_input[i].append(pscan.full_path())
 
             else:
-                # Iterate each scan on the session
-                for cscan in csess.scans():
-                    for expression in iv['types']:
-                        regex = utilities.extract_exp(expression)
-                        if regex.match(cscan.type()):
-                            artefacts_by_input[i].append(cscan.full_path())
-                            # Break here so we don't match multiple times
-                            break
-
-                for cassr in csess.assessors():
-                    try:
-                        if cassr.type() in iv['types']:
-                            artefacts_by_input[i].append(cassr.full_path())
-                    except:
-                        # Perhaps type/proctype is missing
-                        LOGGER.error(f'Failed to add {cassr.label()} to processing list')
+                # Iterate each scan or assessor on the session
+                if iv['artefact_type'] == 'scan':
+                    for cscan in csess.scans():
+                        for expression in iv['types']:
+                            regex = utilities.extract_exp(expression)
+                            if regex.match(cscan.type()):
+                                artefacts_by_input[i].append(cscan.full_path())
+                                # Break here so we don't match multiple times for same scan
+                                break
+                elif iv['artefact_type'] == 'assessor':
+                    for cassr in csess.assessors():
+                        try:
+                            if cassr.type() in iv['types']:
+                                artefacts_by_input[i].append(cassr.full_path())
+                        except:
+                            # Perhaps type/proctype is missing
+                            LOGGER.warning(f'Unable to check match of {cassr.label()} - ignoring')
                         
         return artefacts_by_input
 
@@ -1149,7 +1150,7 @@ class Processor_v3(object):
             try:
                 proc_type_matches = (casr.type() == proc_type)
             except:
-                LOGGER.error(f'Failed to check type of {casr.label()}')
+                LOGGER.warning(f'Unable to check match of {casr.label()} - ignoring')
                 continue
             
             if proc_type_matches:
