@@ -706,6 +706,10 @@ class Processor_v3(object):
         # BPR 4 Mar 2022
         # artefacts_by_input has been filtered already in _map_artefacts_to_inputs
         # by the skip_unusable and keep_multis options, if so requested.
+        #
+        # Really insidious error case here: if an element of artefacts_by_input
+        # is not a list, the build will "leak" past what has been requested and
+        # start building every project.
 
         parameter_matrix = self._generate_parameter_matrix(
             artefacts, artefacts_by_input
@@ -1092,7 +1096,7 @@ class Processor_v3(object):
                             artefact_ids_by_input[i],
                             )
                         sorted_info = sorted(scan_info, key=lambda x: str(x[1]).lower())
-                        artefacts_by_input[i] = [sorted_info[0][0]]
+                        artefacts_by_input[i] = sorted_info[0][0]
                                 
                     elif iv['keep_multis'] != 'all':
                         msg = 'keep_multis must be "first" or "all"'
@@ -1108,7 +1112,14 @@ class Processor_v3(object):
                         except:
                             # Perhaps type/proctype is missing
                             LOGGER.warning(f'Unable to check match of {cassr.label()} - ignoring')
-                        
+        
+        # Validate - each value of artefacts_by_input must be a list
+        for k, v in artefacts_by_input:
+            if not isinstance(v, list):
+                msg = f'Non-list found in artefacts_by_input field {k}: {v}'
+                LOGGER.error(msg)
+                raise AutoProcessorError(msg)
+        
         return artefacts_by_input
 
     def _generate_parameter_matrix(self, artefacts, artefacts_by_input):
