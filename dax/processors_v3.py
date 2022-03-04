@@ -1029,7 +1029,6 @@ class Processor_v3(object):
         # here or not?
         artefacts_by_input = {k: [] for k in inputs}
         artefact_ids_by_input = {k: [] for k in inputs}
-        artefact_types_by_input = {k: [] for k in inputs}
 
         for i, iv in list(inputs.items()):
             # BDB 6/5/21
