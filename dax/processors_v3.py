@@ -1081,7 +1081,7 @@ class Processor_v3(object):
                                 if iv['skip_unusable'] and cscan.info().get('quality') == 'unusable':
                                     LOGGER.info(f'Excluding unusable scan {cscan.label()}')
                                 else:
-                                    # Get scan path, scan ID, and scan type for each matching scan.
+                                    # Get scan path, scan ID for each matching scan.
                                     # Break if the scan matches so we don't find it again comparing
                                     # vs a different requested type
                                     artefacts_by_input[i].append(cscan.full_path())
