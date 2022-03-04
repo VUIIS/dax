@@ -119,6 +119,10 @@ The **var** field defines the tag to be replaced in the **command** string templ
 
 Optional fields for a resource are **fmatch** and **fcount**. **fmatch** defines a regular expression to apply to filter the list of filenames in the resource. **fcount** can be used to limit the number of files matched. By default, only 1 file is downloaded.
 
+The optional **skip_unusable** field may be *False* (the default); or *True* to prevent building assessors that would have as an input a scan that is marked *unusable*. This is available for **scans**, but not **petscans** or **assessors**.
+
+The optional **keep_multis** field may be *all* (the default); or *first*. This applies when there are multiple scans with the same type in the session, therefore multiple possible inputs for this scan. Normally one assessor is built for each matching scan. When *first* is specified, only one assessor will be built, using the first scan as its input. "First" is defined as alphabetical order by scan ID, cast to lowercase. This also is available for **scans**, but not **petscans** or **assessors**.
+
 
 xnat assessors
 ---------------
