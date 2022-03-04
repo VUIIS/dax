@@ -121,7 +121,7 @@ Optional fields for a resource are **fmatch** and **fcount**. **fmatch** defines
 
 The optional **skip_unusable** field may be *False* (the default); or *True* to prevent building assessors that would have as an input a scan that is marked *unusable*. This is available for **scans**, but not **petscans** or **assessors**.
 
-The optional **keep_multis** field may be *all* (the default); or *first*. This applies when there are multiple scans in the session that match as possible inputs. Normally one assessor is built for each matching scan. When *first* is specified, only one assessor will be built, using the first matching scan as its input. "First" is defined as alphabetical order by scan ID, cast to lowercase. The exact scan type is not considered; only whether there is a match with the **types** specified. This also is available for **scans**, but not **petscans** or **assessors**.
+The optional **keep_multis** field may be *all* (the default); or *first*. This applies when there are multiple scans in the session that match as possible inputs. Normally all matching scans are used as inputs, multiplying assessors as needed. When *first* is specified, only the first matching scan will be used as an input, reducing the number of assessors built by a factor of the number of matching scans. "First" is defined as alphabetical order by scan ID, cast to lowercase. The exact scan type is not considered; only whether there is a match with the **types** specified. This also is available for **scans**, but not **petscans** or **assessors**.
 
 
 xnat assessors
