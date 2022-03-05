@@ -46,14 +46,14 @@ A Basic Example
       memory: 16G
     
     inputs:
-      vars: {}   # Keyvalues to substitute in the command, for passing static settings
-          param1: param1value
+      vars:   # Keyvalues to substitute in the command, for passing static settings
+          - param1: param1value
       xnat:
-        attrs:  # Calues to extract from xnat at the specified level of the current instance
-          - varname:  # Name to be used to dereference later
-            object:   # Source, one of these strings: project, subject, session, scan, assessor
-            attr:     # Name of the field in xnat
-            ref:      # From which object in inputs scans or assessors, referred to by name
+        attrs:  # Values to extract from xnat at the specified level of the current instance
+          - varname:  scanID     # Name to be used to dereference later
+            object:   scan       # Source, of: project, subject, session, scan, assessor
+            attr:     ID         # Name of the field in xnat
+            ref:      scan_fmri  # From which object in inputs, referred to by name
         scans:
           - name: scan_fmri       # the name of this scan to dereference later
             types: fMRI_run*      # the scan types to match on the session in XNAT
@@ -61,6 +61,12 @@ A Basic Example
             resources:            # To get files in other resources
               - resource: EDAT        # Name of the resource
                 fdest: edat.txt       # Download the file as edat.txt
+                varname: edat_txt     # Reference for command string substitution
+        assessors:
+          - name: assr_preproc
+            proctypes: preproc-fmri_v2
+            resources:
+              - {resource: FILTERED_DATA, fdest: filtered_data.nii.gz}
     
     outputs:
       - pdf: report*.pdf        # Matching file uploaded to PDF resource
@@ -76,7 +82,12 @@ A Basic Example
       type: singularity_run
       extraopts: []       # Appends to default options for the run command
       container: EXAMP    # Name of the container in the list above
-      args: null          # Arguments to the container itself
+      args: >-
+        --fmri_file /INPUTS/fmri.nii.gz
+        --filtered_file /INPUTS/filtered_data.nii.gz
+        --param1 {param1value}
+        --scan_id {scanID}
+        --edat_txt /INPUTS/{edat_txt}
     
     description: |
       Example description that gets printed to every PDF created by this processor
@@ -105,11 +116,11 @@ xnat scans
 ---------------
 Each **xnat scans** item requires a **types** field. The **types** field is used to match against the scan type attribute on XNAT. The value can be a single string or a comma-separated list. Wildcards are also supported.
 
-The **resources** subsection of each xnat scan should contain a list of resources to download from the matched scan. Each resource requires fields for **ftype** and **var**. 
+The **resources** subsection of each xnat scan should contain a list of resources to download from the matched scan.
 
 **ftype** specifies what type to downloaded from the resource, either *FILE*, *DIR*, or *DIRJ*. *FILE* will download individual files from the resource. *DIR* will download the whole directory from the resource with the hierarchy maintained. *DIRJ* will also download the directory but strips extraneous intermediate directories from the produced path as implemented by the *-j* flag of unzip.
 
-The **var** field defines tags to be replaced in the **command** string template (see below).
+The **varname** field defines tags to be replaced in the **command** string template (see below).
 
 The optional **fmatch** field defines a regular expression to apply to filter the list of filenames in the resource. **fmulti** affects how inputs are handled when there are multiple matching files in a resource. By default, this situation causes an exception, but if **fmulti** is set to *any1*, a single (arbitrary) file is selected from the matching files instead.
 
@@ -126,16 +137,15 @@ xnat assessors
 ---------------
 Each xnat assessor item requires a **proctype** field. The **proctype** field is used to match against the assessor proctype attribute on XNAT. The value can be a single string or a comma-separated list. Wildcards are also supported.
 
-By default, any assessor that matches **proctype** will be included. However if **needs_qc** is set to *True*, assessors with a qcstatus of "Needs QA", "Bad", "Failed", "Poor", or "Do Not Run" will be excluded.
+Any assessor that matches **proctype** will be included as a possible input. However if **needs_qc** is set to *True*, input assessors with a qcstatus of "Needs QA", "Bad", "Failed", "Poor", or "Do Not Run" will cause the new assessor not to run.
 
-The **resources** subsection of each xnat assessor should contain a list of resources to download from the matched scan. Each resource requires fields for **ftype** and **var**. 
+The **resources** subsection of each xnat assessor should contain a list of resources to download from the matched scan.
 
 The **ftype** specifies what type to downloaded from the resource, either *FILE*, *DIR*, or *DIRJ*. *FILE* will download individual files from the resource. *DIR* will download the whole directory from the resource with the hierarchy maintained. *DIRJ* will also download the directory but strips extraneous intermediate directories from the produced path as impelemented by the "-j" flag of unzip.
 
-The **var** field defines the tag to be replaced in the **command** string template (see below).
+The **varname** field defines the tag to be replaced in the **command** string template (see below).
 
-Optional fields for a resource are fmatch, fdest and fcount. fmatch defines a regular expression to apply to filter the list of filenames in the resource. fcount can be used to limit the number of files matched. By default, only 1 file is downloaded.  
-The inputs for some containers are expected to be in specific locations with specific filenames. This is accomplished using the **fdest** field. The file or directory gets copied to /INPUTS and renamed to the name specified in **fdest**. 
+Optional fields for a resource are **fmatch** and **fdest**. fmatch defines a regular expression to apply to filter the list of filenames in the resource. The inputs for some containers are expected to be in specific locations with specific filenames. This is accomplished using the **fdest** field. The file or directory gets copied to /INPUTS and renamed to the name specified in **fdest**. 
 
 
 xnat attrs
@@ -206,7 +216,7 @@ Processor name and version are parsed from the processor file name, based on the
 -------------------
 Notes on singularity options
 -------------------
-The default options are *SINGULARITY_BASEOPTS* in dax/dax/processors_v3.py:
+The default options are *SINGULARITY_BASEOPTS* in dax/dax/processors_v3.py::
 
     --contain --cleanenv
     --home $JOBDIR
@@ -219,7 +229,7 @@ $JOBDIR, $INDIR, $OUTDIR are available at run time, and refer to locations on th
 
 Singularity has default binds that differ between installations. --contain disables these to prevent cross-talk with the host filesystem. And --cleanenv prevents cross-talk with the host environment. However, with --contain, some spiders will need to have specific temp space on the host attached. E.g. for some versions of Freesurfer, --bind ${INDIR}:/dev/shm. For compiled Matlab spiders, we need to provide --home $INDIR to avoid .mcrCache collisions in temp space when multiple spiders are running. And, some cases may require ${INDIR}:/tmp or /tmp:/tmp. Thus the defaults above.
 
-The entire singularity command is built as
+The entire singularity command is built as::
 
     singularity <run|exec> <SINGULARITY_BASEOPTS> <extraopts> <container> <args>
 
