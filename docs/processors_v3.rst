@@ -28,64 +28,63 @@ The processor file defines how a script to run a pipeline should be created. DAX
 commands to download the inputs from XNAT, run the pipeline, and prepare the results to be uploaded back to XNAT (the actual uploading is performed by DAX via *dax upload*).
 
 ----------------
-A "Simple" Example
+A Basic Example
 ----------------
-.. Let's start with a minimal example that we'll walk through first. Then we'll cover more advanced topics.
 
 .. code-block:: yaml
-
----
-procyamlversion: 3.0.0-dev.0                 # Indicates to run as a v3 processor
-
-containers:                                  # Containers we will ref in the command section
-  - name: EXAMP                                  # Reference by this name in command section
-    path: example_v2.0.0.sif                     # Name/path that is replaced in command section
-    source: docker://vuiiscci/example:v2.0.0     # Not used, but good practice to set it
-
-reqs:  # Requirements for the cluster node, substituted into SBATCH section of job template
-  walltime: 0-2  # Time to request - SLURM supports the format DAYS-HOURS
-  memory: 16G
-
-inputs:
-  vars: {}   # Keyvalues to substitute in the command, for passing static settings
-      param1: param1value
-  xnat:
-    attrs:  # Calues to extract from xnat at the specified level of the current instance
-      - varname:  # Name to be used to dereference later
-        object:   # Source, one of these strings: project, subject, session, scan, assessor
-        attr:     # Name of the field in xnat
-        ref:      # From which object in inputs scans or assessors, referred to by name
-    scans:
-      - name: scan_fmri       # the name of this scan to dereference later
-        types: fMRI_run*      # the scan types to match on the session in XNAT
-        nifti: fmri.nii.gz    # Shortcut to download file in NIFTI resource as fmri.nii.gz
-        resources:            # To get files in other resources
-          - resource: EDAT        # Name of the resource
-            fdest: edat.txt       # Download the file as edat.txt
-
-outputs:
-  - pdf: report*.pdf        # Matching file uploaded to PDF resource
-  - stats: stats.txt        # Matching file uploaded to STATS resource
-  - dir: PREPROC            # Matching directory (PREPROC) uploaded to PREPROC resource
-  - path: inputpathname     # General purpose for other outputs
-    type: DIR                   # Type is FILE or DIR
-    resource: RESOURCENAME      # Store it in resource RESOURCENAME
-
-# Available commands are 'singularity_run' and 'singularity_exec'. These include default
-# flags --contain --cleanenv, and mount points for temp space plus INPUTS and OUTPUTS
-command:
-  type: singularity_run
-  extraopts: []       # Appends to default options for the run command
-  container: EXAMP    # Name of the container in the list above
-  args: null          # Arguments to the container itself
-
-description: |
-  Example description that gets printed to every PDF created by this processor
-  1. step 1 does something cool
-  2. step 2 does this other thing
-
-# Specify the job template to use (examples: https://github.com/VUIIS/dax_templates/)
-job_template: job_template_v3.txt
+    
+    ---
+    procyamlversion: 3.0.0-dev.0                 # Indicates to run as a v3 processor
+    
+    containers:                                  # Containers we will ref in the command section
+      - name: EXAMP                                  # Reference by this name in command section
+        path: example_v2.0.0.sif                     # Name/path that is replaced in command section
+        source: docker://vuiiscci/example:v2.0.0     # Not used, but good practice to set it
+    
+    reqs:  # Requirements for the cluster node, substituted into SBATCH section of job template
+      walltime: 0-2  # Time to request - SLURM supports the format DAYS-HOURS
+      memory: 16G
+    
+    inputs:
+      vars: {}   # Keyvalues to substitute in the command, for passing static settings
+          param1: param1value
+      xnat:
+        attrs:  # Calues to extract from xnat at the specified level of the current instance
+          - varname:  # Name to be used to dereference later
+            object:   # Source, one of these strings: project, subject, session, scan, assessor
+            attr:     # Name of the field in xnat
+            ref:      # From which object in inputs scans or assessors, referred to by name
+        scans:
+          - name: scan_fmri       # the name of this scan to dereference later
+            types: fMRI_run*      # the scan types to match on the session in XNAT
+            nifti: fmri.nii.gz    # Shortcut to download file in NIFTI resource as fmri.nii.gz
+            resources:            # To get files in other resources
+              - resource: EDAT        # Name of the resource
+                fdest: edat.txt       # Download the file as edat.txt
+    
+    outputs:
+      - pdf: report*.pdf        # Matching file uploaded to PDF resource
+      - stats: stats.txt        # Matching file uploaded to STATS resource
+      - dir: PREPROC            # Matching directory (PREPROC) uploaded to PREPROC resource
+      - path: inputpathname     # General purpose for other outputs
+        type: DIR                   # Type is FILE or DIR
+        resource: RESOURCENAME      # Store it in resource RESOURCENAME
+    
+    # Available commands are 'singularity_run' and 'singularity_exec'. These include default
+    # flags --contain --cleanenv, and mount points for temp space plus INPUTS and OUTPUTS
+    command:
+      type: singularity_run
+      extraopts: []       # Appends to default options for the run command
+      container: EXAMP    # Name of the container in the list above
+      args: null          # Arguments to the container itself
+    
+    description: |
+      Example description that gets printed to every PDF created by this processor
+      1. step 1 does something cool
+      2. step 2 does this other thing
+    
+    # Specify the job template to use (examples: https://github.com/VUIIS/dax_templates/)
+    job_template: job_template_v3.txt
 
 
 ----------------
