@@ -1022,7 +1022,6 @@ class Processor_v3(object):
 
     def _map_artefacts_to_inputs(self, csess, pets):
         inputs = self.proc_inputs
-        print(inputs)
 
         # BDB 6/5/21
         # here is where we should do something different for
@@ -1076,6 +1075,7 @@ class Processor_v3(object):
                 if iv['artefact_type'] == 'scan':
                     for cscan in csess.scans():
                         for expression in iv['types']:
+                            print(f'Looking for {i} in scans')
                             regex = utilities.extract_exp(expression)
                             if regex.match(cscan.type()):
                                 if iv['skip_unusable'] and cscan.info().get('quality') == 'unusable':
@@ -1084,6 +1084,7 @@ class Processor_v3(object):
                                     # Get scan path, scan ID for each matching scan.
                                     # Break if the scan matches so we don't find it again comparing
                                     # vs a different requested type
+                                    print(f'Match for {i}: {cscan.full_path()}')
                                     artefacts_by_input[i].append(cscan.full_path())
                                     artefact_ids_by_input[i].append(cscan.info().get('ID'))
                                     break
@@ -1109,9 +1110,11 @@ class Processor_v3(object):
 
                 # Find matching assessors in the session, if asked for an assessor
                 elif iv['artefact_type'] == 'assessor':
+                    print(f'Looking for {i} in assessors')
                     for cassr in csess.assessors():
                         try:
                             if cassr.type() in iv['types']:
+                                print(f'Match for {i}: {cassr.full_path()}')
                                 artefacts_by_input[i].append(cassr.full_path())
                         except:
                             # Perhaps type/proctype is missing
