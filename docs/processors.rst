@@ -117,11 +117,7 @@ The **resources** subsection of each xnat scan should contain a list of resource
 
 The **var** field defines the tag to be replaced in the **command** string template (see below).
 
-Optional fields for a resource are **fmatch** and **fcount**. **fmatch** defines a regular expression to apply to filter the list of filenames in the resource. **fcount** can be used to limit the number of files matched. By default, only 1 file is downloaded.
-
-The optional **skip_unusable** field may be *False* (the default); or *True* to prevent building assessors that would have as an input a scan that is marked *unusable*. This is available for **scans**, but not **petscans** or **assessors**.
-
-The optional **keep_multis** field may be *all* (the default); or *first*. This applies when there are multiple scans in the session that match as possible inputs. Normally all matching scans are used as inputs, multiplying assessors as needed. When *first* is specified, only the first matching scan will be used as an input, reducing the number of assessors built by a factor of the number of matching scans. "First" is defined as alphabetical order by scan ID, cast to lowercase. The exact scan type is not considered; only whether there is a match with the **types** specified. This is available for **scans**, but not **petscans** or **assessors**.
+The optional **fmatch** field defines a regular expression to apply to filter the list of filenames in the resource.
 
 
 xnat assessors
