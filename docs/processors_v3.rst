@@ -130,7 +130,7 @@ By default, any scan that matches will be included as an available input. Severa
 
 - If **skip_unusable** is *True*, assessors that would have an *unusable* scan as an input will not even be created.
 
-- **keep_multis** may be *all* (the default); or *first*. This applies when there are multiple scans in the session that match as possible inputs. Normally all matching scans are used as inputs, multiplying assessors as needed. When *first* is specified, only the first matching scan will be used as an input, reducing the number of assessors built by a factor of the number of matching scans. "First" is defined as alphabetical order by scan ID, cast to lowercase. The exact scan type is not considered; only whether there is a match with the **types** specified.
+- **keep_multis** may be *all* (the default); *first*; *last*; or an index 1,2,3,... This applies when there are multiple scans in the session that match as possible inputs. Normally all matching scans are used as inputs, multiplying assessors as needed. When *first* is specified, only the first matching scan will be used as an input, reducing the number of assessors built by a factor of the number of matching scans. "First" is defined as alphabetical order by scan ID, cast to lowercase. The exact scan type is not considered; only whether there is a match with the **types** specified.
 
 
 xnat assessors

@@ -1104,11 +1104,11 @@ class Processor_v3(object):
                             try:
                                 idx_multi = int(iv['keep_multis'])
                             except:
-                                msg = f'keep_multis must be first, last, or index 1,2,3,...'
+                                msg = f'For {i}, keep_multis must be first, last, or index 1,2,3,...'
                                 LOGGER.error(msg)
                                 raise AutoProcessorError(msg)
                             if idx_multi > num_scans:
-                                msg = f'Requested {idx_multi}th scan, but only {num_scans} found'
+                                msg = f'Requested {idx_multi}th scan for {i}, but only {num_scans} found'
                                 LOGGER.error(msg)
                                 raise AutoProcessorError(msg)
                         artefacts_by_input[i] = [sorted_info[idx_multi-1][0]]
