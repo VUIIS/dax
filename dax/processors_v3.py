@@ -1089,22 +1089,33 @@ class Processor_v3(object):
                                     
                     # If requested, check for multiple matching scans in the list and only keep
                     # the first. Sort lowercase by alpha, on scan ID.
-                    if iv['keep_multis'] == 'first':
+                    if iv['keep_multis'] != 'all':
                         scan_info = zip(
                             artefacts_by_input[i],
                             artefact_ids_by_input[i],
                             )
                         sorted_info = sorted(scan_info, key=lambda x: str(x[1]).lower())
-                        artefacts_by_input[i] = [sorted_info[0][0]]
+                        num_scans = sum(1 for _ in sorted_info)
+                        if iv['keep_multis'] == 'first':
+                            idx_multi = 1
+                        elif iv['keep_multis'] == 'last':
+                            idx_multi = num_scans
+                        else:
+                            try:
+                                idx_multi = int(iv['keep_multis'])
+                            except:
+                                msg = f'keep_multis must be first, last, or index 1,2,3,...'
+                                LOGGER.error(msg)
+                                raise AutoProcessorError(msg)
+                            if idx_multi > num_scans:
+                                msg = f'Requested {idx_multi}th scan, but only {num_scans} found'
+                                LOGGER.error(msg)
+                                raise AutoProcessorError(msg)
+                        artefacts_by_input[i] = [sorted_info[idx_multi-1][0]]
                         LOGGER.info(
-                            f'Keeping only the first scan found for '
-                            f'{i}: {sorted_info[0][0]}'
+                            f'Keeping only the {idx_multi}th scan found for '
+                            f'{i}: {sorted_info[idx_multi-1][0]}'
                             )
-
-                    elif iv['keep_multis'] != 'all':
-                        msg = 'keep_multis must be "first" or "all"'
-                        LOGGER.error(msg)
-                        raise AutoProcessorError(msg)
 
                 # Find matching assessors in the session, if asked for an assessor
                 elif iv['artefact_type'] == 'assessor':
