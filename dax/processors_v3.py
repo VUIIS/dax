@@ -472,14 +472,14 @@ class Processor_v3(object):
 
         return cmd
 
-    def build_singularity_cmd(runexec, command, var2val):
-        
+    def build_singularity_cmd(self, runexec, command, var2val):
+
         if 'container' not in command:
             err = 'singularity modes require a container to be set'
             LOGGER.error(err)
             raise AutoProcessorError(err)
-        
-        if not runexec in ['run', 'exec']:
+
+        if runexec not in ['run', 'exec']:
             err = f'singularity mode {runexec} not known'
             LOGGER.error(err)
             raise AutoProcessorError(err)
@@ -510,7 +510,7 @@ class Processor_v3(object):
 
         # Replace vars with values from var2val
         command_txt = command_txt.format(**var2val)
-        
+
         return command_txt
 
     def build_main_text(self, var2val):
@@ -528,10 +528,10 @@ class Processor_v3(object):
             raise AutoProcessorError(err)
 
         if command['type'] == 'singularity_run':
-            command_txt = build_singularity_cmd('run', command, var2val)
-        
+            command_txt = self.build_singularity_cmd('run', command, var2val)
+
         elif command['type'] == 'singularity_exec':
-            command_txt = build_singularity_cmd('exec', command, var2val)
+            command_txt = self.build_singularity_cmd('exec', command, var2val)
 
         else:
             err = 'invalid command type: {}'.format(command['type'])
@@ -702,7 +702,7 @@ class Processor_v3(object):
         # input name and the value is a list of artefact paths that match
         # the input.
         # These artefact paths are keys into the artefacts dictionary.
-        
+
         # BPR 4 Mar 2022
         # artefacts_by_input has been filtered already in _map_artefacts_to_inputs
         # by the skip_unusable and keep_multis options, if so requested.
@@ -1126,14 +1126,14 @@ class Processor_v3(object):
                         except:
                             # Perhaps type/proctype is missing
                             LOGGER.warning(f'Unable to check match of {cassr.label()} - ignoring')
-        
+
         # Validate - each value of artefacts_by_input must be a list
         for k, v in artefacts_by_input.items():
             if not isinstance(v, list):
                 msg = f'Non-list found in artefacts_by_input field {k}: {v}'
                 LOGGER.error(msg)
                 raise AutoProcessorError(msg)
-        
+
         return artefacts_by_input
 
     def _generate_parameter_matrix(self, artefacts, artefacts_by_input):
@@ -1215,7 +1215,7 @@ class Processor_v3(object):
             except:
                 LOGGER.warning(f'Unable to check match of {casr.label()} - ignoring')
                 continue
-            
+
             if proc_type_matches:
                 inputs = casr.get_inputs()
                 if inputs is None:
