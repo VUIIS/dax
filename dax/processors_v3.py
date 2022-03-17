@@ -702,6 +702,14 @@ class Processor_v3(object):
         # input name and the value is a list of artefact paths that match
         # the input.
         # These artefact paths are keys into the artefacts dictionary.
+        
+        # BPR 4 Mar 2022
+        # artefacts_by_input has been filtered already in _map_artefacts_to_inputs
+        # by the skip_unusable and keep_multis options, if so requested.
+        #
+        # Really insidious error case here: if an element of artefacts_by_input
+        # is not a list, the build will "leak" past what has been requested and
+        # start building every project. This is now checked in _map_artefacts_to_inputs
 
         parameter_matrix = self._generate_parameter_matrix(
             artefacts, artefacts_by_input
@@ -935,12 +943,20 @@ class Processor_v3(object):
 
             needs_qc = s.get('needs_qc', False)
 
+            # Consider an MR scan for an input if it's marked Unusable?
+            skip_unusable = s.get('skip_unusable', False)
+
+            # Include the 'first', or 'all', matching scans as possible inputs
+            keep_multis = s.get('keep_multis', 'all')
+
             self.proc_inputs[name] = {
                 'types': types,
                 'artefact_type': 'scan',
                 'needs_qc': needs_qc,
                 'resources': resources,
                 'required': artefact_required,
+                'skip_unusable': skip_unusable,
+                'keep_multis': keep_multis,
             }
 
         # get assessors
@@ -1012,6 +1028,7 @@ class Processor_v3(object):
         # the pet scans I think? are we treating assessors scans differently
         # here or not?
         artefacts_by_input = {k: [] for k in inputs}
+        artefact_ids_by_input = {k: [] for k in inputs}
 
         for i, iv in list(inputs.items()):
             # BDB 6/5/21
@@ -1037,7 +1054,7 @@ class Processor_v3(object):
                     if not tracer_match:
                         # None of the expressions matched
                         LOGGER.debug(
-                            'tracer no matchy:{}:{}'.format(tracer_name, iv['tracer'])
+                            'tracer not matched:{}:{}'.format(tracer_name, iv['tracer'])
                         )
                         continue
 
@@ -1053,23 +1070,70 @@ class Processor_v3(object):
                                     artefacts_by_input[i].append(pscan.full_path())
 
             else:
-                # Iterate each scan on the session
-                for cscan in csess.scans():
-                    for expression in iv['types']:
-                        regex = utilities.extract_exp(expression)
-                        if regex.match(cscan.type()):
-                            artefacts_by_input[i].append(cscan.full_path())
-                            # Break here so we don't match multiple times
-                            break
+                
+                # Find matching scans in the session, if asked for a scan
+                if iv['artefact_type'] == 'scan':
+                    for cscan in csess.scans():
+                        for expression in iv['types']:
+                            regex = utilities.extract_exp(expression)
+                            if regex.match(cscan.type()):
+                                if iv['skip_unusable'] and cscan.info().get('quality') == 'unusable':
+                                    LOGGER.info(f'Excluding unusable scan {cscan.label()}')
+                                else:
+                                    # Get scan path, scan ID for each matching scan.
+                                    # Break if the scan matches so we don't find it again comparing
+                                    # vs a different requested type
+                                    artefacts_by_input[i].append(cscan.full_path())
+                                    artefact_ids_by_input[i].append(cscan.info().get('ID'))
+                                    break
+                                    
+                    # If requested, check for multiple matching scans in the list and only keep
+                    # the first. Sort lowercase by alpha, on scan ID.
+                    if iv['keep_multis'] != 'all':
+                        scan_info = zip(
+                            artefacts_by_input[i],
+                            artefact_ids_by_input[i],
+                            )
+                        sorted_info = sorted(scan_info, key=lambda x: str(x[1]).lower())
+                        num_scans = sum(1 for _ in sorted_info)
+                        if iv['keep_multis'] == 'first':
+                            idx_multi = 1
+                        elif iv['keep_multis'] == 'last':
+                            idx_multi = num_scans
+                        else:
+                            try:
+                                idx_multi = int(iv['keep_multis'])
+                            except:
+                                msg = f'For {i}, keep_multis must be first, last, or index 1,2,3,...'
+                                LOGGER.error(msg)
+                                raise AutoProcessorError(msg)
+                            if idx_multi > num_scans:
+                                msg = f'Requested {idx_multi}th scan for {i}, but only {num_scans} found'
+                                LOGGER.error(msg)
+                                raise AutoProcessorError(msg)
+                        artefacts_by_input[i] = [sorted_info[idx_multi-1][0]]
+                        LOGGER.info(
+                            f'Keeping only the {idx_multi}th scan found for '
+                            f'{i}: {sorted_info[idx_multi-1][0]}'
+                            )
 
-                for cassr in csess.assessors():
-                    try:
-                        if cassr.type() in iv['types']:
-                            artefacts_by_input[i].append(cassr.full_path())
-                    except:
-                        # Perhaps type/proctype is missing
-                        LOGGER.error(f'Failed to add {cassr.label()} to processing list')
-                        
+                # Find matching assessors in the session, if asked for an assessor
+                elif iv['artefact_type'] == 'assessor':
+                    for cassr in csess.assessors():
+                        try:
+                            if cassr.type() in iv['types']:
+                                artefacts_by_input[i].append(cassr.full_path())
+                        except:
+                            # Perhaps type/proctype is missing
+                            LOGGER.warning(f'Unable to check match of {cassr.label()} - ignoring')
+        
+        # Validate - each value of artefacts_by_input must be a list
+        for k, v in artefacts_by_input.items():
+            if not isinstance(v, list):
+                msg = f'Non-list found in artefacts_by_input field {k}: {v}'
+                LOGGER.error(msg)
+                raise AutoProcessorError(msg)
+        
         return artefacts_by_input
 
     def _generate_parameter_matrix(self, artefacts, artefacts_by_input):
@@ -1149,7 +1213,7 @@ class Processor_v3(object):
             try:
                 proc_type_matches = (casr.type() == proc_type)
             except:
-                LOGGER.error(f'Failed to check type of {casr.label()}')
+                LOGGER.warning(f'Unable to check match of {casr.label()} - ignoring')
                 continue
             
             if proc_type_matches:
