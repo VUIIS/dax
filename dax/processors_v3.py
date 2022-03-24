@@ -80,7 +80,7 @@ class Processor_v3(object):
         self,
         xnat,
         yaml_file,
-        user_inputs={},
+        user_inputs=None,
         singularity_imagedir=None,
         job_template='~/job_template.txt',
     ):
@@ -109,7 +109,11 @@ class Processor_v3(object):
         self.user_overrides = {}
         self.extra_user_overrides = {}
         self.xsitype = "proc:genProcData"
-        self.user_inputs = user_inputs   # used to override default values
+
+        if user_inputs:
+            self.user_inputs = user_inputs   # used to override default values
+        else:
+            self.user_inputs = {}
 
         validate_yaml_filename(yaml_file)
         # TODO: validate_yaml_file contents(yaml_file)
