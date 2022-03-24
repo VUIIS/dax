@@ -138,10 +138,6 @@ class Processor_v3(object):
         # Load the yaml
         self._read_yaml(yaml_file)
 
-    def print_inputs(self):
-        from pprint import pprint
-        pprint(self.proc_inputs)
-
     def _edit_inputs(self):
         """
         Method to override inputs from the YAML file based on the user inputs
