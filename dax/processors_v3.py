@@ -149,14 +149,12 @@ class Processor_v3(object):
         :param user_inputs: dictionary of tag, value. E.G:
             user_inputs = {'default.spider_path': /.../Spider....py'}
         """
-        xnat_inputs = self.xnat_inputs
-
         for key, val in self.user_inputs.items():
             LOGGER.debug('overriding:key={}'.format(key))
             tags = key.split('.')
             if key.startswith('inputs.xnat'):
                 # change value
-                if tags[2] not in list(xnat_inputs.keys()):
+                if tags[2] not in list(self.xnat_inputs.keys()):
                     msg = 'key not found in xnat inputs:key={}'
                     msg = msg.format(tags[3])
                     LOGGER.error(msg)
@@ -164,7 +162,7 @@ class Processor_v3(object):
 
                 # Match the scan number or assessor number (e.g: scan1)
                 sobj = None
-                for obj in xnat_inputs[tags[2]]:
+                for obj in self.xnat_inputs[tags[2]]:
                     if tags[3] == obj['name']:
                         sobj = obj
                         break
@@ -211,8 +209,6 @@ class Processor_v3(object):
                 msg = msg.format(key)
                 LOGGER.error(msg)
                 raise AutoProcessorError(msg)
-
-        return xnat_inputs
 
     def _read_yaml(self, yaml_file):
         """
@@ -920,18 +916,16 @@ class Processor_v3(object):
         return variable_set, input_list
 
     def _parse_xnat_inputs(self):
-        xnat_inputs = self.xnat_inputs
-
         # Get the xnat attributes
         # TODO: validate these
-        self.xnat_attrs = xnat_inputs.get('attrs', list())
+        self.xnat_attrs = self.xnat_inputs.get('attrs', list())
 
         # Get the xnat edits
         # TODO: validate these
-        self.proc_edits = xnat_inputs.get('edits', list())
+        self.proc_edits = self.xnat_inputs.get('edits', list())
 
         # get scans
-        scans = xnat_inputs.get('scans', list())
+        scans = self.xnat_inputs.get('scans', list())
         for s in scans:
             name = s.get('name')
             self.iteration_sources.add(name)
@@ -973,7 +967,7 @@ class Processor_v3(object):
             }
 
         # get assessors
-        asrs = xnat_inputs.get('assessors', list())
+        asrs = self.xnat_inputs.get('assessors', list())
         for a in asrs:
             name = a.get('name')
             self.iteration_sources.add(name)
@@ -994,7 +988,7 @@ class Processor_v3(object):
             }
 
         # Handle petscans section
-        petscans = xnat_inputs.get('petscans', list())
+        petscans = self.xnat_inputs.get('petscans', list())
         for p in petscans:
             name = p.get('name')
             self.iteration_sources.add(name)
@@ -1012,8 +1006,8 @@ class Processor_v3(object):
                 'tracer': tracer,
             }
 
-        if 'filters' in xnat_inputs:
-            self._parse_filters(xnat_inputs.get('filters'))
+        if 'filters' in self.xnat_inputs:
+            self._parse_filters(self.xnat_inputs.get('filters'))
 
         self._populate_proc_inputs()
         self._parse_variables()
