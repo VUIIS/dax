@@ -99,6 +99,7 @@ class Processor_v3(object):
         self.iteration_sources = set()
         self.match_filters = {}
         self.variables_to_inputs = {}
+        self.xnat_inputs = {}
         self.command = {}
         self.container_path = None
         self.walltime_str = None
