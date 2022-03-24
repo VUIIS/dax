@@ -138,13 +138,14 @@ class Processor_v3(object):
         from pprint import pprint
         pprint(self.proc_inputs)
 
-    def _edit_inputs(self, xnat_inputs):
+    def _edit_inputs(self):
         """
         Method to override inputs from the YAML file based on the user inputs
 
         :param user_inputs: dictionary of tag, value. E.G:
             user_inputs = {'default.spider_path': /.../Spider....py'}
         """
+        xnat_inputs = self.xnat_inputs
 
         for key, val in self.user_inputs.items():
             LOGGER.debug('overriding:key={}'.format(key))
@@ -197,21 +198,17 @@ class Processor_v3(object):
                     LOGGER.info('overriding:{}:{}'.format(tags[4], str(val)))
                     obj[tags[4]] = val
 
-            elif key.startswith('attrs'):
-                # change value in self.attrs
-                if tags[-1] in list(self.attrs.keys()):
-                    self.attrs[tags[-1]] = val
-                else:
-                    msg = 'key not found in attrs:key={}'
-                    msg = msg.format(tags[-1])
-                    LOGGER.error(msg)
-                    raise AutoProcessorError(msg)
-
+            elif key in ['walltime', 'attrs.walltime']:
+                self.walltime_str = val
+            elif key in ['memory', 'attrs.memory']:
+                self.memreq_mb = val
             else:
                 msg = 'invalid override:key={}'
                 msg = msg.format(key)
                 LOGGER.error(msg)
                 raise AutoProcessorError(msg)
+
+        return xnat_inputs
 
     def _read_yaml(self, yaml_file):
         """
@@ -252,9 +249,9 @@ class Processor_v3(object):
                     self.extra_user_overrides[key] = value
 
         # Get xnat inputs, apply edits, then parse
-        xnat_inputs = inputs.get('xnat')
-        xnat_inputs = self._edit_inputs(xnat_inputs)
-        self._parse_xnat_inputs(xnat_inputs)
+        self.xnat_inputs = inputs.get('xnat')
+        self._edit_inputs()
+        self._parse_xnat_inputs()
 
         # Containers
         self.containers = []
@@ -918,7 +915,8 @@ class Processor_v3(object):
 
         return variable_set, input_list
 
-    def _parse_xnat_inputs(self, xnat_inputs):
+    def _parse_xnat_inputs(self):
+        xnat_inputs = self.xnat_inputs
 
         # Get the xnat attributes
         # TODO: validate these
