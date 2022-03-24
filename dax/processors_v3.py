@@ -27,7 +27,7 @@ from . import utilities
 # Processor handles the pipeline specifications and builds each pipeline on
 # given inputs.
 
-# TODO: figure out if we can reduce the complexity of "parse_inputs", 
+# TODO: figure out if we can reduce the complexity of "parse_inputs",
 # and find better names for everything
 
 # This regex is used to match YAML file names, e.g. my_proc_v1.0.0.yaml
@@ -80,11 +80,10 @@ class Processor_v3(object):
         self,
         xnat,
         yaml_file,
-        user_inputs=None,
+        user_inputs={},
         singularity_imagedir=None,
         job_template='~/job_template.txt',
     ):
-
         """
         Entry point for the auto processor
 
@@ -95,10 +94,11 @@ class Processor_v3(object):
 
         # Initialize class members
         self.proc_inputs = {}
+        self.proc_edits = []
+        self.xnat_attrs = []
         self.iteration_sources = set()
         self.match_filters = {}
         self.variables_to_inputs = {}
-        self.xnat_inputs = {}
         self.command = {}
         self.container_path = None
         self.walltime_str = None
@@ -109,9 +109,10 @@ class Processor_v3(object):
         self.user_overrides = {}
         self.extra_user_overrides = {}
         self.xsitype = "proc:genProcData"
+        self.user_inputs = user_inputs   # used to override default values
 
         validate_yaml_filename(yaml_file)
-        # TODO: validate_yaml_file conents(yaml_file)
+        # TODO: validate_yaml_file contents(yaml_file)
 
         # Cache input file path
         self.yaml_file = yaml_file
@@ -133,27 +134,24 @@ class Processor_v3(object):
         # Load the yaml
         self._read_yaml(yaml_file)
 
-        # Edit the values based on user inputs
-        if user_inputs:
-            self.user_inputs = user_inputs
-            self._edit_inputs(self.user_inputs)
-        else:
-            self.user_inputs = {}
+    def print_inputs(self):
+        from pprint import pprint
+        pprint(self.proc_inputs)
 
-    def _edit_inputs(self, user_inputs):
+    def _edit_inputs(self, xnat_inputs):
         """
-        Method to edit the inputs from the YAML file by the user inputs.
+        Method to override inputs from the YAML file based on the user inputs
 
         :param user_inputs: dictionary of tag, value. E.G:
             user_inputs = {'default.spider_path': /.../Spider....py'}
         """
 
-        for key, val in user_inputs.items():
+        for key, val in self.user_inputs.items():
             LOGGER.debug('overriding:key={}'.format(key))
             tags = key.split('.')
             if key.startswith('inputs.xnat'):
-                # change value in self.xnat_inputs
-                if tags[2] not in list(self.xnat_inputs.keys()):
+                # change value
+                if tags[2] not in list(xnat_inputs.keys()):
                     msg = 'key not found in xnat inputs:key={}'
                     msg = msg.format(tags[3])
                     LOGGER.error(msg)
@@ -161,7 +159,7 @@ class Processor_v3(object):
 
                 # Match the scan number or assessor number (e.g: scan1)
                 sobj = None
-                for obj in self.xnat_inputs[tags[2]]:
+                for obj in xnat_inputs[tags[2]]:
                     if tags[3] == obj['name']:
                         sobj = obj
                         break
@@ -240,7 +238,8 @@ class Processor_v3(object):
 
         # Set Inputs from Yaml
         inputs = doc.get('inputs')
-        self.xnat_inputs = inputs.get('xnat')
+
+        # Handle vars
         for key, value in inputs.get('vars', {}).items():
             # If value is a key in command
             k_str = '{{{}}}'.format(key)
@@ -252,8 +251,10 @@ class Processor_v3(object):
                 elif value and value != 'None':
                     self.extra_user_overrides[key] = value
 
-        # Load xnat inputs from yaml
-        self._parse_xnat_inputs(self.xnat_inputs)
+        # Get xnat inputs, apply edits, then parse
+        xnat_inputs = inputs.get('xnat')
+        xnat_inputs = self._edit_inputs(xnat_inputs)
+        self._parse_xnat_inputs(xnat_inputs)
 
         # Containers
         self.containers = []
@@ -360,7 +361,7 @@ class Processor_v3(object):
         var2val['assessor'] = assr_label
 
         # Handle xnat attributes
-        for attr_in in self.xnat_inputs.get('attrs', list()):
+        for attr_in in self.xnat_attrs:
             _var = attr_in['varname']
             _attr = attr_in['attr']
             _obj = attr_in['object']
@@ -406,7 +407,7 @@ class Processor_v3(object):
                 assr.label(),
             )
 
-            for edit_in in self.xnat_inputs.get('edits', list()):
+            for edit_in in self.proc_edits:
                 _fpref = edit_in['fpref']
                 _var = edit_in['varname']
 
@@ -434,15 +435,16 @@ class Processor_v3(object):
                     # None found
                     var2val[_var] = ''
         else:
-            for edit_in in self.xnat_inputs.get('edits', list()):
+            for edit_in in self.proc_edits:
                 var2val[edit_in['varname']] = ''
 
         # Build the command text
         dstdir = os.path.join(resdir, assr_label)
         assr_dir = os.path.join(jobdir, assr_label)
+        _host = assr._intf.host
+        _user = assr._intf.user
         cmd = self.build_text(
-            var2val, input_list, assr_dir, dstdir, assr._intf.host, assr._intf.user
-        )
+            var2val, input_list, assr_dir, dstdir, _host, _user)
 
         return [cmd]
 
@@ -917,6 +919,15 @@ class Processor_v3(object):
         return variable_set, input_list
 
     def _parse_xnat_inputs(self, xnat_inputs):
+
+        # Get the xnat attributes
+        # TODO: validate these
+        self.xnat_attrs = xnat_inputs.get('attrs', list())
+
+        # Get the xnat edits
+        # TODO: validate these
+        self.proc_edits = xnat_inputs.get('edits', list())
+
         # get scans
         scans = xnat_inputs.get('scans', list())
         for s in scans:
@@ -1070,7 +1081,7 @@ class Processor_v3(object):
                                     artefacts_by_input[i].append(pscan.full_path())
 
             else:
-                
+
                 # Find matching scans in the session, if asked for a scan
                 if iv['artefact_type'] == 'scan':
                     for cscan in csess.scans():
@@ -1086,7 +1097,7 @@ class Processor_v3(object):
                                     artefacts_by_input[i].append(cscan.full_path())
                                     artefact_ids_by_input[i].append(cscan.info().get('ID'))
                                     break
-                                    
+
                     # If requested, check for multiple matching scans in the list and only keep
                     # the first. Sort lowercase by alpha, on scan ID.
                     if iv['keep_multis'] != 'all':
@@ -1323,6 +1334,7 @@ def parse_artefacts(csess, pets=[]):
 
     return artefacts
 
+
 # Returns the full URI for the resource_path as a child of input path which
 # can be either a scan or an assessor
 def get_uri(host, input_path, resource_path):
@@ -1335,7 +1347,8 @@ def get_uri(host, input_path, resource_path):
 
     return uri_path
 
-# Returns an xnat object for the resource that is a child of input_path 
+
+# Returns an xnat object for the resource that is a child of input_path
 # which can be either a scan or an assessor
 def get_resource(xnat, input_path, resource):
     if '/scans/' in input_path:
@@ -1348,16 +1361,18 @@ def get_resource(xnat, input_path, resource):
 
     return robj
 
-# Returns the processing type (proctype) as parsed from the aleady validated
-# yaml file name
+
+# Returns the processing type (proctype) as parsed from the already
+# validated yaml file name
 def parse_proctype(yaml_file):
     # At this point we assume the yaml file name is valid
     tmp = os.path.basename(yaml_file)
     tmp = tmp.rsplit('.')[-4]
     return tmp
 
-# Returns the processing version (procversion) as parsed from the aleady validated
-# yaml file name
+
+# Returns the processing version (procversion) as parsed from the already
+# validated yaml file name
 def parse_procversion(yaml_file):
     # At this point we assume the yaml file name is valid
     tmp = os.path.basename(yaml_file)
