@@ -41,7 +41,7 @@ A Basic Example
         path: example_v2.0.0.sif                     # Name/path that is replaced in command section
         source: docker://vuiiscci/example:v2.0.0     # Not used, but good practice to set it
     
-    reqs:  # Requirements for the cluster node, substituted into SBATCH section of job template
+    requirements:  # Requirements for the cluster node, substituted into SBATCH section of job template
       walltime: 0-2  # Time to request - SLURM supports the format DAYS-HOURS
       memory: 16G
     
