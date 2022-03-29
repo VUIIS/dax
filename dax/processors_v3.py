@@ -925,12 +925,6 @@ class Processor_v3(object):
             name = s.get('name')
             self.iteration_sources.add(name)
 
-        # Handle scans
-        scans = sess.get('scans', list())
-        for s in scans:
-            name = s.get('name')
-            self.iteration_sources.add(name)
-
             types = [_.strip() for _ in s['types'].split(',')]
 
             resources = s.get('resources', [])
@@ -959,7 +953,6 @@ class Processor_v3(object):
 
             self.proc_inputs[name] = {
                 'types': types,
-                'sesstypes': sesstypes,
                 'artefact_type': 'scan',
                 'needs_qc': needs_qc,
                 'resources': resources,
