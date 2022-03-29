@@ -110,7 +110,6 @@ class Processor_v3(object):
         self.user_overrides = {}
         self.extra_user_overrides = {}
         self.xsitype = "proc:genProcData"
-        self.context_level = 'session'
 
         if user_inputs:
             self.user_inputs = user_inputs   # used to override default values
@@ -926,108 +925,94 @@ class Processor_v3(object):
             name = s.get('name')
             self.iteration_sources.add(name)
 
-        if 'sessions' in self.xnat_inputs:
-            # Set context level to subject instead of session
-            self.context_level = 'subject'
+        # Handle scans
+        scans = sess.get('scans', list())
+        for s in scans:
+            name = s.get('name')
+            self.iteration_sources.add(name)
 
-            # Get the sessions
-            sessions = self.xnat_inputs.get('sessions')
-        else:
-            # Context level is default of session
-            sessions = [self.xnat_inputs]
+            types = [_.strip() for _ in s['types'].split(',')]
 
-        # Parse each session
-        for sess in sessions:
-            sesstypes = sess.get('types', None)
+            resources = s.get('resources', [])
 
-            # Handle scans
-            scans = sess.get('scans', list())
-            for s in scans:
-                name = s.get('name')
-                self.iteration_sources.add(name)
+            if 'nifti' in s:
+                # Add a NIFTI resource using value as fdest
+                resources.append({'resource': 'NIFTI', 'fdest': s['nifti']})
 
-                types = [_.strip() for _ in s['types'].split(',')]
+            if 'edat' in s:
+                # Add an EDAT resource using value as fdest
+                resources.append({'resource': 'EDAT', 'fdest': s['edat']})
 
-                resources = s.get('resources', [])
-
-                if 'nifti' in s:
-                    # Add a NIFTI resource using value as fdest
-                    resources.append({'resource': 'NIFTI', 'fdest': s['nifti']})
-
-                if 'edat' in s:
-                    # Add an EDAT resource using value as fdest
-                    resources.append({'resource': 'EDAT', 'fdest': s['edat']})
-
-                # 2021-11-14 bdb Is anyone using this?
-                artefact_required = False
-                for r in resources:
-                    r['required'] = r.get('required', True)
-                    artefact_required = artefact_required or r['required']
-
-                needs_qc = s.get('needs_qc', False)
-
-                # Consider an MR scan for an input if it's marked Unusable?
-                skip_unusable = s.get('skip_unusable', False)
-
-                # Include the 'first', or 'all', matching scans as possible inputs
-                keep_multis = s.get('keep_multis', 'all')
-
-                self.proc_inputs[name] = {
-                    'types': types,
-                    'sesstypes': sesstypes,
-                    'artefact_type': 'scan',
-                    'needs_qc': needs_qc,
-                    'resources': resources,
-                    'required': artefact_required,
-                    'skip_unusable': skip_unusable,
-                    'keep_multis': keep_multis,
-                }
-
-            # get assessors
-            asrs = self.xnat_inputs.get('assessors', list())
-            for a in asrs:
-                name = a.get('name')
-                self.iteration_sources.add(name)
-
-                types = [_.strip() for _ in a['proctypes'].split(',')]
-                resources = a.get('resources', [])
-                artefact_required = False
-                for r in resources:
-                    r['required'] = r.get('required', True)
+            # 2021-11-14 bdb Is anyone using this?
+            artefact_required = False
+            for r in resources:
+                r['required'] = r.get('required', True)
                 artefact_required = artefact_required or r['required']
 
-                self.proc_inputs[name] = {
-                    'types': types,
-                    'artefact_type': 'assessor',
-                    'needs_qc': a.get('needs_qc', False),
-                    'resources': resources,
-                    'required': artefact_required,
-                }
+            needs_qc = s.get('needs_qc', False)
 
-            # Handle petscans section
-            petscans = self.xnat_inputs.get('petscans', list())
-            for p in petscans:
-                name = p.get('name')
-                self.iteration_sources.add(name)
-                types = [x.strip() for x in p['scantypes'].split(',')]
-                tracer = [x.strip() for x in p['tracer'].split(',')]
+            # Consider an MR scan for an input if it's marked Unusable?
+            skip_unusable = s.get('skip_unusable', False)
 
-                resources = p.get('resources')
+            # Include the 'first', or 'all', matching scans as possible inputs
+            keep_multis = s.get('keep_multis', 'all')
 
-                self.proc_inputs[name] = {
-                    'types': types,
-                    'artefact_type': 'scan',
-                    'needs_qc': p.get('needs_qc', False),
-                    'resources': p.get('resources', []),
-                    'required': True,
-                    'tracer': tracer,
-                }
+            self.proc_inputs[name] = {
+                'types': types,
+                'sesstypes': sesstypes,
+                'artefact_type': 'scan',
+                'needs_qc': needs_qc,
+                'resources': resources,
+                'required': artefact_required,
+                'skip_unusable': skip_unusable,
+                'keep_multis': keep_multis,
+            }
 
-            if 'filters' in self.xnat_inputs:
-                self._parse_filters(self.xnat_inputs.get('filters'))
+        # get assessors
+        asrs = self.xnat_inputs.get('assessors', list())
+        for a in asrs:
+            name = a.get('name')
+            self.iteration_sources.add(name)
 
-            self._populate_proc_inputs()
-            self._parse_variables()
+            types = [_.strip() for _ in a['proctypes'].split(',')]
+            resources = a.get('resources', [])
+            artefact_required = False
+            for r in resources:
+                r['required'] = r.get('required', True)
+            artefact_required = artefact_required or r['required']
+
+            self.proc_inputs[name] = {
+                'types': types,
+                'artefact_type': 'assessor',
+                'needs_qc': a.get('needs_qc', False),
+                'resources': resources,
+                'required': artefact_required,
+            }
+
+        # Handle petscans section
+        petscans = self.xnat_inputs.get('petscans', list())
+        for p in petscans:
+            name = p.get('name')
+            self.iteration_sources.add(name)
+            types = [x.strip() for x in p['scantypes'].split(',')]
+            tracer = [x.strip() for x in p['tracer'].split(',')]
+
+            resources = p.get('resources')
+
+            self.proc_inputs[name] = {
+                'types': types,
+                'artefact_type': 'scan',
+                'needs_qc': p.get('needs_qc', False),
+                'resources': p.get('resources', []),
+                'required': True,
+                'tracer': tracer,
+            }
+
+        if 'filters' in self.xnat_inputs:
+            self._parse_filters(self.xnat_inputs.get('filters'))
+
+        self._populate_proc_inputs()
+        self._parse_variables()
 
     def _parse_filters(self, filters):
         match_list = []
