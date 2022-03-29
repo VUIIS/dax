@@ -40,11 +40,17 @@ YAML_PATTERN = '^[\w-]*_v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]
 # Logger for logs
 LOGGER = logging.getLogger('dax')
 
-# The default singularity run command that includes the cleanenv option and
+# The default singularity command includes the cleanenv/contain options and
 # binds an INPUTS and OUTPUTS. The command is included in the job_template
 # which will already have the variables set for $INDIR and $OUTDIR
-SINGULARITY_RUN = 'singularity run -e -H $INDIR -B $INDIR:/INPUTS -B $OUTDIR:/OUTPUTS'
-
+SINGULARITY_BASEOPTS = (
+    '--contain --cleanenv '
+    '--home $JOBDIR '
+    '--bind $INDIR:/INPUTS '
+    '--bind $OUTDIR:/OUTPUTS '
+    '--bind $JOBDIR:/tmp '
+    '--bind $JOBDIR:/dev/shm '
+    )
 
 class ParserArtefact:
     def __init__(self, path, resources, entity):
@@ -89,6 +95,8 @@ class Processor_v3(object):
 
         # Initialize class members
         self.proc_inputs = {}
+        self.proc_edits = []
+        self.xnat_attrs = []
         self.iteration_sources = set()
         self.match_filters = {}
         self.variables_to_inputs = {}
@@ -104,6 +112,11 @@ class Processor_v3(object):
         self.extra_user_overrides = {}
         self.xsitype = "proc:genProcData"
         self.context_level = 'session'
+
+        if user_inputs:
+            self.user_inputs = user_inputs   # used to override default values
+        else:
+            self.user_inputs = {}
 
         validate_yaml_filename(yaml_file)
         # TODO: validate_yaml_file conents(yaml_file)
@@ -128,22 +141,12 @@ class Processor_v3(object):
         # Load the yaml
         self._read_yaml(yaml_file)
 
-        # Edit the values based on user inputs
-        if user_inputs:
-            self.user_inputs = user_inputs
-            self._edit_inputs(self.user_inputs)
-        else:
-            self.user_inputs = {}
-
-    def _edit_inputs(self, user_inputs):
+    def _edit_inputs(self):
         """
         Method to edit the inputs from the YAML file by the user inputs.
 
-        :param user_inputs: dictionary of tag, value. E.G:
-            user_inputs = {'default.spider_path': /.../Spider....py'}
         """
-
-        for key, val in user_inputs.items():
+        for key, val in self.user_inputs.items():
             LOGGER.debug('overriding:key={}'.format(key))
             tags = key.split('.')
             if key.startswith('inputs.xnat'):
@@ -194,16 +197,10 @@ class Processor_v3(object):
                     LOGGER.info('overriding:{}:{}'.format(tags[4], str(val)))
                     obj[tags[4]] = val
 
-            elif key.startswith('attrs'):
-                # change value in self.attrs
-                if tags[-1] in list(self.attrs.keys()):
-                    self.attrs[tags[-1]] = val
-                else:
-                    msg = 'key not found in attrs:key={}'
-                    msg = msg.format(tags[-1])
-                    LOGGER.error(msg)
-                    raise AutoProcessorError(msg)
-
+            elif key in ['walltime', 'attrs.walltime']:
+                self.walltime_str = val
+            elif key in ['memory', 'attrs.memory']:
+                self.memreq_mb = val
             else:
                 msg = 'invalid override:key={}'
                 msg = msg.format(key)
@@ -216,7 +213,6 @@ class Processor_v3(object):
 
         :param yaml_file: path to yaml file defining the processor
         """
-
         doc = yaml_doc.YamlDoc().from_file(yaml_file).contents
 
         # NOTE: we are assuming this yaml has already been validated
@@ -236,7 +232,8 @@ class Processor_v3(object):
 
         # Set Inputs from Yaml
         inputs = doc.get('inputs')
-        self.xnat_inputs = inputs.get('xnat')
+
+        # Handle vars
         for key, value in inputs.get('vars', {}).items():
             # If value is a key in command
             k_str = '{{{}}}'.format(key)
@@ -248,8 +245,10 @@ class Processor_v3(object):
                 elif value and value != 'None':
                     self.extra_user_overrides[key] = value
 
-        # Load xnat inputs from yaml
-        self._parse_xnat_inputs(self.xnat_inputs)
+        # Get xnat inputs, apply edits, then parse
+        self.xnat_inputs = inputs.get('xnat')
+        self._edit_inputs()
+        self._parse_xnat_inputs()
 
         # Containers
         self.containers = []
@@ -292,7 +291,6 @@ class Processor_v3(object):
 
             # Override it
             self.job_template = os.path.join(_tmp)
-
 
     def _parse_outputs(self, outputs):
         self.outputs = []
@@ -437,9 +435,10 @@ class Processor_v3(object):
         # Build the command text
         dstdir = os.path.join(resdir, assr_label)
         assr_dir = os.path.join(jobdir, assr_label)
+        _host = assr._intf.host
+        _user = assr._intf.user
         cmd = self.build_text(
-            var2val, input_list, assr_dir, dstdir, assr._intf.host, assr._intf.user
-        )
+            var2val, input_list, assr_dir, dstdir, _host, _user)
 
         return [cmd]
 
@@ -469,6 +468,47 @@ class Processor_v3(object):
 
         return cmd
 
+    def build_singularity_cmd(self, runexec, command, var2val):
+
+        if 'container' not in command:
+            err = 'singularity modes require a container to be set'
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
+
+        if runexec not in ['run', 'exec']:
+            err = f'singularity mode {runexec} not known'
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
+
+        # Use the container name to get the path
+        cpath = self.get_container_path(command['container'])
+
+        if not cpath:
+            err = 'container path not found'
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
+
+        # Initialize command
+        command_txt = f'singularity {runexec} {SINGULARITY_BASEOPTS}'
+
+        # Append extra options
+        _extra = command.get('extraopts', None)
+        if _extra:
+            command_txt = '{} {}'.format(command_txt, _extra)
+
+        # Append container name
+        command_txt = '{} {}'.format(command_txt, cpath)
+
+        # Append arguments for the singularity entrypoint
+        cargs = command.get('args', None)
+        if cargs:
+            command_txt = '{} {}'.format(command_txt, cargs)
+
+        # Replace vars with values from var2val
+        command_txt = command_txt.format(**var2val)
+
+        return command_txt
+
     def build_main_text(self, var2val):
         # Get the command dictionary
         command = self.command
@@ -484,41 +524,13 @@ class Processor_v3(object):
             raise AutoProcessorError(err)
 
         if command['type'] == 'singularity_run':
-            # TODO: move this to a function build_singularity_run()
-            if 'container' not in command:
-                err = 'singularity_run requires a container to be set'
-                LOGGER.error(err)
-                raise AutoProcessorError(err)
+            command_txt = self.build_singularity_cmd('run', command, var2val)
 
-            # Use the container name to get the path
-            cpath = self.get_container_path(command['container'])
-
-            if not cpath:
-                err = 'container path not found'
-                LOGGER.error(err)
-                raise AutoProcessorError(err)
-
-            # Initialize command
-            command_txt = '{}'.format(SINGULARITY_RUN)
-
-            # Append extra options
-            _extra = command.get('extraopts', None)
-            if _extra:
-                command_txt = '{} {}'.format(command_txt, _extra)
-
-            # Append container name
-            command_txt = '{} {}'.format(command_txt, cpath)
-
-            # Append arguments for the singularity entrypoint
-            cargs = command.get('args', None)
-            if cargs:
-                command_txt = '{} {}'.format(command_txt, cargs)
-
-            # Replace vars with values from var2val
-            command_txt = command_txt.format(**var2val)
+        elif command['type'] == 'singularity_exec':
+            command_txt = self.build_singularity_cmd('exec', command, var2val)
 
         else:
-            err = 'invalid command type:{}'.format(command['type'])
+            err = 'invalid command type: {}'.format(command['type'])
             LOGGER.error(err)
             raise AutoProcessorError(err)
 
@@ -686,6 +698,14 @@ class Processor_v3(object):
         # input name and the value is a list of artefact paths that match
         # the input.
         # These artefact paths are keys into the artefacts dictionary.
+
+        # BPR 4 Mar 2022
+        # artefacts_by_input has been filtered already in _map_artefacts_to_inputs
+        # by the skip_unusable and keep_multis options, if so requested.
+        #
+        # Really insidious error case here: if an element of artefacts_by_input
+        # is not a list, the build will "leak" past what has been requested and
+        # start building every project. This is now checked in _map_artefacts_to_inputs
 
         parameter_matrix = self._generate_parameter_matrix(
             artefacts, artefacts_by_input
@@ -892,8 +912,8 @@ class Processor_v3(object):
 
         return variable_set, input_list
 
-    def _parse_xnat_inputs(self, xnat_inputs):
-        if 'sessions' in xnat_inputs:
+    def _parse_xnat_inputs(self):
+        if 'sessions' in self.xnat_inputs:
             # Set context level to subject instead of session
             self.context_level = 'subject'
 
@@ -933,6 +953,12 @@ class Processor_v3(object):
 
                 needs_qc = s.get('needs_qc', False)
 
+                # Consider an MR scan for an input if it's marked Unusable?
+                skip_unusable = s.get('skip_unusable', False)
+
+                # Include the 'first', or 'all', matching scans as possible inputs
+                keep_multis = s.get('keep_multis', 'all')
+
                 self.proc_inputs[name] = {
                     'types': types,
                     'sesstypes': sesstypes,
@@ -940,9 +966,11 @@ class Processor_v3(object):
                     'needs_qc': needs_qc,
                     'resources': resources,
                     'required': artefact_required,
+                    'skip_unusable': skip_unusable,
+                    'keep_multis': keep_multis,
                 }
 
-            # Handle assessors
+            # get assessors
             asrs = sess.get('assessors', list())
             for a in asrs:
                 name = a.get('name')
