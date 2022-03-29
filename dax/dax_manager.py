@@ -446,8 +446,14 @@ class DaxProjectSettingsManager(object):
         prefix = DaxProjectSettingsManager.PROC_PREFIX
         form = prefix + processor
         rec = self.get_record(project)
-        complete = rec[form + '_complete']
-        return (complete == 'Complete')
+        try:
+            complete = rec[form + '_complete']
+            return (complete == 'Complete')
+        except KeyError:
+            # Probably don't have permissions on instrument
+            LOGGER.error(f'Unable to access {form}_complete in REDCap')
+            return False
+            
 
     def project_names(self):
         complete_field = self._general_form + '_complete'

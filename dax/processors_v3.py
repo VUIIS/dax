@@ -27,7 +27,7 @@ from . import utilities
 # Processor handles the pipeline specifications and builds each pipeline on
 # given inputs.
 
-# TODO: figure out if we can reduce the complexity of "parse_inputs", 
+# TODO: figure out if we can reduce the complexity of "parse_inputs",
 # and find better names for everything
 
 # This regex is used to match YAML file names, e.g. my_proc_v1.0.0.yaml
@@ -84,7 +84,6 @@ class Processor_v3(object):
         singularity_imagedir=None,
         job_template='~/job_template.txt',
     ):
-
         """
         Entry point for the auto processor
 
@@ -118,8 +117,13 @@ class Processor_v3(object):
         else:
             self.user_inputs = {}
 
+        if user_inputs:
+            self.user_inputs = user_inputs   # used to override default values
+        else:
+            self.user_inputs = {}
+
         validate_yaml_filename(yaml_file)
-        # TODO: validate_yaml_file conents(yaml_file)
+        # TODO: validate_yaml_file contents(yaml_file)
 
         # Cache input file path
         self.yaml_file = yaml_file
@@ -143,14 +147,14 @@ class Processor_v3(object):
 
     def _edit_inputs(self):
         """
-        Method to edit the inputs from the YAML file by the user inputs.
+        Method to override inputs from the YAML file based on the user inputs
 
         """
         for key, val in self.user_inputs.items():
             LOGGER.debug('overriding:key={}'.format(key))
             tags = key.split('.')
             if key.startswith('inputs.xnat'):
-                # change value in self.xnat_inputs
+                # change value
                 if tags[2] not in list(self.xnat_inputs.keys()):
                     msg = 'key not found in xnat inputs:key={}'
                     msg = msg.format(tags[3])
@@ -355,7 +359,7 @@ class Processor_v3(object):
         var2val['assessor'] = assr_label
 
         # Handle xnat attributes
-        for attr_in in self.xnat_inputs.get('attrs', list()):
+        for attr_in in self.xnat_attrs:
             _var = attr_in['varname']
             _attr = attr_in['attr']
             _obj = attr_in['object']
@@ -401,7 +405,7 @@ class Processor_v3(object):
                 assr.label(),
             )
 
-            for edit_in in self.xnat_inputs.get('edits', list()):
+            for edit_in in self.proc_edits:
                 _fpref = edit_in['fpref']
                 _var = edit_in['varname']
 
@@ -429,7 +433,7 @@ class Processor_v3(object):
                     # None found
                     var2val[_var] = ''
         else:
-            for edit_in in self.xnat_inputs.get('edits', list()):
+            for edit_in in self.proc_edits:
                 var2val[edit_in['varname']] = ''
 
         # Build the command text
@@ -913,6 +917,20 @@ class Processor_v3(object):
         return variable_set, input_list
 
     def _parse_xnat_inputs(self):
+        # Get the xnat attributes
+        # TODO: validate these
+        self.xnat_attrs = self.xnat_inputs.get('attrs', list())
+
+        # Get the xnat edits
+        # TODO: validate these
+        self.proc_edits = self.xnat_inputs.get('edits', list())
+
+        # get scans
+        scans = self.xnat_inputs.get('scans', list())
+        for s in scans:
+            name = s.get('name')
+            self.iteration_sources.add(name)
+
         if 'sessions' in self.xnat_inputs:
             # Set context level to subject instead of session
             self.context_level = 'subject'
@@ -983,37 +1001,66 @@ class Processor_v3(object):
                     r['required'] = r.get('required', True)
                 artefact_required = artefact_required or r['required']
 
-                self.proc_inputs[name] = {
-                    'types': types,
-                    'sesstypes': sesstypes,
-                    'artefact_type': 'assessor',
-                    'needs_qc': a.get('needs_qc', False),
-                    'resources': resources,
-                    'required': artefact_required,
-                }
+            needs_qc = s.get('needs_qc', False)
 
-            # Handle petscans section
-            petscans = sess.get('petscans', list())
-            for p in petscans:
-                name = p.get('name')
-                self.iteration_sources.add(name)
-                types = [x.strip() for x in p['scantypes'].split(',')]
-                tracer = [x.strip() for x in p['tracer'].split(',')]
+            # Consider an MR scan for an input if it's marked Unusable?
+            skip_unusable = s.get('skip_unusable', False)
 
-                resources = p.get('resources')
+            # Include the 'first', or 'all', matching scans as possible inputs
+            keep_multis = s.get('keep_multis', 'all')
 
-                self.proc_inputs[name] = {
-                    'types': types,
-                    'sesstypes': sesstypes,
-                    'artefact_type': 'scan',
-                    'needs_qc': p.get('needs_qc', False),
-                    'resources': p.get('resources', []),
-                    'required': True,
-                    'tracer': tracer,
-                }
+            self.proc_inputs[name] = {
+                'types': types,
+                'artefact_type': 'scan',
+                'needs_qc': needs_qc,
+                'resources': resources,
+                'required': artefact_required,
+                'skip_unusable': skip_unusable,
+                'keep_multis': keep_multis,
+            }
 
-        if 'filters' in xnat_inputs:
-            self._parse_filters(xnat_inputs.get('filters'))
+        # get assessors
+        asrs = self.xnat_inputs.get('assessors', list())
+        for a in asrs:
+            name = a.get('name')
+            self.iteration_sources.add(name)
+
+            types = [_.strip() for _ in a['proctypes'].split(',')]
+            resources = a.get('resources', [])
+            artefact_required = False
+            for r in resources:
+                r['required'] = r.get('required', True)
+            artefact_required = artefact_required or r['required']
+
+            self.proc_inputs[name] = {
+                'types': types,
+                'artefact_type': 'assessor',
+                'needs_qc': a.get('needs_qc', False),
+                'resources': resources,
+                'required': artefact_required,
+            }
+
+        # Handle petscans section
+        petscans = self.xnat_inputs.get('petscans', list())
+        for p in petscans:
+            name = p.get('name')
+            self.iteration_sources.add(name)
+            types = [x.strip() for x in p['scantypes'].split(',')]
+            tracer = [x.strip() for x in p['tracer'].split(',')]
+
+            resources = p.get('resources')
+
+            self.proc_inputs[name] = {
+                'types': types,
+                'artefact_type': 'scan',
+                'needs_qc': p.get('needs_qc', False),
+                'resources': p.get('resources', []),
+                'required': True,
+                'tracer': tracer,
+            }
+
+        if 'filters' in self.xnat_inputs:
+            self._parse_filters(self.xnat_inputs.get('filters'))
 
         self._populate_proc_inputs()
         self._parse_variables()
@@ -1041,6 +1088,7 @@ class Processor_v3(object):
         # the pet scans I think? are we treating assessors scans differently
         # here or not?
         artefacts_by_input = {k: [] for k in inputs}
+        artefact_ids_by_input = {k: [] for k in inputs}
 
         for i, iv in list(inputs.items()):
             # BDB 6/5/21
@@ -1066,7 +1114,7 @@ class Processor_v3(object):
                     if not tracer_match:
                         # None of the expressions matched
                         LOGGER.debug(
-                            'tracer no matchy:{}:{}'.format(tracer_name, iv['tracer'])
+                            'tracer not matched:{}:{}'.format(tracer_name, iv['tracer'])
                         )
                         continue
 
@@ -1082,18 +1130,69 @@ class Processor_v3(object):
                                     artefacts_by_input[i].append(pscan.full_path())
 
             else:
-                # Iterate each scan on the session
-                for cscan in csess.scans():
-                    for expression in iv['types']:
-                        regex = utilities.extract_exp(expression)
-                        if regex.match(cscan.type()):
-                            artefacts_by_input[i].append(cscan.full_path())
-                            # Break here so we don't match multiple times
-                            break
 
-                for cassr in csess.assessors():
-                    if cassr.type() in iv['types']:
-                        artefacts_by_input[i].append(cassr.full_path())
+                # Find matching scans in the session, if asked for a scan
+                if iv['artefact_type'] == 'scan':
+                    for cscan in csess.scans():
+                        for expression in iv['types']:
+                            regex = utilities.extract_exp(expression)
+                            if regex.match(cscan.type()):
+                                if iv['skip_unusable'] and cscan.info().get('quality') == 'unusable':
+                                    LOGGER.info(f'Excluding unusable scan {cscan.label()}')
+                                else:
+                                    # Get scan path, scan ID for each matching scan.
+                                    # Break if the scan matches so we don't find it again comparing
+                                    # vs a different requested type
+                                    artefacts_by_input[i].append(cscan.full_path())
+                                    artefact_ids_by_input[i].append(cscan.info().get('ID'))
+                                    break
+
+                    # If requested, check for multiple matching scans in the list and only keep
+                    # the first. Sort lowercase by alpha, on scan ID.
+                    if iv['keep_multis'] != 'all':
+                        scan_info = zip(
+                            artefacts_by_input[i],
+                            artefact_ids_by_input[i],
+                            )
+                        sorted_info = sorted(scan_info, key=lambda x: str(x[1]).lower())
+                        num_scans = sum(1 for _ in sorted_info)
+                        if iv['keep_multis'] == 'first':
+                            idx_multi = 1
+                        elif iv['keep_multis'] == 'last':
+                            idx_multi = num_scans
+                        else:
+                            try:
+                                idx_multi = int(iv['keep_multis'])
+                            except:
+                                msg = f'For {i}, keep_multis must be first, last, or index 1,2,3,...'
+                                LOGGER.error(msg)
+                                raise AutoProcessorError(msg)
+                            if idx_multi > num_scans:
+                                msg = f'Requested {idx_multi}th scan for {i}, but only {num_scans} found'
+                                LOGGER.error(msg)
+                                raise AutoProcessorError(msg)
+                        artefacts_by_input[i] = [sorted_info[idx_multi-1][0]]
+                        LOGGER.info(
+                            f'Keeping only the {idx_multi}th scan found for '
+                            f'{i}: {sorted_info[idx_multi-1][0]}'
+                            )
+
+                # Find matching assessors in the session, if asked for an assessor
+                elif iv['artefact_type'] == 'assessor':
+                    for cassr in csess.assessors():
+                        try:
+                            if cassr.type() in iv['types']:
+                                artefacts_by_input[i].append(cassr.full_path())
+                        except:
+                            # Perhaps type/proctype is missing
+                            LOGGER.warning(f'Unable to check match of {cassr.label()} - ignoring')
+
+        # Validate - each value of artefacts_by_input must be a list
+        for k, v in artefacts_by_input.items():
+            if not isinstance(v, list):
+                msg = f'Non-list found in artefacts_by_input field {k}: {v}'
+                LOGGER.error(msg)
+                raise AutoProcessorError(msg)
 
         return artefacts_by_input
 
@@ -1170,17 +1269,24 @@ class Processor_v3(object):
 
         assessors = [[] for _ in range(len(parameter_matrix))]
 
-        for casr in [a for a in csess.assessors() if a.type() == proc_type]:
-            inputs = casr.get_inputs()
-            if inputs is None:
-                LOGGER.warn('skipping, inputs field is empty:' + casr.label())
-                return list()
+        for casr in csess.assessors():
+            try:
+                proc_type_matches = (casr.type() == proc_type)
+            except:
+                LOGGER.warning(f'Unable to check match of {casr.label()} - ignoring')
+                continue
 
-            for pi, p in enumerate(parameter_matrix):
-                if inputs == p:
-                    # BDB 6/5/21 do we ever have more than one assessor
-                    # with the same set of inputs?
-                    assessors[pi].append(casr)
+            if proc_type_matches:
+                inputs = casr.get_inputs()
+                if inputs is None:
+                    LOGGER.warn(f'Empty inputs - skipping {casr.label()}')
+                    continue
+
+                for pi, p in enumerate(parameter_matrix):
+                    if inputs == p:
+                        # BDB  6/5/21 do we ever have more than one assessor
+                        #             with the same set of inputs?
+                        assessors[pi].append(casr)
 
         return list(zip(copy.deepcopy(parameter_matrix), assessors))
 
@@ -1277,6 +1383,7 @@ def parse_artefacts(csess, pets=[]):
 
     return artefacts
 
+
 # Returns the full URI for the resource_path as a child of input path which
 # can be either a scan or an assessor
 def get_uri(host, input_path, resource_path):
@@ -1289,7 +1396,8 @@ def get_uri(host, input_path, resource_path):
 
     return uri_path
 
-# Returns an xnat object for the resource that is a child of input_path 
+
+# Returns an xnat object for the resource that is a child of input_path
 # which can be either a scan or an assessor
 def get_resource(xnat, input_path, resource):
     if '/scans/' in input_path:
@@ -1302,16 +1410,18 @@ def get_resource(xnat, input_path, resource):
 
     return robj
 
-# Returns the processing type (proctype) as parsed from the aleady validated
-# yaml file name
+
+# Returns the processing type (proctype) as parsed from the already
+# validated yaml file name
 def parse_proctype(yaml_file):
     # At this point we assume the yaml file name is valid
     tmp = os.path.basename(yaml_file)
     tmp = tmp.rsplit('.')[-4]
     return tmp
 
-# Returns the processing version (procversion) as parsed from the aleady validated
-# yaml file name
+
+# Returns the processing version (procversion) as parsed from the already
+# validated yaml file name
 def parse_procversion(yaml_file):
     # At this point we assume the yaml file name is valid
     tmp = os.path.basename(yaml_file)

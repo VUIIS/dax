@@ -117,7 +117,7 @@ The **resources** subsection of each xnat scan should contain a list of resource
 
 The **var** field defines the tag to be replaced in the **command** string template (see below).
 
-Optional fields for a resource are **fmatch** and **fcount**. **fmatch** defines a regular expression to apply to filter the list of filenames in the resource. **fcount** can be used to limit the number of files matched. By default, only 1 file is downloaded.
+The optional **fmatch** field defines a regular expression to apply to filter the list of filenames in the resource.
 
 
 xnat assessors
