@@ -117,11 +117,6 @@ class Processor_v3(object):
         else:
             self.user_inputs = {}
 
-        if user_inputs:
-            self.user_inputs = user_inputs   # used to override default values
-        else:
-            self.user_inputs = {}
-
         validate_yaml_filename(yaml_file)
         # TODO: validate_yaml_file contents(yaml_file)
 
@@ -936,10 +931,10 @@ class Processor_v3(object):
             self.context_level = 'subject'
 
             # Get the sessions
-            sessions = xnat_inputs.get('sessions')
+            sessions = self.xnat_inputs.get('sessions')
         else:
             # Context level is default of session
-            sessions = [xnat_inputs]
+            sessions = [self.xnat_inputs]
 
         # Parse each session
         for sess in sessions:
@@ -989,7 +984,7 @@ class Processor_v3(object):
                 }
 
             # get assessors
-            asrs = sess.get('assessors', list())
+            asrs = self.xnat_inputs.get('assessors', list())
             for a in asrs:
                 name = a.get('name')
                 self.iteration_sources.add(name)
@@ -1001,69 +996,38 @@ class Processor_v3(object):
                     r['required'] = r.get('required', True)
                 artefact_required = artefact_required or r['required']
 
-            needs_qc = s.get('needs_qc', False)
+                self.proc_inputs[name] = {
+                    'types': types,
+                    'artefact_type': 'assessor',
+                    'needs_qc': a.get('needs_qc', False),
+                    'resources': resources,
+                    'required': artefact_required,
+                }
 
-            # Consider an MR scan for an input if it's marked Unusable?
-            skip_unusable = s.get('skip_unusable', False)
+            # Handle petscans section
+            petscans = self.xnat_inputs.get('petscans', list())
+            for p in petscans:
+                name = p.get('name')
+                self.iteration_sources.add(name)
+                types = [x.strip() for x in p['scantypes'].split(',')]
+                tracer = [x.strip() for x in p['tracer'].split(',')]
 
-            # Include the 'first', or 'all', matching scans as possible inputs
-            keep_multis = s.get('keep_multis', 'all')
+                resources = p.get('resources')
 
-            self.proc_inputs[name] = {
-                'types': types,
-                'artefact_type': 'scan',
-                'needs_qc': needs_qc,
-                'resources': resources,
-                'required': artefact_required,
-                'skip_unusable': skip_unusable,
-                'keep_multis': keep_multis,
-            }
+                self.proc_inputs[name] = {
+                    'types': types,
+                    'artefact_type': 'scan',
+                    'needs_qc': p.get('needs_qc', False),
+                    'resources': p.get('resources', []),
+                    'required': True,
+                    'tracer': tracer,
+                }
 
-        # get assessors
-        asrs = self.xnat_inputs.get('assessors', list())
-        for a in asrs:
-            name = a.get('name')
-            self.iteration_sources.add(name)
+            if 'filters' in self.xnat_inputs:
+                self._parse_filters(self.xnat_inputs.get('filters'))
 
-            types = [_.strip() for _ in a['proctypes'].split(',')]
-            resources = a.get('resources', [])
-            artefact_required = False
-            for r in resources:
-                r['required'] = r.get('required', True)
-            artefact_required = artefact_required or r['required']
-
-            self.proc_inputs[name] = {
-                'types': types,
-                'artefact_type': 'assessor',
-                'needs_qc': a.get('needs_qc', False),
-                'resources': resources,
-                'required': artefact_required,
-            }
-
-        # Handle petscans section
-        petscans = self.xnat_inputs.get('petscans', list())
-        for p in petscans:
-            name = p.get('name')
-            self.iteration_sources.add(name)
-            types = [x.strip() for x in p['scantypes'].split(',')]
-            tracer = [x.strip() for x in p['tracer'].split(',')]
-
-            resources = p.get('resources')
-
-            self.proc_inputs[name] = {
-                'types': types,
-                'artefact_type': 'scan',
-                'needs_qc': p.get('needs_qc', False),
-                'resources': p.get('resources', []),
-                'required': True,
-                'tracer': tracer,
-            }
-
-        if 'filters' in self.xnat_inputs:
-            self._parse_filters(self.xnat_inputs.get('filters'))
-
-        self._populate_proc_inputs()
-        self._parse_variables()
+            self._populate_proc_inputs()
+            self._parse_variables()
 
     def _parse_filters(self, filters):
         match_list = []
