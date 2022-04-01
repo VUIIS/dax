@@ -143,8 +143,6 @@ class Processor_v3(object):
         """
         Method to override inputs from the YAML file based on the user inputs
 
-        :param user_inputs: dictionary of tag, value. E.G:
-            user_inputs = {'default.spider_path': /.../Spider....py'}
         """
         for key, val in self.user_inputs.items():
             LOGGER.debug('overriding:key={}'.format(key))

@@ -712,6 +712,11 @@ class InterfaceTemp(Interface):
         sess_list = self._get_json(post_uri_types)
         for sess in sess_list:
             sess_type = sess['xsiType'].lower()
+
+            if sess_type == 'proc:subjgenprocdata':
+                # Ignore subject assessors
+                continue
+
             if sess_type not in type_list:
                 type_list.append(sess_type)
 
@@ -787,6 +792,11 @@ class InterfaceTemp(Interface):
         sess_list = self._get_json(post_uri_types)
         for sess in sess_list:
             sess_type = sess['xsiType'].lower()
+
+            if sess_type == 'proc:subjgenprocdata':
+                # Ignore subject assessors
+                continue
+
             if sess_type not in type_list:
                 type_list.append(sess_type)
 
