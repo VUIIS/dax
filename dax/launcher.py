@@ -791,6 +791,13 @@ in session %s'
                         # TODO: check that it actually exists in QUEUE
                         LOGGER.debug('already built: ' + assessor[1])
 
+    def subjgenproc_processors(self, project):
+        # Get the processors for this project
+        proj_proc = self.project_process_dict.get(project)
+
+        # Filter to only include subjgenproc
+        proj_proc = [x for x in proj_proc if proj_proc.datatype == 'proc:subjgenprocdata']
+
     def module_prerun(self, project_id, settings_filename=''):
         """
         Run the module prerun method
