@@ -1,5 +1,9 @@
 
 import pyxnat
+import re
+import os
+
+SGP_PATTERN = '\w+-x-\w+-x-\w+_v[0-9]+-x-[0-9a-f]+'
 
 
 def __pyxnat_assessor_type():
@@ -33,7 +37,11 @@ def parse_full_assessor_name(assessor_name):
     elements = assessor_name.split('-x-')
     assrdict = dict()
 
-    if len(elements) == 5:
+    if is_sgp_assessor(assessor_name):
+        assrdict = dict(list(zip([
+            'project_id', 'subject_label', 'session_label', 'label'],
+            [elements[0], elements[1], '', assessor_name])))
+    elif len(elements) == 5:
         # relabel is in use or old style with scan id in label
         assrdict = dict(list(zip(
             ['project_id', 'subject_label', 'session_label', 'label'],
@@ -54,3 +62,8 @@ def parse_full_assessor_name(assessor_name):
                           "assessor name".format(assessor_name)))
 
     return assrdict
+
+
+def is_sgp_assessor(dirpath):
+    # PROJECT-x-SUBJECT-x-PROCTYPE-x-UID
+    return re.match(SGP_PATTERN, os.path.basename(dirpath))
