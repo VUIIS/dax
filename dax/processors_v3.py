@@ -1266,10 +1266,10 @@ class Processor_v3(object):
 
     def _populate_proc_inputs(self):
         for ik, iv in self.proc_inputs.items():
-            for r in iv['resources']:
+            for i, r in enumerate(iv['resources']):
                 # Complete varname
                 if 'varname' not in r:
-                    r['varname'] = '{}-{}'.format(ik, r['resource'])
+                    r['varname'] = '{}-{}-{}'.format(ik, r['resource'], i)
 
                 # Complete ftype
                 if 'ftype' not in r:
@@ -1279,7 +1279,9 @@ class Processor_v3(object):
         for ik, iv in self.proc_inputs.items():
             for r in iv['resources']:
                 v = r.get('varname')
-                self.variables_to_inputs[v] = {'input': ik, 'resource': r['resource']}
+                self.variables_to_inputs[v] = {
+                    'input': ik,
+                    'resource': r['resource']}
 
 
 def get_input_value(input_name, parameter, artefacts):
