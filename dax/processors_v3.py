@@ -234,6 +234,7 @@ class Processor_v3(object):
         # Handle vars
         for key, value in inputs.get('vars', {}).items():
             # If value is a key in command
+            LOGGER.debug(var2val)
             k_str = '{{{}}}'.format(key)
             if k_str in self.command:
                 self.user_overrides[key] = value
