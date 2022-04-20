@@ -504,6 +504,7 @@ class Processor_v3(object):
             command_txt = '{} {}'.format(command_txt, cargs)
 
         # Replace vars with values from var2val
+        LOGGER.debug(var2val)
         command_txt = command_txt.format(**var2val)
 
         return command_txt
