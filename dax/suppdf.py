@@ -101,7 +101,7 @@ def make_lastpdf(lastfile, info):
     pdf.set_font('helvetica', style='B', size=12)
     pdf.cell(w=1.5, h=.3, txt='resource', border=1)
     pdf.cell(w=0.6, h=.3, txt='type', border=1, align='C')
-    pdf.cell(w=5.6, h=.3, txt='path', border=1,  ln=1)
+    pdf.cell(w=5.6, h=.3, txt='path', border=1, ln=1)
 
     # Outputs - data rows
     pdf.set_font('courier', size=12)
@@ -138,7 +138,7 @@ def make_lastpdf(lastfile, info):
         pdf.cell(w=1.2, h=.3, txt=k, border=0)
         pdf.set_font('courier', size=12)
         pdf.cell(w=4.4, h=.3, txt=v, border=1, ln=1)
-  
+
     # Show Description
     pdf.set_font('helvetica', size=14)
     pdf.ln(0.5)
@@ -154,6 +154,7 @@ def make_lastpdf(lastfile, info):
     except Exception as err:
         LOGGER.error('saving PDF:{}:{}'.format(lastfile, err))
 
+
 def make_suppdf(outfile, info, infile=None, overlay=True):
     # Make the overlay PDF
     tempdir = tempfile.mkdtemp()
@@ -167,14 +168,14 @@ def make_suppdf(outfile, info, infile=None, overlay=True):
         import traceback
         traceback.print_stack()
         LOGGER.error('error making PDF:{}:{}'.format(lastfile, err))
- 
+
     # Append last page(s)
     merger = PdfFileMerger()
-    
+
     # Start with the input pdf if we have one
     if infile:
         merger.append(PdfFileReader(infile))
-    
+
     # Append out last page(s)
     merger.append(PdfFileReader(lastfile))
 
@@ -203,7 +204,7 @@ def make_suppdf(outfile, info, infile=None, overlay=True):
         # Merge the two
         page = newpdf.getPage(i)
         page.mergePage(overpdf.getPage(0))
- 
+
         # Append merged page to output
         output.addPage(page)
 
@@ -226,12 +227,12 @@ def load_version(assr_path):
 
 def load_attr(assr_path, attr):
     filepath = os.path.join(
-            os.path.dirname(assr_path), 
+            os.path.dirname(assr_path),
             'DISKQ',
             attr,
             os.path.basename(assr_path))
 
-    with open(filepath,  'r') as f:
+    with open(filepath, 'r') as f:
         return f.readline().strip()
 
 
@@ -268,7 +269,7 @@ def load_outputs(assr_path):
 
     doc = read_yaml(processor_path)
 
-    for c in  doc.get('outputs', []):
+    for c in doc.get('outputs', []):
         LOGGER.debug('suppdf:load_outputs:{}'.format(c))
         # Check for keywords
         if 'pdf' in c:
@@ -348,7 +349,7 @@ def load_info(assr_path, assr_obj):
     # Load inputs from XNAT assessor/inputs
     LOGGER.debug('suppdf:load_info:load_inputs')
     info['inputs'] = load_inputs(assr_obj)
-    
+
     # Load outputs from the processor yaml
     LOGGER.debug('suppdf:load_info:load_outputs')
     info['outputs'] = load_outputs(assr_path)
