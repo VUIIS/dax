@@ -10,14 +10,16 @@ import fnmatch
 import traceback
 import time
 import logging
-
+import pandas as pd
 import xml.etree.cElementTree as ET
 from lxml import etree
 from pyxnat import Interface
 from pyxnat.core.errors import DatabaseError
 import requests
+import json
 
 from . import utilities
+from .utilities import decode_url_json_string
 from .task import (JOB_FAILED, JOB_RUNNING, READY_TO_UPLOAD)
 from .errors import (XnatUtilsError, XnatAuthentificationError)
 from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
@@ -111,6 +113,83 @@ xnat:imagesessiondata/id,xnat:imagesessiondata/label,{pstype}/procstatus,\
 {pstype}/jobid,{pstype}/jobnode,{pstype}/inputs,{pstype}/out/file/label'''
 EXPERIMENT_POST_URI = '''?columns=ID,URI,subject_label,subject_ID,modality,\
 project,date,xsiType,label,xnat:subjectdata/meta/last_modified'''
+
+
+SGP_URI = '/REST/subjects?xsiType=xnat:subjectdata\
+&columns=\
+project,\
+label,\
+proc:subjgenprocdata/label,\
+proc:subjgenprocdata/procstatus,\
+proc:subjgenprocdata/proctype,\
+proc:subjgenprocdata/validation/status,\
+proc:subjgenprocdata/inputs,\
+last_modified&project={}'
+
+SGP_RENAME = {
+    'project': 'PROJECT',
+    'label': 'SUBJECT',
+    'proc:subjgenprocdata/label': 'ASSR',
+    'proc:subjgenprocdata/procstatus': 'PROCSTATUS',
+    'proc:subjgenprocdata/proctype': 'PROCTYPE',
+    'proc:subjgenprocdata/validation/status': 'QCSTATUS',
+    'xsiType': 'XSITYPE',
+    'proc:subjgenprocdata/inputs': 'INPUTS'}
+
+ASSR_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
+&columns=\
+project,\
+subject_label,\
+session_label,\
+session_type,\
+xnat:imagesessiondata/acquisition_site,\
+xnat:imagesessiondata/date,\
+xnat:imagesessiondata/label,\
+proc:genprocdata/label,\
+proc:genprocdata/procstatus,\
+proc:genprocdata/proctype,\
+proc:genprocdata/validation/status,\
+last_modified,\
+proc:genprocdata/inputs'
+
+ASSR_RENAME = {
+    'project': 'PROJECT',
+    'subject_label': 'SUBJECT',
+    'session_label': 'SESSION',
+    'session_type': 'SESSTYPE',
+    'xnat:imagesessiondata/date': 'DATE',
+    'xnat:imagesessiondata/acquisition_site': 'SITE',
+    'proc:genprocdata/label': 'ASSR',
+    'proc:genprocdata/procstatus': 'PROCSTATUS',
+    'proc:genprocdata/proctype': 'PROCTYPE',
+    'proc:genprocdata/validation/status': 'QCSTATUS',
+    'xsiType': 'XSITYPE',
+    'proc:genprocdata/inputs': 'INPUTS'}
+
+SCAN_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
+&columns=\
+project,\
+subject_label,\
+session_label,\
+session_type,\
+xnat:imagesessiondata/date,\
+xnat:imagesessiondata/label,\
+xnat:imagesessiondata/acquisition_site,\
+xnat:imagescandata/id,\
+xnat:imagescandata/type,\
+xnat:imagescandata/quality'
+
+SCAN_RENAME = {
+    'project': 'PROJECT',
+    'subject_label': 'SUBJECT',
+    'session_label': 'SESSION',
+    'session_type': 'SESSTYPE',
+    'xnat:imagesessiondata/date': 'DATE',
+    'xnat:imagesessiondata/acquisition_site': 'SITE',
+    'xnat:imagescandata/id': 'SCANID',
+    'xnat:imagescandata/type': 'SCANTYPE',
+    'xnat:imagescandata/quality': 'QUALITY',
+    'xsiType': 'XSITYPE'}
 
 
 ###############################################################################
@@ -2906,3 +2985,73 @@ def get_resource_lastdate_modified(intf, resource_obj):
     else:
         res_date = ('{:%Y%m%d%H%M%S}'.format(datetime.now()))
     return res_date
+
+
+def get_json(xnat, uri):
+    return json.loads(xnat._exec(uri, 'GET'))
+
+
+def decode_inputs(inputs):
+    if inputs:
+        inputs = decode_url_json_string(inputs)
+        return inputs
+    else:
+        return {}
+
+
+def load_assr_data(xnat, project_filter):
+    LOGGER.info('loading XNAT data, projects={}'.format(project_filter))
+
+    # Build the uri to query with filters and run it
+    _uri = ASSR_URI
+    _uri += '&project={}'.format(','.join(project_filter))
+    LOGGER.debug(_uri)
+    _json = get_json(xnat, _uri)
+    dfa = pd.DataFrame(_json['ResultSet']['Result'])
+
+    # Rename columns
+    dfa.rename(columns=ASSR_RENAME, inplace=True)
+
+    # Set the full path for use in processors
+    dfa['full_path'] = '/projects/' + dfa['PROJECT'] + '/subjects/' + dfa['SUBJECT'] + '/experiments/' +  dfa['SESSION'] + '/assessors/' + dfa['ASSR']
+
+    # Decode inputs
+    dfa['INPUTS'] = dfa['INPUTS'].apply(decode_inputs)
+
+    return dfa
+
+
+def load_scan_data(xnat, project_filter):
+    #  Load data
+    LOGGER.info('loading XNAT scan data, projects={}'.format(project_filter))
+
+    # Build the uri query with filters and run it
+    _uri = SCAN_URI
+    _uri += '&project={}'.format(','.join(project_filter))
+    LOGGER.info(_uri)
+    _json = get_json(xnat, _uri)
+    dfs = pd.DataFrame(_json['ResultSet']['Result'])
+
+    dfs.rename(columns=SCAN_RENAME, inplace=True)
+
+    dfs['full_path'] = '/projects/' +  dfs['PROJECT'] + '/subjects/' + dfs['SUBJECT'] + '/experiments/' +  dfs['SESSION'] + '/scans/' + dfs['SCANID']
+
+    return dfs
+
+
+def load_sgp_data(xnat, project):
+    LOGGER.info('loading XNAT data, project={}'.format(project))
+
+    # Build the uri to query with filters and run it
+    _uri = SGP_URI.format(project)
+    LOGGER.debug(_uri)
+    _json = get_json(xnat, _uri)
+    dfp = pd.DataFrame(_json['ResultSet']['Result'])
+
+    # Rename columns
+    dfp.rename(columns=SGP_RENAME, inplace=True)
+
+    # Decode inputs string
+    dfp['INPUTS'] = dfp['INPUTS'].apply(decode_inputs)
+
+    return dfp

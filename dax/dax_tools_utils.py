@@ -16,6 +16,7 @@ import os
 import shutil
 import sys
 from multiprocessing import Pool
+import re
 
 from . import bin
 from . import XnatUtils
@@ -315,7 +316,6 @@ def generate_snapshots(assessor_path):
             original=snapshot_original, preview=snapshot_preview)
         LOGGER.debug(cmd)
         os.system(cmd)
-
 
 
 def copy_outlog(assessor_dict, assessor_path, resdir):
@@ -647,20 +647,171 @@ def upload_assessors(xnat, projects, resdir, num_threads=1):
     return warnings
 
 
+def upload_resource_subjgenproc(sassr, resource, dirpath):
+    # TODO: merge this with the other upload_resource
+
+    if resource == 'SNAPSHOTS':
+        upload_snapshots_subjgenproc(sassr, dirpath)
+    else:
+        # Get list of files in the dir
+        rfiles_list = os.listdir(dirpath)
+
+        # Handle none, multiple or one file found
+        if not rfiles_list:
+            LOGGER.warn('No files in {}'.format(dirpath))
+        elif len(rfiles_list) > 1 or os.path.isdir(rfiles_list[0]):
+            # Upload the whole dir
+            XnatUtils.upload_folder_to_obj(
+                dirpath,
+                sassr.resource(resource),
+                resource,
+                removeall=True)
+        else:
+            # One file, upload it
+            fpath = os.path.join(dirpath, rfiles_list[0])
+            XnatUtils.upload_file_to_obj(
+                fpath,
+                sassr.resource(resource),
+                removeall=True)
+
+
+def upload_snapshots_subjgenproc(sassr, dirpath):
+    # TODO: merge this with the other upload_snapshots
+    """
+    Upload snapshots to an assessor
+    :param assessor_obj: pyxnat assessor Eobject
+    :param dirpath: local path
+    :return: None
+    """
+    orig = os.path.join(dirpath, SNAPSHOTS_ORIGINAL)
+    thumb = os.path.join(dirpath, SNAPSHOTS_PREVIEW)
+
+    if not os.path.isfile(orig):
+        LOGGER.warn('original snapshot not found:{}'.format(orig))
+    else:
+        # Upload the full size image
+        sassr.resource('SNAPSHOTS').file(os.path.basename(orig)).put(
+            orig,
+            orig.split('.')[1].upper(),
+            'ORIGINAL',
+            overwrite=True,
+            params={"event_reason": "DAX upload"})
+
+    if not os.path.isfile(thumb):
+        LOGGER.warn('thumbnail snapshot not found:{}'.format(thumb))
+    else:
+        # Upload the thumbnail image
+        sassr.resource('SNAPSHOTS').file(os.path.basename(thumb)).put(
+            thumb,
+            thumb.split('.')[1].upper(),
+            'THUMBNAIL',
+            overwrite=True,
+            params={"event_reason": "DAX upload"})
+
+
+def upload_assessor_subjgenproc(xnat, dirpath, delete=False):
+    resdir = os.path.dirname(dirpath)
+    diskq_dir = os.path.join(resdir, 'DISKQ')
+    assr = os.path.basename(dirpath)
+    [proj, subj, proctype, guid] = assr.split('-x-')
+
+    # Get the assessor object on XNAT
+    sassr = xnat.select('/projects/{}/subjects/{}/experiments/{}'.format(
+        proj, subj, assr))
+
+    if not sassr.exists():
+        # LOGGER.info('creating subject asssessor'.format(assr))
+        # sassr.create(experiments='proc:subjgenprocdata')
+        # We will assume the assessor has already been made elsewhere
+        # with the inputs field complete as well
+        # as proctype, procversion, and date
+        LOGGER.info('assessor does not exist, refusing to create')
+
+    # Double-check the status
+    procstatus = sassr.attrs.get(sassr.datatype() + '/procstatus')
+    if procstatus in [READY_TO_COMPLETE, COMPLETE]:
+        # LOGGER.info('creating subject asssessor'.format(assr))
+        # sassr.create(experiments='proc:subjgenprocdata')
+        # We will assume the assessor has already been made elsewhere
+        # with the inputs field complete as well
+        # as proctype, procversion, and date
+        LOGGER.info('assessor complete, refusing to overwite')
+
+    LOGGER.info('uploading:{}'.format(dirpath))
+
+    # Before Upload
+    LOGGER.debug('suppdf')
+    suppdf(dirpath, sassr)
+    LOGGER.debug('generate_snapshots')
+    generate_snapshots(dirpath)
+    # note, we don't need to copy outlog, we assume it's been done during
+    # update()
+
+    # Upload each resource
+    for resource in os.listdir(dirpath):
+        resource_path = os.path.join(dirpath, resource)
+        if not os.path.isdir(resource_path):
+            LOGGER.debug('skipping, not a directory:{}'.format(resource_path))
+            continue
+
+        LOGGER.debug('+uploading:{}'.format(resource))
+        try:
+            upload_resource_subjgenproc(sassr, resource, resource_path)
+        except Exception as e:
+            _msg = 'upload failed, skipping assessor:{}:{}'.format(
+                resource_path, str(e))
+            LOGGER.error(_msg)
+
+    # after Upload
+    ctask = ClusterTask(assr, resdir, diskq_dir)
+
+    # Set on XNAT
+    _docker_version = get_dax_docker_version_assessor(dirpath) or 'null'
+    _status = ctask.get_status() or 'null'
+    _jobid = ctask.get_jobid() or 'null'
+    _jobnode = ctask.get_jobnode() or 'null'
+    _memused = ctask.get_memused() or 'null'
+    _walltime = ctask.get_walltime() or 'null'
+    _jobstartdate = ctask.get_jobstartdate() or 'null'
+    sassr.attrs.mset({
+        'proc:subjgenprocdata/procstatus': _status,
+        'proc:subjgenprocdata/validation/status': NEEDS_QA,
+        'proc:subjgenprocdata/jobid': _jobid,
+        'proc:subjgenprocdata/jobnode': _jobnode,
+        'proc:subjgenprocdata/memused': _memused,
+        'proc:subjgenprocdata/walltimeused': _walltime,
+        'proc:subjgenprocdata/dax_docker_version': _docker_version,
+        'proc:subjgenprocdata/jobstartdate': _jobstartdate,
+        'proc:subjgenprocdata/dax_version': __version__,
+        'proc:subjgenprocdata/dax_version_hash': __git_revision__,
+    })
+
+    if delete:
+        # Delete the task from diskq
+        ctask.delete()
+
+        # Remove the folder
+        shutil.rmtree(dirpath)
+
+
 def upload_thread(xnat, index, assessor_label, number_of_processes, resdir):
     assessor_path = os.path.join(resdir, assessor_label)
     msg = "    *Process: %s/%s -- label: %s / time: %s"
-    LOGGER.info(msg % (str(index + 1), str(number_of_processes),
-                       assessor_label, str(datetime.now())))
+    LOGGER.info(msg % (str(index + 1),str(number_of_processes), assessor_label, str(datetime.now())))
 
-    assessor_dict = assessor_utils.parse_full_assessor_name(assessor_label)
-    if assessor_dict:
-        uploaded = upload_assessor(xnat, assessor_dict, assessor_path, resdir)
-        if not uploaded:
-            mess = """    - Assessor label : {label}\n"""
-            LOGGER.warn(mess.format(label=assessor_dict['label']))
+    if assessor_utils.is_sgp_assessor(assessor_path):
+        uploaded = upload_assessor_subjgenproc(
+            xnat, assessor_path, delete=False)
     else:
-        LOGGER.warn('     --> wrong label')
+        assessor_dict = assessor_utils.parse_full_assessor_name(assessor_label)
+        if assessor_dict:
+            uploaded = upload_assessor(
+                xnat, assessor_dict, assessor_path, resdir)
+            if not uploaded:
+                mess = """    - Assessor label : {label}\n"""
+                LOGGER.warn(mess.format(label=assessor_dict['label']))
+        else:
+            LOGGER.warn('     --> wrong label')
 
     # Disconnecting here because each thread actually acquires
     # a unique JSESSIONOID, not sure why yet or if this is what we want
@@ -793,7 +944,7 @@ def upload_results(upload_settings, emailaddress, resdir, num_threads=1):
             with XnatUtils.get_interface(host=upload_dict['host'],
                                          user=upload_dict['username'],
                                          pwd=upload_dict['password']) as intf:
-                LOGGER.info('='*50)
+                LOGGER.info('=' * 50)
                 proj_str = (upload_dict['projects'] if upload_dict['projects']
                             else 'all')
                 LOGGER.info('Connecting to XNAT <%s>, upload for projects:%s' %

@@ -245,10 +245,33 @@ def read_yaml_settings(yaml_file, logger):
             yaml_path, yaml_dict.get('arguments'),
             logger, singularity_imagedir, job_template)
 
+    # Read sgp processors
+    processorlib = doc.get('processorlib')
+    sgpprocs = {}
+    for s in doc.get('sgpprocessors', []):
+        yaml_name = s['name']
+        try:
+            yaml_path = s['filepath']
+        except KeyError:
+            raise DaxError('Filepath not set for {}'.format(yaml_name))
+
+        if not os.path.isabs(yaml_path) and processorlib:
+            # Preprend lib location
+            yaml_path = os.path.join(processorlib, yaml_path)
+
+        yaml_args = s.get('arguments', None)
+        sgpprocs[yaml_name] = load_from_file(
+            yaml_path,
+            yaml_args,
+            logger,
+            singularity_imagedir,
+            job_template)
+
     # Read projects
     proj_mod = dict()
     proj_proc = dict()
     yaml_proc = dict()
+    sgp_processors = {}
     projects = doc.get('projects')
     for proj_dict in projects:
         project = str(proj_dict.get('project'))
@@ -279,10 +302,19 @@ def read_yaml_settings(yaml_file, logger):
                     else:
                         yaml_proc[project].append(yamlprocs[yaml_n])
 
+            # sgp processors:
+            _list = [s.strip() for s in proj_dict.get('sgpprocessors', '').split(',')]
+            for yaml_n in _list:
+                if project not in list(sgp_processors.keys()):
+                    sgp_processors[project] = [sgpprocs[yaml_n]]
+                else:
+                    sgp_processors[project].append(sgpprocs[yaml_n])
+
     # set in attrs:
     attrs['project_process_dict'] = proj_proc
     attrs['project_modules_dict'] = proj_mod
     attrs['yaml_dict'] = yaml_proc
+    attrs['project_sgp_processors'] = sgp_processors
 
     # Delete unsupported arguments
     attrs.pop('skip_lastupdate', None)
