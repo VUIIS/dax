@@ -381,3 +381,55 @@ def load_from_file(filepath, args, logger, singularity_imagedir=None, job_templa
             XnatUtils, filepath, args, singularity_imagedir, job_template)
 
     return None
+
+
+def upload(settings_path):
+
+
+
+    settings_path, logfile, debug, projects=None, sessions=None,
+          mod_delta=None, proj_lastrun=None, start_sess=None):
+    """
+    Method that is responsible for running all modules and putting assessors
+     into the database
+
+    :param settings_path: Path to the project settings file
+    :param logfile: Full file of the file used to log to
+    :param debug: Should debug mode be used
+    :param projects: Project(s) that need to be built
+    :param sessions: Session(s) that need to be built
+    :return: None
+
+    """
+    # Logger for logs
+    logger = set_logger(logfile, debug)
+
+    _launcher_obj = read_settings(settings_path, logger, exe='build')
+    lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
+    try:
+        _launcher_obj.build(lockfile_prefix, projects, sessions,
+                            mod_delta=mod_delta, proj_lastrun=proj_lastrun,
+                            start_sess=start_sess)
+    except KeyboardInterrupt:
+        logger.warn('Killed by user.')
+        # TODO: pass in the flag file path
+        flagfile = os.path.join(
+            os.path.join(_launcher_obj.resdir, 'FlagFiles'),
+            '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
+        _launcher_obj.unlock_flagfile(flagfile)
+    except Exception as e:
+        logger.critical('Caught exception building Project in bin.build')
+        logger.critical('Exception Class %s with message %s' % (e.__class__,
+                                                                str(e)))
+        flagfile = os.path.join(
+            os.path.join(_launcher_obj.resdir, 'FlagFiles'),
+            '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
+        _launcher_obj.unlock_flagfile(flagfile)
+
+    logger.info('finished build, End Time: %s' % str(datetime.now()))
+
+
+
+
+    return
+

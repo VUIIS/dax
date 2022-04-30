@@ -86,6 +86,7 @@ def parse_args():
     # upload:
     upload_desc = """Upload completed tasks back to XNAT from the queue"""
     upload_parser = dax_parser.add_parser('upload', help=upload_desc)
+    upload_parser.add_argument(dest='settings_path', help='Settings Path')
     upload_parser.add_argument(
         '--host', dest='host', help='XNAT Host. Default: $XNAT_HOST')
     upload_parser.add_argument(
@@ -167,10 +168,13 @@ if __name__ == '__main__':
             args.sessions)
 
     elif args.command == 'upload':
-        dax_tools.upload_tasks(
-            args.logfile, args.debug, args.upload_settings, args.host,
-            args.username, args.password, args.projects, args.suffix,
-            args.emailaddress, args.uselocking, args.resdir)
+        if args.settings_path:
+            dax.bin.upload(args.settings_path)
+        else:
+            dax_tools.upload_tasks(
+                args.logfile, args.debug, args.upload_settings, args.host,
+                args.username, args.password, args.projects, args.suffix,
+                args.emailaddress, args.uselocking, args.resdir)
 
     elif args.command == 'setup':
         dax_tools.setup_dax_package()
