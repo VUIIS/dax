@@ -738,7 +738,7 @@ def upload_assessor_subjgenproc(xnat, dirpath, delete=False):
         # with the inputs field complete as well
         # as proctype, procversion, and date
         LOGGER.info('assessor complete, refusing to overwite')
-        #return
+        return
 
     LOGGER.info('uploading:{}'.format(dirpath))
 
