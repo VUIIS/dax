@@ -430,7 +430,8 @@ cluster queue"
             # Priority if set:
             if self.priority_project and not project_local:
                 unique_list = set(list(self.project_process_dict.keys()) +
-                                  list(self.project_modules_dict.keys()))
+                    list(self.project_modules_dict.keys()) +
+                    list(self.project_sgp_processors.keys()))
                 project_list = self.get_project_list(list(unique_list))
 
             # Build projects
@@ -448,6 +449,9 @@ cluster queue"
                                        sessions_local,
                                        mod_delta=mod_delta, lastrun=lastrun,
                                        start_sess=start_sess)
+
+                    self.build_project_subjgenproc(intf, project_id)
+
                 except Exception as E:
                     err1 = 'Caught exception building project %s'
                     err2 = 'Exception class %s caught with message %s'
@@ -612,9 +616,9 @@ cluster queue"
 
         pdata = {}
         pdata['name'] = project
-        pdata['scans'] = load_scan_data(xnat, [project])
-        pdata['assessors'] = load_assr_data(xnat, [project])
-        pdata['sgp'] = load_sgp_data(xnat, project)
+        pdata['scans'] = XnatUtils.load_scan_data(xnat, [project])
+        pdata['assessors'] = XnatUtils.load_assr_data(xnat, [project])
+        pdata['sgp'] = XnatUtils.load_sgp_data(xnat, project)
 
         LOGGER.debug('calling build_sgp_processors')
         self.build_sgp_processors(xnat, pdata, includesubj)
@@ -1012,6 +1016,7 @@ in session %s'
         """
         # Get default project list for XNAT out of the module/process dict
         ulist = set(list(self.project_process_dict.keys()) +
+                    list(self.project_sgp_processors.keys()) +
                     list(self.project_modules_dict.keys()))
         project_list = sorted(ulist)
         if project_local:

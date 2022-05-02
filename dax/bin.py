@@ -451,7 +451,7 @@ def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
         return
 
     try:
-        logger.info('connecting to xnat for upload', xnat_host)
+        logger.info('connecting to xnat for upload:{}'.format(xnat_host))
         # Upload the assessor
         with XnatUtils.get_interface(xnat_host) as xnat:
             msg = '*Upload Process:{}/{}:{}'.format(
