@@ -309,7 +309,8 @@ def read_yaml_settings(yaml_file, logger):
                         yaml_proc[project].append(yamlprocs[yaml_n])
 
             # sgp processors:
-            _list = [s.strip() for s in proj_dict.get('sgpprocessors', '').split(',')]
+            _list = proj_dict.get('sgpprocessors', '').split(',')
+            _list = [s.strip() for s in _list]
             for yaml_n in _list:
                 if project not in list(sgp_processors.keys()):
                     sgp_processors[project] = [sgpprocs[yaml_n]]
@@ -328,7 +329,6 @@ def read_yaml_settings(yaml_file, logger):
     attrs['job_template'] = doc.get('jobtemplate')
     attrs['timeout_emails'] = doc.get('timeout_emails')
     attrs['smtp_host'] = doc.get('smtp_host')
-
 
     # Return a launcher with specified arguments
     resdir = doc.get('resdir')
