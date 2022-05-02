@@ -10,7 +10,7 @@ from PyPDF2 import PdfFileWriter, PdfFileReader, PdfFileMerger
 
 from .XnatUtils import get_assessor_inputs
 from .utilities import read_yaml
-from .assessor_utils import parse_full_assessor_name
+from .assessor_utils import parse_full_assessor_name, is_sgp_assessor
 from .version import VERSION as dax_version
 
 # TODO: recode this so the arguments are just the text to use
@@ -314,15 +314,9 @@ def load_info(assr_path, assr_obj):
     LOGGER.debug('loading info:{}'.format(assr))
 
     info['assessor'] = assr['label']
-    info['session'] = {
-        'PROJECT': assr['project_id'],
-        'SUBJECT': assr['subject_label'],
-        'SESSION': assr['session_label']}
 
     # Load
     LOGGER.debug('loading version')
-    info['procversion'] = load_version(assr_path)
-    info['proctype'] = info['assessor'].split('-x-')[3]
     info['procdate'] = load_attr(assr_path, 'jobstartdate')
 
     # Load job info
@@ -353,6 +347,18 @@ def load_info(assr_path, assr_obj):
     # Load outputs from the processor yaml
     LOGGER.debug('suppdf:load_info:load_outputs')
     info['outputs'] = load_outputs(assr_path)
+
+    if is_sgp_assessor(assr_path):
+        info['proctype'] = info['assessor'].split('-x-')[2]
+        info['session'] = {
+            'PROJECT': assr['project_id'],
+            'SUBJECT': assr['subject_label']}
+    else:
+        info['proctype'] = info['assessor'].split('-x-')[3]
+        info['session'] = {
+            'PROJECT': assr['project_id'],
+            'SUBJECT': assr['subject_label'],
+            'SESSION': assr['session_label']}
 
     LOGGER.debug('suppdf:load_info:finished')
     return info

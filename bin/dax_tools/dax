@@ -24,6 +24,11 @@ def strip_leading_and_trailing_spaces(list_arg):
     return ','.join(map(lambda x: x.strip(), list_arg.split(',')))
 
 
+def enable_stdout():
+    import logging
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+
+
 def parse_args():
     """Method to parse arguments based on ArgumentParser.
 
@@ -171,7 +176,8 @@ if __name__ == '__main__':
         if args.settings_path:
             # TODO: allow flag to use settings dir which will upload all the 
             # settings files in the directory
-            dax.bin.upload(args.settings_path, args.host, args.resdir)
+            enable_stdout()
+            dax.bin.upload(args.settings_path)
         else:
             dax_tools.upload_tasks(
                 args.logfile, args.debug, args.upload_settings, args.host,

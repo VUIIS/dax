@@ -716,6 +716,8 @@ def upload_assessor_subjgenproc(xnat, dirpath, delete=False):
     [proj, subj, proctype, guid] = assr.split('-x-')
 
     # Get the assessor object on XNAT
+    LOGGER.debug('connecting to assessor on xnat')
+
     sassr = xnat.select('/projects/{}/subjects/{}/experiments/{}'.format(
         proj, subj, assr))
 
@@ -736,6 +738,7 @@ def upload_assessor_subjgenproc(xnat, dirpath, delete=False):
         # with the inputs field complete as well
         # as proctype, procversion, and date
         LOGGER.info('assessor complete, refusing to overwite')
+        #return
 
     LOGGER.info('uploading:{}'.format(dirpath))
 
@@ -773,6 +776,7 @@ def upload_assessor_subjgenproc(xnat, dirpath, delete=False):
     _memused = ctask.get_memused() or 'null'
     _walltime = ctask.get_walltime() or 'null'
     _jobstartdate = ctask.get_jobstartdate() or 'null'
+    LOGGER.debug('setting attributes on xnat')
     sassr.attrs.mset({
         'proc:subjgenprocdata/procstatus': _status,
         'proc:subjgenprocdata/validation/status': NEEDS_QA,
