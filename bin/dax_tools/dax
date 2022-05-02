@@ -169,7 +169,9 @@ if __name__ == '__main__':
 
     elif args.command == 'upload':
         if args.settings_path:
-            dax.bin.upload(args.settings_path)
+            # TODO: allow flag to use settings dir which will upload all the 
+            # settings files in the directory
+            dax.bin.upload(args.settings_path, args.host, args.resdir)
         else:
             dax_tools.upload_tasks(
                 args.logfile, args.debug, args.upload_settings, args.host,
