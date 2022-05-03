@@ -91,7 +91,11 @@ def parse_args():
     # upload:
     upload_desc = """Upload completed tasks back to XNAT from the queue"""
     upload_parser = dax_parser.add_parser('upload', help=upload_desc)
-    upload_parser.add_argument(dest='settings_path', help='Settings Path')
+    upload_parser.add_argument(
+        dest='settings_path',
+        help='Settings Path',
+        nargs='?',
+        default='')
     upload_parser.add_argument(
         '--host', dest='host', help='XNAT Host. Default: $XNAT_HOST')
     upload_parser.add_argument(
