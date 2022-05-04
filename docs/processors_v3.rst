@@ -240,14 +240,13 @@ Subject-Level Processors
 ---------------------------
 
 As of version 2.7, dax supports subject-level processors, in addition to session-level. The subject-level
-processors can include inputs across multiple sessions with the same subject. The results are stored in 
-a subjeect-level assessor in XNAT of the datatype proc:subjGenProcData. In the processor yaml, a subject-level processor is
-impled by including the "sessions" level between inputs.xnat and scans/assessors. Each session should incude attributes
-for name and types. The types are matched against the xnat field. Currently the match must be exact.
+processors can include inputs across multiple sessions within the same subject. In the processor yaml, a subject-level processor is
+implied by including the "sessions" level between inputs.xnat and scans/assessors. Each session requires the attribute types.
+The types are matched against the XNAT field xnat:imageSessionData/session_type. Currently the match must be exact.
 
-To set the session type, you can use dax/pyxnat:
+To set the session type of a session, you can use dax/pyxnat:
 
-.. code-block:: python3
+.. code-block:: python
 
 xnat.select_session(PROJ, SUBJ, SESS).attrs.set('session_type', SESSTYPE)
 
@@ -294,6 +293,5 @@ Below is an example of a subject-level processor that will include an assessor f
       args: BLvsWK12
 
 
-Remember, the assessor will be created under the subject, at the same level as a session. The proctype of the assessor will be taken from the filename just like
-session-level processors. The xnat data type, know as xsiType of the assessor will be proc:subjGenProcData (for session-level assessors the tpe is proc:genprocData).
-
+The assessor will be created under the subject on XNAT, at the same level as a session. The proctype of the assessor will be derived from the filename just like
+session-level processors. The XNAT data type of the assessor, or xsiType, will be proc:subjGenProcData (for session-level assessors the type is proc:genprocData).
