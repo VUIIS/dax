@@ -248,7 +248,7 @@ To set the session type of a session, you can use dax/pyxnat:
 
 .. code-block:: python
 
-xnat.select_session(PROJ, SUBJ, SESS).attrs.set('session_type', SESSTYPE)
+    xnat.select_session(PROJ, SUBJ, SESS).attrs.set('session_type', SESSTYPE)
 
 
 
