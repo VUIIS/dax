@@ -9,40 +9,37 @@ No effort is made to identify duplicate or erroneous entries in the CSV file.
 Scan 'quality' workflow
 
     1.  Create a CSV file containing these labeled columns (in no particular order):
-            project_id,subject_label,session_label,as_label,quality
-        The as_label column must contain the scan label.
+            project_id,subject_label,session_label,scan_id,quality
 
-        A starting point for the CSV may be obtained using 
-            Xnatreport -p <project> -c <csvfile> --format project_id,subject_label,session_label,scan_id,quality
-        The date header line and the blank header line must be removed, and the 
-        scan_id column must be renamed to as_label.
+        A starting point for the CSV may be obtained using Xnatreport with
+            --format project_id,subject_label,session_label,scan_id,quality
+        The resulting CSV can be edited with the desired changes.
 
-        Alternatively, the download_report.csv produced by Xnatdownload may be 
-        used as a starting point. The date header line must be removed. The
-        quality column is already present and may be edited.
-
-    2.  Edit the 'quality' column of the CSV file to the desired values
-
-    3.  Run this script:
+    2.  Run this script:
             Xnatsetvar --var quality --csv <edited_csvfile>
 
-Assessor 'qc_status' workflow
+Assessor 'qcstatus' workflow
 
-    Same as the scan quality workflow, but the required CSV columns are
-        project_id,subject_label,session_label,as_label,qc_status
-    and the as_label column must contain the assessor label.
+    1.  Create a CSV file containing these labeled columns (in no particular order):
+            project_id,subject_label,session_label,assessor_label,qcstatus
 
-    Xnatsetvar --var qc_status --csv <edited_csvfile>
+        A starting point for the CSV may be obtained using Xnatreport with
+            --format project_id,subject_label,session_label,assessor_label,qcstatus
+        The resulting CSV can be edited with the desired changes.
 
-    The optional argument --validator may be used to set the 
-    assessor's 'validated_by' field. It defaults to 'Xnatsetvar'.
+    2.  Run this script:
+            Xnatsetvar --var qcstatus --csv <edited_csvfile>
+
+        The optional argument --validator may be used to set the 
+        assessor's 'validated_by' field. It defaults to 'Xnatsetvar'.
 
 Session 'session_type' workflow
 
-    Same as the scan quality workflow, but the required CSV columns are
-        project_id,subject_label,session_label,session_type
+    1.  Create a CSV file containing these labeled columns (in no particular order):
+            project_id,subject_label,session_label,session_type
 
-    Xnatsetvar --var session_type --csv <edited_csvfile>
+    2.  Run this script:
+            Xnatsetvar --var session_type --csv <edited_csvfile>
 '''
 
 import argparse
@@ -79,7 +76,7 @@ def set_scanqual(csv):
         'project_id',
         'subject_label',
         'session_label',
-        'as_label',
+        'scan_id',
         'quality',
         ]
     info = read_csv(csv, reqs)
@@ -108,8 +105,8 @@ def set_assrqc(csv, validator):
         'project_id',
         'subject_label',
         'session_label',
-        'as_label',
-        'qc_status',
+        'assessor_label',
+        'qcstatus',
         ]
     info = read_csv(csv, reqs)
 
@@ -126,11 +123,11 @@ def set_assrqc(csv, validator):
             tag = f'{r.project_id}, {r.subject_label}, {r.session_label}, {r.as_label}'
             if assr.exists():
                 assr.attrs.mset({
-                    'proc:genProcData/validation/status': r.qc_status,
+                    'proc:genProcData/validation/status': r.qcstatus,
                     'proc:genProcData/validation/date': datestr,
                     'proc:genProcData/validation/validated_by': validator
                 })
-                logger.info(f'Set {r.qc_status} for {tag}')
+                logger.info(f'Set {r.qcstatus} for {tag}')
             else:
                 logger.warning(f'Assessor not found: {tag}')
 
@@ -181,7 +178,7 @@ if __name__ == '__main__':
     # Call appropriate routine
     if args.var=='quality':
         set_scanqual(args.csv)
-    elif args.var=='qc_status':
+    elif args.var=='qcstatus':
         set_assrqc(args.csv, args.validator)
     elif args.var=='session_type':
         set_sesstype(args.csv)
