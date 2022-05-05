@@ -16,7 +16,7 @@ Scan 'quality' workflow
         The resulting CSV can be edited with the desired changes.
 
     2.  Run this script:
-            Xnatsetvar --var quality --csv <edited_csvfile>
+            XnatSetVar --var quality --csv <edited_csvfile>
 
 Assessor 'qcstatus' workflow
 
@@ -28,10 +28,10 @@ Assessor 'qcstatus' workflow
         The resulting CSV can be edited with the desired changes.
 
     2.  Run this script:
-            Xnatsetvar --var qcstatus --csv <edited_csvfile>
+            XnatSetVar --var qcstatus --csv <edited_csvfile>
 
-        The optional argument --validator may be used to set the 
-        assessor's 'validated_by' field. It defaults to 'Xnatsetvar'.
+        The optional argument --validator may be used to set the
+        assessor's 'validated_by' field. It defaults to 'XnatSetVar'.
 
 Session 'session_type' workflow
 
@@ -39,14 +39,14 @@ Session 'session_type' workflow
             project_id,subject_label,session_label,session_type
 
     2.  Run this script:
-            Xnatsetvar --var session_type --csv <edited_csvfile>
+            XnatSetVar --var session_type --csv <edited_csvfile>
 '''
 
 import argparse
-from dax import XnatUtils
 import logging
-import pandas
 import time
+import pandas
+from dax import XnatUtils
 
 
 def initialize_logger(name, logfile):
@@ -54,10 +54,10 @@ def initialize_logger(name, logfile):
         handler = logging.FileHandler(logfile, 'w')
     else:
         handler = logging.StreamHandler()
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
-    logger.addHandler(handler)
-    return logger
+    lgr = logging.getLogger(name)
+    lgr.setLevel(logging.INFO)
+    lgr.addHandler(handler)
+    return lgr
 
 
 def read_csv(csvfile, reqs):
@@ -69,7 +69,7 @@ def read_csv(csvfile, reqs):
 
 
 def set_scanqual(csv):
-    
+
     # Load the info csv
     reqs = [
         'project_id',
@@ -82,23 +82,23 @@ def set_scanqual(csv):
 
     # Set values for scans that exist
     with XnatUtils.get_interface() as xnat:
-        for r in info.itertuples():
+        for row in info.itertuples():
             scan = xnat.select_scan(
-                r.project_id,
-                r.subject_label,
-                r.session_label,
-                r.scan_id
+                row.project_id,
+                row.subject_label,
+                row.session_label,
+                row.scan_id
                 )
-            tag = f'{r.project_id}, {r.subject_label}, {r.session_label}, {r.scan_id}'
+            tag = f'{row.project_id}, {row.subject_label}, {row.session_label}, {row.scan_id}'
             if scan.exists():
-                scan.attrs.set('quality',r.quality)  
-                logger.info(f'Set {r.quality} for {tag}')    
+                scan.attrs.set('quality',row.quality)
+                logger.info('Set %s for %s', row.quality, tag)
             else:
-                logger.warning(f'Scan not found: {tag}')
+                logger.warning('Scan not found: %s', tag)
 
 
 def set_assrqc(csv, validator):
-    
+
     # Load the info csv
     reqs = [
         'project_id',
@@ -112,27 +112,27 @@ def set_assrqc(csv, validator):
     # Set values for assessors that exist
     datestr = time.strftime('%Y-%m-%d')
     with XnatUtils.get_interface() as xnat:
-        for r in info.itertuples():
+        for row in info.itertuples():
             assr = xnat.select_assessor(
-                r.project_id,
-                r.subject_label,
-                r.session_label,
-                r.assessor_label
+                row.project_id,
+                row.subject_label,
+                row.session_label,
+                row.assessor_label
                 )
-            tag = f'{r.project_id}, {r.subject_label}, {r.session_label}, {r.assessor_label}'
+            tag = f'{row.project_id}, {row.subject_label}, {row.session_label}, {row.assessor_label}'
             if assr.exists():
                 assr.attrs.mset({
-                    'proc:genProcData/validation/status': r.qcstatus,
+                    'proc:genProcData/validation/status': row.qcstatus,
                     'proc:genProcData/validation/date': datestr,
                     'proc:genProcData/validation/validated_by': validator
-                })
-                logger.info(f'Set {r.qcstatus} for {tag}')
+                    })
+                logger.info('Set %s for %s', row.qcstatus, tag)
             else:
-                logger.warning(f'Assessor not found: {tag}')
+                logger.warning('Assessor not found: %s', tag)
 
 
 def set_sesstype(csv):
-    
+
     # Load the info csv
     reqs = [
         'project_id',
@@ -144,18 +144,18 @@ def set_sesstype(csv):
 
     # Set values for sessions that exist
     with XnatUtils.get_interface() as xnat:
-        for r in info.itertuples():
+        for row in info.itertuples():
             sess = xnat.select_experiment(
-                r.project_id,
-                r.subject_label,
-                r.session_label
+                row.project_id,
+                row.subject_label,
+                row.session_label
                 )
-            tag = f'{r.project_id}, {r.subject_label}, {r.session_label}'
+            tag = f'{row.project_id}, {row.subject_label}, {row.session_label}'
             if sess.exists():
-                sess.attrs.set('session_type',r.session_type)  
-                logger.info(f'Set {r.session_type} for {tag}')    
+                sess.attrs.set('session_type',row.session_type)
+                logger.info('Set %s for %s', row.session_type, tag)
             else:
-                logger.warning(f'Session not found: {tag}')
+                logger.warning('Session not found: %s', tag)
 
 
 if __name__ == '__main__':
@@ -167,12 +167,12 @@ if __name__ == '__main__':
         )
     parser.add_argument('-v', '--var', required=True)
     parser.add_argument('-c', '--csv', required=True)
-    parser.add_argument('--validator', default='Xnatsetvar')
+    parser.add_argument('--validator', default='XnatSetVar')
     parser.add_argument('-o', '--outfile', default=None)
     args = parser.parse_args()
 
     # Logging
-    logger = initialize_logger('Xnatsetvar', args.outfile)
+    logger = initialize_logger('XnatSetVar', args.outfile)
 
     # Call appropriate routine
     if args.var=='quality':
@@ -183,4 +183,3 @@ if __name__ == '__main__':
         set_sesstype(args.csv)
     else:
         raise Exception(f'Variable type {args.var} is not handled')
-
