@@ -4,7 +4,7 @@
 The optional -o/--outfile argument may be used to write logging information
 to file instead of the terminal.
 
-No effort is made to identify duplicate or erroneous entries.
+No effort is made to identify duplicate or erroneous entries in the CSV file.
 
 Scan 'quality' workflow
 
