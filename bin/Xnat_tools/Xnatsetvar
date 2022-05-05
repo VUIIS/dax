@@ -15,7 +15,7 @@ Scan 'quality' workflow
     2.  Edit the 'quality' column of the CSV file to the desired values
 
     3.  Run this script:
-            Xnatsetvar --var quality --csv <edited_csvfile>
+            %(prog)s --var quality --csv <edited_csvfile>
 
 Assessor 'qc_status' workflow
 
@@ -23,7 +23,7 @@ Assessor 'qc_status' workflow
         project_id,subject_label,session_label,as_label,qc_status
     and the as_label column contains the assessor label.
 
-    Xnatsetvar --var qc_status --csv <edited_csvfile>
+    %(prog)s --var qc_status --csv <edited_csvfile>
 
     The optional argument --validator may be used to set the 
     assessor's 'validated_by' field. It defaults to 'Xnatsetvar'.
@@ -33,7 +33,7 @@ Session 'session_type' workflow
     Same as the scan quality workflow, but the required CSV columns are
         project_id,subject_label,session_label,session_type
 
-    Xnatsetvar --var session_type --csv <edited_csvfile>
+    %(prog)s --var session_type --csv <edited_csvfile>
 '''
 
 import argparse
