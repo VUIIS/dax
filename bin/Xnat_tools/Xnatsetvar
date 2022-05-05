@@ -85,23 +85,12 @@ def set_scanquality(csv):
                 r.session_label,
                 r.as_label
                 )
+            tag = f'{r.project_id}, {r.subject_label}, {r.session_label}, {r.as_label}'
             if scan:
                 scan.attrs.set('quality',r.quality)  
-                logger.info(
-                    f'Set {r.quality} for '
-                    f'{r.project_id}, '
-                    f'{r.subject_label}, '
-                    f'{r.session_label}, '
-                    f'{r.as_label}'
-                    )    
+                logger.info(f'Set {r.quality} for {tag}')    
             else:
-                logger.warn(
-                    f'Scan not found: '
-                    f'{r.project_id}, '
-                    f'{r.subject_label}, '
-                    f'{r.session_label}, '
-                    f'{r.as_label}'
-                    )
+                logger.warn(f'Scan not found: {tag}')
 
 
 def set_assrqc(csv, validator):
@@ -126,27 +115,16 @@ def set_assrqc(csv, validator):
                 r.session_label,
                 r.as_label
                 )
+            tag = f'{r.project_id}, {r.subject_label}, {r.session_label}, {r.as_label}'
             if assr:
                 assr.attrs.mset({
                     'proc:genProcData/validation/status': r.qc_status,
                     'proc:genProcData/validation/date': datestr,
                     'proc:genProcData/validation/validated_by': validator
                 })
-                logger.info(
-                    f'Set {r.qc_status} for '
-                    f'{r.project_id}, '
-                    f'{r.subject_label}, '
-                    f'{r.session_label}, '
-                    f'{r.as_label}'
-                    )    
+                logger.info(f'Set {r.qc_status} for {tag}')
             else:
-                logger.warn(
-                    f'Assessor not found: '
-                    f'{r.project_id}, '
-                    f'{r.subject_label}, '
-                    f'{r.session_label}, '
-                    f'{r.as_label}'
-                    )
+                logger.warn(f'Assessor not found: {tag}')
 
 
 def set_sesstype(csv):
@@ -168,21 +146,12 @@ def set_sesstype(csv):
                 r.subject_label,
                 r.session_label
                 )
+            tag = f'{r.project_id}, {r.subject_label}, {r.session_label}'
             if sess:
                 sess.attrs.set('session_type',r.session_type)  
-                logger.info(
-                    f'Set {r.session_type} for '
-                    f'{r.project_id}, '
-                    f'{r.subject_label}, '
-                    f'{r.session_label}'
-                    )    
+                logger.info(f'Set {r.session_type} for {tag}')    
             else:
-                logger.warn(
-                    f'Session not found: '
-                    f'{r.project_id}, '
-                    f'{r.subject_label}, '
-                    f'{r.session_label}'
-                    )
+                logger.warn(f'Session not found: {tag}')
 
 
 def main():
