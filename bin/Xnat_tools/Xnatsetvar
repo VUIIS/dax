@@ -64,7 +64,7 @@ def read_csv(csvfile, reqs):
     return info
 
 
-def set_scanquality(csv):
+def set_scanqual(csv):
     
     # Load the info csv
     reqs = [
@@ -172,7 +172,7 @@ def main():
 
     # Call appropriate routine
     if args.var=='quality':
-        set_scanquality(args.csv)
+        set_scanqual(args.csv)
     elif args.var=='qc_status':
         set_assrqc(args.csv, args.validator)
     elif args.var=='session_type':
