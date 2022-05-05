@@ -88,9 +88,9 @@ def set_scanqual(csv):
                 r.project_id,
                 r.subject_label,
                 r.session_label,
-                r.as_label
+                r.scan_id
                 )
-            tag = f'{r.project_id}, {r.subject_label}, {r.session_label}, {r.as_label}'
+            tag = f'{r.project_id}, {r.subject_label}, {r.session_label}, {r.scan_id}'
             if scan.exists():
                 scan.attrs.set('quality',r.quality)  
                 logger.info(f'Set {r.quality} for {tag}')    
@@ -118,9 +118,9 @@ def set_assrqc(csv, validator):
                 r.project_id,
                 r.subject_label,
                 r.session_label,
-                r.as_label
+                r.assessor_label
                 )
-            tag = f'{r.project_id}, {r.subject_label}, {r.session_label}, {r.as_label}'
+            tag = f'{r.project_id}, {r.subject_label}, {r.session_label}, {r.assessor_label}'
             if assr.exists():
                 assr.attrs.mset({
                     'proc:genProcData/validation/status': r.qcstatus,
