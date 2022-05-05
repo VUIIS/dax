@@ -46,7 +46,6 @@ import argparse
 from dax import XnatUtils
 import logging
 import pandas
-import sys
 import time
 
 
