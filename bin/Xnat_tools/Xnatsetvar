@@ -10,9 +10,16 @@ Scan 'quality' workflow
 
     1.  Create a CSV file containing these labeled columns (in no particular order):
             project_id,subject_label,session_label,as_label,quality
-        The CSV file may be a copy of download_report.csv from Xnatdownload, 
-        or the CSV file stored by Xnatreport with appropriate columns.
-        The as_label column contains the scan label.
+        The as_label column must contain the scan label.
+
+        A starting point for the CSV may be obtained using 
+            Xnatreport -p <project> -c <csvfile> --format project_id,subject_label,session_label,scan_id,quality
+        The date header line and the blank header line must be removed, and the 
+        scan_id column must be renamed to as_label.
+
+        Alternatively, the download_report.csv produced by Xnatdownload may be 
+        used as a starting point. The date header line must be removed. The
+        quality column is already present and may be edited.
 
     2.  Edit the 'quality' column of the CSV file to the desired values
 
@@ -23,7 +30,7 @@ Assessor 'qc_status' workflow
 
     Same as the scan quality workflow, but the required CSV columns are
         project_id,subject_label,session_label,as_label,qc_status
-    and the as_label column contains the assessor label.
+    and the as_label column must contain the assessor label.
 
     Xnatsetvar --var qc_status --csv <edited_csvfile>
 
@@ -44,7 +51,6 @@ import logging
 import pandas
 import sys
 import time
-import warnings
 
 
 def initialize_logger(name, logfile):
@@ -61,7 +67,7 @@ def initialize_logger(name, logfile):
 def read_csv(csvfile, reqs):
     info = pandas.read_csv(csvfile,  delimiter=',', dtype=str)
     for req in reqs:
-        if not req in info.colnames:
+        if not req in info.columns:
             raise Exception(f'Column "{req}" not found in CSV file')
     return info
 
@@ -81,18 +87,18 @@ def set_scanqual(csv):
     # Set values for scans that exist
     with XnatUtils.get_interface() as xnat:
         for r in info.itertuples():
-            scan = XnatUtils.select_scan(
+            scan = xnat.select_scan(
                 r.project_id,
                 r.subject_label,
                 r.session_label,
                 r.as_label
                 )
             tag = f'{r.project_id}, {r.subject_label}, {r.session_label}, {r.as_label}'
-            if scan:
+            if scan.exists():
                 scan.attrs.set('quality',r.quality)  
                 logger.info(f'Set {r.quality} for {tag}')    
             else:
-                logger.warn(f'Scan not found: {tag}')
+                logger.warning(f'Scan not found: {tag}')
 
 
 def set_assrqc(csv, validator):
@@ -111,14 +117,14 @@ def set_assrqc(csv, validator):
     datestr = time.strftime('%Y-%m-%d')
     with XnatUtils.get_interface() as xnat:
         for r in info.itertuples():
-            assr = XnatUtils.select_asssessor(
+            assr = xnat.select_assessor(
                 r.project_id,
                 r.subject_label,
                 r.session_label,
                 r.as_label
                 )
             tag = f'{r.project_id}, {r.subject_label}, {r.session_label}, {r.as_label}'
-            if assr:
+            if assr.exists():
                 assr.attrs.mset({
                     'proc:genProcData/validation/status': r.qc_status,
                     'proc:genProcData/validation/date': datestr,
@@ -126,7 +132,7 @@ def set_assrqc(csv, validator):
                 })
                 logger.info(f'Set {r.qc_status} for {tag}')
             else:
-                logger.warn(f'Assessor not found: {tag}')
+                logger.warning(f'Assessor not found: {tag}')
 
 
 def set_sesstype(csv):
@@ -143,20 +149,20 @@ def set_sesstype(csv):
     # Set values for sessions that exist
     with XnatUtils.get_interface() as xnat:
         for r in info.itertuples():
-            sess = XnatUtils.select_experiment(
+            sess = xnat.select_experiment(
                 r.project_id,
                 r.subject_label,
                 r.session_label
                 )
             tag = f'{r.project_id}, {r.subject_label}, {r.session_label}'
-            if sess:
+            if sess.exists():
                 sess.attrs.set('session_type',r.session_type)  
                 logger.info(f'Set {r.session_type} for {tag}')    
             else:
-                logger.warn(f'Session not found: {tag}')
+                logger.warning(f'Session not found: {tag}')
 
 
-def main():
+if __name__ == '__main__':
 
     # Arguments
     parser = argparse.ArgumentParser(
@@ -182,7 +188,3 @@ def main():
     else:
         raise Exception(f'Variable type {args.var} is not handled')
 
-
-if __name__ == '__main__':
-    sys.exit(main())
-    
