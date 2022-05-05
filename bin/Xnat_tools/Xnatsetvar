@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 '''Set variables on XNAT objects from a CSV file.
 
-The optional -o / --outfile argument may be used to write logging information
+The optional -o/--outfile argument may be used to write logging information
 to file instead of the terminal.
 
 Scan 'quality' workflow
