@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Set variables on XNAT objects from a CSV file.
 
+The optional -o / --outfile argument may be used to write logging information
+to file instead of the terminal.
+
 Scan 'quality' workflow
 
     1.  Create a CSV file containing these labeled columns (in no particular order):
@@ -39,6 +42,7 @@ import argparse
 from dax import XnatUtils
 import logging
 import pandas
+import sys
 import time
 import warnings
 
@@ -183,7 +187,7 @@ def set_sesstype(csv):
                     )
 
 
-def main:
+def main():
 
     # Arguments
     parser = argparse.ArgumentParser()
