@@ -17,7 +17,6 @@ Scan 'quality' workflow
     3.  Run this script:
             Xnatsetvar --var quality --csv <edited_csvfile>
 
-
 Assessor 'qc_status' workflow
 
     Same as the scan quality workflow, but the required CSV columns are
@@ -28,7 +27,6 @@ Assessor 'qc_status' workflow
 
     The optional argument --validator may be used to set the 
     assessor's 'validated_by' field. It defaults to 'Xnatsetvar'.
-
 
 Session 'session_type' workflow
 
