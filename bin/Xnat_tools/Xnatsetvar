@@ -89,7 +89,7 @@ def set_scanqual(csv):
                 row.session_label,
                 row.scan_id
                 )
-            tag = f'{row.project_id}, {row.subject_label}, {row.session_label}, {row.scan_id}'
+            tag = f'{row.project_id} {row.subject_label} {row.session_label} {row.scan_id}'
             if scan.exists():
                 scan.attrs.set('quality',row.quality)
                 logger.info('Set %s for %s', row.quality, tag)
@@ -119,7 +119,7 @@ def set_assrqc(csv, validator):
                 row.session_label,
                 row.assessor_label
                 )
-            tag = f'{row.project_id}, {row.subject_label}, {row.session_label}, {row.assessor_label}'
+            tag = f'{row.project_id} {row.subject_label} {row.session_label} {row.assessor_label}'
             if assr.exists():
                 assr.attrs.mset({
                     'proc:genProcData/validation/status': row.qcstatus,
@@ -150,7 +150,7 @@ def set_sesstype(csv):
                 row.subject_label,
                 row.session_label
                 )
-            tag = f'{row.project_id}, {row.subject_label}, {row.session_label}'
+            tag = f'{row.project_id} {row.subject_label} {row.session_label}'
             if sess.exists():
                 sess.attrs.set('session_type',row.session_type)
                 logger.info('Set %s for %s', row.session_type, tag)
