@@ -16,7 +16,7 @@ Scan 'quality' workflow
         The resulting CSV can be edited with the desired changes.
 
     2.  Run this script:
-            XnatSetVar --var quality --csv <edited_csvfile>
+            Xnatsetvar --var quality --csv <edited_csvfile>
 
 Assessor 'qcstatus' workflow
 
@@ -28,10 +28,10 @@ Assessor 'qcstatus' workflow
         The resulting CSV can be edited with the desired changes.
 
     2.  Run this script:
-            XnatSetVar --var qcstatus --csv <edited_csvfile>
+            Xnatsetvar --var qcstatus --csv <edited_csvfile>
 
         The optional argument --validator may be used to set the
-        assessor's 'validated_by' field. It defaults to 'XnatSetVar'.
+        assessor's 'validated_by' field. It defaults to 'Xnatsetvar'.
 
 Session 'session_type' workflow
 
@@ -39,7 +39,7 @@ Session 'session_type' workflow
             project_id,subject_label,session_label,session_type
 
     2.  Run this script:
-            XnatSetVar --var session_type --csv <edited_csvfile>
+            Xnatsetvar --var session_type --csv <edited_csvfile>
 '''
 
 import argparse
@@ -167,12 +167,12 @@ if __name__ == '__main__':
         )
     parser.add_argument('-v', '--var', required=True)
     parser.add_argument('-c', '--csv', required=True)
-    parser.add_argument('--validator', default='XnatSetVar')
+    parser.add_argument('--validator', default='Xnatsetvar')
     parser.add_argument('-o', '--outfile', default=None)
     args = parser.parse_args()
 
     # Logging
-    logger = initialize_logger('XnatSetVar', args.outfile)
+    logger = initialize_logger('Xnatsetvar', args.outfile)
 
     # Call appropriate routine
     if args.var=='quality':
