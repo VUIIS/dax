@@ -45,7 +45,9 @@ Session 'session_type' workflow
 import argparse
 import logging
 import time
+
 import pandas
+
 from dax import XnatUtils
 
 
