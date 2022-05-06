@@ -93,7 +93,7 @@ def set_scanqual(csv):
                 )
             tag = f'{row.project_id} {row.subject_label} {row.session_label} {row.scan_id}'
             if scan.exists():
-                scan.attrs.set('quality',row.quality)
+                scan.attrs.set('quality', row.quality)
                 logger.info('Set %s for %s', row.quality, tag)
             else:
                 logger.warning('Scan not found: %s', tag)
@@ -126,7 +126,7 @@ def set_assrqc(csv, validator):
                 assr.attrs.mset({
                     'proc:genProcData/validation/status': row.qcstatus,
                     'proc:genProcData/validation/date': datestr,
-                    'proc:genProcData/validation/validated_by': validator
+                    'proc:genProcData/validation/validated_by': validator,
                     })
                 logger.info('Set %s for %s', row.qcstatus, tag)
             else:
@@ -154,7 +154,7 @@ def set_sesstype(csv):
                 )
             tag = f'{row.project_id} {row.subject_label} {row.session_label}'
             if sess.exists():
-                sess.attrs.set('session_type',row.session_type)
+                sess.attrs.set('session_type', row.session_type)
                 logger.info('Set %s for %s', row.session_type, tag)
             else:
                 logger.warning('Session not found: %s', tag)
