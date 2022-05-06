@@ -47,7 +47,6 @@ import logging
 import time
 
 import pandas
-
 from dax import XnatUtils
 
 
