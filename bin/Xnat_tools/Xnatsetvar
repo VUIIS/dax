@@ -65,7 +65,7 @@ def initialize_logger(name, logfile):
 def read_csv(csvfile, reqs):
     info = pandas.read_csv(csvfile,  delimiter=',', dtype=str)
     for req in reqs:
-        if not req in info.columns:
+        if req not in info.columns:
             raise Exception(f'Column "{req}" not found in CSV file')
     return info
 
@@ -177,11 +177,11 @@ if __name__ == '__main__':
     logger = initialize_logger('Xnatsetvar', args.outfile)
 
     # Call appropriate routine
-    if args.var=='quality':
+    if args.var == 'quality':
         set_scanqual(args.csv)
-    elif args.var=='qcstatus':
+    elif args.var == 'qcstatus':
         set_assrqc(args.csv, args.validator)
-    elif args.var=='session_type':
+    elif args.var == 'session_type':
         set_sesstype(args.csv)
     else:
         raise Exception(f'Variable type {args.var} is not handled')
