@@ -51,8 +51,8 @@ from dax import XnatUtils
 
 
 def initialize_logger(name):
-    if args.logfile:
-        handler = logging.FileHandler(args.logfile, 'w')
+    if args.outfile:
+        handler = logging.FileHandler(args.outfile, 'w')
     else:
         handler = logging.StreamHandler()
     lgr = logging.getLogger(name)
