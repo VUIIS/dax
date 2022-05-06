@@ -50,9 +50,9 @@ import pandas
 from dax import XnatUtils
 
 
-def initialize_logger(name, logfile):
-    if logfile:
-        handler = logging.FileHandler(logfile, 'w')
+def initialize_logger(name):
+    if args.logfile:
+        handler = logging.FileHandler(args.logfile, 'w')
     else:
         handler = logging.StreamHandler()
     lgr = logging.getLogger(name)
@@ -173,7 +173,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Logging. logger is global
-    logger = initialize_logger('Xnatsetvar', args.outfile)
+    logger = initialize_logger('Xnatsetvar')
 
     # Call appropriate routine
     if args.var == 'quality':
