@@ -636,35 +636,33 @@ cluster queue"
         if len(sgp_processors) == 0:
             LOGGER.debug('no sgp processors')
 
-        for (subj, processor) in zip(subjects, sgp_processors):
-            # print('subj=', subj, 'proctype=', processor.get_proctype())
+        for (subj, processor) in sorted(subjects):
+            for processor in sgp_processors:
+                # Get list of inputs sets (not yet matched with existing)
+                inputsets = processor.parse_subject(subj, project_data)
 
-            # Get list of inputs sets (not yet matched with existing)
-            inputsets = processor.parse_subject(subj, project_data)
-            # print('inputsets=', inputsets)
+                for inputs in inputsets:
+                    if inputs == {}:
+                        # print('empty set, skipping')
+                        return
 
-            for inputs in inputsets:
-                if inputs == {}:
-                    # print('empty set, skipping')
-                    return
+                    # Get(create) assessor with given inputs and proc type
+                    # TODO: extract subject data only
+                    (assr, info) = processor.get_assessor(
+                        xnat, subj, inputs, project_data)
 
-                # Get(create) assessor with given inputs and proc type
-                # TODO: extract subject data only
-                (assr, info) = processor.get_assessor(
-                    xnat, subj, inputs, project_data)
+                    # TODO: apply reproc or rerun if needed
+                    # (assr,info) = undo_processing()
+                    # (assr,info) = reproc_processing()
 
-                # TODO: apply reproc or rerun if needed
-                # (assr,info) = undo_processing()
-                # (assr,info) = reproc_processing()
+                    if info['PROCSTATUS'] in [task.NEED_TO_RUN, task.NEED_INPUTS]:
+                        # print('building task')
+                        (assr, info) = self.build_task(
+                            assr, info, processor, project_data)
 
-                if info['PROCSTATUS'] in [task.NEED_TO_RUN, task.NEED_INPUTS]:
-                    # print('building task')
-                    (assr, info) = self.build_task(
-                        assr, info, processor, project_data)
-
-                    # print('assr after=', info)
-                else:
-                    LOGGER.info('already built:{}'.format(info['ASSR']))
+                        # print('assr after=', info)
+                    else:
+                        LOGGER.info('already built:{}'.format(info['ASSR']))
 
     def build_task(self, assr, info, processor, project_data):
         resdir = self.resdir
