@@ -728,6 +728,7 @@ def upload_assessor_subjgenproc(xnat, dirpath, delete=False):
         # with the inputs field complete as well
         # as proctype, procversion, and date
         LOGGER.info('assessor does not exist, refusing to create')
+        return
 
     # Double-check the status
     procstatus = sassr.attrs.get(sassr.datatype() + '/procstatus')
