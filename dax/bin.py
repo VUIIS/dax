@@ -6,8 +6,14 @@
 from datetime import datetime
 import imp
 import os
+import sys
+from multiprocessing import Pool
+import logging
+import socket
 
+from . import dax_tools_utils
 from . import launcher
+from . import assessor_utils
 from . import log
 from . import XnatUtils
 from . import utilities
@@ -245,10 +251,33 @@ def read_yaml_settings(yaml_file, logger):
             yaml_path, yaml_dict.get('arguments'),
             logger, singularity_imagedir, job_template)
 
+    # Read sgp processors
+    processorlib = doc.get('processorlib')
+    sgpprocs = {}
+    for s in doc.get('sgpprocessors', []):
+        yaml_name = s['name']
+        try:
+            yaml_path = s['filepath']
+        except KeyError:
+            raise DaxError('Filepath not set for {}'.format(yaml_name))
+
+        if not os.path.isabs(yaml_path) and processorlib:
+            # Preprend lib location
+            yaml_path = os.path.join(processorlib, yaml_path)
+
+        yaml_args = s.get('arguments', None)
+        sgpprocs[yaml_name] = load_from_file(
+            yaml_path,
+            yaml_args,
+            logger,
+            singularity_imagedir,
+            job_template)
+
     # Read projects
     proj_mod = dict()
     proj_proc = dict()
     yaml_proc = dict()
+    sgp_processors = {}
     projects = doc.get('projects')
     for proj_dict in projects:
         project = str(proj_dict.get('project'))
@@ -279,21 +308,31 @@ def read_yaml_settings(yaml_file, logger):
                     else:
                         yaml_proc[project].append(yamlprocs[yaml_n])
 
+            # sgp processors:
+            _list = proj_dict.get('sgpprocessors', '').split(',')
+            _list = [s.strip() for s in _list]
+            for yaml_n in _list:
+                if project not in list(sgp_processors.keys()):
+                    sgp_processors[project] = [sgpprocs[yaml_n]]
+                else:
+                    sgp_processors[project].append(sgpprocs[yaml_n])
+
     # set in attrs:
     attrs['project_process_dict'] = proj_proc
     attrs['project_modules_dict'] = proj_mod
     attrs['yaml_dict'] = yaml_proc
+    attrs['project_sgp_processors'] = sgp_processors
 
     # Delete unsupported arguments
     attrs.pop('skip_lastupdate', None)
 
-    attrs['resdir'] = doc.get('resdir')
     attrs['job_template'] = doc.get('jobtemplate')
     attrs['timeout_emails'] = doc.get('timeout_emails')
     attrs['smtp_host'] = doc.get('smtp_host')
 
     # Return a launcher with specified arguments
-    return launcher.Launcher(**attrs)
+    resdir = doc.get('resdir')
+    return launcher.Launcher(resdir, **attrs)
 
 
 def check_default_keys(yaml_file, doc):
@@ -349,3 +388,129 @@ def load_from_file(filepath, args, logger, singularity_imagedir=None, job_templa
             XnatUtils, filepath, args, singularity_imagedir, job_template)
 
     return None
+
+
+def upload(settings_path, num_threads=1):
+    logger = logging.getLogger('dax')
+
+    # Load settings from file
+    _launcher_obj = read_yaml_settings(settings_path, logger)
+
+    host = _launcher_obj.xnat_host
+    resdir = _launcher_obj.resdir
+
+    # TODO: filter based on projects/sessions
+
+    # Load list of assessors to be uploaded
+    upload_queue = launcher.load_task_queue(
+        resdir,
+        status='COMPLETE',
+        proj_filter=None,
+        sess_filter=None)
+
+    alist = [_.assessor_label for _ in upload_queue]
+    acount = len(alist)
+
+    # TODO: don't build the pool for only 1 thread
+
+    logger.info('Starting upload pool:{} threads'.format(num_threads))
+    sys.stdout.flush()
+
+    pool = Pool(processes=num_threads)
+    for aindex, alabel in enumerate(alist):
+        sys.stdout.flush()
+        pool.apply_async(upload_thread, [host, aindex, alabel, acount, resdir])
+
+    logger.info('waiting for upload pool to finish...')
+    sys.stdout.flush()
+
+    pool.close()
+    pool.join()
+
+    logger.info('upload pool finished')
+    sys.stdout.flush()
+
+
+def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
+
+    # TODO: move this and associated functions to launcher
+
+    logger = logging.getLogger('dax')
+
+    # Get lock file name based on index number
+    lock_file = os.path.join(
+        resdir,
+        'FlagFiles',
+        'Process_Upload_running_{}.txt'.format(pindex + 1))
+
+    # Try to lock
+    success = lock_flagfile(lock_file)
+    if not success:
+        # Failed to get lock
+        logger.warn('failed to get lock:{}'.format(lock_file))
+        return
+
+    try:
+        logger.info('connecting to xnat for upload:{}'.format(xnat_host))
+        # Upload the assessor
+        with XnatUtils.get_interface(xnat_host) as xnat:
+            msg = '*Upload Process:{}/{}:{}'.format(
+                pindex + 1, pcount, assessor_label)
+            logger.info(msg)
+
+            assessor_path = os.path.join(resdir, assessor_label)
+
+            if assessor_utils.is_sgp_assessor(assessor_path):
+                # It's a subject gen proc assessor, handle it specifically
+                dax_tools_utils.upload_assessor_subjgenproc(
+                    xnat, assessor_path, delete=False)
+            else:
+                assessor_dict = assessor_utils.parse_full_assessor_name(
+                    assessor_label)
+                if assessor_dict:
+                    uploaded = dax_tools_utils.upload_assessor(
+                        xnat, assessor_dict, assessor_path, resdir)
+                    if not uploaded:
+                        msg = 'not uploaded:{}'.format(assessor_label)
+                        logger.warn(msg)
+                else:
+                    logger.warn('     --> wrong label')
+    except Exception as err:
+        logger.error('error uploading:{}'.format(err))
+
+    finally:
+        # Delete the lock file
+        logger.debug('deleting lock file:{}'.format(lock_file))
+        unlock_flagfile(lock_file)
+
+
+def lock_flagfile(lock_file):
+    """
+    Create the flagfile to lock the process
+
+    :param lock_file: flag file use to lock the process
+    :return: True if the file didn't exist, False otherwise
+    """
+    if os.path.exists(lock_file):
+        return False
+    else:
+        open(lock_file, 'w').close()
+
+        # Write hostname-PID to lock file
+        _pid = os.getpid()
+        _host = socket.gethostname().split('.')[0]
+        with open(lock_file, 'w') as f:
+            f.write('{}-{}'.format(_host, _pid))
+
+        return True
+
+
+def unlock_flagfile(lock_file):
+    """
+    Remove the flagfile to unlock the process
+
+    :param lock_file: flag file use to lock the process
+    :return: None
+    """
+    if os.path.exists(lock_file):
+        os.remove(lock_file)

@@ -13,7 +13,7 @@ import socket
 import tempfile
 
 from . import processors, modules, XnatUtils, task, cluster, processors_v3
-from .task import Task, ClusterTask, XnatTask
+from .task import Task, ClusterTask, XnatTask, mkdirp
 from .dax_settings import DAX_Settings, DAX_Netrc
 from .errors import (ClusterCountJobsException, ClusterLaunchException,
                      DaxXnatError, DaxLauncherError)
@@ -93,8 +93,8 @@ class Launcher(object):
                  launcher_type='diskq-combined',
                  job_template='~/job_template.txt',
                  smtp_host=None,
-                 timeout_emails=None):
-
+                 timeout_emails=None,
+                 project_sgp_processors={}):
         """
         Entry point for the Launcher class
 
@@ -143,6 +143,8 @@ project name as a key and list of processors objects as values.'
             err = 'Yaml_files set but it is not a dictionary with project \
 name as a key and list of yaml filepaths as values.'
             raise DaxLauncherError(err)
+
+        # TODO: should this self be here, I don't think so - bdb 2022-04-05
         self.yaml_dict = yaml_dict if yaml_dict is not None else dict()
 
         # Add processors to project_process_dict:
@@ -168,6 +170,8 @@ name as a key and list of yaml filepaths as values.'
                     self.project_process_dict[project] = [proc]
                 else:
                     self.project_process_dict[project].append(proc)
+
+        self.project_sgp_processors = project_sgp_processors
 
         if isinstance(priority_project, list):
             self.priority_project = priority_project
@@ -426,7 +430,8 @@ cluster queue"
             # Priority if set:
             if self.priority_project and not project_local:
                 unique_list = set(list(self.project_process_dict.keys()) +
-                                  list(self.project_modules_dict.keys()))
+                    list(self.project_modules_dict.keys()) +
+                    list(self.project_sgp_processors.keys()))
                 project_list = self.get_project_list(list(unique_list))
 
             # Build projects
@@ -444,6 +449,9 @@ cluster queue"
                                        sessions_local,
                                        mod_delta=mod_delta, lastrun=lastrun,
                                        start_sess=start_sess)
+
+                    self.build_project_subjgenproc(intf, project_id)
+
                 except Exception as E:
                     err1 = 'Caught exception building project %s'
                     err2 = 'Exception class %s caught with message %s'
@@ -591,6 +599,141 @@ cluster queue"
                 LOGGER.critical(err2 % (E.__class__, str(E)))
                 LOGGER.critical(traceback.format_exc())
 
+    def build_project_subjgenproc(self, xnat, project, includesubj=None):
+        """
+            Build the project
+
+            :param xnat: pyxnat.Interface object
+            :param project: project ID on XNAT
+            :param includesubj: specific subjects to build, otherwise all
+            :return: None
+        """
+        LOGFORMAT = '%(asctime)s:%(levelname)s:%(module)s:%(message)s'
+        stdouthandler = logging.StreamHandler(sys.stdout)
+        stdouthandler.setFormatter(logging.Formatter(LOGFORMAT))
+        LOGGER.addHandler(stdouthandler)
+        LOGGER.setLevel(logging.DEBUG)
+
+        pdata = {}
+        pdata['name'] = project
+        pdata['scans'] = XnatUtils.load_scan_data(xnat, [project])
+        pdata['assessors'] = XnatUtils.load_assr_data(xnat, [project])
+        pdata['sgp'] = XnatUtils.load_sgp_data(xnat, project)
+
+        LOGGER.debug('calling build_sgp_processors')
+        self.build_sgp_processors(xnat, pdata, includesubj)
+
+    def build_sgp_processors(self, xnat, project_data, includesubj=None):
+        project = project_data['name']
+        sgp_processors = self.get_subjgenproc_processors(project)
+        subjects = project_data['sgp'].SUBJECT.unique()
+
+        # Filter list if specified
+        if includesubj:
+            LOGGER.debug('no subjects specified, including all')
+            subjects = [x for x in subjects if x in includesubj]
+
+        if len(sgp_processors) == 0:
+            LOGGER.debug('no sgp processors')
+
+        for (subj, processor) in sorted(subjects):
+            for processor in sgp_processors:
+                # Get list of inputs sets (not yet matched with existing)
+                inputsets = processor.parse_subject(subj, project_data)
+
+                for inputs in inputsets:
+                    if inputs == {}:
+                        # print('empty set, skipping')
+                        return
+
+                    # Get(create) assessor with given inputs and proc type
+                    # TODO: extract subject data only
+                    (assr, info) = processor.get_assessor(
+                        xnat, subj, inputs, project_data)
+
+                    # TODO: apply reproc or rerun if needed
+                    # (assr,info) = undo_processing()
+                    # (assr,info) = reproc_processing()
+
+                    if info['PROCSTATUS'] in [task.NEED_TO_RUN, task.NEED_INPUTS]:
+                        # print('building task')
+                        (assr, info) = self.build_task(
+                            assr, info, processor, project_data)
+
+                        # print('assr after=', info)
+                    else:
+                        LOGGER.info('already built:{}'.format(info['ASSR']))
+
+    def build_task(self, assr, info, processor, project_data):
+        resdir = self.resdir
+        old_proc_status = info['PROCSTATUS']
+        old_qc_status = info['QCSTATUS']
+        jobdir = self.root_job_dir
+
+        try:
+            cmds = processor.build_cmds(
+                assr,
+                info,
+                project_data,
+                jobdir,
+                resdir)
+
+            batch_file = self.batch_path(info['ASSR'])
+            outlog = self.outlog_path(info['ASSR'])
+
+            batch = cluster.PBS(
+                batch_file,
+                outlog,
+                cmds,
+                processor.walltime_str,
+                processor.memreq_mb,
+                processor.ppn,
+                processor.env,
+                self.job_email,
+                self.job_email_options,
+                self.job_rungroup,
+                self.xnat_host,
+                processor.job_template)
+
+            LOGGER.info('writing:' + batch_file)
+            batch.write()
+
+            # Set new statuses to be updated
+            new_proc_status = task.JOB_RUNNING
+            new_qc_status = task.JOB_PENDING
+
+            # Write processor spec file for version 3
+            try:
+                LOGGER.debug('writing processor spec file')
+                filename = self.processor_spec_path(info['ASSR'])
+                mkdirp(os.path.dirname(filename))
+                processor.write_processor_spec(filename)
+            except AttributeError as err:
+                # older processor does not have version
+                LOGGER.debug('procyamlversion not found'.format(err))
+
+        except task.NeedInputsException as e:
+            new_proc_status = task.NEED_INPUTS
+            new_qc_status = e.value
+        except task.NoDataException as e:
+            new_proc_status = task.NO_DATA
+            new_qc_status = e.value
+
+        # Update on xnat
+        if new_proc_status != old_proc_status:
+            assr.attrs.set(
+                'proc:subjgenprocdata/procstatus', new_proc_status)
+
+        if new_qc_status != old_qc_status:
+            assr.attrs.set(
+                'proc:subjgenprocdata/validation/status', new_qc_status)
+
+        # Update local info
+        info['PROCSTATUS'] = new_proc_status
+        info['QCSTATUS'] = new_qc_status
+
+        return (assr, info)
+
     # TODO:BenM/assessor_of_assessor/modify from here for one to many
     # processor to assessor mapping
     def build_session(self, intf, sess_info, auto_proc_list,
@@ -598,7 +741,6 @@ cluster queue"
                       sessions):
         """
         Build a session
-
 
         :param intf: pyxnat.Interface object
         :param sess_info: python dictionary from XnatUtils.list_sessions method
@@ -791,6 +933,36 @@ in session %s'
                         # TODO: check that it actually exists in QUEUE
                         LOGGER.debug('already built: ' + assessor[1])
 
+    def batch_path(self, assessor_label):
+        return os.path.join(
+            self.resdir,
+            'DISKQ',
+            'BATCH',
+            '{}.slurm'.format(assessor_label))
+
+    def outlog_path(self, assessor_label):
+        return os.path.join(
+            self.resdir,
+            'DISKQ',
+            'OUTLOG',
+            '{}.txt'.format(assessor_label))
+
+    def processor_spec_path(self, assessor):
+        return os.path.join(self.resdir, 'DISKQ', 'processor', assessor)
+
+    def get_subjgenproc_processors(self, project):
+        # Get the processors for this project
+        proc = self.project_sgp_processors.get(project, [])
+
+        # Filter to only include subjgenproc
+        # proc = [x for x in proc if x.xsitype == 'proc:subjgenprocdata']
+
+        return proc
+
+    def set_subjgenproc_processors(self, project, processors):
+        # Get the processors for this project
+        self.sgp_processors[project] = processors
+
     def module_prerun(self, project_id, settings_filename=''):
         """
         Run the module prerun method
@@ -842,6 +1014,7 @@ in session %s'
         """
         # Get default project list for XNAT out of the module/process dict
         ulist = set(list(self.project_process_dict.keys()) +
+                    list(self.project_sgp_processors.keys()) +
                     list(self.project_modules_dict.keys()))
         project_list = sorted(ulist)
         if project_local:
@@ -1104,12 +1277,14 @@ The project is not part of the settings."""
         assr_types = set(x['proctype'] for x in assessors)
         return len(proc_types.difference(assr_types)) > 0
 
-
+# =============================================================================
 def load_task_queue(resdir, status=None, proj_filter=None, sess_filter=None):
     """ Load the task queue for DiskQ"""
     task_list = list()
     diskq_dir = os.path.join(resdir, 'DISKQ')
 
+    # TODO: handle subjgenproc assessors, conveniently it works implicitly, but
+    # should also handle subject filters
     for t in os.listdir(os.path.join(diskq_dir, 'BATCH')):
         if proj_filter or sess_filter:
             assr = XnatUtils.AssessorHandler(t)

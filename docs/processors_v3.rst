@@ -234,3 +234,64 @@ The entire singularity command is built as::
     singularity <run|exec> <SINGULARITY_BASEOPTS> <extraopts> <container> <args>
 
 
+
+---------------------------
+Subject-Level Processors
+---------------------------
+
+As of version 2.7, dax supports subject-level processors, in addition to session-level. The subject-level
+processors can include inputs across multiple sessions within the same subject. In the processor yaml, a subject-level processor is
+implied by including the "sessions" level between inputs.xnat and scans/assessors. Each session requires the attribute types.
+The types are matched against the XNAT field xnat:imageSessionData/session_type. Currently the match must be exact.
+
+To set the session type of a session, you can use dax/pyxnat:
+
+.. code-block:: python
+
+    xnat.select_session(PROJ, SUBJ, SESS).attrs.set('session_type', SESSTYPE)
+
+
+
+Below is an example of a subject-level processor that will include an assessor from two different sessions of session types Baseline and Week12.
+
+.. code-block:: yaml
+
+    ---
+    procyamlversion: 3.0.0-dev.0
+    containers:
+      - name: EMOSTROOP
+        path: fmri_emostroop_v2.0.0.sif
+        source: docker://bud42/fmri_emostroop:v2
+    requirements:
+      walltime: 0-2
+      memory: 16G
+    inputs:
+      xnat:
+        sessions:
+          - types: Baseline 
+            assessors:
+              - name: assr_emostroop_a
+                types: fmri_emostroop_v1
+                resources:
+                  - resource: PREPROC
+                    fmatch: swauFMRI.nii.gz
+                    fdest:  swauFMRIa.nii.gz
+          - types: Week12
+            assessors:
+              - name: assr_emostroop_c
+                types: fmri_emostroop_v1
+                resources:
+                  - resource: PREPROC
+                    fmatch: swauFMRI.nii.gz
+                    fdest:  swauFMRIc.nii.gz
+    outputs:
+      - dir: PREPROC
+      - dir: 1stLEVEL
+    command:
+      type: singularity_run
+      container: EMOSTROOP
+      args: BLvsWK12
+
+
+The assessor will be created under the subject on XNAT, at the same level as a session. The proctype of the assessor will be derived from the filename just like
+session-level processors. The XNAT data type of the assessor, or xsiType, will be proc:subjGenProcData (for session-level assessors the type is proc:genprocData).

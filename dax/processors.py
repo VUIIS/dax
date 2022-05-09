@@ -17,7 +17,8 @@ from . import yaml_doc
 from .errors import AutoProcessorError
 from .dax_settings import DEFAULT_FS_DATATYPE, DEFAULT_DATATYPE
 from .task import NeedInputsException
-from .processors_v3 import Processor_v3 as Processor_v3
+from .processors_v3 import Processor_v3, SgpProcessor
+
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ['Processor', 'AutoProcessor']
@@ -858,14 +859,20 @@ def processors_by_type(proc_list):
 
 def load_from_yaml(xnat, filepath, user_inputs=None,
                    singularity_imagedir=None, job_template=None):
-
     """
     Load processor from yaml
     :param filepath: path to yaml file
     :return: processor
     """
     yaml_obj = yaml_doc.YamlDoc().from_file(filepath)
-    if yaml_obj.contents.get('procyamlversion', '') == '3.0.0-dev.0':
+
+    # Load file based on yaml version and data type
+    if yaml_obj.contents.get('inputs').get('xnat').get('sessions', False):
+        print('FOUND SGP')
+        # This must be a subjgenproc
+        return SgpProcessor(
+            xnat, filepath, user_inputs, singularity_imagedir, job_template)
+    elif yaml_obj.contents.get('procyamlversion', '') == '3.0.0-dev.0':
         LOGGER.debug('loading as Processor_v3:{}'.format(filepath))
         return Processor_v3(
             xnat, filepath, user_inputs, singularity_imagedir, job_template)
