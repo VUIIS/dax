@@ -107,7 +107,7 @@ def report(xnat, projects, rformat=None):
     :param rformat: report format for display
     :return: None
     """
-    __logger__.info('Date: %s\n' % (str(datetime.now())))
+    #__logger__.info('Date: %s\n' % (str(datetime.now())))
     if not rformat:
         rformat = ','.join(utils.CSV_HEADER[:-1])
     __logger__.info(rformat)
