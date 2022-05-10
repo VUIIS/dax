@@ -25,7 +25,6 @@ import getpass
 import logging
 import urllib
 from dax import XnatUtils
-from dax import XnatToBids
 from datetime import datetime
 
 
@@ -1396,7 +1395,8 @@ scans.')
             LOGGER.info("--------------- BIDS --------------")
             LOGGER.info('No new XNAT data downloaded. No data for BIDS conversion. Please check folders and remove any rogue xnat download folders')
         elif OPTIONS.bids_dir is not None:    
-            # transform xnat to bids 
+            # transform xnat to bids
+	    from dax import XnatToBids
             project = OPTIONS.project
             BIDS_DIR = OPTIONS.bids_dir
             XNAT_TAG = OPTIONS.xnat_tag
