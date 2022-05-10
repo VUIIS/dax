@@ -3064,6 +3064,12 @@ def load_sgp_data(xnat, project):
     # Rename columns
     dfp.rename(columns=SGP_RENAME, inplace=True)
 
+    # Fill any missing columns by reindexing with the union of current columns
+    # and the destination renamed columns, this will also handle empty set
+    dfp = dfp.reindex(
+        dfp.columns.union(
+            SGP_RENAME.values(), sort=False), axis=1, fill_value='')
+
     # Decode inputs string
     dfp['INPUTS'] = dfp['INPUTS'].apply(decode_inputs)
 
