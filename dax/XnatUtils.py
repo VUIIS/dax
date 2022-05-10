@@ -3012,6 +3012,12 @@ def load_assr_data(xnat, project_filter):
     # Rename columns
     dfa.rename(columns=ASSR_RENAME, inplace=True)
 
+    # Fill any missing columns by reindexing with the union of current columns
+    # and the destination renamed columns, this will also handle empty set
+    dfa = dfa.reindex(
+        dfa.columns.union(
+            ASSR_RENAME.values(), sort=False), axis=1, fill_value='')
+
     # Set the full path for use in processors
     dfa['full_path'] = '/projects/' + dfa['PROJECT'] + '/subjects/' + dfa['SUBJECT'] + '/experiments/' +  dfa['SESSION'] + '/assessors/' + dfa['ASSR']
 
@@ -3034,6 +3040,13 @@ def load_scan_data(xnat, project_filter):
 
     dfs.rename(columns=SCAN_RENAME, inplace=True)
 
+    # Fill any missing columns by reindexing with the union of current columns
+    # and the destination renamed columns, this will also handle empty set
+    dfs = dfs.reindex(
+        dfs.columns.union(
+            SCAN_RENAME.values(), sort=False), axis=1, fill_value='')
+
+    # Set the full path for use in processors
     dfs['full_path'] = '/projects/' +  dfs['PROJECT'] + '/subjects/' + dfs['SUBJECT'] + '/experiments/' +  dfs['SESSION'] + '/scans/' + dfs['SCANID']
 
     return dfs
