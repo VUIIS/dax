@@ -635,8 +635,9 @@ cluster queue"
 
         if len(sgp_processors) == 0:
             LOGGER.debug('no sgp processors')
+            return
 
-        for (subj, processor) in sorted(subjects):
+        for subj in sorted(subjects):
             for processor in sgp_processors:
                 # Get list of inputs sets (not yet matched with existing)
                 inputsets = processor.parse_subject(subj, project_data)
