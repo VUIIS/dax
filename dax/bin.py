@@ -310,7 +310,7 @@ def read_yaml_settings(yaml_file, logger):
 
             # sgp processors:
             _list = proj_dict.get('sgpprocessors', '').split(',')
-            _list = [s.strip() for s in _list]
+            _list = [s.strip() for s in _list if s]
             for yaml_n in _list:
                 if project not in list(sgp_processors.keys()):
                     sgp_processors[project] = [sgpprocs[yaml_n]]
