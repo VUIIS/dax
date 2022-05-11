@@ -450,7 +450,9 @@ cluster queue"
                                        mod_delta=mod_delta, lastrun=lastrun,
                                        start_sess=start_sess)
 
-                    self.build_project_subjgenproc(intf, project_id)
+                    if len(self.get_subjgenproc_processors(project_id)) > 0:
+                        # The project has SGP processors so we build them
+                        self.build_project_subjgenproc(intf, project_id)
 
                 except Exception as E:
                     err1 = 'Caught exception building project %s'
