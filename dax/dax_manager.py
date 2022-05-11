@@ -256,9 +256,8 @@ class DaxProjectSettingsManager(object):
                     self.rebuild_projects.append(name)
 
             except DaxManagerError as e:
-                err = 'error in project settings:project={}\n{}'.format(
-                    project, e)
-                LOGGER.info(err)
+                err = 'invalid project settings:project={}:{}'.format(name, e)
+                LOGGER.error(traceback.format_exc())
                 errors.append(err)
 
         return errors
@@ -428,7 +427,8 @@ class DaxProjectSettingsManager(object):
                     key, val = arg.split(':', 1)
                     rdict[key] = val.strip()
                 except ValueError as e:
-                    msg = 'invalid arguments:{}'.format(e)
+                    msg = 'invalid arguments:{}:{}:{}:{}'.format(
+                        project, processor, arg, e)
                     raise DaxManagerError(msg)
 
             dax_rec['arguments'] = rdict
