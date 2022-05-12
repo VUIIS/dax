@@ -968,7 +968,15 @@ class Processor_v3(object):
             name = a.get('name')
             self.iteration_sources.add(name)
 
-            types = [_.strip() for _ in a['proctypes'].split(',')]
+            if 'proctypes' in a:
+                types = [_.strip() for _ in a['proctypes'].split(',')]
+            elif 'types' in a:
+                types = [_.strip() for _ in a['types'].split(',')]
+            else:
+                msg = 'no types for assessor:{}'.format(name)
+                LOGGER.error(msg)
+                raise AutoProcessorError(msg)
+
             resources = a.get('resources', [])
             artefact_required = False
             for r in resources:
