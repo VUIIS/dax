@@ -228,6 +228,8 @@ class Processor_v3(object):
 
         # Load the command text
         self.command = doc.get('command')
+        self.command_pre = doc.get('pre', None)
+        self.command_post = doc.get('post', None)
 
         # Set Inputs from Yaml
         inputs = doc.get('inputs')
@@ -509,35 +511,45 @@ class Processor_v3(object):
         return command_txt
 
     def build_main_text(self, var2val):
-        # Get the command dictionary
-        command = self.command
-
         txt = 'MAINCMD=\"'
 
-        # TODO: Build and append the pre command that runs before main
+        # Build and append the pre command that runs before main
+        if self.command_pre:
+            txt += self.build_command(self.command_pre, var2val)
 
         # Build and append the main command
+        txt += self.build_command(self.command, var2val)
+
+        # Append the post command that runs after main
+        if self.command_post:
+            txt += self.build_command(self.command_post)
+
+        # Finish with a newline
+        txt += '\"\n'
+
+        # Return the whole command lines
+        return txt
+
+    def build_command(self, command, var2val):
+        txt = ''
+
+        # Build and append the post command
         if 'type' not in command:
             err = 'command type not set'
             LOGGER.error(err)
             raise AutoProcessorError(err)
 
         if command['type'] == 'singularity_run':
-            command_txt = self.build_singularity_cmd('run', command, var2val)
+            txt = self.build_singularity_cmd('run', command, var2val)
 
         elif command['type'] == 'singularity_exec':
-            command_txt = self.build_singularity_cmd('exec', command, var2val)
+            txt = self.build_singularity_cmd('exec', command, var2val)
 
         else:
             err = 'invalid command type: {}'.format(command['type'])
             LOGGER.error(err)
             raise AutoProcessorError(err)
 
-        # TODO: Build the post command that runs after main
-
-        # Concatenate commands
-        txt += command_txt
-        txt += '\"\n'
         return txt
 
     def build_outputs_text(self, outputs):
