@@ -464,7 +464,7 @@ def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
             if assessor_utils.is_sgp_assessor(assessor_path):
                 # It's a subject gen proc assessor, handle it specifically
                 dax_tools_utils.upload_assessor_subjgenproc(
-                    xnat, assessor_path, delete=False)
+                    xnat, assessor_path)
             else:
                 assessor_dict = assessor_utils.parse_full_assessor_name(
                     assessor_label)
