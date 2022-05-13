@@ -437,11 +437,12 @@ def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
 
     logger = logging.getLogger('dax')
 
+    lock_dir = os.path.join(resdir, 'FlagFiles')
+
+    clean_lockfiles(lock_dir)
+
     # Get lock file name based on index number
-    lock_file = os.path.join(
-        resdir,
-        'FlagFiles',
-        'Process_Upload_running_{}.txt'.format(pindex + 1))
+    lock_file = os.path.join(lock_dir, 'Upload_{}.txt'.format(pindex + 1))
 
     # Try to lock
     success = lock_flagfile(lock_file)
@@ -482,6 +483,43 @@ def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
         # Delete the lock file
         logger.debug('deleting lock file:{}'.format(lock_file))
         unlock_flagfile(lock_file)
+
+
+# TODO: move these lock file routines to a shared file
+def clean_lockfiles(lock_dir):
+    lock_list = os.listdir(lock_dir)
+
+    # Make full paths
+    lock_list = [os.path.join(lock_dir, f) for f in lock_list]
+
+    # Check each lock file
+    for file in lock_list:
+        LOGGER.debug('checking lock file:{}'.format(file))
+        check_lockfile(file)
+
+
+def check_lockfile(file):
+    # Try to read host-PID from lockfile
+    try:
+        with open(file, 'r') as f:
+            line = f.readline()
+
+        host, pid = line.split('-')
+        pid = int(pid)
+
+        # Compare host to current host
+        this_host = socket.gethostname().split('.')[0]
+        if host != this_host:
+            LOGGER.debug('different host, cannot check PID:{}', format(file))
+        elif pid_exists(pid):
+            LOGGER.debug('host matches and PID exists:{}'.format(str(pid)))
+        else:
+            LOGGER.debug('host matches and PID not running, deleting lockfile')
+            os.remove(file)
+    except IOError:
+        LOGGER.debug('failed to read from lock file:{}'.format(file))
+    except ValueError:
+        LOGGER.debug('failed to parse lock file:{}'.format(file))
 
 
 def lock_flagfile(lock_file):
