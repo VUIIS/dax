@@ -522,7 +522,7 @@ class Processor_v3(object):
 
         # Append the post command that runs after main
         if self.command_post:
-            txt += self.build_command(self.command_post)
+            txt += self.build_command(self.command_post, var2val)
 
         # Finish with a newline
         txt += '\"\n'
