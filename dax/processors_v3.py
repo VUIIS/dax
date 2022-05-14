@@ -263,11 +263,14 @@ class Processor_v3(object):
                 # Prepend singularity imagedir
                 curc['path'] = os.path.join(self.singularity_imagedir, cpath)
 
-            if curc.get('primary', False):
-                self.container_path = curc.get('path')
-
             # Add to our containers list
             self.containers.append(curc)
+
+        # Set the primary container path
+        container_name = self.command['container']
+        for c in self.containers:
+            if c.get('name') == container_name:
+                self.container_path = c.get('path')
 
         # Check primary container
         if not self.container_path:
@@ -1502,11 +1505,14 @@ class SgpProcessor(Processor_v3):
                 # Prepend singularity imagedir
                 curc['path'] = os.path.join(self.singularity_imagedir, cpath)
 
-            if curc.get('primary', False):
-                self.container_path = curc.get('path')
-
             # Add to our containers list
             self.containers.append(curc)
+
+        # Set the primary container path
+        container_name = self.command['container']
+        for c in self.containers:
+            if c.get('name') == container_name:
+                self.container_path = c.get('path')
 
         # Check primary container
         if not self.container_path:
