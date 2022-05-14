@@ -516,14 +516,14 @@ class Processor_v3(object):
         # Build and append the pre command that runs before main
         if self.command_pre:
             txt += self.build_command(self.command_pre, var2val)
-            txt += '\n\n'
+            txt += ' && '
 
         # Build and append the main command
         txt += self.build_command(self.command, var2val)
 
         # Append the post command that runs after main
         if self.command_post:
-            txt += '\n\n'
+            txt += ' && '
             txt += self.build_command(self.command_post, var2val)
 
         # Finish with a newline
