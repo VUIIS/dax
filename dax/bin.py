@@ -567,7 +567,7 @@ def unlock_flagfile(lock_file):
         os.remove(lock_file)
 
 
-def undo_processing(assessor_label, logger=None, xnat=None):
+def undo_processing(xnat, assessor_label, logger=None):
     """
     Unset job information for the assessor on XNAT, Delete files, set to run.
 
