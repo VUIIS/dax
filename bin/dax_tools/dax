@@ -97,6 +97,11 @@ def parse_args():
         nargs='?',
         default='')
     upload_parser.add_argument(
+        '-n',
+        dest='max_threads',
+        help='Max Upload Threads',
+        default='1')
+    upload_parser.add_argument(
         '--host', dest='host', help='XNAT Host. Default: $XNAT_HOST')
     upload_parser.add_argument(
         '-u', '--username', dest='username', help='Username for XNAT')
@@ -186,7 +191,7 @@ if __name__ == '__main__':
             # TODO: allow flag to use settings dir which will upload all the 
             # settings files in the directory
             enable_stdout()
-            dax.bin.upload(args.settings_path)
+            dax.bin.upload(args.settings_path, max_threads=args.max_threads)
         else:
             dax_tools.upload_tasks(
                 args.logfile, args.debug, args.upload_settings, args.host,

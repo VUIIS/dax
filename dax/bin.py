@@ -390,7 +390,7 @@ def load_from_file(filepath, args, logger, singularity_imagedir=None, job_templa
     return None
 
 
-def upload(settings_path, max_upload=1):
+def upload(settings_path, max_threads=1):
     logger = logging.getLogger('dax')
 
     # Load settings from file
@@ -422,7 +422,7 @@ def upload(settings_path, max_upload=1):
     cur_upload_count = len(lock_list)
     logger.info('count of already running uploads:' + str(cur_upload_count))
 
-    num_threads = max_upload - cur_upload_count
+    num_threads = max_threads - cur_upload_count
     if num_threads < 1:
         logger.info('max uploads already:{}'.format(str(cur_upload_count)))
         return
