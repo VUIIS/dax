@@ -803,7 +803,7 @@ def upload_thread(xnat, index, assessor_label, number_of_processes, resdir):
     msg = "    *Process: %s/%s -- label: %s / time: %s"
     LOGGER.info(msg % (str(index + 1),str(number_of_processes), assessor_label, str(datetime.now())))
 
-    if assessor_utils.is_sgp_assessor(assessor_path):
+    if assessor_utils.is_sgp_assessor(assessor_label):
         uploaded = upload_assessor_subjgenproc(
             xnat, assessor_path)
     else:

@@ -390,7 +390,7 @@ def load_from_file(filepath, args, logger, singularity_imagedir=None, job_templa
     return None
 
 
-def upload(settings_path, num_threads=1):
+def upload(settings_path, max_upload=1):
     logger = logging.getLogger('dax')
 
     # Load settings from file
@@ -398,6 +398,8 @@ def upload(settings_path, num_threads=1):
 
     host = _launcher_obj.xnat_host
     resdir = _launcher_obj.resdir
+
+    lock_dir = os.path.join(resdir, 'FlagFiles')
 
     # TODO: filter based on projects/sessions
 
@@ -411,9 +413,21 @@ def upload(settings_path, num_threads=1):
     alist = [_.assessor_label for _ in upload_queue]
     acount = len(alist)
 
-    # TODO: don't build the pool for only 1 thread
+    # Clean lock files
+    clean_lockfiles(lock_dir)
 
-    logger.info('Starting upload pool:{} threads'.format(num_threads))
+    # Count running uploads
+    lock_list = os.listdir(lock_dir)
+    lock_list = [x for x in lock_list if x.endswith('_Upload.txt')]
+    cur_upload_count = len(lock_list)
+    LOGGER.info('count of already running uploads:' + str(cur_upload_count))
+
+    num_threads = max_upload - cur_upload_count
+    if num_threads < 1:
+        LOGGER.info('max uploads already:{}'.format(str(cur_upload_count)))
+        return
+    
+    LOGGER.info('starting {} upload thread(s)'.format(str(num_threads)))
     sys.stdout.flush()
 
     pool = Pool(processes=num_threads)
@@ -432,17 +446,16 @@ def upload(settings_path, num_threads=1):
 
 
 def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
+    # TODO: how do we want to name the lock files such that they get re-used?
 
     # TODO: move this and associated functions to launcher
-
     logger = logging.getLogger('dax')
 
     lock_dir = os.path.join(resdir, 'FlagFiles')
 
-    clean_lockfiles(lock_dir)
-
     # Get lock file name based on index number
-    lock_file = os.path.join(lock_dir, 'Upload_{}.txt'.format(pindex + 1))
+    #lock_file = os.path.join(lock_dir, 'Upload_{}.txt'.format(pindex + 1))
+    lock_file = os.path.join(lock_dir, '{}_Upload.txt'.format(assessor_label))
 
     # Try to lock
     success = lock_flagfile(lock_file)
@@ -461,7 +474,7 @@ def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
 
             assessor_path = os.path.join(resdir, assessor_label)
 
-            if assessor_utils.is_sgp_assessor(assessor_path):
+            if assessor_utils.is_sgp_assessor(assessor_label):
                 # It's a subject gen proc assessor, handle it specifically
                 dax_tools_utils.upload_assessor_subjgenproc(
                     xnat, assessor_path)
@@ -552,3 +565,66 @@ def unlock_flagfile(lock_file):
     """
     if os.path.exists(lock_file):
         os.remove(lock_file)
+
+
+def undo_processing(assessor_label, logger=None, xnat=None):
+    """
+    Unset job information for the assessor on XNAT, Delete files, set to run.
+
+    :return: None
+
+    """
+
+    if not logger:
+        logger = logging.getLogger()
+
+    logger.info('undo assessor')
+
+    # First use the assessor label to find the assessor on XNAT
+    if assessor_utils.is_sgp_assessor(assessor_label):
+        logger.info('connect to sgp assessor')
+        adict = assessor_utils.parse_full_assessor_name(assessor_label)
+        assr = xnat.select_sgp_assessor(
+            adict['project_id'],
+            adict['subject_label'],
+            adict['label'])
+    else:
+        logger.info('connect to genproc assessor')
+        adict = assessor_utils.parse_full_assessor_name(assessor_label)
+        assr = xnat.select_assessor(
+            adict['project_id'],
+            adict['subject_label'],
+            adict['session_label'],
+            adict['label'])
+
+    # Reset job related fields
+    logger.info('setting job info to null')
+    xsitype = assr.datatype().lower()
+    assr.attrs.set('{}/{}'.format(xsitype, 'jobnode'), 'null')
+    assr.attrs.set('{}/{}'.format(xsitype, 'jobid'), 'null')
+    assr.attrs.set('{}/{}'.format(xsitype, 'jobstartdate'), 'null')
+    assr.attrs.set('{}/{}'.format(xsitype, 'memused'), 'null')
+    assr.attrs.set('{}/{}'.format(xsitype, 'walltimeused'), 'null')
+    assr.attrs.mset({
+        '{}/{}'.format(xsitype, 'procstatus'): 'NEED_INPUTS',
+        '{}/{}'.format(xsitype, 'validation/status'): 'Job Pending'})
+
+    # Get list of file resources
+    if assessor_utils.is_sgp_assessor(assessor_label):
+        resources = assr.resources()
+    else:
+        resources = assr.out_resources()
+
+    # Delete the resources
+    for res in resources:
+        res_label = res.label()
+
+        if res_label in ['OLD', 'EDITS']:
+            logger('skipping resource:{}'.format(res_label))
+            continue
+
+        logger.info('removing:{}'.format(res_label))
+        try:
+            res.delete()
+        except Exception:
+            logger.error('deleting resource')

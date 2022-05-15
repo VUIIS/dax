@@ -141,6 +141,11 @@ runs build, launch, update and upload.'
     setup_desc = 'Set up dax on your computer'
     dax_parser.add_parser('setup', help=setup_desc)
 
+    # undo:
+    undo_desc = 'Undo processing, reset the assessor to NEED_INPUTS'
+    undo_parser = dax_parser.add_parser('undo', help=undo_desc)
+    undo_parser.add_argument(dest='assessor', help='Assessor Label to Undo')
+
     # version:
     version_desc = 'Print dax version.'
     dax_parser.add_parser('version', help=version_desc)
@@ -212,6 +217,11 @@ if __name__ == '__main__':
         else:
             print('This instance is currently disabled in REDCap.')
 
+        print('ALL DONE!')
+
+    elif args.command == 'undo':
+        # Undo the assessor
+        dax.bin.undo_assessor(args.assessor)
         print('ALL DONE!')
 
     elif args.command == 'version':
