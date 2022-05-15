@@ -220,8 +220,8 @@ if __name__ == '__main__':
         print('ALL DONE!')
 
     elif args.command == 'undo':
-        # Undo the assessor
-        dax.bin.undo_assessor(args.assessor)
+        # Undo the processing of the assessor
+        dax.bin.undo_processing(args.assessor)
         print('ALL DONE!')
 
     elif args.command == 'version':
