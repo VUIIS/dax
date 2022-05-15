@@ -185,6 +185,7 @@ if __name__ == '__main__':
         if args.settings_path:
             # TODO: allow flag to use settings dir which will upload all the 
             # settings files in the directory
+            enable_stdout()
             dax.bin.upload(args.settings_path)
         else:
             dax_tools.upload_tasks(

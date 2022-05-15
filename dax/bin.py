@@ -446,15 +446,12 @@ def upload(settings_path, max_upload=1):
 
 
 def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
-    # TODO: how do we want to name the lock files such that they get re-used?
-
     # TODO: move this and associated functions to launcher
     logger = logging.getLogger('dax')
 
     lock_dir = os.path.join(resdir, 'FlagFiles')
 
-    # Get lock file name based on index number
-    #lock_file = os.path.join(lock_dir, 'Upload_{}.txt'.format(pindex + 1))
+    # Get lock file name
     lock_file = os.path.join(lock_dir, '{}_Upload.txt'.format(assessor_label))
 
     # Try to lock
