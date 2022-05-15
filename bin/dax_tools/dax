@@ -221,7 +221,7 @@ if __name__ == '__main__':
 
     elif args.command == 'undo':
         try:
-            with get_interface(xnat_host) as xnat:
+            with get_interface() as xnat:
                 # Undo the processing of the assessor
                 dax.bin.undo_processing(xnat, args.assessor)
         except Exception as err:
