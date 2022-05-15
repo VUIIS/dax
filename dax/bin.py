@@ -536,6 +536,19 @@ def check_lockfile(file):
         logger.debug('failed to parse lock file:{}'.format(file))
 
 
+def pid_exists(pid):
+    if pid < 0:
+        return False   # NOTE: pid == 0 returns True
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:   # errno.ESRCH
+        return False  # No such process
+    except PermissionError:  # errno.EPERM
+        return True  # Operation not permitted (i.e., process exists)
+    else:
+        return True  # no error, we can send a signal to the process
+
+
 def lock_flagfile(lock_file):
     """
     Create the flagfile to lock the process
