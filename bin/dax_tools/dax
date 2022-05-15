@@ -226,7 +226,7 @@ if __name__ == '__main__':
                 # Undo the processing of the assessor
                 dax.bin.undo_processing(xnat, args.assessor)
         except Exception as err:
-            logger.error('error undo:{}'.format(err))
+            print('error undo:{}'.format(err))
 
     elif args.command == 'version':
         print(dax.__version__)
