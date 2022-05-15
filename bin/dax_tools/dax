@@ -100,7 +100,8 @@ def parse_args():
         '-n',
         dest='max_threads',
         help='Max Upload Threads',
-        default='1')
+        type=int,
+        default=1)
     upload_parser.add_argument(
         '--host', dest='host', help='XNAT Host. Default: $XNAT_HOST')
     upload_parser.add_argument(
