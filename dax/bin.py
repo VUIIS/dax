@@ -420,14 +420,14 @@ def upload(settings_path, max_upload=1):
     lock_list = os.listdir(lock_dir)
     lock_list = [x for x in lock_list if x.endswith('_Upload.txt')]
     cur_upload_count = len(lock_list)
-    LOGGER.info('count of already running uploads:' + str(cur_upload_count))
+    logger.info('count of already running uploads:' + str(cur_upload_count))
 
     num_threads = max_upload - cur_upload_count
     if num_threads < 1:
-        LOGGER.info('max uploads already:{}'.format(str(cur_upload_count)))
+        logger.info('max uploads already:{}'.format(str(cur_upload_count)))
         return
     
-    LOGGER.info('starting {} upload thread(s)'.format(str(num_threads)))
+    logger.info('starting {} upload thread(s)'.format(str(num_threads)))
     sys.stdout.flush()
 
     pool = Pool(processes=num_threads)
@@ -500,6 +500,8 @@ def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
 
 # TODO: move these lock file routines to a shared file
 def clean_lockfiles(lock_dir):
+    logger = logging.getLogger('dax')
+
     lock_list = os.listdir(lock_dir)
 
     # Make full paths
@@ -507,11 +509,13 @@ def clean_lockfiles(lock_dir):
 
     # Check each lock file
     for file in lock_list:
-        LOGGER.debug('checking lock file:{}'.format(file))
+        logger.debug('checking lock file:{}'.format(file))
         check_lockfile(file)
 
 
 def check_lockfile(file):
+    logger = logging.getLogger('dax')
+
     # Try to read host-PID from lockfile
     try:
         with open(file, 'r') as f:
@@ -523,16 +527,16 @@ def check_lockfile(file):
         # Compare host to current host
         this_host = socket.gethostname().split('.')[0]
         if host != this_host:
-            LOGGER.debug('different host, cannot check PID:{}', format(file))
+            logger.debug('different host, cannot check PID:{}', format(file))
         elif pid_exists(pid):
-            LOGGER.debug('host matches and PID exists:{}'.format(str(pid)))
+            logger.debug('host matches and PID exists:{}'.format(str(pid)))
         else:
-            LOGGER.debug('host matches and PID not running, deleting lockfile')
+            logger.debug('host matches and PID not running, deleting lockfile')
             os.remove(file)
     except IOError:
-        LOGGER.debug('failed to read from lock file:{}'.format(file))
+        logger.debug('failed to read from lock file:{}'.format(file))
     except ValueError:
-        LOGGER.debug('failed to parse lock file:{}'.format(file))
+        logger.debug('failed to parse lock file:{}'.format(file))
 
 
 def lock_flagfile(lock_file):
