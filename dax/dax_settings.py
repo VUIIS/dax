@@ -14,7 +14,7 @@ SLURM_JOBMEM = "sacct -j ${jobid}.batch --format MaxRss --noheader | awk '{print
 
 SLURM_JOBTIME = "sacct -j ${jobid}.batch --format CPUTime --noheader"
 
-SLURM_COUNTJOBS = 'squeue -u "$USER" --noheader | wc -l'
+SLURM_COUNTJOBS = 'squeue --me --noheader | wc -l'
 
 SLURM_COUNT_PENDING_JOBS = 'squeue --me -t PENDING --noheader | wc -l'
 
