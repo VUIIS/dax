@@ -814,7 +814,7 @@ class DaxManager(object):
             lock_list = os.listdir(self.lock_dir)
             lock_list = [x for x in lock_list if x.endswith('_Upload.txt')]
             cur_upload_count = len(lock_list)
-            logger.info('count of running uploads:{}'.format(cur_upload_count))
+            LOGGER.info('count of running uploads:{}'.format(cur_upload_count))
 
             num_upload_threads = max_upload_count - cur_upload_count
             if num_upload_threads < 1:
