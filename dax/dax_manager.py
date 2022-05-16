@@ -725,6 +725,24 @@ class DaxManager(object):
 
         return build_results
 
+    def queue_uploads(self, upload_pool):
+        xnat_host = self.xnat_host
+        resdir = self.res_dir
+        assessors_list = dax_tools_utils.get_assessor_list('', resdir)
+        pcount = len(assessors_list)
+        logfile = self.log_name('upload', 'upload', datetime.now())
+
+        # Array to store result accessors
+        upload_results = [None] * pcount
+
+        # Queue each assessor to be uploaded
+        for pindex, alabel in enumerate(assessors_list):
+            upload_results[i] = upload_pool.apply_async(
+                run_upload_thread,
+                [logfile, xnat_host, pindex, alabel, pcount, resdir])
+
+        return upload_results
+
     def run(self):
         # Refresh project settings
         settings_errors = self.refresh_settings()
@@ -734,6 +752,10 @@ class DaxManager(object):
         build_pool = None
         build_results = None
         num_build_threads = 0
+        max_upload_count = self.max_upload_count
+        upload_pool = None
+        upload_results = None
+        num_upload_threads = 0
 
         if self.is_enabled_build():
             # Build
@@ -786,25 +808,42 @@ class DaxManager(object):
                     run_errors.append(err)
 
         if self.is_enabled_upload():
-            # Upload - report to log if locked
-            log = self.log_name('upload', 'upload', datetime.now())
-            upload_process = Process(
-                target=self.run_upload,
-                args=(log,))
             LOGGER.info('starting upload')
-            upload_process.start()
-            LOGGER.info('waiting for upload')
-            upload_process.join()
-            LOGGER.info('upload complete')
+
+            # Count running uploads
+            lock_list = os.listdir(self.lock_dir)
+            lock_list = [x for x in lock_list if x.endswith('_Upload.txt')]
+            cur_upload_count = len(lock_list)
+            logger.info('count of running uploads:{}'.format(cur_upload_count))
+
+            num_upload_threads = max_upload_count - cur_upload_count
+            if num_upload_threads < 1:
+                LOGGER.info('max uploads already:{}'.format(cur_upload_count))
+            else:
+                LOGGER.info('starting {} more uploads'.format(num_upload_threads))
+                upload_pool = Pool(processes=num_upload_threads)
+                upload_results = self.queue_uploads(upload_pool)
+                upload_pool.close()
 
         if self.is_enabled_build() and num_build_threads > 0:
             # Wait for builds to finish
             LOGGER.info('waiting for builds to finish')
             build_pool.join()
+            LOGGER.info('builds complete!')
 
             # Extract any errors and add to list
             build_errors = [x.get() for x in build_results if x.get()]
             run_errors.extend(build_errors)
+
+        if self.is_enabled_upload() and num_upload_threads > 0:
+            # Wait for upload pool of threads to finish all uploads
+            LOGGER.info('waiting for uploads to finish')
+            upload_pool.join()
+            LOGGER.info('uploads complete!')
+
+            # Extract any errors and add to list
+            upload_errors = [x.get() for x in upload_results if x.get()]
+            run_errors.extend(upload_errors)
 
         if run_errors:
             LOGGER.info('ERROR:dax manager DONE with errors')
@@ -894,6 +933,13 @@ class DaxManager(object):
         for file in lock_list:
             LOGGER.debug('checking lock file:{}'.format(file))
             check_lockfile(file)
+
+
+def run_upload_thread(logfile, xnat_host, pindex, alabel, pcount, resdir):
+    logging.getLogger('dax').handlers = []
+    bin.set_logger(logfile, debug=True)
+    bin.upload_thread(xnat_host, pindex, alabel, pcount, resdir)
+    logging.getLogger('dax').handlers = []
 
 
 if __name__ == '__main__':
