@@ -638,6 +638,7 @@ class DaxManager(object):
         self.smtp_host = instance_settings['main_smtphost']
         self.mode = instance_settings['main_mode']
         self.enabled = (instance_settings['main_complete'] == 'Complete')
+        self.xnat_host = instance_settings['main_xnathost']
 
         # Create our settings manager and update our settings directory
         self.settings_manager = DaxProjectSettingsManager(
