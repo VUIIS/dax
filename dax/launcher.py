@@ -293,7 +293,7 @@ name as a key and list of yaml filepaths as values.'
             LOGGER.info('No qsub - Running job locally on your computer.')
         else:
             # Check number of jobs on cluster
-            cjobs = cluster.count_jobs()
+            cjobs = cluster.count_jobs('pending')
             if cjobs == -1:
                 LOGGER.error('cannot get count of jobs from cluster')
                 return
@@ -329,7 +329,7 @@ cluster queue"
                 LOGGER.error('ERROR: failed to launch job')
                 raise ClusterLaunchException
 
-            cjobs = cluster.count_jobs()
+            cjobs = cluster.count_jobs('pending')
 
             if cjobs == -1:
                 LOGGER.error('ERROR: cannot get count of jobs from cluster')
