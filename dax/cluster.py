@@ -38,14 +38,19 @@ def c_output(output):
     return error
 
 
-def count_jobs():
+def count_jobs(jobtype=''):
     """
     Count the number of jobs in the queue on the cluster
 
     :return: number of jobs in the queue
     """
     if command_found(cmd=DAX_SETTINGS.get_cmd_submit()):
-        cmd = DAX_SETTINGS.get_cmd_count_nb_jobs()
+        if jobtype == 'running':
+            cmd = DAX_SETTINGS.get_cmd_count_running_jobs()
+        if jobtype == 'pending':
+            cmd = DAX_SETTINGS.get_cmd_count_pending_jobs()
+        else:
+            cmd = DAX_SETTINGS.get_cmd_count_nb_jobs()
         output = sb.check_output(cmd, shell=True)
         error = c_output(output)
         while error:
