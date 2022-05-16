@@ -738,7 +738,7 @@ class DaxManager(object):
 
         # Queue each assessor to be uploaded
         for pindex, alabel in enumerate(assessors_list):
-            upload_results[i] = upload_pool.apply_async(
+            upload_results[pindex] = upload_pool.apply_async(
                 run_upload_thread,
                 [logfile, xnat_host, pindex, alabel, pcount, resdir])
 
