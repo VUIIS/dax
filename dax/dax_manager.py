@@ -938,8 +938,8 @@ class DaxManager(object):
 
 def run_upload_thread(logfile, xnat_host, pindex, alabel, pcount, resdir):
     logging.getLogger('dax').handlers = []
-    bin.set_logger(logfile, debug=True)
-    bin.upload_thread(xnat_host, pindex, alabel, pcount, resdir)
+    dax.bin.set_logger(logfile, debug=True)
+    dax.bin.upload_thread(xnat_host, pindex, alabel, pcount, resdir)
     logging.getLogger('dax').handlers = []
 
 
