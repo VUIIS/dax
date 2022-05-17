@@ -16,9 +16,13 @@ SLURM_JOBTIME = "sacct -j ${jobid}.batch --format CPUTime --noheader"
 
 SLURM_COUNTJOBS = 'squeue --me --noheader | wc -l'
 
-SLURM_COUNT_PENDING_JOBS = 'squeue --me -t PENDING --noheader | wc -l'
+SLURM_COUNTJOBS_LAUNCHED = 'squeue --me --noheader | wc -l'
 
-SLURM_COUNT_RUNNING_JOBS = 'squeue --me -t RUNNING --noheader | wc -l'
+SLURM_COUNTJOBS_PENDING = 'squeue --me -t PENDING --noheader | wc -l'
+
+SLURM_COUNT_PENDINGUPLOADS = 'ls -d /nobackup/$USER/Spider_Upload_Dir/*-x-* |wc -l'
+
+SLURM_COUNTJOBS_BUILT = 'ls /nobackup/$USER/Spider_Upload_Dir/DISKQ/BATCH/*.slurm | wc -l'
 
 SLURM_JOBNODE = "sacct -j ${jobid}.batch --format NodeList --noheader"
 
@@ -114,11 +118,14 @@ class DAX_Settings(object):
     def get_cmd_count_nb_jobs(self):
         return SLURM_COUNTJOBS
 
-    def get_cmd_count_pending_jobs(self):
-        return SLURM_COUNT_PENDING_JOBS
+    def get_cmd_count_jobs_launched(self):
+        return SLURM_COUNT_JOBS_LAUNCHED
 
-    def get_cmd_count_running_jobs(self):
-        return SLURM_COUNT_RUNNING_JOBS
+    def get_cmd_count_jobs_pending(self):
+        return SLURM_COUNT_JOBS_PENDING
+
+    def get_cmd_count_pendinguploads(self):
+        return SLURM_COUNT_PENDINGUPLOADS
 
     def get_cmd_get_job_status(self):
         return Template(SLURM_JOBSTATUS)

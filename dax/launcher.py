@@ -87,6 +87,8 @@ class Launcher(object):
                  yaml_dict=dict(),
                  priority_project=None,
                  queue_limit='10',
+                 queue_limit_pending='10',
+                 limit_pendinguploads='10',
                  root_job_dir='/tmp',
                  xnat_user=None, xnat_pass=None, xnat_host=None, cr=None,
                  job_email=None, job_email_options='FAIL', job_rungroup=None,
@@ -102,6 +104,8 @@ class Launcher(object):
         :param project_modules_dict: dictionary associating project & modules
         :param priority_project: list of project to describe the priority
         :param queue_limit: maximum number of jobs in the queue
+        :param queue_limit_pending: maximum pending jobs in the queue
+        :param limit_pendinguploads: maximum number of uploads waiting
         :param root_job_dir: root directory for jobs
         :param xnat_host: XNAT Host url. By default, use env variable.
         :param cr: True if the host is an XNAT CR instance (will default to
@@ -115,6 +119,8 @@ class Launcher(object):
         :return: None
         """
         self.queue_limit = queue_limit
+        self.queue_limit_pending = queue_limit_pending
+        self.limit_pendinguploads = limit_pendinguploads
         self.root_job_dir = root_job_dir
         self.resdir = resdir
         self.smtp_host = smtp_host
@@ -274,66 +280,55 @@ name as a key and list of yaml filepaths as values.'
         """
         return assr_info['procstatus'] == task.NEED_TO_RUN
 
-    def launch_tasks(self, task_list, writeonly=False, pbsdir=None,
-                     force_no_qsub=False):
+    def launch_tasks(self, task_list, force_no_qsub=False):
         """
         Launch tasks from the passed list until the queue is full or
          the list is empty
 
         :param task_list: list of task to launch
-        :param writeonly: write the job files without submitting them
-        :param pbsdir: folder to store the pbs file
         :param force_no_qsub: run the job locally on the computer (serial mode)
         :return: None
         """
-
-        # TODO: determine if writeonly still does anything?
-
-        if force_no_qsub:
-            LOGGER.info('No qsub - Running job locally on your computer.')
-        else:
-            # Check number of jobs on cluster
-            cjobs = cluster.count_jobs('pending')
-            if cjobs == -1:
-                LOGGER.error('cannot get count of jobs from cluster')
-                return
-
-            if cluster.command_found(cmd=DAX_SETTINGS.get_cmd_submit()):
-                LOGGER.info('%s jobs currently in queue' % str(cjobs))
+        launched, pending, pendinguploads = cluster.count_jobs(force_no_qsub)
 
         # Launch until we reach cluster limit or no jobs left to launch
-        while (cjobs < self.queue_limit or writeonly) and len(task_list) > 0:
+        while(
+                launched < self.queue_limit and
+                pending < self.queue_limit_pending and
+                pendinguploads < self.limit_pendinguploads and
+                len(task_list) > 0
+                ):
+
+            if not force_no_qsub:
+                LOGGER.info(
+                    'Cluster: %d launched, %d pending, %d pending uploads',
+                    launched, pending, pendinguploads
+                    )
+            
             cur_task = task_list.pop()
 
-            if writeonly:
-                msg = "+Writing PBS file for job:%s, currently %s jobs in \
-cluster queue"
-                LOGGER.info(msg % (cur_task.assessor_label,
-                                   str(cjobs)))
-            else:
-                msg = '+Launching job:%s, currently %s jobs in cluster queue'
-                LOGGER.info(msg % (cur_task.assessor_label, str(cjobs)))
+            LOGGER.info('Launching job: %s', cur_task.assessor_label)
 
             try:
                 success = cur_task.launch(force_no_qsub=force_no_qsub)
             except Exception as E:
-                LOGGER.critical('Caught exception launching job %s'
-                                % cur_task.assessor_label)
-                LOGGER.critical('Exception class %s caught with message %s'
-                                % (E.__class__, str(E)))
+                LOGGER.critical(
+                    'Caught exception launching job %s',
+                    cur_task.assessor_label)
+                    )
+                LOGGER.critical(
+                    'Exception class %s caught with message %s',
+                    E.__class__, str(E)
+                    )
                 LOGGER.critical(traceback.format_exc())
-
                 success = False
 
             if not success:
                 LOGGER.error('ERROR: failed to launch job')
                 raise ClusterLaunchException
 
-            cjobs = cluster.count_jobs('pending')
+            launched, pending, pendinguploads = cluster.count_jobs(force_no_qsub)
 
-            if cjobs == -1:
-                LOGGER.error('ERROR: cannot get count of jobs from cluster')
-                raise ClusterCountJobsException
 
     # UPDATE Main Method
     def update_tasks(self, lockfile_prefix, project_local, sessions_local):
