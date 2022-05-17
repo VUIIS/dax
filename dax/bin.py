@@ -9,8 +9,8 @@ import os
 import sys
 from multiprocessing import Pool
 import logging
-import socket
 
+from . import lockfiles
 from . import dax_tools_utils
 from . import launcher
 from . import assessor_utils
@@ -91,7 +91,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
         flagfile = os.path.join(
             os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.LAUNCH_SUFFIX))
-        _launcher_obj.unlock_flagfile(flagfile)
+        lockfiles.unlock_flagfile(flagfile)
     except Exception as e:
         logger.critical('Caught exception launching jobs in bin.launch_jobs')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
@@ -99,7 +99,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
         flagfile = os.path.join(
             os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.LAUNCH_SUFFIX))
-        _launcher_obj.unlock_flagfile(flagfile)
+        lockfiles.unlock_flagfile(flagfile)
 
     logger.info('finished launcher, End Time: %s' % str(datetime.now()))
 
@@ -133,7 +133,7 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
         flagfile = os.path.join(
             os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
-        _launcher_obj.unlock_flagfile(flagfile)
+        lockfiles.unlock_flagfile(flagfile)
     except Exception as e:
         logger.critical('Caught exception building Project in bin.build')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
@@ -141,7 +141,7 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
         flagfile = os.path.join(
             os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
-        _launcher_obj.unlock_flagfile(flagfile)
+        lockfiles.unlock_flagfile(flagfile)
 
     logger.info('finished build, End Time: %s' % str(datetime.now()))
 
@@ -170,7 +170,7 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
         flagfile = os.path.join(
             os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.UPDATE_SUFFIX))
-        _launcher_obj.unlock_flagfile(flagfile)
+        lockfiles.unlock_flagfile(flagfile)
     except Exception as e:
         logger.critical('Caught exception updating tasks in bin.update_tasks')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
@@ -178,7 +178,7 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
         flagfile = os.path.join(
             os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.UPDATE_SUFFIX))
-        _launcher_obj.unlock_flagfile(flagfile)
+        lockfiles.unlock_flagfile(flagfile)
 
     logger.info('finished updating tasks, End Time: %s' % str(datetime.now()))
 
@@ -414,7 +414,7 @@ def upload(settings_path, max_threads=1):
     acount = len(alist)
 
     # Clean lock files
-    clean_lockfiles(lock_dir)
+    lockfiles.clean_lockfiles(lock_dir)
 
     # Count running uploads
     lock_list = os.listdir(lock_dir)
@@ -426,7 +426,7 @@ def upload(settings_path, max_threads=1):
     if num_threads < 1:
         logger.info('max uploads already:{}'.format(str(cur_upload_count)))
         return
-    
+
     logger.info('starting {} upload thread(s)'.format(str(num_threads)))
     sys.stdout.flush()
 
@@ -455,7 +455,7 @@ def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
     lock_file = os.path.join(lock_dir, '{}_Upload.txt'.format(assessor_label))
 
     # Try to lock
-    success = lock_flagfile(lock_file)
+    success = lockfiles.lock_flagfile(lock_file)
     if not success:
         # Failed to get lock
         logger.warn('failed to get lock:{}'.format(lock_file))
@@ -492,93 +492,7 @@ def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
     finally:
         # Delete the lock file
         logger.debug('deleting lock file:{}'.format(lock_file))
-        unlock_flagfile(lock_file)
-
-
-# TODO: move these lock file routines to a shared file
-def clean_lockfiles(lock_dir):
-    logger = logging.getLogger('dax')
-
-    lock_list = os.listdir(lock_dir)
-
-    # Make full paths
-    lock_list = [os.path.join(lock_dir, f) for f in lock_list]
-
-    # Check each lock file
-    for file in lock_list:
-        logger.debug('checking lock file:{}'.format(file))
-        check_lockfile(file)
-
-
-def check_lockfile(file):
-    logger = logging.getLogger('dax')
-
-    # Try to read host-PID from lockfile
-    try:
-        with open(file, 'r') as f:
-            line = f.readline()
-
-        host, pid = line.split('-')
-        pid = int(pid)
-
-        # Compare host to current host
-        this_host = socket.gethostname().split('.')[0]
-        if host != this_host:
-            logger.debug('different host, cannot check PID:{}', format(file))
-        elif pid_exists(pid):
-            logger.debug('host matches and PID exists:{}'.format(str(pid)))
-        else:
-            logger.debug('host matches and PID not running, deleting lockfile')
-            os.remove(file)
-    except IOError:
-        logger.debug('failed to read from lock file:{}'.format(file))
-    except ValueError:
-        logger.debug('failed to parse lock file:{}'.format(file))
-
-
-def pid_exists(pid):
-    if pid < 0:
-        return False   # NOTE: pid == 0 returns True
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:   # errno.ESRCH
-        return False  # No such process
-    except PermissionError:  # errno.EPERM
-        return True  # Operation not permitted (i.e., process exists)
-    else:
-        return True  # no error, we can send a signal to the process
-
-
-def lock_flagfile(lock_file):
-    """
-    Create the flagfile to lock the process
-
-    :param lock_file: flag file use to lock the process
-    :return: True if the file didn't exist, False otherwise
-    """
-    if os.path.exists(lock_file):
-        return False
-    else:
-        open(lock_file, 'w').close()
-
-        # Write hostname-PID to lock file
-        _pid = os.getpid()
-        _host = socket.gethostname().split('.')[0]
-        with open(lock_file, 'w') as f:
-            f.write('{}-{}'.format(_host, _pid))
-
-        return True
-
-
-def unlock_flagfile(lock_file):
-    """
-    Remove the flagfile to unlock the process
-
-    :param lock_file: flag file use to lock the process
-    :return: None
-    """
-    if os.path.exists(lock_file):
-        os.remove(lock_file)
+        lockfiles.unlock_flagfile(lock_file)
 
 
 def undo_processing(xnat, assessor_label, logger=None):

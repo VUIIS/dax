@@ -12,6 +12,7 @@ import redcap
 
 import dax
 from . import dax_tools_utils
+from . import lockfiles
 from . import DAX_Settings
 from .launcher import BUILD_SUFFIX
 from . import log
@@ -41,43 +42,6 @@ def get_this_instance():
     this_host = socket.gethostname().split('.')[0]
     this_user = os.environ['USER']
     return '{}@{}'.format(this_user, this_host)
-
-
-def check_lockfile(file):
-    # Try to read host-PID from lockfile
-    try:
-        with open(file, 'r') as f:
-            line = f.readline()
-
-        host, pid = line.split('-')
-        pid = int(pid)
-
-        # Compare host to current host
-        this_host = socket.gethostname().split('.')[0]
-        if host != this_host:
-            LOGGER.debug('different host, cannot check PID:{}', format(file))
-        elif pid_exists(pid):
-            LOGGER.debug('host matches and PID exists:{}'.format(str(pid)))
-        else:
-            LOGGER.debug('host matches and PID not running, deleting lockfile')
-            os.remove(file)
-    except IOError:
-        LOGGER.debug('failed to read from lock file:{}'.format(file))
-    except ValueError:
-        LOGGER.debug('failed to parse lock file:{}'.format(file))
-
-
-def pid_exists(pid):
-    if pid < 0:
-        return False   # NOTE: pid == 0 returns True
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:   # errno.ESRCH
-        return False  # No such process
-    except PermissionError:  # errno.EPERM
-        return True  # Operation not permitted (i.e., process exists)
-    else:
-        return True  # no error, we can send a signal to the process
 
 
 def is_locked(settings_path, lock_dir):
@@ -453,7 +417,6 @@ class DaxProjectSettingsManager(object):
             # Probably don't have permissions on instrument
             LOGGER.error(f'Unable to access {form}_complete in REDCap')
             return False
-            
 
     def project_names(self):
         complete_field = self._general_form + '_complete'
@@ -925,15 +888,7 @@ class DaxManager(object):
         utilities.send_email_netrc(self.smtp_host, _to, _subj, _msg)
 
     def clean_lockfiles(self):
-        lock_list = os.listdir(self.lock_dir)
-
-        # Make full paths
-        lock_list = [os.path.join(self.lock_dir, f) for f in lock_list]
-
-        # Check each lock file
-        for file in lock_list:
-            LOGGER.debug('checking lock file:{}'.format(file))
-            check_lockfile(file)
+        lockfiles.clean_lockfiles(self.lock_dir)
 
 
 def run_upload_thread(logfile, xnat_host, pindex, alabel, pcount, resdir):
