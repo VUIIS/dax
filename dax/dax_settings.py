@@ -119,10 +119,10 @@ class DAX_Settings(object):
         return SLURM_COUNTJOBS
 
     def get_cmd_count_jobs_launched(self):
-        return SLURM_COUNT_JOBS_LAUNCHED
+        return SLURM_COUNTJOBS_LAUNCHED
 
     def get_cmd_count_jobs_pending(self):
-        return SLURM_COUNT_JOBS_PENDING
+        return SLURM_COUNTJOBS_PENDING
 
     def get_cmd_count_pendinguploads(self):
         return SLURM_COUNT_PENDINGUPLOADS
