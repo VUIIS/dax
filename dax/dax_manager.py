@@ -888,7 +888,7 @@ class DaxManager(object):
         utilities.send_email_netrc(self.smtp_host, _to, _subj, _msg)
 
     def clean_lockfiles(self):
-        lockfiles.clean_lockfiles(self.lock_dir)
+        lockfiles.clean_lockfiles(self.lock_dir, LOGGER)
 
 
 def run_upload_thread(logfile, xnat_host, pindex, alabel, pcount, resdir):
