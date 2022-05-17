@@ -3,7 +3,6 @@
 
 """ launcher.py that represents the main object called by the executables """
 
-
 from datetime import datetime, timedelta
 import logging
 import sys
@@ -11,6 +10,7 @@ import os
 import traceback
 import socket
 import tempfile
+import time
 
 from . import processors, modules, XnatUtils, task, cluster, processors_v3
 from .task import Task, ClusterTask, XnatTask, mkdirp
@@ -89,6 +89,7 @@ class Launcher(object):
                  queue_limit='10',
                  queue_limit_pending='10',
                  limit_pendinguploads='10',
+                 launch_delay_sec='1',
                  root_job_dir='/tmp',
                  xnat_user=None, xnat_pass=None, xnat_host=None, cr=None,
                  job_email=None, job_email_options='FAIL', job_rungroup=None,
@@ -106,6 +107,7 @@ class Launcher(object):
         :param queue_limit: maximum number of jobs in the queue
         :param queue_limit_pending: maximum pending jobs in the queue
         :param limit_pendinguploads: maximum number of uploads waiting
+        :param launch_delay_sec: time to wait between job launches
         :param root_job_dir: root directory for jobs
         :param xnat_host: XNAT Host url. By default, use env variable.
         :param cr: True if the host is an XNAT CR instance (will default to
@@ -121,6 +123,7 @@ class Launcher(object):
         self.queue_limit = queue_limit
         self.queue_limit_pending = queue_limit_pending
         self.limit_pendinguploads = limit_pendinguploads
+        self.launch_delay_sec = launch_delay_sec
         self.root_job_dir = root_job_dir
         self.resdir = resdir
         self.smtp_host = smtp_host
@@ -327,6 +330,8 @@ name as a key and list of yaml filepaths as values.'
             if not success:
                 LOGGER.error('ERROR: failed to launch job')
                 raise ClusterLaunchException
+
+            time.sleep(self.launch_delay_sec)
 
             launched, pending, pendinguploads = cluster.count_jobs(force_no_qsub)
             if not force_no_qsub:

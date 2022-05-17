@@ -303,6 +303,7 @@ class DaxProjectSettingsManager(object):
         rec['attrs']['queue_limit'] = int(ins['main_queuelimit'])
         rec['attrs']['queue_limit_pending'] = int(ins['main_queuelimit_pending'])
         rec['attrs']['limit_pendinguploads'] = int(ins['main_limit_pendinguploads'])
+        rec['attrs']['launch_delay_sec'] = int(ins['main_launch_delay_sec'])
         rec['attrs']['job_email_options'] = ins['main_jobemailoptions']
         rec['attrs']['job_rungroup'] = ins['main_rungroup']
         rec['attrs']['xnat_host'] = ins['main_xnathost']
