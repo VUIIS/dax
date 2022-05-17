@@ -301,8 +301,10 @@ name as a key and list of yaml filepaths as values.'
 
             if not force_no_qsub:
                 LOGGER.info(
-                    'Cluster: %d launched, %d pending, %d pending uploads',
-                    launched, pending, pendinguploads
+                    'Cluster: %d/%d launched, %d/%d pending, %d/%d pending uploads',
+                    launched, self.queue_limit,
+                    pending, self.queue_limit_pending,
+                    pendinguploads, self.limit_pendinguploads
                     )
 
             cur_task = task_list.pop()
@@ -328,6 +330,13 @@ name as a key and list of yaml filepaths as values.'
                 raise ClusterLaunchException
 
             launched, pending, pendinguploads = cluster.count_jobs(force_no_qsub)
+            if not force_no_qsub:
+                LOGGER.info(
+                    'Cluster: %d/%d launched, %d/%d pending, %d/%d pending uploads',
+                    launched, self.queue_limit,
+                    pending, self.queue_limit_pending,
+                    pendinguploads, self.limit_pendinguploads
+                    )
 
 
     def update_tasks(self, lockfile_prefix, project_local, sessions_local):
