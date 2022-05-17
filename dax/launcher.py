@@ -292,7 +292,7 @@ name as a key and list of yaml filepaths as values.'
         :param force_no_qsub: run the job locally on the computer (serial mode)
         :return: None
         """
-        launched, pending, pendinguploads = cluster.count_jobs(force_no_qsub)
+        launched, pending, pendinguploads = cluster.count_jobs(resdir,force_no_qsub)
         if not force_no_qsub:
             LOGGER.info(
                 'Cluster: %d/%d total, %d/%d pending, %d/%d pending uploads',
@@ -333,7 +333,7 @@ name as a key and list of yaml filepaths as values.'
 
             time.sleep(self.launch_delay_sec)
 
-            launched, pending, pendinguploads = cluster.count_jobs(force_no_qsub)
+            launched, pending, pendinguploads = cluster.count_jobs(resdir,force_no_qsub)
             if not force_no_qsub:
                 LOGGER.info(
                     'Cluster: %d/%d total, %d/%d pending, %d/%d pending uploads',
