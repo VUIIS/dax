@@ -314,7 +314,7 @@ name as a key and list of yaml filepaths as values.'
             except Exception as E:
                 LOGGER.critical(
                     'Caught exception launching job %s',
-                    cur_task.assessor_label)
+                    cur_task.assessor_label
                     )
                 LOGGER.critical(
                     'Exception class %s caught with message %s',
