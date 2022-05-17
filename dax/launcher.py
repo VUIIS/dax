@@ -292,7 +292,7 @@ name as a key and list of yaml filepaths as values.'
         launched, pending, pendinguploads = cluster.count_jobs(force_no_qsub)
         if not force_no_qsub:
             LOGGER.info(
-            'Cluster: %d/%d launched, %d/%d pending, %d/%d pending uploads',
+            'Cluster: %d/%d total, %d/%d pending, %d/%d pending uploads',
             launched, self.queue_limit,
             pending, self.queue_limit_pending,
             pendinguploads, self.limit_pendinguploads
@@ -331,7 +331,7 @@ name as a key and list of yaml filepaths as values.'
             launched, pending, pendinguploads = cluster.count_jobs(force_no_qsub)
             if not force_no_qsub:
                 LOGGER.info(
-                    'Cluster: %d/%d launched, %d/%d pending, %d/%d pending uploads',
+                    'Cluster: %d/%d total, %d/%d pending, %d/%d pending uploads',
                     launched, self.queue_limit,
                     pending, self.queue_limit_pending,
                     pendinguploads, self.limit_pendinguploads
