@@ -460,7 +460,7 @@ undo_processing...')
 
     def launch(self, jobdir, job_email=None,
                job_email_options=DAX_SETTINGS.get_email_opts(),
-               job_rungroup=None,xnat_host=None, writeonly=False, pbsdir=None,
+               job_rungroup=None, xnat_host=None, writeonly=False, pbsdir=None,
                force_no_qsub=False):
         """
         Method to launch a job on the grid

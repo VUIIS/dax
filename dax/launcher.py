@@ -304,7 +304,7 @@ name as a key and list of yaml filepaths as values.'
                     'Cluster: %d launched, %d pending, %d pending uploads',
                     launched, pending, pendinguploads
                     )
-            
+
             cur_task = task_list.pop()
 
             LOGGER.info('Launching job: %s', cur_task.assessor_label)
@@ -330,7 +330,6 @@ name as a key and list of yaml filepaths as values.'
             launched, pending, pendinguploads = cluster.count_jobs(force_no_qsub)
 
 
-    # UPDATE Main Method
     def update_tasks(self, lockfile_prefix, project_local, sessions_local):
         """
         Main method to Update the tasks

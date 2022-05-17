@@ -455,7 +455,7 @@ class DaxProjectSettingsManager(object):
             # Probably don't have permissions on instrument
             LOGGER.error(f'Unable to access {form}_complete in REDCap')
             return False
-            
+
 
     def project_names(self):
         complete_field = self._general_form + '_complete'
