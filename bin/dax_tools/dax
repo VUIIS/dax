@@ -12,7 +12,6 @@ import os
 import dax
 from dax import dax_tools_utils as dax_tools
 from dax import dax_manager
-from dax.XnatUtils import get_interface
 
 __author__ = "Benjamin Yvernault"
 __description__ = "Main python executable for dax."
@@ -230,9 +229,8 @@ if __name__ == '__main__':
     elif args.command == 'undo':
         try:
             enable_stdout()
-            with get_interface() as xnat:
-                # Undo the processing of the assessor
-                dax.bin.undo_processing(xnat, args.assessor)
+            # Undo the processing of the assessor
+            dax.bin.undo_processing(args.assessor)
         except Exception as err:
             print('error undo:{}'.format(err))
 

@@ -495,7 +495,7 @@ def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
         lockfiles.unlock_flagfile(lock_file)
 
 
-def undo_processing(xnat, assessor_label, logger=None):
+def undo_processing(assessor_label, logger=None):
     """
     Unset job information for the assessor on XNAT, Delete files, set to run.
 
@@ -508,51 +508,53 @@ def undo_processing(xnat, assessor_label, logger=None):
 
     logger.info('undo assessor')
 
-    # First use the assessor label to find the assessor on XNAT
-    if assessor_utils.is_sgp_assessor(assessor_label):
-        logger.info('connect to sgp assessor')
-        adict = assessor_utils.parse_full_assessor_name(assessor_label)
-        assr = xnat.select_sgp_assessor(
-            adict['project_id'],
-            adict['subject_label'],
-            adict['label'])
-    else:
-        logger.info('connect to genproc assessor')
-        adict = assessor_utils.parse_full_assessor_name(assessor_label)
-        assr = xnat.select_assessor(
-            adict['project_id'],
-            adict['subject_label'],
-            adict['session_label'],
-            adict['label'])
+    with XnatUtils.get_interface() as xnat:
 
-    # Reset job related fields
-    logger.info('setting job info to null')
-    xsitype = assr.datatype().lower()
-    assr.attrs.set('{}/{}'.format(xsitype, 'jobnode'), 'null')
-    assr.attrs.set('{}/{}'.format(xsitype, 'jobid'), 'null')
-    assr.attrs.set('{}/{}'.format(xsitype, 'jobstartdate'), 'null')
-    assr.attrs.set('{}/{}'.format(xsitype, 'memused'), 'null')
-    assr.attrs.set('{}/{}'.format(xsitype, 'walltimeused'), 'null')
-    assr.attrs.mset({
-        '{}/{}'.format(xsitype, 'procstatus'): 'NEED_INPUTS',
-        '{}/{}'.format(xsitype, 'validation/status'): 'Job Pending'})
+        # First use the assessor label to find the assessor on XNAT
+        if assessor_utils.is_sgp_assessor(assessor_label):
+            logger.info('connect to sgp assessor')
+            adict = assessor_utils.parse_full_assessor_name(assessor_label)
+            assr = xnat.select_sgp_assessor(
+                adict['project_id'],
+                adict['subject_label'],
+                adict['label'])
+        else:
+            logger.info('connect to genproc assessor')
+            adict = assessor_utils.parse_full_assessor_name(assessor_label)
+            assr = xnat.select_assessor(
+                adict['project_id'],
+                adict['subject_label'],
+                adict['session_label'],
+                adict['label'])
 
-    # Get list of file resources
-    if assessor_utils.is_sgp_assessor(assessor_label):
-        resources = assr.resources()
-    else:
-        resources = assr.out_resources()
+        # Reset job related fields
+        logger.info('setting job info to null')
+        xsitype = assr.datatype().lower()
+        assr.attrs.set('{}/{}'.format(xsitype, 'jobnode'), 'null')
+        assr.attrs.set('{}/{}'.format(xsitype, 'jobid'), 'null')
+        assr.attrs.set('{}/{}'.format(xsitype, 'jobstartdate'), 'null')
+        assr.attrs.set('{}/{}'.format(xsitype, 'memused'), 'null')
+        assr.attrs.set('{}/{}'.format(xsitype, 'walltimeused'), 'null')
+        assr.attrs.mset({
+            '{}/{}'.format(xsitype, 'procstatus'): 'NEED_INPUTS',
+            '{}/{}'.format(xsitype, 'validation/status'): 'Job Pending'})
 
-    # Delete the resources
-    for res in resources:
-        res_label = res.label()
+        # Get list of file resources
+        if assessor_utils.is_sgp_assessor(assessor_label):
+            resources = assr.resources()
+        else:
+            resources = assr.out_resources()
 
-        if res_label in ['OLD', 'EDITS']:
-            logger('skipping resource:{}'.format(res_label))
-            continue
+        # Delete the resources
+        for res in resources:
+            res_label = res.label()
 
-        logger.info('removing:{}'.format(res_label))
-        try:
-            res.delete()
-        except Exception:
-            logger.error('deleting resource')
+            if res_label in ['OLD', 'EDITS']:
+                logger('skipping resource:{}'.format(res_label))
+                continue
+
+            logger.info('removing:{}'.format(res_label))
+            try:
+                res.delete()
+            except Exception:
+                logger.error('deleting resource')
