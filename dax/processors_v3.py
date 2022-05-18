@@ -1240,6 +1240,15 @@ class Processor_v3(object):
         assessors = [[] for _ in range(len(parameter_matrix))]
 
         for casr in csess.assessors():
+            # Check for empty inputs. If ANY of the assessors on this session
+            # have an empty inputs, then we cannot determine which input sets
+            # need to be built. We refuse to do anything by returning
+            # an empty list.
+            inputs = casr.get_inputs()
+            if inputs is None:
+                LOGGER.warn('assessor with empty inputs field, cannot build processor for session' + casr.label())
+                return list()
+
             try:
                 proc_type_matches = (casr.type() == proc_type)
             except:
@@ -1247,11 +1256,6 @@ class Processor_v3(object):
                 continue
 
             if proc_type_matches:
-                inputs = casr.get_inputs()
-                if inputs is None:
-                    LOGGER.warn(f'Empty inputs - skipping {casr.label()}')
-                    continue
-
                 for pi, p in enumerate(parameter_matrix):
                     if inputs == p:
                         # BDB  6/5/21 do we ever have more than one assessor
