@@ -9,8 +9,8 @@ import os
 import sys
 from multiprocessing import Pool
 import logging
-import socket
 
+from . import lockfiles
 from . import dax_tools_utils
 from . import launcher
 from . import assessor_utils
@@ -91,7 +91,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
         flagfile = os.path.join(
             os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.LAUNCH_SUFFIX))
-        _launcher_obj.unlock_flagfile(flagfile)
+        lockfiles.unlock_flagfile(flagfile)
     except Exception as e:
         logger.critical('Caught exception launching jobs in bin.launch_jobs')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
@@ -99,7 +99,7 @@ def launch_jobs(settings_path, logfile, debug, projects=None, sessions=None,
         flagfile = os.path.join(
             os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.LAUNCH_SUFFIX))
-        _launcher_obj.unlock_flagfile(flagfile)
+        lockfiles.unlock_flagfile(flagfile)
 
     logger.info('finished launcher, End Time: %s' % str(datetime.now()))
 
@@ -133,7 +133,7 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
         flagfile = os.path.join(
             os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
-        _launcher_obj.unlock_flagfile(flagfile)
+        lockfiles.unlock_flagfile(flagfile)
     except Exception as e:
         logger.critical('Caught exception building Project in bin.build')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
@@ -141,7 +141,7 @@ def build(settings_path, logfile, debug, projects=None, sessions=None,
         flagfile = os.path.join(
             os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.BUILD_SUFFIX))
-        _launcher_obj.unlock_flagfile(flagfile)
+        lockfiles.unlock_flagfile(flagfile)
 
     logger.info('finished build, End Time: %s' % str(datetime.now()))
 
@@ -170,7 +170,7 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
         flagfile = os.path.join(
             os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.UPDATE_SUFFIX))
-        _launcher_obj.unlock_flagfile(flagfile)
+        lockfiles.unlock_flagfile(flagfile)
     except Exception as e:
         logger.critical('Caught exception updating tasks in bin.update_tasks')
         logger.critical('Exception Class %s with message %s' % (e.__class__,
@@ -178,7 +178,7 @@ def update_tasks(settings_path, logfile, debug, projects=None, sessions=None):
         flagfile = os.path.join(
             os.path.join(_launcher_obj.resdir, 'FlagFiles'),
             '%s_%s' % (lockfile_prefix, launcher.UPDATE_SUFFIX))
-        _launcher_obj.unlock_flagfile(flagfile)
+        lockfiles.unlock_flagfile(flagfile)
 
     logger.info('finished updating tasks, End Time: %s' % str(datetime.now()))
 
@@ -390,7 +390,7 @@ def load_from_file(filepath, args, logger, singularity_imagedir=None, job_templa
     return None
 
 
-def upload(settings_path, num_threads=1):
+def upload(settings_path, max_threads=1):
     logger = logging.getLogger('dax')
 
     # Load settings from file
@@ -398,6 +398,8 @@ def upload(settings_path, num_threads=1):
 
     host = _launcher_obj.xnat_host
     resdir = _launcher_obj.resdir
+
+    lock_dir = os.path.join(resdir, 'FlagFiles')
 
     # TODO: filter based on projects/sessions
 
@@ -411,9 +413,21 @@ def upload(settings_path, num_threads=1):
     alist = [_.assessor_label for _ in upload_queue]
     acount = len(alist)
 
-    # TODO: don't build the pool for only 1 thread
+    # Clean lock files
+    lockfiles.clean_lockfiles(lock_dir)
 
-    logger.info('Starting upload pool:{} threads'.format(num_threads))
+    # Count running uploads
+    lock_list = os.listdir(lock_dir)
+    lock_list = [x for x in lock_list if x.endswith('_Upload.txt')]
+    cur_upload_count = len(lock_list)
+    logger.info('count of already running uploads:' + str(cur_upload_count))
+
+    num_threads = max_threads - cur_upload_count
+    if num_threads < 1:
+        logger.info('max uploads already:{}'.format(str(cur_upload_count)))
+        return
+
+    logger.info('starting {} upload thread(s)'.format(str(num_threads)))
     sys.stdout.flush()
 
     pool = Pool(processes=num_threads)
@@ -432,19 +446,16 @@ def upload(settings_path, num_threads=1):
 
 
 def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
-
     # TODO: move this and associated functions to launcher
-
     logger = logging.getLogger('dax')
 
-    # Get lock file name based on index number
-    lock_file = os.path.join(
-        resdir,
-        'FlagFiles',
-        'Process_Upload_running_{}.txt'.format(pindex + 1))
+    lock_dir = os.path.join(resdir, 'FlagFiles')
+
+    # Get lock file name
+    lock_file = os.path.join(lock_dir, '{}_Upload.txt'.format(assessor_label))
 
     # Try to lock
-    success = lock_flagfile(lock_file)
+    success = lockfiles.lock_flagfile(lock_file)
     if not success:
         # Failed to get lock
         logger.warn('failed to get lock:{}'.format(lock_file))
@@ -460,10 +471,10 @@ def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
 
             assessor_path = os.path.join(resdir, assessor_label)
 
-            if assessor_utils.is_sgp_assessor(assessor_path):
+            if assessor_utils.is_sgp_assessor(assessor_label):
                 # It's a subject gen proc assessor, handle it specifically
                 dax_tools_utils.upload_assessor_subjgenproc(
-                    xnat, assessor_path, delete=False)
+                    xnat, assessor_path)
             else:
                 assessor_dict = assessor_utils.parse_full_assessor_name(
                     assessor_label)
@@ -481,36 +492,69 @@ def upload_thread(xnat_host, pindex, assessor_label, pcount, resdir):
     finally:
         # Delete the lock file
         logger.debug('deleting lock file:{}'.format(lock_file))
-        unlock_flagfile(lock_file)
+        lockfiles.unlock_flagfile(lock_file)
 
 
-def lock_flagfile(lock_file):
+def undo_processing(assessor_label, logger=None):
     """
-    Create the flagfile to lock the process
+    Unset job information for the assessor on XNAT, Delete files, set to run.
 
-    :param lock_file: flag file use to lock the process
-    :return: True if the file didn't exist, False otherwise
-    """
-    if os.path.exists(lock_file):
-        return False
-    else:
-        open(lock_file, 'w').close()
-
-        # Write hostname-PID to lock file
-        _pid = os.getpid()
-        _host = socket.gethostname().split('.')[0]
-        with open(lock_file, 'w') as f:
-            f.write('{}-{}'.format(_host, _pid))
-
-        return True
-
-
-def unlock_flagfile(lock_file):
-    """
-    Remove the flagfile to unlock the process
-
-    :param lock_file: flag file use to lock the process
     :return: None
+
     """
-    if os.path.exists(lock_file):
-        os.remove(lock_file)
+
+    if not logger:
+        logger = logging.getLogger()
+
+    logger.info('undo assessor')
+
+    with XnatUtils.get_interface() as xnat:
+
+        # First use the assessor label to find the assessor on XNAT
+        if assessor_utils.is_sgp_assessor(assessor_label):
+            logger.info('connect to sgp assessor')
+            adict = assessor_utils.parse_full_assessor_name(assessor_label)
+            assr = xnat.select_sgp_assessor(
+                adict['project_id'],
+                adict['subject_label'],
+                adict['label'])
+        else:
+            logger.info('connect to genproc assessor')
+            adict = assessor_utils.parse_full_assessor_name(assessor_label)
+            assr = xnat.select_assessor(
+                adict['project_id'],
+                adict['subject_label'],
+                adict['session_label'],
+                adict['label'])
+
+        # Reset job related fields
+        logger.info('setting job info to null')
+        xsitype = assr.datatype().lower()
+        assr.attrs.set('{}/{}'.format(xsitype, 'jobnode'), 'null')
+        assr.attrs.set('{}/{}'.format(xsitype, 'jobid'), 'null')
+        assr.attrs.set('{}/{}'.format(xsitype, 'jobstartdate'), 'null')
+        assr.attrs.set('{}/{}'.format(xsitype, 'memused'), 'null')
+        assr.attrs.set('{}/{}'.format(xsitype, 'walltimeused'), 'null')
+        assr.attrs.mset({
+            '{}/{}'.format(xsitype, 'procstatus'): 'NEED_INPUTS',
+            '{}/{}'.format(xsitype, 'validation/status'): 'Job Pending'})
+
+        # Get list of file resources
+        if assessor_utils.is_sgp_assessor(assessor_label):
+            resources = assr.resources()
+        else:
+            resources = assr.out_resources()
+
+        # Delete the resources
+        for res in resources:
+            res_label = res.label()
+
+            if res_label in ['OLD', 'EDITS']:
+                logger('skipping resource:{}'.format(res_label))
+                continue
+
+            logger.info('removing:{}'.format(res_label))
+            try:
+                res.delete()
+            except Exception:
+                logger.error('deleting resource')

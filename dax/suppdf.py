@@ -348,7 +348,7 @@ def load_info(assr_path, assr_obj):
     LOGGER.debug('suppdf:load_info:load_outputs')
     info['outputs'] = load_outputs(assr_path)
 
-    if is_sgp_assessor(assr_path):
+    if is_sgp_assessor(os.path.basename(assr_path)):
         info['proctype'] = info['assessor'].split('-x-')[2]
         info['session'] = {
             'PROJECT': assr['project_id'],

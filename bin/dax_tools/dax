@@ -13,7 +13,6 @@ import dax
 from dax import dax_tools_utils as dax_tools
 from dax import dax_manager
 
-
 __author__ = "Benjamin Yvernault"
 __description__ = "Main python executable for dax."
 
@@ -97,6 +96,13 @@ def parse_args():
         nargs='?',
         default='')
     upload_parser.add_argument(
+        '-n',
+        dest='max_threads',
+        help='Max Upload Threads',
+        type=int,
+        default=1,
+        choices=range(1, 10))
+    upload_parser.add_argument(
         '--host', dest='host', help='XNAT Host. Default: $XNAT_HOST')
     upload_parser.add_argument(
         '-u', '--username', dest='username', help='Username for XNAT')
@@ -141,6 +147,11 @@ runs build, launch, update and upload.'
     setup_desc = 'Set up dax on your computer'
     dax_parser.add_parser('setup', help=setup_desc)
 
+    # undo:
+    undo_desc = 'Undo processing, reset the assessor to NEED_INPUTS'
+    undo_parser = dax_parser.add_parser('undo', help=undo_desc)
+    undo_parser.add_argument(dest='assessor', help='Assessor Label to Undo')
+
     # version:
     version_desc = 'Print dax version.'
     dax_parser.add_parser('version', help=version_desc)
@@ -180,7 +191,8 @@ if __name__ == '__main__':
         if args.settings_path:
             # TODO: allow flag to use settings dir which will upload all the 
             # settings files in the directory
-            dax.bin.upload(args.settings_path)
+            enable_stdout()
+            dax.bin.upload(args.settings_path, max_threads=args.max_threads)
         else:
             dax_tools.upload_tasks(
                 args.logfile, args.debug, args.upload_settings, args.host,
@@ -213,6 +225,14 @@ if __name__ == '__main__':
             print('This instance is currently disabled in REDCap.')
 
         print('ALL DONE!')
+
+    elif args.command == 'undo':
+        try:
+            enable_stdout()
+            # Undo the processing of the assessor
+            dax.bin.undo_processing(args.assessor)
+        except Exception as err:
+            print('error undo:{}'.format(err))
 
     elif args.command == 'version':
         print(dax.__version__)

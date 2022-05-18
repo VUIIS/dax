@@ -12,6 +12,7 @@ import redcap
 
 import dax
 from . import dax_tools_utils
+from . import lockfiles
 from . import DAX_Settings
 from .launcher import BUILD_SUFFIX
 from . import log
@@ -41,43 +42,6 @@ def get_this_instance():
     this_host = socket.gethostname().split('.')[0]
     this_user = os.environ['USER']
     return '{}@{}'.format(this_user, this_host)
-
-
-def check_lockfile(file):
-    # Try to read host-PID from lockfile
-    try:
-        with open(file, 'r') as f:
-            line = f.readline()
-
-        host, pid = line.split('-')
-        pid = int(pid)
-
-        # Compare host to current host
-        this_host = socket.gethostname().split('.')[0]
-        if host != this_host:
-            LOGGER.debug('different host, cannot check PID:{}', format(file))
-        elif pid_exists(pid):
-            LOGGER.debug('host matches and PID exists:{}'.format(str(pid)))
-        else:
-            LOGGER.debug('host matches and PID not running, deleting lockfile')
-            os.remove(file)
-    except IOError:
-        LOGGER.debug('failed to read from lock file:{}'.format(file))
-    except ValueError:
-        LOGGER.debug('failed to parse lock file:{}'.format(file))
-
-
-def pid_exists(pid):
-    if pid < 0:
-        return False   # NOTE: pid == 0 returns True
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:   # errno.ESRCH
-        return False  # No such process
-    except PermissionError:  # errno.EPERM
-        return True  # Operation not permitted (i.e., process exists)
-    else:
-        return True  # no error, we can send a signal to the process
 
 
 def is_locked(settings_path, lock_dir):
@@ -256,9 +220,8 @@ class DaxProjectSettingsManager(object):
                     self.rebuild_projects.append(name)
 
             except DaxManagerError as e:
-                err = 'error in project settings:project={}\n{}'.format(
-                    project, e)
-                LOGGER.info(err)
+                err = 'invalid project settings:project={}:{}'.format(name, e)
+                LOGGER.error(traceback.format_exc())
                 errors.append(err)
 
         return errors
@@ -431,7 +394,8 @@ class DaxProjectSettingsManager(object):
                     key, val = arg.split(':', 1)
                     rdict[key] = val.strip()
                 except ValueError as e:
-                    msg = 'invalid arguments:{}'.format(e)
+                    msg = 'invalid arguments:{}:{}:{}:{}'.format(
+                        project, processor, arg, e)
                     raise DaxManagerError(msg)
 
             dax_rec['arguments'] = rdict
@@ -456,7 +420,6 @@ class DaxProjectSettingsManager(object):
             # Probably don't have permissions on instrument
             LOGGER.error(f'Unable to access {form}_complete in REDCap')
             return False
-
 
     def project_names(self):
         complete_field = self._general_form + '_complete'
@@ -641,6 +604,7 @@ class DaxManager(object):
         self.smtp_host = instance_settings['main_smtphost']
         self.mode = instance_settings['main_mode']
         self.enabled = (instance_settings['main_complete'] == 'Complete')
+        self.xnat_host = instance_settings['main_xnathost']
 
         # Create our settings manager and update our settings directory
         self.settings_manager = DaxProjectSettingsManager(
@@ -728,6 +692,24 @@ class DaxManager(object):
 
         return build_results
 
+    def queue_uploads(self, upload_pool):
+        xnat_host = self.xnat_host
+        resdir = self.res_dir
+        assessors_list = dax_tools_utils.get_assessor_list('', resdir)
+        pcount = len(assessors_list)
+        logfile = self.log_name('upload', 'upload', datetime.now())
+
+        # Array to store result accessors
+        upload_results = [None] * pcount
+
+        # Queue each assessor to be uploaded
+        for pindex, alabel in enumerate(assessors_list):
+            upload_results[pindex] = upload_pool.apply_async(
+                run_upload_thread,
+                [logfile, xnat_host, pindex, alabel, pcount, resdir])
+
+        return upload_results
+
     def run(self):
         # Refresh project settings
         settings_errors = self.refresh_settings()
@@ -737,6 +719,10 @@ class DaxManager(object):
         build_pool = None
         build_results = None
         num_build_threads = 0
+        max_upload_count = self.max_upload_count
+        upload_pool = None
+        upload_results = None
+        num_upload_threads = 0
 
         if self.is_enabled_build():
             # Build
@@ -789,25 +775,42 @@ class DaxManager(object):
                     run_errors.append(err)
 
         if self.is_enabled_upload():
-            # Upload - report to log if locked
-            log = self.log_name('upload', 'upload', datetime.now())
-            upload_process = Process(
-                target=self.run_upload,
-                args=(log,))
             LOGGER.info('starting upload')
-            upload_process.start()
-            LOGGER.info('waiting for upload')
-            upload_process.join()
-            LOGGER.info('upload complete')
+
+            # Count running uploads
+            lock_list = os.listdir(self.lock_dir)
+            lock_list = [x for x in lock_list if x.endswith('_Upload.txt')]
+            cur_upload_count = len(lock_list)
+            LOGGER.info('count of running uploads:{}'.format(cur_upload_count))
+
+            num_upload_threads = max_upload_count - cur_upload_count
+            if num_upload_threads < 1:
+                LOGGER.info('max uploads already:{}'.format(cur_upload_count))
+            else:
+                LOGGER.info('starting {} more uploads'.format(num_upload_threads))
+                upload_pool = Pool(processes=num_upload_threads)
+                upload_results = self.queue_uploads(upload_pool)
+                upload_pool.close()
 
         if self.is_enabled_build() and num_build_threads > 0:
             # Wait for builds to finish
             LOGGER.info('waiting for builds to finish')
             build_pool.join()
+            LOGGER.info('builds complete!')
 
             # Extract any errors and add to list
             build_errors = [x.get() for x in build_results if x.get()]
             run_errors.extend(build_errors)
+
+        if self.is_enabled_upload() and num_upload_threads > 0:
+            # Wait for upload pool of threads to finish all uploads
+            LOGGER.info('waiting for uploads to finish')
+            upload_pool.join()
+            LOGGER.info('uploads complete!')
+
+            # Extract any errors and add to list
+            upload_errors = [x.get() for x in upload_results if x.get()]
+            run_errors.extend(upload_errors)
 
         if run_errors:
             LOGGER.info('ERROR:dax manager DONE with errors')
@@ -888,15 +891,14 @@ class DaxManager(object):
         utilities.send_email_netrc(self.smtp_host, _to, _subj, _msg)
 
     def clean_lockfiles(self):
-        lock_list = os.listdir(self.lock_dir)
+        lockfiles.clean_lockfiles(self.lock_dir, LOGGER)
 
-        # Make full paths
-        lock_list = [os.path.join(self.lock_dir, f) for f in lock_list]
 
-        # Check each lock file
-        for file in lock_list:
-            LOGGER.debug('checking lock file:{}'.format(file))
-            check_lockfile(file)
+def run_upload_thread(logfile, xnat_host, pindex, alabel, pcount, resdir):
+    logging.getLogger('dax').handlers = []
+    dax.bin.set_logger(logfile, debug=True)
+    dax.bin.upload_thread(xnat_host, pindex, alabel, pcount, resdir)
+    logging.getLogger('dax').handlers = []
 
 
 if __name__ == '__main__':

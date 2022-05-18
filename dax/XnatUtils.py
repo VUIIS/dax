@@ -442,11 +442,27 @@ class InterfaceTemp(Interface):
                                             session=session,
                                             assessor=assessor)
 
+    def get_sgp_assessor_path(self, project, subject, assessor):
+        """Given project, subject, assessor (strings),
+           returns assessor path (string)
+        """
+        return '/projects/{}/subjects/{}/assessors/{}'.format(
+            project=project,
+            subject=subject,
+            assessor=assessor)
+
     def select_assessor(self, project, subject, session, assessor):
         """Given project, subject, session, assessor (strings),
            returns assessor object
         """
         xpath = self.get_assessor_path(project, subject, session, assessor)
+        return self.select(xpath)
+
+    def select_sgp_assessor(self, project, subject, assessor):
+        """Given project, subject, assessor (strings),
+           returns assessor object
+        """
+        xpath = self.get_sgp_assessor_path(project, subject, assessor)
         return self.select(xpath)
 
     def get_assessor_resource_path(

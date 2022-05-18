@@ -228,6 +228,8 @@ class Processor_v3(object):
 
         # Load the command text
         self.command = doc.get('command')
+        self.command_pre = doc.get('pre', None)
+        self.command_post = doc.get('post', None)
 
         # Set Inputs from Yaml
         inputs = doc.get('inputs')
@@ -261,11 +263,14 @@ class Processor_v3(object):
                 # Prepend singularity imagedir
                 curc['path'] = os.path.join(self.singularity_imagedir, cpath)
 
-            if curc.get('primary', False):
-                self.container_path = curc.get('path')
-
             # Add to our containers list
             self.containers.append(curc)
+
+        # Set the primary container path
+        container_name = self.command['container']
+        for c in self.containers:
+            if c.get('name') == container_name:
+                self.container_path = c.get('path')
 
         # Check primary container
         if not self.container_path:
@@ -501,6 +506,8 @@ class Processor_v3(object):
         # Append arguments for the singularity entrypoint
         cargs = command.get('args', None)
         if cargs:
+            # Unescape and then escape double quotes
+            cargs = cargs.replace('\\"', '"').replace('"', '\\\"')
             command_txt = '{} {}'.format(command_txt, cargs)
 
         # Replace vars with values from var2val
@@ -509,35 +516,47 @@ class Processor_v3(object):
         return command_txt
 
     def build_main_text(self, var2val):
-        # Get the command dictionary
-        command = self.command
-
         txt = 'MAINCMD=\"'
 
-        # TODO: Build and append the pre command that runs before main
+        # Build and append the pre command that runs before main
+        if self.command_pre:
+            txt += self.build_command(self.command_pre, var2val)
+            txt += ' && '
 
         # Build and append the main command
+        txt += self.build_command(self.command, var2val)
+
+        # Append the post command that runs after main
+        if self.command_post:
+            txt += ' && '
+            txt += self.build_command(self.command_post, var2val)
+
+        # Finish with a newline
+        txt += '\"\n'
+
+        # Return the whole command lines
+        return txt
+
+    def build_command(self, command, var2val):
+        txt = ''
+
+        # Build and append the post command
         if 'type' not in command:
             err = 'command type not set'
             LOGGER.error(err)
             raise AutoProcessorError(err)
 
         if command['type'] == 'singularity_run':
-            command_txt = self.build_singularity_cmd('run', command, var2val)
+            txt = self.build_singularity_cmd('run', command, var2val)
 
         elif command['type'] == 'singularity_exec':
-            command_txt = self.build_singularity_cmd('exec', command, var2val)
+            txt = self.build_singularity_cmd('exec', command, var2val)
 
         else:
             err = 'invalid command type: {}'.format(command['type'])
             LOGGER.error(err)
             raise AutoProcessorError(err)
 
-        # TODO: Build the post command that runs after main
-
-        # Concatenate commands
-        txt += command_txt
-        txt += '\"\n'
         return txt
 
     def build_outputs_text(self, outputs):
@@ -968,7 +987,15 @@ class Processor_v3(object):
             name = a.get('name')
             self.iteration_sources.add(name)
 
-            types = [_.strip() for _ in a['proctypes'].split(',')]
+            if 'proctypes' in a:
+                types = [_.strip() for _ in a['proctypes'].split(',')]
+            elif 'types' in a:
+                types = [_.strip() for _ in a['types'].split(',')]
+            else:
+                msg = 'no types for assessor:{}'.format(name)
+                LOGGER.error(msg)
+                raise AutoProcessorError(msg)
+
             resources = a.get('resources', [])
             artefact_required = False
             for r in resources:
@@ -1480,11 +1507,14 @@ class SgpProcessor(Processor_v3):
                 # Prepend singularity imagedir
                 curc['path'] = os.path.join(self.singularity_imagedir, cpath)
 
-            if curc.get('primary', False):
-                self.container_path = curc.get('path')
-
             # Add to our containers list
             self.containers.append(curc)
+
+        # Set the primary container path
+        container_name = self.command['container']
+        for c in self.containers:
+            if c.get('name') == container_name:
+                self.container_path = c.get('path')
 
         # Check primary container
         if not self.container_path:

@@ -709,7 +709,7 @@ def upload_snapshots_subjgenproc(sassr, dirpath):
             params={"event_reason": "DAX upload"})
 
 
-def upload_assessor_subjgenproc(xnat, dirpath, delete=False):
+def upload_assessor_subjgenproc(xnat, dirpath):
     resdir = os.path.dirname(dirpath)
     diskq_dir = os.path.join(resdir, 'DISKQ')
     assr = os.path.basename(dirpath)
@@ -791,12 +791,11 @@ def upload_assessor_subjgenproc(xnat, dirpath, delete=False):
         'proc:subjgenprocdata/dax_version_hash': __git_revision__,
     })
 
-    if delete:
-        # Delete the task from diskq
-        ctask.delete()
+    # Delete the task from diskq
+    ctask.delete()
 
-        # Remove the folder
-        shutil.rmtree(dirpath)
+    # Remove the folder
+    shutil.rmtree(dirpath)
 
 
 def upload_thread(xnat, index, assessor_label, number_of_processes, resdir):
@@ -804,9 +803,9 @@ def upload_thread(xnat, index, assessor_label, number_of_processes, resdir):
     msg = "    *Process: %s/%s -- label: %s / time: %s"
     LOGGER.info(msg % (str(index + 1),str(number_of_processes), assessor_label, str(datetime.now())))
 
-    if assessor_utils.is_sgp_assessor(assessor_path):
+    if assessor_utils.is_sgp_assessor(assessor_label):
         uploaded = upload_assessor_subjgenproc(
-            xnat, assessor_path, delete=False)
+            xnat, assessor_path)
     else:
         assessor_dict = assessor_utils.parse_full_assessor_name(assessor_label)
         if assessor_dict:

@@ -8,10 +8,10 @@ import logging
 import sys
 import os
 import traceback
-import socket
 import tempfile
 import time
 
+from . import lockfiles
 from . import processors, modules, XnatUtils, task, cluster, processors_v3
 from .task import Task, ClusterTask, XnatTask, mkdirp
 from .dax_settings import DAX_Settings, DAX_Netrc
@@ -457,7 +457,9 @@ name as a key and list of yaml filepaths as values.'
                                        mod_delta=mod_delta, lastrun=lastrun,
                                        start_sess=start_sess)
 
-                    self.build_project_subjgenproc(intf, project_id)
+                    if len(self.get_subjgenproc_processors(project_id)) > 0:
+                        # The project has SGP processors so we build them
+                        self.build_project_subjgenproc(intf, project_id)
 
                 except Exception as E:
                     err1 = 'Caught exception building project %s'
@@ -1042,7 +1044,7 @@ The project is not part of the settings."""
                 LOGGER.error(mess_str)
                 exit(1)
         else:
-            success = self.lock_flagfile(flagfile)
+            success = lockfiles.lock_flagfile(flagfile)
             if not success:
                 LOGGER.warn('failed to get lock. Already running.')
                 exit(1)
@@ -1063,39 +1065,7 @@ The project is not part of the settings."""
         :return: None
         """
         if not project_local:
-            self.unlock_flagfile(flagfile)
-
-    @staticmethod
-    def lock_flagfile(lock_file):
-        """
-        Create the flagfile to lock the process
-
-        :param lock_file: flag file use to lock the process
-        :return: True if the file didn't exist, False otherwise
-        """
-        if os.path.exists(lock_file):
-            return False
-        else:
-            open(lock_file, 'w').close()
-
-            # Write hostname-PID to lock file
-            _pid = os.getpid()
-            _host = socket.gethostname().split('.')[0]
-            with open(lock_file, 'w') as f:
-                f.write('{}-{}'.format(_host, _pid))
-
-            return True
-
-    @staticmethod
-    def unlock_flagfile(lock_file):
-        """
-        Remove the flagfile to unlock the process
-
-        :param lock_file: flag file use to lock the process
-        :return: None
-        """
-        if os.path.exists(lock_file):
-            os.remove(lock_file)
+            lockfiles.unlock_flagfile(flagfile)
 
     def get_tasks(self, xnat, is_valid_assessor, project_list=None,
                   sessions_local=None):
