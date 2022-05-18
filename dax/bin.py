@@ -414,7 +414,7 @@ def upload(settings_path, max_threads=1):
     acount = len(alist)
 
     # Clean lock files
-    lockfiles.clean_lockfiles(lock_dir)
+    lockfiles.clean_lockfiles(lock_dir, logger)
 
     # Count running uploads
     lock_list = os.listdir(lock_dir)
