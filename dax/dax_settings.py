@@ -14,7 +14,13 @@ SLURM_JOBMEM = "sacct -j ${jobid}.batch --format MaxRss --noheader | awk '{print
 
 SLURM_JOBTIME = "sacct -j ${jobid}.batch --format CPUTime --noheader"
 
-SLURM_COUNTJOBS = 'squeue -u "$USER" --noheader | wc -l'
+SLURM_COUNTJOBS = 'squeue --me --noheader | wc -l'
+
+SLURM_COUNTJOBS_LAUNCHED = 'squeue --me --noheader | wc -l'
+
+SLURM_COUNTJOBS_PENDING = 'squeue --me -t PENDING --noheader | wc -l'
+
+SLURM_COUNT_PENDINGUPLOADS = 'ls -d ${resdir}/*-x-* |wc -l'
 
 SLURM_JOBNODE = "sacct -j ${jobid}.batch --format NodeList --noheader"
 
@@ -109,6 +115,15 @@ class DAX_Settings(object):
 
     def get_cmd_count_nb_jobs(self):
         return SLURM_COUNTJOBS
+
+    def get_cmd_count_jobs_launched(self):
+        return SLURM_COUNTJOBS_LAUNCHED
+
+    def get_cmd_count_jobs_pending(self):
+        return SLURM_COUNTJOBS_PENDING
+
+    def get_cmd_count_pendinguploads(self):
+        return Template(SLURM_COUNT_PENDINGUPLOADS)
 
     def get_cmd_get_job_status(self):
         return Template(SLURM_JOBSTATUS)

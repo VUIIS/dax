@@ -74,6 +74,7 @@ Contents:
    how_to_contribute
    faq
    processors
+   processors_v3
    assessors_in_vuiis_xnat
    dax_command_line_tools
    dax_executables
