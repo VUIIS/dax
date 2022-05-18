@@ -506,6 +506,8 @@ class Processor_v3(object):
         # Append arguments for the singularity entrypoint
         cargs = command.get('args', None)
         if cargs:
+            # Unescape and then escape double quotes
+            cargs = cargs.replace('\\"', '"').replace('"', '\\\"')
             command_txt = '{} {}'.format(command_txt, cargs)
 
         # Replace vars with values from var2val
