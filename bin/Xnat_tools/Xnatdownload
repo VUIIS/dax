@@ -25,7 +25,6 @@ import getpass
 import logging
 import urllib
 from dax import XnatUtils
-from dax import XnatToBids
 from datetime import datetime
 
 
@@ -1333,6 +1332,9 @@ if __name__ == '__main__':
     SHOULD_RUN = check_options()
     LOGGER = setup_info_logger('Xnatdownload', OPTIONS.outputfile)
 
+    if OPTIONS.bids_dir is not None:
+        from dax import XnatToBids
+
     if OPTIONS.assessortype and not OPTIONS.resourcesA:
         LOGGER.warn('No resource set for assessor type selected. NO donwload \
 for assessors.')
@@ -1395,8 +1397,8 @@ scans.')
         if OPTIONS.bids_dir is not None and len(PS_LIST) == 0:
             LOGGER.info("--------------- BIDS --------------")
             LOGGER.info('No new XNAT data downloaded. No data for BIDS conversion. Please check folders and remove any rogue xnat download folders')
-        elif OPTIONS.bids_dir is not None:    
-            # transform xnat to bids 
+        elif OPTIONS.bids_dir is not None:
+            # transform xnat to bids
             project = OPTIONS.project
             BIDS_DIR = OPTIONS.bids_dir
             XNAT_TAG = OPTIONS.xnat_tag

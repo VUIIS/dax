@@ -38,28 +38,40 @@ def c_output(output):
     return error
 
 
-def count_jobs():
+def cj_subcmd(cmd):
+    output = sb.check_output(cmd, shell=True)
+    error = c_output(output)
+    while error:
+        LOGGER.info('    try again to access number of jobs in 2 seconds.')
+        time.sleep(2)
+        output = sb.check_output(cmd, shell=True)
+        error = c_output(output)
+    if int(output) < 0:
+        return 0
+    else:
+        return int(output)
+
+
+def count_jobs(resdir,force_no_qsub=False):
     """
     Count the number of jobs in the queue on the cluster
 
-    :return: number of jobs in the queue
+    :return: number of jobs in the queue. tuple of
+             (launched, pending, pendinguploads)
     """
-    if command_found(cmd=DAX_SETTINGS.get_cmd_submit()):
-        cmd = DAX_SETTINGS.get_cmd_count_nb_jobs()
-        output = sb.check_output(cmd, shell=True)
-        error = c_output(output)
-        while error:
-            LOGGER.info('    try again to access number of jobs in 2 seconds.')
-            time.sleep(2)
-            output = sb.check_output(cmd, shell=True)
-            error = c_output(output)
-        if int(output) < 0:
-            return 0
-        else:
-            return int(output)
-    else:
+    if force_no_qsub:
         LOGGER.info(' Running locally. No queue with jobs.')
-        return 0
+        return (0, 0, 0)
+    elif command_found(cmd=DAX_SETTINGS.get_cmd_submit()):
+        launched = cj_subcmd(DAX_SETTINGS.get_cmd_count_jobs_launched())
+        pending = cj_subcmd(DAX_SETTINGS.get_cmd_count_jobs_pending())
+        cmd = DAX_SETTINGS.get_cmd_count_pendinguploads()
+        cmd = cmd.safe_substitute({'resdir': resdir})
+        pendinguploads = cj_subcmd(cmd)
+        return (launched, pending, pendinguploads)
+    else:
+        LOGGER.error('ERROR: failed to find cluster commands')
+        raise ClusterLaunchException
 
 
 def job_status(jobid):
