@@ -31,7 +31,7 @@ for assr in Assrs :
     # Get desired fields
     thisR = {}
     for key in ('project_label','subject_label','session_label','proctype',
-            'assessor_id','procstatus','qcstatus','qcnotes','assessor_label') :
+            'assessor_id','jobstartdate','procstatus','qcstatus','qcnotes','assessor_label') :
         if assr[key]:
             thisR[key] = assr[key]
 
@@ -54,7 +54,7 @@ D = pandas.DataFrame(R)
 
 # Reorder columns
 colorder = ('project_label','subject_label','session_label','proctype',
-            'assessor_id','has_inputs','procstatus','qcstatus','qcnotes')
+            'assessor_id','jobstartdate','has_inputs','procstatus','qcstatus','qcnotes')
 oldcols = D.columns.tolist()
 newcols = list()
 for col in colorder :
