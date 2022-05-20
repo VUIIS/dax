@@ -19,24 +19,31 @@ print('Project: {}'.format(args.project))
 with XnatUtils.get_interface() as xnat:
     Assrs = xnat.list_project_assessors(args.project)
 
-timestamp = time.strftime("%Y%m%d%H%M%S")
-outfile1 = 'status_by_assessor_{}_{}.csv'.format(args.project,timestamp)
-outfile2 = 'status_by_session_{}_{}.csv'.format(args.project,timestamp)
+outfile1 = f'status_by_assessor-{args.project}.csv'
+outfile2 = f'status_by_session-{args.project}.csv'
+
+# Or timestamp the output files
+#timestamp = time.strftime("%Y%m%d%H%M%S")
+#outfile1 = 'status_by_assessor_{}_{}.csv'.format(args.project,timestamp)
+#outfile2 = 'status_by_session_{}_{}.csv'.format(args.project,timestamp)
 
 R = list()
-for assr in Assrs :
+for assr in Assrs:
 
     #print(assr['assessor_label'])
 
     # Get desired fields
     thisR = {}
     for key in ('project_label','subject_label','session_label','proctype',
-            'assessor_id','jobstartdate','procstatus','qcstatus','qcnotes','assessor_label') :
-        if assr[key]:
+            'assessor_id','jobstartdate','procstatus','qcstatus','qcnotes','assessor_label'):
+        if key in assr:
             thisR[key] = assr[key]
+        else:
+            thisR[key] = ''
 
     # Clean up the inputs field, split on / and keep the last bit
-    if assr['inputs']:
+    thisR['has_inputs'] = False
+    if 'inputs' in assr and assr['inputs']:
         thisR['has_inputs'] = True
         inps = utilities.decode_url_json_string(assr['inputs'])
         for key in inps.keys():
@@ -44,8 +51,6 @@ for assr in Assrs :
                 thisR[key] = '(list)'
             else:
                 thisR[key] = inps[key].split('/')[-1]
-    else:
-        thisR['has_inputs'] = False
     
     # We need to explicitly copy here to avoid overwriting R
     R.append(thisR.copy())
@@ -57,7 +62,7 @@ colorder = ('project_label','subject_label','session_label','proctype',
             'assessor_id','jobstartdate','has_inputs','procstatus','qcstatus','qcnotes')
 oldcols = D.columns.tolist()
 newcols = list()
-for col in colorder :
+for col in colorder:
     if col in oldcols:
         newcols.append(col)
         oldcols.remove(col)
@@ -108,7 +113,7 @@ DS = pandas.DataFrame(S)
 colorder = ('project_label','subject_label','session_label')
 oldcols = DS.columns.tolist()
 newcols = list()
-for col in colorder :
+for col in colorder:
     newcols.append(col)
     oldcols.remove(col)
 newcols.extend(oldcols)
