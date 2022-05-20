@@ -11,7 +11,7 @@ from dax import utilities
 
 # Specify and parse command line arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('project',help='Project name')
+parser.add_argument('-p', dest='project', help='Project name', required=True)
 args = parser.parse_args()
 print('Project: {}'.format(args.project))
 
