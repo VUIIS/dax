@@ -16,9 +16,8 @@ args = parser.parse_args()
 print('Project: {}'.format(args.project))
 
 
-xnat = XnatUtils.get_interface()
-Assrs = xnat.list_project_assessors(args.project)
-xnat.disconnect()
+with XnatUtils.get_interface() as xnat:
+    Assrs = xnat.list_project_assessors(args.project)
 
 timestamp = time.strftime("%Y%m%d%H%M%S")
 outfile1 = 'status_by_assessor_{}_{}.csv'.format(args.project,timestamp)
@@ -33,16 +32,20 @@ for assr in Assrs :
     thisR = {}
     for key in ('project_label','subject_label','session_label','proctype',
             'assessor_id','procstatus','qcstatus','qcnotes','assessor_label') :
-        thisR[key] = assr[key]
+        if assr[key]:
+            thisR[key] = assr[key]
 
     # Clean up the inputs field, split on / and keep the last bit
     if assr['inputs']:
+        thisR['has_inputs'] = True
         inps = utilities.decode_url_json_string(assr['inputs'])
         for key in inps.keys():
             if isinstance(inps[key],list):
                 thisR[key] = '(list)'
             else:
                 thisR[key] = inps[key].split('/')[-1]
+    else:
+        thisR['has_inputs'] = False
     
     # We need to explicitly copy here to avoid overwriting R
     R.append(thisR.copy())
@@ -51,12 +54,13 @@ D = pandas.DataFrame(R)
 
 # Reorder columns
 colorder = ('project_label','subject_label','session_label','proctype',
-            'assessor_id','procstatus','qcstatus','qcnotes')
+            'assessor_id','has_inputs','procstatus','qcstatus','qcnotes')
 oldcols = D.columns.tolist()
 newcols = list()
 for col in colorder :
-    newcols.append(col)
-    oldcols.remove(col)
+    if col in oldcols:
+        newcols.append(col)
+        oldcols.remove(col)
 newcols.extend(oldcols)
 
 # Store the full list by assessor
