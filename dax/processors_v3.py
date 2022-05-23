@@ -1237,16 +1237,21 @@ class Processor_v3(object):
     def _compare_to_existing(self, csess, parameter_matrix):
         assessors = [[] for _ in range(len(parameter_matrix))]
 
+        # Get of list assessors that have already been 
+        # created on xnat for this processor/proctype
+        existing_assessors = []
         for casr in csess.assessors():
             # Check that proc type matches this processor
             try:
                 proc_type_matches = (casr.type() == self.proctype)
-                if not proc_type_matches:
-                    continue
+                if proc_type_matches:
+                    existing_assessors.append(casr)
             except:
                 LOGGER.warning(f'Unable to check match of {casr.label()} - ignoring')
                 continue
 
+        # Check for any missing inputs fields in the existing assessors
+        for casr in existing_assessors:
             # Check for empty inputs. If ANY of the assessors on this session
             # have an empty inputs, then we cannot determine which input sets
             # need to be built. We refuse to do anything by returning
@@ -1256,6 +1261,8 @@ class Processor_v3(object):
                 LOGGER.warn('assessor with empty inputs field, cannot build processor for session' + casr.label())
                 return list()
 
+        # Compare existing to the "to build" assessors in parameter_matrix
+        for casr in existing_assessors:
             for pi, p in enumerate(parameter_matrix):
                 if inputs == p:
                     # BDB  6/5/21 do we ever have more than one assessor
