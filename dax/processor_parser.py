@@ -946,28 +946,37 @@ class ProcessorParser:
 
         assessors = [[] for _ in range(len(parameter_matrix))]
 
+        existing_assessors = []
+
+        # Get of list assessors that have already been
+        # created on xnat for this processor/proctype
         for casr in csess.assessors():
+            try:
+                proc_type_matches = (casr.type() == proc_type)
+                if proc_type_matches:
+                    existing_assessors.append(casr)
+            except:
+                LOGGER.error(f'Failed to check type of {casr.label()}')
+                continue
+
+        # Check for any missing inputs fields in the existing assessors
+        for casr in existing_assessors:
             # Check for empty inputs. If ANY of the assessors on this session
             # have an empty inputs, then we cannot determine which input sets
             # need to be built. We refuse to do anything by returning
             # an empty list.
             inputs = casr.get_inputs()
             if inputs is None:
-                LOGGER.warn('assessor with empty inputs field, cannot build processor for session' + casr.label())
+                LOGGER.warn('assessor with empty inputs field, cannot build processor for session:' + casr.label())
                 return list()
 
-            try:
-                proc_type_matches = (casr.type() == proc_type)
-            except:
-                LOGGER.error(f'Failed to check type of {casr.label()}')
-                continue
-            
-            if proc_type_matches:
-                for pi, p in enumerate(parameter_matrix):
-                    if inputs == p:
-                        # BDB  6/5/21 do we ever have more than one assessor
-                        #             with the same set of inputs?
-                        assessors[pi].append(casr)
+        # Compare existing to the "to build" assessors in parameter_matrix
+        for casr in existing_assessors:
+            for pi, p in enumerate(parameter_matrix):
+                if inputs == p:
+                    # BDB  6/5/21 do we ever have more than one assessor
+                    #             with the same set of inputs?
+                    assessors[pi].append(casr)
 
         return list(zip(copy.deepcopy(parameter_matrix), assessors))
 

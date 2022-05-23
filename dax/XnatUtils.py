@@ -2619,7 +2619,7 @@ class CachedImageAssessor(object):
 
     def type(self):
         if self.proctype is None:
-            self.proctype = self.info()['proctype']
+            self.proctype = self.info().get('proctype', None)
         return self.proctype
 
     def info(self):
