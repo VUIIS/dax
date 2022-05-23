@@ -302,6 +302,8 @@ name as a key and list of yaml filepaths as values.'
                 )
 
         # Launch until we reach cluster limit or no jobs left to launch
+        _launchcnt = 0
+        _launchmax = len(task_list)
         while(
                 launched < self.queue_limit and
                 pending < self.queue_limit_pending and
@@ -331,6 +333,7 @@ name as a key and list of yaml filepaths as values.'
                 LOGGER.error('ERROR: failed to launch job')
                 raise ClusterLaunchException
 
+            _launchcnt = _launchcnt + 1
             time.sleep(self.launch_delay_sec)
 
             launched, pending, pendinguploads = cluster.count_jobs(self.resdir,force_no_qsub)
@@ -341,6 +344,11 @@ name as a key and list of yaml filepaths as values.'
                     pending, self.queue_limit_pending,
                     pendinguploads, self.limit_pendinguploads
                     )
+
+        if not force_no_qsub:
+            LOGGER.info(
+                'Launched %d of %d jobs. Stopping', _launchcnt, _launchmax
+                )
 
 
     def update_tasks(self, lockfile_prefix, project_local, sessions_local):
