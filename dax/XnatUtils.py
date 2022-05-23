@@ -1200,6 +1200,9 @@ class InterfaceTemp(Interface):
                             sess_id2mod[asse['session_ID']][7]
                         anew['resources'] = [asse['%s/out/file/label' % pfix]]
                         anew['inputs'] = asse.get('%s/inputs' % pfix)
+                        anew['dax_docker_version'] = asse['%s/dax_docker_version' % pfix]
+                        anew['dax_version'] = asse['%s/dax_version' % pfix]
+                        anew['dax_version_hash'] = asse['%s/dax_version_hash' % pfix] 
                         assessors_dict[key] = anew
 
         return sorted(list(assessors_dict.values()), key=lambda k: k['label'])

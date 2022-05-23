@@ -32,7 +32,7 @@ outfile2 = f'status_by_session-{args.project}.csv'
 R = list()
 for assr in Assrs:
 
-    print(assr)
+    #print(assr)
     #sys.exit(0)
 
     # Get desired fields
