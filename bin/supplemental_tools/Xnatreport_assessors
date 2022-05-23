@@ -6,37 +6,66 @@ import pandas
 import pyxnat
 import argparse
 import time
+
 from dax import XnatUtils
 from dax import utilities
 
+
 # Specify and parse command line arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('project',help='Project name')
+parser.add_argument('-p', dest='project', help='Project name', required=True)
 args = parser.parse_args()
 print('Project: {}'.format(args.project))
 
 
-xnat = XnatUtils.get_interface()
-Assrs = xnat.list_project_assessors(args.project)
-xnat.disconnect()
+with XnatUtils.get_interface() as xnat:
+    Assrs = xnat.list_project_assessors(args.project)
 
-timestamp = time.strftime("%Y%m%d%H%M%S")
-outfile1 = 'status_by_assessor_{}_{}.csv'.format(args.project,timestamp)
-outfile2 = 'status_by_session_{}_{}.csv'.format(args.project,timestamp)
+outfile1 = f'status_by_assessor-{args.project}.csv'
+outfile2 = f'status_by_session-{args.project}.csv'
+
+# Or timestamp the output files
+#timestamp = time.strftime("%Y%m%d%H%M%S")
+#outfile1 = 'status_by_assessor_{}_{}.csv'.format(args.project,timestamp)
+#outfile2 = 'status_by_session_{}_{}.csv'.format(args.project,timestamp)
 
 R = list()
-for assr in Assrs :
+for assr in Assrs:
 
-    #print(assr['assessor_label'])
+    #print(assr)
+    #sys.exit(0)
 
     # Get desired fields
     thisR = {}
-    for key in ('project_label','subject_label','session_label','proctype',
-            'assessor_id','procstatus','qcstatus','qcnotes','assessor_label') :
-        thisR[key] = assr[key]
+    for key in (
+            'project_label',
+            'subject_label',
+            'session_label',
+            'proctype',
+            'procstatus',
+            'version',
+            'dax_docker_version',
+            'dax_version',
+            'dax_version_hash',
+            'assessor_id',
+            'jobstartdate',
+            'walltimeused',
+            'memused',
+            'jobnode',
+            'jobid',
+            'qcstatus',
+            'qcnotes',
+            'assessor_label',
+            ):
+        if key in assr:
+            thisR[key] = assr[key]
+        else:
+            thisR[key] = ''
 
     # Clean up the inputs field, split on / and keep the last bit
-    if assr['inputs']:
+    thisR['has_inputs'] = False
+    if 'inputs' in assr and assr['inputs']:
+        thisR['has_inputs'] = True
         inps = utilities.decode_url_json_string(assr['inputs'])
         for key in inps.keys():
             if isinstance(inps[key],list):
@@ -50,13 +79,32 @@ for assr in Assrs :
 D = pandas.DataFrame(R)
 
 # Reorder columns
-colorder = ('project_label','subject_label','session_label','proctype',
-            'assessor_id','procstatus','qcstatus','qcnotes')
+colorder = (
+    'project_label',
+    'subject_label',
+    'session_label',
+    'assessor_label',
+    'assessor_id',
+    'proctype',
+    'procstatus',
+    'procversion',
+    'dax_docker_version',
+    'qcstatus',
+    'qcnotes',
+    'dax_version',
+    'dax_version_hash',
+    'jobstartdate',
+    'jobnode',
+    'jobid',
+    'walltimeused',
+    'memused',
+)
 oldcols = D.columns.tolist()
 newcols = list()
-for col in colorder :
-    newcols.append(col)
-    oldcols.remove(col)
+for col in colorder:
+    if col in oldcols:
+        newcols.append(col)
+        oldcols.remove(col)
 newcols.extend(oldcols)
 
 # Store the full list by assessor
@@ -104,7 +152,7 @@ DS = pandas.DataFrame(S)
 colorder = ('project_label','subject_label','session_label')
 oldcols = DS.columns.tolist()
 newcols = list()
-for col in colorder :
+for col in colorder:
     newcols.append(col)
     oldcols.remove(col)
 newcols.extend(oldcols)

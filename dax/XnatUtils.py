@@ -110,6 +110,7 @@ label,URI,xsiType,project,xnat:imagesessiondata/subject_id,\
 xnat:imagesessiondata/id,xnat:imagesessiondata/label,{pstype}/procstatus,\
 {pstype}/proctype,{pstype}/validation/status,{pstype}/validation/notes,{pstype}/procversion,\
 {pstype}/jobstartdate,{pstype}/memused,{pstype}/walltimeused,\
+{pstype}/dax_docker_version,{pstype}/dax_version,{pstype}/dax_version_hash,\
 {pstype}/jobid,{pstype}/jobnode,{pstype}/inputs,{pstype}/out/file/label'''
 EXPERIMENT_POST_URI = '''?columns=ID,URI,subject_label,subject_ID,modality,\
 project,date,xsiType,label,xnat:subjectdata/meta/last_modified'''
@@ -739,6 +740,9 @@ class InterfaceTemp(Interface):
                             sess_id2mod[asse['session_ID']][7]
                         anew['resources'] = [asse['%s/out/file/label' % pfix]]
                         anew['inputs'] = asse.get('%s/inputs' % pfix)
+                        anew['dax_docker_version'] = asse['%s/dax_docker_version' % pfix]
+                        anew['dax_version'] = asse['%s/dax_version' % pfix]
+                        anew['dax_version_hash'] = asse['%s/dax_version_hash' % pfix]
                         assessors_dict[key] = anew
 
         return sorted(list(assessors_dict.values()), key=lambda k: k['label'])
@@ -1196,6 +1200,9 @@ class InterfaceTemp(Interface):
                             sess_id2mod[asse['session_ID']][7]
                         anew['resources'] = [asse['%s/out/file/label' % pfix]]
                         anew['inputs'] = asse.get('%s/inputs' % pfix)
+                        anew['dax_docker_version'] = asse['%s/dax_docker_version' % pfix]
+                        anew['dax_version'] = asse['%s/dax_version' % pfix]
+                        anew['dax_version_hash'] = asse['%s/dax_version_hash' % pfix] 
                         assessors_dict[key] = anew
 
         return sorted(list(assessors_dict.values()), key=lambda k: k['label'])
