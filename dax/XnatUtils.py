@@ -110,6 +110,7 @@ label,URI,xsiType,project,xnat:imagesessiondata/subject_id,\
 xnat:imagesessiondata/id,xnat:imagesessiondata/label,{pstype}/procstatus,\
 {pstype}/proctype,{pstype}/validation/status,{pstype}/validation/notes,{pstype}/procversion,\
 {pstype}/jobstartdate,{pstype}/memused,{pstype}/walltimeused,\
+{pstype}/dax_docker_version,{pstype}/dax_version,{pstype}/dax_version_hash,\
 {pstype}/jobid,{pstype}/jobnode,{pstype}/inputs,{pstype}/out/file/label'''
 EXPERIMENT_POST_URI = '''?columns=ID,URI,subject_label,subject_ID,modality,\
 project,date,xsiType,label,xnat:subjectdata/meta/last_modified'''
@@ -722,6 +723,9 @@ class InterfaceTemp(Interface):
                         anew['qcnotes'] = asse['%s/validation/notes' % pfix]
                         anew['version'] = asse['%s/procversion' % pfix]
                         anew['xsiType'] = asse['xsiType']
+                        anew['dax_docker_version'] = asse['%s/dax_docker_version' % pfix]
+                        anew['dax_version'] = asse['%s/dax_version' % pfix]
+                        anew['dax_version_hash'] = asse['%s/dax_version_hash' % pfix]
                         anew['jobid'] = asse.get('%s/jobid' % pfix)
                         anew['jobnode'] = asse.get('%s/jobnode' % pfix)
                         anew['jobstartdate'] =\

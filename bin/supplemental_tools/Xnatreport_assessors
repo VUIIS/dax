@@ -6,8 +6,18 @@ import pandas
 import pyxnat
 import argparse
 import time
-from dax import XnatUtils
-from dax import utilities
+
+# Eventually
+#from dax import XnatUtils
+#from dax import utilities
+# For now
+import importlib
+for mod in ['XnatUtils', 'utilities']:
+    spec = importlib.util.spec_from_file_location(mod, f'~/repo/dax/dax/{mod}.py')
+    eval(f'{mod} = importlib.util.module_from_spec(spec)')
+    eval(f'sys.modules[{mod}] = {mod}')
+    eval(f'spec.loader.exec_module({mod}')
+
 
 # Specify and parse command line arguments
 parser = argparse.ArgumentParser()
@@ -30,12 +40,31 @@ outfile2 = f'status_by_session-{args.project}.csv'
 R = list()
 for assr in Assrs:
 
-    #print(assr['assessor_label'])
+    print(assr)
+    #sys.exit(0)
 
     # Get desired fields
     thisR = {}
-    for key in ('project_label','subject_label','session_label','proctype',
-            'assessor_id','jobstartdate','procstatus','qcstatus','qcnotes','assessor_label'):
+    for key in (
+            'project_label',
+            'subject_label',
+            'session_label',
+            'proctype',
+            'procstatus',
+            'version',
+            'dax_docker_version',
+            'dax_version',
+            'dax_version_hash',
+            'assessor_id',
+            'jobstartdate',
+            'walltimeused',
+            'memused',
+            'jobnode',
+            'jobid',
+            'qcstatus',
+            'qcnotes',
+            'assessor_label',
+            ):
         if key in assr:
             thisR[key] = assr[key]
         else:
@@ -58,8 +87,26 @@ for assr in Assrs:
 D = pandas.DataFrame(R)
 
 # Reorder columns
-colorder = ('project_label','subject_label','session_label','proctype',
-            'assessor_id','jobstartdate','has_inputs','procstatus','qcstatus','qcnotes')
+colorder = (
+    'project_label',
+    'subject_label',
+    'session_label',
+    'assessor_label',
+    'assessor_id',
+    'proctype',
+    'procstatus',
+    'procversion',
+    'dax_docker_version',
+    'qcstatus',
+    'qcnotes',
+    'dax_version',
+    'dax_version_hash',
+    'jobstartdate',
+    'jobnode',
+    'jobid',
+    'walltimeused',
+    'memused',
+)
 oldcols = D.columns.tolist()
 newcols = list()
 for col in colorder:
