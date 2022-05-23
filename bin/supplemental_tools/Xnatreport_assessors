@@ -7,16 +7,8 @@ import pyxnat
 import argparse
 import time
 
-# Eventually
-#from dax import XnatUtils
-#from dax import utilities
-# For now
-import importlib
-for mod in ['XnatUtils', 'utilities']:
-    spec = importlib.util.spec_from_file_location(mod, f'~/repo/dax/dax/{mod}.py')
-    eval(f'{mod} = importlib.util.module_from_spec(spec)')
-    eval(f'sys.modules[{mod}] = {mod}')
-    eval(f'spec.loader.exec_module({mod}')
+from dax import XnatUtils
+from dax import utilities
 
 
 # Specify and parse command line arguments
