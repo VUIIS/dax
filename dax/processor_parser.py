@@ -965,15 +965,14 @@ class ProcessorParser:
             # have an empty inputs, then we cannot determine which input sets
             # need to be built. We refuse to do anything by returning
             # an empty list.
-            inputs = casr.get_inputs()
-            if inputs is None:
+            if casr.get_inputs() is None:
                 LOGGER.warn('assessor with empty inputs field, cannot build processor for session:' + casr.label())
                 return list()
 
         # Compare existing to the "to build" assessors in parameter_matrix
         for casr in existing_assessors:
             for pi, p in enumerate(parameter_matrix):
-                if inputs == p:
+                if casr.get_inputs() == p:
                     # BDB  6/5/21 do we ever have more than one assessor
                     #             with the same set of inputs?
                     assessors[pi].append(casr)
