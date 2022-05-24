@@ -1,3 +1,6 @@
+Note that version.py must be manually modified just before and just after createing a release.
+
+To create the new release, run these steps on a workstation:
 git clone --branch vX.Y.Z https://github.com/VUIIS/dax.git --single-branch
 cd dax
 python setup.py sdist bdist_wheel
