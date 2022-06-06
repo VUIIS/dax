@@ -1,0 +1,35 @@
+containers: list(include('container'))
+procyamlversion: str()
+requirements:
+  walltime: str()
+  memory: str()
+inputs:
+  xnat:
+    scans: list(include('scan'))
+outputs: list(include('output'))
+command:
+  type: str()
+  container: str()
+  extraopts: str()
+  args: str()
+post:
+  type: str()
+  container: str()
+  extraopts: str()
+description: str()
+jobtemplate: str()
+---
+container:
+  name: str()
+  path: str()
+  source: str()
+scan:
+  name: str()
+  types: str()
+  nifti: str()
+output:
+  dir: str(required=False)
+  stats: str(required=False)
+  pdf: str(required=False)
+
+
