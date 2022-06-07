@@ -151,7 +151,7 @@ if __name__ == '__main__':
           platforms=PLATFORMS,
           license=LICENSE,
           packages=find_packages(),
-          package_data={},
+          include_package_data=True,
           test_suite='nose.collector',
           tests_require=TESTS_REQUIRES,
           install_requires=REQUIRES,

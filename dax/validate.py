@@ -1,7 +1,7 @@
 import yamale
 import os
 
-from errors import DaxError
+from .errors import DaxError
 
 
 def validate(filename):
@@ -10,11 +10,11 @@ def validate(filename):
     # Load the schema
     try:
         schema_file = os.path.realpath(os.path.join(
-            os.path.dirname(__file__), '..', 'schema', 'processor.yaml'))
+            os.path.dirname(__file__), 'schema', 'processor.yaml'))
 
         schema = yamale.make_schema(schema_file)
     except Exception as err:
-        raise DaxError('failed to read schema file %s', schema_file, err)
+        raise DaxError('failed to read schema:{}:{}'.format(schema_file, err))
 
     # Load the file to be validated
     data = yamale.make_data(filename)
@@ -23,4 +23,4 @@ def validate(filename):
     try:
         yamale.validate(schema, data)
     except ValueError as err:
-        raise DaxError('failed to validate file %s', schema_file, err)
+        raise DaxError('validate failed:{}:{}'.format(schema_file, err))

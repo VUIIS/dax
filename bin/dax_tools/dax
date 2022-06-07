@@ -158,7 +158,7 @@ runs build, launch, update and upload.'
     validate_desc = 'Validate file'
     validate_parser = dax_parser.add_parser('validate', help=validate_desc)
     validate_parser.add_argument(
-        dest='validatefile', help='File to be validated')
+        dest='file', help='File to be validated')
 
     # version:
     version_desc = 'Print dax version.'
@@ -244,9 +244,11 @@ if __name__ == '__main__':
 
     elif args.command == 'validate':
         try:
-            validate.validate(args.validatefile)
+            validate.validate(args.file)
+            print('Valid!')
         except Exception as err:
-            print('error validate:%s', err)
+            print('Not valid!')
+            print(err)
 
     elif args.command == 'version':
         print(dax.__version__)

@@ -1,0 +1,66 @@
+---
+procyamlversion: enum('3.0.0-dev.0')
+containers: list(include('container'))
+requirements:
+  walltime: str()
+  memory: str()
+inputs:
+  vars: map(required=False)
+  xnat:
+    scans: list(include('scan'), required=False)
+    assessors: list(include('assessor'), required=False)
+    attrs: list(include('attr'), required=False)
+    filters: list(include('filter'), required=False)
+outputs: list(include('output'))
+pre: include('command', required=False)
+command: include('command')
+post: include('command', required=False)
+description: str(required=False)
+jobtemplate: str(required=False)
+---
+command:
+  type: enum('singularity_run', 'singularity_exec')
+  container: str()
+  extraopts: str(required=False)
+  args: str(required=False)
+container:
+  name: str()
+  path: str()
+  source: str(required=False)
+assessor:
+  name: str()
+  types: str(required=False)
+  proctypes: str(required=False)
+  nifti: str(required=False)
+  resources: list(include('resource'), required=False)
+  needs_qc: bool(required=False)
+scan:
+  name: str()
+  types: str()
+  nifti: str(required=False)
+  resources: list(include('resource'), required=False)
+  needs_qc: bool(required=False)
+  skip_unusable: bool(required=False)
+  keep_multis: str(required=False)
+output:
+  path: str(required=False)
+  resource: str(required=False)
+  type: enum('FILE', 'DIR', required=False)
+  dir: str(required=False)
+  stats: str(required=False)
+  pdf: str(required=False)
+resource:
+  resource: str()
+  ftype: enum('FILE', 'DIR', 'DIRJ', required=False)
+  fmatch: str(required=False)
+  fdest: str(required=False)
+  varname: str(required=False)
+  fmulti: enum('any1', required=False)
+attr:
+  varname: str()
+  object: enum('subject', 'session', 'scan', 'assessor')
+  attr: str()
+  ref: str(required=False)
+filter:
+  type: enum('match')
+  inputs: str()

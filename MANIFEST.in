@@ -1,3 +1,5 @@
 include README.md LICENSE
 
 graft docs
+
+include dax/schema/*.yaml
