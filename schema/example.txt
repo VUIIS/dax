@@ -1,3 +1,3 @@
-yamale -s schema_processor_v3.yaml FS7_v1.1.0.yaml 
+yamale -s processor.yaml FS7_v1.1.0.yaml 
 Validating /gpfs52/home/boydb1/dev-yamale/FS7_v1.1.0.yaml...
 Validation success! 👍
