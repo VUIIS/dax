@@ -17,7 +17,10 @@ def validate(filename):
         raise DaxError('failed to read schema:{}:{}'.format(schema_file, err))
 
     # Load the file to be validated
-    data = yamale.make_data(filename)
+    try:
+        data = yamale.make_data(filename)
+    except Exception as err:
+        raise DaxError('failed to read file:{}:{}'.format(filename, err))
 
     # Validate data against the schema
     try:
