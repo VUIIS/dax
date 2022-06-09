@@ -404,11 +404,8 @@ def upload(settings_path, max_threads=1):
     # TODO: filter based on projects/sessions
 
     # Load list of assessors to be uploaded
-    upload_queue = launcher.load_task_queue(
-        resdir,
-        status='COMPLETE',
-        proj_filter=None,
-        sess_filter=None)
+    upload_queue = launcher.load_task_queue(resdir, status='COMPLETE')
+    upload_queue = launcher.load_task_queue(resdir, status='JOB_FAILED')
 
     alist = [_.assessor_label for _ in upload_queue]
     acount = len(alist)
