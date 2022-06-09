@@ -314,7 +314,7 @@ class PBS(object):   # The script file generator class
         job_dir = os.path.dirname(self.filename)
         if not os.path.exists(job_dir):
             os.makedirs(job_dir)
-        # Write the Bedpost script (default value)
+
         job_data = {'job_email': self.email,
                     'job_email_options': self.email_options,
                     'job_rungroup': self.rungroup,
@@ -327,9 +327,15 @@ class PBS(object):   # The script file generator class
                     'job_cmds': '\n'.join(self.cmds),
                     'xnat_host': self.xnat_host}
 
-        with open(self.filename, 'w') as f_obj:
+        # Load job template
+        try:
             _tmp = DAX_SETTINGS.get_job_template(self.job_template)
             _str = _tmp.safe_substitute(job_data)
+        except Exception as err:
+            raise ClusterError(f'failed to read job template:{err}')
+
+        # Write the file
+        with open(self.filename, 'w') as f_obj:
             f_obj.write(_str)
 
     def submit(self, outlog=None, force_no_qsub=False):
