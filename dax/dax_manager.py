@@ -697,13 +697,17 @@ class DaxManager(object):
         resdir = self.res_dir
         assessors_list = dax_tools_utils.get_assessor_list('', resdir)
         pcount = len(assessors_list)
-        logfile = self.log_name('upload', 'upload', datetime.now())
 
         # Array to store result accessors
         upload_results = [None] * pcount
 
         # Queue each assessor to be uploaded
         for pindex, alabel in enumerate(assessors_list):
+            logfile = self.log_name(
+                'upload' + str(pindex),
+                'upload',
+                datetime.now())
+
             upload_results[pindex] = upload_pool.apply_async(
                 run_upload_thread,
                 [logfile, xnat_host, pindex, alabel, pcount, resdir])
