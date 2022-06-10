@@ -20,7 +20,6 @@ from .task import (
     JOB_PENDING,
     REPROC,
     RERUN,
-    FAILED_NEEDS_REPROC,
     NEEDS_QA,
 )
 from . import utilities
@@ -1484,6 +1483,8 @@ class SgpProcessor(Processor_v3):
 
         # Load the command text
         self.command = doc.get('command')
+        self.command_pre = doc.get('pre', None)
+        self.command_post = doc.get('post', None)
 
         # Set Inputs from Yaml
         inputs = doc.get('inputs')
