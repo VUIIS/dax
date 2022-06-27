@@ -818,14 +818,14 @@ class DaxManager(object):
             else:
                 LOGGER.info('run DONE with no errors!')
 
-            finally:
-                # Do a final join to prevent zombie processes
+        finally:
+            # Do a final join to prevent zombie processes
 
-                if build_pool:
-                    build_pool.join()
+            if build_pool:
+                build_pool.join()
 
-                if upload_pool:
-                    upload_pool.join()
+            if upload_pool:
+                upload_pool.join()
 
         return run_errors
 
