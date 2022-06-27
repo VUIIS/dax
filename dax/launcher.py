@@ -88,7 +88,7 @@ class Launcher(object):
                  priority_project=None,
                  queue_limit=10,
                  queue_limit_pending=10,
-                 limit_pendinguploads=1,
+                 limit_pendinguploads=10,
                  launch_delay_sec=1,
                  root_job_dir='/tmp',
                  xnat_user=None, xnat_pass=None, xnat_host=None, cr=None,
