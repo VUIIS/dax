@@ -12,6 +12,8 @@ import os
 import dax
 from dax import dax_tools_utils as dax_tools
 from dax import dax_manager
+from dax import validate
+
 
 __author__ = "Benjamin Yvernault"
 __description__ = "Main python executable for dax."
@@ -152,6 +154,12 @@ runs build, launch, update and upload.'
     undo_parser = dax_parser.add_parser('undo', help=undo_desc)
     undo_parser.add_argument(dest='assessor', help='Assessor Label to Undo')
 
+    # validate:
+    validate_desc = 'Validate file'
+    validate_parser = dax_parser.add_parser('validate', help=validate_desc)
+    validate_parser.add_argument(
+        dest='file', help='File to be validated')
+
     # version:
     version_desc = 'Print dax version.'
     dax_parser.add_parser('version', help=version_desc)
@@ -233,6 +241,14 @@ if __name__ == '__main__':
             dax.bin.undo_processing(args.assessor)
         except Exception as err:
             print('error undo:{}'.format(err))
+
+    elif args.command == 'validate':
+        try:
+            validate.validate(args.file)
+            print('Valid!')
+        except Exception as err:
+            print('Not valid!')
+            print(err)
 
     elif args.command == 'version':
         print(dax.__version__)
