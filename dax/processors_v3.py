@@ -1126,7 +1126,7 @@ class Processor_v3(object):
 
                     # If requested, check for multiple matching scans in the list and only keep
                     # the first. Sort lowercase by alpha, on scan ID.
-                    if iv['keep_multis'] != 'all':
+                    if len(artefacts_by_input[i]) > 0 and iv['keep_multis'] != 'all':
                         scan_info = zip(
                             artefacts_by_input[i],
                             artefact_ids_by_input[i],
