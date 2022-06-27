@@ -493,7 +493,14 @@ class Processor_v3(object):
             raise AutoProcessorError(err)
 
         # Initialize command
-        command_txt = f'singularity {runexec} {SINGULARITY_BASEOPTS}'
+        if 'opts' in command:
+            # Get the user defined opts
+            _opts = command['opts']
+            # Prepend clean and contain
+            _opts = f'--contain --cleanenv {_opts}'
+            command_txt = f'singularity {runexec} {_opts}'
+        else:
+            command_txt = f'singularity {runexec} {SINGULARITY_BASEOPTS}'
 
         # Append extra options
         _extra = command.get('extraopts', None)
