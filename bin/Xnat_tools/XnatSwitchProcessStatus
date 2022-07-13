@@ -226,8 +226,6 @@ def filter_assessors(xnat, project, args, assessors, has_fs_datatypes=False,
     former_status = args.former_status
     if args.rerun:
         former_status = task.JOB_FAILED
-    elif args.restart:
-        former_status = None
     elif args.init:
         former_status = task.NO_DATA
     elif args.rerundiskq:
