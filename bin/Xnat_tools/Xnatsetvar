@@ -33,6 +33,9 @@ Assessor 'qcstatus' workflow
         The optional argument --validator may be used to set the
         assessor's 'validated_by' field. It defaults to 'Xnatsetvar'.
 
+        The optional argument --notes will additionally read a column 'qcnotes'
+        from the csv and put its value in the assessor's 'qcnotes' field.
+
 Session 'session_type' workflow
 
     1.  Create a CSV file containing these labeled columns (in no particular order):
@@ -62,7 +65,8 @@ def initialize_logger(name):
 
 
 def read_csv(reqs):
-    info = pandas.read_csv(args.csv,  delimiter=',', dtype=str)
+    # Using keep_default_na allows empty strings to come straight through
+    info = pandas.read_csv(args.csv,  delimiter=',', dtype=str, keep_default_na=False)
     for req in reqs:
         if req not in info.columns:
             raise Exception(f'Column "{req}" not found in CSV file')
@@ -108,6 +112,8 @@ def set_assrqc():
         'assessor_label',
         'qcstatus',
         ]
+    if args.notes:
+        reqs.append('qcnotes')
     info = read_csv(reqs)
 
     # Set values for assessors that exist
@@ -122,11 +128,15 @@ def set_assrqc():
                 )
             tag = f'{row.project_id} {row.subject_label} {row.session_label} {row.assessor_label}'
             if assr.exists():
-                assr.attrs.mset({
+                sdict = {
                     'proc:genProcData/validation/status': row.qcstatus,
                     'proc:genProcData/validation/date': datestr,
                     'proc:genProcData/validation/validated_by': args.validator,
-                    })
+                    }
+                if args.notes:
+                    sdict['proc:genProcData/validation/notes'] = row.qcnotes
+                print(sdict)
+                assr.attrs.mset(sdict)
                 logger.info('Set %s for %s', row.qcstatus, tag)
             else:
                 logger.warning('Assessor not found: %s', tag)
@@ -169,6 +179,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--var', required=True)
     parser.add_argument('-c', '--csv', required=True)
     parser.add_argument('--validator', default='Xnatsetvar')
+    parser.add_argument('--notes', action='store_true')
     parser.add_argument('-o', '--outfile', default=None)
     args = parser.parse_args()
 
