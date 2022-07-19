@@ -1,7 +1,7 @@
 import re
 
 
-SGP_PATTERN = '\w+-x-\w+-x-\w+_v[0-9]+-x-[0-9a-f]+'
+SGP_PATTERN = '^\w+-x-\w+-x-\w+_v[0-9]+-x-[0-9a-f]+$'
 
 
 def full_label(project, subject, session, assessor):
