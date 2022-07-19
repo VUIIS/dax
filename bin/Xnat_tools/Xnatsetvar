@@ -135,7 +135,6 @@ def set_assrqc():
                     }
                 if args.notes:
                     sdict['proc:genProcData/validation/notes'] = row.qcnotes
-                print(sdict)
                 assr.attrs.mset(sdict)
                 logger.info('Set %s for %s', row.qcstatus, tag)
             else:
