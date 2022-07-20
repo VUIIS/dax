@@ -34,7 +34,7 @@ Assessor 'qcstatus' workflow
         assessor's 'validated_by' field. It defaults to 'Xnatsetvar'.
 
         The optional argument --notes will additionally read a column 'qcnotes'
-        from the csv and put its value in the assessor's 'qcnotes' field.
+        from the csv and put its value in the assessor's 'notes' field.
 
 Session 'session_type' workflow
 
