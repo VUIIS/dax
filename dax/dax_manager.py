@@ -909,6 +909,12 @@ class DaxManager(object):
 
 
 def run_upload_thread(logfile, xnat_host, pindex, alabel, pcount, resdir):
+    # Confirm that assessor is still in queue,
+    # it could have been uploaded by a different thread
+    if not os.path.exists(os.path.join(resdir, assessor_label)):
+        LOGGER.info(f'skipping, already uploaded:{assessor_label}')
+        return
+
     logging.getLogger('dax').handlers = []
     dax.bin.set_logger(logfile, debug=True)
     dax.bin.upload_thread(xnat_host, pindex, alabel, pcount, resdir)
