@@ -911,14 +911,14 @@ class DaxManager(object):
 def run_upload_thread(logfile, xnat_host, pindex, alabel, pcount, resdir):
     # Confirm that assessor is still in queue,
     # it could have been uploaded by a different thread
-    if not os.path.exists(os.path.join(resdir, assessor_label)):
-        LOGGER.info(f'skipping, already uploaded:{assessor_label}')
+    if not os.path.exists(os.path.join(resdir, alabel)):
+        LOGGER.info(f'skipping, already uploaded:{alabel}')
         return
 
     # Pre-check for lock file to skip already uploading
     if os.path.exists(os.path.join(
-        resdir, 'FlagFiles', f'{assessor_label}_Upload.txt')):
-        LOGGER.info(f'skipping, lock file found:{assessor_label}')
+        resdir, 'FlagFiles', f'{alabel}_Upload.txt')):
+        LOGGER.info(f'skipping, lock file found:{alabel}')
         return
 
     logging.getLogger('dax').handlers = []
