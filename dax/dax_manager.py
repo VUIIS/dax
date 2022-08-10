@@ -915,6 +915,12 @@ def run_upload_thread(logfile, xnat_host, pindex, alabel, pcount, resdir):
         LOGGER.info(f'skipping, already uploaded:{assessor_label}')
         return
 
+    # Pre-check for lock file to skip already uploading
+    if os.path.exists(os.path.join(
+        resdir, 'FlagFiles', f'{assessor_label}_Upload.txt')):
+        LOGGER.info(f'skipping, lock file found:{assessor_label}')
+        return
+
     logging.getLogger('dax').handlers = []
     dax.bin.set_logger(logfile, debug=True)
     dax.bin.upload_thread(xnat_host, pindex, alabel, pcount, resdir)
