@@ -496,10 +496,14 @@ unable to find XML file: %s'
                 try:
                     upload_resource(assessor_obj, resource, resource_path)
                 except Exception as e:
-                    _msg = 'failed to upload, skipping assessor:{}:{}'.format(
-                        resource_path, str(e))
-                    LOGGER.error(_msg)
-                    return
+                    try:
+                        LOGGER.warn('failed to upload, trying again')
+                        upload_resource(assessor_obj, resource, resource_path)
+                    except Exception as e:
+                        _msg = 'failed to upload, skipping assessor:{}:{}'.format(
+                            resource_path, str(e))
+                        LOGGER.error(_msg)
+                        return
 
         # after Upload
         if is_diskq_assessor(os.path.basename(assessor_path), resdir):
