@@ -1948,7 +1948,16 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False,
                     return False
 
     fzip = '%s.zip' % resource_label
-    initdir = os.getcwd()
+    try:
+        initdir = os.getcwd()
+    except FileNotFoundError:
+        # Show the current working directory
+        # for debugging errors from getcwd()
+        import subprocess
+        subprocess.run(['pwd'])
+        # Set our return directory to home
+        initidir = os.path.expanduser("~")
+
     # Zip all the files in the directory
     os.chdir(directory)
     os.system('zip -r %s * > /dev/null' % fzip)
