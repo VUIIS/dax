@@ -500,6 +500,8 @@ unable to find XML file: %s'
                         LOGGER.warn('failed to upload, trying again')
                         upload_resource(assessor_obj, resource, resource_path)
                     except Exception as e:
+                        import traceback
+                        LOGGER.error(traceback.format_exc())
                         _msg = 'failed to upload, skipping assessor:{}:{}'.format(
                             resource_path, str(e))
                         LOGGER.error(_msg)
