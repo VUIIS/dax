@@ -17,6 +17,7 @@ from pyxnat import Interface
 from pyxnat.core.errors import DatabaseError
 import requests
 import json
+import tempfile
 
 from . import utilities
 from .utilities import decode_url_json_string
@@ -1956,7 +1957,7 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False,
         import subprocess
         subprocess.run(['pwd'])
         # Set our return directory to home
-        initidir = os.path.expanduser("~")
+        initidir = tempfile.mkdtemp()
 
     # Zip all the files in the directory
     os.chdir(directory)
