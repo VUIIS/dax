@@ -1956,8 +1956,8 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False,
         # for debugging errors from getcwd()
         import subprocess
         subprocess.run(['pwd'])
-        # Set our return directory to home
-        initidir = tempfile.mkdtemp()
+        # Set our return directory to a temp dir
+        initdir = tempfile.mkdtemp()
 
     # Zip all the files in the directory
     os.chdir(directory)
