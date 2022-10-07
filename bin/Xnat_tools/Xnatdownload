@@ -222,11 +222,14 @@ def read_report():
         with open(rp_path, 'r') as csvfileread:
             csvreader = csv.reader(csvfileread, delimiter=',')
             # get the last_update
+            # remove last download date
+            """
             last_dl_date = int(
                 csvreader.__next__()[0].split('=')[1]
                                    .replace('-', '')
                                    .replace(':', '')
                                    .replace(' ', ''))
+            """
             # remove header
             next(csvreader)
             for row in csvreader:
@@ -244,7 +247,7 @@ def read_report():
                         asses_dl_dict[row[5]] = [row[-2]]
                     old_rows.append(row)
     LOGGER.info('Reading download_report.csv from previous download: done.')
-    return scans_dl_dict, asses_dl_dict, last_dl_date, old_rows
+    return scans_dl_dict, asses_dl_dict, old_rows
 
 
 def extract_information():
@@ -257,7 +260,7 @@ def extract_information():
     scans_list = list()
     asses_list = list()
     old_rows = list()
-    last_dl_date = None
+    #last_dl_date = None
     if OPTIONS.csvfile:
         scans_list, asses_list = read_txtfile()
     else:
@@ -278,7 +281,8 @@ given as a parameter or it does not exist on XNAT.')
           #      scans_list.extend(XNAT.get_project_scans(project))
            #     asses_list.extend(XnatUtils.list_assessors(XNAT, project, get_option_list(OPTIONS.subject), get_option_list(OPTIONS.session)))
         # Read previous report
-        scans_dl_dict, asses_dl_dict, last_dl_date, old_rows = read_report()
+        # removing last donwload date
+        scans_dl_dict, asses_dl_dict, old_rows = read_report()
         if OPTIONS.overwrite:
             last_dl_date = None
         elif OPTIONS.update:
@@ -296,7 +300,7 @@ given as a parameter or it does not exist on XNAT.')
                               x, asses_dl_dict,
                               get_option_list(OPTIONS.resourcesA))]
             last_dl_date = None  # We don't update the one downloaded already
-    return scans_list, asses_list, last_dl_date, old_rows
+    return scans_list, asses_list, old_rows
 
 
 def filter_subj_sess(obj_list):
@@ -486,7 +490,8 @@ def get_xnat_information():
     """
     LOGGER.info('INFO: Accessing scans/assessors information from XNAT.')
     # Extract information from OPTIONS and the report:
-    scans_list, asses_list, last_dl_date, old_rows = extract_information()
+    # removing last download date
+    scans_list, asses_list, old_rows = extract_information()
     msg = 'Extracting information from Xnat and previous download: done.'
     LOGGER.info(msg)
     # filter by attributes:
@@ -524,7 +529,7 @@ download per Project (after filters):')
                           if a['project_id'] == project])))
         LOGGER.info('---------------------------------------------------------\
 ------\n')
-    return set(ps_list), scans_list, asses_list, last_dl_date, old_rows
+    return set(ps_list), scans_list, asses_list, old_rows
 
 
 def get_scan_path(scan_dict):
@@ -620,7 +625,7 @@ def download_data_xnat():
                                      scan_dict['quality']])
             else:
                 row = None
-            download_scan(scan_path, scan_dict, scans_res_list, row, LAST_D)
+            download_scan(scan_path, scan_dict, scans_res_list, row)
         # ASSESSOR
         for assessor_dict in extract_obj_one_subject(project, subject, A_LIST):
             LOGGER.info('  +proc %s' % (assessor_dict['label']))
@@ -647,11 +652,10 @@ def download_data_xnat():
                             assessor_dict['session_label'], \
                             assessor_dict['assessor_label'])
                 proc_path = XnatUtils.rename_directory_with_assessor_inputs(assessor_obj,proc_path)
-            download_assessor(proc_path, assessor_dict, asses_res_list, row,
-                              LAST_D)
+            download_assessor(proc_path, assessor_dict, asses_res_list, row)
 
 
-def download_scan(directory, scan_dict, resources_list, row, last_dl_date):
+def download_scan(directory, scan_dict, resources_list, row):
     """
     Method to download the data for one specific scan
 
@@ -660,7 +664,7 @@ def download_scan(directory, scan_dict, resources_list, row, last_dl_date):
                       (see XnatUtils.list_assessors)
     :param resources_list: list of resources labels to download
     :param row: row describing downloaded data to add to the report
-    :param last_dl_date: time at the last download call
+
     :return: None
     """
     scan_obj = XNAT.select_scan(
@@ -679,21 +683,19 @@ def download_scan(directory, scan_dict, resources_list, row, last_dl_date):
                 if not os.path.exists(dl_path):
                     os.makedirs(dl_path)
                 download_resource(dl_path, scan_obj.resource('PAR'),
-                                  'PAR', row, True, 'file', last_dl_date)
+                                  'PAR', row, True, 'file')
                 download_resource(dl_path, scan_obj.resource('REC'),
-                                  'REC', row, True, 'file', last_dl_date)
+                                  'REC', row, True, 'file')
             else:
                 label = '-x-'.join([scan_dict['project_id'],
                                     scan_dict['subject_label'],
                                     scan_dict['session_label'],
                                     scan_dict['ID'], rname])
                 download_resource(directory, scan_obj.resource(rname),
-                                  rname, row, OPTIONS.oneDir, label,
-                                  last_dl_date)
+                                  rname, row, OPTIONS.oneDir, label)
 
 
-def download_assessor(directory, assessor_dict, resources_list, row,
-                      last_dl_date):
+def download_assessor(directory, assessor_dict, resources_list, row):
     """
     Method to download the data for one specific assessor
 
@@ -702,7 +704,7 @@ def download_assessor(directory, assessor_dict, resources_list, row,
                           (see XnatUtils.list_assessors)
     :param resources_list: list of resources labels to download
     :param row: row describing downloaded data to add to the report
-    :param last_dl_date: time at the last download call
+
     :return: None
     """
     assessor_obj = XNAT.select_assessor(
@@ -717,12 +719,10 @@ def download_assessor(directory, assessor_dict, resources_list, row,
         for rname in out_reslist:
             download_resource(directory, assessor_obj.out_resource(rname),
                               rname, row, OPTIONS.oneDir,
-                              assessor_dict['label'] + '-x-' + rname,
-                              last_dl_date)
+                              assessor_dict['label'] + '-x-' + rname)
 
 
-def download_resource(directory, res_obj, res_label, row, one_dir, label=None,
-                      last_dl_date=None):
+def download_resource(directory, res_obj, res_label, row, one_dir, label=None):
     """
     Method to download the data for one specific resource (scan or assessor)
 
@@ -732,7 +732,7 @@ def download_resource(directory, res_obj, res_label, row, one_dir, label=None,
     :param row: row describing downloaded data to add to the report
     :param one_dir: download the data in the same directory
     :param label: name for the file or folder downloaded if oneDir=True
-    :param last_dl_date: time at the last download call
+
     :return: None
     """
     row = copy.deepcopy(row)  # NOT KEEPING NEXT CHANGES
@@ -746,14 +746,14 @@ def download_resource(directory, res_obj, res_label, row, one_dir, label=None,
         else:
             if one_dir:
                 one_dir_download(directory, res_obj, res_label, label,
-                                 row, last_dl_date)
+                                 row)
             else:
                 default_download(directory, res_obj, res_label,
-                                 row, last_dl_date)
+                                 row)
 
 
 def one_dir_download(directory, res_obj, res_label, label,
-                     row, last_dl_date):
+                     row):
     """
     Method to download the data in one directory (renaming the files)
 
@@ -762,7 +762,7 @@ def one_dir_download(directory, res_obj, res_label, label,
     :param res_label: resource label on XNAT
     :param label: name for the file or folder downloaded
     :param row: row describing downloaded data to add to the report
-    :param last_dl_date: time at the last download call
+
     :return: None
     """
     # Add Resource label
@@ -775,7 +775,7 @@ def one_dir_download(directory, res_obj, res_label, label,
         if row is not None:
             row.append(res_path)
         if not os.path.exists(res_path) or \
-           (last_dl_date and int(get_file_timestamp(res_path)) < _ld_mod):
+           (int(get_file_timestamp(res_path)) < _ld_mod):
             dl_files(res_obj, directory)
             shutil.move(os.path.join(directory, res_label), res_path)
             if CSVWRITER:
@@ -790,7 +790,7 @@ def one_dir_download(directory, res_obj, res_label, label,
         if row is not None:
             row.append(res_path)
         if not os.path.exists(res_path) or \
-           (last_dl_date and int(get_file_timestamp(res_path)) < _ld_mod):
+           (int(get_file_timestamp(res_path)) < _ld_mod):
             dl_file(res_obj, res_path)
             if CSVWRITER:
                 CSVWRITER.writerow(row)
@@ -799,7 +799,7 @@ def one_dir_download(directory, res_obj, res_label, label,
                         % (res_label))
 
 
-def default_download(directory, res_obj, res_label, row, last_dl_date):
+def default_download(directory, res_obj, res_label, row):
     """
     Default download method for a resource (not one_dir_download)
 
@@ -808,7 +808,7 @@ def default_download(directory, res_obj, res_label, row, last_dl_date):
     :param res_obj: pyxnat resource Eobject
     :param res_label: resource label on XNAT
     :param row: row describing downloaded data to add to the report
-    :param last_dl_date: time at the last download call
+
     :return: None
     """
     res_path = os.path.join(directory, res_label)
@@ -818,7 +818,7 @@ def default_download(directory, res_obj, res_label, row, last_dl_date):
         row.append(res_path)
     _ld_mod = int(XnatUtils.get_resource_lastdate_modified(XNAT, res_obj))
     if not os.path.exists(res_path) or \
-       (last_dl_date and int(get_file_timestamp(res_path)) < _ld_mod) \
+       (int(get_file_timestamp(res_path)) < _ld_mod) \
        or not os.listdir(res_path):
         dl_files(res_obj, directory)
         if CSVWRITER and not OPTIONS.csvfile:
@@ -917,7 +917,7 @@ def download_specific_scan(XNAT):
                 if not OPTIONS.oneDir:
                     scan_path = os.path.join(DIRECTORY, sub_dir)
                 download_scan(scan_path, scan_dict, scan_resources,
-                              None, last_dl_date=None)
+                              None)
     else:
         LOGGER.info('WARNING: selected scan found but no resource specified')
 
@@ -971,8 +971,8 @@ def download_specific_assessor(xnat):
                     download_resource(assessor_path,
                                       assessor_obj.out_resource(rname),
                                       rname, None, OPTIONS.oneDir,
-                                      assessor_dict['label'] + '-x-' + rname,
-                                      last_dl_date=None)
+                                      assessor_dict['label'] + '-x-' + rname
+                                      )
     else:
         warn = 'WARNING: selected assessor found but no resource specified'
         LOGGER.info(warn)
@@ -1374,7 +1374,8 @@ scans.')
                 if OPTIONS.selectionAssessor:
                     download_specific_assessor(XNAT)
             else:
-                PS_LIST, SC_LIST, A_LIST, LAST_D, OLD_ROWS = \
+                #removing last download date
+                PS_LIST, SC_LIST, A_LIST, OLD_ROWS = \
                     get_xnat_information()
                 # open the report file:
                 if not OPTIONS.ignorecsv:
