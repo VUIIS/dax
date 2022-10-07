@@ -1382,8 +1382,8 @@ scans.')
                     with open(rep_path, 'w') as csvfilewrite:
                         CSVWRITER = csv.writer(csvfilewrite, delimiter=',')
                         # Today date
-                        #msg = 'Last download date = {:%Y-%m-%d %H:%M:%S}'
-                        #CSVWRITER.writerow([msg.format(datetime.now())])
+                        msg = 'Last download date = {:%Y-%m-%d %H:%M:%S}'
+                        CSVWRITER.writerow([msg.format(datetime.now())])
                         CSVWRITER.writerow(DEFAULT_CSV_LIST)
                         if OPTIONS.overwrite or OPTIONS.update:
                             pass
