@@ -809,7 +809,9 @@ class Processor_v3(object):
                 for vinput in artv:
                     qstatus = XnatUtils.get_scan_status(sessions, vinput)
                     if qstatus.lower() == 'unusable':
-                        raise NeedInputsException(artk + ': Not Usable')
+                        raise NeedInputsException(artk + ': Scan Unusable')
+                    if qstatus.lower() != 'usable' and inp['require_usable']:
+                        raise NeedInputsException(artk + ': Scan not marked usable')
             else:
                 # Check status of each input assr
                 for vinput in artv:
@@ -970,6 +972,9 @@ class Processor_v3(object):
                 artefact_required = artefact_required or r['required']
 
             needs_qc = s.get('needs_qc', False)
+            
+            # Require scan is explicitly marked usable?
+            require_usable = s.get('require_usable', False)
 
             # Consider an MR scan for an input if it's marked Unusable?
             skip_unusable = s.get('skip_unusable', False)
@@ -981,6 +986,7 @@ class Processor_v3(object):
                 'types': types,
                 'artefact_type': 'scan',
                 'needs_qc': needs_qc,
+                'require_usable': require_usable,
                 'resources': resources,
                 'required': artefact_required,
                 'skip_unusable': skip_unusable,
@@ -1030,6 +1036,7 @@ class Processor_v3(object):
                 'types': types,
                 'artefact_type': 'scan',
                 'needs_qc': p.get('needs_qc', False),
+                'require_usable': p.get('require_usable', False),
                 'resources': p.get('resources', []),
                 'required': True,
                 'tracer': tracer,
@@ -1872,6 +1879,9 @@ class SgpProcessor(Processor_v3):
 
                 needs_qc = s.get('needs_qc', False)
 
+                # Require scan is explicitly marked usable?
+                require_usable = s.get('require_usable', False)
+
                 # Consider an MR scan for an input if it's marked Unusable?
                 skip_unusable = s.get('skip_unusable', False)
 
@@ -1883,6 +1893,7 @@ class SgpProcessor(Processor_v3):
                     'types': types,
                     'artefact_type': 'scan',
                     'needs_qc': needs_qc,
+                    'require_usable': require_usable,
                     'resources': resources,
                     'required': True,
                     'skip_unusable': skip_unusable,
@@ -2073,7 +2084,9 @@ def verify_artefact_status(proc_inputs, assr_inputs, project_data):
             for vinput in artv:
                 qstatus = get_scan_status(project_data, vinput)
                 if qstatus.lower() == 'unusable':
-                    raise NeedInputsException(artk + ': Not Usable')
+                    raise NeedInputsException(artk + ': Scan Unusable')
+                if qstatus.lower() != 'usable' and inp['require_usable']:
+                    raise NeedInputsException(artk + ': Scan not marked usable')
         else:
             # Check status of each input assr
             for vinput in artv:
