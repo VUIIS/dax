@@ -2076,6 +2076,7 @@ def verify_artefact_status(proc_inputs, assr_inputs, project_data):
         art_type = inp['artefact_type']
 
         if art_type == 'scan' and not inp['needs_qc']:
+            LOGGER.debug('Skipping scan needs_qc checks:' + artk)
             # Not checking qc status
             continue
 
@@ -2083,9 +2084,13 @@ def verify_artefact_status(proc_inputs, assr_inputs, project_data):
             # Check status of each input scan
             for vinput in artv:
                 qstatus = get_scan_status(project_data, vinput)
+                LOGGER.debug('Scan status is ' + qstatus + ' for:' + artk)
+                LOGGER.debug('Scan require_usable is ' + str(inp['require_usable']) + ' for:' + artk)
                 if qstatus.lower() == 'unusable':
                     raise NeedInputsException(artk + ': Scan Unusable')
+                    LOGGER.debug('Triggered unusable for:' + artk)
                 if qstatus.lower() != 'usable' and inp['require_usable']:
+                    LOGGER.debug('Triggered not usable for:' + artk)
                     raise NeedInputsException(artk + ': Scan not marked usable')
         else:
             # Check status of each input assr
