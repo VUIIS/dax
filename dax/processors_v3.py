@@ -801,7 +801,6 @@ class Processor_v3(object):
             art_type = inp['artefact_type']
 
             if art_type == 'scan' and not inp['needs_qc']:
-                LOGGER.debug('Skipping scan needs_qc checks:' + artk)
                 # Not checking qc status
                 continue
 
@@ -809,13 +808,9 @@ class Processor_v3(object):
                 # Check status of each input scan
                 for vinput in artv:
                     qstatus = XnatUtils.get_scan_status(sessions, vinput)
-                    LOGGER.debug('Scan status is ' + qstatus + ' for:' + artk)
-                    LOGGER.debug('Scan require_usable is ' + str(inp['require_usable']) + ' for:' + artk)
                     if qstatus.lower() == 'unusable':
-                        LOGGER.debug('Triggered unusable for:' + artk)
                         raise NeedInputsException(artk + ': Scan Unusable')
                     if qstatus.lower() != 'usable' and inp['require_usable']:
-                        LOGGER.debug('Triggered not usable for:' + artk)
                         raise NeedInputsException(artk + ': Scan not marked usable')
             else:
                 # Check status of each input assr
