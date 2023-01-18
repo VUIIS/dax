@@ -126,7 +126,9 @@ The optional **fmatch** field defines a regular expression to apply to filter th
 
 By default, any scan that matches will be included as an available input. Several optional settings affect this:
 
-- If **needs_qc** is *True*, assessors that would have an *unusable* scan as an input will be created, but will not run.
+- If **needs_qc** is *True* and **require_usable** is *False* or not specified, assessors that would have a scan as an input will be created, but will not run if the scan is marked *unusable*.
+
+- If **needs_qc** is *True* and **require_usable** is also *True*, assessors that would have a scan as an input will be created, but will not run unless the scan is marked *usable*.
 
 - If **skip_unusable** is *True*, assessors that would have an *unusable* scan as an input will not even be created.
 
