@@ -52,7 +52,8 @@ def transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, xnat_tag, LOGGER):
                                     # Do the BIDS conversion for only nifti, bval, bval scans
                                     if scan_file.endswith('.nii.gz') or scan_file.endswith(
                                             'bvec.txt') or scan_file.endswith('bval.txt') or scan_file.endswith(
-                                            'bvec') or scan_file.endswith('bval'):
+                                            'bvec') or scan_file.endswith('bval') \
+                                            or scan_file.lower().endswith('json'):
                                         LOGGER.info("  * Scan File %s" % (scan_file))
                                         nii_file = scan_file
                                         # Call the main BIDS function that is compatible with yaml
@@ -71,16 +72,26 @@ def transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, xnat_tag, LOGGER):
                                             LOGGER.info("\t\t>Removing XNAT scan %s file because no BIDS datatype" % (
                                                 scan_file))
                                             os.remove(os.path.join(sess_path, scan, scan_resources, scan_file))
-                                LOGGER.info("\t\t>Removing XNAT resource %s folder" % (scan_resources))
-                                os.rmdir(os.path.join(sess_path, scan, scan_resources))
+                                if not (scan_resources.lower()=="dicom" or scan_resources.lower()=="secondary"):
+                                    LOGGER.info("\t\t>Removing XNAT resource %s folder" % (scan_resources))
+                                    os.rmdir(os.path.join(sess_path, scan, scan_resources))
                             LOGGER.info("\t>Removing XNAT scan %s folder" % (scan))
-                            os.rmdir(os.path.join(sess_path, scan))
+                            try:
+                                os.rmdir(os.path.join(sess_path, scan))
+                            except:
+                                LOGGER.warn("\t\t>Directory is not empty")
                     sess_idx = sess_idx + 1
                     LOGGER.info("\t>Removing XNAT session %s folder" % (sess))
-                    os.rmdir(sess_path)
+                    try:
+                        os.rmdir(sess_path)
+                    except:
+                        LOGGER.warn("\t\t>Directory is not empty")
                 subj_idx = subj_idx + 1
                 LOGGER.info("\t>Removing XNAT subject %s folder" % (subj))
-                os.rmdir(os.path.join(DIRECTORY, proj, subj))
+                try:
+                    os.rmdir(os.path.join(DIRECTORY, proj, subj))
+                except:
+                    LOGGER.warn("\t\t>Directory is not empty")
     BIDS_PROJ_DIR = os.path.join(BIDS_DIR, project)
     dataset_description_file(BIDS_PROJ_DIR, XNAT, project)
 
@@ -359,7 +370,10 @@ def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xn
         print("\t\t>ERROR: the units in nifti header is not secs")
         print("\t\t>ERROR: BIDS Conversion not complete")
         func_folder = os.path.dirname(bids_res_path)
-        os.rmdir(func_folder)
+        try:
+            os.rmdir(func_folder)
+        except:
+            print('\t\t>Deletion incomplete. Directory not empty')
         sys.exit()
     TR_nifti = round(img.header['pixdim'][4].item(), 3)
     # If json not present - if TR in nifti and XNAT (project level) is equal, USE TR FROM NIFTI
