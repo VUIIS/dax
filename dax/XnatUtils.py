@@ -1961,7 +1961,7 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False,
 
     # Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip -r %s * > /dev/null' % fzip)
+    os.system('zip -r {} {} > /dev/null'.format(fzip,directory))
     # upload
     resource_obj.put_zip(os.path.join(directory, fzip), overwrite=True,
                          extract=extract)
