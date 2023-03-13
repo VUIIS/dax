@@ -370,7 +370,7 @@ def yaml_func_json_sidecar(XNAT, data_type, res_dir, scan_file, uri, project, xn
         print("\t\t>ERROR: the units in nifti header is not secs")
         print("\t\t>ERROR: BIDS Conversion not complete")
         func_folder = os.path.dirname(bids_res_path)
-        shutil.rmtree(func_folder)
+        os.rmdir(func_folder)
         sys.exit()
     TR_nifti = round(img.header['pixdim'][4].item(), 3)
     # If json not present - if TR in nifti and XNAT (project level) is equal, USE TR FROM NIFTI
