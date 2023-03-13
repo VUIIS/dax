@@ -52,7 +52,8 @@ def transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, xnat_tag, LOGGER):
                                     # Do the BIDS conversion for only nifti, bval, bval scans
                                     if scan_file.endswith('.nii.gz') or scan_file.endswith(
                                             'bvec.txt') or scan_file.endswith('bval.txt') or scan_file.endswith(
-                                            'bvec') or scan_file.endswith('bval'):
+                                            'bvec') or scan_file.endswith('bval') \
+                                            or scan_file.lower().endswith('json'):
                                         LOGGER.info("  * Scan File %s" % (scan_file))
                                         nii_file = scan_file
                                         # Call the main BIDS function that is compatible with yaml
@@ -71,16 +72,26 @@ def transform_to_bids(XNAT, DIRECTORY, project, BIDS_DIR, xnat_tag, LOGGER):
                                             LOGGER.info("\t\t>Removing XNAT scan %s file because no BIDS datatype" % (
                                                 scan_file))
                                             os.remove(os.path.join(sess_path, scan, scan_resources, scan_file))
-                                LOGGER.info("\t\t>Removing XNAT resource %s folder" % (scan_resources))
-                                shutil.rmtree(os.path.join(sess_path, scan, scan_resources))
+                                if not (scan_resources.lower()=="dicom" or scan_resources.lower()=="secondary"):
+                                    LOGGER.info("\t\t>Removing XNAT resource %s folder" % (scan_resources))
+                                    os.rmdir(os.path.join(sess_path, scan, scan_resources))
                             LOGGER.info("\t>Removing XNAT scan %s folder" % (scan))
-                            shutil.rmtree(os.path.join(sess_path, scan))
+                            try:
+                                os.rmdir(os.path.join(sess_path, scan))
+                            except:
+                                LOGGER.warn("\t\t>Directory is not empty")
                     sess_idx = sess_idx + 1
                     LOGGER.info("\t>Removing XNAT session %s folder" % (sess))
-                    shutil.rmtree(sess_path)
+                    try:
+                        os.rmdir(sess_path)
+                    except:
+                        LOGGER.warn("\t\t>Directory is not empty")
                 subj_idx = subj_idx + 1
                 LOGGER.info("\t>Removing XNAT subject %s folder" % (subj))
-                shutil.rmtree(os.path.join(DIRECTORY, proj, subj))
+                try:
+                    os.rmdir(os.path.join(DIRECTORY, proj, subj))
+                except:
+                    LOGGER.warn("\t\t>Directory is not empty")
     BIDS_PROJ_DIR = os.path.join(BIDS_DIR, project)
     dataset_description_file(BIDS_PROJ_DIR, XNAT, project)
 
