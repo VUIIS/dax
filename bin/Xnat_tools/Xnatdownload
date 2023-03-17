@@ -135,11 +135,19 @@ def get_resources_list(object_dict, resources_list):
             res_list = object_dict['resources']
         else:
             res_list = []
-            resources = XNAT.select('/project/{project}/subject/{subject}/experiment/{experiment}/assessor/{assessor}/resources'.format(
+            if object_dict['object_type']=='assessor':
+                resources = XNAT.select('/project/{project}/subject/{subject}/experiment/{experiment}/assessor/{assessor}/resources'.format(
                 project=object_dict['project_id'],
                 subject=object_dict['subject_label'],
                 experiment=object_dict['session_label'],
                 assessor=object_dict['label']))
+            elif object_dict['object_type']=='scan':
+                resources = XNAT.select('/project/{project}/subject/{subject}/experiment/{experiment}/scan/{ID}/resources'.format(
+                    project=object_dict['project_id'],
+                    subject=object_dict['subject_label'],
+                    experiment=object_dict['session_label'],
+                    ID=object_dict['ID']))
+
             for resource in resources:
                 res_list.append(resource.label())
     else:
@@ -191,15 +199,23 @@ def read_txtfile():
                 elif row[0] == 'assessor':
                     asses_list.append(dict(list(zip(ASSESSOR_HEADER, row))))
         if not OPTIONS.resourcesS:
-            OPTIONS.resourcesS = ','.join(set([s['resource']
-                                               for s in scans_list]))
-            LOGGER.info('WARNING: resources for scan not set. Using resources \
-found in csvfile.')
+            for s in scans_list:
+                if('resource' in s.keys()):
+                    OPTIONS.resourcesS = ','.join([s['resource']])
+                    LOGGER.info('WARNING: resources for scan was not set. Using resources from csv file')
+            if OPTIONS.resourcesS==None:
+                OPTIONS.resourcesS = 'all'
+                LOGGER.info('Fetching all resources for scans.')
+
         if not OPTIONS.resourcesA:
-            OPTIONS.resourcesA = ','.join(set([a['resource']
-                                               for a in asses_list]))
-            LOGGER.info('WARNING: resources for assessor not set. Using \
-resources found in csvfile.')
+            for a in asses_list:
+                if('resource' in a.keys()):
+                    OPTIONS.resourcesA = ','.join([a['resource']])
+                    LOGGER.info('WARNING: resources for assessor not set. Using \
+                        resources found in csvfile.')
+                if OPTIONS.resourcesA==None:
+                    OPTIONS.resourcesA= 'all'
+                    LOGGER.info('Fetching all resources for assessors.')
     else:
         LOGGER.info('ERROR: file %s not found. Check if the file exists.'
                     % (OPTIONS.csvfile))
