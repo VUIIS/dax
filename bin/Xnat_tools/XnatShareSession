@@ -1,0 +1,56 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Switch sessions from one project to another using CSV from Xnatdownload
+
+Created on April 13th, 2023
+
+@author: William Duett, VUIIS CCI, Vanderbilt University
+'''
+
+# Libraries
+import re
+import os
+import shutil
+import pyxnat
+import time
+import logging
+import os
+import sys
+
+
+def check_project(project):
+    print('Checking project exists on XNAT')
+    if not project.exists():
+        raise Exception('{0} NOT found in XNAT'.format(project))
+
+
+if __name__ == '__main__':
+    try:
+        XNAT = pyxnat.Interface(server="https://xnat.vanderbilt.edu/xnat",
+                                user=os.getlogin())
+    except:
+        raise Exceptiokn('Unable to connect to XNAT')
+
+    send_proj = XNAT.select.project('VUIIS_ABCD')
+    rec_proj = XNAT.select.project('VUSTP')
+
+    check_project(send_proj)
+    check_project(rec_proj)
+
+    print('{0}'.format(send_proj))
+
+    subj = rec_proj.subject('001')
+
+    if not subj.exists():
+        print('Creating subject: {0}'.format(subj))
+        subj.insert(**{
+            'subjects':'xnat:subjectData',
+            'xnat:subjectData/sharing/share/project':rec_proj,
+            'xnat:subjectData/sharing/share/label':'001'
+            })
+    else:
+        print('Subject already exists: {0}'.format(subj))
+
+    XNAT.disconnect()
