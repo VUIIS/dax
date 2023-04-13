@@ -31,7 +31,7 @@ if __name__ == '__main__':
         XNAT = pyxnat.Interface(server="https://xnat.vanderbilt.edu/xnat",
                                 user=os.getlogin())
     except:
-        raise Exceptiokn('Unable to connect to XNAT')
+        raise Exception('Unable to connect to XNAT')
 
     send_proj = XNAT.select.project('VUIIS_ABCD')
     rec_proj = XNAT.select.project('VUSTP')
