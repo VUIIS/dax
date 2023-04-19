@@ -23,7 +23,41 @@ import sys
 def check_project(project):
     print('Checking project exists on XNAT')
     if not project.exists():
-        raise Exception('{0} NOT found in XNAT'.format(project))
+        raise Exception('Project ' + str(project).split('> ')[1] + ' NOT found in XNAT')
+    else:
+        print(str(project).split('> ')[1].split(' ')[0] + ' found!')
+
+
+def share_subj(subj,subj_str,rec_proj_str):
+    if subj.exists():
+        try:
+            print('Sharing subject: ' + subj_str)
+            subj.insert(**{
+                'subjects':'xnat:subjectData',
+                'xnat:subjectData/sharing/share/project':rec_proj_str,
+                'xnat:subjectData/sharing/share/label':subj_str
+                })
+            print('Subject Created!')
+        except:
+            raise Exception('Subject exists, but encountered an error')
+    else:
+        print('Subject already exists: ' + subj_str)
+
+
+def share_exp(exp,exp_str,rec_proj_str):
+    if exp.exists():
+        try:
+            print('Sharing Experiment: ' + exp_str)
+            exp.insert(**{
+                'experiments':'xnat:hdSessionData',
+                'xnat:hdSessionData/sharing/share/project':rec_proj_str,
+                'xnat:hdSessionData/sharing/share/label':exp_str
+                })
+            print('Experiment Created!')
+        except:
+            raise Exception('Experiment exists, but encountered an error')
+    else:
+        print('Experiment already exists: ' + exp_str)
 
 
 if __name__ == '__main__':
@@ -33,24 +67,20 @@ if __name__ == '__main__':
     except:
         raise Exception('Unable to connect to XNAT')
 
-    send_proj = XNAT.select.project('VUIIS_ABCD')
-    rec_proj = XNAT.select.project('VUSTP')
+    send_proj = XNAT.select.project('VUSTP')
+    rec_proj = XNAT.select.project('VUIIS_ABCD')
+    subj = send_proj.subject('212533')
+    exp = subj.experiment('212533')
 
     check_project(send_proj)
     check_project(rec_proj)
 
-    print('{0}'.format(send_proj))
+    send_proj_str = str(send_proj).split('> ')[1].split(' ')[0]
+    rec_proj_str = str(rec_proj). split('> ')[1].split(' ')[0]
+    subj_str = str(subj).split('> ')[1].split(' ')[0]
+    exp_str = str(exp).split('> ')[1]
 
-    subj = rec_proj.subject('001')
-
-    if not subj.exists():
-        print('Creating subject: {0}'.format(subj))
-        subj.insert(**{
-            'subjects':'xnat:subjectData',
-            'xnat:subjectData/sharing/share/project':rec_proj,
-            'xnat:subjectData/sharing/share/label':'001'
-            })
-    else:
-        print('Subject already exists: {0}'.format(subj))
+    share_subj(subj,subj_str,rec_proj_str)
+#    share_exp(exp,exp_str,rec_proj_str)
 
     XNAT.disconnect()
