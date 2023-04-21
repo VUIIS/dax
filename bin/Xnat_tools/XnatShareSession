@@ -31,17 +31,36 @@ SCAN_HEADER = ['object_type', 'project_id', 'subject_label', 'session_type',
 ASSESSOR_HEADER = ['object_type', 'project_id', 'subject_label',
                    'session_type', 'session_label', 'label', 'proctype',
                    'procstatus', 'qcstatus', 'resource', 'fpath']
-DEFAULT_ARGUMENTS = {'host': None, 'username': None, 'from': None, 'to': None, 'csv': None}
+DEFAULT_ARGUMENTS = {'host': None, 'username': None, 'to': None, 'csv': None}
 DESCRIPTION = """What is the script doing :
-   *Share sessions from project A to project B using CSV downloaded from Xnatdownload
+   *Share sessions from project A to project B using CSV downloaded from Xnatreport
 
-Script uses 'subject_label' from Xnatdownload as subjects to share
+Script uses Xnatreport for the following
+    - 'project_id' as project sharing FROM
+    - 'subject_label' as subjects to share
+    - 'session_label' as sessions to share
+    - 'session_type' as sessions type to share (MR,CT,PET,etc)
 
 Example:
     *Share from project A to project B
-        XnatShareSession --from PID1 --to PID2 --csv CSV_FILE
+        XnatShareSession --to PID2 --csv CSV_FILE
 """
 
+
+def setup_info_logger(name):
+    """
+    Using logger for the executables output.
+     Setting the information for the logger.
+
+    :param name: Name of the logger
+    :return: logging object
+    """
+    handler = logging.StreamHandler()
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    return logger
+    
 
 def main_display():
     """
@@ -58,12 +77,12 @@ def main_display():
     print('# Usage:                                                       #')
     print('#     Share sessions from project A to project B using         #')
     print('#     CSV with the following headers:                          #')
-    print('#        source_project, subject_label, session_label          #')
+    print('#      project_id, subject_label, session_label, session_type  #')
     print('# Parameters :                                                 #')
     if vars(OPTIONS) == DEFAULT_ARGUMENTS:
-        print('#     No Arguments given                                     #')
-        print('#     See the help bellow or Use "XnatShareSession" -h     \n#')
-        print('############################################################\n')
+        print('#     No Arguments given                                       #')
+        print('#     See the help below or Use "XnatShareSession -h"          #')
+        print('################################################################\n')
         PARSER.print_help()
         sys.exit()
     else:
@@ -73,18 +92,15 @@ def main_display():
         if OPTIONS.username:
             print('#     %*s -> %*s#' % (
                 -20, 'XNAT User', -33, get_proper_str(OPTIONS.username)))
-        if OPTIONS.fro:
-            print('#     %*s -> %*s#' % (
-                -20, 'Project Moving From', -33, get_proper_str(OPTIONS.fro)))
         if OPTIONS.to:
             print('#     %*s -> %*s#' % (
                 -20, 'Project Moving to', -33, get_proper_str(OPTIONS.to)))
         if OPTIONS.csv:
             print('#     %*s -> %*s#' % (
                 -20, 'File csv', -33, get_proper_str(OPTIONS.csv, True)))
-    print('##############################################################')
-    
-    
+    print('################################################################')
+
+
 def get_proper_str(str_option, end=False):
     """
     Method to shorten a string into the proper size for display
@@ -114,14 +130,11 @@ def parse_args():
                       help='Host for XNAT. Default: using $XNAT_HOST.')
     argp.add_argument('-u', '--username', dest='username', default=None,
                       help='Username for XNAT. Default: using $XNAT_USER.')
-    argp.add_argument('--from', dest='fro', default=None,
-                      help='Project to share sessions FROM')
     argp.add_argument('--to', dest='to', default=None,
                       help='Project to share sessions TO')
     argp.add_argument('--csv', dest='csv', default=None,
-                      help='CSV file with the following header: object_type,project_id,subject_label,\
-                            session_type,session_label,as_label. object_type must be \'scan\' or \'assessor\' \
-                            and as_label the scan ID or assessor label.')
+                      help='CSV file including the following in the header: project_id,subject_label,\
+                            session_type,session_label')
     return argp
 
 
@@ -131,20 +144,19 @@ def check_options():
 
     :return: True if OPTIONS are fine, False otherwise
     """
-    print("Checking Options")
-    if not OPTIONS.fro:
-        print('OPTION ERROR: Project moving from not specified. Use option --from.')
-        return false
+    LOGGER.info("Checking Options")
     if not OPTIONS.to:
-        print('OPTION ERROR: Project moving to not specified. Use option --to')
+        LOGGER.warn('ERROR: Project moving to not specified. Use option --to')
         return false
-    if OPTIONS.csv:
+    if OPTIONS.csv != None:
         if not os.path.exists(os.path.abspath(OPTIONS.csv)):
-            print('OPTION ERROR: --csv OPTION detected. csvfile %s not found.' % (os.path.abspath(OPTIONS.csv)))
+            LOGGER.info('ERROR: --csv OPTION detected. csvfile %s not found.' % (os.path.abspath(OPTIONS.csv)))
             return False
         else:
-            print('OPTION WARNING: --csv OPTION detected. Reading from the csv file.')
+            LOGGER.info('WARNING: --csv OPTION detected. Reading from the csv file.')
             return True
+    else:
+        raise Exception('ERROR: --csv OPTION not used.')
     return True
 
 
@@ -155,46 +167,48 @@ def check_project(project):
     :param project: project to download from/to
     :return: True if project exists on XNAT and is accessable
     """
-    print('Checking project exists on XNAT')
+    LOGGER.info('Checking ' + project.label() + ' project exists on XNAT')
     if not project.exists():
-        raise Exception('Project ' + project.label() + ' NOT found in XNAT')
+        raise Exception('ERROR: Project ' + project.label() + ' NOT found in XNAT')
     else:
-        print(project.label() + ' found!')
+        LOGGER.info('Project ' + project.label() + ' found!')
 
 
 def share_subj(subj,rec_proj):
     if subj.exists():
         try:
-            print('Sharing subject: ' + subj.label())
+            LOGGER.info('***********************************')
+            LOGGER.info('--Sharing subject: ' + subj.label())
             subj.insert(**{
                 'subjects':'xnat:subjectData',
                 'xnat:subjectData/sharing/share/project':rec_proj.label(),
                 'xnat:subjectData/sharing/share/label':subj.label()
                 })
-            print('Subject Created!')
+            LOGGER.info('--Subject ' + subj.label() + ' created!')
         except:
-            raise Exception('Subject exists, but encountered an error')
+            LOGGER.info('--WARNING: Subject ' + subj.label() + ' exists on sharing project')
     else:
-        print('Subject already exists: ' + subj.label())
-        
-        
+        raise Exception('ERROR: Subject ' + subj.label() + ' does not exist on sharing project')
+
+
 def share_exp(exp,rec_proj,stype):
     if exp.exists():
         try:
-            print('Sharing Experiment: ' + exp.label())
+            LOGGER.info('  --Sharing Experiment: ' + exp.label())
             exp.insert(**{
                 'experiments':'xnat:{}SessionData'.format(stype),
                 'xnat:{}SessionData/sharing/share/project'.format(stype):rec_proj.label(),
                 'xnat:{}SessionData/sharing/share/label'.format(stype):exp.label()
                 })
-            print('Experiment Created!')
+            LOGGER.info('  --Experiment ' + exp.label() + ' created!')
         except:
-            raise Exception('Experiment exists, but encountered an error')
+            LOGGER.info('  --WARNING: Experiment' + exp.label() + ' exists on sharing project')
     else:
-        print('Experiment already exists: ' + exp.label())
+        raise Exception('ERROR: Experiment ' + exp.label() + ' does not exist on sharing project')
 
 
 if __name__ == '__main__':
+    LOGGER = setup_info_logger('XnatShareSession')
     PARSER = parse_args()
     OPTIONS = PARSER.parse_args()
     main_display()
@@ -204,28 +218,33 @@ if __name__ == '__main__':
         XNAT = pyxnat.Interface(server="https://xnat.vanderbilt.edu/xnat",
                                 user=os.getlogin())
     except:
-        raise Exception('Unable to connect to XNAT')
+        raise Exception('ERROR: Unable to connect to XNAT')
 
-    send_proj = XNAT.select.project(OPTIONS.fro)
     rec_proj = XNAT.select.project(OPTIONS.to)
-
-    check_project(send_proj)
-    check_project(rec_proj)
 
     if SHOULD_RUN:
         df = pd.DataFrame(pd.read_csv(OPTIONS.csv, dtype=str))
-        subj_dict = df.set_index(['session_label','subject_label'])['session_type'].to_dict()
+        subj_dict = df.set_index(['session_label','subject_label','project_id'])['session_type'].to_dict()
 
-        print(subj_dict)
+        check_flag = 0
+        subj_list = []
 
         for key, value in subj_dict.items():
+            send_proj = XNAT.select.project(key[2])
+
+            if check_flag == 0:
+                check_project(send_proj)
+                check_project(rec_proj)
+                check_flag = 1
+
             subj = send_proj.subject(str(key[1]))
             exp = subj.experiment(str(key[0]))
             stype = str(value)
 
-            share_subj(subj,rec_proj)
-            share_exp(exp,rec_proj,stype)
+            if subj.label() not in subj_list:
+                share_subj(subj,rec_proj)
+                subj_list.append(subj.label())
 
-    print('============================================================')
+            share_exp(exp,rec_proj,stype)
 
     XNAT.disconnect()
