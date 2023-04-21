@@ -57,7 +57,8 @@ def main_display():
     print('# https://groups.google.com/forum/#!forum/vuiis-cci            #')
     print('# Usage:                                                       #')
     print('#     Share sessions from project A to project B using         #')
-    print('#     CSV downloaded from Xnatdownload                         #')
+    print('#     CSV with the following headers:                          #')
+    print('#        source_project, subject_label, session_label          #')
     print('# Parameters :                                                 #')
     if vars(OPTIONS) == DEFAULT_ARGUMENTS:
         print('#     No Arguments given                                     #')
@@ -82,8 +83,8 @@ def main_display():
             print('#     %*s -> %*s#' % (
                 -20, 'File csv', -33, get_proper_str(OPTIONS.csv, True)))
     print('##############################################################')
-
-
+    
+    
 def get_proper_str(str_option, end=False):
     """
     Method to shorten a string into the proper size for display
@@ -175,16 +176,16 @@ def share_subj(subj,rec_proj):
             raise Exception('Subject exists, but encountered an error')
     else:
         print('Subject already exists: ' + subj.label())
-
-
-def share_exp(exp,rec_proj):
+        
+        
+def share_exp(exp,rec_proj,stype):
     if exp.exists():
         try:
             print('Sharing Experiment: ' + exp.label())
             exp.insert(**{
-                'experiments':'xnat:mrSessionData',
-                'xnat:mrSessionData/sharing/share/project':rec_proj.label(),
-                'xnat:mrSessionData/sharing/share/label':exp.label()
+                'experiments':'xnat:{}SessionData'.format(stype),
+                'xnat:{}SessionData/sharing/share/project'.format(stype):rec_proj.label(),
+                'xnat:{}SessionData/sharing/share/label'.format(stype):exp.label()
                 })
             print('Experiment Created!')
         except:
@@ -212,15 +213,18 @@ if __name__ == '__main__':
     check_project(rec_proj)
 
     if SHOULD_RUN:
-        df = pd.DataFrame(pd.read_csv(OPTIONS.csv))
-        subj_dict = df.set_index('session_label')['subject_label'].to_dict()
+        df = pd.DataFrame(pd.read_csv(OPTIONS.csv, dtype=str))
+        subj_dict = df.set_index(['session_label','subject_label'])['session_type'].to_dict()
 
-        for key, value  in subj_dict.items():
-            subj = send_proj.subject(str(value))
-            exp = subj.experiment(str(key))
+        print(subj_dict)
+
+        for key, value in subj_dict.items():
+            subj = send_proj.subject(str(key[1]))
+            exp = subj.experiment(str(key[0]))
+            stype = str(value)
 
             share_subj(subj,rec_proj)
-            share_exp(exp,rec_proj)
+            share_exp(exp,rec_proj,stype)
 
     print('============================================================')
 
