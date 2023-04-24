@@ -60,7 +60,7 @@ def setup_info_logger(name):
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
     return logger
-    
+
 
 def main_display():
     """
@@ -174,14 +174,14 @@ def check_project(project):
         LOGGER.info('Project ' + project.label() + ' found!')
 
 
-def share_subj(subj,rec_proj):
+def share_subj(subj,dest_proj):
     if subj.exists():
         try:
             LOGGER.info('***********************************')
             LOGGER.info('--Sharing subject: ' + subj.label())
             subj.insert(**{
                 'subjects':'xnat:subjectData',
-                'xnat:subjectData/sharing/share/project':rec_proj.label(),
+                'xnat:subjectData/sharing/share/project':dest_proj.label(),
                 'xnat:subjectData/sharing/share/label':subj.label()
                 })
             LOGGER.info('--Subject ' + subj.label() + ' created!')
@@ -191,13 +191,13 @@ def share_subj(subj,rec_proj):
         raise Exception('ERROR: Subject ' + subj.label() + ' does not exist on sharing project')
 
 
-def share_exp(exp,rec_proj,stype):
+def share_exp(exp,dest_proj,stype):
     if exp.exists():
         try:
             LOGGER.info('  --Sharing Experiment: ' + exp.label())
             exp.insert(**{
                 'experiments':'xnat:{}SessionData'.format(stype),
-                'xnat:{}SessionData/sharing/share/project'.format(stype):rec_proj.label(),
+                'xnat:{}SessionData/sharing/share/project'.format(stype):dest_proj.label(),
                 'xnat:{}SessionData/sharing/share/label'.format(stype):exp.label()
                 })
             LOGGER.info('  --Experiment ' + exp.label() + ' created!')
@@ -220,7 +220,7 @@ if __name__ == '__main__':
     except:
         raise Exception('ERROR: Unable to connect to XNAT')
 
-    rec_proj = XNAT.select.project(OPTIONS.to)
+    dest_proj = XNAT.select.project(OPTIONS.to)
 
     if SHOULD_RUN:
         df = pd.DataFrame(pd.read_csv(OPTIONS.csv, dtype=str))
@@ -230,21 +230,21 @@ if __name__ == '__main__':
         subj_list = []
 
         for key, value in subj_dict.items():
-            send_proj = XNAT.select.project(key[2])
+            src_proj = XNAT.select.project(key[2])
 
             if check_flag == 0:
-                check_project(send_proj)
-                check_project(rec_proj)
+                check_project(src_proj)
+                check_project(dest_proj)
                 check_flag = 1
 
-            subj = send_proj.subject(str(key[1]))
+            subj = src_proj.subject(str(key[1]))
             exp = subj.experiment(str(key[0]))
             stype = str(value)
 
             if subj.label() not in subj_list:
-                share_subj(subj,rec_proj)
+                share_subj(subj,dest_proj)
                 subj_list.append(subj.label())
 
-            share_exp(exp,rec_proj,stype)
+            share_exp(exp,dest_proj,stype)
 
     XNAT.disconnect()
