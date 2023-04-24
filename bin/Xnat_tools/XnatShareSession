@@ -214,37 +214,38 @@ if __name__ == '__main__':
     main_display()
     SHOULD_RUN = check_options()
 
-    try:
-        XNAT = pyxnat.Interface(server="https://xnat.vanderbilt.edu/xnat",
-                                user=os.getlogin())
-    except:
-        raise Exception('ERROR: Unable to connect to XNAT')
+    if OPTIONS.host:
+        host = OPTIONS.host
+    else:
+        host = os.environ['XNAT_HOST']
+    user = OPTIONS.username
 
-    dest_proj = XNAT.select.project(OPTIONS.to)
+    with XnatUtils.get_interface(host=host, user=user) as XNAT:
+        dest_proj = XNAT.select.project(OPTIONS.to)
 
-    if SHOULD_RUN:
-        df = pd.DataFrame(pd.read_csv(OPTIONS.csv, dtype=str))
-        subj_dict = df.set_index(['session_label','subject_label','project_id'])['session_type'].to_dict()
+        if SHOULD_RUN:
+            df = pd.DataFrame(pd.read_csv(OPTIONS.csv, dtype=str))
+            subj_dict = df.set_index(['session_label','subject_label','project_id'])['session_type'].to_dict()
 
-        check_flag = 0
-        subj_list = []
+            check_flag = 0
+            subj_list = []
 
-        for key, value in subj_dict.items():
-            src_proj = XNAT.select.project(key[2])
+            for key, value in subj_dict.items():
+                src_proj = XNAT.select.project(key[2])
 
-            if check_flag == 0:
-                check_project(src_proj)
-                check_project(dest_proj)
-                check_flag = 1
+                if check_flag == 0:
+                    check_project(src_proj)
+                    check_project(dest_proj)
+                    check_flag = 1
 
-            subj = src_proj.subject(str(key[1]))
-            exp = subj.experiment(str(key[0]))
-            stype = str(value)
+                subj = src_proj.subject(str(key[1]))
+                exp = subj.experiment(str(key[0]))
+                stype = str(value)
 
-            if subj.label() not in subj_list:
-                share_subj(subj,dest_proj)
-                subj_list.append(subj.label())
+                if subj.label() not in subj_list:
+                    share_subj(subj,dest_proj)
+                    subj_list.append(subj.label())
 
-            share_exp(exp,dest_proj,stype)
+                share_exp(exp,dest_proj,stype)
 
     XNAT.disconnect()
