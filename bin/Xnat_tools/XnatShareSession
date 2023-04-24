@@ -36,7 +36,7 @@ DESCRIPTION = """What is the script doing :
    *Share sessions from project A to project B using CSV downloaded from Xnatreport
 
 Script uses Xnatreport for the following
-    - 'project_id' as project sharing FROM
+    - 'project_id' as source project 
     - 'subject_label' as subjects to share
     - 'session_label' as sessions to share
     - 'session_type' as sessions type to share (MR,CT,PET,etc)
@@ -94,7 +94,7 @@ def main_display():
                 -20, 'XNAT User', -33, get_proper_str(OPTIONS.username)))
         if OPTIONS.to:
             print('#     %*s -> %*s#' % (
-                -20, 'Project Moving to', -33, get_proper_str(OPTIONS.to)))
+                -20, 'Desination Project ', -33, get_proper_str(OPTIONS.to)))
         if OPTIONS.csv:
             print('#     %*s -> %*s#' % (
                 -20, 'File csv', -33, get_proper_str(OPTIONS.csv, True)))
@@ -131,7 +131,7 @@ def parse_args():
     argp.add_argument('-u', '--username', dest='username', default=None,
                       help='Username for XNAT. Default: using $XNAT_USER.')
     argp.add_argument('--to', dest='to', default=None,
-                      help='Project to share sessions TO')
+                      help='Destination project to share sessions TO')
     argp.add_argument('--csv', dest='csv', default=None,
                       help='CSV file including the following in the header: project_id,subject_label,\
                             session_type,session_label')
@@ -146,7 +146,7 @@ def check_options():
     """
     LOGGER.info("Checking Options")
     if not OPTIONS.to:
-        LOGGER.warn('ERROR: Project moving to not specified. Use option --to')
+        LOGGER.warn('ERROR: Destination project not specified. Use option --to')
         return false
     if OPTIONS.csv != None:
         if not os.path.exists(os.path.abspath(OPTIONS.csv)):
@@ -186,9 +186,9 @@ def share_subj(subj,dest_proj):
                 })
             LOGGER.info('--Subject ' + subj.label() + ' created!')
         except:
-            LOGGER.info('--WARNING: Subject ' + subj.label() + ' exists on sharing project')
+            LOGGER.info('--WARNING: Subject ' + subj.label() + ' exists on destination project')
     else:
-        raise Exception('ERROR: Subject ' + subj.label() + ' does not exist on sharing project')
+        raise Exception('ERROR: Subject ' + subj.label() + ' does not exist on source project')
 
 
 def share_exp(exp,dest_proj,stype):
@@ -202,9 +202,9 @@ def share_exp(exp,dest_proj,stype):
                 })
             LOGGER.info('  --Experiment ' + exp.label() + ' created!')
         except:
-            LOGGER.info('  --WARNING: Experiment' + exp.label() + ' exists on sharing project')
+            LOGGER.info('  --WARNING: Experiment' + exp.label() + ' exists on destination project')
     else:
-        raise Exception('ERROR: Experiment ' + exp.label() + ' does not exist on sharing project')
+        raise Exception('ERROR: Experiment ' + exp.label() + ' does not exist on source project')
 
 
 if __name__ == '__main__':
