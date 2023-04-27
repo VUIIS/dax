@@ -180,8 +180,10 @@ if __name__ == '__main__':
                     scans = XNAT.get_scans(OPTIONS.project, subject['label'], session['label'])
                     df = pd.DataFrame(scans)
                     df = df[['subject_label','session_label','scan_type','scan_label']]
+                    LOGGER.info('*******************************************')
                     if OPTIONS.scan in df['scan_type'].unique():
-                        print(session['session_label'] + ' already contains scan type ' + OPTIONS.scan)
-                        pass
+                        LOGGER.info(session['session_label'] + ' already contains scan type ' + OPTIONS.scan)
                     else:
+                        LOGGER.info(session['session_label'] + ' is missing scan type ' + OPTIONS.scan)
+                        LOGGER.info('Repushing ' + OPTIONS.scan + ' to ' + session['session_label'])
                         print('THIS IS WHERE WE REPUSH WHATEVER SCAN')
