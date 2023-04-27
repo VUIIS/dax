@@ -1,0 +1,184 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+'''
+Repush project examcards from PACS that are missing on XNAT 
+
+Created April 26th, 2023
+
+@author: William Duett, VUIIS CCI, Vanderbilt University
+'''
+
+# Libraries
+import csv
+import logging
+import os
+import pandas as pd
+import pyxnat
+import re
+import shutil
+import sys
+import time
+
+from dax import XnatUtils
+
+DEFAULT_ARGUMENTS = {'host': None, 'username': None, 'proj': None}
+DESCRIPTION = """What is the script doing :
+   *Repush project examcards from PACS that are missing on XNAT
+
+Example:
+    *Push all missing scans from given project
+        examcard_repush --proj PID
+"""
+
+
+def setup_info_logger(name):
+    """
+    Using logger for the executables output.
+     Setting the information for the logger.
+
+    :param name: Name of the logger
+    :return: logging object
+    """
+    handler = logging.StreamHandler()
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    return logger
+
+
+def parse_args():
+    """
+    Method to parse arguments base on ArgumentParser
+
+    :return: parser object
+    """
+    from argparse import ArgumentParser, RawDescriptionHelpFormatter
+    argp = ArgumentParser(prog='examcard_repush', description=DESCRIPTION,
+                          formatter_class=RawDescriptionHelpFormatter)
+    argp.add_argument('--host', dest='host', default=None,
+                      help='Host for XNAT. Default: using $XNAT_HOST.')
+    argp.add_argument('-u', '--username', dest='username', default=None,
+                      help='Username for XNAT. Default: using $XNAT_USER.')
+    argp.add_argument('--proj', dest='project', default=None,
+                      help='Project to repush examcards')
+    return argp
+
+
+def check_options():
+    """
+    Method to check the options specified by the user
+
+    :return: True if OPTIONS are fine, False otherwise
+    """
+    if not OPTIONS.project:
+        LOGGER.warn('ERROR: Project not specified. Use option --proj')
+        return false
+    return True
+
+
+def check_project(project):
+    """
+    Method to check if the user has access to the project on XNAT
+
+    :param project: project to download from/to
+    :return: True if project exists on XNAT and is accessable
+    """
+    LOGGER.info('Checking ' + project.label() + ' project exists on XNAT')
+    if not project.exists():
+        raise Exception('ERROR: Project ' + str(project) + ' NOT found in XNAT')
+    else:
+        LOGGER.info('Project ' + project.label() + ' found!')
+        
+        
+def main_display():
+    """
+    Main display of the executables before any process
+
+    :return: None
+    """
+    print('################################################################')
+    print('#                       EXAMCARD_REPUSH                        #')
+    print('#                                                              #')
+    print('# Developed by the MASI Lab Vanderbilt University, TN, USA.    #')
+    print('# If issues, please start a thread here:                       #')
+    print('# https://groups.google.com/forum/#!forum/vuiis-cci            #')
+    print('# Usage:                                                       #')
+    print('#     Repush project examcards from PACS that are missing      #')
+    print('#       on XNAT                                                #')
+    print('# Parameters :                                                 #')
+    if vars(OPTIONS) == DEFAULT_ARGUMENTS:
+        print('#     No Arguments given                                       #')
+        print('#     See the help below or Use "XnatShareSession -h"          #')
+        print('################################################################\n')
+        PARSER.print_help()
+        sys.exit()
+    else:
+        if OPTIONS.host:
+            print('#     %*s -> %*s#' % (
+                -20, 'XNAT Host', -33, get_proper_str(OPTIONS.host)))
+        if OPTIONS.username:
+            print('#     %*s -> %*s#' % (
+                -20, 'XNAT User', -33, get_proper_str(OPTIONS.username)))
+        if OPTIONS.project:
+            print('#     %*s -> %*s#' % (
+                -20, 'Project ', -33, get_proper_str(OPTIONS.project)))
+    print('################################################################')
+
+
+def get_proper_str(str_option, end=False):
+    """
+    Method to shorten a string into the proper size for display
+
+    :param str_option: string to shorten
+    :param end: keep the end of the string visible (default beginning)
+    :return: shortened string
+    """
+    if len(str_option) > 32:
+        if end:
+            return '...' + str_option[-29:]
+        else:
+            return str_option[:29] + '...'
+    else:
+        return str_option
+
+
+if __name__ == '__main__':
+    LOGGER = setup_info_logger('examcard_repush')
+    PARSER = parse_args()
+    OPTIONS = PARSER.parse_args()
+    main_display()
+    SHOULD_RUN = check_options()
+
+    if SHOULD_RUN:
+        if OPTIONS.host:
+            host = OPTIONS.host
+        else:
+            host = os.environ['XNAT_HOST']
+        user = OPTIONS.username
+
+        with XnatUtils.get_interface(host=host, user=user) as XNAT:
+            repush_proj = XNAT.select.project(OPTIONS.project)
+
+            check_project(repush_proj)
+
+            subjects = XNAT.get_subjects(OPTIONS.project)
+
+            ignore_dict = {}
+            repush_dict = {}
+
+            for subject in subjects:
+                scan_flag = 0
+                sessions = XNAT.get_sessions(OPTIONS.project, subject['label'])
+                for session in sessions:
+                    scans = XNAT.get_scans(OPTIONS.project, subject['label'], session['label'])
+                    for scan in scans:
+#                        if scan['scan_type'] == 'unknown':
+#                            ignore_dict[scan['subject_label']] = scan['session_label']
+#                            print(ignore_dict)
+#                            print('*************')
+                        repush_dict[scan['subject_label'],scan['scan_type']] = scan['session_label']
+
+            for key, value in repush_dict.items():
+                if key[1] == 'unknown':
+                    print(key[0])
