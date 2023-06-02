@@ -675,7 +675,7 @@ the assessors from -t you changed are inputs to those assessors."
     parser.add_argument("--fullRegex", dest="full_regex", action='store_true',
                         help="Use full regex for filtering data.")
     _h = "Restart all assessors of a given process type by switching the \
-xnat status to NEED_TO_RUN and delete previous resources."
+xnat status to NEED_TO_RUN and delete previous resources. When former status is not provided by user, assessors with COMPLETE status are restarted by default "
     parser.add_argument("--restart", dest="restart", action='store_true',
                         help=_h)
     _h = "Rerun the assessors by switching status to NEED_TO_RUN for \
