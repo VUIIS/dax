@@ -11,6 +11,9 @@ Created on April 13th, 2023
 
 # Libraries
 import csv
+from dax import XnatUtils
+from dax.errors import XnatToolsError, XnatToolsUserError
+import dax.xnat_tools_utils as utils
 import logging
 import os
 import pandas as pd
@@ -33,7 +36,7 @@ ASSESSOR_HEADER = ['object_type', 'project_id', 'subject_label',
                    'procstatus', 'qcstatus', 'resource', 'fpath']
 DEFAULT_ARGUMENTS = {'host': None, 'username': None, 'to': None, 'csv': None}
 DESCRIPTION = """What is the script doing :
-   *Share sessions from project A to project B using CSV downloaded from Xnatreport
+   *Share sessions from source project to destination project using CSV downloaded from Xnatreport
 
 Script uses Xnatreport for the following
     - 'project_id' as source project 
@@ -42,8 +45,8 @@ Script uses Xnatreport for the following
     - 'session_type' as sessions type to share (MR,CT,PET,etc)
 
 Example:
-    *Share from project A to project B
-        XnatShareSession --to PID2 --csv CSV_FILE
+    *Share from source project to destination project
+        XnatShareSession --to PID --csv CSV_FILE
 """
 
 
@@ -94,7 +97,7 @@ def main_display():
                 -20, 'XNAT User', -33, get_proper_str(OPTIONS.username)))
         if OPTIONS.to:
             print('#     %*s -> %*s#' % (
-                -20, 'Desination Project ', -33, get_proper_str(OPTIONS.to)))
+                -20, 'Destination Project ', -33, get_proper_str(OPTIONS.to)))
         if OPTIONS.csv:
             print('#     %*s -> %*s#' % (
                 -20, 'File csv', -33, get_proper_str(OPTIONS.csv, True)))
@@ -174,23 +177,6 @@ def check_project(project):
         LOGGER.info('Project ' + project.label() + ' found!')
 
 
-def share_subj(subj,dest_proj):
-    if subj.exists():
-        try:
-            LOGGER.info('***********************************')
-            LOGGER.info('--Sharing subject: ' + subj.label())
-            subj.insert(**{
-                'subjects':'xnat:subjectData',
-                'xnat:subjectData/sharing/share/project':dest_proj.label(),
-                'xnat:subjectData/sharing/share/label':subj.label()
-                })
-            LOGGER.info('--Subject ' + subj.label() + ' created!')
-        except:
-            LOGGER.info('--WARNING: Subject ' + subj.label() + ' exists on destination project')
-    else:
-        raise Exception('ERROR: Subject ' + subj.label() + ' does not exist on source project')
-
-
 def share_exp(exp,dest_proj,stype):
     if exp.exists():
         try:
@@ -202,7 +188,7 @@ def share_exp(exp,dest_proj,stype):
                 })
             LOGGER.info('  --Experiment ' + exp.label() + ' created!')
         except:
-            LOGGER.info('  --WARNING: Experiment' + exp.label() + ' exists on destination project')
+            LOGGER.info('  --WARNING: Experiment ' + exp.label() + ' exists on destination project')
     else:
         raise Exception('ERROR: Experiment ' + exp.label() + ' does not exist on source project')
 
