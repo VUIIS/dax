@@ -177,6 +177,23 @@ def check_project(project):
         LOGGER.info('Project ' + project.label() + ' found!')
 
 
+def share_subj(subj,dest_proj):
+    if subj.exists():
+        try:
+            LOGGER.info('***********************************')
+            LOGGER.info('--Sharing subject: ' + subj.label())
+            subj.insert(**{
+                'subjects':'xnat:subjectData',
+                'xnat:subjectData/sharing/share/project':dest_proj.label(),
+                'xnat:subjectData/sharing/share/label':subj.label()
+                })
+            LOGGER.info('--Subject ' + subj.label() + ' created!')
+        except:
+            LOGGER.info('--WARNING: Subject ' + subj.label() + ' exists on destination project')
+    else:
+        raise Exception('ERROR: Subject ' + subj.label() + ' does not exist on source project')
+
+
 def share_exp(exp,dest_proj,stype):
     if exp.exists():
         try:
