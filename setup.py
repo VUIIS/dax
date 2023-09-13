@@ -124,16 +124,16 @@ REQUIRES = [
     'pyxnat>=%s' % PYXNAT_MIN_VERSION,
     'pyyaml',
     'pycap',
-    'nibabel',
     'fpdf2',
     'PyPDF2',
-    'cubids-bond-fork',
     'yamale']
 
 DOCS_REQUIRES = [
     'Sphinx>=%s' % SPHINX_MIN_VERSION]
 
 TESTS_REQUIRES = ['nose']
+
+BIDS_REQUIRES = ['cubids-bond-fork', 'nibabel']
 
 
 if __name__ == '__main__':
@@ -161,5 +161,6 @@ if __name__ == '__main__':
           scripts=glob(os.path.join('bin', '*', '*')),
           classifiers=CLASSIFIERS,
           extras_require={
-              'docs': DOCS_REQUIRES
+              'docs': DOCS_REQUIRES,
+              'bids': BIDS_REQUIRES,
           })
