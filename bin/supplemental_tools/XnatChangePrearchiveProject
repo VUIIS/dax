@@ -10,6 +10,7 @@ import pyxnat
 import re
 import requests
 import sys
+import time
 
 
 def parse_args():
@@ -24,8 +25,8 @@ if __name__ == '__main__':
     OPTIONS = PARSER.parse_args()
 
     xnat = XnatUtils.get_interface()
-
-    request_uri = '/data/services/prearchive/move'
+    archive_uri = '/data/services/archive'
+    prearchive_uri = '/data/services/prearchive/move'
     txtFile = open(OPTIONS.txtFile, 'r')
     lines = txtFile.readlines()
 
@@ -40,6 +41,10 @@ if __name__ == '__main__':
                         value_dict = dict(x)
                         if line.strip() in x['url']:
                             url = x['url']
+                            subject = x['subject']
                             print('Moving Session {} to project {}'.format(line.strip(),OPTIONS.newProj))
                             post_body = """src={}&newProject={}&async=false""".format(url,OPTIONS.newProj)
-                            xnat._exec(request_uri,'POST',post_body,{'content-type': 'application/x-www-form-urlencoded'})
+                            xnat._exec(prearchive_uri,'POST',post_body,{'content-type': 'application/x-www-form-urlencoded'})
+                            time.sleep(10)
+                            post_body = """src={}&project={}&subject={}&session={}""".format(url,OPTIONS.newProj,subject,subject)
+                            xnat._exec(archive_uri,'POST',post_body,{'content-type': 'application/x-www-form-urlencoded'})
