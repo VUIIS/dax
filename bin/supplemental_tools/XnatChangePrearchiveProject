@@ -34,17 +34,20 @@ if __name__ == '__main__':
     req_con = json.loads(req.content)
 
     for line in lines:
-        if line.strip() in req.text:
+        splitLine = line.split()
+        sess_id = splitLine[2].strip()
+        if sess_id in req.text:
             for key, value in req_con.items():
                 for ke, va in value.items():
                     for x in va:
                         value_dict = dict(x)
-                        if line.strip() in x['url']:
+                        if sess_id in x['url']:
                             url = x['url']
-                            subject = x['subject']
-                            print('Moving Session {} to project {}'.format(line.strip(),OPTIONS.newProj))
+                            subject = splitLine[0].strip()
+                            session = splitLine[1].strip()
+                            print('Moving Session {} to project {}'.format(sess_id,OPTIONS.newProj))
                             post_body = """src={}&newProject={}&async=false""".format(url,OPTIONS.newProj)
                             xnat._exec(prearchive_uri,'POST',post_body,{'content-type': 'application/x-www-form-urlencoded'})
-                            time.sleep(10)
-                            post_body = """src={}&project={}&subject={}&session={}""".format(url,OPTIONS.newProj,subject,subject)
+                            time.sleep(20)
+                            post_body = """src={}&project={}&subject={}&session={}""".format(url,OPTIONS.newProj,subject,session)
                             xnat._exec(archive_uri,'POST',post_body,{'content-type': 'application/x-www-form-urlencoded'})
