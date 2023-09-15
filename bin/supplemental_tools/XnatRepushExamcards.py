@@ -56,7 +56,6 @@ if __name__ == '__main__':
                                 res = requests.post(url)
                                 print('*****************************')
                                 print(patient_id[1])
-                                f.write(patient_id[1] + '\n')
-                                print(url)
+                                f.write(session['subject_label'] + ' ' + session['session_label'] + ' ' + patient_id[1] + '\n')
 
     f.close()
