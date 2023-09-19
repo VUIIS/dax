@@ -563,7 +563,7 @@ def upload_resource(assessor_obj, resource, resource_path):
         rfiles_list = os.listdir(resource_path)
         if not rfiles_list:
             LOGGER.warn('No files in {}'.format(resource_path))
-        elif len(rfiles_list) > 1 or os.path.isdir(rfiles_list[0]):
+        elif len(rfiles_list) > 1 or os.path.isdir(os.path.join(resource_path, rfiles_list[0])):
             try:
                 XnatUtils.upload_folder_to_obj(
                     resource_path, assessor_obj.out_resource(resource),
