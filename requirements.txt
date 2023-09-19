@@ -1,8 +1,6 @@
 pyxnat
 pyyaml
-pycap==1.1.3
-nibabel
+pycap
 fpdf2
 PyPDF2
-cubids-bond-fork
-pandas==1.1.5
+pandas
