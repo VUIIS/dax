@@ -124,7 +124,7 @@ REQUIRES = [
     'pyxnat>=%s' % PYXNAT_MIN_VERSION,
     'pyyaml',
     'pycap',
-    'pandas,
+    'pandas',
     'fpdf2',
     'PyPDF2',
     'yamale']
