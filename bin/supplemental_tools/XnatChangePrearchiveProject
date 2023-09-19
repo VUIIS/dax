@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from dax import XnatUtils
+import json
+import os
+import pandas as pd
+import pyxnat
+import re
+import requests
+import sys
+import time
+
+
+def parse_args():
+    argp = ArgumentParser(prog='SwitchProjects', formatter_class=RawDescriptionHelpFormatter)
+    argp.add_argument('--newProj', dest='newProj', default=None, help='Project we want to move to')
+    argp.add_argument('--txt', dest='txtFile', default=None, help='List of sessions that we want to move')
+    return argp
+
+
+if __name__ == '__main__':
+    PARSER = parse_args()
+    OPTIONS = PARSER.parse_args()
+
+    xnat = XnatUtils.get_interface()
+    archive_uri = '/data/services/archive'
+    prearchive_uri = '/data/services/prearchive/move'
+    txtFile = open(OPTIONS.txtFile, 'r')
+    lines = txtFile.readlines()
+
+    req = requests.get("https://xnat.vanderbilt.edu/xnat/data/prearchive/projects")
+    req_con = json.loads(req.content)
+
+    for line in lines:
+        splitLine = line.split()
+        sess_id = splitLine[2].strip()
+        if sess_id in req.text:
+            for key, value in req_con.items():
+                for ke, va in value.items():
+                    for x in va:
+                        value_dict = dict(x)
+                        if sess_id in x['url']:
+                            url = x['url']
+                            subject = splitLine[0].strip()
+                            session = splitLine[1].strip()
+                            print('Moving Session {} to project {}'.format(sess_id,OPTIONS.newProj))
+                            post_body = """src={}&newProject={}&async=false""".format(url,OPTIONS.newProj)
+                            xnat._exec(prearchive_uri,'POST',post_body,{'content-type': 'application/x-www-form-urlencoded'})
+                            time.sleep(20)
+                            post_body = """src={}&project={}&subject={}&session={}""".format(url,OPTIONS.newProj,subject,session)
+                            xnat._exec(archive_uri,'POST',post_body,{'content-type': 'application/x-www-form-urlencoded'})
