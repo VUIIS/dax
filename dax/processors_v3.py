@@ -1855,7 +1855,24 @@ class SgpProcessor(Processor_v3):
         sessions = self.xnat_inputs.get('sessions', list())
 
         for sess in sessions:
-            sesstypes = [_.strip() for _ in sess['types'].split(',')]
+            select = sess.get('select', None)
+
+            if 'types' in sess:
+                sesstypes = [_.strip() for _ in sess['types'].split(',')]
+            else:
+                sesstypes = []
+
+            if 'tracers' in sess:
+                tracers = [_.strip() for _ in sess['tracers'].split(',')]
+            elif 'tracer' in sess:
+                tracers = [_.strip() for _ in sess['tracer'].split(',')]
+            else:
+                tracers = []
+
+            if 'types' in sess:
+                sesstypes = [_.strip() for _ in sess['types'].split(',')]
+            else:
+                sesstypes = []
 
             # get scans
             scans = sess.get('scans', list())
@@ -1889,6 +1906,8 @@ class SgpProcessor(Processor_v3):
                 keep_multis = s.get('keep_multis', 'all')
 
                 self.proc_inputs[name] = {
+                    'tracers': tracers,
+                    'select': select,
                     'sesstypes': sesstypes,
                     'types': types,
                     'artefact_type': 'scan',
@@ -1914,6 +1933,7 @@ class SgpProcessor(Processor_v3):
                 artefact_required = artefact_required or r['required']
 
                 self.proc_inputs[name] = {
+                    'select': select,
                     'sesstypes': sesstypes,
                     'types': types,
                     'artefact_type': 'assessor',
