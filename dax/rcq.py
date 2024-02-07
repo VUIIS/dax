@@ -1,9 +1,6 @@
 """ rcq implements a job queue for DAX in REDCap. Launch/Update/Finish, no build or upload here."""
 
-import traceback
-import sys
 import os
-import time
 import logging
 import json
 import subprocess
@@ -11,7 +8,6 @@ from datetime import date
 import shutil
 
 from .processors import load_from_yaml
-from .launcher import Launcher
 from .dax_manager import get_this_instance
 from .cluster import PBS, count_jobs
 from .lockfiles import lock_flagfile, unlock_flagfile
@@ -25,7 +21,7 @@ SUBDIRS = ['OUTLOG', 'PBS', 'PROCESSOR']
 
 
 # TODO: handle analysis job that only needs to be launched/updated but not
-# uploaded. The job will upload it's own output. so when it's "completed" it's 
+# uploaded. The job will upload it's own output. so when it's "completed" it's
 # done. On finish we just need to update on redcap and delete from disk.
 # Does Analysis job have a taskqueue entry or is job information stored in
 # Analysis table?
@@ -42,7 +38,7 @@ def load_instance_settings(rc):
 
 
 def launch(task):
-    """Launch a task as SLURM Job, writes batch files and submits. Returns SLURM job id."""
+    """Launch task as SLURM Job, write batch and submit. Return job id."""
     assr = task['task_assessor']
     outdir = task['outdir']
     walltime = task['task_walltime']
@@ -120,8 +116,8 @@ def save_file(project, record_id, event_id, repeat_id, field_id, outdir):
             repeat_instance=repeat_id)
 
         if cont == '':
-            raise redcap.RedcapError
-    except redcap.RedcapError as err:
+            raise Exception('error exporting file from REDCap')
+    except Exception as err:
         logging.error(f'downloading file:{err}')
         return None
 
@@ -147,7 +143,7 @@ def make_task_dirs(taskdir):
 
 
 def update_info(projects_redcap, task):
-    """Update information about given task from local SLURM to REDCap project."""
+    """Update information about given task from local SLURM to REDCap."""
     assr = task['task_assessor']
     task_updates = {}
 
@@ -200,7 +196,7 @@ def update_info(projects_redcap, task):
 
         logger.debug(f'updating task info on redcap:{assr}:{task_updates}')
         try:
-            response = projects_redcap.import_records([task_updates])
+            projects_redcap.import_records([task_updates])
         except Exception as err:
             logger.error(err)
     else:
@@ -270,8 +266,8 @@ def update(projects_redcap, instance_redcap):
         # Get the current task table
         logger.info('loading current taskqueue records')
         rec = projects_redcap.export_records(
-                forms=['taskqueue'],
-                fields=[projects_redcap.def_field])
+            forms=['taskqueue'],
+            fields=[projects_redcap.def_field])
 
         # Filter to only open jobs
         rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
@@ -432,7 +428,7 @@ def update(projects_redcap, instance_redcap):
             # upload changes
             logger.debug(f'updating redcap:{updates}')
             try:
-                response = projects_redcap.import_records(updates)
+                projects_redcap.import_records(updates)
             except Exception as err:
                 err = 'connection to REDCap interrupted'
                 logger.error(err)

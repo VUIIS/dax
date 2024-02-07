@@ -163,8 +163,8 @@ runs build, launch, update and upload.'
         dest='file', help='File to be validated')
 
     # rcq:
-    rcq_desc = 'rcq update'
-    rcq_parser = dax_parser.add_parser('rcq', help=rcq_desc)
+    rcq_desc = 'Update REDCap Queue by launching, updating, finishing jobs'
+    dax_parser.add_parser('rcq', help=rcq_desc)
 
     # version:
     version_desc = 'Print dax version.'
