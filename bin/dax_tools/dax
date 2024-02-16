@@ -271,5 +271,17 @@ if __name__ == '__main__':
         except Exception as err:
             print('rcq failed!', err)
 
+    elif args.command == 'rcqsync':
+        enable_stdout()
+
+        projects_redcap = redcap.Project(
+            os.environ['API_URL'],
+            os.environ['API_KEY_DAX_RCQ'])
+        try:
+            print('rcq sync!')
+            rcq.sync(projects_redcap)
+        except Exception as err:
+            print('rcqsync failed!', err)
+
     elif args.command == 'version':
         print(dax.__version__)
