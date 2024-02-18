@@ -163,7 +163,7 @@ def _update_project(projects_redcap, xnat, project, yamldir, tmpdir):
     project_data['sgp'] = _load_sgp_data(xnat, project)
 
     # Iterate processing protocols
-    for i, row in protocols.iterrows():
+    for i, row in enumerate(protocols):
         filepath = row['FILE']
 
         logger.info(f'file:{project}:{filepath}')
