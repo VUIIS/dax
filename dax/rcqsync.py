@@ -30,9 +30,10 @@ def update(projects_redcap, xnat):
     rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
     rec = [x for x in rec if x['task_status'] == 'UPLOADING']
 
-    # Load assesssor data from XNAT as our current status
-    logger.debug('loading XNAT data')
     projects = list(set([x[projects_redcap.def_field] for x in rec]))
+
+    # Load assesssor data from XNAT as our current status
+    logger.debug(f'loading XNAT data:{projects}')
     assr_data = XnatUtils.load_assr_data(xnat, projects)
     sgp_data = XnatUtils.load_sgp_data(xnat, ','.join(projects))
 
