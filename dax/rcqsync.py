@@ -26,8 +26,6 @@ def update(projects_redcap, xnat):
         forms=['taskqueue'],
         fields=[projects_redcap.def_field])
 
-    print(rec)
-
     projects = list(set([x[projects_redcap.def_field] for x in rec]))
 
     # Filter to only uploading jobs
