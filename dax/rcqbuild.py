@@ -418,7 +418,7 @@ def _load_sgp_data(xnat, project):
     uri += f'&project={project}'
 
     logging.debug(f'get_result uri=:{uri}')
-    result = _get_result(uri)
+    result = _get_result(xnat, uri)
 
     for r in result:
         assessors.append(_sgp_info(r))
