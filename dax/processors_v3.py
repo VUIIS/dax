@@ -1,5 +1,6 @@
 import logging
 import re
+import fnmatch
 import os
 import json
 import requests
@@ -765,6 +766,29 @@ class Processor_v3(object):
         # (set of inputs, existing assessors for these inputs)
         return list(assessor_parameter_map)
 
+    def parse_session_pd(self, session, project_data):
+        LOGGER.debug(f'parsing session with project data:{session}')
+        """
+        Parse a session to determine what assessors *should* exist for
+        this processor
+        """
+
+        artefacts_by_input = self._map_inputs(session, project_data)
+        LOGGER.debug(f'artefacts_by_input={artefacts_by_input}')
+
+        param_sets = self._generate_parameter_matrix_pd(artefacts_by_input)
+        LOGGER.debug(f'parameter_matrix={param_sets}')
+
+        # Apply filters (e.g., remove parameter sets where inputs don't match)
+        artefact_inputs = {}
+        for i, a in project_data['assessors'].iterrows():
+            artefact_inputs[a['full_path']] = a['INPUTS']
+
+        param_sets = self._filter_matrix(param_sets, artefact_inputs)
+        LOGGER.debug(f'filtered={param_sets}')
+
+        return param_sets
+
     def get_container_path(self, name):
         cpath = None
 
@@ -938,6 +962,138 @@ class Processor_v3(object):
 
         return variable_set, input_list
 
+    def find_inputs_pd(self, assr, inputs, project_data):
+        """
+        Find the files or directories on xnat for the inputs
+
+        takes an assessor, its input artefacts, its relevant sessions
+        and returns the full paths to the input files/directories
+
+        :param assr:
+        :param sessions:
+        :param assr_inputs:
+
+        :return: variable_set, input_list:
+
+        """
+        variable_set = {}
+        input_list = []
+
+        # This will raise a NeedInputs exception if any inputs aren't ready
+        verify_artefact_status(self.proc_inputs, inputs, project_data)
+
+        LOGGER.debug(self.variables_to_inputs.items())
+
+        # Map from parameters to input resources
+        LOGGER.debug('mapping params to artefact resources')
+        for k, v in list(self.variables_to_inputs.items()):
+            LOGGER.debug('mapping:' + k, v)
+            inp = self.proc_inputs[v['input']]
+            resource = v['resource']
+
+            LOGGER.debug('vinput={}'.format(v['input']))
+            LOGGER.debug(f'resource={resource}')
+            LOGGER.debug(inp['resources'])
+
+            # Find the resource
+            cur_res = None
+            for inp_res in inp['resources']:
+                if inp_res['varname'] == k:
+                    cur_res = inp_res
+                    break
+
+            # TODO: optimize this to get resource list only once
+            for vnum, vinput in enumerate(inputs[v['input']]):
+                # print(vnum, vinput)
+                fname = None
+                robj = get_resource(assr._intf, vinput, resource)
+
+                # Get list of all files in the resource, relative paths
+                file_list = [x._urn for x in robj.files().get('path')]
+                if len(file_list) == 0:
+                    LOGGER.debug('empty or missing resource')
+                    raise NeedInputsException('No Resource')
+
+                if 'fmatch' in cur_res:
+                    fmatch = cur_res['fmatch']
+                elif cur_res['ftype'] == 'FILE':
+                    # Default to all
+                    fmatch = '*'
+                else:
+                    fmatch = None
+
+                if 'filepath' in cur_res:
+                    fpath = cur_res['filepath']
+                    res_path = resource + '/files/' + fpath
+
+                    # Get base file name to be downloaded
+                    fname = os.path.basename(fpath)
+                elif fmatch:
+                    # Filter list based on regex matching
+                    regex = re.compile(fnmatch.translate(fmatch))
+                    file_list = [x for x in file_list if regex.match(x)]
+
+                    if len(file_list) == 0:
+                        LOGGER.debug('no matching files found on resource')
+                        raise NeedInputsException('No Files')
+
+                    if len(file_list) > 1:
+                        # Multiple files found, we only support explicit
+                        # declaration of fmulti==any1, which tells dax to use
+                        # any of the multiple files. We may later support
+                        # other options
+
+                        if 'fmulti' in cur_res and cur_res['fmulti'] == 'any1':
+                            LOGGER.debug('multiple files, fmulti==any1, using first found')
+                        else:
+                            LOGGER.debug('multiple files, fmulti not set')
+                            raise NeedInputsException(artk + ': multiple files')
+
+                    # Create the full path to the file on the resource
+                    res_path = '{}/files/{}'.format(resource, file_list[0])
+
+                    # Get just the filename for later
+                    fname = os.path.basename(file_list[0])
+                else:
+                    # We want the whole resource
+                    res_path = resource + '/files'
+
+                    # Get just the resource name for later
+                    fname = resource
+
+                variable_set[k] = get_uri(assr._intf.host, vinput, res_path)
+
+                if 'fdest' not in cur_res:
+                    # Use the original file/resource name
+                    fdest = fname
+                elif len(inputs[v['input']]) > 1:
+                    fdest = str(vnum) + cur_res['fdest']
+                else:
+                    fdest = cur_res['fdest']
+
+                if 'ddest' in cur_res:
+                    ddest = cur_res['ddest']
+                else:
+                    ddest = ''
+
+                # Append to inputs to be downloaded
+                input_list.append(
+                    {
+                        'fdest': fdest,
+                        'ftype': cur_res['ftype'],
+                        'fpath': variable_set[k],
+                        'ddest': ddest,
+                    }
+                )
+
+                # Replace path with destination path after download
+                if 'varname' in cur_res:
+                    variable_set[k] = fdest
+
+        LOGGER.debug('finished mapping params to artefact resources')
+
+        return variable_set, input_list
+
     def _parse_xnat_inputs(self):
         # Get the xnat attributes
         # TODO: validate these
@@ -972,7 +1128,7 @@ class Processor_v3(object):
                 artefact_required = artefact_required or r['required']
 
             needs_qc = s.get('needs_qc', False)
-            
+
             # Require scan is explicitly marked usable?
             require_usable = s.get('require_usable', False)
 
@@ -1030,14 +1186,19 @@ class Processor_v3(object):
             types = [x.strip() for x in p['scantypes'].split(',')]
             tracer = [x.strip() for x in p['tracer'].split(',')]
 
-            resources = p.get('resources')
+            resources = p.get('resources', [])
+
+            if 'nifti' in p:
+                # Add a NIFTI resource using value as fdest
+                resources.append(
+                    {'resource': 'NIFTI', 'fdest': p['nifti']})
 
             self.proc_inputs[name] = {
                 'types': types,
                 'artefact_type': 'scan',
                 'needs_qc': p.get('needs_qc', False),
                 'require_usable': p.get('require_usable', False),
-                'resources': p.get('resources', []),
+                'resources': resources,
                 'required': True,
                 'tracer': tracer,
             }
@@ -1047,6 +1208,115 @@ class Processor_v3(object):
 
         self._populate_proc_inputs()
         self._parse_variables()
+
+    def _get_petscans(self, session, project_data):
+        petscans = []
+        scans = project_data.get('scans')
+        subject = ''
+
+        for s in scans.to_dict('records'):
+            if s['SESSION'] == session:
+                subject = s['SUBJECT']
+                break
+
+        if subject:
+            petscans = scans[(scans.SUBJECT == subject) & (scans.XSITYPE == 'xnat:petSessionData')].to_dict('records')
+
+        return petscans
+
+    def is_first_mr_session(self, session, project_data):
+        is_first = True
+
+        # Get the sessions/dates for this subject
+        _dfs = project_data.get('scans')
+        subject = _dfs[_dfs.SESSION == session].iloc[0]['SUBJECT']
+        logger.debug(f'is_first_mr_session:{session}:{subject}:getting scans')
+        scans = _dfs[(_dfs.SUBJECT == subject) & (_dfs.XSITYPE == 'xnat:mrSessionData')]
+        scans = scans.sort_values('DATE')
+
+        # Check if this is the first
+        if not scans.empty and scans.iloc[0].SESSION != session:
+            logger.debug(f'is_first_mr_session:{session}:nope')
+            is_first = False
+
+        return is_first
+
+    def _map_inputs(self, session, project_data):
+        inputs = self.proc_inputs
+        artefacts_by_input = {k: [] for k in inputs}
+
+        # Get lists for scans/assrs for this session
+        LOGGER.debug('prepping session data')
+        _dfs = project_data.get('scans')
+        scans = _dfs[_dfs.SESSION == session].to_dict('records')
+        _dfa = project_data.get('assessors')
+        assrs = _dfa[_dfa.SESSION == session].to_dict('records')
+
+        petscans = []
+        # if this is the first mri, add scans
+        if self.is_first_mr_session(session, project_data):
+            LOGGER.debug(f'is first mri, adding pets:{session}')
+            petscans = self._get_petscans(session, project_data)
+
+        LOGGER.debug('matching artefacts')
+        # Find list of scans/assessors that match each specified input
+        # for i, iv in list(inputs.items()):
+        for i, iv in sorted(inputs.items()):
+            if 'tracer' in iv and iv['tracer']:
+                # PET scan
+                for p in petscans:
+                    # Match the tracer name
+                    tracer_name = p['TRACER']
+                    tracer_match = False
+                    for expression in iv['tracer']:
+                        regex = re.compile(fnmatch.translate(expression))
+                        if regex.match(tracer_name):
+                            # found a match so exit the loop
+                            tracer_match = True
+                            break
+
+                    if not tracer_match:
+                        # None of the expressions matched
+                        continue
+
+                    # Now try to match the scan type
+                    for expression in iv['types']:
+                        regex = re.compile(fnmatch.translate(expression))
+                        if regex.match(p['SCANTYPE']):
+                            # Found a match, now check quality
+                            if p['QUALITY'] == 'unusable':
+                                LOGGER.debug('excluding unusable scan')
+                            else:
+                                artefacts_by_input[i].append(p['full_path'])
+
+            elif iv['artefact_type'] == 'scan':
+                # Input is a scan, so we iterate subject scans
+                # to look for matches
+                for cscan in scans:
+                    # First we try to match the session type of the scan
+                    # match scan type
+                    for expression in iv['types']:
+                        regex = re.compile(fnmatch.translate(expression))
+                        if regex.match(cscan.get('SCANTYPE')):
+                            scanid = cscan.get('SCANID')
+                            LOGGER.debug('match found!')
+                            if iv['skip_unusable'] and cscan.get('QUALITY') == 'unusable':
+                                LOGGER.info(f'Excluding unusable scan:{scanid}')
+                            else:
+                                # Get scan path, scan ID for each matching scan.
+                                # Break if the scan matches so we don't find it again comparing
+                                # vs a different requested type
+                                artefacts_by_input[i].append(cscan['full_path'])
+                                break
+
+            elif iv['artefact_type'] == 'assessor':
+                for cassr in assrs:
+                    proctype = cassr.get('PROCTYPE')
+                    if proctype in iv['types']:
+                        # Session type and proc type both match
+                        artefacts_by_input[i].append(cassr['full_path'])
+
+        return artefacts_by_input
 
     def _parse_filters(self, filters):
         match_list = []
@@ -1247,6 +1517,65 @@ class Processor_v3(object):
 
         return final_matrix
 
+    def _generate_parameter_matrix_pd(self, artefacts_by_input):
+        inputs = self.proc_inputs
+        iteration_sources = self.iteration_sources
+
+        # generate n dimensional input matrix based on iteration sources
+        all_inputs = []
+        input_dimension_map = []
+
+        # check whether all inputs are present
+        for i, iv in list(inputs.items()):
+            if len(artefacts_by_input[i]) == 0 and iv['required'] is True:
+                return []
+
+        for i in iteration_sources:
+            # find other inputs that map to this iteration source
+            mapped_inputs = [i]
+            cur_input_vector = artefacts_by_input[i][:]
+
+            # build up the set of mapped input vectors one by one based on
+            # the select mode of the mapped input
+            combined_input_vector = [cur_input_vector]
+
+            # 'trim' the input vectors to the number of entries of the
+            # shortest vector. We don't actually truncate the datasets but
+            # just use the number when transposing, below
+            min_entry_count = min((len(e) for e in combined_input_vector))
+
+            # transpose from list of input vectors to input entry lists,
+            # one per combination of inputs
+            merged_input_vector = [
+                [None for col in range(len(combined_input_vector))]
+                for row in range(min_entry_count)
+            ]
+            for row in range(min_entry_count):
+                for col in range(len(combined_input_vector)):
+                    merged_input_vector[row][col] = combined_input_vector[col][row]
+
+            all_inputs.append(mapped_inputs)
+            input_dimension_map.append(merged_input_vector)
+
+        # perform a cartesian product of the dimension map entries to get the
+        # final input combinations
+        matrix = [
+            list(itertools.chain.from_iterable(x))
+            for x in itertools.product(*input_dimension_map)
+        ]
+
+        matrix_headers = list(itertools.chain.from_iterable(all_inputs))
+
+        # rebuild the matrix to order the inputs consistently
+        final_matrix = []
+        for r in matrix:
+            row = dict()
+            for i in range(len(matrix_headers)):
+                row[matrix_headers[i]] = r[i]
+            final_matrix.append(row)
+
+        return final_matrix
+
     def _compare_to_existing(self, csess, parameter_matrix):
         assessors = [[] for _ in range(len(parameter_matrix))]
 
@@ -1293,14 +1622,15 @@ class Processor_v3(object):
 
             for cur_filter in match_filters:
                 # Get the first value to compare with others
-                first_val = get_input_value(cur_filter[0], cur_param, artefacts)
+                first_val = get_input_value(
+                    cur_filter[0], cur_param, artefacts)
 
                 # Compare other values with first value
                 for cur_input in cur_filter[1:]:
                     cur_val = get_input_value(cur_input, cur_param, artefacts)
 
                     if cur_val is None:
-                        LOGGER.warn('cannot match, empty inputs:{}'.format(cur_input))
+                        LOGGER.warn(f'cannot match, empty inputs:{cur_input}')
                         all_match = False
                         break
 
@@ -1564,6 +1894,74 @@ class SgpProcessor(Processor_v3):
 
             # Override it
             self.job_template = os.path.join(_tmp)
+        else:
+            self.job_template = os.path.join(
+                os.path.dirname(self.job_template),
+                'job_template_v3.txt')
+
+    def build_var2val(self, assr, info, project_data):
+        assr_label = info['ASSR']
+
+        # Make every input a list, so we can iterate later
+        inputs = info['INPUTS']
+        for k in inputs.keys():
+            if not isinstance(inputs[k], list):
+                inputs[k] = [inputs[k]]
+
+        # Find values for the xnat inputs
+        var2val, input_list = self.find_inputs_pd(assr, inputs, project_data)
+
+        # Append other stuff
+        for k, v in self.user_overrides.items():
+            var2val[k] = v
+
+        for k, v in self.extra_user_overrides.items():
+            var2val[k] = v
+
+        # Include the assessor label
+        var2val['assessor'] = assr_label
+
+        # Handle xnat attributes
+        for attr_in in self.xnat_attrs:
+            _var = attr_in['varname']
+            _attr = attr_in['attr']
+            _obj = attr_in['object']
+            _val = ''
+
+            if _obj == 'subject':
+                _val = assr.parent().attrs.get(_attr)
+            elif _obj == 'session':
+                _val = assr.parent().attrs.get(_attr)
+                _ref = attr_in['ref']
+                _refval = [a.rsplit('/', 1)[1] for a in inputs[_ref]]
+                _val = ','.join(
+                    [assr.parent().experiment(r).attrs.get(_attr) for r in _refval])
+            elif _obj == 'scan':
+                _ref = attr_in['ref']
+                _refval = [a.rsplit('/', 1)[1] for a in inputs[_ref]]
+                _val = ','.join(
+                    [assr.parent().scan(r).attrs.get(_attr) for r in _refval]
+                )
+            elif _obj == 'assessor':
+                if 'ref' in attr_in:
+                    _ref = attr_in['ref']
+                    _refval = [a.rsplit('/', 1)[1] for a in inputs[_ref]]
+                    _val = ','.join(
+                        [assr.parent().assessor(r).attrs.get(_attr) for r in _refval]
+                    )
+                else:
+                    _val = assr.attrs.get(_attr)
+            else:
+                LOGGER.error('invalid YAML')
+                err = 'YAML File:contains invalid attribute:{}'
+                raise AutoProcessorError(err.format(_attr))
+
+            if _val == '':
+                raise NeedInputsException('Missing ' + _attr)
+            else:
+                var2val[_var] = _val
+
+        return var2val, input_list
 
     def build_cmds(self, assr, info, project_data, jobdir, resdir):
         assr_label = info['ASSR']
@@ -1703,7 +2101,7 @@ class SgpProcessor(Processor_v3):
             subject, project_data)
         # print('artefacts_by_input=', artefacts_by_input)
 
-        parameter_matrix = self._generate_parameter_matrix(artefacts_by_input)
+        parameter_matrix = self._generate_parameter_matrix_pd(artefacts_by_input)
         # print('parameter_matrix=', parameter_matrix)
 
         # TODO: filter down the combinations by applying any filters
@@ -1965,38 +2363,81 @@ class SgpProcessor(Processor_v3):
                 # Input is a scan, so we iterate subject scans
                 # to look for matches
                 for cscan in scans:
-                    # First we try to match the session type of the scan
-                    for typeexp in iv['sesstypes']:
-                        regex = utilities.extract_exp(typeexp)
-                        if regex.match(cscan.get('SESSTYPE')):
-                            # Sess type matches, now match scan type
-                            for expression in iv['types']:
-                                regex = utilities.extract_exp(expression)
-                                if regex.match(cscan.get('SCANTYPE')):
-                                    scanid = cscan.get('ID')
-                                    if iv['skip_unusable'] and cscan.get('QUALITY') == 'unusable':
-                                        LOGGER.info(f'Excluding unusable scan {scanid}')
-                                    else:
-                                        # Get scan path, scan ID for each matching scan.
-                                        # Break if the scan matches so we don't find it again comparing
-                                        # vs a different requested type
-                                        artefacts_by_input[i].append(cscan.get('full_path'))
-                                        break
+
+                    # Check selects
+                    if iv['select'] == 'first-mri' and not self.is_first_mr_session(cscan['SESSION'], project_data):
+                        # Wrong session, not first mri
+                        LOGGER.debug('wrong session')
+                        continue
+
+                    # Check tracers
+                    if iv['tracers']:
+                        tracer_match = False
+                        for tracer in iv['tracers']:
+                            regex = re.compile(fnmatch.translate(tracer))
+                            if regex.match(cscan['TRACER']):
+                                LOGGER.debug('tracer match')
+                                tracer_match = True
+
+                        if not tracer_match:
+                            # Wrong tracer
+                            LOGGER.debug(f"wrong tracer:{cscan['TRACER']}")
+                            continue
+
+                    # Check sesstypes
+                    if iv['sesstypes']:
+                        sesstypematch = False
+                        for typeexp in iv['sesstypes']:
+                            regex = re.compile(fnmatch.translate(typeexp))
+                            if regex.match(cscan.get('SESSTYPE')):
+                                sesstypematch = True
+                                LOGGER.debug('session type match')
+                                continue
+
+                        if not sesstypematch:
+                            LOGGER.debug('no session type match')
+                            continue
+
+                    # All matches for session, now match scan type
+                    for expression in iv['types']:
+                        regex = utilities.extract_exp(expression)
+                        if regex.match(cscan.get('SCANTYPE')):
+                            scanid = cscan.get('ID')
+                            if iv['skip_unusable'] and cscan.get('QUALITY') == 'unusable':
+                                LOGGER.info(f'Exclude unusable scan {scanid}')
+                            else:
+                                # Get scan path, scan ID for each matched scan.
+                                # Break if the scan matches so we don't find it
+                                # again comparing vs a different requested type
+                                artefacts_by_input[i].append(
+                                    cscan.get('full_path'))
+                                break
 
             elif iv['artefact_type'] == 'assessor':
-                for typeexp in iv['sesstypes']:
-                    for cassr in assrs:
-                        regex = utilities.extract_exp(typeexp)
+                for cassr in assrs:
+                    # First check for a select
+                    if iv['select'] == 'first-mri' and not self.is_first_mr_session(cassr['SESSION'], project_data):
+                        # Wrong session, not first mri
+                        LOGGER.debug('wrong session')
+                        continue
+
+                    # Then check session types
+                    for typeexp in iv['sesstypes']:
+                        regex = re.compile(fnmatch.translate(typeexp))
                         sesstype = cassr.get('SESSTYPE')
-                        proctype = cassr.get('PROCTYPE')
-                        # print(typeexp, sesstype, proctype, iv['types'])
-                        if regex.match(sesstype) and proctype in iv['types']:
-                            #print('MATCH!')
-                            # Session type and proc type both match
-                            artefacts_by_input[i].append(cassr.get('full_path'))
-                        else:
-                            #print('nope')
-                            pass
+                        if not regex.match(sesstype):
+                            LOGGER.debug('wrong sesstype')
+                            continue
+
+                    # still good, then check proc types
+                    proctype = cassr.get('PROCTYPE')
+                    if proctype not in iv['types']:
+                        LOGGER.debug('wrong proctype')
+                        continue
+
+                    # Session type and proc type both match
+                    LOGGER.debug('found')
+                    artefacts_by_input[i].append(cassr.get('full_path'))
 
         return artefacts_by_input
 

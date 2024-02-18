@@ -1,10 +1,10 @@
-'''Test rcq REDCap Queue sync by running an update.'''
+'''Test rcq REDCap Queue build by running an update.'''
 import logging
 import os
 
 import redcap
 
-from dax import rcqsync, XnatUtils
+from dax import rcqbuild, XnatUtils
 
 
 if __name__ == "__main__":
@@ -16,8 +16,9 @@ if __name__ == "__main__":
     logging.info('connecting to redcap')
     api_url = 'https://redcap.vanderbilt.edu/api/'
     projects_redcap = redcap.Project(api_url, os.environ['API_KEY_DAX_RCQ'])
+    yamldir = '/data/mcr/centos7/dax_processors'
 
     logging.info('Running it')
     with XnatUtils.get_interface() as xnat:
-        rcqsync.update(projects_redcap, xnat)
+        rcqbuild.update(projects_redcap, xnat, yamldir)
         logging.info('Done!')

@@ -17,7 +17,7 @@ SUBDIRS = ['OUTLOG', 'PBS', 'PROCESSOR']
 # to JOB_FAILED. Otherwise do nothing?
 
 
-def update(projects_redcap):
+def update(projects_redcap, xnat):
     task_updates = []
     def_field = projects_redcap.def_field
 
@@ -33,7 +33,6 @@ def update(projects_redcap):
     # Load assesssor data from XNAT as our current status
     logger.debug('loading XNAT data')
     projects = list(set([x[projects_redcap.def_field] for x in rec]))
-    xnat = XnatUtils.get_interface()
     assr_data = XnatUtils.load_assr_data(xnat, projects)
     sgp_data = XnatUtils.load_sgp_data(xnat, ','.join(projects))
 
