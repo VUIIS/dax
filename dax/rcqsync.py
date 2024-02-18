@@ -26,11 +26,13 @@ def update(projects_redcap, xnat):
         forms=['taskqueue'],
         fields=[projects_redcap.def_field])
 
+    print(rec)
+
+    projects = list(set([x[projects_redcap.def_field] for x in rec]))
+
     # Filter to only uploading jobs
     rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
     rec = [x for x in rec if x['task_status'] == 'UPLOADING']
-
-    projects = list(set([x[projects_redcap.def_field] for x in rec]))
 
     # Load assesssor data from XNAT as our current status
     logger.debug(f'loading XNAT data:{projects}')
