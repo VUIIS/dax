@@ -946,7 +946,7 @@ class Processor_v3(object):
         for i, a in enumerate(project_data['assessors']):
             artefact_inputs[a['full_path']] = a['INPUTS']
 
-        param_sets = self._filter_matrix(param_sets, artefact_inputs)
+        param_sets = self._filter_matrix_pd(param_sets, artefact_inputs)
         LOGGER.debug(f'filtered={param_sets}')
 
         return param_sets
@@ -1805,6 +1805,41 @@ class Processor_v3(object):
 
         return filtered_matrix
 
+    def _filter_matrix_pd(self, parameter_matrix, artefact_inputs):
+        match_filters = self.match_filters
+
+        filtered_matrix = []
+        for cur_param in parameter_matrix:
+            # Reset matching for this param set
+            all_match = True
+
+            for cur_filter in match_filters:
+                # Get the first value to compare with others
+                first_val = get_input_value_pd(
+                    cur_filter[0], cur_param, artefact_inputs)
+
+                # Compare other values with first value
+                for cur_input in cur_filter[1:]:
+                    cur_val = get_input_value_pd(
+                        cur_input, cur_param, artefact_inputs)
+
+                    if cur_val is None:
+                        logger.warn(f'cannot match, empty inputs:{cur_input}')
+                        all_match = False
+                        break
+
+                    if cur_val != first_val:
+                        # A single non-match breaks the whole thing
+                        all_match = False
+                        break
+
+            if all_match:
+                # Keep this param set if everything matches
+                filtered_matrix.append(cur_param)
+
+        return filtered_matrix
+
+
     def _populate_proc_inputs(self):
         for ik, iv in self.proc_inputs.items():
             for i, r in enumerate(iv['resources']):
@@ -1846,6 +1881,27 @@ def get_input_value(input_name, parameter, artefacts):
             _val = _parent_inputs[_child_name]
 
     return _val
+
+
+def get_input_value_pd(input_name, parameter, artefact_inputs):
+    if '/' not in input_name:
+        # Matching on parent so keep this value
+        val = parameter[input_name]
+    else:
+        # Match is on a parent so parse out the parent/child
+        (parent_name, child_name) = input_name.split('/')
+        parent_val = parameter[parent_name]
+        parent_inputs = artefact_inputs[parent_val]
+
+        if parent_inputs is None:
+            # Check that inputs field is not empty
+            LOGGER.info(f'inputs field is empty:{parent_val}')
+            val = None
+        else:
+            # Get the inputs field from the child
+            val = parent_inputs[child_name]
+
+    return val
 
 
 def parse_artefacts(csess, pets=[]):
