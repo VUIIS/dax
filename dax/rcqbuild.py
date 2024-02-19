@@ -206,8 +206,6 @@ def _load_protocols(projects_redcap, project, yamldir, tmpdir):
         forms=['processing'],
         fields=[projects_redcap.def_field])
 
-    print(rec)
-
     rec = [x for x in rec if x['redcap_repeat_instrument'] == 'processing']
 
     # Only enabled processing

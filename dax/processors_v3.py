@@ -322,8 +322,6 @@ class Processor_v3(object):
         # Outputs from Yaml
         self._parse_outputs(doc.get('outputs'))
 
-        print(self.job_template)
-
         # Override template
         if doc.get('jobtemplate'):
             _tmp = doc.get('jobtemplate')
@@ -1166,7 +1164,6 @@ class Processor_v3(object):
 
             # TODO: optimize this to get resource list only once
             for vnum, vinput in enumerate(inputs[v['input']]):
-                # print(vnum, vinput)
                 fname = None
                 robj = get_resource(assr._intf, vinput, resource)
 
@@ -2316,10 +2313,8 @@ class SgpProcessor(Processor_v3):
 
         artefacts_by_input = self._map_inputs(
             subject, project_data)
-        # print('artefacts_by_input=', artefacts_by_input)
 
         parameter_matrix = self._generate_parameter_matrix_pd(artefacts_by_input)
-        # print('parameter_matrix=', parameter_matrix)
 
         # TODO: filter down the combinations by applying any filters
 
@@ -2345,18 +2340,12 @@ class SgpProcessor(Processor_v3):
         # This will raise a NeedInputs exception if any inputs aren't ready
         verify_artefact_status(self.proc_inputs, inputs, project_data)
 
-        # print(self.variables_to_inputs.items())
-
         # Map from parameters to input resources
         LOGGER.debug('mapping params to artefact resources')
         for k, v in list(self.variables_to_inputs.items()):
             LOGGER.debug('mapping:' + k, v)
             inp = self.proc_inputs[v['input']]
             resource = v['resource']
-
-            # print('vinput=', v['input'])
-            # print('resource=', resource)
-            # print(inp['resources'])
 
             # Find the resource
             cur_res = None
@@ -2367,7 +2356,6 @@ class SgpProcessor(Processor_v3):
 
             # TODO: optimize this to get resource list only once
             for vnum, vinput in enumerate(inputs[v['input']]):
-                # print(vnum, vinput)
                 fname = None
                 robj = get_resource(assr._intf, vinput, resource)
 
