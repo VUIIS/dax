@@ -868,7 +868,6 @@ def load_from_yaml(xnat, filepath, user_inputs=None,
 
     # Load file based on yaml version and data type
     if yaml_obj.contents.get('inputs').get('xnat').get('sessions', False):
-        print('FOUND SGP')
         # This must be a subjgenproc
         return SgpProcessor(
             xnat, filepath, user_inputs, singularity_imagedir, job_template)
