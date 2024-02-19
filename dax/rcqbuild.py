@@ -380,7 +380,6 @@ def _load_scan_data(xnat, project):
     result = _get_result(xnat, uri)
 
     # Change from one row per resource to one row per scan
-    # TODO: use pandas pivot/melt?
     scans = {}
     for r in result:
         k = (r['project'], r['session_label'], r['xnat:imagescandata/id'])
@@ -436,8 +435,8 @@ def _build_processor(
 ):
 
     # Get lists of subjects/sessions for filtering
-    all_sessions = project_data.get('scans').SESSION.unique()
-    all_subjects = project_data.get('scans').SUBJECT.unique()
+    all_sessions = list(set([x['SESSION'] for x in project_data.get('scans')]))
+    all_subjects = list(set([x['SUBJECT'] for x in project_data.get('scans')]))
 
     # Load the processor
     processor = load_from_yaml(
