@@ -1077,7 +1077,7 @@ class Processor_v3(object):
                             LOGGER.debug('multiple files, fmulti==any1, using first found')
                         else:
                             LOGGER.debug('multiple files, fmulti not set')
-                            raise NeedInputsException(artk + ': multiple files')
+                            raise NeedInputsException(str(k) + ': multiple files')
 
                     # Create the full path to the file on the resource
                     res_path = '{}/files/{}'.format(resource, file_list[0])
@@ -1209,7 +1209,7 @@ class Processor_v3(object):
                             LOGGER.debug('multiple files, fmulti==any1, using first found')
                         else:
                             LOGGER.debug('multiple files, fmulti not set')
-                            raise NeedInputsException(artk + ': multiple files')
+                            raise NeedInputsException(str(k) + ': multiple files')
 
                     # Create the full path to the file on the resource
                     res_path = '{}/files/{}'.format(resource, file_list[0])
