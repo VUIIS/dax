@@ -520,7 +520,7 @@ def _build_subject_processor(rc, xnat, processor, subject, project_data):
             return
 
         # Get(create) assessor with given inputs and proc type
-        (assr, info) = processor.get_assessor(subject, inputs, project_data)
+        (assr, info) = processor.get_assessor(xnat, subject, inputs, project_data)
 
         if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
             logger.debug('building task')
