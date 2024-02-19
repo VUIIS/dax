@@ -284,6 +284,8 @@ class Processor_v3(object):
         # Outputs from Yaml
         self._parse_outputs(doc.get('outputs'))
 
+        print(self.job_template)
+
         # Override template
         if doc.get('jobtemplate'):
             _tmp = doc.get('jobtemplate')
