@@ -597,6 +597,7 @@ def _add_task(
     # Try to match existing record
     task_id = _assessor_task_id(rc, project, assr)
 
+    print('yamlfile=', yamlfile, os.path.dirname(yamlfile))
     if not os.path.dirname(yamlfile):
         task_yamlfile = 'CUSTOM'
     else:
