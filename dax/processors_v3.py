@@ -1232,11 +1232,10 @@ class Processor_v3(object):
 
         # Get the sessions/dates for this subject
         scans = project_data.get('scans')
-        session_scans = [x for x in scans if x['SESSION'] == session]
-        subject = session_scans[0]['SUBJECT']
+        subject = [x for x in scans if x['SESSION'] == session][0]['SUBJECT']
         LOGGER.debug(f'is_first_mr_session:{session}:{subject}:getting scans')
-        subject_mris = [x for x in scans if x['SUBJECT'] == subject and x['XSITYPE'] == 'xnat:mrSessionData']
-        scans = scans.sort_values('DATE')
+        scans = [x for x in scans if x['SUBJECT'] == subject and x['XSITYPE'] == 'xnat:mrSessionData']
+        scans = sorted(scans, key=lambda x: x['DATE'])
 
         # Check if this is the first
         if not scans.empty and scans.iloc[0].SESSION != session:
