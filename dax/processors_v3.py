@@ -51,7 +51,8 @@ SINGULARITY_BASEOPTS = (
     '--bind $OUTDIR:/OUTPUTS '
     '--bind $JOBDIR:/tmp '
     '--bind $JOBDIR:/dev/shm '
-    )
+)
+
 
 class ParserArtefact:
     def __init__(self, path, resources, entity):
@@ -1216,13 +1217,13 @@ class Processor_v3(object):
         scans = project_data.get('scans')
         subject = ''
 
-        for s in scans.to_dict('records'):
+        for s in scans:
             if s['SESSION'] == session:
                 subject = s['SUBJECT']
                 break
 
         if subject:
-            petscans = scans[(scans.SUBJECT == subject) & (scans.XSITYPE == 'xnat:petSessionData')].to_dict('records')
+            petscans = [x for x in scans if x['SUBJECT'] == subject and x['XSITYPE'] == 'xnat:petSessionData']
 
         return petscans
 
@@ -1230,10 +1231,11 @@ class Processor_v3(object):
         is_first = True
 
         # Get the sessions/dates for this subject
-        _dfs = project_data.get('scans')
-        subject = _dfs[_dfs.SESSION == session].iloc[0]['SUBJECT']
+        scans = project_data.get('scans')
+        session_scans = [x for x in scans if x['SESSION'] == session]
+        subject = session_scans[0]['SUBJECT']
         logger.debug(f'is_first_mr_session:{session}:{subject}:getting scans')
-        scans = _dfs[(_dfs.SUBJECT == subject) & (_dfs.XSITYPE == 'xnat:mrSessionData')]
+        subject_mris = [x for x in scans if x['SUBJECT'] == subject and x['XSITYPE'] == 'xnat:mrSessionData']
         scans = scans.sort_values('DATE')
 
         # Check if this is the first
@@ -1249,10 +1251,8 @@ class Processor_v3(object):
 
         # Get lists for scans/assrs for this session
         LOGGER.debug('prepping session data')
-        _dfs = project_data.get('scans')
-        scans = _dfs[_dfs.SESSION == session].to_dict('records')
-        _dfa = project_data.get('assessors')
-        assrs = _dfa[_dfa.SESSION == session].to_dict('records')
+        scans = [x for x in project_data.get('scans') if x['SESSION'] == session]
+        assrs = [x for x in project_data.get('assessors') if x['SESSION'] == session]
 
         petscans = []
         # if this is the first mri, add scans
@@ -1779,13 +1779,14 @@ class SgpProcessor(Processor_v3):
 
     def get_assessor(self, xnat, subject, inputs, project_data):
         proctype = self.get_proctype()
-        dfa = project_data['sgp']
-        dfa = dfa[(dfa.SUBJECT == subject) & (dfa.PROCTYPE == proctype)]
-        dfa = dfa[(dfa.INPUTS == inputs)]
+        sgp = project_data.get('sgp')
+        sgp = [x for x in sgp if x['SUBJECT'] == subject]
+        sgp = [x for x in sgp if x['PROCTYPE'] == proctype]
+        sgp = [x for x in sgp if x['INPUTS'] == inputs]
 
-        if len(dfa) > 0:
+        if len(sgp) > 0:
             # Get the info for the assessor
-            info = dfa.to_dict('records')[0]
+            info = sgp[0]
 
             LOGGER.debug('matches existing:{}'.format(info['ASSR']))
 
@@ -2353,10 +2354,8 @@ class SgpProcessor(Processor_v3):
         artefacts_by_input = {k: [] for k in inputs}
 
         # Get lists for scans/assrs for this subject
-        scans = project_data.get('scans').to_dict('records')
-        scans = [x for x in scans if x['SUBJECT'] == subject]
-        assrs = project_data.get('assessors').to_dict('records')
-        assrs = [x for x in assrs if x['SUBJECT'] == subject]
+        scans = [x for x in project_data.get('scans') if x['SUBJECT'] == subject]
+        assrs = [x for x in project_data.get('assessors') if x['SUBJECT'] == subject]
 
         # Find list of scans/assessors that match each specified input
         # for i, iv in list(inputs.items()):
@@ -2508,7 +2507,7 @@ def get_scan_status(project_data, scan_path):
     sess_label = path_parts[6]
     scan_label = path_parts[8]
 
-    scans = project_data.get('scans').to_dict('records')
+    scans = project_data.get('scans')
     for s in scans:
         if s['SESSION'] == sess_label and s['SCANID'] == scan_label:
             return s['QUALITY']
@@ -2521,7 +2520,7 @@ def get_assr_status(project_data, assr_path):
     sess_label = path_parts[6]
     assr_label = path_parts[8]
 
-    assrs = project_data.get('assessors').to_dict('records')
+    assrs = project_data.get('assessors')
     for a in assrs:
         if a['SESSION'] == sess_label and a['ASSR'] == assr_label:
             return a['PROCSTATUS'], a['QCSTATUS']
