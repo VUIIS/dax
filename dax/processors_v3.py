@@ -1275,7 +1275,7 @@ class Processor_v3(object):
         scans = sorted(scans, key=lambda x: x['DATE'])
 
         # Check if this is the first
-        if len(scans) < 1 and scans.iloc[0].SESSION != session:
+        if len(scans) < 1 and scans[0]['SESSION'] != session:
             LOGGER.debug(f'is_first_mr_session:{session}:nope')
             is_first = False
 
