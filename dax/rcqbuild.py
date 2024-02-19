@@ -482,7 +482,7 @@ def _build_processor(
 
 def _build_session_processor(rc, xnat, processor, session, project_data):
     # Get list of inputs sets (not yet matched with existing)
-    inputsets = processor.parse_session(session, project_data)
+    inputsets = processor.parse_session_pd(session, project_data)
 
     logger.debug(f'{session}:{processor.name}')
 
