@@ -784,7 +784,7 @@ class Processor_v3(object):
 
         # Apply filters (e.g., remove parameter sets where inputs don't match)
         artefact_inputs = {}
-        for i, a in project_data['assessors'].iterrows():
+        for i, a in enumerate(project_data['assessors']):
             artefact_inputs[a['full_path']] = a['INPUTS']
 
         param_sets = self._filter_matrix(param_sets, artefact_inputs)
