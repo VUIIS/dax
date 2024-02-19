@@ -660,8 +660,9 @@ def _add_task(
         _upload_task_processor_file(
             rc,
             project,
-            yamlfile,
-            repeat_id=task_id)
+            task_id,
+            yamlfile
+        )
 
 
 def _assessor_task_id(projects_redcap, project, assessor):
