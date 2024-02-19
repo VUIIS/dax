@@ -1234,13 +1234,13 @@ class Processor_v3(object):
         scans = project_data.get('scans')
         session_scans = [x for x in scans if x['SESSION'] == session]
         subject = session_scans[0]['SUBJECT']
-        logger.debug(f'is_first_mr_session:{session}:{subject}:getting scans')
+        LOGGER.debug(f'is_first_mr_session:{session}:{subject}:getting scans')
         subject_mris = [x for x in scans if x['SUBJECT'] == subject and x['XSITYPE'] == 'xnat:mrSessionData']
         scans = scans.sort_values('DATE')
 
         # Check if this is the first
         if not scans.empty and scans.iloc[0].SESSION != session:
-            logger.debug(f'is_first_mr_session:{session}:nope')
+            LOGGER.debug(f'is_first_mr_session:{session}:nope')
             is_first = False
 
         return is_first
