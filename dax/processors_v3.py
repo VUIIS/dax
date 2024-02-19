@@ -234,7 +234,7 @@ class Processor_v3(object):
             subject = scans[0]['SUBJECT']
 
             # Create the assessor
-            (assr, info) = self.create_assessor(
+            (assr, info) = self.create_assessor_pd(
                 project_data.get('name'),
                 subject,
                 session,
@@ -335,6 +335,68 @@ class Processor_v3(object):
 
             # Override it
             self.job_template = os.path.join(_tmp)
+        else:
+            self.job_template = os.path.join(
+                os.path.dirname(self.job_template),
+                'job_template_v3.txt')
+
+    def build_var2val(self, assr, info, project_data):
+        assr_label = info['ASSR']
+
+        # Make every input a list, so we can iterate later
+        inputs = info['INPUTS']
+        for k in inputs.keys():
+            if not isinstance(inputs[k], list):
+                inputs[k] = [inputs[k]]
+
+        # Find values for the xnat inputs
+        var2val, input_list = self.find_inputs(assr, inputs, project_data)
+
+        # Append other stuff
+        for k, v in self.user_overrides.items():
+            var2val[k] = v
+
+        for k, v in self.extra_user_overrides.items():
+            var2val[k] = v
+
+        # Include the assessor label
+        var2val['assessor'] = assr_label
+
+        # Handle xnat attributes
+        for attr_in in self.xnat_attrs:
+            _var = attr_in['varname']
+            _attr = attr_in['attr']
+            _obj = attr_in['object']
+            _val = ''
+
+            if _obj == 'subject':
+                _val = assr.parent().parent().attrs.get(_attr)
+            elif _obj == 'session':
+                _val = assr.parent().attrs.get(_attr)
+            elif _obj == 'scan':
+                _ref = attr_in['ref']
+                _refval = [a.rsplit('/', 1)[1] for a in inputs[_ref]]
+                _val = ','.join(
+                    [assr.parent().scan(r).attrs.get(_attr) for r in _refval]
+                )
+            elif _obj == 'assessor':
+                if 'ref' in attr_in:
+                    _ref = attr_in['ref']
+                    _refval = [a.rsplit('/', 1)[1] for a in inputs[_ref]]
+                    _val = ','.join([assr.parent().assessor(r).attrs.get(_attr) for r in _refval])
+                else:
+                    _val = assr.attrs.get(_attr)
+            else:
+                logger.error('invalid YAML')
+                err = 'YAML File:contains invalid attribute:{}'
+                raise AutoProcessorError(err.format(_attr))
+
+            if _val == '':
+                raise NeedInputsException('Missing ' + _attr)
+            else:
+                var2val[_var] = _val
+
+        return var2val, input_list
 
     def _parse_outputs(self, outputs):
         self.outputs = []
@@ -687,6 +749,66 @@ class Processor_v3(object):
                 assessors=self.xsitype.lower(), ID=guid, label=label, **kwargs
             )
             return assessor
+
+    def create_assessor_pd(self, project, subject, session, inputs):
+        # returns:
+        # : assr pyxnat object
+        # : dictionary of assessor info
+
+        xnat_session = self.xnat.select_session(project, subject, session)
+
+        serialized_inputs = json.dumps(inputs)
+        guidchars = 8  # how many characters in the guid?
+        today = str(date.today())
+
+        # Get a unique ID
+        count = 0
+        max_count = 100
+        while count < max_count:
+            count += 1
+            guid = str(uuid4())
+            assr = xnat_session.assessor(guid)
+            if not assr.exists():
+                break
+
+        if count == max_count:
+            LOGGER.error('failed to find unique ID, cannot create assessor!')
+            raise AutoProcessorError()
+
+        # Build the assessor attributes as key/value pairs
+        assr_label = '-x-'.join([
+            project,
+            subject,
+            session,
+            self.proctype,
+            guid[:guidchars]])
+
+        xsitype = self.xsitype.lower()
+        kwargs = {
+            'label': assr_label,
+            'ID': guid,
+            f'{xsitype}/proctype': self.proctype,
+            f'{xsitype}/procversion': self.procversion,
+            f'{xsitype}/procstatus': NEED_INPUTS,
+            f'{xsitype}/validation/status': JOB_PENDING,
+            f'{xsitype}/date': today,
+            f'{xsitype}/inputs': serialized_inputs}
+
+        # Create the assessor
+        LOGGER.info(f'creating session asssessor:{assr_label}:{xsitype}')
+        assr.create(assessors=xsitype, **kwargs)
+
+        # We keep the inputs as a dictionary in the returned info
+        info = {
+            'ASSR': assr_label,
+            'QCSTATUS': JOB_PENDING,
+            'XSITYPE': xsitype,
+            'PROCTYPE': self.proctype,
+            'PROCVERSION': self.procversion,
+            'PROCSTATUS': NEED_INPUTS,
+            'INPUTS': inputs}
+
+        return (assr, info)
 
     def _serialize_inputs(self, inputs):
         return json.dumps(inputs)
