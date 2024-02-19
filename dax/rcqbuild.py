@@ -442,7 +442,8 @@ def _build_processor(
     processor = load_from_yaml(
         xnat,
         filepath,
-        user_inputs=user_inputs)
+        user_inputs=user_inputs,
+        job_template='~/job_template.txt')
 
     if not processor:
         logger.error(f'loading processor:{filepath}')
