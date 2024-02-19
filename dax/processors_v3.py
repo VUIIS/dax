@@ -350,7 +350,7 @@ class Processor_v3(object):
                 inputs[k] = [inputs[k]]
 
         # Find values for the xnat inputs
-        var2val, input_list = self.find_inputs(assr, inputs, project_data)
+        var2val, input_list = self.find_inputs_pd(assr, inputs, project_data)
 
         # Append other stuff
         for k, v in self.user_overrides.items():
