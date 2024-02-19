@@ -207,6 +207,43 @@ class Processor_v3(object):
                 LOGGER.error(msg)
                 raise AutoProcessorError(msg)
 
+    def get_assessor(self, session, inputs, project_data):
+        proctype = self.get_proctype()
+        assrs = project_data.get('assessors')
+        assrs = [x for x in assrs if x['SESSION'] == session]
+        assrs = [x for x in assrs if x['PROCTYPE'] == proctype]
+        assrs = [x for x in assrs if x['INPUTS'] == inputs]
+
+        if len(assrs) > 0:
+            # Get the info for the assessor
+            info = assrs[0]
+
+            LOGGER.debug('matches existing:{}'.format(info['ASSR']))
+
+            # Get the assessor object
+            assr = self.xnat.select_assessor(
+                info['PROJECT'],
+                info['SUBJECT'],
+                info['SESSION'],
+                info['ASSR'])
+        else:
+            LOGGER.debug('no existing assessors found, creating a new one')
+
+            # Get the subject for this session
+            scans = [x for x in project_data['scans'] if x['SESSION'] == session]
+            subject = scans[0]['SUBJECT']
+
+            # Create the assessor
+            (assr, info) = self.create_assessor(
+                project_data.get('name'),
+                subject,
+                session,
+                inputs)
+
+            LOGGER.debug('created:{}'.format(info['ASSR']))
+
+        return (assr, info)
+
     def _read_yaml(self, yaml_file):
         """
         Method to read the processor
