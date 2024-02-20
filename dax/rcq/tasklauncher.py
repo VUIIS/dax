@@ -20,8 +20,7 @@ DONE_STATUSES = ['COMPLETE', 'JOB_FAILED', 'FAILED']
 SUBDIRS = ['OUTLOG', 'PBS', 'PROCESSOR']
 
 
-def TaskLauncher(object):
-
+class TaskLauncher(object):
     def __init__(self, instance_redcap, projects_redcap):
         self._instance_redcap = instance_redcap
         self._projects_redcap = projects_redcap
