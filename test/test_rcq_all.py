@@ -19,5 +19,4 @@ if __name__ == "__main__":
     rc = redcap.Project(api_url, os.environ['API_KEY_DAX_RCQ'])
     instances = redcap.Project(api_url, os.environ['API_KEY_DAX_INSTANCES'])
 
-    with XnatUtils.get_interface() as xnat:
-        rcq.update(rc, instances, xnat)
+    rcq.update(rc, instances)
