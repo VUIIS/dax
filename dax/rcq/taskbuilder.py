@@ -230,77 +230,75 @@ class TaskBuilder(object):
             else:
                 logger.debug('already built:{}'.format(info['ASSR']))
 
+    def _build_subject_processor(self, processor, subject, project_info):
+        logger.debug(f'{subject}:{processor.name}')
+        # Get list of inputs sets (not yet matched with existing)
+        inputsets = processor.parse_subject(subject, project_info)
+        logger.debug(inputsets)
 
-def _build_subject_processor(self, processor, subject, project_info):
-    logger.debug(f'{subject}:{processor.name}')
-    # Get list of inputs sets (not yet matched with existing)
-    inputsets = processor.parse_subject(subject, project_info)
-    logger.debug(inputsets)
+        for inputs in inputsets:
 
-    for inputs in inputsets:
+            if inputs == {}:
+                # Blank inputs
+                return
 
-        if inputs == {}:
-            # Blank inputs
-            return
+            # Get(create) assessor with given inputs and proc type
+            (assr, info) = processor.get_assessor(
+                self._xnat, subject, inputs, project_info)
 
-        # Get(create) assessor with given inputs and proc type
-        (assr, info) = processor.get_assessor(
-            self._xnat, subject, inputs, project_info)
+            if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
+                logger.debug('building task')
+                (assr, info) = self._build_task(
+                    assr, info, processor, project_info)
 
-        if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
-            logger.debug('building task')
-            (assr, info) = self._build_task(
-                assr, info, processor, project_info)
+                logger.debug(f'assr after={info}')
+            else:
+                logger.debug('already built:{}'.format(info['ASSR']))
 
-            logger.debug(f'assr after={info}')
-        else:
-            logger.debug('already built:{}'.format(info['ASSR']))
+    def _build_task(self, assr, info, processor, project_info):
+        '''Build a task, create assessor in XNAT, add new record to redcap'''
+        old_proc_status = info['PROCSTATUS']
+        old_qc_status = info['QCSTATUS']
 
+        try:
+            var2val, inputlist = processor.build_var2val(
+                assr,
+                info,
+                project_info)
 
-def _build_task(self, assr, info, processor, project_info):
-    '''Build a task, create assessor in XNAT, add new record to redcap queue'''
-    old_proc_status = info['PROCSTATUS']
-    old_qc_status = info['QCSTATUS']
+            self._queue._add_task(
+                project_info['name'],
+                info['ASSR'],
+                inputlist,
+                var2val,
+                processor.walltime_str,
+                processor.memreq_mb,
+                processor.yaml_file,
+                processor.user_inputs
+            )
 
-    try:
-        var2val, inputlist = processor.build_var2val(
-            assr,
-            info,
-            project_info)
+            # Set new statuses to be updated
+            new_proc_status = JOB_RUNNING
+            new_qc_status = JOB_PENDING
+        except NeedInputsException as e:
+            new_proc_status = NEED_INPUTS
+            new_qc_status = e.value
+        except NoDataException as e:
+            new_proc_status = NO_DATA
+            new_qc_status = e.value
 
-        self._queue._add_task(
-            project_info['name'],
-            info['ASSR'],
-            inputlist,
-            var2val,
-            processor.walltime_str,
-            processor.memreq_mb,
-            processor.yaml_file,
-            processor.user_inputs
-        )
+        # Update on xnat
+        _xsitype = processor.xsitype.lower()
+        if new_proc_status != old_proc_status:
+            assr.attrs.set(f'{_xsitype}/procstatus', new_proc_status)
+        if new_qc_status != old_qc_status:
+            assr.attrs.set(f'{_xsitype}/validation/status', new_qc_status)
 
-        # Set new statuses to be updated
-        new_proc_status = JOB_RUNNING
-        new_qc_status = JOB_PENDING
-    except NeedInputsException as e:
-        new_proc_status = NEED_INPUTS
-        new_qc_status = e.value
-    except NoDataException as e:
-        new_proc_status = NO_DATA
-        new_qc_status = e.value
+        # Update local info
+        info['PROCSTATUS'] = new_proc_status
+        info['QCSTATUS'] = new_qc_status
 
-    # Update on xnat
-    _xsitype = processor.xsitype.lower()
-    if new_proc_status != old_proc_status:
-        assr.attrs.set(f'{_xsitype}/procstatus', new_proc_status)
-    if new_qc_status != old_qc_status:
-        assr.attrs.set(f'{_xsitype}/validation/status', new_qc_status)
-
-    # Update local info
-    info['PROCSTATUS'] = new_proc_status
-    info['QCSTATUS'] = new_qc_status
-
-    return (assr, info)
+        return (assr, info)
 
 
 def _filter_matches(match_input, match_filter):
