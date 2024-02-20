@@ -1162,6 +1162,10 @@ class Processor_v3(object):
                     cur_res = inp_res
                     break
 
+            # TODO: use project_data to initially check for resource in 
+            # the scan RESOURCES, should be faster than querying xnat again
+
+
             # TODO: optimize this to get resource list only once
             for vnum, vinput in enumerate(inputs[v['input']]):
                 fname = None
