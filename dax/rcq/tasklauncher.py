@@ -20,8 +20,9 @@ SUBDIRS = ['OUTLOG', 'PBS', 'PROCESSOR']
 
 
 class TaskLauncher(object):
-    def __init__(self, instance_redcap, projects_redcap, instance_settings):
+    def __init__(self, projects_redcap, instance_settings):
         self._projects_redcap = projects_redcap
+        self._instance_settings = instance_settings
 
     def update(self):
         """Update all tasks in taskqueue of projects_redcap."""
