@@ -257,8 +257,6 @@ if __name__ == '__main__':
             print(err)
 
     elif args.command == 'rcq':
-        enable_stdout()
-
         projects_redcap = redcap.Project(
             os.environ['API_URL'],
             os.environ['API_KEY_DAX_RCQ'])
