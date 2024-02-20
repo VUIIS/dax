@@ -7,10 +7,10 @@ import subprocess
 from datetime import date
 import shutil
 
-from .processors import load_from_yaml
-from .dax_manager import get_this_instance
-from .cluster import PBS, count_jobs
-from .lockfiles import lock_flagfile, unlock_flagfile
+from ..processors import load_from_yaml
+from ..dax_manager import get_this_instance
+from ..cluster import PBS, count_jobs
+from ..lockfiles import lock_flagfile, unlock_flagfile
 
 
 logger = logging.getLogger('dax.rcq.tasklauncher')
