@@ -2,7 +2,7 @@
 import logging
 
 from ..utilities import get_this_instance
-from .XnatUtils import get_interface
+from ..XnatUtils import get_interface
 
 from .taskbuilder import TaskBuilder
 from .tasklauncher import TaskLauncher
