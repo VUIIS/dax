@@ -1,12 +1,14 @@
 '''Test rcq REDCap Queue sync by running an update.'''
 import logging
 import os
+import tempfile
 
 import redcap
 
 from dax import XnatUtils
 from dax.rcq.taskqueue import TaskQueue
 from dax.rcq.tasklauncher import TaskLauncher
+from dax.rcq.taskbuilder import TaskBuilder
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -14,18 +16,30 @@ if __name__ == "__main__":
         level=logging.DEBUG,
         datefmt='%Y-%m-%d %H:%M:%S')
 
-    logging.info('connecting to redcap')
     api_url = 'https://redcap.vanderbilt.edu/api/'
-    projects_redcap = redcap.Project(
-        api_url, os.environ['API_KEY_DAX_RCQ'])
-    task_queue = TaskQueue(projects_redcap)
+    yamldir = '/data/mcr/centos7/dax_processors'
 
-    logging.info('Running it')
+    logging.info('connecting to redcap')
+
+    rc = redcap.Project(api_url, os.environ['API_KEY_DAX_RCQ'])
+    instances = redcap.Project(api_url, os.environ['API_KEY_DAX_INSTANCES'])
+    def_field = rc.def_field
+    projects = [x[def_field] for x in rc.export_records(fields=[def_field])]
+
     with XnatUtils.get_interface() as xnat:
+        logging.info('Running sync')
+        task_queue = TaskQueue(rc)
         task_queue.sync(xnat)
         logging.info('Done!')
 
-    instance_redcap = redcap.Project(
-        api_url, os.environ['API_KEY_DAX_INSTANCES'])
-    task_launcher = TaskLauncher(instance_redcap, projects_redcap)
-    task_launcher.update()
+        logging.info('Running launch')
+        task_launcher = TaskLauncher(instances, rc)
+        task_launcher.update()
+
+        logging.info('Running build')
+        task_builder = TaskBuilder(rc, xnat, yamldir)
+        for p in projects:
+            logging.debug(f'building:{p}')
+            task_builder.update(p)
+
+    logging.info('All Done!')
