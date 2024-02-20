@@ -41,7 +41,7 @@ def update(rc, instances):
     def_field = rc.def_field
     projects = [x[def_field] for x in rc.export_records(fields=[def_field])]
     instance_settings = _load_instance_settings(instances)
-    yamldir = instance_settings['']
+    yamldir = instance_settings['main_processorlib']
 
     with get_interface() as xnat:
         logging.info('Running build of tasks in XNAT and REDCap queue')

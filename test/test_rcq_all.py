@@ -18,7 +18,6 @@ if __name__ == "__main__":
     api_url = 'https://redcap.vanderbilt.edu/api/'
     rc = redcap.Project(api_url, os.environ['API_KEY_DAX_RCQ'])
     instances = redcap.Project(api_url, os.environ['API_KEY_DAX_INSTANCES'])
-    yamldir = '/data/mcr/centos7/dax_processors'
 
     with XnatUtils.get_interface() as xnat:
-        rcq.update_all(rc, instances, xnat, yamldir)
+        rcq.update(rc, instances, xnat)
