@@ -34,7 +34,7 @@ class TaskBuilder(object):
         self._yamldir = yamldir
         self._queue = TaskQueue(projects_redcap)
 
-    def build_project(self, project):
+    def update(self, project):
         with tempfile.TemporaryDirectory() as tmpdir:
 
             protocols = self._load_protocols(project, tmpdir)
