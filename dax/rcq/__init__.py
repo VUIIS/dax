@@ -1,6 +1,9 @@
 """ rcq implements a job queue for DAX in REDCap. Launch/Update/Finish, no build or upload here."""
+import logging
+
 
 logger = logging.getLogger('dax.rcq')
+
 
 # TODO: handle analysis job that only needs to be launched/updated but not
 # uploaded. The job will upload it's own output. so when it's "completed" it's
