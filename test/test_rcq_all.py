@@ -1,7 +1,6 @@
 '''Test rcq REDCap Queue sync by running an update.'''
 import logging
 import os
-import tempfile
 
 import redcap
 
@@ -27,16 +26,16 @@ if __name__ == "__main__":
     projects = [x[def_field] for x in rc.export_records(fields=[def_field])]
 
     with XnatUtils.get_interface() as xnat:
-        logging.info('Running sync')
+        logging.info('Running sync of queue status from XNAT to REDCap')
         task_queue = TaskQueue(rc)
         task_queue.sync(xnat)
         logging.info('Done!')
 
-        logging.info('Running launch')
+        logging.info('Running update of queue from REDCap to SLURM')
         task_launcher = TaskLauncher(instances, rc)
         task_launcher.update()
 
-        logging.info('Running build')
+        logging.info('Running build of tasks in XNAT and REDCap queue')
         task_builder = TaskBuilder(rc, xnat, yamldir)
         for p in projects:
             logging.debug(f'building:{p}')
