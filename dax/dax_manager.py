@@ -1,9 +1,8 @@
-from multiprocessing import Process, Pool
+from multiprocessing import Pool
 import os
 from datetime import datetime
 import copy
 import logging
-import socket
 import traceback
 import random
 
@@ -35,13 +34,6 @@ LOGGER = log.setup_debug_logger('manager', None)
 def project_from_settings(settings_file):
     proj = settings_file.split('settings-')[1].split('.yaml')[0]
     return proj
-
-
-def get_this_instance():
-    # build the instance name
-    this_host = socket.gethostname().split('.')[0]
-    this_user = os.environ['USER']
-    return '{}@{}'.format(this_user, this_host)
 
 
 def is_locked(settings_path, lock_dir):
@@ -426,7 +418,7 @@ class DaxProjectSettingsManager(object):
         instance_field = 'gen_daxinstance'
 
         # Filter to only include projects for this instance that are Complete
-        this_instance = get_this_instance()
+        this_instance = utilities.get_this_instance()
         plist = [
             r['project_name'] for r in self.records if
             r[instance_field] == this_instance and

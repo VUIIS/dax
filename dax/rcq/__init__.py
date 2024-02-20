@@ -1,6 +1,9 @@
 """ rcq implements a job queue for DAX in REDCap. Launch/Update/Finish, no build or upload here."""
 import logging
 
+from ..utilities import get_this_instance
+from .XnatUtils import get_interface
+
 from .taskbuilder import TaskBuilder
 from .tasklauncher import TaskLauncher
 from .taskqueue import TaskQueue
@@ -33,23 +36,36 @@ logger = logging.getLogger('dax.rcq')
 # apply_updates()
 
 
-def update_all(rc, instances, xnat, yamldir):
+def update(rc, instances):
     logging.info('connecting to redcap')
     def_field = rc.def_field
     projects = [x[def_field] for x in rc.export_records(fields=[def_field])]
+    instance_settings = _load_instance_settings(instances)
+    yamldir = instance_settings['']
 
-    logging.info('Running build of tasks in XNAT and REDCap queue')
-    task_builder = TaskBuilder(rc, xnat, yamldir)
-    for p in projects:
-        logging.debug(f'building:{p}')
-        task_builder.update(p)
+    with get_interface() as xnat:
+        logging.info('Running build of tasks in XNAT and REDCap queue')
+        task_builder = TaskBuilder(rc, xnat, yamldir)
+        for p in projects:
+            logging.debug(f'building:{p}')
+            task_builder.update(p)
 
-    logging.info('Running update of queue from REDCap to SLURM')
-    task_launcher = TaskLauncher(instances, rc)
-    task_launcher.update()
+        logging.info('Running update of queue from REDCap to SLURM')
+        task_launcher = TaskLauncher(rc, instance_settings)
+        task_launcher.update()
 
-    logging.info('Running sync of queue status from XNAT to REDCap')
-    task_queue = TaskQueue(rc)
-    task_queue.sync(xnat)
+        logging.info('Running sync of queue status from XNAT to REDCap')
+        task_queue = TaskQueue(rc)
+        task_queue.sync(xnat)
 
     logging.info('Done!')
+
+
+def _load_instance_settings(instance_redcap):
+    """Load DAX settings for current instance from REDCap"""
+    instance_name = get_this_instance()
+    logger.debug(f'instance={instance_name}')
+
+    # Return the record associated with this instance_name
+    return instance_redcap.export_records(
+        records=[instance_name], raw_or_label='label')[0]

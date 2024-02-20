@@ -8,7 +8,6 @@ from datetime import date
 import shutil
 
 from ..processors import load_from_yaml
-from ..dax_manager import get_this_instance
 from ..cluster import PBS, count_jobs
 from ..lockfiles import lock_flagfile, unlock_flagfile
 
@@ -21,19 +20,8 @@ SUBDIRS = ['OUTLOG', 'PBS', 'PROCESSOR']
 
 
 class TaskLauncher(object):
-    def __init__(self, instance_redcap, projects_redcap):
-        self._instance_redcap = instance_redcap
+    def __init__(self, instance_redcap, projects_redcap, instance_settings):
         self._projects_redcap = projects_redcap
-        self._instance_settings = self._load_instance_settings()
-
-    def _load_instance_settings(self):
-        """Load DAX settings for current instance from REDCap"""
-        instance_name = get_this_instance()
-        logger.debug(f'instance={instance_name}')
-
-        # Return the record associated with this instance_name
-        return self._instance_redcap.export_records(
-            records=[instance_name], raw_or_label='label')[0]
 
     def update(self):
         """Update all tasks in taskqueue of projects_redcap."""

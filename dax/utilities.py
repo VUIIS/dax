@@ -8,6 +8,7 @@ import shutil
 import re
 import smtplib
 from email.mime.text import MIMEText
+import socket
 
 from .errors import DaxError
 
@@ -198,3 +199,10 @@ def send_email_netrc(smtp_host, to_addr, subject, content):
     (smtp_from, _, smtp_pass) = netrc.netrc().authenticators(smtp_host)
 
     send_email(smtp_from, smtp_host, smtp_pass, to_addr, subject, content)
+
+
+def get_this_instance():
+    # build the instance name
+    this_host = socket.gethostname().split('.')[0]
+    this_user = os.environ['USER']
+    return '{}@{}'.format(this_user, this_host)
