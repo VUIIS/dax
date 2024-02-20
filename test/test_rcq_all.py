@@ -5,9 +5,9 @@ import os
 import redcap
 
 from dax import XnatUtils
-from dax.rcq.taskqueue import TaskQueue
-from dax.rcq.tasklauncher import TaskLauncher
-from dax.rcq.taskbuilder import TaskBuilder
+from dax import rcq
+
+# dax manager will run builder update, launcher update, then queue sync
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -16,29 +16,9 @@ if __name__ == "__main__":
         datefmt='%Y-%m-%d %H:%M:%S')
 
     api_url = 'https://redcap.vanderbilt.edu/api/'
-    yamldir = '/data/mcr/centos7/dax_processors'
-
-    logging.info('connecting to redcap')
-
     rc = redcap.Project(api_url, os.environ['API_KEY_DAX_RCQ'])
     instances = redcap.Project(api_url, os.environ['API_KEY_DAX_INSTANCES'])
-    def_field = rc.def_field
-    projects = [x[def_field] for x in rc.export_records(fields=[def_field])]
+    yamldir = '/data/mcr/centos7/dax_processors'
 
     with XnatUtils.get_interface() as xnat:
-        logging.info('Running sync of queue status from XNAT to REDCap')
-        task_queue = TaskQueue(rc)
-        task_queue.sync(xnat)
-        logging.info('Done!')
-
-        logging.info('Running update of queue from REDCap to SLURM')
-        task_launcher = TaskLauncher(instances, rc)
-        task_launcher.update()
-
-        logging.info('Running build of tasks in XNAT and REDCap queue')
-        task_builder = TaskBuilder(rc, xnat, yamldir)
-        for p in projects:
-            logging.debug(f'building:{p}')
-            task_builder.update(p)
-
-    logging.info('All Done!')
+        rcq.update_all(rc, instances, xnat, yamldir)
