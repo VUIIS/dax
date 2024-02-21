@@ -119,7 +119,7 @@ XSI2MOD = {
 def load_project_info(xnat, project):
     info = {}
 
-    logger.info('loading project info from xnat')
+    logger.info(f'loading project info from XNAT:{project}')
 
     info['name'] = project
     info['scans'] = _load_scan_data(xnat, project)
