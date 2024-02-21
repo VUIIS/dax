@@ -24,7 +24,7 @@ class TaskLauncher(object):
         self._projects_redcap = projects_redcap
         self._instance_settings = instance_settings
 
-    def update(self):
+    def update(self, launch_enabled=True):
         """Update all tasks in taskqueue of projects_redcap."""
         launch_list = []
         updates = []
@@ -71,7 +71,6 @@ class TaskLauncher(object):
                             def_field: t[def_field],
                             'redcap_repeat_instrument': 'taskqueue',
                             'redcap_repeat_instance': t['redcap_repeat_instance'],
-                            'task_status': 'UPLOADING',
                         })
 
                         # Add to redcap updates
@@ -126,87 +125,88 @@ class TaskLauncher(object):
 
             # TODO: sort or randomize list???
 
-            q_limit = int(instance_settings['main_queuelimit'])
-            p_limit = int(instance_settings['main_queuelimit_pending'])
-            u_limit = int(instance_settings['main_limit_pendinguploads'])
+            if launch_enabled:
+                q_limit = int(instance_settings['main_queuelimit'])
+                p_limit = int(instance_settings['main_queuelimit_pending'])
+                u_limit = int(instance_settings['main_limit_pendinguploads'])
 
-            # Launch jobs
-            updates = []
-            for i, t in enumerate(launch_list):
-                launched, pending, uploads = count_jobs(resdir)
-                logger.info(f'Cluster:{launched}/{q_limit} total, {pending}/{p_limit} pending, {u_limit}/{uploads} uploads')
+                # Launch jobs
+                updates = []
+                for i, t in enumerate(launch_list):
+                    launched, pending, uploads = count_jobs(resdir)
+                    logger.info(f'Cluster:{launched}/{q_limit} total, {pending}/{p_limit} pending, {u_limit}/{uploads} uploads')
 
-                if launched >= q_limit:
-                    logger.info(f'queue limit reached:{q_limit}')
-                    break
+                    if launched >= q_limit:
+                        logger.info(f'queue limit reached:{q_limit}')
+                        break
 
-                if pending >= p_limit:
-                    logger.info(f'pending limit reached:{p_limit}')
-                    break
+                    if pending >= p_limit:
+                        logger.info(f'pending limit reached:{p_limit}')
+                        break
 
-                if uploads >= u_limit:
-                    logger.info(f'upload limit reached:{u_limit}')
-                    break
+                    if uploads >= u_limit:
+                        logger.info(f'upload limit reached:{u_limit}')
+                        break
 
-                assr = t['task_assessor']
-                outdir = f'{resdir}/{assr}'
+                    assr = t['task_assessor']
+                    outdir = f'{resdir}/{assr}'
 
-                if os.path.exists(outdir):
-                    logger.info(f'cannot launch, found existing dir:{outdir}')
-                    continue
+                    if os.path.exists(outdir):
+                        logger.info(f'cannot launch, found existing dir:{outdir}')
+                        continue
 
-                make_task_dirs(outdir)
+                    make_task_dirs(outdir)
 
-                try:
-                    logger.debug(f'launch:{i}:{assr}')
+                    try:
+                        logger.debug(f'launch:{i}:{assr}')
 
-                    # Locate the processor yaml file
-                    if t['task_yamlfile'] == 'CUSTOM':
-                        # Download it locally
-                        logger.info('get custom yaml file')
-                        t['task_yamlfile'] = self.save_yamlfile(
-                            t[def_field],
-                            t['redcap_repeat_instance'],
-                            f'{outdir}/PROCESSOR'
-                        )
-                    else:
-                        # Copy from local
-                        src = os.path.join(
-                            instance_settings['main_processorlib'],
-                            t['task_yamlfile']
-                        )
-                        dst = os.path.join(
-                            f'{outdir}/PROCESSOR',
-                            t['task_yamlfile']
-                        )
-                        shutil.copyfile(src, dst)
-                        t['task_yamlfile'] = dst
+                        # Locate the processor yaml file
+                        if t['task_yamlfile'] == 'CUSTOM':
+                            # Download it locally
+                            logger.debug('get custom yaml file')
+                            t['task_yamlfile'] = self.save_processor_file(
+                                t[def_field],
+                                t['redcap_repeat_instance'],
+                                f'{outdir}/PROCESSOR'
+                            )
+                        else:
+                            # Copy from local
+                            src = os.path.join(
+                                instance_settings['main_processorlib'],
+                                t['task_yamlfile']
+                            )
+                            dst = os.path.join(
+                                f'{outdir}/PROCESSOR',
+                                t['task_yamlfile']
+                            )
+                            shutil.copyfile(src, dst)
+                            t['task_yamlfile'] = dst
 
-                    t['outdir'] = outdir
+                        t['outdir'] = outdir
 
-                    # Launch it!
-                    jobid = self.launch_task(t)
-                    if jobid:
-                        updates.append({
-                            def_field: t[def_field],
-                            'redcap_repeat_instrument': 'taskqueue',
-                            'redcap_repeat_instance': t['redcap_repeat_instance'],
-                            'task_status': 'RUNNING',
-                            'task_jobid': jobid,
-                        })
-                except Exception as err:
-                    logger.error(err)
-                    import traceback
-                    traceback.print_exc()
+                        # Launch it!
+                        jobid = self.launch_task(t)
+                        if jobid:
+                            updates.append({
+                                def_field: t[def_field],
+                                'redcap_repeat_instrument': 'taskqueue',
+                                'redcap_repeat_instance': t['redcap_repeat_instance'],
+                                'task_status': 'RUNNING',
+                                'task_jobid': jobid,
+                            })
+                    except Exception as err:
+                        logger.error(err)
+                        import traceback
+                        traceback.print_exc()
 
-            if updates:
-                # upload changes
-                logger.debug(f'updating redcap:{updates}')
-                try:
-                    projects_redcap.import_records(updates)
-                except Exception as err:
-                    err = 'connection to REDCap interrupted'
-                    logger.error(err)
+                if updates:
+                    # upload changes
+                    logger.debug(f'updating redcap:{updates}')
+                    try:
+                        projects_redcap.import_records(updates)
+                    except Exception as err:
+                        err = 'connection to REDCap interrupted'
+                        logger.error(err)
         finally:
             # Delete the lock file
             logger.debug(f'deleting lock file:{lock_file}')
@@ -223,7 +223,7 @@ class TaskLauncher(object):
         inputlist = json.loads(task['task_inputlist'], strict=False)
         var2val = json.loads(task['task_var2val'], strict=False)
         yaml_file = task['task_yamlfile']
-        user_inputs = task['task_userinputs']
+        user_inputs = json.loads(task['task_userinputs'], strict=False)
         imagedir = instance_settings['main_singularityimagedir']
         xnat_host = instance_settings['main_xnathost']
         xnat_user = task.get('xnat_user', 'daxspider')
@@ -302,8 +302,8 @@ class TaskLauncher(object):
         except FileExistsError:
             pass
         shutil.copyfile(
-            f'{resdir}/{assr}/PBS/{assr}.slurm'
-            f'{diskq}/BATCH/{assr}.slurm',
+            f'{resdir}/{assr}/PBS/{assr}.slurm',
+            f'{diskq}/BATCH/{assr}.slurm'
         )
 
         # Copy processor files for info on pdf

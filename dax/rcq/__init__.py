@@ -10,7 +10,6 @@ from .taskqueue import TaskQueue
 
 logger = logging.getLogger('dax.rcq')
 
-
 # TODO: handle analysis job that only needs to be launched/updated but not
 # uploaded. The job will upload it's own output. so when it's "completed" it's
 # done. On finish we just need to update on redcap and delete from disk.
@@ -36,7 +35,7 @@ logger = logging.getLogger('dax.rcq')
 # apply_updates()
 
 
-def update(rc, instances):
+def update(rc, instances, build_enabled=True, launch_enabled=True):
     logging.info('connecting to redcap')
     def_field = rc.def_field
     projects = [x[def_field] for x in rc.export_records(fields=[def_field])]
@@ -44,15 +43,17 @@ def update(rc, instances):
     yamldir = instance_settings['main_processorlib']
 
     with get_interface() as xnat:
-        logging.info('Running build of tasks in XNAT and REDCap queue')
-        task_builder = TaskBuilder(rc, xnat, yamldir)
-        for p in projects:
-            logging.debug(f'building:{p}')
-            task_builder.update(p)
+
+        if build_enabled:
+            logging.info('Running build of tasks in XNAT and REDCap queue')
+            task_builder = TaskBuilder(rc, xnat, yamldir)
+            for p in projects:
+                logging.debug(f'building:{p}')
+                task_builder.update(p)
 
         logging.info('Running update of queue from REDCap to SLURM')
         task_launcher = TaskLauncher(rc, instance_settings)
-        task_launcher.update()
+        task_launcher.update(launch_enabled=launch_enabled)
 
         logging.info('Running sync of queue status from XNAT to REDCap')
         task_queue = TaskQueue(rc)

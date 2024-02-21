@@ -40,7 +40,7 @@ class TaskBuilder(object):
             protocols = self._load_protocols(project, tmpdir)
 
             if len(protocols) == 0:
-                logger.info('no processing protocols found')
+                logger.info(f'no processing protocols found:{project}')
                 return
 
             info = load_project_info(self._xnat, project)
@@ -49,7 +49,7 @@ class TaskBuilder(object):
             for i, row in enumerate(protocols):
                 filepath = row['FILE']
 
-                logger.info(f'file:{project}:{filepath}')
+                logger.info(f'{project}:{filepath}')
 
                 if row.get('ARGS', False):
                     user_inputs = row.get('ARGS')
@@ -78,9 +78,10 @@ class TaskBuilder(object):
                     filepath,
                     user_inputs,
                     info,
-                    include_filters)
+                    include_filters,
+                    custom=row['CUSTOM'])
 
-    def _build_processor(self, filepath, user_inputs, info, include_filters):
+    def _build_processor(self, filepath, user_inputs, info, include_filters, custom=False):
         # Get lists of subjects/sessions for filtering
 
         # Load the processor
@@ -109,7 +110,7 @@ class TaskBuilder(object):
             # Apply the processor to filtered sessions
             for subj in sorted(include_subjects):
                 logger.debug(f'subject:{subj}')
-                self._build_subject_processor(processor, subj, info)
+                self._build_subject_processor(processor, subj, info, custom=custom)
         else:
             # Handle session level processing
 
@@ -124,7 +125,7 @@ class TaskBuilder(object):
 
             # Apply the processor to filtered sessions
             for sess in sorted(include_sessions):
-                self._build_session_processor(processor, sess, info)
+                self._build_session_processor(processor, sess, info, custom=custom)
 
     def _load_protocols(self, project, tmpdir):
         protocols = []
@@ -152,15 +153,17 @@ class TaskBuilder(object):
                     project,
                     r['redcap_repeat_instance'],
                     tmpdir)
+                d['CUSTOM'] = True
             else:
                 filepath = r['processor_file']
+                d['CUSTOM'] = False
 
             if not os.path.isabs(filepath):
                 # Prepend lib location
                 filepath = os.path.join(yamldir, filepath)
 
             if not os.path.isfile(filepath):
-                logger.debug(f'file not found:{filepath}')
+                logger.info(f'file not found:{filepath}')
                 continue
 
             # Get renamed variables
@@ -203,7 +206,7 @@ class TaskBuilder(object):
             logging.error(f'file not found:{filename}:{err}')
             return None
 
-    def _build_session_processor(self, processor, session, project_info):
+    def _build_session_processor(self, processor, session, project_info, custom=False):
         # Get list of inputs sets (not yet matched with existing)
         inputsets = processor.parse_session_pd(session, project_info)
 
@@ -222,7 +225,7 @@ class TaskBuilder(object):
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
                 logger.debug('building task')
                 (assr, info) = self._build_task(
-                    assr, info, processor, project_info)
+                    assr, info, processor, project_info, custom=custom)
 
                 logger.debug(f'{info}')
                 logger.debug(
@@ -230,7 +233,7 @@ class TaskBuilder(object):
             else:
                 logger.debug('already built:{}'.format(info['ASSR']))
 
-    def _build_subject_processor(self, processor, subject, project_info):
+    def _build_subject_processor(self, processor, subject, project_info, custom=False):
         logger.debug(f'{subject}:{processor.name}')
         # Get list of inputs sets (not yet matched with existing)
         inputsets = processor.parse_subject(subject, project_info)
@@ -249,13 +252,13 @@ class TaskBuilder(object):
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
                 logger.debug('building task')
                 (assr, info) = self._build_task(
-                    assr, info, processor, project_info)
+                    assr, info, processor, project_info, custom=custom)
 
                 logger.debug(f'assr after={info}')
             else:
                 logger.debug('already built:{}'.format(info['ASSR']))
 
-    def _build_task(self, assr, info, processor, project_info):
+    def _build_task(self, assr, info, processor, project_info, custom=False):
         '''Build a task, create assessor in XNAT, add new record to redcap'''
         old_proc_status = info['PROCSTATUS']
         old_qc_status = info['QCSTATUS']
@@ -274,7 +277,8 @@ class TaskBuilder(object):
                 processor.walltime_str,
                 processor.memreq_mb,
                 processor.yaml_file,
-                processor.user_inputs
+                processor.user_inputs,
+                custom=custom
             )
 
             # Set new statuses to be updated

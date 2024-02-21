@@ -50,7 +50,7 @@ class TaskQueue(object):
 
                 match_found = True
 
-                # We have a match, check for updates
+                # We have a match, now check for updates
                 if a.PROCSTATUS == 'COMPLETE':
                     logger.debug(f'{i}:{assr}:COMPLETE')
 
@@ -59,6 +59,7 @@ class TaskQueue(object):
                         'redcap_repeat_instrument': 'taskqueue',
                         'redcap_repeat_instance': t['redcap_repeat_instance'],
                         'task_status': 'COMPLETE',
+                        'taskqueue_complete': '2'
                     })
                 else:
                     logger.debug(f'{i}:{assr}:UPLOADING')
@@ -86,7 +87,7 @@ class TaskQueue(object):
 
     def apply_updates(self, updates):
         try:
-            self._rc.import_records([updates])
+            self._rc.import_records(updates)
         except Exception as err:
             logger.error(err)
 
@@ -121,18 +122,20 @@ class TaskQueue(object):
         walltime,
         memreq,
         yamlfile,
-        userinputs
+        userinputs,
+        custom=False
     ):
         """Add a new task record ."""
 
         # Convert to string for storing
         var2val = json.dumps(var2val)
         inputlist = json.dumps(inputlist)
+        userinputs = json.dumps(userinputs)
 
         # Try to match existing record
         task_id = self._assessor_task_id(project, assr)
 
-        if not os.path.dirname(yamlfile):
+        if custom:
             task_yamlfile = 'CUSTOM'
         else:
             task_yamlfile = os.path.basename(yamlfile)

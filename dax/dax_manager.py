@@ -17,6 +17,7 @@ from .launcher import BUILD_SUFFIX
 from . import log
 from .errors import AutoProcessorError, DaxError
 from . import utilities
+from . import rcq
 
 # dax manager has 3 main classes: DaxManager has a DaxProjectSettingsManager
 # which is a collection of DaxProjectSettings.
@@ -574,7 +575,7 @@ class DaxManager(object):
     FDATEFORMAT = '%Y%m%d-%H%M%S'
     DDATEFORMAT = '%Y%m%d'
 
-    def __init__(self, api_url, api_key_instances, api_key_projects):
+    def __init__(self, api_url, api_key_instances, api_key_projects, api_key_rcq=None):
 
         # TODO: test the api keys or catch errors from pycap to
         # handle when redcap is down
@@ -604,6 +605,12 @@ class DaxManager(object):
             api_key_projects,
             instance_settings,
             self.settings_dir)
+
+        if api_key_rcq:
+            self._rcq = redcap.Project(api_url, api_key_rcq)
+        else:
+            self._rcq = None
+
 
     def is_enabled_instance(self):
         return (self.enabled)
@@ -719,6 +726,14 @@ class DaxManager(object):
         upload_pool = None
         upload_results = None
         num_upload_threads = 0
+
+        # Run rcq update
+        if self._rcq:
+            rcq.update(
+                self._rcq,
+                self._redcap,
+                build_enabled=self.is_enabled_build(),
+                launch_enabled=self.is_enabled_launch())
 
         try:
             if self.is_enabled_build():

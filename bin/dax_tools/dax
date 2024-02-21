@@ -9,8 +9,6 @@ import traceback
 import sys
 import os
 
-import redcap
-
 import dax
 from dax import dax_tools_utils as dax_tools
 from dax import dax_manager
@@ -220,9 +218,10 @@ if __name__ == '__main__':
         API_URL = os.environ['API_URL']
         API_KEY_P = os.environ['API_KEY_DAX_PROJECTS']
         API_KEY_I = os.environ['API_KEY_DAX_INSTANCES']
+        API_KEY_Q = os.environ.get('API_KEY_DAX_RCQ', None)
 
         # Make and run our dax manager
-        manager = dax_manager.DaxManager(API_URL, API_KEY_I, API_KEY_P)
+        manager = dax_manager.DaxManager(API_URL, API_KEY_I, API_KEY_P, api_key_rcq=API_KEY_Q)
 
         if manager.is_enabled_instance():
             # Delete any left over lock files
@@ -257,29 +256,31 @@ if __name__ == '__main__':
             print(err)
 
     elif args.command == 'rcq':
-        projects_redcap = redcap.Project(
-            os.environ['API_URL'],
-            os.environ['API_KEY_DAX_RCQ'])
-        instance_redcap = redcap.Project(
-            os.environ['API_URL'],
-            os.environ['API_KEY_DAX_INSTANCES'])
+        import logging
+        import redcap
+
+        logging.basicConfig(
+            format='%(asctime)s - %(levelname)s:%(module)s:%(message)s',
+            level=logging.INFO,
+            datefmt='%Y-%m-%d %H:%M:%S')
+
+        try:
+            projects_redcap = redcap.Project(
+                os.environ['API_URL'],
+                os.environ['API_KEY_DAX_RCQ']
+            )
+            instance_redcap = redcap.Project(
+                os.environ['API_URL'],
+                os.environ['API_KEY_DAX_INSTANCES']
+            )
+        except Exception as err:
+            print('rcq failed!', err)
+
         try:
             print('rcq update!')
             rcq.update(projects_redcap, instance_redcap)
         except Exception as err:
             print('rcq failed!', err)
-
-    elif args.command == 'rcqsync':
-        enable_stdout()
-
-        projects_redcap = redcap.Project(
-            os.environ['API_URL'],
-            os.environ['API_KEY_DAX_RCQ'])
-        try:
-            print('rcq sync!')
-            rcq.sync(projects_redcap)
-        except Exception as err:
-            print('rcqsync failed!', err)
 
     elif args.command == 'version':
         print(dax.__version__)
