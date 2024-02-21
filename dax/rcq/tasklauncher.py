@@ -223,7 +223,7 @@ class TaskLauncher(object):
         inputlist = json.loads(task['task_inputlist'], strict=False)
         var2val = json.loads(task['task_var2val'], strict=False)
         yaml_file = task['task_yamlfile']
-        user_inputs = json.loads(task['task_userinputs'], strict=False)
+        user_inputs = json.loads(task['task_userinputs'] or 'null', strict=False)
         imagedir = instance_settings['main_singularityimagedir']
         xnat_host = instance_settings['main_xnathost']
         xnat_user = task.get('xnat_user', 'daxspider')
