@@ -4,7 +4,7 @@ import json
 from dax.XnatUtils import decode_inputs
 
 
-logger = logging.getLogger('dax.rcq.projectinfo')
+logger = logging.getLogger('manager.rcq.projectinfo')
 
 # The scan URI is a hacky way to get a row for each resource of a every
 # scan including all modalities. Things go awry when we try to add any
@@ -118,6 +118,8 @@ XSI2MOD = {
 
 def load_project_info(xnat, project):
     info = {}
+
+    logger.info('loading project info from xnat')
 
     info['name'] = project
     info['scans'] = _load_scan_data(xnat, project)
@@ -247,7 +249,7 @@ def _load_sgp_data(xnat, project):
     uri = SGP_URI
     uri += f'&project={project}'
 
-    logging.debug(f'get_result uri=:{uri}')
+    logger.debug(f'get_result uri=:{uri}')
     result = _get_result(xnat, uri)
 
     for r in result:

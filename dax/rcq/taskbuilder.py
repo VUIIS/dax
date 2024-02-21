@@ -13,7 +13,7 @@ from dax.processors import load_from_yaml, SgpProcessor
 from .projectinfo import load_project_info
 from .taskqueue import TaskQueue
 
-logger = logging.getLogger('dax.rcq.taskbuilder')
+logger = logging.getLogger('manager.rcq.taskbuilder')
 
 
 PROCESSING_RENAME = {
@@ -192,7 +192,7 @@ class TaskBuilder(object):
                 raise Exception('error exporting file from REDCap')
 
         except Exception as err:
-            logging.error(f'downloading file:{err}')
+            logger.error(f'downloading file:{err}')
             return None
 
         # Save contents to local file
@@ -203,7 +203,7 @@ class TaskBuilder(object):
 
             return filename
         except FileNotFoundError as err:
-            logging.error(f'file not found:{filename}:{err}')
+            logger.error(f'file not found:{filename}:{err}')
             return None
 
     def _build_session_processor(self, processor, session, project_info, custom=False):

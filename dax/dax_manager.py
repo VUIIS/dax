@@ -29,7 +29,7 @@ from . import rcq
 
 DAX_SETTINGS = DAX_Settings()
 
-LOGGER = log.setup_debug_logger('manager', None)
+LOGGER = log.setup_info_logger('manager', None)
 
 
 def project_from_settings(settings_file):
@@ -727,18 +727,6 @@ class DaxManager(object):
         upload_results = None
         num_upload_threads = 0
 
-        # Run rcq update
-        if self._rcq:
-            LOGGER.info('rcq update')
-            logging.getLogger('dax').handlers = []
-            logger = log.setup_info_logger('dax.rcq', None)
-            rcq.update(
-                self._rcq,
-                self._redcap,
-                build_enabled=self.is_enabled_build(),
-                launch_enabled=self.is_enabled_launch())
-            logging.getLogger('dax').handlers = []
-
         try:
             if self.is_enabled_build():
                 # Build
@@ -807,6 +795,14 @@ class DaxManager(object):
                     upload_pool = Pool(processes=num_upload_threads)
                     upload_results = self.queue_uploads(upload_pool)
                     upload_pool.close()
+
+            if self._rcq:
+                LOGGER.info('rcq update')
+                rcq.update(
+                    self._rcq,
+                    self._redcap,
+                    build_enabled=self.is_enabled_build(),
+                    launch_enabled=self.is_enabled_launch())
 
             if self.is_enabled_build() and num_build_threads > 0:
                 # Wait for builds to finish

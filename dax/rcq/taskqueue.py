@@ -9,7 +9,7 @@ import pandas as pd
 from dax import XnatUtils
 
 
-logger = logging.getLogger('dax.rcq.taskqueue')
+logger = logging.getLogger('manager.rcq.taskqueue')
 
 
 class TaskQueue(object):
@@ -21,7 +21,7 @@ class TaskQueue(object):
         task_updates = []
         def_field = self._rc.def_field
 
-        logger.debug('loading taskqueue records')
+        logger.info('loading taskqueue records from REDCap')
         rec = self._rc.export_records(
             forms=['taskqueue'],
             fields=[def_field])

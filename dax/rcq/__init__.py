@@ -9,7 +9,7 @@ from .tasklauncher import TaskLauncher
 from .taskqueue import TaskQueue
 
 
-logger = logging.getLogger('dax.rcq')
+logger = logging.getLogger('manager.rcq')
 
 
 # TODO: handle analysis job that only needs to be launched/updated but not

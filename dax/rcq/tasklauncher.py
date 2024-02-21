@@ -12,7 +12,7 @@ from ..cluster import PBS, count_jobs
 from ..lockfiles import lock_flagfile, unlock_flagfile
 
 
-logger = logging.getLogger('dax.rcq.tasklauncher')
+logger = logging.getLogger('manager.rcq.tasklauncher')
 
 DONE_STATUSES = ['COMPLETE', 'JOB_FAILED', 'FAILED']
 
@@ -334,7 +334,7 @@ class TaskLauncher(object):
             if cont == '':
                 raise Exception('error exporting file from REDCap')
         except Exception as err:
-            logging.error(f'downloading file:{err}')
+            logger.error(f'downloading file:{err}')
             return None
 
         # Save contents to local file
@@ -345,7 +345,7 @@ class TaskLauncher(object):
 
             return filename
         except FileNotFoundError as err:
-            logging.error(f'file not found:{filename}:{err}')
+            logger.error(f'file not found:{filename}:{err}')
             return None
 
 
