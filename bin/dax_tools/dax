@@ -162,7 +162,11 @@ runs build, launch, update and upload.'
 
     # rcq:
     rcq_desc = 'Update REDCap Queue by launching, updating, finishing jobs'
-    dax_parser.add_parser('rcq', help=rcq_desc)
+    rcq_parser = dax_parser.add_parser('rcq', help=rcq_desc)
+    rcq_parser.add_argument(
+        '--nobuild',
+        dest='build', action='store_false',
+        help='Disable build.')
 
     # version:
     version_desc = 'Print dax version.'
@@ -278,7 +282,7 @@ if __name__ == '__main__':
 
         try:
             print('rcq update!')
-            rcq.update(projects_redcap, instance_redcap)
+            rcq.update(projects_redcap, instance_redcap, build_enabled=args.build)
         except Exception as err:
             print('rcq failed!', err)
 

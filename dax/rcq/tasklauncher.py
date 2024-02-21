@@ -58,7 +58,7 @@ class TaskLauncher(object):
                 assr = t['task_assessor']
                 status = t['task_status']
 
-                logger.info(f'{i}:{assr}:{status}')
+                logger.debug(f'{i}:{assr}:{status}')
 
                 if status in ['NEED_INPUTS', 'UPLOADING']:
                     pass
