@@ -23,6 +23,7 @@ class TaskLauncher(object):
     def __init__(self, projects_redcap, instance_settings):
         self._projects_redcap = projects_redcap
         self._instance_settings = instance_settings
+        self.resdir = self._instance_settings['main_resdir']
 
     def update(self, launch_enabled=True):
         """Update all tasks in taskqueue of projects_redcap."""
@@ -97,20 +98,23 @@ class TaskLauncher(object):
 
                     try:
                         self.task_to_diskq(t)
-                    except FileNotFoundError as err:
-                        logger.warn(f'failed to update task:{err}')
-                        continue
 
-                    # Set ready to complete flag to trigger upload
-                    open(f'{resdir}/{assr}/READY_TO_COMPLETE.txt', 'w').close()
+                        # Set ready to complete flag to trigger upload
+                        self.complete_flag(assr)
+
+                        task_status = 'UPLOADING'
+                    except FileNotFoundError as err:
+                        logger.warn(f'failed to update, lost:{assr}:{err}')
+                        task_status = 'LOST'
 
                     # Add to redcap updates
                     updates.append({
                         def_field: t[def_field],
                         'redcap_repeat_instrument': 'taskqueue',
                         'redcap_repeat_instance': t['redcap_repeat_instance'],
-                        'task_status': 'UPLOADING',
+                        'task_status': task_status,
                     })
+
                 elif status == 'QUEUED':
                     logger.debug('adding queued job to launch list')
                     launch_list.append(t)
@@ -216,6 +220,9 @@ class TaskLauncher(object):
             logger.debug(f'deleting lock file:{lock_file}')
             unlock_flagfile(lock_file)
 
+    def complete_flag(self, assr):
+        open(f'{self.resdir}/{assr}/READY_TO_COMPLETE.txt', 'w').close()
+
     def launch_task(self, task):
         """Launch task as SLURM Job, write batch and submit. Return job id."""
         instance_settings = self._instance_settings
@@ -227,7 +234,8 @@ class TaskLauncher(object):
         inputlist = json.loads(task['task_inputlist'], strict=False)
         var2val = json.loads(task['task_var2val'], strict=False)
         yaml_file = task['task_yamlfile']
-        user_inputs = json.loads(task['task_userinputs'] or 'null', strict=False)
+        user_inputs = json.loads(
+            task['task_userinputs'] or 'null', strict=False)
         imagedir = instance_settings['main_singularityimagedir']
         xnat_host = instance_settings['main_xnathost']
         xnat_user = task.get('xnat_user', 'daxspider')
