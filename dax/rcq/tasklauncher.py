@@ -98,7 +98,7 @@ class TaskLauncher(object):
                     try:
                         self.task_to_diskq(t)
                     except FileNotFoundError as err:
-                        logger.err(f'failed to update task:{err}')
+                        logger.warn(f'failed to update task:{err}')
                         continue
 
                     # Set ready to complete flag to trigger upload
