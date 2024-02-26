@@ -95,7 +95,11 @@ class TaskLauncher(object):
                             t['task_yamlfile']
                         )
 
-                    self.task_to_diskq(t)
+                    try:
+                        self.task_to_diskq(t)
+                    except FileNotFoundError as err:
+                        logger.err(f'failed to update task:{err}')
+                        continue
 
                     # Set ready to complete flag to trigger upload
                     open(f'{resdir}/{assr}/READY_TO_COMPLETE.txt', 'w').close()
