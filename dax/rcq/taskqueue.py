@@ -61,6 +61,8 @@ class TaskQueue(object):
                         'task_status': 'COMPLETE',
                         'taskqueue_complete': '2'
                     })
+                elif t.PROCSTATUS == 'LOST':
+                    logger.info(f'found lost task, retrying:{assr}')
                 else:
                     logger.debug(f'{i}:{assr}:UPLOADING')
 
