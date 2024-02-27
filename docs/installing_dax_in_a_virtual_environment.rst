@@ -77,6 +77,11 @@ Here SERVER is the server name only. For example, central.xnat.org, not https://
 Make sure that the xnat_host is formatted similarly to 'xnat.website.com' NOT 'https://xnat.website.com/xnat'
 The full url WILL NOT WORK properly.
 
+File permissions on the .netrc must be user-only, e.g. need to run
+
+::
+
+	chmod go-rwx ~/.netrc
 
 -------------------
 Verify Installation
