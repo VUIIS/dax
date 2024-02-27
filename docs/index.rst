@@ -41,11 +41,11 @@ Versions and Installation
 
 Our currently running versions of dax are:
 
-- Dax 2 - 2.2.1 - As of July 8, 2021
+- Dax 2 - 2.11.1 - As of September 19, 2023
   
   - Used for most purposes
 
-- LDAX latest - 0.7.10 - As of October 7, 2020
+- LDAX latest - 0.7.12 - As of February 10, 2021
 
   - Legacy Dax - Please use DAX 2
   
