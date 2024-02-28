@@ -14,7 +14,7 @@ from ..lockfiles import lock_flagfile, unlock_flagfile
 
 logger = logging.getLogger('manager.rcq.tasklauncher')
 
-DONE_STATUSES = ['COMPLETE', 'JOB_FAILED', 'FAILED']
+DONE_STATUSES = ['COMPLETE', 'JOB_FAILED']
 
 SUBDIRS = ['OUTLOG', 'PBS', 'PROCESSOR']
 
@@ -76,7 +76,7 @@ class TaskLauncher(object):
 
                         # Add to redcap updates
                         updates.append(task_updates)
-                elif status == 'COMPLETED':
+                elif status in ['COMPLETED', 'FAILED', 'CANCELLED']:
                     # finish completed job by moving to upload
                     logger.debug('setting to upload')
 
@@ -97,10 +97,16 @@ class TaskLauncher(object):
                         )
 
                     try:
+                        # Check for failed job
+                        if not self.has_ready_flag(assr):
+                            if not self.has_failed_flag(assr):
+                                self.create_failed_flag(assr)
+                            t['task_status'] == 'JOB_FAILED'
+
                         self.task_to_diskq(t)
 
                         # Set ready to complete flag to trigger upload
-                        self.complete_flag(assr)
+                        self.create_complete_flag(assr)
 
                         task_status = 'UPLOADING'
                     except FileNotFoundError as err:
@@ -114,7 +120,6 @@ class TaskLauncher(object):
                         'redcap_repeat_instance': t['redcap_repeat_instance'],
                         'task_status': task_status,
                     })
-
                 elif status == 'QUEUED':
                     logger.debug('adding queued job to launch list')
                     launch_list.append(t)
@@ -220,8 +225,17 @@ class TaskLauncher(object):
             logger.debug(f'deleting lock file:{lock_file}')
             unlock_flagfile(lock_file)
 
-    def complete_flag(self, assr):
+    def create_complete_flag(self, assr):
         open(f'{self.resdir}/{assr}/READY_TO_COMPLETE.txt', 'w').close()
+
+    def create_failed_flag(self, assr):
+        open(f'{self.resdir}/{assr}/JOB_FAILED.txt', 'w').close()
+
+    def has_ready_flag(self, assr):
+        return os.path.exists(f'{self.resdir}/{assr}/READY_TO_UPLOAD.txt')
+
+    def has_failed_flag(self, assr):
+        return os.path.exists(f'{self.resdir}/{assr}/JOB_FAILED.txt')
 
     def launch_task(self, task):
         """Launch task as SLURM Job, write batch and submit. Return job id."""
@@ -305,8 +319,10 @@ class TaskLauncher(object):
         save_attr(f'{diskq}/walltimeused/{assr}', task['task_timeused'])
         save_attr(f'{diskq}/jobnode/{assr}', task['task_jobnode'])
 
-        if task['task_status'] == 'COMPLETED':
+        if task['task_status'] in ['COMPLETED', 'COMPLETE']:
             save_attr(f'{diskq}/procstatus/{assr}', 'COMPLETE')
+        elif task['task_status'] in ['FAILED', 'JOB_FAILED']:
+            save_attr(f'{diskq}/procstatus/{assr}', 'JOB_FAILED')
 
         # Copy batch file to diskq so upload works correctly
         try:

@@ -30,7 +30,7 @@ class TaskQueue(object):
 
         # Filter to only uploading jobs
         rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
-        rec = [x for x in rec if x['task_status'] == 'UPLOADING']
+        rec = [x for x in rec if x['task_status'] in ['LOST', 'UPLOADING']]
 
         # Load assesssor data from XNAT as our current status
         logger.debug(f'loading XNAT data:{projects}')
@@ -41,6 +41,7 @@ class TaskQueue(object):
         logger.debug('updating each task')
         for i, t in enumerate(rec):
             assr = t['task_assessor']
+            task_status = t['task_status']
 
             # Find the matching assessor for this task in XNAT data
             match_found = False
@@ -49,11 +50,13 @@ class TaskQueue(object):
                     continue
 
                 match_found = True
+                xnat_status = a.PROCSTATUS
 
                 # We have a match, now check for updates
-                if a.PROCSTATUS == 'COMPLETE':
+                if xnat_status == 'COMPLETE':
                     logger.debug(f'{i}:{assr}:COMPLETE')
 
+                    # Apply complete from xnat to redcap
                     task_updates.append({
                         def_field: t[def_field],
                         'redcap_repeat_instrument': 'taskqueue',
@@ -61,10 +64,19 @@ class TaskQueue(object):
                         'task_status': 'COMPLETE',
                         'taskqueue_complete': '2'
                     })
-                elif t.PROCSTATUS == 'LOST':
-                    logger.info(f'found lost task, retrying:{assr}')
+                elif task_status == 'LOST':
+                    logger.info(f'found lost job, setting to QUEUED:{assr}')
+
+                    task_updates.append({
+                        def_field: t[def_field],
+                        'redcap_repeat_instrument': 'taskqueue',
+                        'redcap_repeat_instance': t['redcap_repeat_instance'],
+                        'task_status': 'QUEUED',
+                        'task_jobid': '',
+                        'task_jobnode': '',
+                    })
                 else:
-                    logger.debug(f'{i}:{assr}:UPLOADING')
+                    logger.debug(f'{i}:{assr}:{task_status}')
 
                 # we matched so we are done with this task
                 break
