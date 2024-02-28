@@ -10,8 +10,10 @@ DAX allows you to:
 - run pipelines on your data in XNAT via a cluster (processors)
 
 
-Versions and Installation
+Installation and Versions
 -------------------------
+
+To install please reference our `Install Page <https://dax.readthedocs.io/en/latest/installing_dax_in_a_virtual_environment.html>`_
 
 Our currently running versions of dax are:
 
@@ -32,8 +34,6 @@ These can be verified with
   pip freeze | grep dax
   # or
   python3 -m pip freeze | grep dax
-
-To install please reference our `Install Page <https://dax.readthedocs.io/en/latest/installing_dax_in_a_virtual_environment.html>`_
 
 Contents:
 
