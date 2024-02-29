@@ -312,7 +312,7 @@ class TaskLauncher(object):
                 self.create_failed_flag(assr)
 
             # Set task status to be saved as failed
-            t['task_status'] = 'JOB_FAILED'
+            task['task_status'] = 'JOB_FAILED'
 
         # Save attributes to disk
         save_attr(f'{diskq}/jobstartdate/{assr}', today_str)
@@ -323,7 +323,7 @@ class TaskLauncher(object):
 
         if task['task_status'] in ['COMPLETED', 'COMPLETE']:
             save_attr(f'{diskq}/procstatus/{assr}', 'COMPLETE')
-        elif task['task_status'] in ['FAILED', 'JOB_FAILED']:
+        else:
             save_attr(f'{diskq}/procstatus/{assr}', 'JOB_FAILED')
 
         # Copy batch file to diskq so upload works correctly
