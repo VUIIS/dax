@@ -97,17 +97,8 @@ class TaskLauncher(object):
                         )
 
                     try:
-                        # Check for failed job
-                        if not self.has_ready_flag(assr):
-                            if not self.has_failed_flag(assr):
-                                self.create_failed_flag(assr)
-                            t['task_status'] == 'JOB_FAILED'
-
+                        # Move to disk queue for upload
                         self.task_to_diskq(t)
-
-                        # Set ready to complete flag to trigger upload
-                        self.create_complete_flag(assr)
-
                         task_status = 'UPLOADING'
                     except FileNotFoundError as err:
                         logger.warn(f'failed to update, lost:{assr}:{err}')
@@ -313,6 +304,17 @@ class TaskLauncher(object):
         assr = task['task_assessor']
         today_str = str(date.today())
 
+        # Check for failed job
+        if not self.has_ready_flag(assr):
+
+            # Create failed flag  
+            if not self.has_failed_flag(assr):
+                self.create_failed_flag(assr)
+
+            # Set task status to be saved as failed
+            t['task_status'] = 'JOB_FAILED'
+
+        # Save attributes to disk
         save_attr(f'{diskq}/jobstartdate/{assr}', today_str)
         save_attr(f'{diskq}/jobid/{assr}', task['task_jobid'])
         save_attr(f'{diskq}/memused/{assr}', task['task_memused'])
@@ -348,6 +350,9 @@ class TaskLauncher(object):
             f'{resdir}/{assr}/PROCESSOR/{assr}.txt',
             f'{diskq}/processor/{assr}'
         )
+
+        # Finally, Set ready to complete flag to trigger upload
+        self.create_complete_flag(assr)
 
     def save_processor_file(self, project, repeat_id, outdir):
         """Export file from REDCap, write to outdir with source filename."""
