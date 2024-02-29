@@ -64,6 +64,17 @@ class TaskQueue(object):
                         'task_status': 'COMPLETE',
                         'taskqueue_complete': '2'
                     })
+                elif xnat_status == 'JOB_FAILED':
+                    logger.debug(f'{i}:{assr}:JOB_FAILED')
+
+                    # Apply from xnat to redcap
+                    task_updates.append({
+                        def_field: t[def_field],
+                        'redcap_repeat_instrument': 'taskqueue',
+                        'redcap_repeat_instance': t['redcap_repeat_instance'],
+                        'task_status': 'JOB_FAILED',
+                        'taskqueue_complete': '0'
+                    })
                 elif task_status == 'LOST':
                     logger.info(f'found lost job, setting to QUEUED:{assr}')
 
