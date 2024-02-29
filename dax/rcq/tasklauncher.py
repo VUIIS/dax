@@ -147,7 +147,7 @@ class TaskLauncher(object):
                 updates = []
                 for i, t in enumerate(launch_list):
                     launched, pending, uploads = count_jobs(resdir)
-                    logger.info(f'Cluster:{launched}/{q_limit} total, {pending}/{p_limit} pending, {u_limit}/{uploads} uploads')
+                    logger.info(f'Cluster:{launched}/{q_limit} total, {pending}/{p_limit} pending, {uploads}/{u_limit} uploads')
 
                     if launched >= q_limit:
                         logger.info(f'queue limit reached:{q_limit}')
