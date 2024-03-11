@@ -24,8 +24,6 @@ from . import rcq
 
 # TODO: archive old logs
 
-# TODO: only run launch and update if there are open jobs
-
 
 DAX_SETTINGS = DAX_Settings()
 
@@ -797,11 +795,12 @@ class DaxManager(object):
                     upload_pool.close()
 
             if self._rcq:
+                # update rcq  without build since it's handled elsewhere
                 LOGGER.info('rcq update')
                 rcq.update(
                     self._rcq,
                     self._redcap,
-                    build_enabled=self.is_enabled_build(),
+                    build_enabled=False, 
                     launch_enabled=self.is_enabled_launch())
 
             if self.is_enabled_build() and num_build_threads > 0:
@@ -858,6 +857,13 @@ class DaxManager(object):
                 dax.bin.build(
                     settings_file, log_file, True, proj_lastrun=proj_lastrun)
                 logging.getLogger('dax').handlers = []
+
+                if self._rcq:
+                    LOGGER.info(f'rcq build:{project}')
+                    _settings = rcq._load_instance_settings(self._redcap)
+                    yamldir = _settings['main_processorlib']
+                    with get_interface(xnat_host=self.xnat_host) as xnat:
+                        TaskBuilder(self._rcq, xnat, yamldir).update(project)
             except Exception:
                 err = 'error running build:proj={}:err={}'.format(
                     project, traceback.format_exc())
