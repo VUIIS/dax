@@ -51,7 +51,10 @@ def check_settings(host):
         dax_netrc = DAX_Netrc()
         user, pwd = dax_netrc.get_login(host)
     except DaxNetrcError:
-        print('ERROR:login not found, set in ~/.netrc')
+        print('ERROR FOUND - PLEASE CHECK THE FOLLOWING')
+        print('  1. Login not found, set in ~/.netrc')
+        print('  2. File permissions on the .netrc file MUST be user-only')
+        print('     - chmod go-rwx ~/.netrc')
         sys.exit(1)
 
     print('Checking connection:host={}, user={}'.format(host, user))
