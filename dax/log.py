@@ -37,10 +37,15 @@ def setup_info_logger(name, logfile):
     :return: logger object
 
     """
+    fmt = '%(asctime)s - %(levelname)s - %(module)s - %(message)s'
+    formatter = logging.Formatter(fmt=fmt)
+
     if logfile:
         handler = logging.FileHandler(logfile, 'w')
     else:
         handler = logging.StreamHandler(sys.stdout)
+
+    handler.setFormatter(formatter)
 
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
