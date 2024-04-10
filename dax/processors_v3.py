@@ -2464,7 +2464,9 @@ class SgpProcessor(Processor_v3):
         for sess in sessions:
             select = sess.get('select', None)
 
-            if 'types' in sess:
+            if 'type' in sess:
+                sesstypes = [sess['type']]
+            elif 'types' in sess:
                 sesstypes = [_.strip() for _ in sess['types'].split(',')]
             else:
                 sesstypes = []
@@ -2475,11 +2477,6 @@ class SgpProcessor(Processor_v3):
                 tracers = [_.strip() for _ in sess['tracer'].split(',')]
             else:
                 tracers = []
-
-            if 'types' in sess:
-                sesstypes = [_.strip() for _ in sess['types'].split(',')]
-            else:
-                sesstypes = []
 
             # get scans
             scans = sess.get('scans', list())
@@ -2629,12 +2626,20 @@ class SgpProcessor(Processor_v3):
                         continue
 
                     # Then check session types
+                    sess_match = False
                     for typeexp in iv['sesstypes']:
                         regex = re.compile(fnmatch.translate(typeexp))
                         sesstype = cassr.get('SESSTYPE')
-                        if not regex.match(sesstype):
-                            LOGGER.debug('wrong sesstype')
+                        if regex.match(sesstype):
+                            sess_match = True
+                            break
+                        else:
+                            LOGGER.debug(f'wrong sesstype:{typeexp}:{sesstype}')
                             continue
+
+                    if not sess_match:
+                        LOGGER.debug(f'no sesstype match:{typeexp}')
+                        continue
 
                     # still good, then check proc types
                     proctype = cassr.get('PROCTYPE')
@@ -2643,7 +2648,7 @@ class SgpProcessor(Processor_v3):
                         continue
 
                     # Session type and proc type both match
-                    LOGGER.debug('found')
+                    LOGGER.debug(f'found:{iv["sesstypes"]}:{cassr.get("full_path")}')
                     artefacts_by_input[i].append(cassr.get('full_path'))
 
         return artefacts_by_input

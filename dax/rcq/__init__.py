@@ -37,12 +37,32 @@ logger = logging.getLogger('manager.rcq')
 # apply_updates()
 
 
+# update_analyses should run before updating tasks.
+# Analysis should run same steps as job_template.txt to check whether
+# it can download or wait, but do it here in python instead of bash script.
+def update_analyses():
+    pass
+
+
+def launch_analysis():
+    pass
+
+
 def update(rc, instances, build_enabled=True, launch_enabled=True):
     logger.info('connecting to redcap')
     def_field = rc.def_field
+
     projects = [x[def_field] for x in rc.export_records(fields=[def_field])]
+
     instance_settings = _load_instance_settings(instances)
+    if not instance_settings:
+        logger.debug('no settings found for this instance')
+        return
+
+    logger.debug(f'instance_settings={instance_settings}')
+
     yamldir = instance_settings['main_processorlib']
+    logger.debug(f'yamldir={yamldir}')
 
     with get_interface() as xnat:
 
@@ -50,7 +70,8 @@ def update(rc, instances, build_enabled=True, launch_enabled=True):
         TaskQueue(rc).sync(xnat)
 
         logger.info('Running update of queue from REDCap to SLURM')
-        TaskLauncher(rc, instance_settings).update(launch_enabled=launch_enabled)
+        TaskLauncher(
+            rc, instance_settings).update(launch_enabled=launch_enabled)
 
         if build_enabled:
             logger.info('Running build of tasks in XNAT and REDCap queue')
@@ -60,7 +81,8 @@ def update(rc, instances, build_enabled=True, launch_enabled=True):
                 task_builder.update(p)
 
         logger.info('Running update of queue from REDCap to SLURM')
-        TaskLauncher(rc, instance_settings).update(launch_enabled=launch_enabled)
+        TaskLauncher(
+            rc, instance_settings).update(launch_enabled=launch_enabled)
 
         logger.info('Running sync of queue status from XNAT to REDCap')
         TaskQueue(rc).sync(xnat)
@@ -72,5 +94,10 @@ def _load_instance_settings(instance_redcap):
     logger.debug(f'instance={instance_name}')
 
     # Return the record associated with this instance_name
-    return instance_redcap.export_records(
-        records=[instance_name], raw_or_label='label')[0]
+    records = instance_redcap.export_records(records=[instance_name], raw_or_label='label')
+    if len(records) == 0:
+        settings = {}
+    else:
+        settings = records[0]
+
+    return settings

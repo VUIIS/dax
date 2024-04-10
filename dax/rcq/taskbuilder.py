@@ -37,10 +37,11 @@ class TaskBuilder(object):
     def update(self, project):
         with tempfile.TemporaryDirectory() as tmpdir:
 
+            logger.debug(f'loading processing protools:{project}')
             protocols = self._load_protocols(project, tmpdir)
 
             if len(protocols) == 0:
-                logger.info(f'no processing protocols found:{project}')
+                logger.debug(f'no processing protocols found:{project}')
                 return
 
             info = load_project_info(self._xnat, project)
@@ -74,6 +75,7 @@ class TaskBuilder(object):
                 else:
                     include_filters = []
 
+                logger.debug(f'building processor:{filepath}')
                 self._build_processor(
                     filepath,
                     user_inputs,
@@ -85,11 +87,16 @@ class TaskBuilder(object):
         # Get lists of subjects/sessions for filtering
 
         # Load the processor
-        processor = load_from_yaml(
-            self._xnat,
-            filepath,
-            user_inputs=user_inputs,
-            job_template='~/job_template.txt')
+        logger.debug(f'loading processor from yaml:{filepath}')
+        try:
+            processor = load_from_yaml(
+                self._xnat,
+                filepath,
+                user_inputs=user_inputs,
+                job_template='~/job_template.txt')
+        except Exception as err:
+            logger.debug(f'failed to load, cannot build:{filepath}:{err}')
+            return
 
         if not processor:
             logger.error(f'loading processor:{filepath}')
@@ -110,7 +117,8 @@ class TaskBuilder(object):
             # Apply the processor to filtered sessions
             for subj in sorted(include_subjects):
                 logger.debug(f'subject:{subj}')
-                self._build_subject_processor(processor, subj, info, custom=custom)
+                self._build_subject_processor(
+                    processor, subj, info, custom=custom)
         else:
             # Handle session level processing
 
@@ -125,7 +133,8 @@ class TaskBuilder(object):
 
             # Apply the processor to filtered sessions
             for sess in sorted(include_sessions):
-                self._build_session_processor(processor, sess, info, custom=custom)
+                self._build_session_processor(
+                    processor, sess, info, custom=custom)
 
     def _load_protocols(self, project, tmpdir):
         protocols = []
