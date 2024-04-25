@@ -85,7 +85,6 @@ dax build \
     --sessions "${session}" \
     "${setfile}"
 
-# FIXME Check for successful build or fail with useful info
 
 # Launch
 echo "Launching"
@@ -95,27 +94,33 @@ dax launch \
     --sessions "${session}" \
     "${setfile}"
 
-# Identify and track the job (check every $delay seconds)
-jobid=$(grep "INFO - cluster - Submitted batch job" "${launchlog}" | cut -d ' ' -f 11)
+# Identify and track the jobs (check every $delay seconds). Handle multiple
+# jobs launched
+jobidstr=$(grep "INFO - cluster - Submitted batch job" "${launchlog}" | cut -d ' ' -f 11)
+jobids=(${jobidstr//\n/ })
+jobcount=${#jobids[@]}
 
-if [ -z "${jobid}" ]; then
+if [ -z "${jobidstr}" ]; then
     echo "Job not launched"
     exit 1
 else
-    echo "Job ${jobid} launched"
+    echo "Jobs launched (${jobcount}): ${jobids[@]}"
 fi
 
-jobstate=
-while [ "${jobstate}" != "completed" ]; do
+jobscompleted=0
+while [ "${jobscompleted}" -lt "${jobcount}" ]; do
     sleep "${delay}"
-    jobstate=$(rtracejob ${jobid} |grep "State")
-    jobstate=$(echo ${jobstate##*|})
-    echo "Job ${jobid} state: ${jobstate}"
+    jobscompleted=0
+    for job in ${jobids[@]}; do
+        jobstate=$(rtracejob ${job} |grep "State")
+        jobstate=$(echo ${jobstate##*|})
+        echo "Job ${jobid} state: ${jobstate}"
+        if [ "${jobstate}" = "complete" ]; then
+            ((jobscompleted++))
+        fi
+    done
 done
 
-# FIXME show the assessor status (JOB_FAILED.txt, READY_TO_COMPLETE.txt, ...)
-
-# FIXME If failed, report error lines in outlog
 
 # Update/upload to get results to xnat
 echo Updating
