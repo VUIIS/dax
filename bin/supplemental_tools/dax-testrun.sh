@@ -119,7 +119,7 @@ while [ "${jobscompleted}" -lt "${jobcount}" ]; do
             ((jobscompleted++))
         fi
     done
-    echo "Jobs completed: ${jobscompleted}"
+    echo "Jobs completed: ${jobscompleted} of ${jobcount}"
 done
 
 
