@@ -114,11 +114,12 @@ while [ "${jobscompleted}" -lt "${jobcount}" ]; do
     for job in ${jobids[@]}; do
         jobstate=$(rtracejob ${job} |grep "State")
         jobstate=$(echo ${jobstate##*|})
-        echo "Job ${jobid} state: ${jobstate}"
+        echo "Job ${job} state: ${jobstate}"
         if [ "${jobstate}" = "complete" ]; then
             ((jobscompleted++))
         fi
     done
+    echo "Jobs completed: ${jobscompleted}"
 done
 
 
