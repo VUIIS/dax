@@ -162,18 +162,20 @@ def set_sesstype():
     # Set values for sessions that exist
     for row in info.itertuples():
         tag = f'{row.project_id} {row.subject_label} {row.session_label}'
-        logger.debug('Working on %s', tag)
+        logger.info('Working on %s', tag)
         with XnatUtils.get_interface() as xnat:
-            logger.debug('  Selecting session')
+            logger.info('  Selecting session')
             sess = xnat.select_experiment(
                 row.project_id,
                 row.subject_label,
                 row.session_label
                 )
             if sess.exists():
-                logger.debug('  Setting session_type')
+                logger.info('  Setting session_type')
+                starttime = time.time()
                 sess.attrs.set('session_type', row.session_type)
-                logger.info('  Set complete: %s for %s', row.session_type, tag)
+                endtime = time.time()
+                logger.info('  Set complete in %0.1f sec: %s for %s', endtime-starttime, row.session_type, tag)
             else:
                 logger.warning('  Session not found: %s', tag)
 
