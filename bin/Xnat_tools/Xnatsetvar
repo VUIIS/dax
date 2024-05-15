@@ -160,11 +160,10 @@ def set_sesstype():
     info = read_csv(reqs)
 
     # Set values for sessions that exist
-    for row in info.itertuples():
-        tag = f'{row.project_id} {row.subject_label} {row.session_label}'
-        logger.info('Working on %s', tag)
-        with XnatUtils.get_interface() as xnat:
-            logger.info('  Selecting session')
+    with XnatUtils.InterfaceTemp(xnat_timeout=1200, xnat_retries=10, xnat_wait=2400) as xnat:
+        for row in info.itertuples():
+            tag = f'{row.project_id} {row.subject_label} {row.session_label}'
+            logger.info('Selecting session for %s', tag)
             sess = xnat.select_experiment(
                 row.project_id,
                 row.subject_label,
