@@ -12,12 +12,6 @@ from .taskqueue import TaskQueue
 logger = logging.getLogger('manager.rcq')
 
 
-# TODO: handle analysis job that only needs to be launched/updated but not
-# uploaded. The job will upload it's own output. so when it's "completed" it's
-# done. On finish we just need to update on redcap and delete from disk.
-# Does Analysis job have a taskqueue entry or is job information stored in
-# Analysis table?
-
 # LAUNCH: requires TaskQueue from projects_redcap and slurm
 # BUILD: requires Processors and TaskQueue from projects_redcap and xnat
 # UPDATE: required projects_redcap and slurm
@@ -30,22 +24,12 @@ logger = logging.getLogger('manager.rcq')
 # xnat
 # build()
 
+
 # TaskQueue:
 # projects_redcap
 # get_open_tasks()
 # add_task()
 # apply_updates()
-
-
-# update_analyses should run before updating tasks.
-# Analysis should run same steps as job_template.txt to check whether
-# it can download or wait, but do it here in python instead of bash script.
-def update_analyses():
-    pass
-
-
-def launch_analysis():
-    pass
 
 
 def update(rc, instances, build_enabled=True, launch_enabled=True):
