@@ -62,7 +62,7 @@ def initialize_logger(name):
     else:
         handler = logging.StreamHandler()
     lgr = logging.getLogger(name)
-    lgr.setLevel(logging.INFO)
+    lgr.setLevel(logging.DEBUG)
     lgr.addHandler(handler)
     return lgr
 
@@ -161,18 +161,21 @@ def set_sesstype():
 
     # Set values for sessions that exist
     for row in info.itertuples():
+        tag = f'{row.project_id} {row.subject_label} {row.session_label}'
+        logger.debug('Working on %s', tag)
         with XnatUtils.get_interface() as xnat:
+            logger.debug('  Selecting session')
             sess = xnat.select_experiment(
                 row.project_id,
                 row.subject_label,
                 row.session_label
                 )
-            tag = f'{row.project_id} {row.subject_label} {row.session_label}'
             if sess.exists():
+                logger.debug('  Setting session_type')
                 sess.attrs.set('session_type', row.session_type)
-                logger.info('Set %s for %s', row.session_type, tag)
+                logger.info('  Set complete: %s for %s', row.session_type, tag)
             else:
-                logger.warning('Session not found: %s', tag)
+                logger.warning('  Session not found: %s', tag)
 
 
 if __name__ == '__main__':
