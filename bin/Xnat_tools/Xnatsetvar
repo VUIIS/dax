@@ -172,7 +172,7 @@ def set_sesstype():
                 sess.attrs.set('session_type', row.session_type)
                 logger.info('Set %s for %s', row.session_type, tag)
             else:
-                logger.info('Session not found: %s', tag)
+                logger.warning('Session not found: %s', tag)
 
 
 if __name__ == '__main__':
