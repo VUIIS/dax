@@ -163,7 +163,7 @@ def set_sesstype():
     with XnatUtils.InterfaceTemp(xnat_timeout=1200, xnat_retries=10, xnat_wait=2400) as xnat:
         for row in info.itertuples():
             tag = f'{row.project_id} {row.subject_label} {row.session_label}'
-            logger.info('Checking subject for %s', tag)
+            logger.info('Working on %s', tag)
             subj = xnat.select_subject(
                 row.project_id,
                 row.subject_label,
@@ -171,7 +171,7 @@ def set_sesstype():
             if not subj.exists():
                 logger.info('  No subject found for %s', tag)
                 continue
-            logger.info('Selecting session for %s', tag)
+            logger.info('  Selecting session for %s', tag)
             sess = xnat.select_experiment(
                 row.project_id,
                 row.subject_label,
