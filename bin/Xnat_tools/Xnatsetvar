@@ -160,8 +160,8 @@ def set_sesstype():
     info = read_csv(reqs)
 
     # Set values for sessions that exist
-    with XnatUtils.get_interface() as xnat:
-        for row in info.itertuples():
+    for row in info.itertuples():
+        with XnatUtils.get_interface() as xnat:
             sess = xnat.select_experiment(
                 row.project_id,
                 row.subject_label,
