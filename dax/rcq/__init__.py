@@ -7,6 +7,7 @@ from ..XnatUtils import get_interface
 from .taskbuilder import TaskBuilder
 from .tasklauncher import TaskLauncher
 from .taskqueue import TaskQueue
+from .analysislauncher import AnalysisLauncher
 
 
 logger = logging.getLogger('manager.rcq')
@@ -52,6 +53,10 @@ def update(rc, instances, build_enabled=True, launch_enabled=True):
 
         logger.info('Running sync of queue status from XNAT to REDCap')
         TaskQueue(rc).sync(xnat)
+
+        logger.info('Running update of analyses')
+        AnalysisLauncher(
+            xnat, rc, instance_settings).update(launch_enabled=launch_enabled)
 
         logger.info('Running update of queue from REDCap to SLURM')
         TaskLauncher(

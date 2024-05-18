@@ -10,7 +10,7 @@ uname -a # outputs node info (name, date&time, type, OS, etc)
 date
 
 #=============================================================================
-# These fields should be added here:
+# These fields should be added here by replacing job_cmds:
 #ANALYSISID=
 #PROJECT=
 #REPO=

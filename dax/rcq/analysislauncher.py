@@ -6,100 +6,118 @@ import json
 import subprocess
 from datetime import date
 import shutil
+import tempfile
+import requests
 
 from ..processors import load_from_yaml
 from ..cluster import PBS, count_jobs
 from ..lockfiles import lock_flagfile, unlock_flagfile
+from .projectinfo import load_project_info
 
-
-
-
-
-# TODO: handle analysis job that only needs to be launched/updated but not
-# uploaded. The job will upload it's own output. so when it's "completed" it's
-# done. On finish we just need to update on redcap and delete from disk.
-# Does Analysis job have a taskqueue entry or is job information stored in
-# Analysis table?
-# update_analyses should run before updating tasks.
-def update_analyses():
-    pass
-
-
-def launch_analysis():
-
-    #ANALYSISID=
-#PROJECT=
-#REPO=
-#VERSION=
-#INLIST=
-#XNATHOST=
-#XNATUSER=
-#MAINCMD=
-
-
-
-    pass
-
-
-    
+# Handle analysis jobs that only need to be launched/updated, but not uploaded.
+# The job will upload it's own output. On finish, we update job inforamtion on 
+# redcap an delete log and batch files from disk, and update job information 
+# No job information is stored on disk, no diskq, rcq.
 
 logger = logging.getLogger('manager.rcq.analysislauncher')
 
-    analysis = garjus.load_analysis(project, analysis_id)
 
-    
+DONE_STATUSES = ['COMPLETE', 'JOB_FAILED']
+
+
+MAIN_TEMPLATE = '''
+
+
+INLIST={inputs}
+VERSION={version}
+CONTAINERPATH={container}
+XNATHOST={host}
+XNATUSER={user}
+PROJECT={project}
+ANALYSISID={analysis}
+REPO={repo}
+MAINCMD={main}
+
+
+'''
+
+
+class AnalysisLauncher(object):
+    def __init__(self, xnat, projects_redcap, instance_settings):
+        self._xnat = xnat
+        self._projects_redcap = projects_redcap
+        self._instance_settings = instance_settings
+        self.resdir = self._instance_settings['main_resdir']
+
     def load_analysis(self, project, analysis_id, download=True):
         """Return analysis protocol record."""
-        if not self.redcap_enabled():
-            logger.info('cannot load analysis, redcap not enabled')
-            return None
-
         data = {
-            'PROJECT': project,
-            'ID': analysis_id,
+            'project': project,
+            'id': analysis_id,
         }
 
-        rec = self._rc.export_records(
-            fields=[self._dfield()],
+        rec = self._projects_redcap.export_records(
+            fields=[self._projects_redcap.def_field],
             forms=['analyses'],
             records=[project],
         )
 
         rec = [x for x in rec if str(x['redcap_repeat_instance']) == analysis_id]
 
-        # Get renamed variables
-        for k, v in self.analyses_rename.items():
-            data[v] = rec[0].get(k, '')
-
-        # Download the yaml file and load it too
-        if data['PROCESSOR']:
-            logger.debug(f'loading:{data["PROCESSOR"]}')
-            with tempfile.TemporaryDirectory() as temp_dir:
-                yaml_file = utils_redcap.download_named_file(
-                    self._rc,
-                    project,
-                    'analysis_processor',
-                    temp_dir,
-                    repeat_id=analysis_id)
-
-                # Load yaml contents
-                try:
-                    with open(yaml_file, "r") as f:
-                        data['PROCESSOR'] = yaml.load(f, Loader=yaml.FullLoader)
-                except yaml.error.YAMLError as err:
-                    logger.error(f'failed to load yaml file{yaml_file}:{err}')
-                    return None
+        if rec['analysis_procrepo']:
+            # Load the yaml file contents from github
+            logger.debug(f'loading:{rec["analysis_procrepo"]}')
+            user, repo, version = rec['analysis_procrepo'].replace(':', '/').split('/')
+            data['processor'] = self.load_processor_github(user, repo, version)
+            data['procrepo'] = rec['analysis_procrepo']
+            data['procversion'] = version
+        elif rec['analysis_processor']:
+            # Load the yaml file contents from REDCap
+            logger.debug(f'loading:{rec["analysis_processor"]}')
+            data['processor'] = self.load_processor_redcap(
+                project,
+                rec['redcap_repeat_instance'])
 
         return data
 
-class AnalysisLauncher(object):
-    def __init__(self, projects_redcap, instance_settings):
-        self._projects_redcap = projects_redcap
-        self._instance_settings = instance_settings
-        self.resdir = self._instance_settings['main_resdir']
+    def load_processor_redcap(self, project, repeat_id):
+        """Export file from REDCap."""
+
+        # Get the file contents from REDCap
+        try:
+            (cont, hdr) = self._projects_redcap.export_file(
+                record=project,
+                field='analysis_processor',
+                repeat_instance=repeat_id)
+
+            if cont == '':
+                raise Exception('error exporting file from REDCap')
+        except Exception as err:
+            logger.error(f'downloading file:{err}')
+            return None
+
+        return cont
+
+    def load_processor_github(self, user, repo, version):
+        """Export file from github."""
+
+        base = 'https://raw.githubusercontent.com'
+        filename = 'processor.yaml'
+
+        # Get the file contents
+        try:
+            url = f'{base}/{user}/{repo}/{version}/{filename}'
+            r = requests.get(url, allow_redirects=True)
+            if cont == '':
+                raise Exception('error exporting file from github')
+        except Exception as err:
+            logger.error(f'downloading file:{err}')
+            return None
+
+        return r.content
 
     def update(self, launch_enabled=True):
-        """Update all tasks in taskqueue of projects_redcap."""
+        """Update all analyses in projects_redcap."""
         launch_list = []
         updates = []
         resdir = self._instance_settings['main_resdir']
@@ -116,73 +134,55 @@ class AnalysisLauncher(object):
             return
 
         try:
-            # Get the current task table
-            logger.info('loading current taskqueue records')
+            # Get the current analysis table
+            logger.info('loading current analysis records')
             rec = projects_redcap.export_records(
-                forms=['taskqueue'],
+                forms=['analyses'],
                 fields=[def_field])
 
             # Filter to only open jobs
-            rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
-            rec = [x for x in rec if x['task_status'] not in DONE_STATUSES]
+            rec = [x for x in rec if x['redcap_repeat_instrument'] == 'analyses']
+            rec = [x for x in rec if x['analyses_status'] not in DONE_STATUSES]
 
-            # Update each task
-            logger.debug('updating each task')
-            for i, t in enumerate(rec):
-                assr = t['task_assessor']
-                status = t['task_status']
+            # Update each record
+            logger.debug('updating each analysis')
+            for i, cur in enumerate(rec):
+                project = cur[def_field]
+                instance = cur['redcap_repeat_instance']
+                status = cur['analysis_status']
 
-                logger.debug(f'{i}:{assr}:{status}')
+                label = f'{project}_{instance}'
+
+                logger.debug(f'{i}:{label}:{status}')
 
                 if status in ['NEED_INPUTS', 'UPLOADING']:
+                    logger.debug(f'ignoring status={status}')
                     pass
                 elif status == 'RUNNING':
                     # check on running job
                     logger.debug('checking on running job')
-                    task_updates = get_updates(t)
-                    if task_updates:
-                        task_updates.update({
-                            def_field: t[def_field],
-                            'redcap_repeat_instrument': 'taskqueue',
-                            'redcap_repeat_instance': t['redcap_repeat_instance'],
+                    cur_updates = get_updates(cur)
+                    if cur_updates:
+                        cur_updates.update({
+                            def_field: cur[def_field],
+                            'redcap_repeat_instrument': 'analyses',
+                            'redcap_repeat_instance': cur['redcap_repeat_instance'],
                         })
 
                         # Add to redcap updates
-                        updates.append(task_updates)
+                        updates.append(cur_updates)
                 elif status in ['COMPLETED', 'FAILED', 'CANCELLED']:
-                    # finish completed job by moving to upload
-                    logger.debug('setting to upload')
+                    # finish completed job
+                    logger.debug(f'setting to uploaded, status={status}')
 
-                    # Locate the processor yaml file
-                    if t['task_yamlfile'] == 'CUSTOM':
-                        t['task_yamlfile'] = os.path.join(
-                            resdir,
-                            assr,
-                            'PROCESSOR',
-                            t['task_yamlupload']
-                        )
-                    else:
-                        t['task_yamlfile'] = os.path.join(
-                            resdir,
-                            assr,
-                            'PROCESSOR',
-                            t['task_yamlfile']
-                        )
-
-                    try:
-                        # Move to disk queue for upload
-                        self.task_to_diskq(t)
-                        task_status = 'UPLOADING'
-                    except FileNotFoundError as err:
-                        logger.warn(f'failed to update, lost:{assr}:{err}')
-                        task_status = 'LOST'
+                    # TODO: Delete the local files
 
                     # Add to redcap updates
                     updates.append({
                         def_field: t[def_field],
-                        'redcap_repeat_instrument': 'taskqueue',
-                        'redcap_repeat_instance': t['redcap_repeat_instance'],
-                        'task_status': task_status,
+                        'redcap_repeat_instrument': 'analyses',
+                        'redcap_repeat_instance': cur['redcap_repeat_instance'],
+                        'analysis_status': analysis_status,
                     })
                 elif status == 'QUEUED':
                     logger.debug('adding queued job to launch list')
@@ -209,7 +209,7 @@ class AnalysisLauncher(object):
 
                 # Launch jobs
                 updates = []
-                for i, t in enumerate(launch_list):
+                for i, cur in enumerate(launch_list):
                     launched, pending, uploads = count_jobs(resdir)
                     logger.info(f'Cluster:{launched}/{q_limit} total, {pending}/{p_limit} pending, {uploads}/{u_limit} uploads')
 
@@ -225,51 +225,31 @@ class AnalysisLauncher(object):
                         logger.info(f'upload limit reached:{u_limit}')
                         break
 
-                    assr = t['task_assessor']
-                    outdir = f'{resdir}/{assr}'
+                    project = cur[def_field]
+                    instance = cur['redcap_repeat_instance']
+                    label = f'{project}_{instance}'
+                    outdir = f'{resdir}/{label}'
 
-                    if os.path.exists(outdir):
-                        logger.info(f'cannot launch, found existing dir:{outdir}')
+                    try:
+                        os.makedirs(outdir)
+                    except FileExistsError as err:
+                        logger.error(f'cannot launch, existing dir:{outdir}')
                         continue
 
-                    make_task_dirs(outdir)
+                    cur['outdir'] = outdir
 
                     try:
                         logger.debug(f'launch:{i}:{assr}')
 
-                        # Locate the processor yaml file
-                        if t['task_yamlfile'] == 'CUSTOM':
-                            # Download it locally
-                            logger.debug('get custom yaml file')
-                            t['task_yamlfile'] = self.save_processor_file(
-                                t[def_field],
-                                t['redcap_repeat_instance'],
-                                f'{outdir}/PROCESSOR'
-                            )
-                        else:
-                            # Copy from local
-                            src = os.path.join(
-                                instance_settings['main_processorlib'],
-                                t['task_yamlfile']
-                            )
-                            dst = os.path.join(
-                                f'{outdir}/PROCESSOR',
-                                t['task_yamlfile']
-                            )
-                            shutil.copyfile(src, dst)
-                            t['task_yamlfile'] = dst
-
-                        t['outdir'] = outdir
-
                         # Launch it!
-                        jobid = self.launch_task(t)
+                        jobid = self.launch_analysis(cur)
                         if jobid:
                             updates.append({
-                                def_field: t[def_field],
-                                'redcap_repeat_instrument': 'taskqueue',
-                                'redcap_repeat_instance': t['redcap_repeat_instance'],
-                                'task_status': 'RUNNING',
-                                'task_jobid': jobid,
+                                def_field: cur[def_field],
+                                'redcap_repeat_instrument': 'analyses',
+                                'redcap_repeat_instance': cur['redcap_repeat_instance'],
+                                'analysis_status': 'RUNNING',
+                                'analysis_jobid': jobid,
                             })
                     except Exception as err:
                         logger.error(err)
@@ -289,143 +269,246 @@ class AnalysisLauncher(object):
             logger.debug(f'deleting lock file:{lock_file}')
             unlock_flagfile(lock_file)
 
+    def get_info(self, project):
+        return load_project_info(self._xnat, project)
+
+    def label_analysis(self, analysis):
+        analysis_datetime = datetime.now().strftime("%Y-%m-%d-%H%M%S")
+        analysis_label = f'{project}_{analysis_id}_{analysis_datetime}'
+        return analysis_label
+
+    def get_inputlist(self, analysis):
+        inputlist = []
+
+        # TODO: handle subjects from additional projects?
+
+        project = analysis['project']
+        subj_spec = analysis['processor']['inputs']['xnat']['subjects']
+
+        info = self.get_info(project=project)
+
+        subjects = analysis.get('subjects', None)
+        if subjects is None:
+            subjects = list(sessions.SUBJECT.unique())
+
+        for subj in subjects:
+
+
+
+        return inputlist
+
     def launch_analysis(self, analysis):
-        """Launch task as SLURM Job, write batch and submit. Return job id."""
+        """Launch as SLURM Job, write batch and submit. Return job id."""
         instance_settings = self._instance_settings
 
 
+        # Create and set the label for our new analysis
+        analysis['analysis_label'] = self.label_analysis(analysis)
 
+        project = analysis['project']
+        analysis_id = analysis['id']
+        outdir = analysis['outdir']
+        processor = analysis['processor']
+        batch_file = f'{outdir}/PBS/{analysis_label}.slurm'
+        log_file = f'{outdir}/OUTLOG/{analysis_label}.txt'
 
-        #assr = task['task_assessor']
-        #outdir = task['outdir']
-        #walltime = task['task_walltime']
-        #memreq = task['task_memreq']
-        #inputlist = json.loads(task['task_inputlist'], strict=False)
-        #var2val = json.loads(task['task_var2val'], strict=False)
-        #yaml_file = task['task_yamlfile']
-        #user_inputs = json.loads(
-        #    task['task_userinputs'] or 'null', strict=False)
         imagedir = instance_settings['main_singularityimagedir']
-        xnat_host = instance_settings['main_xnathost']
-        #xnat_user = task.get('xnat_user', 'daxspider')
-        job_template = instance_settings['main_jobtemplate']
-        job_rungroup = instance_settings['main_rungroup']
-        #batch_file = f'{outdir}/PBS/{assr}.slurm'
-        outlog = f'{outdir}/OUTLOG/{assr}.txt'
-        #jobdir = f'/tmp/{assr}'
-        #spec_file = f'{outdir}/PROCESSOR/{assr}.txt'
+        xnat_host = instance_settings['main_xnathost'],
+        xnat_user = analysis.get('xnat_user', 'daxspider')
 
-        # Load the processor
-        processor = load_from_yaml(
-            None,
-            yaml_file,
-            user_inputs=user_inputs,
-            singularity_imagedir=imagedir,
-            job_template=job_template
-        )
+        # Build list of inputs
+        inputlist = self.get_inputlist(analysis)
 
-        # Build the command text
-        cmds = processor.build_text(
-            var2val,
-            inputlist,
-            jobdir,
-            outdir,
-            xnat_host,
-            xnat_user)
+        # Determine job template
+        job_template = instance_settings.get('main_projectjobtemplate', None)
+
+        if job_template is None:
+            _job_template = instance_settings.get('jobtemplate', None)
+            job_template = f'{_job_template}/project_job_template.txt'
+
+        if not os.path.exists(job_template):
+            logger.error('cannot find project job template')
+            return
+
+        # Set up containers
+        for i, cur in processor.get('containers', []):
+            # Get container path/filename
+            cpath = cur['path']
+            if not os.path.isabs(cpath) and imagedir:
+                # Prepend singularity imagedir
+                processor['containers'][i]['path'] = f'{imagedir}/{cpath}'
+
+        cmds = self.get_cmds(xnat_host, xnat_user, inputlist, analysis)
 
         # Write the script
         logger.info(f'writing batch file:{batch_file}')
+
         batch = PBS(
             batch_file,
-            outlog,
-            [cmds],
-            walltime,
-            mem_mb=memreq,
-            ppn=1,
-            env=None,
-            email=None,
-            email_options='FAIL',
-            rungroup=job_rungroup,
+            log_file,
+            cmds,
+            analysis.get('analysis_timereq', '0-8'),
+            mem_mb=analysis.get('analysis_memreq', '8G'),
+            rungroup=instance_settings['main_rungroup'],
             xnat_host=xnat_host,
-            job_template=job_template)
+            job_template=job_template
+        )
 
         # Save to file
         batch.write()
 
         # Submit the saved file
-        jobid, job_failed = batch.submit(outlog=outlog)
+        jobid, job_failed = batch.submit()
         logger.info(f'job submit results:{jobid}:{job_failed}')
 
         return jobid
 
-    def task_to_diskq(self, task):
-        """Transfer task from rcq to diskq (for uploading)."""
-        resdir = self._instance_settings['main_resdir']
-        diskq = f'{resdir}/DISKQ'
-        assr = task['task_assessor']
-        today_str = str(date.today())
+    def get_cmds(self, host, user, input_list, analysis):
+        # Get inputs text
+        inputs += self.build_inputs_text(input_list)
 
-        # Check for failed job
-        if not self.has_ready_flag(assr):
+        # Get main commands text
+        main += self.build_main_text(analysis)
 
-            # Create failed flag  
-            if not self.has_failed_flag(assr):
-                self.create_failed_flag(assr)
+         # Append other paths
+        cmd = CMDS_TEMPLATE.format(
+            inputs=inputs,
+            version=analysis['procversion'],
+            container=analysis['processor']['containerpath'],
+            host=host,
+            user=user,
+            project=project,
+            analysis=anlaysis_id,
+            repo=repo,
+            maincmd=main
+        )
 
-            # Set task status to be saved as failed
-            task['task_status'] = 'JOB_FAILED'
+        return cmd
 
-        # Save attributes to disk
-        save_attr(f'{diskq}/jobstartdate/{assr}', today_str)
-        save_attr(f'{diskq}/jobid/{assr}', task['task_jobid'])
-        save_attr(f'{diskq}/memused/{assr}', task['task_memused'])
-        save_attr(f'{diskq}/walltimeused/{assr}', task['task_timeused'])
-        save_attr(f'{diskq}/jobnode/{assr}', task['task_jobnode'])
+    def build_inputs_text(self, inputs):
+        txt = '(\n'
 
-        if task['task_status'] in ['COMPLETED', 'COMPLETE']:
-            save_attr(f'{diskq}/procstatus/{assr}', 'COMPLETE')
+        for cur in inputs:
+            cur['fpath'] = requests.utils.quote(cur['fpath'], safe=":/")
+            txt += '{fdest},{ftype},{fpath},{ddest}\n'.format(**cur)
+
+        txt += ')\n\n'
+
+        return txt
+
+    def build_main_text(self, analysis):
+        txt = 'MAINCMD=\"'
+
+        # Build and append the pre command that runs before main
+        if analysis['processor']['pre']:
+            txt += self.build_command(analysis['processor']['pre'])
+            txt += ' && '
+
+        # Build and append the main command
+        txt += self.build_command(analysis['processor']['command'])
+
+        # Append the post command that runs after main
+        if analysis['processor']['post']:
+            txt += ' && '
+            txt += self.build_command(analysis['processor']['post'])
+
+        # Finish with a newline
+        txt += '\"\n'
+
+        # Return the whole command lines
+        return txt
+
+    def build_command(self, command):
+        txt = ''
+
+        # Build and append the post command
+        if 'type' not in command:
+            err = 'command type not set'
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
+
+        if command['type'] == 'singularity_run':
+            txt = self.build_singularity_cmd('run', command)
+
+        elif command['type'] == 'singularity_exec':
+            txt = self.build_singularity_cmd('exec', command)
+
         else:
-            save_attr(f'{diskq}/procstatus/{assr}', 'JOB_FAILED')
+            err = 'invalid command type: {}'.format(command['type'])
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
 
-        # Copy batch file to diskq so upload works correctly
-        try:
-            os.makedirs(f'{diskq}/BATCH')
-        except FileExistsError:
-            pass
-        shutil.copyfile(
-            f'{resdir}/{assr}/PBS/{assr}.slurm',
-            f'{diskq}/BATCH/{assr}.slurm'
-        )
+        return txt
 
-        # Copy processor files for info on pdf
-        try:
-            os.makedirs(f'{diskq}/processor')
-        except FileExistsError:
-            pass
+    def build_singularity_cmd(self, runexec, command):
 
-        shutil.copy(
-            task['task_yamlfile'],
-            f'{diskq}/processor'
-        )
-        shutil.copyfile(
-            f'{resdir}/{assr}/PROCESSOR/{assr}.txt',
-            f'{diskq}/processor/{assr}'
-        )
+        if 'container' not in command:
+            err = 'singularity modes require a container to be set'
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
 
-        # Finally, Set ready to complete flag to trigger upload
-        self.create_complete_flag(assr)
+        if runexec not in ['run', 'exec']:
+            err = f'singularity mode {runexec} not known'
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
+
+        # Use the container name to get the path
+        cpath = self.get_container_path(command['container'])
+
+        if not cpath:
+            err = 'container path not found'
+            LOGGER.error(err)
+            raise AutoProcessorError(err)
+
+        # Initialize command
+        if 'opts' in command:
+            # Get the user defined opts
+            _opts = command['opts']
+            # Prepend clean and contain
+            _opts = f'--contain --cleanenv {_opts}'
+            command_txt = f'singularity {runexec} {_opts}'
+        else:
+            command_txt = f'singularity {runexec} {SINGULARITY_BASEOPTS}'
+
+        # Append extra options
+        _extra = command.get('extraopts', None)
+        if _extra:
+            command_txt = '{} {}'.format(command_txt, _extra)
+
+        # Append container name
+        command_txt = '{} {}'.format(command_txt, cpath)
+
+        # Append arguments for the singularity entrypoint
+        cargs = command.get('args', None)
+        if cargs:
+            # Unescape and then escape double quotes
+            cargs = cargs.replace('\\"', '"').replace('"', '\\\"')
+            command_txt = '{} {}'.format(command_txt, cargs)
+
+        return command_txt
+
+    def get_container_path(self, containers, name):
+        cpath = None
+
+        # Find the matching container
+        for c in containers:
+            if c['name'] == name:
+                cpath = c['path']
+                break
+
+        return cpath
 
 
-def get_updates(task):
-    """Update information about given task from local SLURM."""
-    assr = task['task_assessor']
-    task_updates = {}
+def get_updates(analysis):
+    """Update information from local SLURM."""
+    label = analysis['analysis_label']
+    updates = {}
 
-    if 'task_jobid' not in task:
-        logger.info(f'no jobid for task:{assr}')
+    if 'analysis_jobid' not in analysis:
+        logger.info(f'no jobid for analysis:{label}')
         return
 
-    jobid = task['task_jobid']
+    jobid = analysis['analysis_jobid']
     cmd = f'sacct -j {jobid}.batch --units G --noheader -p --format MaxRss,cputime,NodeList,Start,End,State'
 
     logger.debug(f'running command:{cmd}')
@@ -447,30 +530,19 @@ def get_updates(task):
 
     # only update usage if job is not still running
     if job_state == 'RUNNING':
-        logger.debug(f'job still running not setting used:{assr}')
+        logger.debug(f'job still running, not setting used:{label}')
     else:
-        if job_mem and job_mem != task.get('task_memused', ''):
-            task_updates['task_memused'] = job_mem
+        if job_mem and job_mem != analysis.get('analysis_memused', ''):
+            updates['analysis_memused'] = job_mem
 
-        if job_time and job_time != task.get('task_timeused', ''):
-            task_updates['task_timeused'] = job_time
+        if job_time and job_time != analysis.get('analysis_timeused', ''):
+            updates['analysis_timeused'] = job_time
 
-    if job_node and job_node != task.get('task_jobnode', ''):
-        task_updates['task_jobnode'] = job_node
+    if job_node and job_node != analysis.get('analysis_jobnode', ''):
+        updates['analysis_jobnode'] = job_node
 
-    if job_state != task['task_status']:
+    if job_state != analysis['analysis_status']:
         logger.debug(f'changing status to:{job_state}')
-        task_updates['task_status'] = job_state
+        updates['analysis_status'] = job_state
 
-    return task_updates
-
-
-def save_attr(path, value):
-    """Save attribute by writing given value to given file path."""
-    try:
-        os.makedirs(os.path.dirname(path))
-    except FileExistsError:
-        pass
-
-    with open(path, 'w') as f:
-        f.write(str(value) + '\n')
+    return updates
