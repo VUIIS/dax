@@ -15,9 +15,9 @@ from ..lockfiles import lock_flagfile, unlock_flagfile
 from .projectinfo import load_project_info
 
 # Handle analysis jobs that only need to be launched/updated, but not uploaded.
-# The job will upload it's own output. On finish, we update job inforamtion on 
-# redcap an delete log and batch files from disk, and update job information 
-# No job information is stored on disk, no diskq, rcq.
+# The job will upload it's own output. On finish, we update job information on 
+# redcap and delete log and batch files from disk. No job information is stored 
+# on disk, no diskq, rcq.
 
 logger = logging.getLogger('manager.rcq.analysislauncher')
 
@@ -408,7 +408,7 @@ class AnalysisLauncher(object):
         if subj_spec.get('assessors', None):
             logger.debug(f'get sgp:{subject}')
             sgp_spec = subj_spec.get('assessors')
-            sgp = [x in info['sgp'] if x['SUBJECT'] == subject]
+            sgp = [x for x in info['sgp'] if x['SUBJECT'] == subject]
 
             for assr in sgp:
                 for assr_spec in sgp_spec:
