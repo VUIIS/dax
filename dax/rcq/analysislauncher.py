@@ -150,12 +150,17 @@ class AnalysisLauncher(object):
                 forms=['analyses'],
                 fields=[def_field])
 
-            # Filter to only open jobs
             rec = [x for x in rec if x['redcap_repeat_instrument'] == 'analyses']
+
+            logger.info(f'Found {len(rec)} analysis records')
+
+            # Filter to only open jobs
             rec = [x for x in rec if x['analyses_status'] not in DONE_STATUSES]
 
+            logger.info(f'{len(rec)} analysis with open jobs')
+
             # Update each record
-            logger.debug('updating each analysis')
+            logger.info('updating each analysis')
             for i, cur in enumerate(rec):
                 project = cur[def_field]
                 instance = cur['redcap_repeat_instance']
@@ -163,10 +168,10 @@ class AnalysisLauncher(object):
 
                 label = f'{project}_{instance}'
 
-                logger.debug(f'{i}:{label}:{status}')
+                logger.info(f'{i}:{label}:{status}')
 
                 if status in ['NEED_INPUTS', 'UPLOADING']:
-                    logger.debug(f'ignoring status={status}')
+                    logger.info(f'ignoring status={status}')
                     pass
                 elif status == 'RUNNING':
                     # check on running job
@@ -198,7 +203,7 @@ class AnalysisLauncher(object):
                     logger.debug('adding queued job to launch list')
                     launch_list.append(t)
                 else:
-                    logger.debug(f'unknown status:{status}')
+                    logger.info(f'unknown status:{status}')
                     continue
 
             if updates:
