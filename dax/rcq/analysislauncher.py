@@ -42,6 +42,16 @@ MAINCMD={main}
 '''
 
 
+SINGULARITY_BASEOPTS = (
+    '-e --env USER=$USER --env HOSTNAME=$HOSTNAME '
+    '--home $JOBDIR:$HOME '
+    '--bind $INDIR:/INPUTS '
+    '--bind $OUTDIR:/OUTPUTS '
+    '--bind $JOBDIR:/tmp '
+    '--bind $JOBDIR:/dev/shm '
+)
+
+
 class AnalysisLauncher(object):
     def __init__(self, xnat, projects_redcap, instance_settings):
         self._xnat = xnat
@@ -363,7 +373,7 @@ class AnalysisLauncher(object):
 
         # Get the assessors for this session
         assessors = [x for x in info['assessors'] if x['SESSION'] == session]
-      
+
         for assr_spec in sess_spec.get('assessors', []):
             logger.debug(f'assr_spec={assr_spec}')
 
@@ -399,7 +409,7 @@ class AnalysisLauncher(object):
                             res_spec['fdest'],
                             res_spec['ddest']))
 
-    return inputs
+        return inputs
 
     def get_subject_inputs(self, spec, info, subject):
         inputs = []
@@ -417,7 +427,7 @@ class AnalysisLauncher(object):
                     logger.debug(f'assr_types={assr_types}')
 
                     if assr['PROCTYPE'] not in assr_types:
-                        logger.debug(f'no match={assr['ASSR']}:{assr['PROCTYPE']}')
+                        logger.debug(f'no match={assr["ASSR"]}:{assr["PROCTYPE"]}')
                         continue
 
                     for res_spec in assr_spec['resources']:
@@ -451,7 +461,7 @@ class AnalysisLauncher(object):
 
             if sess_spec.get('select', '') == 'first-mri':
                 # only get the first mri
-                subj_mris = [x for x in info['scans'] if (x['SUBJECT'] == subject && x['MODALITY'] == 'MR')]
+                subj_mris = [x for x in info['scans'] if (x['SUBJECT'] == subject and x['MODALITY'] == 'MR')]
                 if len(subj_mris) < 1:
                     logger.debug('mri not found')
                     return
@@ -469,7 +479,12 @@ class AnalysisLauncher(object):
 
             # Append inputs for this spec
             for sess in sessions:
-                inputs += self.get_session_inputs(sess_spec, info, subject, sess)
+                inputs += self.get_session_inputs(
+                    sess_spec,
+                    info,
+                    subject,
+                    sess
+                )
 
         return inputs
 
@@ -481,18 +496,17 @@ class AnalysisLauncher(object):
 
         if fdest:
             data['fdest'] = fdest
-                                
-        if ddest:                                    
+
+        if ddest:
             data['ddest'] = ddest
 
-        retun data
-
+        return data
 
     def _first_file(garjus, proj, subj, sess, scan, res):
-
         # Get name of the first file
-        return = _xnat.select_scan_resource(
-            proj, subj, sess, scan, res).files().get()[0]
+        _files = self._xnat.select_scan_resource(
+            proj, subj, sess, scan, res).files().get()
+        return _files[0]
 
     def launch_analysis(self, analysis):
         """Launch as SLURM Job, write batch and submit. Return job id."""
@@ -661,7 +675,7 @@ class AnalysisLauncher(object):
             _opts = f'--contain --cleanenv {_opts}'
             command_txt = f'singularity {runexec} {_opts}'
         else:
-            command_txt = f'singularity {runexec} {S INGULARITY_BASEOPTS}'
+            command_txt = f'singularity {runexec} {SINGULARITY_BASEOPTS}'
 
         # Append extra options
         _extra = command.get('extraopts', None)
