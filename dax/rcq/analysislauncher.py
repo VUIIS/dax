@@ -292,15 +292,211 @@ class AnalysisLauncher(object):
             subjects = list(sessions.SUBJECT.unique())
 
         for subj in subjects:
+            inputlist.extend(self.get_subject_inputs(spec, info, subj))
 
-
+        # Prepend xnat host to each input
+        inputlist = [f'{self._xnat.host}/{x}' for x in inputlist]
+        print(f'{inputlist=}')
 
         return inputlist
+
+    def get_session_inputs(self, spec, info, subject, session):
+        inputs = []
+
+        # Get the scans for this session
+        scans = [x for x in info['scans'] if x['SESSION'] == session]
+
+        for scan_spec in spec.get('scans', []):
+            logger.debug(f'scan_spec={scan_spec}')
+
+            scan_types = scan_spec['types'].split(',')
+
+            logger.debug(f'scan_types={scan_types}')
+
+            for scan in [x for x in scans if x['SCANTYPE'] in scan_types]:
+
+                # Get list of resources to download from this scan
+                resources = scan_spec.get('resources', [])
+
+                # Check for nifti tag
+                if 'nifti' in scan_spec:
+                    # Add a NIFTI resource using value as fdest
+                    resources.append({
+                        'resource': 'NIFTI',
+                        'fdest': scan_spec['nifti']
+                    })
+
+                for res_spec in resources:
+                    try:
+                        res = res_spec['resource']
+                    except (KeyError, ValueError) as err:
+                        logger.error(f'reading resource:{err}')
+                        continue
+
+                    if 'fdest' in res_spec:
+                        _file = self._first_file(
+                            info['name'],
+                            subject,
+                            session,
+                            scan['SCANID'],
+                            res
+                        )
+                        fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/scans/{scan["SCANID"]}/resources/{res}/files/{_file}'
+                        inputs.append(self._input(
+                            fpath,
+                            'FILE'
+                        ))
+                    elif 'fmatch' in res_spec:
+                        for fmatch in res_spec['fmatch'].split(','):
+                            fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/scans/{scan["SCANID"]}/resources/{res}/files/{fmatch}'
+                            inputs.append(self._input(
+                                fpath,
+                                'FILE'
+                            ))
+                    else:
+                        # Download whole resource
+                        fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/scans/{scan["SCANID"]}/resources/{res}/files'
+                        inputs.append(self._input(
+                            fpath,
+                            'DIR'
+                        ))
+
+        # Get the assessors for this session
+        assessors = [x for x in info['assessors'] if x['SESSION'] == session]
+      
+        for assr_spec in sess_spec.get('assessors', []):
+            logger.debug(f'assr_spec={assr_spec}')
+
+            assr_types = assr_spec['types'].split(',')
+
+            logger.debug(f'assr_types={assr_types}')
+
+            for assr in [x for x in assessors if x['PROCTYPE'] in assr_types]:
+
+                for res_spec in assr_spec['resources']:
+
+                    try:
+                        res = res_spec['resource']
+                    except (KeyError, ValueError) as err:
+                        logger.error(f'reading resource:{err}')
+                        continue
+
+                    if 'fmatch' in res_spec:
+                        for fmatch in res_spec['fmatch'].split(','):
+                            fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/assessors/{assr["ASSR"]}/out/resources/{res}/files/{fmatch}'
+                            inputs.append(self._input(
+                                fpath,
+                                'FILE',
+                                res_spec['fdest'],
+                                res_spec['ddest']
+                            ))
+                    else:
+                        # whole resource
+                        fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/assessors/{assr["ASSR"]}/out/resources/{res}/files'
+                        inputs.append(self._input(
+                            fpath,
+                            'DIR',
+                            res_spec['fdest'],
+                            res_spec['ddest']))
+
+    return inputs
+
+    def get_subject_inputs(self, spec, info, subject):
+        inputs = []
+
+        # subject-level assessors, aka sgp
+        if subj_spec.get('assessors', None):
+            logger.debug(f'get sgp:{subject}')
+            sgp_spec = subj_spec.get('assessors')
+            sgp = [x in info['sgp'] if x['SUBJECT'] == subject]
+
+            for assr in sgp:
+                for assr_spec in sgp_spec:
+                    logger.debug(f'assr_spec={assr_spec}')
+                    assr_types = assr_spec['types'].split(',')
+                    logger.debug(f'assr_types={assr_types}')
+
+                    if assr['PROCTYPE'] not in assr_types:
+                        logger.debug(f'no match={assr['ASSR']}:{assr['PROCTYPE']}')
+                        continue
+
+                    for res_spec in assr_spec['resources']:
+
+                        try:
+                            res = res_spec['resource']
+                        except (KeyError, ValueError) as err:
+                            logger.error(f'reading resource:{err}')
+                            continue
+
+                        if 'fmatch' in res_spec:
+                            # Add each file
+                            for fmatch in res_spec['fmatch'].split(','):
+                                fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assr["ASSR"]}/resource/{res}/files/{fmatch}'
+                                inputs.append(self._input(
+                                    fpath,
+                                    'FILE',
+                                    res_spec['fdest'],
+                                    res_spec['ddest']))
+                        else:
+                            # We want the whole resource as one download
+                            fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assr["ASSR"]}/resource/{res}/files'
+                            inputs.append(self._input(
+                                fpath,
+                                'DIR',
+                                res_spec['fdest'],
+                                res_spec['ddest']))
+
+        # Download the subjects sessions
+        for sess_spec in subj_spec.get('sessions', []):
+
+            if sess_spec.get('select', '') == 'first-mri':
+                # only get the first mri
+                subj_mris = [x for x in info['scans'] if (x['SUBJECT'] == subject && x['MODALITY'] == 'MR')]
+                if len(subj_mris) < 1:
+                    logger.debug('mri not found')
+                    return
+
+                # Sort by date and get first
+                first = sorted(subj_mris, key=lambda x: x['DATE'])[0]
+
+                # First session only
+                sessions = [first['SESSION']]
+            else:
+                # Otherwise, find sessions matching types
+                sess_types = sess_spec['types'].split(',')
+                sessions = [x for x in info['scans'] if x['SUBJECT'] == subject and x['SESSTYPE'] in sess_types]
+                sessions = list(set(sessions))
+
+            # Append inputs for this spec
+            for sess in sessions:
+                inputs += self.get_session_inputs(sess_spec, info, subject, sess)
+
+        return inputs
+
+    def _input(self, fpath, ftype, fdest=None, ddest=None):
+        data = {
+            'fpath': fpath,
+            'ftype': ftype,
+        }
+
+        if fdest:
+            data['fdest'] = fdest
+                                
+        if ddest:                                    
+            data['ddest'] = ddest
+
+        retun data
+
+
+    def _first_file(garjus, proj, subj, sess, scan, res):
+
+        # Get name of the first file
+        return = _xnat.select_scan_resource(
+            proj, subj, sess, scan, res).files().get()[0]
 
     def launch_analysis(self, analysis):
         """Launch as SLURM Job, write batch and submit. Return job id."""
         instance_settings = self._instance_settings
-
 
         # Create and set the label for our new analysis
         analysis['analysis_label'] = self.label_analysis(analysis)
@@ -397,20 +593,20 @@ class AnalysisLauncher(object):
         return txt
 
     def build_main_text(self, analysis):
+        pre = ''
+        post = ''
         txt = 'MAINCMD=\"'
 
-        # Build and append the pre command that runs before main
+        # Get the pre command that runs before main
         if analysis['processor']['pre']:
-            txt += self.build_command(analysis['processor']['pre'])
-            txt += ' && '
+            pre = self.build_command(analysis, 'pre') + ' && '
 
-        # Build and append the main command
-        txt += self.build_command(analysis['processor']['command'])
-
-        # Append the post command that runs after main
+        # Get the post command that runs after main
         if analysis['processor']['post']:
-            txt += ' && '
-            txt += self.build_command(analysis['processor']['post'])
+            post = ' && ' + self.build_command(analysis, 'post')
+
+        # Build and append the commands
+        txt += pre + self.build_command(analysis, 'command') + post
 
         # Finish with a newline
         txt += '\"\n'
@@ -418,8 +614,13 @@ class AnalysisLauncher(object):
         # Return the whole command lines
         return txt
 
-    def build_command(self, command):
+    def build_command(self, analysis, name):
         txt = ''
+
+        command = analysis['processor'][name]
+
+        # Use the container name to get the path
+        command['container'] = self.get_container_path(command['container'])
 
         # Build and append the post command
         if 'type' not in command:
@@ -452,14 +653,6 @@ class AnalysisLauncher(object):
             LOGGER.error(err)
             raise AutoProcessorError(err)
 
-        # Use the container name to get the path
-        cpath = self.get_container_path(command['container'])
-
-        if not cpath:
-            err = 'container path not found'
-            LOGGER.error(err)
-            raise AutoProcessorError(err)
-
         # Initialize command
         if 'opts' in command:
             # Get the user defined opts
@@ -468,7 +661,7 @@ class AnalysisLauncher(object):
             _opts = f'--contain --cleanenv {_opts}'
             command_txt = f'singularity {runexec} {_opts}'
         else:
-            command_txt = f'singularity {runexec} {SINGULARITY_BASEOPTS}'
+            command_txt = f'singularity {runexec} {S INGULARITY_BASEOPTS}'
 
         # Append extra options
         _extra = command.get('extraopts', None)
@@ -476,7 +669,7 @@ class AnalysisLauncher(object):
             command_txt = '{} {}'.format(command_txt, _extra)
 
         # Append container name
-        command_txt = '{} {}'.format(command_txt, cpath)
+        command_txt = '{} {}'.format(command_txt, command['container'])
 
         # Append arguments for the singularity entrypoint
         cargs = command.get('args', None)
