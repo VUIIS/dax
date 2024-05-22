@@ -563,10 +563,10 @@ class AnalysisLauncher(object):
                 analysis['redcap_repeat_instance'])
 
         # Create and set the label for our new analysis
-        analysis['label'] = self.label_analysis(analysis)
+        analysis['analysis_label'] = self.label_analysis(analysis)
         outdir = analysis['outdir']
         processor = analysis['processor']
-        label = analysis['label']
+        label = analysis['analysis_label']
         batch_file = f'{outdir}/PBS/{label}.slurm'
         log_file = f'{outdir}/OUTLOG/{label}.txt'
 
