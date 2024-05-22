@@ -126,7 +126,7 @@ class AnalysisLauncher(object):
 
         return r.content
 
-    def update(self, launch_enabled=True):
+    def update(self, projects, launch_enabled=True):
         """Update all analyses in projects_redcap."""
         launch_list = []
         updates = []
@@ -148,6 +148,7 @@ class AnalysisLauncher(object):
             logger.info('loading current analysis records')
             try:
                 rec = projects_redcap.export_records(
+                    records=projects,
                     forms=['analyses'],
                     fields=[def_field])
             except Exception as err:
