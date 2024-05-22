@@ -335,10 +335,7 @@ class AnalysisLauncher(object):
         for subj in subjects:
             inputlist.extend(self.get_subject_inputs(spec, info, subj))
 
-        # Prepend xnat host to each input
-        #inputlist = [f'{self._xnat.host}/{x}' for x in inputlist]
-        for i in range(len(inputlist)):
-
+        # Prepend xnat host to each input path
         for i, d in enumerate(inputlist):
             _fpath = inputlist[i]['fpath']
             inputlist[i]['fpath'] = f'{self._xnat.host}/{_fpath}'
