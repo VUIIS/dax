@@ -636,7 +636,7 @@ class AnalysisLauncher(object):
             host=host,
             user=user,
             project=analysis['project'],
-            analysis=analysis['anlaysis_label'],
+            analysis=analysis['analysis_label'],
             repo=analysis['analysis_procrepo'],
             maincmd=main
         )
