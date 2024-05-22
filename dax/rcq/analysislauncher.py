@@ -123,10 +123,8 @@ class AnalysisLauncher(object):
             logger.error(f'downloading file:{err}')
             return None
 
-        print(r)
-        print(r.content)
-
-        return json.loads(r.content)
+        print(r.text)
+        return json.loads(r.text)
 
     def update(self, projects, launch_enabled=True):
         """Update all analyses in projects_redcap."""
