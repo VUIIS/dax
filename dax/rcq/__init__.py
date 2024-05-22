@@ -51,9 +51,6 @@ def update(rc, instances, build_enabled=True, launch_enabled=True):
 
     with get_interface() as xnat:
 
-        logger.info('Running sync of queue status from XNAT to REDCap')
-        TaskQueue(rc).sync(xnat)
-
         logger.info('Running update of analyses')
         try:
             AnalysisLauncher(xnat, rc, instance_settings).update(
@@ -63,6 +60,9 @@ def update(rc, instances, build_enabled=True, launch_enabled=True):
         except Exception as err:
             logger.error(f'analyses update failed:{err}')
             pass
+
+        logger.info('Running sync of queue status from XNAT to REDCap')
+        TaskQueue(rc).sync(xnat)
 
         logger.info('Running update of queue from REDCap to SLURM')
         TaskLauncher(
