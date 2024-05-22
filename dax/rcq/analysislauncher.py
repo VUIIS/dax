@@ -4,8 +4,8 @@ import os
 import logging
 import subprocess
 from datetime import datetime
-import json
 
+import yaml
 import requests
 
 from ..cluster import PBS, count_jobs
@@ -123,8 +123,9 @@ class AnalysisLauncher(object):
             logger.error(f'downloading file:{err}')
             return None
 
-        print(r.json())
-        return r.json()
+        logger.info(r.text)
+
+        return yaml.safe_load(r.text)
 
     def update(self, projects, launch_enabled=True):
         """Update all analyses in projects_redcap."""
