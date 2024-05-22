@@ -124,7 +124,7 @@ class AnalysisLauncher(object):
         print(r)
         print(r.content)
 
-        return r.content
+        return json.loads(r.content)
 
     def update(self, projects, launch_enabled=True):
         """Update all analyses in projects_redcap."""
