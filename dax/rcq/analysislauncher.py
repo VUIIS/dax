@@ -25,17 +25,14 @@ DONE_STATUSES = ['COMPLETE', 'JOB_FAILED']
 
 CMDS_TEMPLATE = '''
 
-
-INLIST={inputs}
+ANALYSISID={analysis}
+PROJECT={project}
+REPO={repo}
 VERSION={version}
-CONTAINERPATH={container}
+INLIST={inputs}
 XNATHOST={host}
 XNATUSER={user}
-PROJECT={project}
-ANALYSISID={analysis}
-REPO={repo}
 MAINCMD={main}
-
 
 '''
 
@@ -636,7 +633,6 @@ class AnalysisLauncher(object):
         cmd = CMDS_TEMPLATE.format(
             inputs=inputs,
             version=analysis['procversion'],
-            container=analysis['processor']['containerpath'],
             host=host,
             user=user,
             project=analysis['project'],
