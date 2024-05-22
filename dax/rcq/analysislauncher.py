@@ -589,7 +589,7 @@ class AnalysisLauncher(object):
             return
 
         # Set up containers
-        for i, cur in processor.get('containers', []):
+        for i, cur in enumerate(processor.get('containers', [])):
             # Get container path/filename
             cpath = cur['path']
             if not os.path.isabs(cpath) and imagedir:
