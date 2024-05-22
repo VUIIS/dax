@@ -413,17 +413,16 @@ class AnalysisLauncher(object):
                             inputs.append(self._input(
                                 fpath,
                                 'FILE',
-                                res_spec['fdest'],
-                                res_spec['ddest']
-                            ))
+                                res_spec.get('fdest', None),
+                                res_spec.get('ddest', None)))
                     else:
                         # whole resource
                         fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/assessors/{assr["ASSR"]}/out/resources/{res}/files'
                         inputs.append(self._input(
                             fpath,
                             'DIR',
-                            res_spec['fdest'],
-                            res_spec['ddest']))
+                            res_spec.get('fdest', None),
+                            res_spec.get('ddest', None)))
 
         return inputs
 
