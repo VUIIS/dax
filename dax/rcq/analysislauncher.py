@@ -521,7 +521,7 @@ class AnalysisLauncher(object):
 
         return inputs
 
-    def _input(self, fpath, ftype, fdest=None, ddest=None):
+    def _input(self, fpath, ftype, fdest=None, ddest=''):
         data = {
             'fpath': fpath,
             'ftype': ftype,
@@ -532,6 +532,8 @@ class AnalysisLauncher(object):
 
         if ddest:
             data['ddest'] = ddest
+        else:
+            data['ddest'] = ''
 
         return data
 
