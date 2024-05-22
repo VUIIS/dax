@@ -56,6 +56,21 @@ class AnalysisLauncher(object):
         self._projects_redcap = projects_redcap
         self._instance_settings = instance_settings
         self.resdir = self._instance_settings['main_resdir']
+        self._job_template = None
+
+    def _get_job_template(self):
+        if self._job_template is None:
+            # Determine job template
+             self._job_template = instance_settings.get(
+                'main_projectjobtemplate', None)
+
+        if self._job_template is None:
+            #_job_template = instance_settings.get('jobtemplate', None)
+            #job_template = f'{_job_template}/project_job_template.txt'
+            self._job_template = os.path.expanduser(
+                '~/project_job_template.txt')
+
+        return self._job_template
 
     def load_analysis(self, project, analysis_id, download=True):
         """Return analysis protocol record."""
@@ -562,11 +577,12 @@ class AnalysisLauncher(object):
         inputlist = self.get_inputlist(analysis)
 
         # Determine job template
-        job_template = instance_settings.get('main_projectjobtemplate', None)
+        #job_template = instance_settings.get('main_projectjobtemplate', None)
 
-        if job_template is None:
-            _job_template = instance_settings.get('jobtemplate', None)
-            job_template = f'{_job_template}/project_job_template.txt'
+        #if job_template is None:
+        #    _job_template = instance_settings.get('jobtemplate', None)
+        #    job_template = f'{_job_template}/project_job_template.txt'
+        job_template = self._get_job_template()
 
         if not os.path.exists(job_template):
             logger.error('cannot find project job template')
