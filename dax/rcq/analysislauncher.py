@@ -57,11 +57,11 @@ class AnalysisLauncher(object):
         self._instance_settings = instance_settings
         self.resdir = self._instance_settings['main_resdir']
         self._job_template = None
-
+s
     def _get_job_template(self):
         if self._job_template is None:
             # Determine job template
-             self._job_template = instance_settings.get(
+             self._job_template = self._instance_settings.get(
                 'main_projectjobtemplate', None)
 
         if self._job_template is None:
