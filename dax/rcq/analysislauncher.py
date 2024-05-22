@@ -151,7 +151,6 @@ class AnalysisLauncher(object):
                     records=projects,
                     forms=['analyses'],
                     fields=[def_field])
-                print(rec)
             except Exception as err:
                 logger.error('failed to load analyses')
                 return
@@ -161,7 +160,7 @@ class AnalysisLauncher(object):
             logger.info(f'Found {len(rec)} analysis records')
 
             # Filter to only open jobs
-            rec = [x for x in rec if x['analyses_status'] not in DONE_STATUSES]
+            rec = [x for x in rec if x['analysis_status'] not in DONE_STATUSES]
 
             logger.info(f'{len(rec)} analysis with open jobs')
 
