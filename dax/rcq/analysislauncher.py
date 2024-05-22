@@ -686,7 +686,9 @@ class AnalysisLauncher(object):
         command = analysis['processor'][name]
 
         # Use the container name to get the path
-        command['container'] = self.get_container_path(command['container'])
+        command['container'] = self.get_container_path(
+            analysis['processor']['containers'],
+            command['container'])
 
         # Build and append the post command
         if 'type' not in command:
