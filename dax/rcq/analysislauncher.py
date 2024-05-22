@@ -113,12 +113,16 @@ class AnalysisLauncher(object):
         # Get the file contents
         try:
             url = f'{base}/{user}/{repo}/{version}/{filename}'
+            logger.info(f'{url=}')
             r = requests.get(url, allow_redirects=True)
             if r.content == '':
                 raise Exception('error exporting file from github')
         except Exception as err:
             logger.error(f'downloading file:{err}')
             return None
+
+        print(r)
+        print(r.content)
 
         return r.content
 
@@ -302,6 +306,7 @@ class AnalysisLauncher(object):
         # TODO: handle subjects from additional projects?
 
         project = analysis['project']
+        print(analysis['processor'])
         spec = analysis['processor']['inputs']['xnat']['subjects']
 
         info = self.get_info(project=project)
@@ -528,8 +533,10 @@ class AnalysisLauncher(object):
             logger.info(f'loading:{analysis["analysis_procrepo"]}')
             user, repo, version = analysis['analysis_procrepo'].replace(
                 ':', '/').split('/')
+            logger.info(f'loading:{user=}:{repo=}:{version=}')
             analysis['processor'] = self.load_processor_github(
                 user, repo, version)
+            print(analysis['processor'])
             analysis['procrepo'] = analysis['analysis_procrepo']
             analysis['procversion'] = version
         elif analysis['analysis_processor']:
