@@ -2,21 +2,17 @@
 
 import os
 import logging
-import json
 import subprocess
-from datetime import date
-import shutil
-import tempfile
 import requests
+from datetime import datetime
 
-from ..processors import load_from_yaml
 from ..cluster import PBS, count_jobs
 from ..lockfiles import lock_flagfile, unlock_flagfile
 from .projectinfo import load_project_info
 
 # Handle analysis jobs that only need to be launched/updated, but not uploaded.
-# The job will upload it's own output. On finish, we update job information on 
-# redcap and delete log and batch files from disk. No job information is stored 
+# The job will upload it's own output. On finish, we update job information on
+# redcap and delete log and batch files from disk. No job information is stored
 # on disk, no diskq, rcq.
 
 logger = logging.getLogger('manager.rcq.analysislauncher')
@@ -25,7 +21,7 @@ logger = logging.getLogger('manager.rcq.analysislauncher')
 DONE_STATUSES = ['COMPLETE', 'JOB_FAILED']
 
 
-MAIN_TEMPLATE = '''
+CMDS_TEMPLATE = '''
 
 
 INLIST={inputs}
@@ -118,7 +114,7 @@ class AnalysisLauncher(object):
         try:
             url = f'{base}/{user}/{repo}/{version}/{filename}'
             r = requests.get(url, allow_redirects=True)
-            if cont == '':
+            if r.content == '':
                 raise Exception('error exporting file from github')
         except Exception as err:
             logger.error(f'downloading file:{err}')
@@ -194,14 +190,14 @@ class AnalysisLauncher(object):
 
                     # Add to redcap updates
                     updates.append({
-                        def_field: t[def_field],
+                        def_field: cur[def_field],
                         'redcap_repeat_instrument': 'analyses',
                         'redcap_repeat_instance': cur['redcap_repeat_instance'],
-                        'analysis_status': analysis_status,
+                        'analysis_status': status,
                     })
                 elif status == 'QUEUED':
                     logger.debug('adding queued job to launch list')
-                    launch_list.append(t)
+                    launch_list.append(cur)
                 else:
                     logger.info(f'unknown status:{status}')
                     continue
@@ -248,13 +244,13 @@ class AnalysisLauncher(object):
                     try:
                         os.makedirs(outdir)
                     except FileExistsError as err:
-                        logger.error(f'cannot launch, existing dir:{outdir}')
+                        logger.error(f'cannot launch, existing:{outdir}:{err}')
                         continue
 
                     cur['outdir'] = outdir
 
                     try:
-                        logger.debug(f'launch:{i}:{assr}')
+                        logger.debug(f'launch:{i}:{label}')
 
                         # Launch it!
                         jobid = self.launch_analysis(cur)
@@ -288,6 +284,8 @@ class AnalysisLauncher(object):
         return load_project_info(self._xnat, project)
 
     def label_analysis(self, analysis):
+        project = analysis['project']
+        analysis_id = analysis['id']
         analysis_datetime = datetime.now().strftime("%Y-%m-%d-%H%M%S")
         analysis_label = f'{project}_{analysis_id}_{analysis_datetime}'
         return analysis_label
@@ -298,13 +296,14 @@ class AnalysisLauncher(object):
         # TODO: handle subjects from additional projects?
 
         project = analysis['project']
-        subj_spec = analysis['processor']['inputs']['xnat']['subjects']
+        spec = analysis['processor']['inputs']['xnat']['subjects']
 
         info = self.get_info(project=project)
 
         subjects = analysis.get('subjects', None)
         if subjects is None:
-            subjects = list(sessions.SUBJECT.unique())
+            # Get unique list of subjects from scans
+            subjects = list(set([x['SUBJECT'] for x in info['scans']]))
 
         for subj in subjects:
             inputlist.extend(self.get_subject_inputs(spec, info, subj))
@@ -379,7 +378,7 @@ class AnalysisLauncher(object):
         # Get the assessors for this session
         assessors = [x for x in info['assessors'] if x['SESSION'] == session]
 
-        for assr_spec in sess_spec.get('assessors', []):
+        for assr_spec in spec.get('assessors', []):
             logger.debug(f'assr_spec={assr_spec}')
 
             assr_types = assr_spec['types'].split(',')
@@ -420,9 +419,9 @@ class AnalysisLauncher(object):
         inputs = []
 
         # subject-level assessors, aka sgp
-        if subj_spec.get('assessors', None):
+        if spec.get('assessors', None):
             logger.debug(f'get sgp:{subject}')
-            sgp_spec = subj_spec.get('assessors')
+            sgp_spec = spec.get('assessors')
             sgp = [x for x in info['sgp'] if x['SUBJECT'] == subject]
 
             for assr in sgp:
@@ -432,7 +431,8 @@ class AnalysisLauncher(object):
                     logger.debug(f'assr_types={assr_types}')
 
                     if assr['PROCTYPE'] not in assr_types:
-                        logger.debug(f'no match={assr["ASSR"]}:{assr["PROCTYPE"]}')
+                        logger.debug(
+                            f'no match={assr["ASSR"]}:{assr["PROCTYPE"]}')
                         continue
 
                     for res_spec in assr_spec['resources']:
@@ -462,7 +462,7 @@ class AnalysisLauncher(object):
                                 res_spec['ddest']))
 
         # Download the subjects sessions
-        for sess_spec in subj_spec.get('sessions', []):
+        for sess_spec in spec.get('sessions', []):
 
             if sess_spec.get('select', '') == 'first-mri':
                 # only get the first mri
@@ -507,7 +507,7 @@ class AnalysisLauncher(object):
 
         return data
 
-    def _first_file(garjus, proj, subj, sess, scan, res):
+    def _first_file(self, garjus, proj, subj, sess, scan, res):
         # Get name of the first file
         _files = self._xnat.select_scan_resource(
             proj, subj, sess, scan, res).files().get()
@@ -518,14 +518,12 @@ class AnalysisLauncher(object):
         instance_settings = self._instance_settings
 
         # Create and set the label for our new analysis
-        analysis['analysis_label'] = self.label_analysis(analysis)
-
-        project = analysis['project']
-        analysis_id = analysis['id']
+        analysis['label'] = self.label_analysis(analysis)
         outdir = analysis['outdir']
         processor = analysis['processor']
-        batch_file = f'{outdir}/PBS/{analysis_label}.slurm'
-        log_file = f'{outdir}/OUTLOG/{analysis_label}.txt'
+        label = analysis['label']
+        batch_file = f'{outdir}/PBS/{label}.slurm'
+        log_file = f'{outdir}/OUTLOG/{label}.txt'
 
         imagedir = instance_settings['main_singularityimagedir']
         xnat_host = instance_settings['main_xnathost'],
@@ -580,21 +578,21 @@ class AnalysisLauncher(object):
 
     def get_cmds(self, host, user, input_list, analysis):
         # Get inputs text
-        inputs += self.build_inputs_text(input_list)
+        inputs = self.build_inputs_text(input_list)
 
         # Get main commands text
-        main += self.build_main_text(analysis)
+        main = self.build_main_text(analysis)
 
-         # Append other paths
+        # Append other paths
         cmd = CMDS_TEMPLATE.format(
             inputs=inputs,
             version=analysis['procversion'],
             container=analysis['processor']['containerpath'],
             host=host,
             user=user,
-            project=project,
-            analysis=anlaysis_id,
-            repo=repo,
+            project=analysis['project'],
+            analysis=analysis['anlaysis_label'],
+            repo=analysis['analysis_procrepo'],
             maincmd=main
         )
 
@@ -644,8 +642,8 @@ class AnalysisLauncher(object):
         # Build and append the post command
         if 'type' not in command:
             err = 'command type not set'
-            LOGGER.error(err)
-            raise AutoProcessorError(err)
+            logger.error(err)
+            raise Exception(err)
 
         if command['type'] == 'singularity_run':
             txt = self.build_singularity_cmd('run', command)
@@ -655,8 +653,8 @@ class AnalysisLauncher(object):
 
         else:
             err = 'invalid command type: {}'.format(command['type'])
-            LOGGER.error(err)
-            raise AutoProcessorError(err)
+            logger.error(err)
+            raise Exception(err)
 
         return txt
 
@@ -664,13 +662,13 @@ class AnalysisLauncher(object):
 
         if 'container' not in command:
             err = 'singularity modes require a container to be set'
-            LOGGER.error(err)
-            raise AutoProcessorError(err)
+            logger.error(err)
+            raise Exception(err)
 
         if runexec not in ['run', 'exec']:
             err = f'singularity mode {runexec} not known'
-            LOGGER.error(err)
-            raise AutoProcessorError(err)
+            logger.error(err)
+            raise Exception(err)
 
         # Initialize command
         if 'opts' in command:
