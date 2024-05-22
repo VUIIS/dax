@@ -151,6 +151,7 @@ class AnalysisLauncher(object):
                     records=projects,
                     forms=['analyses'],
                     fields=[def_field])
+                print(rec)
             except Exception as err:
                 logger.error('failed to load analyses')
                 return
