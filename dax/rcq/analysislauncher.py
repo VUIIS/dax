@@ -253,6 +253,7 @@ class AnalysisLauncher(object):
                         continue
 
                     cur['outdir'] = outdir
+                    cur['project'] = project
 
                     try:
                         logger.debug(f'launch:{i}:{label}')
@@ -521,6 +522,22 @@ class AnalysisLauncher(object):
     def launch_analysis(self, analysis):
         """Launch as SLURM Job, write batch and submit. Return job id."""
         instance_settings = self._instance_settings
+
+        if analysis['analysis_procrepo']:
+            # Load the yaml file contents from github
+            logger.info(f'loading:{analysis["analysis_procrepo"]}')
+            user, repo, version = analysis['analysis_procrepo'].replace(
+                ':', '/').split('/')
+            analysis['processor'] = self.load_processor_github(
+                user, repo, version)
+            analysis['procrepo'] = analysis['analysis_procrepo']
+            analysis['procversion'] = version
+        elif analysis['analysis_processor']:
+            # Load the yaml file contents from REDCap
+            logger.debug(f'loading:{analysis["analysis_processor"]}')
+            analysis['processor'] = self.load_processor_redcap(
+                analysis['project'],
+                analysis['redcap_repeat_instance'])
 
         # Create and set the label for our new analysis
         analysis['label'] = self.label_analysis(analysis)
