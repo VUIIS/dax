@@ -55,10 +55,14 @@ def update(rc, instances, build_enabled=True, launch_enabled=True):
         TaskQueue(rc).sync(xnat)
 
         logger.info('Running update of analyses')
-        AnalysisLauncher(xnat, rc, instance_settings).update(
-            projects,
-            launch_enabled=launch_enabled
-        )
+        try:
+            AnalysisLauncher(xnat, rc, instance_settings).update(
+                projects,
+                launch_enabled=launch_enabled
+            )
+        except Exception as err:
+            logger.error(f'analyses update failed:{err}')
+            pass
 
         logger.info('Running update of queue from REDCap to SLURM')
         TaskLauncher(
