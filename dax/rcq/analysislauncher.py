@@ -291,7 +291,7 @@ class AnalysisLauncher(object):
 
     def label_analysis(self, analysis):
         project = analysis['project']
-        analysis_id = analysis['id']
+        analysis_id = analysis['redcap_repeat_instance']
         analysis_datetime = datetime.now().strftime("%Y-%m-%d-%H%M%S")
         analysis_label = f'{project}_{analysis_id}_{analysis_datetime}'
         return analysis_label
