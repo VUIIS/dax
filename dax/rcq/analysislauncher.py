@@ -430,7 +430,7 @@ class AnalysisLauncher(object):
                             inputs.append(self._input(
                                 fpath,
                                 'FILE',
-                                res_spec.get('fdest', None),
+                                res_spec.get('fdest', subject),
                                 res_spec.get('ddest', None)))
                     else:
                         # whole resource
@@ -438,7 +438,7 @@ class AnalysisLauncher(object):
                         inputs.append(self._input(
                             fpath,
                             'DIR',
-                            res_spec.get('fdest', None),
+                            res_spec.get('fdest', subject),
                             res_spec.get('ddest', None)))
 
         return inputs
@@ -464,7 +464,7 @@ class AnalysisLauncher(object):
                         continue
 
                     for res_spec in assr_spec['resources']:
-
+                        # Load the resource
                         try:
                             res = res_spec['resource']
                         except (KeyError, ValueError) as err:
