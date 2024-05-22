@@ -146,9 +146,13 @@ class AnalysisLauncher(object):
         try:
             # Get the current analysis table
             logger.info('loading current analysis records')
-            rec = projects_redcap.export_records(
-                forms=['analyses'],
-                fields=[def_field])
+            try:
+                rec = projects_redcap.export_records(
+                    forms=['analyses'],
+                    fields=[def_field])
+            except Exception as err:
+                logger.error('failed to load analyses')
+                return
 
             rec = [x for x in rec if x['redcap_repeat_instrument'] == 'analyses']
 
