@@ -336,9 +336,14 @@ class AnalysisLauncher(object):
             inputlist.extend(self.get_subject_inputs(spec, info, subj))
 
         # Prepend xnat host to each input
-        inputlist = [f'{self._xnat.host}/{x}' for x in inputlist]
-        print(f'{inputlist=}')
+        #inputlist = [f'{self._xnat.host}/{x}' for x in inputlist]
+        for i in range(len(inputlist)):
 
+        for i, d in enumerate(inputlist):
+            _fpath = inputlist[i]['fpath']
+            inputlist[i]['fpath'] = f'{self._xnat.host}/{_fpath}'
+
+        print(f'{inputlist=}')
         return inputlist
 
     def get_session_inputs(self, spec, info, subject, session):
