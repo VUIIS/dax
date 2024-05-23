@@ -319,7 +319,6 @@ class AnalysisLauncher(object):
         # TODO: handle subjects from additional projects?
 
         project = analysis['project']
-        print(analysis['processor'])
         spec = analysis['processor']['inputs']['xnat']['subjects']
 
         info = self.get_info(project=project)
@@ -337,7 +336,6 @@ class AnalysisLauncher(object):
             _fpath = inputlist[i]['fpath']
             inputlist[i]['fpath'] = f'{self._xnat.host}/{_fpath}'
 
-        print(f'{inputlist=}')
         return inputlist
 
     def get_session_inputs(self, spec, info, subject, session):
@@ -582,9 +580,9 @@ class AnalysisLauncher(object):
             walltime = '0-12'
 
         # Create and set the label for our new analysis
-        analysis['analysis_label'] = self.label_analysis(analysis)
+        analysis['label'] = self.label_analysis(analysis)
         outdir = analysis['outdir']
-        label = analysis['analysis_label']
+        label = analysis['label']
         batch_file = f'{outdir}/PBS/{label}.slurm'
         log_file = f'{outdir}/OUTLOG/{label}.txt'
 
@@ -648,8 +646,8 @@ class AnalysisLauncher(object):
             host=host,
             user=user,
             project=analysis['project'],
-            analysis=analysis['analysis_label'],
-            repo=analysis['analysis_procrepo'],
+            analysis=analysis['label'],
+            repo=analysis['procrepo'],
             maincmd=maincmd
         )
 
