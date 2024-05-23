@@ -770,7 +770,9 @@ class AnalysisLauncher(object):
 
 def get_updates(analysis):
     """Update information from local SLURM."""
-    label = analysis['analysis_label']
+    project = analysis['project']
+    instance = analysis['redcap_repeat_instance']
+    label = f'{project}_{instance}'
     updates = {}
 
     if 'analysis_jobid' not in analysis:
