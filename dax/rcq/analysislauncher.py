@@ -135,8 +135,6 @@ class AnalysisLauncher(object):
             logger.error(f'downloading file:{err}')
             return None
 
-        logger.info(r.text)
-
         return yaml.safe_load(r.text)
 
     def update(self, projects, launch_enabled=True):
@@ -667,7 +665,7 @@ class AnalysisLauncher(object):
     def build_main_text(self, analysis):
         pre = ''
         post = ''
-        txt = 'MAINCMD=\"'
+        txt = '\"'
 
         # Get the pre command that runs before main
         if analysis['processor']['pre']:
