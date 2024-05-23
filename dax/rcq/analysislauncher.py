@@ -40,6 +40,7 @@ MAINCMD={maincmd}
 SINGULARITY_BASEOPTS = (
     '-e --env USER=$USER --env HOSTNAME=$HOSTNAME '
     '--home $JOBDIR:$HOME '
+    '--bind $REPODIR:/REPO '
     '--bind $INDIR:/INPUTS '
     '--bind $OUTDIR:/OUTPUTS '
     '--bind $JOBDIR:/tmp '
