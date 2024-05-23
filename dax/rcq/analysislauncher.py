@@ -89,7 +89,7 @@ class AnalysisLauncher(object):
             logger.debug(f'loading:{rec["analysis_procrepo"]}')
             user, repo, version = rec['analysis_procrepo'].replace(':', '/').split('/')
             data['processor'] = self.load_processor_github(user, repo, version)
-            data['procrepo'] = rec['analysis_procrepo']
+            data['procrepo'] = f'https://github.com/{user}/{repo}/archive/refs/tags/{version}.tar.gz'
             data['procversion'] = version
         elif rec['analysis_processor']:
             # Load the yaml file contents from REDCap
@@ -552,9 +552,8 @@ class AnalysisLauncher(object):
             logger.info(f'loading:{user=}:{repo=}:{version=}')
             analysis['processor'] = self.load_processor_github(
                 user, repo, version)
-            print(analysis['processor'])
-            analysis['procrepo'] = analysis['analysis_procrepo']
-            analysis['procversion'] = version
+            analysis['procrepo'] = f'https://github.com/{user}/{repo}/archive/refs/tags/{version}.tar.gz'
+            analysis['procversion'] = version.replace('v','')
         elif analysis['analysis_processor']:
             # Load the yaml file contents from REDCap
             logger.debug(f'loading:{analysis["analysis_processor"]}')
