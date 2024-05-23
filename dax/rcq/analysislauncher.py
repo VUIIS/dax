@@ -590,7 +590,7 @@ class AnalysisLauncher(object):
         log_file = f'{outdir}/OUTLOG/{label}.txt'
 
         imagedir = instance_settings['main_singularityimagedir']
-        xnat_host = instance_settings['main_xnathost'],
+        xnat_host = instance_settings['main_xnathost']
         xnat_user = analysis.get('xnat_user', 'daxspider')
 
         # Build list of inputs
