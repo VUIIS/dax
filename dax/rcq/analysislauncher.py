@@ -559,6 +559,10 @@ class AnalysisLauncher(object):
 
         processor = analysis['processor']
 
+        # Set subject list
+        # TODO: load from other projects
+        analysis['subjects'] = analysis['analysis_include'].splitlines()
+
         # Set the memory
         memreq = analysis.get('analysis_memreq', None)
 
