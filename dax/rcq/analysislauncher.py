@@ -327,7 +327,7 @@ class AnalysisLauncher(object):
         subjects = analysis.get('subjects', None)
         if subjects is None:
             # Get unique list of subjects from scans
-            subjects = list(set([x['SUBJECT'] for x in info['scans']]))
+            subjects = sorted(list(set([x['SUBJECT'] for x in info['scans']])))
 
         for subj in subjects:
             inputlist.extend(self.get_subject_inputs(spec, info, subj))
