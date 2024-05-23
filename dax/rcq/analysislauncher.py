@@ -32,7 +32,7 @@ VERSION={version}
 INLIST={inputs}
 XNATHOST={host}
 XNATUSER={user}
-MAINCMD={main}
+MAINCMD={maincmd}
 
 '''
 
@@ -627,7 +627,7 @@ class AnalysisLauncher(object):
         inputs = self.build_inputs_text(input_list)
 
         # Get main commands text
-        main = self.build_main_text(analysis)
+        maincmd = self.build_main_text(analysis)
 
         # Append other paths
         cmd = CMDS_TEMPLATE.format(
@@ -638,10 +638,10 @@ class AnalysisLauncher(object):
             project=analysis['project'],
             analysis=analysis['analysis_label'],
             repo=analysis['analysis_procrepo'],
-            main=main
+            main=maincmd
         )
 
-        return cmd
+        return [cmd]
 
     def build_inputs_text(self, inputs):
         txt = '(\n'
