@@ -638,7 +638,7 @@ class AnalysisLauncher(object):
             project=analysis['project'],
             analysis=analysis['analysis_label'],
             repo=analysis['analysis_procrepo'],
-            main=maincmd
+            maincmd=maincmd
         )
 
         return [cmd]
