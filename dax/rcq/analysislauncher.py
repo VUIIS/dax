@@ -17,6 +17,9 @@ from .projectinfo import load_project_info
 # redcap and delete log and batch files from disk. No job information is stored
 # on disk, no diskq, rcq.
 
+# TODO: upload and delete log file and slurm script.
+
+
 logger = logging.getLogger('manager.rcq.analysislauncher')
 
 
@@ -208,7 +211,15 @@ class AnalysisLauncher(object):
                     # finish completed job
                     logger.debug(f'setting to uploaded, status={status}')
 
-                    # TODO: Delete the local files
+                    # Upload log file to xnat
+                    self._upload_log()
+
+                    # Upload slurm file to xnat
+
+
+                    # Set output on redcap
+                    # analysis_output
+                    #https://xnat.vanderbilt.edu/xnat/data/projects/ABCDS/resources/ABCDS_XXX_DATETIME
 
                     # Add to redcap updates
                     updates.append({
@@ -275,14 +286,15 @@ class AnalysisLauncher(object):
                         logger.debug(f'launch:{i}:{label}')
 
                         # Launch it!
-                        jobid = self.launch_analysis(cur)
-                        if jobid:
+                        jobid, label = self.launch_analysis(cur)
+                        if jobid and label:
                             updates.append({
                                 def_field: cur[def_field],
                                 'redcap_repeat_instrument': 'analyses',
                                 'redcap_repeat_instance': cur['redcap_repeat_instance'],
                                 'analysis_status': 'RUNNING',
                                 'analysis_jobid': jobid,
+                                'analysis_output': label,
                             })
                     except Exception as err:
                         logger.error(err)
@@ -307,7 +319,7 @@ class AnalysisLauncher(object):
 
     def label_analysis(self, analysis):
         project = analysis['project']
-        analysis_id = analysis['redcap_repeat_instance']
+        analysis_id = str(analysis['redcap_repeat_instance']).zfill(3)
         analysis_datetime = datetime.now().strftime("%Y-%m-%d-%H%M%S")
         analysis_label = f'{project}_{analysis_id}_{analysis_datetime}'
         return analysis_label
@@ -633,7 +645,7 @@ class AnalysisLauncher(object):
         jobid, job_failed = batch.submit()
         logger.info(f'job submit results:{jobid}:{job_failed}')
 
-        return jobid
+        return jobid, label
 
     def get_cmds(self, host, user, input_list, analysis):
         # Get inputs text
