@@ -181,6 +181,7 @@ class AnalysisLauncher(object):
             logger.info('updating each analysis')
             for i, cur in enumerate(rec):
                 project = cur[def_field]
+                cur['project'] = project
                 instance = cur['redcap_repeat_instance']
                 status = cur['analysis_status']
 
@@ -270,7 +271,6 @@ class AnalysisLauncher(object):
                         continue
 
                     cur['outdir'] = outdir
-                    cur['project'] = project
 
                     try:
                         logger.debug(f'launch:{i}:{label}')
