@@ -567,10 +567,10 @@ class AnalysisLauncher(object):
         # Set the memory
         memreq = analysis.get('analysis_memreq', None)
 
-        if memreq is None:
+        if not memreq:
             memreq = processor.get('memory', None)
 
-        if memreq is None:
+        if not memreq:
             memreq = '8G'
 
          # Set the walltime
