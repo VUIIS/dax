@@ -562,10 +562,29 @@ class AnalysisLauncher(object):
                 analysis['project'],
                 analysis['redcap_repeat_instance'])
 
+        processor = analysis['processor']
+
+        # Set the memory
+        memreq = analysis.get('analysis_memreq', None)
+
+        if memreq is None:
+            memreq = processor.get('memory', None)
+
+        if memreq is None:
+            memreq = '8G'
+
+         # Set the walltime
+        walltime = analysis.get('analysis_walltime', None)
+
+        if walltime is None:
+            walltime = processor.get('walltime', None)
+
+        if walltime is None:
+            walltime = '0-12'
+
         # Create and set the label for our new analysis
         analysis['analysis_label'] = self.label_analysis(analysis)
         outdir = analysis['outdir']
-        processor = analysis['processor']
         label = analysis['analysis_label']
         batch_file = f'{outdir}/PBS/{label}.slurm'
         log_file = f'{outdir}/OUTLOG/{label}.txt'
@@ -577,14 +596,8 @@ class AnalysisLauncher(object):
         # Build list of inputs
         inputlist = self.get_inputlist(analysis)
 
-        # Determine job template
-        #job_template = instance_settings.get('main_projectjobtemplate', None)
-
-        #if job_template is None:
-        #    _job_template = instance_settings.get('jobtemplate', None)
-        #    job_template = f'{_job_template}/project_job_template.txt'
+        # Get the job batch script template
         job_template = self._get_job_template()
-
         if not os.path.exists(job_template):
             logger.error('cannot find project job template')
             return
@@ -606,8 +619,8 @@ class AnalysisLauncher(object):
             batch_file,
             log_file,
             cmds,
-            analysis.get('analysis_timereq', '0-8'),
-            mem_mb=analysis.get('analysis_memreq', '8G'),
+            walltime,
+            memreq,
             rungroup=instance_settings['main_rungroup'],
             xnat_host=xnat_host,
             job_template=job_template
