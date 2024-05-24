@@ -305,11 +305,11 @@ class AnalysisLauncher(object):
                                 'analysis_status': 'RUNNING',
                                 'analysis_jobid': jobid,
                                 'analysis_output': label,
-                                'analysis_jobnode': '',
-                                'analysis_timeused': '',
-                                'analysis_memused': '',
-                                'analysis_jobstarttime': '',
-                                'analysis_jobendtime': '',
+                                'analysis_jobnode': 'NULL',
+                                'analysis_timeused': 'NULL',
+                                'analysis_memused': 'NULL',
+                                'analysis_jobstarttime': 'NULL',
+                                'analysis_jobendtime': 'NULL',
                             })
                     except Exception as err:
                         logger.error(err)
