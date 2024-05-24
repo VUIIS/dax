@@ -218,7 +218,7 @@ class AnalysisLauncher(object):
                     # Upload slurm file to xnat
                     slurm_file = f'{self._rcqdir}/{label}.slurm'
                     if os.path.isfile(slurm_file):
-                        logger.debug(f'upload slurm file:{log_file}')
+                        logger.debug(f'upload slurm file:{slurm_file}')
                         self._upload_file(slurm_file, project, label)
                         os.remove(slurm_file)
 
