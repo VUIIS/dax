@@ -307,7 +307,7 @@ class AnalysisLauncher(object):
 
                         # Check for success
                         if jobid and label:
-                            # Append to updates for redcap
+                            # Append to updates for redcap, clear existing info
                             updates.append({
                                 def_field: cur[def_field],
                                 'redcap_repeat_instrument': 'analyses',
@@ -315,6 +315,11 @@ class AnalysisLauncher(object):
                                 'analysis_status': 'RUNNING',
                                 'analysis_jobid': jobid,
                                 'analysis_output': label,
+                                'analysis_jobnode': '',
+                                'analysis_timeused': '',
+                                'analysis_memused': '',
+                                'analysis_jobstarttime': '',
+                                'analysis_jobendtime': '',
                             })
                     except Exception as err:
                         logger.error(err)
@@ -348,7 +353,7 @@ class AnalysisLauncher(object):
         project = analysis['project']
         analysis_id = str(analysis['redcap_repeat_instance']).zfill(3)
         analysis_datetime = datetime.now().strftime("%Y-%m-%d-%H%M%S")
-        analysis_label = f'{project}_{analysis_id}_{analysis_datetime}'
+        analysis_label = f'{project}_A{analysis_id}_{analysis_datetime}'
         return analysis_label
 
     def get_inputlist(self, analysis):
@@ -851,11 +856,11 @@ def get_updates(analysis):
     if job_node and job_node != analysis.get('analysis_jobnode', ''):
         updates['analysis_jobnode'] = job_node
 
-    if job_start and job_start != analysis.get('analysis_jobstart', ''):
-        updates['analysis_jobstart'] = job_start
+    if job_start and job_start != analysis.get('analysis_jobstarttime', ''):
+        updates['analysis_jobstarttime'] = job_start
 
-    if job_end and job_end != analysis.get('analysis_jobend', ''):
-        updates['analysis_jobend'] = job_end
+    if job_end and job_end != analysis.get('analysis_jobendtime', ''):
+        updates['analysis_jobendtime'] = job_end
 
     if job_state != analysis['analysis_status']:
         logger.debug(f'changing status to:{job_state}')
