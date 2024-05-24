@@ -229,6 +229,12 @@ class AnalysisLauncher(object):
                         self._upload_file(slurm_file, project, label)
                         os.remove(slurm_file)
 
+                    # Remove the dir
+                    try:
+                        os.rmdir(f'{resdir}/{project}_{instance}')
+                    except Exception as err:
+                        logger.error(f'failed to remove analysis dir:{err}')
+
                     # Finalize the status from xnat
                     if status == 'COMPLETED':
                         status = 'READY'
