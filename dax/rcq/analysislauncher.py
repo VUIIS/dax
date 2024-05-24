@@ -215,19 +215,19 @@ class AnalysisLauncher(object):
 
                     logger.debug(f'{label=}')
 
-                    # Upload log file to xnat
-                    log_file = f'{self._rcqdir}/{label}.txt'
-                    if os.path.isfile(log_file):
-                        logger.debug(f'upload log file:{log_file}')
-                        self._upload_file(log_file, project, label)
-                        os.remove(log_file)
-
                     # Upload slurm file to xnat
                     slurm_file = f'{self._rcqdir}/{label}.slurm'
                     if os.path.isfile(slurm_file):
                         logger.debug(f'upload slurm file:{log_file}')
                         self._upload_file(slurm_file, project, label)
                         os.remove(slurm_file)
+
+                    # Upload log file to xnat
+                    log_file = f'{self._rcqdir}/{label}.txt'
+                    if os.path.isfile(log_file):
+                        logger.debug(f'upload log file:{log_file}')
+                        self._upload_file(log_file, project, label)
+                        os.remove(log_file)
 
                     # Finalize the status from xnat
                     if status == 'COMPLETED':
