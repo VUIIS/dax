@@ -329,8 +329,9 @@ class AnalysisLauncher(object):
             logger.debug(f'deleting lock file:{lock_file}')
             unlock_flagfile(lock_file)
 
-    def _upload_file(self, project, analysis_label, filename):
+    def _upload_file(self, filename, project, analysis_label):
         res_uri = f'/projects/{project}/resources/{analysis_label}'
+        logger.info(f'upload:{filename}:{res_uri}')
         self._xnat.select(res_uri).file(os.path.basename(filename)).put(
             filename,
             overwrite=True,
