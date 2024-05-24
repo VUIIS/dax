@@ -17,8 +17,6 @@ from .projectinfo import load_project_info
 # redcap and delete log and batch files from disk. No job information is stored
 # on disk, no diskq, rcq.
 
-# TODO: upload and delete log file and slurm script.
-
 
 logger = logging.getLogger('manager.rcq.analysislauncher')
 
@@ -150,7 +148,7 @@ class AnalysisLauncher(object):
         projects_redcap = self._projects_redcap
         instance_settings = self._instance_settings
 
-        # Try to lock
+        # Lock rcq for updating
         lock_file = f'{resdir}/FlagFiles/rcq.pid'
         success = lock_flagfile(lock_file)
         if not success:
@@ -167,7 +165,7 @@ class AnalysisLauncher(object):
                     forms=['analyses'],
                     fields=[def_field])
             except Exception as err:
-                logger.error('failed to load analyses')
+                logger.error(f'failed to load analyses:{err}')
                 return
 
             rec = [x for x in rec if x['redcap_repeat_instrument'] == 'analyses']
@@ -187,9 +185,7 @@ class AnalysisLauncher(object):
                 instance = cur['redcap_repeat_instance']
                 status = cur['analysis_status']
 
-                label = f'{project}_{instance}'
-
-                logger.info(f'{i}:{label}:{status}')
+                logger.info(f'{i}:{project}:{instance}:{status}')
 
                 if status in ['NEED_INPUTS', 'UPLOADING']:
                     logger.info(f'ignoring status={status}')
@@ -202,30 +198,50 @@ class AnalysisLauncher(object):
                         cur_updates.update({
                             def_field: cur[def_field],
                             'redcap_repeat_instrument': 'analyses',
-                            'redcap_repeat_instance': cur['redcap_repeat_instance'],
+                            'redcap_repeat_instance': instance,
                         })
 
                         # Add to redcap updates
                         updates.append(cur_updates)
                 elif status in ['COMPLETED', 'FAILED', 'CANCELLED']:
-                    # finish completed job
-                    logger.debug(f'setting to uploaded, status={status}')
+                    # finish completed job after being uploaded to xnat
+                    logger.debug(f'handling complete, status={status}')
+
+                    # Get the output label on xnat
+                    label = cur.get('analysis_output', None)
+                    if not label:
+                        logger.error('label not found, cannot finish')
+                        continue
+
+                    logger.debug(f'{label=}')
 
                     # Upload log file to xnat
-                    self._upload_log()
+                    log_file = f'{resdir}/{project}_{instance}/{label}.txt'
+                    if os.path.isfile(log_file):
+                        logger.debug(f'upload log file:{log_file}')
+                        self._upload_file(log_file, project, label)
+                        os.remove(log_file)
 
                     # Upload slurm file to xnat
+                    slurm_file = f'{resdir}/{project}_{instance}/{label}.slurm'
+                    if os.path.isfile(slurm_file):
+                        logger.debug(f'upload slurm file:{log_file}')
+                        self._upload_file(slurm_file, project, label)
+                        os.remove(slurm_file)
 
-
-                    # Set output on redcap
-                    # analysis_output
-                    #https://xnat.vanderbilt.edu/xnat/data/projects/ABCDS/resources/ABCDS_XXX_DATETIME
+                    # Finalize the status from xnat
+                    if status == 'COMPLETED':
+                        status = 'READY'
+                    elif status == 'FAILED':
+                        status = 'JOB_FAILED'
+                    elif status == 'CANCELLED':
+                        status = 'JOB_CANCELLED'
 
                     # Add to redcap updates
                     updates.append({
                         def_field: cur[def_field],
                         'redcap_repeat_instrument': 'analyses',
-                        'redcap_repeat_instance': cur['redcap_repeat_instance'],
+                        'redcap_repeat_instance': instance,
                         'analysis_status': status,
                     })
                 elif status == 'QUEUED':
@@ -243,8 +259,6 @@ class AnalysisLauncher(object):
                 except Exception as err:
                     err = 'connection to REDCap interrupted'
                     logger.error(err)
-
-            # TODO: sort or randomize list???
 
             if launch_enabled:
                 q_limit = int(instance_settings['main_queuelimit'])
@@ -271,8 +285,8 @@ class AnalysisLauncher(object):
 
                     project = cur[def_field]
                     instance = cur['redcap_repeat_instance']
-                    label = f'{project}_{instance}'
-                    outdir = f'{resdir}/{label}'
+                    outdir = f'{resdir}/{project}_{instance}'
+                    cur['outdir'] = outdir
 
                     try:
                         os.makedirs(outdir)
@@ -280,18 +294,18 @@ class AnalysisLauncher(object):
                         logger.error(f'cannot launch, existing:{outdir}:{err}')
                         continue
 
-                    cur['outdir'] = outdir
-
                     try:
-                        logger.debug(f'launch:{i}:{label}')
-
                         # Launch it!
+                        logger.debug(f'launch:{i}:{project}:{instance}')
                         jobid, label = self.launch_analysis(cur)
+
+                        # Check for success
                         if jobid and label:
+                            # Append to updates for redcap
                             updates.append({
                                 def_field: cur[def_field],
                                 'redcap_repeat_instrument': 'analyses',
-                                'redcap_repeat_instance': cur['redcap_repeat_instance'],
+                                'redcap_repeat_instance': instance,
                                 'analysis_status': 'RUNNING',
                                 'analysis_jobid': jobid,
                                 'analysis_output': label,
@@ -313,6 +327,13 @@ class AnalysisLauncher(object):
             # Delete the lock file
             logger.debug(f'deleting lock file:{lock_file}')
             unlock_flagfile(lock_file)
+
+    def _upload_file(self, project, analysis_label, filename):
+        res_uri = f'/projects/{project}/resources/{analysis_label}'
+        self._xnat.select(res_uri).file(os.path.basename(filename)).put(
+            filename,
+            overwrite=True,
+            params={"event_reason": "analysis upload"})
 
     def get_info(self, project):
         return load_project_info(self._xnat, project)
@@ -562,7 +583,7 @@ class AnalysisLauncher(object):
             analysis['processor'] = self.load_processor_github(
                 user, repo, version)
             analysis['procrepo'] = f'https://github.com/{user}/{repo}/archive/refs/tags/{version}.tar.gz'
-            analysis['procversion'] = version.replace('v','')
+            analysis['procversion'] = version.replace('v', '')
         elif analysis['analysis_processor']:
             # Load the yaml file contents from REDCap
             logger.debug(f'loading:{analysis["analysis_processor"]}')
@@ -585,7 +606,7 @@ class AnalysisLauncher(object):
         if not memreq:
             memreq = '8G'
 
-         # Set the walltime
+        # Set the walltime
         walltime = analysis.get('analysis_walltime', None)
 
         if walltime is None:
@@ -598,8 +619,8 @@ class AnalysisLauncher(object):
         analysis['label'] = self.label_analysis(analysis)
         outdir = analysis['outdir']
         label = analysis['label']
-        batch_file = f'{outdir}/PBS/{label}.slurm'
-        log_file = f'{outdir}/OUTLOG/{label}.txt'
+        batch_file = f'{outdir}/{label}.slurm'
+        log_file = f'{outdir}/{label}.txt'
 
         imagedir = instance_settings['main_singularityimagedir']
         xnat_host = instance_settings['main_xnathost']
@@ -785,11 +806,10 @@ def get_updates(analysis):
     """Update information from local SLURM."""
     project = analysis['project']
     instance = analysis['redcap_repeat_instance']
-    label = f'{project}_{instance}'
     updates = {}
 
     if 'analysis_jobid' not in analysis:
-        logger.info(f'no jobid for analysis:{label}')
+        logger.info(f'no jobid for analysis:{project}:{instance}')
         return
 
     jobid = analysis['analysis_jobid']
@@ -814,7 +834,7 @@ def get_updates(analysis):
 
     # only update usage if job is not still running
     if job_state == 'RUNNING':
-        logger.debug(f'job still running, not setting used:{label}')
+        logger.debug(f'job still running:{project}:{instance}')
     else:
         if job_mem and job_mem != analysis.get('analysis_memused', ''):
             updates['analysis_memused'] = job_mem
@@ -824,6 +844,12 @@ def get_updates(analysis):
 
     if job_node and job_node != analysis.get('analysis_jobnode', ''):
         updates['analysis_jobnode'] = job_node
+
+    if job_start and job_start != analysis.get('analysis_jobstart', ''):
+        updates['analysis_jobstart'] = job_start
+
+    if job_end and job_end != analysis.get('analysis_jobend', ''):
+        updates['analysis_jobend'] = job_end
 
     if job_state != analysis['analysis_status']:
         logger.debug(f'changing status to:{job_state}')
