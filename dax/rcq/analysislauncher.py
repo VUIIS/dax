@@ -54,7 +54,8 @@ class AnalysisLauncher(object):
         self._xnat = xnat
         self._projects_redcap = projects_redcap
         self._instance_settings = instance_settings
-        self.resdir = self._instance_settings['main_resdir']
+        self._resdir = self._instance_settings['main_resdir']
+        self._rcqdir = f'{self._resdir}/RCQ'
         self._job_template = None
 
     def _get_job_template(self):
@@ -143,13 +144,12 @@ class AnalysisLauncher(object):
         """Update all analyses in projects_redcap."""
         launch_list = []
         updates = []
-        resdir = self._instance_settings['main_resdir']
         def_field = self._projects_redcap.def_field
         projects_redcap = self._projects_redcap
         instance_settings = self._instance_settings
 
         # Lock rcq for updating
-        lock_file = f'{resdir}/FlagFiles/rcq.pid'
+        lock_file = f'{self._resdir}/FlagFiles/rcq.pid'
         success = lock_flagfile(lock_file)
         if not success:
             # Failed to get lock
@@ -216,24 +216,18 @@ class AnalysisLauncher(object):
                     logger.debug(f'{label=}')
 
                     # Upload log file to xnat
-                    log_file = f'{resdir}/{project}_{instance}/{label}.txt'
+                    log_file = f'{self._rcqdir}/{label}.txt'
                     if os.path.isfile(log_file):
                         logger.debug(f'upload log file:{log_file}')
                         self._upload_file(log_file, project, label)
                         os.remove(log_file)
 
                     # Upload slurm file to xnat
-                    slurm_file = f'{resdir}/{project}_{instance}/{label}.slurm'
+                    slurm_file = f'{self._rcqdir}/{label}.slurm'
                     if os.path.isfile(slurm_file):
                         logger.debug(f'upload slurm file:{log_file}')
                         self._upload_file(slurm_file, project, label)
                         os.remove(slurm_file)
-
-                    # Remove the dir
-                    try:
-                        os.rmdir(f'{resdir}/{project}_{instance}')
-                    except Exception as err:
-                        logger.error(f'failed to remove analysis dir:{err}')
 
                     # Finalize the status from xnat
                     if status == 'COMPLETED':
@@ -267,6 +261,13 @@ class AnalysisLauncher(object):
                     logger.error(err)
 
             if launch_enabled:
+
+                # Make the rcq dir for slurm scripts and output logs
+                try:
+                    os.makedirs(self._rcqdir)
+                except FileExistsError:
+                    pass
+
                 q_limit = int(instance_settings['main_queuelimit'])
                 p_limit = int(instance_settings['main_queuelimit_pending'])
                 u_limit = int(instance_settings['main_limit_pendinguploads'])
@@ -274,7 +275,7 @@ class AnalysisLauncher(object):
                 # Launch jobs
                 updates = []
                 for i, cur in enumerate(launch_list):
-                    launched, pending, uploads = count_jobs(resdir)
+                    launched, pending, uploads = count_jobs(self._resdir)
                     logger.info(f'Cluster:{launched}/{q_limit} total, {pending}/{p_limit} pending, {uploads}/{u_limit} uploads')
 
                     if launched >= q_limit:
@@ -289,20 +290,9 @@ class AnalysisLauncher(object):
                         logger.info(f'upload limit reached:{u_limit}')
                         break
 
-                    project = cur[def_field]
-                    instance = cur['redcap_repeat_instance']
-                    outdir = f'{resdir}/{project}_{instance}'
-                    cur['outdir'] = outdir
-
-                    try:
-                        os.makedirs(outdir)
-                    except FileExistsError as err:
-                        logger.error(f'cannot launch, existing:{outdir}:{err}')
-                        continue
-
                     try:
                         # Launch it!
-                        logger.debug(f'launch:{i}:{project}:{instance}')
+                        logger.debug(f'launch:{i}')
                         jobid, label = self.launch_analysis(cur)
 
                         # Check for success
@@ -311,7 +301,7 @@ class AnalysisLauncher(object):
                             updates.append({
                                 def_field: cur[def_field],
                                 'redcap_repeat_instrument': 'analyses',
-                                'redcap_repeat_instance': instance,
+                                'redcap_repeat_instance': cur['redcap_repeat_instance'],
                                 'analysis_status': 'RUNNING',
                                 'analysis_jobid': jobid,
                                 'analysis_output': label,
@@ -559,6 +549,9 @@ class AnalysisLauncher(object):
 
         return inputs
 
+    def _dir():
+        return 
+
     def _input(self, fpath, ftype, fdest=None, ddest=''):
         data = {
             'fpath': fpath,
@@ -628,10 +621,9 @@ class AnalysisLauncher(object):
 
         # Create and set the label for our new analysis
         analysis['label'] = self.label_analysis(analysis)
-        outdir = analysis['outdir']
         label = analysis['label']
-        batch_file = f'{outdir}/{label}.slurm'
-        log_file = f'{outdir}/{label}.txt'
+        batch_file = f'{self._rcqdir}/{label}.slurm'
+        log_file = f'{self._rcqdir}/{label}.txt'
 
         imagedir = instance_settings['main_singularityimagedir']
         xnat_host = instance_settings['main_xnathost']
