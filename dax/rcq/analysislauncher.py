@@ -358,7 +358,7 @@ class AnalysisLauncher(object):
         info = self.get_info(project=project)
 
         subjects = analysis.get('subjects', None)
-        if subjects is None:
+        if not subjects:
             # Get unique list of subjects from scans
             subjects = sorted(list(set([x['SUBJECT'] for x in info['scans']])))
 
