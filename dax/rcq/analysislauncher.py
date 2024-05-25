@@ -606,7 +606,7 @@ class AnalysisLauncher(object):
         memreq = analysis.get('analysis_memreq', None)
 
         if not memreq:
-            memreq = processor.get('memory', None)
+            memreq = processor['requirements'].get('memory', None)
 
         if not memreq:
             memreq = '8G'
@@ -615,7 +615,7 @@ class AnalysisLauncher(object):
         walltime = analysis.get('analysis_walltime', None)
 
         if walltime is None:
-            walltime = processor.get('walltime', None)
+            walltime = processor['requirements'].get('walltime', None)
 
         if walltime is None:
             walltime = '0-12'
