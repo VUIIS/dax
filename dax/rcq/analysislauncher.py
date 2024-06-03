@@ -416,14 +416,19 @@ class AnalysisLauncher(object):
                         fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/scans/{scan["SCANID"]}/resources/{res}/files/{_file}'
                         inputs.append(self._input(
                             fpath,
-                            'FILE'
+                            'FILE',
+                            res_spec.get('fdest', _file),
+                            res_spec.get('ddest', subject),
                         ))
                     elif 'fmatch' in res_spec:
                         for fmatch in res_spec['fmatch'].split(','):
                             fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/scans/{scan["SCANID"]}/resources/{res}/files/{fmatch}'
                             inputs.append(self._input(
                                 fpath,
-                                'FILE'
+                                'FILE',
+                                res_spec.get('fdest', fmatch),
+                                res_spec.get('ddest', subject)
+
                             ))
                     else:
                         # Download whole resource
