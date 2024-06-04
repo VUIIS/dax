@@ -723,15 +723,15 @@ class AnalysisLauncher(object):
         post = ''
         txt = '\"'
 
-        if analysis['processor']['jobdir'] == 'shared':
+        if analysis['processor'].get('jobdir', '') == 'shared':
             txt += self.build_dir_text(analysis)
 
         # Get the pre command that runs before main
-        if analysis['processor']['pre']:
+        if analysis['processor'].get('pre', False):
             pre = self.build_command(analysis, 'pre') + ' && '
 
         # Get the post command that runs after main
-        if analysis['processor']['post']:
+        if analysis['processor'].get('post', False):
             post = ' && ' + self.build_command(analysis, 'post')
 
         # Build and append the commands
