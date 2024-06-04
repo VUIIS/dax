@@ -33,7 +33,7 @@ VERSION={version}
 INLIST={inputs}
 XNATHOST={host}
 XNATUSER={user}
-MAINCMD={maincmd}
+{maincmd}
 
 '''
 
@@ -555,9 +555,6 @@ class AnalysisLauncher(object):
 
         return inputs
 
-    def _dir():
-        return 
-
     def _input(self, fpath, ftype, fdest=None, ddest=''):
         data = {
             'fpath': fpath,
@@ -735,7 +732,7 @@ class AnalysisLauncher(object):
             post = ' && ' + self.build_command(analysis, 'post')
 
         # Build and append the commands
-        txt += pre + self.build_command(analysis, 'command') + post
+        txt += 'MAINCMD=' + pre + self.build_command(analysis, 'command') + post
 
         # Finish with a newline
         txt += '\"\n'
