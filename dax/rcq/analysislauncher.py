@@ -718,7 +718,7 @@ class AnalysisLauncher(object):
     def build_main_text(self, analysis):
         pre = ''
         post = ''
-        txt = '\"'
+        txt = ''
 
         if analysis['processor'].get('jobdir', '') == 'shared':
             txt += self.build_dir_text(analysis)
@@ -732,7 +732,8 @@ class AnalysisLauncher(object):
             post = ' && ' + self.build_command(analysis, 'post')
 
         # Build and append the commands
-        txt += 'MAINCMD=' + pre + self.build_command(analysis, 'command') + post
+        txt += 'MAINCMD="'
+        txt += pre + self.build_command(analysis, 'command') + post
 
         # Finish with a newline
         txt += '\"\n'
