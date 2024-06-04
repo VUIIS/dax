@@ -574,7 +574,7 @@ class AnalysisLauncher(object):
 
         return data
 
-    def _first_file(self, garjus, proj, subj, sess, scan, res):
+    def _first_file(self, proj, subj, sess, scan, res):
         # Get name of the first file
         _files = self._xnat.select_scan_resource(
             proj, subj, sess, scan, res).files().get()
@@ -709,10 +709,22 @@ class AnalysisLauncher(object):
 
         return txt
 
+    def build_dir_text(self, analysis):
+        # Set shared jobdir
+        txt = 'JOBDIR=$(mktemp -d "{}.XXXXXXXXX") || '.format(self._rcqdir)
+        txt += '{ echo "mktemp failed"; exit 1; }\n'
+        txt += 'INDIR=$JOBDIR/INPUTS\n'
+        txt += 'OUTDIR=$JOBDIR/OUTPUTS\n'
+
+        return txt
+
     def build_main_text(self, analysis):
         pre = ''
         post = ''
         txt = '\"'
+
+        if analysis['processor']['jobdir'] == 'shared':
+            txt += self.build_dir_text(analysis)
 
         # Get the pre command that runs before main
         if analysis['processor']['pre']:
