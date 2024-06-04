@@ -757,11 +757,16 @@ class AnalysisLauncher(object):
             logger.error(err)
             raise Exception(err)
 
+        if analysis['processor'].get('jobdir', '') == 'shared':
+            shared = True
+        else:
+            shared = False
+
         if command['type'] == 'singularity_run':
-            txt = self.build_singularity_cmd('run', command)
+            txt = self.build_singularity_cmd('run', command, shared)
 
         elif command['type'] == 'singularity_exec':
-            txt = self.build_singularity_cmd('exec', command)
+            txt = self.build_singularity_cmd('exec', command, shared)
 
         else:
             err = 'invalid command type: {}'.format(command['type'])
@@ -770,7 +775,7 @@ class AnalysisLauncher(object):
 
         return txt
 
-    def build_singularity_cmd(self, runexec, command):
+    def build_singularity_cmd(self, runexec, command, shared=False):
 
         if 'container' not in command:
             err = 'singularity modes require a container to be set'
@@ -791,6 +796,9 @@ class AnalysisLauncher(object):
             command_txt = f'singularity {runexec} {_opts}'
         else:
             command_txt = f'singularity {runexec} {SINGULARITY_BASEOPTS}'
+
+        if shared:
+            command_txt += f' -B $HOME/.ssh:$HOME/.ssh'
 
         # Append extra options
         _extra = command.get('extraopts', None)
