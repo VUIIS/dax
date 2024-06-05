@@ -352,25 +352,28 @@ class AnalysisLauncher(object):
     def get_inputlist(self, analysis):
         inputlist = []
 
-        # TODO: handle subjects from additional projects?
-
-        project = analysis['project']
         spec = analysis['processor']['inputs']['xnat']['subjects']
 
-        info = self.get_info(project=project)
+        projects = [analysis['project']]
 
-        subjects = analysis.get('subjects', None)
-        if not subjects:
-            # Get unique list of subjects from scans
-            subjects = sorted(list(set([x['SUBJECT'] for x in info['scans']])))
+        if analysis['analysis_otherprojects']:
+            projects.extend(analysis['analysis_otherprojects'].split(','))
 
-        for subj in subjects:
-            inputlist.extend(self.get_subject_inputs(spec, info, subj))
+        for project in projects:
+            info = self.get_info(project=project)
 
-        # Prepend xnat host to each input path
-        for i, d in enumerate(inputlist):
-            _fpath = inputlist[i]['fpath']
-            inputlist[i]['fpath'] = f'{self._xnat.host}/{_fpath}'
+            subjects = analysis.get('subjects', None)
+            if not subjects:
+                # Get unique list of subjects from scans
+                subjects = sorted(list(set([x['SUBJECT'] for x in info['scans']])))
+
+            for subj in subjects:
+                inputlist.extend(self.get_subject_inputs(spec, info, subj))
+
+            # Prepend xnat host to each input path
+            for i, d in enumerate(inputlist):
+                _fpath = inputlist[i]['fpath']
+                inputlist[i]['fpath'] = f'{self._xnat.host}/{_fpath}'
 
         return inputlist
 
@@ -603,7 +606,6 @@ class AnalysisLauncher(object):
         processor = analysis['processor']
 
         # Set subject list
-        # TODO: load from other projects
         analysis['subjects'] = analysis['analysis_include'].splitlines()
 
         # Set the memory
