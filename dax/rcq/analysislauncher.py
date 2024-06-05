@@ -11,6 +11,8 @@ import requests
 from ..cluster import PBS, count_jobs
 from ..lockfiles import lock_flagfile, unlock_flagfile
 from .projectinfo import load_project_info
+from ..utilities import get_this_instance
+
 
 # Handle analysis jobs that only need to be launched/updated, but not uploaded.
 # The job will upload it's own output. On finish, we update job information on
