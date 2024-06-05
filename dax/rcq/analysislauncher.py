@@ -39,7 +39,7 @@ XNATUSER={user}
 
 
 SINGULARITY_BASEOPTS = (
-    '-e --env USER=$USER --env HOSTNAME=$HOSTNAME '
+    '-e '
     '--home $JOBDIR:$HOME '
     '--bind $REPODIR:/REPO '
     '--bind $INDIR:/INPUTS '
@@ -798,7 +798,9 @@ class AnalysisLauncher(object):
             command_txt = f'singularity {runexec} {SINGULARITY_BASEOPTS}'
 
         if shared:
-            command_txt += f' -B $HOME/.ssh:$HOME/.ssh'
+            _user, _host = get_this_instance().split('@')
+            command_txt += f' -e --env USER={_user} --env HOSTNAME={_host} '
+            command_txt += ' -B $HOME/.ssh:$HOME/.ssh'
 
         # Append extra options
         _extra = command.get('extraopts', None)
