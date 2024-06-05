@@ -798,7 +798,7 @@ class AnalysisLauncher(object):
             command_txt = f'singularity {runexec} {SINGULARITY_BASEOPTS}'
 
         if shared:
-            command_txt += f' -B $JOBDIR/.ssh:$HOME/.ssh'
+            command_txt += f' -B $HOME/.ssh:$HOME/.ssh'
 
         # Append extra options
         _extra = command.get('extraopts', None)
