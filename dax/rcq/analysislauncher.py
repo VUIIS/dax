@@ -220,7 +220,7 @@ class AnalysisLauncher(object):
                         'redcap_repeat_instance': instance,
                         'analysis_status': status,
                     })
-                elif status == 'QUEUED':
+                elif status == 'QUEUED' or status == 'Q':
                     logger.debug('adding queued job to launch list')
                     launch_list.append(cur)
                 else:
