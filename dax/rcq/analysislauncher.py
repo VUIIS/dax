@@ -74,54 +74,6 @@ class AnalysisLauncher(object):
 
         return self._job_template
 
-    def load_analysis(self, project, analysis_id, download=True):
-        """Return analysis protocol record."""
-        data = {
-            'project': project,
-            'id': analysis_id,
-        }
-
-        rec = self._projects_redcap.export_records(
-            fields=[self._projects_redcap.def_field],
-            forms=['analyses'],
-            records=[project],
-        )
-
-        rec = [x for x in rec if str(x['redcap_repeat_instance']) == analysis_id]
-
-        if rec['analysis_procrepo']:
-            # Load the yaml file contents from github
-            logger.debug(f'loading:{rec["analysis_procrepo"]}')
-            p = rec['analysis_procrepo'].replace(':', '/').split('/')
-            if len(p) == 4:
-                subdir = p[3]
-            elif len(p) == 3:
-                subdir = None
-            else:
-                logger.error(f'failed to parse:{rec["analysis_procrepo"]}')
-                return None
-
-            user = p[0]
-            repo = p[1]
-            version = p[2]
-
-            data['processor'] = self.load_processor_github(
-                user,
-                repo,
-                version,
-                subdir=subdir
-            )
-            data['procrepo'] = f'https://github.com/{user}/{repo}/archive/refs/tags/{version}.tar.gz'
-            data['procversion'] = version
-        elif rec['analysis_processor']:
-            # Load the yaml file contents from REDCap
-            logger.debug(f'loading:{rec["analysis_processor"]}')
-            data['processor'] = self.load_processor_redcap(
-                project,
-                rec['redcap_repeat_instance'])
-
-        return data
-
     def load_processor_redcap(self, project, repeat_id):
         """Export file from REDCap."""
 
@@ -611,11 +563,27 @@ class AnalysisLauncher(object):
         if analysis['analysis_procrepo']:
             # Load the yaml file contents from github
             logger.info(f'loading:{analysis["analysis_procrepo"]}')
-            user, repo, version = analysis['analysis_procrepo'].replace(
-                ':', '/').split('/')
-            logger.info(f'loading:{user=}:{repo=}:{version=}')
+            p = rec['analysis_procrepo'].replace(':', '/').split('/')
+            if len(p) == 4:
+                subdir = p[3]
+            elif len(p) == 3:
+                subdir = None
+            else:
+                logger.error(f'failed to parse:{rec["analysis_procrepo"]}')
+                return None
+
+            user = p[0]
+            repo = p[1]
+            version = p[2]
+
+            logger.info(f'loading:{user=}:{repo=}:{version=}:{subdir=}')
+
             analysis['processor'] = self.load_processor_github(
-                user, repo, version)
+                user,
+                repo,
+                version,
+                subdir=subdir
+            )
             analysis['procrepo'] = f'https://github.com/{user}/{repo}/archive/refs/tags/{version}.tar.gz'
             analysis['procversion'] = version.replace('v', '')
         elif analysis['analysis_processor']:
