@@ -163,8 +163,8 @@ class AnalysisLauncher(object):
 
                 logger.info(f'{i}:{project}:{instance}:{status}')
 
-                if status in ['NEED_INPUTS', 'UPLOADING']:
-                    logger.info(f'ignoring status={status}')
+                if status in ['NEED_INPUTS', 'UPLOADING', 'READY', 'DEVEL']:
+                    logger.debug(f'ignoring status={status}')
                     pass
                 elif status == 'RUNNING':
                     # check on running job
