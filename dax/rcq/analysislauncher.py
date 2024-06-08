@@ -563,13 +563,13 @@ class AnalysisLauncher(object):
         if analysis['analysis_procrepo']:
             # Load the yaml file contents from github
             logger.info(f'loading:{analysis["analysis_procrepo"]}')
-            p = rec['analysis_procrepo'].replace(':', '/').split('/')
+            p = analysis['analysis_procrepo'].replace(':', '/').split('/')
             if len(p) == 4:
                 subdir = p[3]
             elif len(p) == 3:
                 subdir = None
             else:
-                logger.error(f'failed to parse:{rec["analysis_procrepo"]}')
+                logger.error(f'failed to parse:{analysis["analysis_procrepo"]}')
                 return None
 
             user = p[0]
