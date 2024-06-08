@@ -92,8 +92,25 @@ class AnalysisLauncher(object):
         if rec['analysis_procrepo']:
             # Load the yaml file contents from github
             logger.debug(f'loading:{rec["analysis_procrepo"]}')
-            user, repo, version = rec['analysis_procrepo'].replace(':', '/').split('/')
-            data['processor'] = self.load_processor_github(user, repo, version)
+            p = rec['analysis_procrepo'].replace(':', '/').split('/')
+            if len(p) == 4:
+                subdir = p[3]
+            elif len(p) == 3:
+                subdir = None
+            else:
+                logger.error(f'failed to parse:{rec["analysis_procrepo"]}')
+                return None
+
+            user = p[0]
+            repo = p[1]
+            version = p[2]
+
+            data['processor'] = self.load_processor_github(
+                user,
+                repo,
+                version,
+                subdir=subdir
+            )
             data['procrepo'] = f'https://github.com/{user}/{repo}/archive/refs/tags/{version}.tar.gz'
             data['procversion'] = version
         elif rec['analysis_processor']:
@@ -123,16 +140,21 @@ class AnalysisLauncher(object):
 
         return cont
 
-    def load_processor_github(self, user, repo, version):
+    def load_processor_github(self, user, repo, version, subdir):
         """Export file from github."""
 
         base = 'https://raw.githubusercontent.com'
         filename = 'processor.yaml'
 
+        if subdir:
+            url = f'{base}/{user}/{repo}/{version}/processors/{subdir}/{filename}'
+        else:
+            url = f'{base}/{user}/{repo}/{version}/{filename}'
+
+        logger.info(f'{url=}')
+
         # Get the file contents
         try:
-            url = f'{base}/{user}/{repo}/{version}/{filename}'
-            logger.info(f'{url=}')
             r = requests.get(url, allow_redirects=True)
             if r.content == '':
                 raise Exception('error exporting file from github')
