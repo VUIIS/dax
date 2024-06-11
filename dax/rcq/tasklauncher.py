@@ -396,7 +396,7 @@ def get_updates(task):
     assr = task['task_assessor']
     task_updates = {}
 
-    if 'task_jobid' not in task:
+    if not task.get('task_jobid', ''):
         logger.info(f'no jobid for task:{assr}')
         return
 
