@@ -915,6 +915,7 @@ def download_specific_scan(XNAT):
             ['project_id', 'subject_label', 'session_label', 'ID'],
             OPTIONS.selectionScan.split('-x-'))))
         scan_dict['scan_id'] = scan_dict['ID']
+        scan_dict['object_type']='scan'
         scan_obj = XNAT.select_scan(
             scan_dict['project_id'],
             scan_dict['subject_label'],
@@ -959,6 +960,7 @@ def download_specific_assessor(xnat):
             OPTIONS.selectionAssessor.split('-x-')[0:3])))
         assessor_dict['label'] = OPTIONS.selectionAssessor
         assessor_dict['subject_id'] = 'proc:genProcData'
+        assessor_dict['object_type'] = 'assessor'
         assessor_obj = xnat.select_assessor(
             assessor_dict['project_id'],
             assessor_dict['subject_label'],
