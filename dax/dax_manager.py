@@ -800,7 +800,7 @@ class DaxManager(object):
                 rcq.update(
                     self._rcq,
                     self._redcap,
-                    build_enabled=False, 
+                    build_enabled=self.is_enabled_build(), 
                     launch_enabled=self.is_enabled_launch())
 
             if self.is_enabled_build() and num_build_threads > 0:
