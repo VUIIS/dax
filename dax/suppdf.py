@@ -84,7 +84,6 @@ def make_lastpdf(lastfile, info):
     pdf.ln(0.5)
     pdf.set_font('helvetica', size=14)
     pdf.cell(1, .2, 'INPUTS:', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.ln()
 
     # Inputs - data rows
     for r in info['inputs']:
@@ -98,7 +97,6 @@ def make_lastpdf(lastfile, info):
     pdf.ln(0.5)
     pdf.set_font('helvetica', size=14)
     pdf.cell(1, .2, 'OUTPUTS:', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.ln()
 
     # Outputs - header row
     pdf.set_font('helvetica', style='B', size=12)
@@ -118,7 +116,6 @@ def make_lastpdf(lastfile, info):
     joby = pdf.get_y()
     pdf.set_font('helvetica', size=14)
     pdf.cell(1, .2, 'JOB:', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.ln()
 
     pdf.set_font('courier', size=12)
     for k, v in info['job'].items():
@@ -131,7 +128,6 @@ def make_lastpdf(lastfile, info):
         pdf.cell(w=1, h=.3, text=v, border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Proc Info
-    pdf.ln(0.5)
     pdf.set_y(joby)
     pdf.set_font('helvetica', size=14)
     pdf.set_x(2.5)
@@ -144,10 +140,9 @@ def make_lastpdf(lastfile, info):
         pdf.cell(w=4.4, h=.3, text=v, border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Show Description
+    pdf.ln(0.5)
     pdf.set_font('helvetica', size=14)
-    pdf.ln(0.5)
     pdf.cell(0, .1, 'DESCRIPTION:', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.ln(0.5)
     pdf.set_font('courier', size=10)
     pdf.multi_cell(0, .2, text=info['description'])
 
