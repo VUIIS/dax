@@ -6,6 +6,7 @@ import yaml
 import logging
 
 from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 from PyPDF2 import PdfFileWriter, PdfFileReader, PdfFileMerger
 
 from .XnatUtils import get_assessor_inputs
@@ -75,77 +76,80 @@ def make_lastpdf(lastfile, info):
     pdf.ln(0.05)
     for key, val in info['session'].items():
         pdf.set_font('helvetica', size=13)
-        pdf.cell(w=1.1, h=.4, txt=key, border=0)
+        pdf.cell(w=1.1, h=.4, text=key, border=0)
         pdf.set_font('courier', size=14)
-        pdf.cell(w=6.7, h=.4, txt=val, border=1, ln=1)
+        pdf.cell(w=6.7, h=.4, text=val, border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Inputs
     pdf.ln(0.5)
     pdf.set_font('helvetica', size=14)
-    pdf.cell(1, .2, 'INPUTS:', ln=2)
+    pdf.cell(1, .2, 'INPUTS:', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.ln()
 
     # Inputs - data rows
     for r in info['inputs']:
         pdf.set_font('courier', size=12)
-        pdf.cell(w=1.25, h=.3, txt=r[0], border=0)
-        pdf.cell(w=1, h=.3, txt=r[1][-6:], border=1, align='C')
+        pdf.cell(w=1.25, h=.3, text=r[0], border=0)
+        pdf.cell(w=1, h=.3, text=r[1][-6:], border=1, align='C')
         pdf.set_font('courier', size=7)
-        pdf.cell(w=6, h=.3, txt=(r[2].split('/assessors/')[-1])[-90:], border=0, ln=1)
+        pdf.cell(w=6, h=.3, text=(r[2].split('/assessors/')[-1])[-90:], border=0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Outputs
     pdf.ln(0.5)
     pdf.set_font('helvetica', size=14)
-    pdf.cell(1, .2, 'OUTPUTS:', ln=2)
+    pdf.cell(1, .2, 'OUTPUTS:', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.ln()
 
     # Outputs - header row
     pdf.set_font('helvetica', style='B', size=12)
-    pdf.cell(w=1.5, h=.3, txt='resource', border=1)
-    pdf.cell(w=0.6, h=.3, txt='type', border=1, align='C')
-    pdf.cell(w=5.6, h=.3, txt='path', border=1, ln=1)
+    pdf.cell(w=1.5, h=.3, text='resource', border=1)
+    pdf.cell(w=0.6, h=.3, text='type', border=1, align='C')
+    pdf.cell(w=5.6, h=.3, text='path', border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Outputs - data rows
     pdf.set_font('courier', size=12)
     for out in info['outputs']:
-        pdf.cell(w=1.5, h=.3, txt=out['resource'], border=1)
-        pdf.cell(w=0.6, h=.3, txt=out['type'], border=1, align='C')
-        pdf.cell(w=5.6, h=.3, txt=out['path'], border=1, ln=1)
+        pdf.cell(w=1.5, h=.3, text=out['resource'], border=1)
+        pdf.cell(w=0.6, h=.3, text=out['type'], border=1, align='C')
+        pdf.cell(w=5.6, h=.3, text=out['path'], border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Job Info
     pdf.ln(0.5)
     joby = pdf.get_y()
     pdf.set_font('helvetica', size=14)
-    pdf.cell(1, .2, 'JOB:', ln=2)
-    pdf.set_font('courier', size=12)
+    pdf.cell(1, .2, 'JOB:', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.ln()
 
+    pdf.set_font('courier', size=12)
     for k, v in info['job'].items():
         # Show label
         pdf.set_font('helvetica', size=12)
-        pdf.cell(w=0.8, h=.3, txt=k, border=0)
+        pdf.cell(w=0.8, h=.3, text=k, border=0)
 
         # Show value
         pdf.set_font('courier', size=12)
-        pdf.cell(w=1, h=.3, txt=v, border=1, ln=1)
+        pdf.cell(w=1, h=.3, text=v, border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Proc Info
     pdf.ln(0.5)
     pdf.set_y(joby)
     pdf.set_font('helvetica', size=14)
     pdf.set_x(2.5)
-    pdf.cell(1, .2, '', ln=1)
+    pdf.cell(1, .2, '', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     for k, v in info['proc'].items():
         pdf.set_x(2.5)
         pdf.set_font('helvetica', size=12)
-        pdf.cell(w=1.2, h=.3, txt=k, border=0)
+        pdf.cell(w=1.2, h=.3, text=k, border=0)
         pdf.set_font('courier', size=12)
-        pdf.cell(w=4.4, h=.3, txt=v, border=1, ln=1)
+        pdf.cell(w=4.4, h=.3, text=v, border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Show Description
     pdf.set_font('helvetica', size=14)
     pdf.ln(0.5)
-    pdf.cell(0, .1, 'DESCRIPTION:', ln=2)
-    pdf.ln(0.01)
+    pdf.cell(0, .1, 'DESCRIPTION:', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.ln(0.5)
     pdf.set_font('courier', size=10)
-    pdf.multi_cell(0, .2, txt=info['description'])
+    pdf.multi_cell(0, .2, text=info['description'])
 
     # Save to file
     LOGGER.debug('saving last page of PDF to file:{}'.format(lastfile))
