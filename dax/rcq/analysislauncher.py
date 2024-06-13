@@ -23,7 +23,7 @@ from ..utilities import get_this_instance
 logger = logging.getLogger('manager.rcq.analysislauncher')
 
 
-DONE_STATUSES = ['COMPLETE', 'JOB_FAILED']
+DONE_STATUSES = ['COMPLETE', 'JOB_FAILED', 'READY', 'DEVEL']
 
 
 CMDS_TEMPLATE = '''
