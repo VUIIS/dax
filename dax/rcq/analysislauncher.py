@@ -134,7 +134,7 @@ class AnalysisLauncher(object):
 
         try:
             # Get the current analysis table
-            logger.info('loading current analysis records')
+            logger.debug('loading current analysis records')
             try:
                 rec = projects_redcap.export_records(
                     records=projects,
@@ -146,22 +146,21 @@ class AnalysisLauncher(object):
 
             rec = [x for x in rec if x['redcap_repeat_instrument'] == 'analyses']
 
-            logger.info(f'Found {len(rec)} analysis records')
+            logger.debug(f'Found {len(rec)} analysis records')
 
             # Filter to only open jobs
             rec = [x for x in rec if x['analysis_status'] not in DONE_STATUSES]
 
-            logger.info(f'{len(rec)} analysis with open jobs')
+            logger.debug(f'{len(rec)} analysis with open jobs')
 
             # Update each record
-            logger.info('updating each analysis')
             for i, cur in enumerate(rec):
                 project = cur[def_field]
                 cur['project'] = project
                 instance = cur['redcap_repeat_instance']
                 status = cur['analysis_status']
 
-                logger.info(f'{i}:{project}:{instance}:{status}')
+                logger.debug(f'{i}:{project}:{instance}:{status}')
 
                 if status in ['NEED_INPUTS', 'UPLOADING', 'READY', 'DEVEL']:
                     logger.debug(f'ignoring status={status}')
