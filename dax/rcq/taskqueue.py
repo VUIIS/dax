@@ -156,6 +156,7 @@ class TaskQueue(object):
         var2val = json.dumps(var2val)
         inputlist = json.dumps(inputlist)
         userinputs = json.dumps(userinputs)
+        def_field = self._rc.def_field
 
         # Try to match existing record
         task_id = self._assessor_task_id(project, assr)
@@ -169,7 +170,7 @@ class TaskQueue(object):
             # Update existing record
             try:
                 record = {
-                    'main_name': project,
+                    def_field: project,
                     'redcap_repeat_instrument': 'taskqueue',
                     'redcap_repeat_instance': task_id,
                     'task_status': 'QUEUED',
@@ -192,7 +193,7 @@ class TaskQueue(object):
             # Create a new record
             try:
                 record = {
-                    'main_name': project,
+                    def_field: project,
                     'redcap_repeat_instrument': 'taskqueue',
                     'redcap_repeat_instance': 'new',
                     'task_assessor': assr,
