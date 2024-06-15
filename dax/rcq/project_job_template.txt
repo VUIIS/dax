@@ -1,0 +1,150 @@
+#!/bin/bash
+#SBATCH --account=${job_rungroup}
+#SBATCH --nodes=1
+#SBATCH --ntasks=${job_ppn}
+#SBATCH --time=${job_walltime}
+#SBATCH --mem=${job_memory}
+#SBATCH -o ${job_output_file}
+
+uname -a # outputs node info (name, date&time, type, OS, etc)
+date
+
+#=============================================================================
+# These fields should be added here by replacing job_cmds:
+#ANALYSISID=
+#PROJECT=
+#REPO=
+#VERSION=
+#INLIST=
+#XNATHOST=
+#XNATUSER=
+#MAINCMD=
+${job_cmds}
+#=============================================================================
+JOBDIR=$(mktemp -d "/tmp/tmp.XXXXXXXXX") || { echo "mktemp failed"; exit 1; }
+INDIR=$JOBDIR/INPUTS
+OUTDIR=$JOBDIR/OUTPUTS
+
+SESSLIMIT=20
+SLEEPMAX=300
+
+echo $ANALYSISID
+echo $PROJECT
+echo $REPO
+echo $VERSION
+echo $INDIR
+echo $OUTDIR
+echo $XNATHOST
+echo $XNATUSER
+echo $SESSLIMIT
+echo $SLEEPMAX
+
+mkdir -p $INDIR
+mkdir -p $OUTDIR
+
+# Download the code repository
+mkdir $OUTDIR/self
+curl -sL $REPO | tar zxvf - -C $OUTDIR/self --strip-components=1
+
+# Check number of open sessions on XNAT before we download
+echo "Checking that we can download"
+while true;do
+    SESSID=`curl -s -n "$XNATHOST/data/JSESSION"` 
+    SESSCOUNT=`curl -s -b "JSESSIONID=$SESSID" "$XNATHOST/data/user/$XNATUSER/sessions" | cut -s -f2 -d ":" | cut -f1 -d "}"`    
+    if (( "$SESSCOUNT" > "$SESSLIMIT" )); then
+        echo -n "Cannot download yet, too many open sessions, sleeping "
+        curl -s -b "JSESSIONID=$SESSID" -X DELETE "$XNATHOST/data/JSESSION"
+        SLEEPSECS=$[ ( $RANDOM % $SLEEPMAX ) ]s && echo "$SLEEPSECS" && sleep $SLEEPSECS
+    else
+        echo "Looks good, ready to download" 
+        break
+    fi
+done
+
+# Download XNAT inputs
+for IN in "${INLIST[@]}"; do
+    IFS=',' read -r col1 col2 col3 col4 <<< "$IN"
+
+    if [ $col4 ]; then
+        # Create the subdir
+        DDIR="$INDIR/$col4"
+        mkdir -p $DDIR        
+    else
+        DDIR="$INDIR"
+    fi
+
+    if [ $col2 == "FILE" ]; then
+        CMD="curl -D - -s -b JSESSIONID=$SESSID \"$col3\" -o $DDIR/$col1"
+        CMD+=" | head -n 1 | awk '{print \$2}'"
+    elif [ $col2 == "DIRJ" ]; then
+        CMD="curl -D - -s -b JSESSIONID=$SESSID \"$col3\"?format=zip -o $DDIR/${col1}.zip"
+        CMD+=" | head -n 1 | awk '{print \$2}'"
+        CMD+=" && unzip -q -j $DDIR/${col1}.zip -d $DDIR/$col1"
+    else
+        CMD="curl -D - -s -b JSESSIONID=$SESSID \"${col3}?format=zip&structure=simplified\" -o $DDIR/${col1}.zip"
+        CMD+=" | head -n 1 | awk '{print \$2}'" 
+        CMD+=" && unzip -q $DDIR/${col1}.zip -d $DDIR/$col1 && rm $DDIR/${col1}.zip"
+    fi
+
+    # Show the whole command
+	SAFE_CMD=$(echo ${CMD} | sed "s/$SESSID/SESSID/g")
+    echo $SAFE_CMD
+
+    # Run the full command
+    eval result=\$\($CMD\)
+    echo "result=$result"
+
+    # Check for success
+    if test "$result" != '200' ; then
+        echo "Download failed with code:$result, exiting..."
+        curl -s -b "JSESSIONID=$SESSID" -X DELETE "$XNATHOST/data/JSESSION"
+        exit 1
+    fi
+done
+
+# Disconnect XNAT
+curl -s -b "JSESSIONID=$SESSID" -X DELETE "$XNATHOST/data/JSESSION"
+
+# Run main commands
+echo $MAINCMD
+eval $MAINCMD
+
+# Get an XNAT session, checking number of open sessions
+echo "Checking that we can upload"
+while true;do
+    SESSID=`curl -s -n "$XNATHOST/data/JSESSION"`
+    SESSCOUNT=`curl -s -b "JSESSIONID=$SESSID" "$XNATHOST/data/user/$XNATUSER/sessions" | cut -s -f2 -d ":" | cut -f1 -d "}"`
+    echo "$SESSCOUNT"
+    if (( "$SESSCOUNT" > "$SESSLIMIT" )); then
+        echo -n "Cannot upload yet, too many open sessions, sleeping "
+        curl -s -b "JSESSIONID=$SESSID" -X DELETE "$XNATHOST/data/JSESSION"
+        SLEEPSECS=$[ ( $RANDOM % $SLEEPMAX ) ]s && echo "$SLEEPSECS" && sleep $SLEEPSECS
+    else
+        echo "Looks good, ready to upload" 
+        break
+    fi
+done
+
+# Upload outputs as zip files to the project resource named with this run of the analysis id
+cd $OUTDIR
+for i in *; do
+    if [ -d $i ]; then
+	    FILE="${i%/}.zip"
+        zip -r $FILE $i
+    else
+        FILE=$i
+    fi
+
+    # Upload it
+    CMD="curl --fail -D - -s -b JSESSIONID=$SESSID -X PUT \"$XNATHOST/data/projects/$PROJECT/resources/${ANALYSISID}/files/${FILE}\" -F file=\"@$FILE\""
+    eval result=\$\($CMD\)
+    echo "result=$result"
+done
+
+# Disconnect XNAT
+curl -s -b "JSESSIONID=$SESSID" -X DELETE "$XNATHOST/data/JSESSION"
+
+# Delete local files
+rm -rf $JOBDIR
+
+echo "DONE!"

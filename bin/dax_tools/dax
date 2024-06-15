@@ -13,7 +13,7 @@ import dax
 from dax import dax_tools_utils as dax_tools
 from dax import dax_manager
 from dax import validate
-
+from dax import rcq
 
 __author__ = "Benjamin Yvernault"
 __description__ = "Main python executable for dax."
@@ -160,6 +160,14 @@ runs build, launch, update and upload.'
     validate_parser.add_argument(
         dest='file', help='File to be validated')
 
+    # rcq:
+    rcq_desc = 'Update REDCap Queue by launching, updating, finishing jobs'
+    rcq_parser = dax_parser.add_parser('rcq', help=rcq_desc)
+    rcq_parser.add_argument(
+        '--nobuild',
+        dest='build', action='store_false',
+        help='Disable build.')
+
     # version:
     version_desc = 'Print dax version.'
     dax_parser.add_parser('version', help=version_desc)
@@ -214,9 +222,10 @@ if __name__ == '__main__':
         API_URL = os.environ['API_URL']
         API_KEY_P = os.environ['API_KEY_DAX_PROJECTS']
         API_KEY_I = os.environ['API_KEY_DAX_INSTANCES']
+        API_KEY_Q = os.environ.get('API_KEY_DAX_RCQ', None)
 
         # Make and run our dax manager
-        manager = dax_manager.DaxManager(API_URL, API_KEY_I, API_KEY_P)
+        manager = dax_manager.DaxManager(API_URL, API_KEY_I, API_KEY_P, api_key_rcq=API_KEY_Q)
 
         if manager.is_enabled_instance():
             # Delete any left over lock files
@@ -249,6 +258,33 @@ if __name__ == '__main__':
         except Exception as err:
             print('Not valid!')
             print(err)
+
+    elif args.command == 'rcq':
+        import logging
+        import redcap
+
+        logging.basicConfig(
+            format='%(asctime)s - %(levelname)s:%(module)s:%(message)s',
+            level=logging.INFO,
+            datefmt='%Y-%m-%d %H:%M:%S')
+
+        try:
+            projects_redcap = redcap.Project(
+                os.environ['API_URL'],
+                os.environ['API_KEY_DAX_RCQ']
+            )
+            instance_redcap = redcap.Project(
+                os.environ['API_URL'],
+                os.environ['API_KEY_DAX_INSTANCES']
+            )
+        except Exception as err:
+            print('rcq failed!', err)
+
+        try:
+            print('rcq update!')
+            rcq.update(projects_redcap, instance_redcap, build_enabled=args.build)
+        except Exception as err:
+            print('rcq failed!', err)
 
     elif args.command == 'version':
         print(dax.__version__)

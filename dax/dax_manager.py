@@ -1,9 +1,8 @@
-from multiprocessing import Process, Pool
+from multiprocessing import Pool
 import os
 from datetime import datetime
 import copy
 import logging
-import socket
 import traceback
 import random
 
@@ -18,30 +17,22 @@ from .launcher import BUILD_SUFFIX
 from . import log
 from .errors import AutoProcessorError, DaxError
 from . import utilities
+from . import rcq
 
 # dax manager has 3 main classes: DaxManager has a DaxProjectSettingsManager
 # which is a collection of DaxProjectSettings.
 
 # TODO: archive old logs
 
-# TODO: only run launch and update if there are open jobs
-
 
 DAX_SETTINGS = DAX_Settings()
 
-LOGGER = log.setup_debug_logger('manager', None)
+LOGGER = log.setup_info_logger('manager', None)
 
 
 def project_from_settings(settings_file):
     proj = settings_file.split('settings-')[1].split('.yaml')[0]
     return proj
-
-
-def get_this_instance():
-    # build the instance name
-    this_host = socket.gethostname().split('.')[0]
-    this_user = os.environ['USER']
-    return '{}@{}'.format(this_user, this_host)
 
 
 def is_locked(settings_path, lock_dir):
@@ -426,7 +417,7 @@ class DaxProjectSettingsManager(object):
         instance_field = 'gen_daxinstance'
 
         # Filter to only include projects for this instance that are Complete
-        this_instance = get_this_instance()
+        this_instance = utilities.get_this_instance()
         plist = [
             r['project_name'] for r in self.records if
             r[instance_field] == this_instance and
@@ -582,7 +573,7 @@ class DaxManager(object):
     FDATEFORMAT = '%Y%m%d-%H%M%S'
     DDATEFORMAT = '%Y%m%d'
 
-    def __init__(self, api_url, api_key_instances, api_key_projects):
+    def __init__(self, api_url, api_key_instances, api_key_projects, api_key_rcq=None):
 
         # TODO: test the api keys or catch errors from pycap to
         # handle when redcap is down
@@ -613,6 +604,12 @@ class DaxManager(object):
             instance_settings,
             self.settings_dir)
 
+        if api_key_rcq:
+            self._rcq = redcap.Project(api_url, api_key_rcq)
+        else:
+            self._rcq = None
+
+
     def is_enabled_instance(self):
         return (self.enabled)
 
@@ -638,7 +635,7 @@ class DaxManager(object):
         self._redcap = redcap.Project(redcap_url, redcap_key)
 
         # get this instance name
-        instance_name = get_this_instance()
+        instance_name = utilities.get_this_instance()
         LOGGER.debug('instance={}'.format(instance_name))
 
         # Return the record associated with this instance_name
@@ -663,12 +660,12 @@ class DaxManager(object):
         dname = datetime.strftime(timestamp, self.DDATEFORMAT)
         fname = '{}_{}_{}.log'.format(
             runtype, project, datetime.strftime(timestamp, self.FDATEFORMAT))
-        log = os.path.join(self.log_dir, project, dname, fname)
+        _log = os.path.join(self.log_dir, project, dname, fname)
 
         # Make sure the parent dirs exist
-        make_parents(log)
+        make_parents(_log)
 
-        return log
+        return _log
 
     def queue_builds(self, build_pool):
         # TODO: sort builds by how long we expect them to take,
@@ -680,15 +677,15 @@ class DaxManager(object):
         # Run each
         for i, settings_path in enumerate(self.settings_list):
             proj = project_from_settings(settings_path)
-            log = self.log_name('build', proj, datetime.now())
+            _log = self.log_name('build', proj, datetime.now())
             last_run = self.get_last_run(proj)
 
             LOGGER.info('SETTINGS:{}'.format(settings_path))
             LOGGER.info('PROJECT:{}'.format(proj))
-            LOGGER.info('LOG:{}'.format(log))
+            LOGGER.info('LOG:{}'.format(_log))
             LOGGER.info('LASTRUN:' + str(last_run))
             build_results[i] = build_pool.apply_async(
-                self.run_build, [proj, settings_path, log, last_run])
+                self.run_build, [proj, settings_path, _log, last_run])
 
         return build_results
 
@@ -754,8 +751,8 @@ class DaxManager(object):
                         proj = project_from_settings(settings_path)
 
                         LOGGER.info('updating jobs:' + proj)
-                        log = self.log_name('update', proj, datetime.now())
-                        self.run_update(settings_path, log)
+                        _log = self.log_name('update', proj, datetime.now())
+                        self.run_update(settings_path, _log)
                     except (AutoProcessorError, DaxError) as e:
                         err = 'error running update:project={}\n{}'.format(proj, e)
                         LOGGER.error(err)
@@ -772,8 +769,8 @@ class DaxManager(object):
                         proj = project_from_settings(settings_path)
 
                         LOGGER.info('launching jobs:' + proj)
-                        log = self.log_name('launch', proj, datetime.now())
-                        self.run_launch(settings_path, log)
+                        _log = self.log_name('launch', proj, datetime.now())
+                        self.run_launch(settings_path, _log)
                     except (AutoProcessorError, DaxError) as e:
                         err = 'error running launch:project={}\n{}'.format(proj, e)
                         LOGGER.error(err)
@@ -796,6 +793,15 @@ class DaxManager(object):
                     upload_pool = Pool(processes=num_upload_threads)
                     upload_results = self.queue_uploads(upload_pool)
                     upload_pool.close()
+
+            if self._rcq:
+                # update rcq  without build since it's handled elsewhere
+                LOGGER.info('rcq update')
+                rcq.update(
+                    self._rcq,
+                    self._redcap,
+                    build_enabled=self.is_enabled_build(), 
+                    launch_enabled=self.is_enabled_launch())
 
             if self.is_enabled_build() and num_build_threads > 0:
                 # Wait for builds to finish
@@ -851,6 +857,13 @@ class DaxManager(object):
                 dax.bin.build(
                     settings_file, log_file, True, proj_lastrun=proj_lastrun)
                 logging.getLogger('dax').handlers = []
+
+                if self._rcq:
+                    LOGGER.info(f'rcq build:{project}')
+                    _settings = rcq._load_instance_settings(self._redcap)
+                    yamldir = _settings['main_processorlib']
+                    with get_interface(xnat_host=self.xnat_host) as xnat:
+                        TaskBuilder(self._rcq, xnat, yamldir).update(project)
             except Exception:
                 err = 'error running build:proj={}:err={}'.format(
                     project, traceback.format_exc())
