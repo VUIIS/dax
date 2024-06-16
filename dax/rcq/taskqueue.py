@@ -26,14 +26,19 @@ class TaskQueue(object):
             forms=['taskqueue'],
             fields=[def_field])
 
-        projects = list(set([x[def_field] for x in rec]))
-
         # Filter to only uploading jobs
         rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
         rec = [x for x in rec if x['task_status'] in ['LOST', 'UPLOADING']]
 
+        if len(rec) == 0:
+            logger.info('no active tasks to update')
+            return
+
+        # Get projects with active tasks
+        projects = list(set([x[def_field] for x in rec]))
+
         # Load assesssor data from XNAT as our current status
-        logger.debug(f'loading XNAT data:{projects}')
+        logger.info(f'loading XNAT data:{projects}')
         assr_data = XnatUtils.load_assr_data(xnat, projects)
         sgp_data = XnatUtils.load_sgp_data(xnat, ','.join(projects))
 

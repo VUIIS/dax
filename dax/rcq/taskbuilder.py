@@ -33,8 +33,14 @@ class TaskBuilder(object):
         self._xnat = xnat
         self._yamldir = yamldir
         self._queue = TaskQueue(projects_redcap)
+        self._build_projects = self.projects_with_processing()
 
     def update(self, project):
+
+        if project not in self._build_projects:
+            logger.info(f'no processing protocols found:{project}')
+            return
+
         with tempfile.TemporaryDirectory() as tmpdir:
 
             logger.debug(f'loading processing protools:{project}')
@@ -135,6 +141,23 @@ class TaskBuilder(object):
             for sess in sorted(include_sessions):
                 self._build_session_processor(
                     processor, sess, info, custom=custom)
+
+    def projects_with_processing(self):
+        protocols = []
+        def_field = self._projects_rc.def_field
+
+        rec = self._projects_rc.export_records(
+            forms=['processing'],
+            fields=[def_field])
+
+        rec = [x for x in rec if x['redcap_repeat_instrument'] == 'processing']
+
+        # Only enabled processing
+        rec = [x for x in rec if str(x['processing_complete']) == '2']
+
+        projects = [x[def_field] for x in rec]
+
+        return projects
 
     def _load_protocols(self, project, tmpdir):
         protocols = []
