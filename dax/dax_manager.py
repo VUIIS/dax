@@ -863,7 +863,7 @@ class DaxManager(object):
                     LOGGER.info(f'rcq build:{project}')
                     _settings = rcq._load_instance_settings(self._redcap)
                     yamldir = _settings['main_processorlib']
-                    with get_interface(xnat_host=self.xnat_host) as xnat:
+                    with get_interface(host=self.xnat_host) as xnat:
                         TaskBuilder(self._rcq, xnat, yamldir).update(project)
             except Exception:
                 err = 'error running build:proj={}:err={}'.format(
