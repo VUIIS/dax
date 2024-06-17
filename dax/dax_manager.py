@@ -18,6 +18,7 @@ from . import log
 from .errors import AutoProcessorError, DaxError
 from . import utilities
 from . import rcq
+from .XnatUtils import get_interface
 
 # dax manager has 3 main classes: DaxManager has a DaxProjectSettingsManager
 # which is a collection of DaxProjectSettings.
@@ -795,12 +796,12 @@ class DaxManager(object):
                     upload_pool.close()
 
             if self._rcq:
-                # update rcq  without build since it's handled elsewhere
+                # update rcq without build since it's handled in run_build()
                 LOGGER.info('rcq update')
                 rcq.update(
                     self._rcq,
                     self._redcap,
-                    build_enabled=self.is_enabled_build(), 
+                    build_enabled=False, 
                     launch_enabled=self.is_enabled_launch())
 
             if self.is_enabled_build() and num_build_threads > 0:
