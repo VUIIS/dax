@@ -222,7 +222,7 @@ if __name__ == '__main__':
         API_URL = os.environ['API_URL']
         API_KEY_P = os.environ['API_KEY_DAX_PROJECTS']
         API_KEY_I = os.environ['API_KEY_DAX_INSTANCES']
-        API_KEY_Q = os.environ.get('API_KEY_DAX_RCQ', None)
+        API_KEY_Q = os.environ.get('API_KEY_DAX_RCQ', API_KEY_P)
 
         # Make and run our dax manager
         manager = dax_manager.DaxManager(API_URL, API_KEY_I, API_KEY_P, api_key_rcq=API_KEY_Q)
@@ -271,7 +271,7 @@ if __name__ == '__main__':
         try:
             projects_redcap = redcap.Project(
                 os.environ['API_URL'],
-                os.environ['API_KEY_DAX_RCQ']
+                os.environ.get('API_KEY_DAX_RCQ', os.environ['API_KEY_DAX_PROJECTS']) 
             )
             instance_redcap = redcap.Project(
                 os.environ['API_URL'],
