@@ -486,7 +486,7 @@ class AnalysisLauncher(object):
                         if 'fmatch' in res_spec:
                             # Add each file
                             for fmatch in res_spec['fmatch'].split(','):
-                                fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assr["ASSR"]}/resource/{res}/files/{fmatch}'
+                                fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assr["ASSR"]}/resources/{res}/files/{fmatch}'
                                 inputs.append(self._input(
                                     fpath,
                                     'FILE',
@@ -494,7 +494,7 @@ class AnalysisLauncher(object):
                                     res_spec.get('ddest', '')))
                         else:
                             # We want the whole resource as one download
-                            fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assr["ASSR"]}/resource/{res}/files'
+                            fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assr["ASSR"]}/resources/{res}/files'
                             inputs.append(self._input(
                                 fpath,
                                 'DIR',
