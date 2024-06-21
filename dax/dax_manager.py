@@ -797,13 +797,14 @@ class DaxManager(object):
 
             if self._rcq:
                 # update rcq without build since it's handled in run_build()
-                LOGGER.info('rcq update')
+                _projects = self.settings_manager.project_names()
+                LOGGER.info(f'rcq update:{_projects}')
                 rcq.update(
                     self._rcq,
                     self._redcap,
                     build_enabled=False, 
                     launch_enabled=self.is_enabled_launch(),
-                    projects=self.project_names())
+                    projects=_projects)
 
             if self.is_enabled_build() and num_build_threads > 0:
                 # Wait for builds to finish
