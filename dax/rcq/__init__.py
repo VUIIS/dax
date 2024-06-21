@@ -66,8 +66,9 @@ def update(rc, instances, build_enabled=True, launch_enabled=True, projects=None
         TaskQueue(rc).sync(xnat)
 
         logger.info('Running update of queue from REDCap to SLURM')
-        TaskLauncher(
-            rc, instance_settings).update(launch_enabled=launch_enabled)
+        TaskLauncher(rc, instance_settings).update(
+                launch_enabled=launch_enabled,
+                projects=projects)
 
         if build_enabled:
             logger.info('Running build of tasks in XNAT and REDCap queue')
@@ -75,13 +76,6 @@ def update(rc, instances, build_enabled=True, launch_enabled=True, projects=None
             for p in projects:
                 logger.debug(f'building:{p}')
                 task_builder.update(p)
-
-        logger.info('Running update of queue from REDCap to SLURM')
-        TaskLauncher(
-            rc, instance_settings).update(launch_enabled=launch_enabled)
-
-        logger.info('Running sync of queue status from XNAT to REDCap')
-        TaskQueue(rc).sync(xnat)
 
 
 def _load_instance_settings(instance_redcap):
