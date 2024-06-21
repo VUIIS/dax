@@ -33,11 +33,12 @@ logger = logging.getLogger('manager.rcq')
 # apply_updates()
 
 
-def update(rc, instances, build_enabled=True, launch_enabled=True):
+def update(rc, instances, build_enabled=True, launch_enabled=True, projects=None):
     logger.info('connecting to redcap')
     def_field = rc.def_field
 
-    projects = [x[def_field] for x in rc.export_records(fields=[def_field])]
+    if projects is None:
+        projects = [x[def_field] for x in rc.export_records(fields=[def_field])]
 
     instance_settings = _load_instance_settings(instances)
     if not instance_settings:

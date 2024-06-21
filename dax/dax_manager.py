@@ -802,7 +802,8 @@ class DaxManager(object):
                     self._rcq,
                     self._redcap,
                     build_enabled=False, 
-                    launch_enabled=self.is_enabled_launch())
+                    launch_enabled=self.is_enabled_launch(),
+                    projects=self.project_names())
 
             if self.is_enabled_build() and num_build_threads > 0:
                 # Wait for builds to finish
