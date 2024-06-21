@@ -25,7 +25,7 @@ class TaskLauncher(object):
         self._instance_settings = instance_settings
         self.resdir = self._instance_settings['main_resdir']
 
-    def update(self, launch_enabled=True):
+    def update(self, launch_enabled=True, projects=None):
         """Update all tasks in taskqueue of projects_redcap."""
         launch_list = []
         updates = []
@@ -52,6 +52,10 @@ class TaskLauncher(object):
             # Filter to only open jobs
             rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
             rec = [x for x in rec if x['task_status'] not in DONE_STATUSES]
+
+            if projects:
+                logger.debug(f'filtering projects include:{projects}')
+                rec = [x for x in rec if x[def_field] in projects]
 
             # Update each task
             logger.debug('updating each task')
