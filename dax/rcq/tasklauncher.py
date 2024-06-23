@@ -248,7 +248,7 @@ class TaskLauncher(object):
         imagedir = instance_settings['main_singularityimagedir']
         xnat_host = instance_settings['main_xnathost']
         xnat_user = task.get('xnat_user', 'daxspider')
-        job_template = instance_settings['main_jobtemplate']
+        job_template = instance_settings['main_rcqjobtemplate']
         job_rungroup = instance_settings['main_rungroup']
         batch_file = f'{outdir}/PBS/{assr}.slurm'
         outlog = f'{outdir}/OUTLOG/{assr}.txt'
