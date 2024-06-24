@@ -859,14 +859,27 @@ class DaxManager(object):
             try:
                 dax.bin.build(
                     settings_file, log_file, True, proj_lastrun=proj_lastrun)
-                logging.getLogger('dax').handlers = []
 
                 if self._rcq:
-                    LOGGER.info(f'rcq build:{project}')
-                    _settings = rcq._load_instance_settings(self._redcap)
-                    yamldir = _settings['main_processorlib']
-                    with get_interface(host=self.xnat_host) as xnat:
-                        rcq.TaskBuilder(self._rcq, xnat, yamldir).update(project)
+                    lockfile_prefix = os.path.splitext(os.path.basename(settings_file))[0]
+                    lock_file = f'{self.resdir}/FlagFiles/{lockfile_prefix}_BUILD_RUNNING.txt'
+                    success = lockfiles.lock_flagfile(lock_file)
+                    if not success:
+                        # Failed to get lock
+                        logger.warn('failed to get lock:{}'.format(lock_file))
+                    else:
+                        LOGGER.info(f'rcq build:{project}')
+                        _settings = rcq._load_instance_settings(self._redcap)
+                        yamldir = _settings['main_processorlib']
+                        with get_interface(host=self.xnat_host) as xnat:
+                            rcq.TaskBuilder(self._rcq, xnat, yamldir).update(project)
+
+                        # Delete the lock file
+                        logger.debug(f'deleting lock file:{lock_file}')
+                        lockfiles.unlock_flagfile(lock_file)
+
+                logging.getLogger('dax').handlers = []
+
             except Exception:
                 err = 'error running build:proj={}:err={}'.format(
                     project, traceback.format_exc())
