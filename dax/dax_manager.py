@@ -866,7 +866,7 @@ class DaxManager(object):
                     success = lockfiles.lock_flagfile(lock_file)
                     if not success:
                         # Failed to get lock
-                        logger.warn('failed to get lock:{}'.format(lock_file))
+                        LOGGER.warn(f'failed to get lock:{lock_file}')
                     else:
                         LOGGER.info(f'rcq build:{project}')
                         _settings = rcq._load_instance_settings(self._redcap)
@@ -875,7 +875,7 @@ class DaxManager(object):
                             rcq.TaskBuilder(self._rcq, xnat, yamldir).update(project)
 
                         # Delete the lock file
-                        logger.debug(f'deleting lock file:{lock_file}')
+                        LOGGER.debug(f'deleting lock file:{lock_file}')
                         lockfiles.unlock_flagfile(lock_file)
 
                 logging.getLogger('dax').handlers = []
