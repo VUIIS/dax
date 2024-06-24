@@ -862,7 +862,7 @@ class DaxManager(object):
 
                 if self._rcq:
                     lockfile_prefix = os.path.splitext(os.path.basename(settings_file))[0]
-                    lock_file = f'{self.resdir}/FlagFiles/{lockfile_prefix}_BUILD_RUNNING.txt'
+                    lock_file = f'{self.lock_dir}/{lockfile_prefix}_BUILD_RUNNING.txt'
                     success = lockfiles.lock_flagfile(lock_file)
                     if not success:
                         # Failed to get lock
