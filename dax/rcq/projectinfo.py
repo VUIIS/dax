@@ -213,7 +213,7 @@ def _load_scan_data(xnat, project):
 
     # Append shared project scans
     uri = SCAN_URI + f'&xnat:imagesessiondata/sharing/share/project={project}'
-    result += projectinfo._get_result(xnat, uri)
+    result += _get_result(xnat, uri)
 
     # Change from one row per resource to one row per scan
     scans = {}
@@ -242,7 +242,7 @@ def _load_assr_data(xnat, project):
 
     # Append shared project assessors
     uri = ASSR_URI + f'&xnat:imagesessiondata/sharing/share/project={project}'
-    result += projectinfo._get_result(xnat, uri)
+    result += _get_result(xnat, uri)
 
     for r in result:
         assessors.append(_assessor_info(r))
