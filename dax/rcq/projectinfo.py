@@ -218,6 +218,9 @@ def _load_scan_data(xnat, project):
     # Change from one row per resource to one row per scan
     scans = {}
     for r in result:
+        # Force project to be requested not parent
+        r['project'] = project
+
         k = (r['project'], r['session_label'], r['xnat:imagescandata/id'])
         if k in scans.keys():
             # Append to list of resources
@@ -245,6 +248,8 @@ def _load_assr_data(xnat, project):
     result += _get_result(xnat, uri)
 
     for r in result:
+        # Force project to be requested not parent
+        r['project'] = project
         assessors.append(_assessor_info(r))
 
     return assessors
