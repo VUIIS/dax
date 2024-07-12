@@ -261,28 +261,41 @@ if __name__ == '__main__':
 
     elif args.command == 'rcq':
         import logging
-        import redcap
 
         logging.basicConfig(
             format='%(asctime)s - %(levelname)s:%(module)s:%(message)s',
             level=logging.INFO,
             datefmt='%Y-%m-%d %H:%M:%S')
 
+        API_URL = os.environ['API_URL']
+        API_KEY_P = os.environ['API_KEY_DAX_PROJECTS']
+        API_KEY_I = os.environ['API_KEY_DAX_INSTANCES']
+        API_KEY_Q = os.environ.get('API_KEY_DAX_RCQ', API_KEY_P)
+
         try:
-            projects_redcap = redcap.Project(
-                os.environ['API_URL'],
-                os.environ.get('API_KEY_DAX_RCQ', os.environ['API_KEY_DAX_PROJECTS']) 
+            manager = dax_manager.DaxManager(
+                API_URL,
+                API_KEY_I,
+                API_KEY_P,
+                api_key_rcq=API_KEY_Q
             )
-            instance_redcap = redcap.Project(
-                os.environ['API_URL'],
-                os.environ['API_KEY_DAX_INSTANCES']
-            )
+
         except Exception as err:
             print('rcq failed!', err)
 
         try:
             print('rcq update!')
-            rcq.update(projects_redcap, instance_redcap, build_enabled=args.build)
+
+            # update rcq without build
+            projects = manager.settings_manager.project_names()
+            LOGGER.info(f'rcq update:{projects}')
+            rcq.update(
+                manager._rcq,
+                manager._redcap,
+                build_enabled=False, 
+                launch_enabled=self.is_enabled_launch(),
+                projects=projects)
+
         except Exception as err:
             print('rcq failed!', err)
 

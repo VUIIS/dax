@@ -383,6 +383,11 @@ class AnalysisLauncher(object):
                         logger.error(f'reading resource:{err}')
                         continue
 
+                    # Get the download destination subdir
+                    ddest = f'{subject}/{session}'
+                    if res_spec.get('ddest', False):
+                        ddest += '/' + res_spec.get('ddest')
+
                     if 'fdest' in res_spec:
                         _file = self._first_file(
                             info['name'],
@@ -396,7 +401,7 @@ class AnalysisLauncher(object):
                             fpath,
                             'FILE',
                             res_spec.get('fdest', _file),
-                            res_spec.get('ddest', subject),
+                            ddest,
                         ))
                     elif 'fmatch' in res_spec:
                         for fmatch in res_spec['fmatch'].split(','):
@@ -405,8 +410,7 @@ class AnalysisLauncher(object):
                                 fpath,
                                 'FILE',
                                 res_spec.get('fdest', fmatch),
-                                res_spec.get('ddest', subject)
-
+                                ddest
                             ))
                     else:
                         # Download whole resource
@@ -414,10 +418,17 @@ class AnalysisLauncher(object):
                         inputs.append(self._input(
                             fpath,
                             'DIR'
+                            None,
+                            ddest
                         ))
 
         # Get the assessors for this session
         assessors = [x for x in info['assessors'] if x['SESSION'] == session]
+
+        # Filter to only complete assessors
+        logger.debug(f'found {len(assessors)} total assessors, filtering')
+        assessors = [x for x in assessors if x['PROCSTATUS'] == 'COMPLETE']
+        logger.debug(f'found {len(assessors)} complete assessors')
 
         for assr_spec in spec.get('assessors', []):
             logger.debug(f'assr_spec={assr_spec}')
