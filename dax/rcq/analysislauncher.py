@@ -527,10 +527,14 @@ class AnalysisLauncher(object):
 
                 # First session only
                 sessions = [first['SESSION']]
-            else:
-                # Otherwise, find sessions matching types
+            elif 'types' in sess_spec:
+                # Find sessions matching types
                 sess_types = sess_spec['types'].split(',')
                 sessions = [x['SESSION'] for x in info['scans'] if x['SUBJECT'] == subject and x['SESSTYPE'] in sess_types]
+                sessions = list(set(sessions))
+            else:
+                # Use any and all sessions for this subject
+                sessions = [x['SESSION'] for x in info['scans'] if x['SUBJECT'] == subject]
                 sessions = list(set(sessions))
 
             # Append inputs for this spec
