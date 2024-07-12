@@ -417,7 +417,7 @@ class AnalysisLauncher(object):
                         fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/scans/{scan["SCANID"]}/resources/{res}/files'
                         inputs.append(self._input(
                             fpath,
-                            'DIR'
+                            'DIR',
                             None,
                             ddest
                         ))
