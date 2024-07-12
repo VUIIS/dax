@@ -280,7 +280,7 @@ if __name__ == '__main__':
                 manager._rcq,
                 manager._redcap,
                 build_enabled=False, 
-                launch_enabled=self.is_enabled_launch(),
+                launch_enabled=manager.is_enabled_launch(),
                 projects=projects)
         except Exception as err:
             print('rcq failed!', err)
