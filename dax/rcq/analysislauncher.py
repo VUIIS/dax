@@ -441,6 +441,11 @@ class AnalysisLauncher(object):
 
                 for res_spec in assr_spec['resources']:
 
+                    # Get the download destination subdir
+                    ddest = f'{subject}/{session}'
+                    if res_spec.get('ddest', False):
+                        ddest += '/' + res_spec.get('ddest')
+
                     try:
                         res = res_spec['resource']
                     except (KeyError, ValueError) as err:
@@ -454,7 +459,7 @@ class AnalysisLauncher(object):
                                 fpath,
                                 'FILE',
                                 res_spec.get('fdest', fmatch),
-                                res_spec.get('ddest', subject)))
+                                ddest))
                     else:
                         # whole resource
                         fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/assessors/{assr["ASSR"]}/out/resources/{res}/files'
@@ -462,7 +467,7 @@ class AnalysisLauncher(object):
                             fpath,
                             'DIR',
                             res_spec.get('fdest', subject),
-                            res_spec.get('ddest', '')))
+                            ddest))
 
         return inputs
 
