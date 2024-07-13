@@ -241,7 +241,7 @@ class TaskLauncher(object):
         walltime = task['task_walltime']
         memreq = task['task_memreq']
         inputlist = json.loads(task['task_inputlist'], strict=False)
-        var2val = json.loads(task['task_var2val'], strict=False)
+        var2val = json.loads(task['task_var2val'].replace('\\\\', '\\'), strict=False)
         yaml_file = task['task_yamlfile']
         user_inputs = json.loads(
             task['task_userinputs'] or 'null', strict=False)
