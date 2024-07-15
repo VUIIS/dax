@@ -63,7 +63,7 @@ def update(rc, instances, build_enabled=True, launch_enabled=True, projects=None
             pass
 
         logger.info('Running sync of queue status from XNAT to REDCap')
-        TaskQueue(rc).sync(xnat)
+        TaskQueue(rc).sync(xnat, projects)
 
         logger.info('Running update of queue from REDCap to SLURM')
         TaskLauncher(rc, instance_settings).update(

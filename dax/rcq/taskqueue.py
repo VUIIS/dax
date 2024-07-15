@@ -17,12 +17,13 @@ class TaskQueue(object):
     def __init__(self, projects_redcap):
         self._rc = projects_redcap
 
-    def sync(self, xnat):
+    def sync(self, xnat, projects):
         task_updates = []
         def_field = self._rc.def_field
 
         logger.info('loading taskqueue records from REDCap')
         rec = self._rc.export_records(
+            records=projects,
             forms=['taskqueue'],
             fields=[def_field])
 

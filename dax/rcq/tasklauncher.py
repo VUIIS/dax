@@ -44,18 +44,21 @@ class TaskLauncher(object):
 
         try:
             # Get the current task table
-            logger.info('loading current taskqueue records')
-            rec = projects_redcap.export_records(
-                forms=['taskqueue'],
-                fields=[def_field])
+            if projects:
+                logger.info(f'loading current taskqueue records:{projects}')
+                rec = projects_redcap.export_records(
+                    records=projects,
+                    forms=['taskqueue'],
+                    fields=[def_field])
+            else:
+                logger.info('loading current taskqueue records')
+                rec = projects_redcap.export_records(
+                    forms=['taskqueue'],
+                    fields=[def_field])
 
             # Filter to only open jobs
             rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
             rec = [x for x in rec if x['task_status'] not in DONE_STATUSES]
-
-            if projects:
-                logger.debug(f'filtering projects include:{projects}')
-                rec = [x for x in rec if x[def_field] in projects]
 
             # Update each task
             logger.debug('updating each task')
