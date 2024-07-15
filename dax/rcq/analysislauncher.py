@@ -492,6 +492,12 @@ class AnalysisLauncher(object):
                         continue
 
                     for res_spec in assr_spec['resources']:
+
+                        # Get the download destination subdir
+                        ddest = f'{subject}'
+                        if res_spec.get('ddest', False):
+                            ddest += '/' + res_spec.get('ddest')
+
                         # Load the resource
                         try:
                             res = res_spec['resource']
@@ -506,8 +512,9 @@ class AnalysisLauncher(object):
                                 inputs.append(self._input(
                                     fpath,
                                     'FILE',
-                                    res_spec.get('fdest', subject),
-                                    res_spec.get('ddest', '')))
+                                    res_spec.get('fdest', fmatch),
+                                    ddest
+                                ))
                         else:
                             # We want the whole resource as one download
                             fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assr["ASSR"]}/resources/{res}/files'
@@ -515,7 +522,7 @@ class AnalysisLauncher(object):
                                 fpath,
                                 'DIR',
                                 res_spec.get('fdest', subject),
-                                res_spec.get('ddest', '')))
+                                ddest))
 
         # Download the subjects sessions
         for sess_spec in spec.get('sessions', []):
