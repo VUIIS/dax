@@ -1407,6 +1407,7 @@ class Processor_v3(object):
     def _map_inputs(self, session, project_data):
         inputs = self.proc_inputs
         artefacts_by_input = {k: [] for k in inputs}
+        artefact_ids_by_input = {k: [] for k in inputs}
 
         # Get lists for scans/assrs for this session
         LOGGER.debug('prepping session data')
@@ -1468,7 +1469,38 @@ class Processor_v3(object):
                                 # Break if the scan matches so we don't find it again comparing
                                 # vs a different requested type
                                 artefacts_by_input[i].append(cscan['full_path'])
+                                artefact_ids_by_input[i].append(scanid)
                                 break
+
+                    # If requested, check for multiple matching scans in the list and only keep
+                    # the first. Sort lowercase by alpha, on scan ID.
+                    if len(artefacts_by_input[i]) > 0 and iv['keep_multis'] != 'all':
+                        scan_info = zip(
+                            artefacts_by_input[i],
+                            artefact_ids_by_input[i],
+                            )
+                        sorted_info = sorted(scan_info, key=lambda x: str(x[1]).lower())
+                        num_scans = sum(1 for _ in sorted_info)
+                        if iv['keep_multis'] == 'first':
+                            idx_multi = 1
+                        elif iv['keep_multis'] == 'last':
+                            idx_multi = num_scans
+                        else:
+                            try:
+                                idx_multi = int(iv['keep_multis'])
+                            except:
+                                msg = f'For {i}, keep_multis must be first, last, or index 1,2,3,...'
+                                LOGGER.error(msg)
+                                raise AutoProcessorError(msg)
+                            if idx_multi > num_scans:
+                                msg = f'Requested {idx_multi}th scan for {i}, but only {num_scans} found'
+                                LOGGER.error(msg)
+                                raise AutoProcessorError(msg)
+                        artefacts_by_input[i] = [sorted_info[idx_multi-1][0]]
+                        LOGGER.info(
+                            f'Keeping only the {idx_multi}th scan found for '
+                            f'{i}: {sorted_info[idx_multi-1][0]}'
+                            )
 
             elif iv['artefact_type'] == 'assessor':
                 for cassr in assrs:
