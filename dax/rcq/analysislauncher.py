@@ -359,22 +359,52 @@ class AnalysisLauncher(object):
         for scan_spec in spec.get('scans', []):
             logger.debug(f'scan_spec={scan_spec}')
 
+            # Get list of resources to download from this scan
+            resources = scan_spec.get('resources', [])
+
+            # Check for nifti tag
+            if 'nifti' in scan_spec:
+                # Add a NIFTI resource using value as fdest
+                resources.append({
+                    'resource': 'NIFTI',
+                    'fdest': scan_spec['nifti']
+                })
+
             scan_types = scan_spec['types'].split(',')
 
             logger.debug(f'scan_types={scan_types}')
 
-            for scan in [x for x in scans if x['SCANTYPE'] in scan_types]:
+            input_scans = [x for x in scans if x['SCANTYPE'] in scan_types]
 
-                # Get list of resources to download from this scan
-                resources = scan_spec.get('resources', [])
+            if len(input_scans) > 0 and scan_spec.get('keep_multis', '') != 'all':
+                # Sort by id
+                input_scans = sorted(input_scans, lambda: x: x['SCANID'])
+                num_scans = len(input_scans)
 
-                # Check for nifti tag
-                if 'nifti' in scan_spec:
-                    # Add a NIFTI resource using value as fdest
-                    resources.append({
-                        'resource': 'NIFTI',
-                        'fdest': scan_spec['nifti']
-                    })
+                # Apply keep_multis filter
+                if scan_spec['keep_multis'] == 'first':
+                    idx_multi = 1
+                elif iv['keep_multis'] == 'last':
+                    idx_multi = num_scans
+                else:
+                    try:
+                        idx_multi = int(iv['keep_multis'])
+                    except:
+                        msg = 'keep_multis must be first, last, or index 1,2,3,...'
+                        logger.error(msg)
+                        raise Exception(msg)
+
+                    if idx_multi > num_scans:
+                        msg = f'{idx_multi} index exceeds found {num_scans}'
+                        logger.error(msg)
+                        raise Exception(msg)
+
+                    # Get a list of only the requested scan
+                    input_scans = [input_scans[idx_multi-1]]
+
+            # Get the file inputs for each input scan
+            for scan in input_scans:
+                scanid = scan['SCANID']
 
                 for res_spec in resources:
                     try:
@@ -384,7 +414,7 @@ class AnalysisLauncher(object):
                         continue
 
                     # Get the download destination subdir
-                    ddest = f'{subject}/{session}'
+                    ddest = f'{subject}/{session}/scans/{scanid}'
                     if res_spec.get('ddest', False):
                         ddest += '/' + res_spec.get('ddest')
 
@@ -396,7 +426,7 @@ class AnalysisLauncher(object):
                             scan['SCANID'],
                             res
                         )
-                        fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/scans/{scan["SCANID"]}/resources/{res}/files/{_file}'
+                        fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/scans/{scanid}/resources/{res}/files/{_file}'
                         inputs.append(self._input(
                             fpath,
                             'FILE',
@@ -438,11 +468,12 @@ class AnalysisLauncher(object):
             logger.debug(f'assr_types={assr_types}')
 
             for assr in [x for x in assessors if x['PROCTYPE'] in assr_types]:
+                assrlabel = assr["ASSR"]
 
                 for res_spec in assr_spec['resources']:
 
                     # Get the download destination subdir
-                    ddest = f'{subject}/{session}'
+                    ddest = f'{subject}/{session}/assessors/{assrlabel}'
                     if res_spec.get('ddest', False):
                         ddest += '/' + res_spec.get('ddest')
 
@@ -454,7 +485,7 @@ class AnalysisLauncher(object):
 
                     if 'fmatch' in res_spec:
                         for fmatch in res_spec['fmatch'].split(','):
-                            fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/assessors/{assr["ASSR"]}/out/resources/{res}/files/{fmatch}'
+                            fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/assessors/{assrlabel}/out/resources/{res}/files/{fmatch}'
                             inputs.append(self._input(
                                 fpath,
                                 'FILE',
@@ -462,7 +493,7 @@ class AnalysisLauncher(object):
                                 ddest))
                     else:
                         # whole resource
-                        fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/assessors/{assr["ASSR"]}/out/resources/{res}/files'
+                        fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/assessors/{assrlabel}/out/resources/{res}/files'
                         inputs.append(self._input(
                             fpath,
                             'DIR',
@@ -481,6 +512,8 @@ class AnalysisLauncher(object):
             sgp = [x for x in info['sgp'] if x['SUBJECT'] == subject]
 
             for assr in sgp:
+                assrlabel = assr['ASSR']
+
                 for assr_spec in sgp_spec:
                     logger.debug(f'assr_spec={assr_spec}')
                     assr_types = assr_spec['types'].split(',')
@@ -494,7 +527,7 @@ class AnalysisLauncher(object):
                     for res_spec in assr_spec['resources']:
 
                         # Get the download destination subdir
-                        ddest = f'{subject}'
+                        ddest = f'{subject}/assessors/{assrlabel}'
                         if res_spec.get('ddest', False):
                             ddest += '/' + res_spec.get('ddest')
 
@@ -508,7 +541,7 @@ class AnalysisLauncher(object):
                         if 'fmatch' in res_spec:
                             # Add each file
                             for fmatch in res_spec['fmatch'].split(','):
-                                fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assr["ASSR"]}/resources/{res}/files/{fmatch}'
+                                fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assrlabel}/resources/{res}/files/{fmatch}'
                                 inputs.append(self._input(
                                     fpath,
                                     'FILE',
@@ -517,7 +550,7 @@ class AnalysisLauncher(object):
                                 ))
                         else:
                             # We want the whole resource as one download
-                            fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assr["ASSR"]}/resources/{res}/files'
+                            fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assrlabel}/resources/{res}/files'
                             inputs.append(self._input(
                                 fpath,
                                 'DIR',
