@@ -378,7 +378,7 @@ class AnalysisLauncher(object):
 
             if len(input_scans) > 0 and scan_spec.get('keep_multis', '') != 'all':
                 # Sort by id
-                input_scans = sorted(input_scans, lambda: x: x['SCANID'])
+                input_scans = sorted(input_scans, key=lambda x: x['SCANID'])
                 num_scans = len(input_scans)
 
                 # Apply keep_multis filter
