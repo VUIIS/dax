@@ -140,6 +140,7 @@ class TaskLauncher(object):
                 q_limit = int(instance_settings['main_queuelimit'])
                 p_limit = int(instance_settings['main_queuelimit_pending'])
                 u_limit = int(instance_settings['main_limit_pendinguploads'])
+                launch_delay = int(instance_settings['main_launch_delay_sec'])
 
                 # Launch jobs
                 updates = []
@@ -205,6 +206,9 @@ class TaskLauncher(object):
                                 'task_status': 'RUNNING',
                                 'task_jobid': jobid,
                             })
+
+                        time.sleep(launch_delay)
+
                     except Exception as err:
                         logger.error(err)
                         import traceback
