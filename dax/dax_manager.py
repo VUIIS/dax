@@ -796,7 +796,6 @@ class DaxManager(object):
                     upload_pool.close()
 
             if self._rcq:
-                # update rcq without build since it's handled in run_build()
                 _projects = self.settings_manager.project_names()
                 LOGGER.info(f'rcq update:{_projects}')
                 rcq.update(
@@ -805,6 +804,11 @@ class DaxManager(object):
                     build_enabled=False, 
                     launch_enabled=self.is_enabled_launch(),
                     projects=_projects)
+
+                # Run separate rcq build so it locks between dax_managers
+                if self.is_enabled_build():
+                    build_errors = self.run_rcq_build(_projects)
+                    run_errors.extend(build_errors)
 
             if self.is_enabled_build() and num_build_threads > 0:
                 # Wait for builds to finish
@@ -859,25 +863,6 @@ class DaxManager(object):
             try:
                 dax.bin.build(
                     settings_file, log_file, True, proj_lastrun=proj_lastrun)
-
-                if self._rcq:
-                    lockfile_prefix = os.path.splitext(os.path.basename(settings_file))[0]
-                    lock_file = f'{self.lock_dir}/{lockfile_prefix}_BUILD_RUNNING.txt'
-                    success = lockfiles.lock_flagfile(lock_file)
-                    if not success:
-                        # Failed to get lock
-                        LOGGER.warn(f'failed to get lock:{lock_file}')
-                    else:
-                        LOGGER.info(f'rcq build:{project}')
-                        _settings = rcq._load_instance_settings(self._redcap)
-                        yamldir = _settings['main_processorlib']
-                        with get_interface(host=self.xnat_host) as xnat:
-                            rcq.TaskBuilder(self._rcq, xnat, yamldir).update(project)
-
-                        # Delete the lock file
-                        LOGGER.debug(f'deleting lock file:{lock_file}')
-                        lockfiles.unlock_flagfile(lock_file)
-
                 logging.getLogger('dax').handlers = []
 
             except Exception:
@@ -889,6 +874,34 @@ class DaxManager(object):
             self.set_last_build_complete(project)
             LOGGER.info('run_build:done:{}'.format(project))
             return build_error
+
+    def run_rcq_build(self, projects):
+        build_errors = []
+        lock_file = f'{self.lock_dir}/RCQ_BUILD.pid'
+
+        success = lockfiles.lock_flagfile(lock_file)
+
+        if not success:
+            LOGGER.warn(f'failed to get lock, cannot build rcq:{lock_file}')
+            return
+
+        instance_settings = rcq._load_instance_settings(self._redcap)
+        yaml_dir = instance_settings['main_processorlib']
+
+        with get_interface(host=self.xnat_host) as xnat:
+            for project in projects:
+                LOGGER.info(f'rcq build:{project}')
+                try:
+                    rcq.TaskBuilder(self._rcq, xnat, yaml_dir).update(project)
+                except as Exception:
+                    err = f'rcq build:{project}:err={traceback.format_exc()}'
+                    LOGGER.error(err)
+                    build_errors.append(err)
+
+        LOGGER.debug(f'deleting lock file:{lock_file}')
+        lockfiles.unlock_flagfile(lock_file)
+
+        return build_errors         
 
     def set_last_build_start(self, project):
         self.settings_manager.set_last_build_start(project)
