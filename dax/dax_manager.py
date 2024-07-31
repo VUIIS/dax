@@ -893,7 +893,7 @@ class DaxManager(object):
                 LOGGER.info(f'rcq build:{project}')
                 try:
                     rcq.TaskBuilder(self._rcq, xnat, yaml_dir).update(project)
-                except as Exception:
+                except Exception as err:
                     err = f'rcq build:{project}:err={traceback.format_exc()}'
                     LOGGER.error(err)
                     build_errors.append(err)
