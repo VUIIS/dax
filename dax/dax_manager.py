@@ -192,16 +192,30 @@ class DaxProjectSettingsManager(object):
         default_settings = self.load_defaults(DaxProjectSettings())
 
         for name in self.project_names():
+            # Initialize settings to be written to file for this project
             settings = copy.deepcopy(default_settings)
 
             try:
                 LOGGER.info('Loading project: ' + name)
                 project = self.load_project(settings, name)
-                settings.add_project(project)
-
                 filename = os.path.join(
                     self._local_dir, 'settings-{}.yaml'.format(name))
 
+                # Check for empty processors/modules
+                if not project['modules'] and not project['yamlprocessors']:
+                    LOGGER.info('empty processors/modules')
+                    # Delete existing
+                    if os.path.exists(filename)
+                        LOGGER.info(f'deleting stray settings file:{filename}')
+                        os.remove(filename)
+
+                    # Nothing else to do with this project
+                    continue
+
+                # Combine loaded project settings with instance settings
+                settings.add_project(project)
+
+                # Compare with settings in existing file
                 if self.settings_match(settings, filename):
                     LOGGER.info('settings unchanged:{}'.format(filename))
                 else:
@@ -883,7 +897,7 @@ class DaxManager(object):
 
         if not success:
             LOGGER.warn(f'failed to get lock, cannot build rcq:{lock_file}')
-            return
+            return []
 
         instance_settings = rcq._load_instance_settings(self._redcap)
         yaml_dir = instance_settings['main_processorlib']
