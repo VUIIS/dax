@@ -205,7 +205,7 @@ class DaxProjectSettingsManager(object):
                 if not project['modules'] and not project['yamlprocessors']:
                     LOGGER.info('empty processors/modules')
                     # Delete existing
-                    if os.path.exists(filename)
+                    if os.path.exists(filename):
                         LOGGER.info(f'deleting stray settings file:{filename}')
                         os.remove(filename)
 
