@@ -231,9 +231,15 @@ $JOBDIR, $INDIR, $OUTDIR are available at run time, and refer to locations on th
 
 Singularity has default binds that differ between installations. --contain disables these to prevent cross-talk with the host filesystem. And --cleanenv prevents cross-talk with the host environment. However, with --contain, some spiders will need to have specific temp space on the host attached. E.g. for some versions of Freesurfer, --bind ${INDIR}:/dev/shm. For compiled Matlab spiders, we need to provide --home $INDIR to avoid .mcrCache collisions in temp space when multiple spiders are running. And, some cases may require ${INDIR}:/tmp or /tmp:/tmp. Thus the defaults above.
 
+The *opts* option is available to replace the binds if needed (--cleanenv and --contain are appended regardless)
+
 The entire singularity command is built as::
 
     singularity <run|exec> <SINGULARITY_BASEOPTS> <extraopts> <container> <args>
+
+or if opts is provided::
+
+    singularity <run|exec> --cleanenv --contain <opts> <extraopts> <container> <args>
 
 
 
