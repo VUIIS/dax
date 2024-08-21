@@ -624,7 +624,6 @@ class DaxManager(object):
         else:
             self._rcq = None
 
-
     def is_enabled_instance(self):
         return (self.enabled)
 
@@ -902,6 +901,9 @@ class DaxManager(object):
         instance_settings = rcq._load_instance_settings(self._redcap)
         yaml_dir = instance_settings['main_processorlib']
 
+        # Store the start time for all projects
+        self.set_last_build_start_multiple(projects)
+
         with get_interface(host=self.xnat_host) as xnat:
             for project in projects:
                 LOGGER.info(f'rcq build:{project}')
@@ -915,7 +917,69 @@ class DaxManager(object):
         LOGGER.debug(f'deleting lock file:{lock_file}')
         lockfiles.unlock_flagfile(lock_file)
 
-        return build_errors         
+        # Save the complete time for all projects
+        self.set_last_build_complete_multiple(projects)
+
+        return build_errors
+
+    def set_last_build_start_multiple(self, projects):
+        records = []
+        last_start = datetime.strftime(
+            datetime.now(),
+            self.settings_manager.RCDATEFORMAT
+        )
+
+        for p in projects:
+            records.append({
+                'project_name': p,
+                'build_laststarttime': last_start,
+                'build_status_complete': '1'}
+            )
+            LOGGER.info(f'set last build start: project={p}, {last_start}')
+
+        try:
+            response = self.settings_manager._redcap.import_records(records)
+            assert 'count' in response
+        except Exception as err:
+            LOGGER.info(err)
+
+    def set_last_build_complete_multiple(self, projects):
+        records = []
+        last_finish = datetime.strftime(
+            datetime.now(),
+            self.settings_manager.RCDATEFORMAT
+        )
+
+        for p in projects:
+            last_start = self.settings_manager.get_last_start_time(p)
+            last_duration = self.settings_manager.duration(
+                last_start,
+                last_finish
+            )
+
+            records.append({
+                'project_name': p,
+                'build_lastcompletestarttime': last_start,
+                'build_lastcompletefinishtime': last_finish,
+                'build_lastcompleteduration': last_duration,
+                'build_status_complete': '2'}
+            )
+
+            LOGGER.info(
+                'set last build: project={}, start={}, finish={}'.format(
+                    p,
+                    last_start,
+                    last_finish))
+
+        try:
+            response = self._redcap.import_records(records)
+            assert 'count' in response
+        except AssertionError:
+            err = 'redcap import failed'
+            raise DaxManagerError(err)
+        except Exception:
+            err = 'connection to REDCap interrupted'
+            raise DaxManagerError(err)
 
     def set_last_build_start(self, project):
         self.settings_manager.set_last_build_start(project)
