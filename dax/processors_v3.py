@@ -46,7 +46,7 @@ LOGGER = logging.getLogger('dax')
 # which will already have the variables set for $INDIR and $OUTDIR
 SINGULARITY_BASEOPTS = (
     '--contain --cleanenv '
-    '--home $JOBDIR '
+    '--home /tmp/home '
     '--bind $INDIR:/INPUTS '
     '--bind $OUTDIR:/OUTPUTS '
     '--bind $JOBDIR:/tmp '
