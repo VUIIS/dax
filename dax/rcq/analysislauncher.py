@@ -116,6 +116,35 @@ class AnalysisLauncher(object):
 
         return yaml.safe_load(r.text)
 
+    def save_covariates_file(self, analysis, output_file):
+        """Export file from REDCap."""
+
+        project = analysis['project']
+        repeat_id = analysis['redcap_repeat_instance']
+
+        # Get the file contents from REDCap
+        try:
+            (cont, hdr) = self._projects_redcap.export_file(
+                record=project,
+                field='analysis_covarfile',
+                repeat_instance=repeat_id)
+
+            if cont == '':
+                raise Exception('error exporting file from REDCap')
+        except Exception as err:
+            logger.error(f'downloading file:{err}')
+            return None
+
+        # Save contents to local file
+        try:
+            with open(output_file, 'wb') as f:
+                f.write(cont)
+
+            return output_file
+        except FileNotFoundError as err:
+            logger.error(f'file not found:{output_file}:{err}')
+            return None
+
     def update(self, projects, launch_enabled=True):
         """Update all analyses in projects_redcap."""
         launch_list = []
@@ -680,10 +709,14 @@ class AnalysisLauncher(object):
         label = analysis['label']
         batch_file = f'{self._rcqdir}/{label}.slurm'
         log_file = f'{self._rcqdir}/{label}.txt'
+        covar_file = f'{self._rcqdir}/{label}.csv'
 
         imagedir = instance_settings['main_singularityimagedir']
         xnat_host = instance_settings['main_xnathost']
         xnat_user = analysis.get('xnat_user', 'daxspider')
+
+        if analysis.get('analysis_covarfile', False):
+            self.save_covariates_file(analysis, covar_file)
 
         # Build list of inputs
         inputlist = self.get_inputlist(analysis)
