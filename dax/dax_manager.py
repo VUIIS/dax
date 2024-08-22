@@ -972,14 +972,10 @@ class DaxManager(object):
                     last_finish))
 
         try:
-            response = self._redcap.import_records(records)
+            response = self.settings_manager._redcap.import_records(records)
             assert 'count' in response
-        except AssertionError:
-            err = 'redcap import failed'
-            raise DaxManagerError(err)
-        except Exception:
-            err = 'connection to REDCap interrupted'
-            raise DaxManagerError(err)
+        except Exception as err:
+            LOGGER.info(err)
 
     def set_last_build_start(self, project):
         self.settings_manager.set_last_build_start(project)
