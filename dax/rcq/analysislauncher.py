@@ -526,7 +526,7 @@ class AnalysisLauncher(object):
                         inputs.append(self._input(
                             fpath,
                             'DIR',
-                            res_spec.get('fdest', subject),
+                            None,
                             ddest))
 
         return inputs
@@ -583,7 +583,7 @@ class AnalysisLauncher(object):
                             inputs.append(self._input(
                                 fpath,
                                 'DIR',
-                                res_spec.get('fdest', subject),
+                                None,
                                 ddest))
 
         # Download the subjects sessions
