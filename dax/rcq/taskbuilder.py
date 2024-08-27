@@ -89,6 +89,9 @@ class TaskBuilder(object):
                     include_filters,
                     custom=row['CUSTOM'])
 
+    def build_projects(self):
+        return self._build_projects
+
     def _build_processor(self, filepath, user_inputs, info, include_filters, custom=False):
         # Get lists of subjects/sessions for filtering
 
