@@ -900,25 +900,29 @@ class DaxManager(object):
 
         instance_settings = rcq._load_instance_settings(self._redcap)
         yaml_dir = instance_settings['main_processorlib']
-
-        # Store the start time for all projects
-        self.set_last_build_start_multiple(projects)
-
         with get_interface(host=self.xnat_host) as xnat:
-            for project in projects:
+            builder = rcq.TaskBuilder(self._rcq, xnat, yaml_dir)
+            build_projects = builder.build_projects()
+            complete_projects = []
+
+            # Store the start time for all projects
+            self.set_last_build_start_multiple(build_projects)
+
+            for project in build_projects:
                 LOGGER.info(f'rcq build:{project}')
                 try:
-                    rcq.TaskBuilder(self._rcq, xnat, yaml_dir).update(project)
+                    builder.update(project)
+                    complete_projects.append(project)
                 except Exception as err:
                     err = f'rcq build:{project}:err={traceback.format_exc()}'
                     LOGGER.error(err)
                     build_errors.append(err)
 
+            # Save the complete time for all projects
+            self.set_last_build_complete_multiple(complete_projects)
+
         LOGGER.debug(f'deleting lock file:{lock_file}')
         lockfiles.unlock_flagfile(lock_file)
-
-        # Save the complete time for all projects
-        self.set_last_build_complete_multiple(projects)
 
         return build_errors
 
