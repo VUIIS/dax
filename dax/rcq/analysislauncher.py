@@ -405,7 +405,7 @@ class AnalysisLauncher(object):
 
             input_scans = [x for x in scans if x['SCANTYPE'] in scan_types]
 
-            if len(input_scans) > 0 and scan_spec.get('keep_multis', '') != 'all':
+            if len(input_scans) > 0 and scan_spec.get('keep_multis', 'all') != 'all':
                 # Sort by id
                 input_scans = sorted(input_scans, key=lambda x: x['SCANID'])
                 num_scans = len(input_scans)
