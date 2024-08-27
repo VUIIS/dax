@@ -6,6 +6,7 @@ import re
 import fnmatch
 import tempfile
 
+
 from dax.task import NeedInputsException, NoDataException
 from dax.task import JOB_PENDING, JOB_RUNNING
 from dax.task import NEED_INPUTS, NEED_TO_RUN, NO_DATA
@@ -146,7 +147,6 @@ class TaskBuilder(object):
                     processor, sess, info, custom=custom)
 
     def projects_with_processing(self):
-        protocols = []
         def_field = self._projects_rc.def_field
 
         rec = self._projects_rc.export_records(
@@ -158,7 +158,7 @@ class TaskBuilder(object):
         # Only enabled processing
         rec = [x for x in rec if str(x['processing_complete']) == '2']
 
-        projects = [x[def_field] for x in rec]
+        projects = list(set([x[def_field] for x in rec]))
 
         return projects
 
