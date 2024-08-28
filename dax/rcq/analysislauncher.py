@@ -622,7 +622,7 @@ class AnalysisLauncher(object):
 
         return inputs
 
-    def _input(self, fpath, ftype, fdest=None, ddest=''):
+    def _input(self, fpath, ftype, fdest='', ddest=''):
         data = {
             'fpath': fpath,
             'ftype': ftype,
@@ -630,6 +630,8 @@ class AnalysisLauncher(object):
 
         if fdest:
             data['fdest'] = fdest
+        else:
+            data['fdest'] = ''
 
         if ddest:
             data['ddest'] = ddest
