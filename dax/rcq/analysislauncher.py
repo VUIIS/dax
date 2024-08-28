@@ -11,7 +11,7 @@ import requests
 from ..cluster import PBS, count_jobs
 from ..lockfiles import lock_flagfile, unlock_flagfile
 from .projectinfo import load_project_info
-from ..utilities import get_this_instance
+from ..utilities import get_this_instance, parse_list
 
 
 # Handle analysis jobs that only need to be launched/updated, but not uploaded.
@@ -359,7 +359,7 @@ class AnalysisLauncher(object):
         projects = [analysis['project']]
 
         if analysis['analysis_otherprojects']:
-            projects.extend(analysis['analysis_otherprojects'].split(','))
+            projects.extend(parse_list(analysis['analysis_otherprojects']))
 
         for project in projects:
             info = self.get_info(project=project)
@@ -399,7 +399,7 @@ class AnalysisLauncher(object):
                     'fdest': scan_spec['nifti']
                 })
 
-            scan_types = scan_spec['types'].split(',')
+            scan_types = parse_list(scan_spec['types'])
 
             logger.debug(f'scan_types={scan_types}')
 
@@ -463,7 +463,7 @@ class AnalysisLauncher(object):
                             ddest,
                         ))
                     elif 'fmatch' in res_spec:
-                        for fmatch in res_spec['fmatch'].split(','):
+                        for fmatch in parse_list(res_spec['fmatch']):
                             fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/scans/{scan["SCANID"]}/resources/{res}/files/{fmatch}'
                             inputs.append(self._input(
                                 fpath,
@@ -492,7 +492,7 @@ class AnalysisLauncher(object):
         for assr_spec in spec.get('assessors', []):
             logger.debug(f'assr_spec={assr_spec}')
 
-            assr_types = assr_spec['types'].split(',')
+            assr_types = parse_list(assr_spec['types'])
 
             logger.debug(f'assr_types={assr_types}')
 
@@ -513,7 +513,7 @@ class AnalysisLauncher(object):
                         continue
 
                     if 'fmatch' in res_spec:
-                        for fmatch in res_spec['fmatch'].split(','):
+                        for fmatch in parse_list(res_spec['fmatch']):
                             fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/assessors/{assrlabel}/out/resources/{res}/files/{fmatch}'
                             inputs.append(self._input(
                                 fpath,
@@ -545,7 +545,7 @@ class AnalysisLauncher(object):
 
                 for assr_spec in sgp_spec:
                     logger.debug(f'assr_spec={assr_spec}')
-                    assr_types = assr_spec['types'].split(',')
+                    assr_types = parse_list(assr_spec['types'])
                     logger.debug(f'assr_types={assr_types}')
 
                     if assr['PROCTYPE'] not in assr_types:
@@ -569,7 +569,7 @@ class AnalysisLauncher(object):
 
                         if 'fmatch' in res_spec:
                             # Add each file
-                            for fmatch in res_spec['fmatch'].split(','):
+                            for fmatch in parse_list(res_spec['fmatch']):
                                 fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assrlabel}/resources/{res}/files/{fmatch}'
                                 inputs.append(self._input(
                                     fpath,
@@ -603,7 +603,7 @@ class AnalysisLauncher(object):
                 sessions = [first['SESSION']]
             elif 'types' in sess_spec:
                 # Find sessions matching types
-                sess_types = sess_spec['types'].split(',')
+                sess_types = parse_list(sess_spec['types'])
                 sessions = [x['SESSION'] for x in info['scans'] if x['SUBJECT'] == subject and x['SESSTYPE'] in sess_types]
                 sessions = list(set(sessions))
             else:
