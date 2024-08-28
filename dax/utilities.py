@@ -13,6 +13,13 @@ import socket
 from .errors import DaxError
 
 
+def parse_list(csv_string):
+    """
+    Split string on commas including any leading/trailing spaces with split
+    """
+    return re.split(r'\s*,\s*', csv_string)
+
+
 def decode_url_json_string(json_string):
     """
     Load a string representing serialised json into
