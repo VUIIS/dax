@@ -902,7 +902,7 @@ class DaxManager(object):
         yaml_dir = instance_settings['main_processorlib']
         with get_interface(host=self.xnat_host) as xnat:
             builder = rcq.TaskBuilder(self._rcq, xnat, yaml_dir)
-            build_projects = builder.build_projects()
+            build_projects = [x for x in builder.build_projects() if x in projects]
             complete_projects = []
 
             # Store the start time for all projects
