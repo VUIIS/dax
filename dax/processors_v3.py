@@ -2349,14 +2349,21 @@ class SgpProcessor(Processor_v3):
         this processor
         """
 
-        artefacts_by_input = self._map_inputs(
-            subject, project_data)
+        artefacts_by_input = self._map_inputs(subject, project_data)
+        LOGGER.debug(f'artefacts_by_input={artefacts_by_input}')
 
-        parameter_matrix = self._generate_parameter_matrix_pd(artefacts_by_input)
+        param_sets = self._generate_parameter_matrix_pd(artefacts_by_input)
+        LOGGER.debug(f'parameter_matrix={param_sets}')
 
-        # TODO: filter down the combinations by applying any filters
+        # Filter down the combinations by applying any filters
+        artefact_inputs = {}
+        for i, a in enumerate(project_data['assessors']):
+            artefact_inputs[a['full_path']] = a['INPUTS']
 
-        return parameter_matrix
+        param_sets = self._filter_matrix_pd(param_sets, artefact_inputs)
+        LOGGER.debug(f'filtered={param_sets}')
+
+        return param_sets
 
     def find_inputs(self, assr, inputs, project_data):
         """
