@@ -904,7 +904,7 @@ class DaxManager(object):
         return run_errors
 
     def rcq_update(self):
-        self.rcq.update(
+        rcq.update(
             self._rcq,
             self._redcap,
             build_enabled=False, 
