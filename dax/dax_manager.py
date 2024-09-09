@@ -5,6 +5,7 @@ import copy
 import logging
 import traceback
 import random
+import time
 
 import yaml
 import redcap
@@ -823,6 +824,49 @@ class DaxManager(object):
                     build_errors = self.run_rcq_build(_projects)
                     run_errors.extend(build_errors)
 
+            # While builds and uploads are running, wait, run
+            # another rcq update and repeat for max iterations.
+            # Also, each iteration, get updates for build/upload threads.
+            rcq_count = 0
+            max_count = 3333
+            timeout = 1
+            while rcq_count < max_count:
+                time.sleep(180)
+                LOGGER.info(f'rcq update:{rcq_count}')
+                self.rcq_update()
+                rcq_count += 1
+
+                # Check results
+                build_done = all([x.ready() for x in build_results])
+                upload_done = all([x.ready() for x in upload_results])
+                if build_done and upload_done:
+                    LOGGER.info('all builds and uploads done')
+                    break
+
+                # Show current results
+                LOGGER.info('build threads:')
+                for i, r in enumerate(build_results):
+                    LOGGER.info(f'{i}:{r.ready()}')
+                    try:
+                        LOGGER.info(f'{i}:result={r.get(timeout=timeout)}')
+                    except:
+                        LOGGER.info(f'{i}:{timeout}')
+
+                for p in build_pool._pool:
+                    LOGGER.info(f'pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
+
+                LOGGER.info('upload threads:')
+                for i, r in enumerate(upload_results):
+                    LOGGER.info(f'{i}:{r.ready()}')
+                    try:
+                        LOGGER.info(f'{i}:result={r.get(timeout=timeout)}')
+                    except:
+                        LOGGER.info(f'{i}:timeout:{timeout}')
+
+                for p in upload_pool._pool:
+                    LOGGER.info(f'pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
+
+
             if self.is_enabled_build() and num_build_threads > 0:
                 # Wait for builds to finish
                 LOGGER.info('waiting for builds to finish')
@@ -858,6 +902,14 @@ class DaxManager(object):
                 upload_pool.join()
 
         return run_errors
+
+    def rcq_update(self):
+        self.rcq.update(
+            self._rcq,
+            self._redcap,
+            build_enabled=False, 
+            launch_enabled=self.is_enabled_launch(),
+            projects=self.settings_manager.project_names())
 
     def run_build(self, project, settings_file, log_file, lastrun):
         build_error = None
