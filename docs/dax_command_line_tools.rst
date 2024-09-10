@@ -86,7 +86,6 @@ Xnatsetup is as you can guess a command tool to set up your computer. It will in
 	# Operating system : Linux & Mac OS                                                                
 	# Shell : bash                                                                                     
 	# Requirements : python with pip & git                                                                             
-	# Contact : benjamin.c.yvernault@vanderbilt.edu                                                    
 	#     No Arguments given                                                                           
 	#     See the help bellow or Use "Xnatquery" -h                                                    
 	#######################################################
@@ -127,7 +126,6 @@ Xnatsetup is as you can guess a command tool to set up your computer. It will in
 	 --tutorial            Give you the step for the specific setup you are
 	                       asking.
 
-Contact - benjamin.c.yvernault@vanderbilt.edu
 
 ---------
 XnatQuery
@@ -203,7 +201,6 @@ Xnatquery will show you the tree on xnat. Xnatquery is a tool to query objects o
 
 	Xnatquery -p projectID -s subject 
 
-Contact - benjamin.c.yvernault@vanderbilt.edu
 
 ---------
 XnatCheck
@@ -302,7 +299,6 @@ Xnatcheck is a quick way to check directly on your terminal if there is the reso
 
 	Xnatcheck -p BLSA -a fMRIQA -r PDF 
 
-Contact - benjamin.c.yvernault@vanderbilt.edu
 
 ------------
 XnatDownload
@@ -316,7 +312,6 @@ Xnatdownload will download all the resources that you asked for in a directory. 
 	#                                                XNATDOWNLOAD                                      
 	#                                                                                                  
 	# Developed by the masiLab Vanderbilt University, TN, USA.                                         
-	# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             
 	# Parameters :                                                                                     
 	#     No Arguments given                                                                           
 	#     See the help bellow or Use "Xnatdownload" -h                                                 
@@ -432,7 +427,6 @@ Xnatdownload will download all the resources that you asked for in a directory. 
 
 	Xnatdownload -p BLSA -d /home/benjamin/temp/ -a fMRIQA -s fMRI -r NIFTI,PDF 
 
-Contact - benjamin.c.yvernault@vanderbilt.edu
 
 ----------
 XnatUpload
@@ -561,7 +555,6 @@ Warning: the project must already exist on XNAT. You can add a new project via t
 
 	Xnatupload -d /Path/to/directory -o -T 1 --force 
 
-Contact - benjamin.c.yvernault@vanderbilt.edu
 
 ----------
 XnatReport
@@ -632,7 +625,6 @@ Xnatreport will give you a report on one ore more projects. It will show all the
 
 	Xnatreport -p BLSA,CTONS --csv 
 
-Contact - benjamin.c.yvernault@vanderbilt.edu
 
 -----------------------
 XnatSwitchProcessStatus
@@ -731,7 +723,6 @@ XnatSwitchProcessStatus is one of the most powerful and used of the Xnat_tools. 
 
 	XnatSwitchProcessStatus --select BLSA-x-BLSA_0000-x-BLSA_0000_00-x-FreeSurfer -s NeedToRun -d 
 
-Contact - benjamin.c.yvernault@vanderbilt.edu
 
 -----------------
 XnatProcessUpload
@@ -751,7 +742,6 @@ Xnatprocessupload allows you to upload data for an assessor (you can't do it tha
 	#                    XNATPROCESSUPLOAD                                         
 	#                                                                                                  
 	# Developed by the masiLab Vanderbilt University, TN, USA.                                         
-	# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             
 	# Parameters :                                                                                     
 	#     No Arguments given                                                                           
 	#     Use "Xnatprocessupload -h" to see the options                                                
@@ -765,7 +755,6 @@ Xnatprocessupload allows you to upload data for an assessor (you can't do it tha
 	                       Directory containing the different assessors folders that you want to upload.
 	 --force               Force the upload.
 
-Contact - benjamin.c.yvernault@vanderbilt.edu
 
 -----------------
 XnatSubjectUpdate
@@ -779,7 +768,6 @@ Xnatsubjectupdate changes the last update date on XNAT to nothing. It will make 
 	#                   XNATSUBJECTUPDATE                                     
 	#                                                                                                  
 	# Developed by the masiLab Vanderbilt University, TN, USA.                                         
-	# If issues, email benjamin.c.yvernault@vanderbilt.edu                                             
 	# Parameters :                                                                                     
 	#     No Arguments given                                                                           
 	#     See the help bellow or Use "Xnatsubjectupdate" -h                                            
@@ -794,7 +782,6 @@ Xnatsubjectupdate changes the last update date on XNAT to nothing. It will make 
 	 -s SUBJECT_LABELS, --subject=SUBJECT_LABELS
 	                       Subject label on Xnat or list of them.
 
-Contact - benjamin.c.yvernault@vanderbilt.edu
 
 ------------
 RedCapReport
@@ -870,7 +857,6 @@ Redcapreport is a powertool to extract data from REDCap. It will download the da
 	  -L, --printlib        Print all libraries names for the project.
 	  --all                 Extract values for all records.
 
-Contact - benjamin.c.yvernault@vanderbilt.edu
 
 --------------
 XnatCheckLogin
