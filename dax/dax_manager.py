@@ -824,48 +824,41 @@ class DaxManager(object):
                     build_errors = self.run_rcq_build(_projects)
                     run_errors.extend(build_errors)
 
-            # While builds and uploads are running, wait, run
-            # another rcq update and repeat for max iterations.
-            # Also, each iteration, get updates for build/upload threads.
-            rcq_count = 0
-            max_count = 3333
-            timeout = 1
-            while rcq_count < max_count:
-                time.sleep(180)
-                LOGGER.info(f'rcq update:{rcq_count}')
-                self.rcq_update()
-                rcq_count += 1
+                # While diskq builds and uploads are running, check and display
+                # results from threads. Also, run rcq update each iteration.
+                rcq_count = 0
+                timeout = 1
+                while rcq_count < 3333:
+                    time.sleep(180)
+                    LOGGER.info(f'rcq update:{rcq_count}')
+                    self.rcq_update()
+                    rcq_count += 1
 
-                # Check results
-                build_done = all([x.ready() for x in build_results])
-                upload_done = all([x.ready() for x in upload_results])
-                if build_done and upload_done:
-                    LOGGER.info('all builds and uploads done')
-                    break
+                    # Show current results
+                    if num_build_threads > 0 and not all([x.ready() for x in build_results])
+                        LOGGER.info(f'builds:resultsize={len(build_results)}:poolsize={len(build_pool._pool)}')
+                        for i, r in enumerate(build_results):
+                            try:
+                                LOGGER.info(f'{i}:ready={r.ready()}:result={r.get(timeout=1)}')
+                            except:
+                                pass
 
-                # Show current results
-                LOGGER.info('build threads:')
-                for i, r in enumerate(build_results):
-                    LOGGER.info(f'{i}:{r.ready()}')
-                    try:
-                        LOGGER.info(f'{i}:result={r.get(timeout=timeout)}')
-                    except:
-                        LOGGER.info(f'{i}:{timeout}')
+                        for i, p in enumerate(build_pool._pool):
+                            LOGGER.info(f'{i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
 
-                for p in build_pool._pool:
-                    LOGGER.info(f'pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
+                    if num_upload_threads > 0 and not all([x.ready() for x in upload_results])
+                        LOGGER.info(f'uploads:{len(upload_results)}:{len(upload_pool._poll)}')
+                        for i, r in enumerate(upload_results):
+                            try:
+                                LOGGER.info(f'{i}:ready={r.ready()}:result={r.get(timeout=timeout)}')
+                            except:
+                                pass
 
-                LOGGER.info('upload threads:')
-                for i, r in enumerate(upload_results):
-                    LOGGER.info(f'{i}:{r.ready()}')
-                    try:
-                        LOGGER.info(f'{i}:result={r.get(timeout=timeout)}')
-                    except:
-                        LOGGER.info(f'{i}:timeout:{timeout}')
-
-                for p in upload_pool._pool:
-                    LOGGER.info(f'pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
-
+                        for i, p in enumerate(upload_pool._pool):
+                            LOGGER.info(f'{i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
+                    else:
+                        LOGGER.info('all builds and uploads done')
+                        break
 
             if self.is_enabled_build() and num_build_threads > 0:
                 # Wait for builds to finish
