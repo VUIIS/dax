@@ -835,7 +835,7 @@ class DaxManager(object):
                     rcq_count += 1
 
                     # Show current results
-                    if num_build_threads > 0 and not all([x.ready() for x in build_results])
+                    if num_build_threads > 0 and not all([x.ready() for x in build_results]):
                         LOGGER.info(f'builds:resultsize={len(build_results)}:poolsize={len(build_pool._pool)}')
                         for i, r in enumerate(build_results):
                             try:
@@ -846,7 +846,7 @@ class DaxManager(object):
                         for i, p in enumerate(build_pool._pool):
                             LOGGER.info(f'{i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
 
-                    if num_upload_threads > 0 and not all([x.ready() for x in upload_results])
+                    if num_upload_threads > 0 and not all([x.ready() for x in upload_results]):
                         LOGGER.info(f'uploads:{len(upload_results)}:{len(upload_pool._poll)}')
                         for i, r in enumerate(upload_results):
                             try:
