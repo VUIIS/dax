@@ -847,7 +847,7 @@ class DaxManager(object):
                             LOGGER.info(f'{i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
 
                     if num_upload_threads > 0 and not all([x.ready() for x in upload_results]):
-                        LOGGER.info(f'uploads:{len(upload_results)}:{len(upload_pool._poll)}')
+                        LOGGER.info(f'uploads:{len(upload_results)}:{len(upload_pool._pool)}')
                         for i, r in enumerate(upload_results):
                             try:
                                 LOGGER.info(f'{i}:ready={r.ready()}:result={r.get(timeout=timeout)}')

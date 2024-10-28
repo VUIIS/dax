@@ -84,7 +84,7 @@ class TaskLauncher(object):
 
                         # Add to redcap updates
                         updates.append(task_updates)
-                elif status in ['COMPLETED', 'FAILED', 'CANCELLED']:
+                elif status in ['COMPLETED', 'FAILED', 'CANCELLED', 'NODE_FAIL']:
                     # finish completed job by moving to upload
                     logger.debug('setting to upload')
 
