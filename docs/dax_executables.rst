@@ -87,6 +87,6 @@ Each job on the cluster will not upload data directly to XNAT but copies the dat
 DAX Manager
 ~~~~~~~~~~~
 
-dax manager allows users to manage multiple projects from REDCap (https://redcap.vanderbilt.edu). It will automatically generate a ProjectSettings.yaml file from the REDCap database and will run dax build/update/launch/upload from those files.
+dax manager allows users to manage multiple projects from REDCap (https://redcap.vumc.org). It will automatically generate a ProjectSettings.yaml file from the REDCap database and will run dax build/update/launch/upload from those files.
 
 On the REDCap project, each record corresponds to a project. Each library is a module or a processor that can be enabled and customized by the user.

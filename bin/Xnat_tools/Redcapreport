@@ -48,7 +48,7 @@ PID-x-109387-x-109387_1-x-FS
 -k KEY -x fields.txt
 '''
 
-DEFAULT_API_URL = 'https://redcap.vanderbilt.edu/api/'
+DEFAULT_API_URL = 'https://redcap.vumc.org/api/'
 
 
 def print_lib(redcap_proj):

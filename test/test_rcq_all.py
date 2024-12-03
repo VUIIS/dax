@@ -15,7 +15,7 @@ if __name__ == "__main__":
         level=logging.DEBUG,
         datefmt='%Y-%m-%d %H:%M:%S')
 
-    api_url = 'https://redcap.vanderbilt.edu/api/'
+    api_url = 'https://redcap.vumc.org/api/'
     rc = redcap.Project(api_url, os.environ['API_KEY_DAX_RCQ'])
     instances = redcap.Project(api_url, os.environ['API_KEY_DAX_INSTANCES'])
 
