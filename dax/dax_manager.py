@@ -602,8 +602,6 @@ class DaxManager(object):
         # handle when redcap is down
 
         # Load settings for this instance
-        print(api_url)
-        print(api_key_instances)
         instance_settings = self.load_instance_settings(
             api_url, api_key_instances)
 
