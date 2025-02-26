@@ -537,11 +537,11 @@ class DaxProjectSettingsManager(object):
             response = self._redcap.import_records([rec])
             assert 'count' in response
         except Exception as e:
-            err = 'redcap import failed'
+            err = 'redcap import failed 540'
             LOGGER.info(err)
             LOGGER.info(e)
         except AssertionError as e:
-            err = 'redcap import failed'
+            err = 'redcap import failed 544'
             LOGGER.info(e)
             raise DaxManagerError(err)
         except Exception as e:
@@ -570,7 +570,7 @@ class DaxProjectSettingsManager(object):
             response = self._redcap.import_records([rec])
             assert 'count' in response
         except AssertionError:
-            err = 'redcap import failed'
+            err = 'redcap import failed 573'
             raise DaxManagerError(err)
         except Exception:
             err = 'connection to REDCap interrupted'
