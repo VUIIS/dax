@@ -492,6 +492,7 @@ class DaxProjectSettingsManager(object):
         print(enabled_projects)
         for curf in self.list_settings_files():
             curp = project_from_settings(curf)
+            print(curp)
             if curp not in enabled_projects:
                 LOGGER.info('deleting disabled project:{}'.format(curf))
                 os.remove(curf)
