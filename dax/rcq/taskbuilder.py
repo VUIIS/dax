@@ -230,8 +230,11 @@ class TaskBuilder(object):
             logger.error(f'downloading file:{err}')
             return None
 
-        # Save contents to local file
-        filename = os.path.join(outdir, hdr['name'])
+        # Save contents to local file, prepend a subdir so we don't 
+        # clobber multiple files of same name
+        _dir = os.path.join(outdir, f'{project}_{repeat_id}')
+        os.mkdir(_dir)
+        filename = os.path.join(_dir, hdr['name'])
         try:
             with open(filename, 'wb') as f:
                 f.write(cont)

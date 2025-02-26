@@ -154,8 +154,13 @@ class DaxProjectSettingsManager(object):
         self.metadata = self._redcap.metadata
 
     def _load_records(self):
-        # Build the list of _complete fields from lists of modules/procesors
+        # Build the list of _complete fields from lists of modules/processors
         field_list = self._redcap.field_names + ['general_complete']
+
+        # Ignore task, analysis, processors forms
+        field_list = [x for x in field_list if not x.startswith('task_')]
+        field_list = [x for x in field_list if not x.startswith('analysis_')]
+        field_list = [x for x in field_list if not x.startswith('processor')]
 
         p = DaxProjectSettingsManager.PROC_PREFIX
         s = '_complete'
@@ -165,6 +170,7 @@ class DaxProjectSettingsManager(object):
         s = '_complete'
         field_list += [p + f + s for f in self.module_names]
 
+        LOGGER.info(f'querying redcap, fields:{field_list}')
         self.records = self._redcap.export_records(
             fields=field_list, raw_or_label='label')
 
@@ -850,7 +856,7 @@ class DaxManager(object):
                             LOGGER.info(f'{i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
 
                     if num_upload_threads > 0 and not all([x.ready() for x in upload_results]):
-                        LOGGER.info(f'uploads:{len(upload_results)}:{len(upload_pool._poll)}')
+                        LOGGER.info(f'uploads:{len(upload_results)}:{len(upload_pool._pool)}')
                         for i, r in enumerate(upload_results):
                             try:
                                 LOGGER.info(f'{i}:ready={r.ready()}:result={r.get(timeout=timeout)}')
