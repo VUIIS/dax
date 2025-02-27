@@ -314,7 +314,7 @@ def generate_snapshots(assessor_path):
         # Make the snapshot_thumbnail
         LOGGER.debug('    +creating preview of SNAPSHOTS')
         cmd = CONVERT_CMD.format(
-            original=snapshot_original, preview=snapshot_preview)
+            original=pdf_path, preview=snapshot_preview)
         LOGGER.debug(cmd)
         os.system(cmd)
 
