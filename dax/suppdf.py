@@ -7,7 +7,7 @@ import logging
 
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
-from PyPDF2 import PdfFileWriter, PdfFileReader, PdfFileMerger
+from PyPDF2 import PdfReader, PdfWriter
 
 from .XnatUtils import get_assessor_inputs
 from .utilities import read_yaml
@@ -169,24 +169,24 @@ def make_suppdf(outfile, info, infile=None, overlay=True):
         LOGGER.error('error making PDF:{}:{}'.format(lastfile, err))
 
     # Append last page(s)
-    merger = PdfFileMerger()
+    merger = PdfWriter()
 
     # Start with the input pdf if we have one
     if infile:
-        merger.append(PdfFileReader(infile))
+        merger.append(infile)
 
     # Append out last page(s)
-    merger.append(PdfFileReader(lastfile))
+    merger.append(lastfile)
 
     # Write the merged PDF file
     merger.write(mergedfile)
 
     # Load the merged PDF
-    newpdf = PdfFileReader(open(mergedfile, "rb"))
+    newpdf = PdfReader(open(mergedfile, "rb"))
     pagecount = newpdf.getNumPages()
 
     # Initialize the new pdf
-    output = PdfFileWriter()
+    output = PdfWriter()
 
     # Iterate pages in existing PDF to add overlays
     for i in range(newpdf.getNumPages()):
@@ -198,7 +198,7 @@ def make_suppdf(outfile, info, infile=None, overlay=True):
             ('error making PDF', err)
 
         # Load the overlay PDF we just made
-        overpdf = PdfFileReader(overfile)
+        overpdf = PdfReader(overfile)
 
         # Merge the two
         page = newpdf.getPage(i)
