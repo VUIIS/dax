@@ -183,13 +183,13 @@ def make_suppdf(outfile, info, infile=None, overlay=True):
 
     # Load the merged PDF
     newpdf = PdfReader(open(mergedfile, "rb"))
-    pagecount = newpdf.getNumPages()
+    pagecount = len(newpdf.pages)
 
     # Initialize the new pdf
     output = PdfWriter()
 
     # Iterate pages in existing PDF to add overlays
-    for i in range(newpdf.getNumPages()):
+    for i in range(pagecount):
         pagenum = i + 1
         overfile = os.path.join(tempdir, '{}.pdf'.format(pagenum))
         try:
@@ -201,11 +201,11 @@ def make_suppdf(outfile, info, infile=None, overlay=True):
         overpdf = PdfReader(overfile)
 
         # Merge the two
-        page = newpdf.getPage(i)
-        page.mergePage(overpdf.getPage(0))
+        page = newpdf.get_page(i)
+        page.merge_page(overpdf.get_page(0))
 
         # Append merged page to output
-        output.addPage(page)
+        output.add_page(page)
 
     # Write to file
     with open(outfile, "wb") as f:
