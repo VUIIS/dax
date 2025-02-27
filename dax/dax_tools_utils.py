@@ -61,7 +61,8 @@ DEFAULT_HEADER = ['host', 'username', 'password', 'projects']
 
 # Cmd:
 GS_CMD = """gs -q -o {original} -sDEVICE=pngalpha -dLastPage=1 {pdf_path}"""
-CONVERT_CMD = """convert {original} -resize x200 {preview}"""
+#CONVERT_CMD = """convert {original} -resize x200 {preview}"""
+CONVERT_CMD = """gs -q -o {original} -sDEVICE=pngalpha -dLastPage=1 -dDEVICEHEIGHTPOINTS=200 -dDEVICEWIDTHPOINTS=200 -dFitPage {pdf_path}"""
 GS_CMD2 = """gs -q -o {original} -sDEVICE=pngalpha {pdf_path}"""
 
 # WARNING content for emails
