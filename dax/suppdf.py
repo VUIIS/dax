@@ -201,8 +201,8 @@ def make_suppdf(outfile, info, infile=None, overlay=True):
         overpdf = PdfReader(overfile)
 
         # Merge the two
-        page = newpdf.get_page(i)
-        page.merge_page(overpdf.get_page(0))
+        page = newpdf.pages[i]
+        page.merge_page(overpdf.pages[0])
 
         # Append merged page to output
         output.add_page(page)
