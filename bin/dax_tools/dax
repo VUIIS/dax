@@ -228,8 +228,8 @@ if __name__ == '__main__':
         manager = dax_manager.DaxManager(API_URL, API_KEY_I, API_KEY_P, api_key_rcq=API_KEY_Q)
 
         # DEBUGGING
-        print('ENABLE DEBUG!')
-        enable_stdout()
+        #print('ENABLE DEBUG!')
+        #enable_stdout()
 
 
         if manager.is_enabled_instance():

@@ -29,8 +29,8 @@ from .XnatUtils import get_interface
 
 DAX_SETTINGS = DAX_Settings()
 
-#LOGGER = log.setup_info_logger('manager', None)
-LOGGER = log.setup_debug_logger('manager', None)
+LOGGER = log.setup_info_logger('manager', None)
+#LOGGER = log.setup_debug_logger('manager', None)
 
 def project_from_settings(settings_file):
     proj = settings_file.rsplit('settings-', 1)[1].split('.yaml')[0]
