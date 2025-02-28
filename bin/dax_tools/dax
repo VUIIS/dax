@@ -227,6 +227,10 @@ if __name__ == '__main__':
         # Make and run our dax manager
         manager = dax_manager.DaxManager(API_URL, API_KEY_I, API_KEY_P, api_key_rcq=API_KEY_Q)
 
+        # DEBUGGING
+        logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+
+
         if manager.is_enabled_instance():
             # Delete any left over lock files
             manager.clean_lockfiles()
