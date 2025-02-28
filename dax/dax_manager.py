@@ -823,7 +823,7 @@ class DaxManager(object):
                 LOGGER.info(f'rcq update:{_projects}')
                 rcq.update(
                     self._rcq,
-                    rcq._load_instance_settings(),
+                    self.settings_manager._instance_settings,
                     build_enabled=False, 
                     launch_enabled=self.is_enabled_launch(),
                     projects=_projects)
