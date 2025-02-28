@@ -627,7 +627,12 @@ class DaxManager(object):
             self.settings_dir)
 
         if api_key_rcq:
-            self._rcq = redcap.Project(api_url, api_key_rcq)
+            if api_key_rcq == api_key_projects:
+                # Keys are the same, use the same session
+                self._rcq = self.settings_manager._redcap
+            else:
+                # Different keys so create a new session
+                self._rcq = redcap.Project(api_url, api_key_rcq)
         else:
             self._rcq = None
 
