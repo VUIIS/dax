@@ -229,7 +229,7 @@ if __name__ == '__main__':
 
         # DEBUGGING
         print('ENABLE DEBUG!')
-        logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+        enable_stdout()
 
 
         if manager.is_enabled_instance():
