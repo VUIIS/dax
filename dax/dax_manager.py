@@ -31,6 +31,7 @@ DAX_SETTINGS = DAX_Settings()
 
 LOGGER = log.setup_info_logger('manager', None)
 
+
 def project_from_settings(settings_file):
     proj = settings_file.rsplit('settings-', 1)[1].split('.yaml')[0]
     return proj
