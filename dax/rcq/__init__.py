@@ -33,19 +33,14 @@ logger = logging.getLogger('manager.rcq')
 # apply_updates()
 
 
-def update(rc, instances, build_enabled=True, launch_enabled=True, projects=None):
+def update(rc, instance_settings, build_enabled=True, launch_enabled=True, projects=None):
     logger.info('connecting to redcap')
     def_field = rc.def_field
 
     if projects is None:
         projects = [x[def_field] for x in rc.export_records(fields=[def_field])]
 
-    instance_settings = _load_instance_settings(instances)
-    if not instance_settings:
-        logger.debug('no settings found for this instance')
-        return
-
-    logger.debug(f'instance_settings={instance_settings}')
+    logger.info(f'instance_settings={instance_settings}')
 
     yamldir = instance_settings['main_processorlib']
     logger.debug(f'yamldir={yamldir}')

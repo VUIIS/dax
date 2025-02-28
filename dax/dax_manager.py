@@ -534,9 +534,7 @@ class DaxProjectSettingsManager(object):
             response = self._redcap.import_records([rec])
             assert 'count' in response
         except Exception as e:
-            err = 'redcap import failed'
-            LOGGER.info(err)
-            LOGGER.info(e)
+            LOGGER.info(f'REDCap import failed:{e}')
         except AssertionError as e:
             err = 'redcap import failed'
             LOGGER.info(e)
@@ -825,7 +823,7 @@ class DaxManager(object):
                 LOGGER.info(f'rcq update:{_projects}')
                 rcq.update(
                     self._rcq,
-                    self._redcap,
+                    rcq.load_instance_settings(),
                     build_enabled=False, 
                     launch_enabled=self.is_enabled_launch(),
                     projects=_projects)
@@ -910,7 +908,7 @@ class DaxManager(object):
     def rcq_update(self):
         rcq.update(
             self._rcq,
-            self._redcap,
+            self.settings_manager._instance_settings,
             build_enabled=False, 
             launch_enabled=self.is_enabled_launch(),
             projects=self.settings_manager.project_names())
@@ -954,7 +952,7 @@ class DaxManager(object):
             LOGGER.warn(f'failed to get lock, cannot build rcq:{lock_file}')
             return []
 
-        instance_settings = rcq._load_instance_settings(self._redcap)
+        instance_settings = self.settings_manager._instance_settings
         yaml_dir = instance_settings['main_processorlib']
         with get_interface(host=self.xnat_host) as xnat:
             builder = rcq.TaskBuilder(self._rcq, xnat, yaml_dir)
