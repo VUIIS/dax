@@ -40,7 +40,7 @@ def update(rc, instance_settings, build_enabled=True, launch_enabled=True, proje
     if projects is None:
         projects = [x[def_field] for x in rc.export_records(fields=[def_field])]
 
-    logger.info(f'instance_settings={instance_settings}')
+    logger.debug(f'instance_settings={instance_settings}')
 
     yamldir = instance_settings['main_processorlib']
     logger.debug(f'yamldir={yamldir}')
