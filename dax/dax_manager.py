@@ -821,12 +821,7 @@ class DaxManager(object):
             if self._rcq:
                 _projects = self.settings_manager.project_names()
                 LOGGER.info(f'rcq update:{_projects}')
-                rcq.update(
-                    self._rcq,
-                    self.settings_manager._instance_settings,
-                    build_enabled=False, 
-                    launch_enabled=self.is_enabled_launch(),
-                    projects=_projects)
+                self.rcq_update(_projects)
 
                 # Run separate rcq build so it locks between dax_managers
                 if self.is_enabled_build():
@@ -840,7 +835,7 @@ class DaxManager(object):
                 while rcq_count < 3333:
                     time.sleep(180)
                     LOGGER.info(f'rcq update:{rcq_count}')
-                    self.rcq_update()
+                    self.rcq_update(_projects)
                     rcq_count += 1
 
                     # Show current results
@@ -905,7 +900,11 @@ class DaxManager(object):
 
         return run_errors
 
-    def rcq_update(self):
+    def rcq_update(self, projects):
+        if projects is None or len(projects) < 1:
+            LOGGER.debug(f'no rcq projects to update for this instance')
+            return
+
         rcq.update(
             self._rcq,
             self.settings_manager._instance_settings,
@@ -945,6 +944,10 @@ class DaxManager(object):
     def run_rcq_build(self, projects):
         build_errors = []
         lock_file = f'{self.lock_dir}/RCQ_BUILD.pid'
+
+        if projects is None or len(projects) < 1:
+            LOGGER.debug(f'no rcq projects to build for this instance')
+            return
 
         success = lockfiles.lock_flagfile(lock_file)
 
