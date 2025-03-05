@@ -13,6 +13,8 @@ Table of Contents
 Setup
 -----
 
+Grab the latest version of the appropriate install here: https://repo.anaconda.com/miniconda/
+
 To install miniconda3 go to https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html . Follow the procedure described on the miniconda site to install for your OS. It is very important that you follow the directions closely and not forget to source conda. The main idea is to download the Python 3.7 or newer bash file and open the terminal (using 3.8 and MacOS as an example here). Run the following where the file was downloaded:
 
 ::
