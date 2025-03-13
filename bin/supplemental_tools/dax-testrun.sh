@@ -59,9 +59,10 @@ cp "${procyaml}" "${wkdir}/${yamlfile}"
 cat << EOF > "${setfile}"
 ---
 processorlib: ${wkdir}
-modulelib: /data/mcr/centos7/dax_modules
+modulelib: /data/mcr/rocky9/dax_modules
+# singularity not moved to rocky9 yet
 singularity_imagedir: /data/mcr/centos7/singularity
-jobtemplate: /data/mcr/centos7/dax_templates/job_template_v3.txt
+jobtemplate: /data/mcr/rocky9/dax_templates/job_template_v3.txt
 resdir: ${resdir}
 attrs:
   job_rungroup: h_vuiis
