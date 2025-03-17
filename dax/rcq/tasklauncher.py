@@ -295,7 +295,7 @@ class TaskLauncher(object):
             email_options='FAIL',
             rungroup=job_rungroup,
             xnat_host=xnat_host,
-            job_template=job_template)
+            job_template=processor.job_template)
 
         # Save to file
         batch.write()
