@@ -315,10 +315,27 @@ class AnalysisLauncher(object):
                                 'analysis_jobstarttime': 'NULL',
                                 'analysis_jobendtime': 'NULL',
                             })
+                        else:
+                            # Update redcap with launch failed
+                            updates.append({
+                                def_field: cur[def_field],
+                                'redcap_repeat_instrument': 'analyses',
+                                'redcap_repeat_instance': cur['redcap_repeat_instance'],
+                                'analysis_status': 'LAUNCH_FAILED',
+                                })
                     except Exception as err:
                         logger.error(err)
                         import traceback
                         traceback.print_exc()
+
+                        # Update redcap with launch failed
+                        updates.append({
+                            def_field: cur[def_field],
+                            'redcap_repeat_instrument': 'analyses',
+                            'redcap_repeat_instance': cur['redcap_repeat_instance'],
+                            'analysis_status': 'LAUNCH_FAILED',
+                            'analysis_output': str(err),
+                            })
 
                 if updates:
                     # upload changes
@@ -371,6 +388,8 @@ class AnalysisLauncher(object):
 
             for subj in subjects:
                 inputlist.extend(self.get_subject_inputs(spec, info, subj))
+
+        # TODO: check for inputs on each subject?
 
         # Prepend xnat host to each input path
         for i, d in enumerate(inputlist):
@@ -653,7 +672,10 @@ class AnalysisLauncher(object):
         if analysis['analysis_procrepo']:
             # Load the yaml file contents from github
             logger.info(f'loading:{analysis["analysis_procrepo"]}')
-            p = analysis['analysis_procrepo'].replace(':', '/').split('/')
+
+            # limit split to allow multi-level subdirs
+            p = analysis['analysis_procrepo'].replace(':', '/').split('/', 3)
+
             if len(p) == 4:
                 subdir = p[3]
             elif len(p) == 3:
@@ -850,11 +872,13 @@ class AnalysisLauncher(object):
         else:
             shared = False
 
+        var2val = analysis['processor']['inputs'].get('vars', {})
+
         if command['type'] == 'singularity_run':
-            txt = self.build_singularity_cmd('run', command, shared)
+            txt = self.build_singularity_cmd('run', command, var2val, shared)
 
         elif command['type'] == 'singularity_exec':
-            txt = self.build_singularity_cmd('exec', command, shared)
+            txt = self.build_singularity_cmd('exec', command, var2val, shared)
 
         else:
             err = 'invalid command type: {}'.format(command['type'])
@@ -863,7 +887,7 @@ class AnalysisLauncher(object):
 
         return txt
 
-    def build_singularity_cmd(self, runexec, command, shared=False):
+    def build_singularity_cmd(self, runexec, command, var2val={}, shared=False):
 
         if 'container' not in command:
             err = 'singularity modes require a container to be set'
@@ -904,6 +928,9 @@ class AnalysisLauncher(object):
             # Unescape and then escape double quotes
             cargs = cargs.replace('\\"', '"').replace('"', '\\\"')
             command_txt = '{} {}'.format(command_txt, cargs)
+
+        if var2val:
+            command_txt = command_txt.format(**var2val)
 
         return command_txt
 
