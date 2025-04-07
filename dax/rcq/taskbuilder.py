@@ -265,14 +265,14 @@ class TaskBuilder(object):
             # Check for undo
             if info['PROCSTATUS'] == RERUN:
                 # Undo and set to run
+                logger.info(f'undoing task{info["ASSR"]}')
                 self._undo_task(assr)
                 info['PROCSTATUS'] = NEED_TO_RUN
 
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
-                logger.debug('building task')
+                logger.info(f'building task{info["ASSR"]}')
                 (assr, info) = self._build_task(
                     assr, info, processor, project_info, custom=custom)
-
                 logger.debug(f'{info}')
                 logger.debug(
                     'status:{}:{}'.format(info['ASSR'], info['PROCSTATUS']))
@@ -298,11 +298,12 @@ class TaskBuilder(object):
             # Check for undo
             if info['PROCSTATUS'] == RERUN:
                 # Undo and set to run
+                logger.info(f'undoing task{info["ASSR"]}')
                 self._undo_task(assr)
                 info['PROCSTATUS'] = NEED_TO_RUN
 
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
-                logger.debug('building task')
+                logger.info(f'building task{info["ASSR"]}')
                 (assr, info) = self._build_task(
                     assr, info, processor, project_info, custom=custom)
 
