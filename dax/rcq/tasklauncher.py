@@ -207,6 +207,14 @@ class TaskLauncher(object):
                                 'task_status': 'RUNNING',
                                 'task_jobid': jobid,
                             })
+                        else:
+                            updates.append({
+                                def_field: t[def_field],
+                                'redcap_repeat_instrument': 'taskqueue',
+                                'redcap_repeat_instance': t['redcap_repeat_instance'],
+                                'task_status': 'LAUNCH_FAILED',
+                            })
+                            delete_task_dirs(outdir)
 
                         time.sleep(launch_delay)
 
@@ -214,6 +222,13 @@ class TaskLauncher(object):
                         logger.error(err)
                         import traceback
                         traceback.print_exc()
+                        updates.append({
+                            def_field: t[def_field],
+                            'redcap_repeat_instrument': 'taskqueue',
+                            'redcap_repeat_instance': t['redcap_repeat_instance'],
+                            'task_status': 'LAUNCH_FAILED',
+                        })
+                        delete_task_dirs(outdir)
 
                 if updates:
                     # upload changes
@@ -401,6 +416,14 @@ def make_task_dirs(taskdir):
             os.makedirs(os.path.join(taskdir, subdir))
         except FileExistsError:
             pass
+
+
+def delete_task_dirs(taskdir):
+    """Remove task directory."""
+    try:
+        shutil.rmtree(taskdir)
+    except Exception as err:
+        logger.error(f'while deleting:{taskdir}')
 
 
 def get_updates(task):
