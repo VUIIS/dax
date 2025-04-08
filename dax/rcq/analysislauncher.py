@@ -207,6 +207,10 @@ class AnalysisLauncher(object):
 
                         # Add to redcap updates
                         updates.append(cur_updates)
+                    else:
+                        # still running, upload current log file to xnat
+                        self._upload_log(cur)
+
                 elif status in ['COMPLETED', 'FAILED', 'CANCELLED']:
                     # finish completed job after being uploaded to xnat
                     logger.debug(f'handling complete, status={status}')
@@ -349,6 +353,20 @@ class AnalysisLauncher(object):
             # Delete the lock file
             logger.debug(f'deleting lock file:{lock_file}')
             unlock_flagfile(lock_file)
+
+    def _upload_log(self, analysis):
+        label = analysis.get('analysis_output', None)
+        if not label:
+            logger.debug(f'no output label, cannot upload log')
+            return
+
+        log_file = f'{self._rcqdir}/{label}.txt'
+        if not os.path.isfile(log_file):
+            logger.debug(f'log file not found:{log_file}')
+            return
+
+        logger.debug(f'upload log file:{log_file}')
+        self._upload_file(log_file, analysis['project'], label)
 
     def _upload_file(self, filename, project, analysis_label):
         res_uri = f'/projects/{project}/resources/{analysis_label}'
