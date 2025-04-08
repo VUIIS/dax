@@ -626,7 +626,20 @@ class AnalysisLauncher(object):
         # Download the subjects sessions
         for sess_spec in spec.get('sessions', []):
 
-            if sess_spec.get('select', '') == 'first-mri':
+            if sess_spec.get('select', '') == 'first-eeg':
+                # only get the first eeg
+                subj_eeg = [x for x in info['scans'] if (x['SUBJECT'] == subject and x['MODALITY'] == 'EEG')]
+                if len(subj_eeg) < 1:
+                    logger.debug('eeg not found')
+                    return
+
+                # Sort by date and get first
+                first = sorted(subj_eeg, key=lambda x: x['DATE'])[0]
+
+                # First session only
+                sessions = [first['SESSION']]
+
+            elif sess_spec.get('select', '') == 'first-mri':
                 # only get the first mri
                 subj_mris = [x for x in info['scans'] if (x['SUBJECT'] == subject and x['MODALITY'] == 'MR')]
                 if len(subj_mris) < 1:
