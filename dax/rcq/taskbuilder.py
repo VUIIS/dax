@@ -263,7 +263,7 @@ class TaskBuilder(object):
                 session, inputs, project_info)
 
             # Check for undo
-            if info['PROCSTATUS'] == RERUN:
+            if info['QCSTATUS'] == RERUN:
                 # Undo and set to run
                 logger.info(f'undoing task{info["ASSR"]}')
                 self._undo_task(assr)
