@@ -962,7 +962,7 @@ class DaxManager(object):
 
                 logfile = self.log_name('build', project, run_time)
                 logging.getLogger('dax').handlers = []
-                dax.bin.set_logger(logfile, debug=True)
+                dax.bin.set_logger(logfile, debug=False)
                 try:
                     builder.update(project)
                     logging.getLogger('dax').handlers = []

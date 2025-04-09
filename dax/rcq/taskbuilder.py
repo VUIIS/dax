@@ -270,7 +270,7 @@ class TaskBuilder(object):
                 info['PROCSTATUS'] = NEED_TO_RUN
 
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
-                logger.info(f'building task{info["ASSR"]}')
+                logger.info(f'building task:{info["ASSR"]}')
                 (assr, info) = self._build_task(
                     assr, info, processor, project_info, custom=custom)
                 logger.debug(f'{info}')
