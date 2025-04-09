@@ -726,6 +726,7 @@ class DaxManager(object):
                 'upload',
                 run_time)
 
+            LOGGER.info(f'queue for upload:{pindex}:{alabel}:{logfile}')
             upload_results[pindex] = upload_pool.apply_async(
                 run_upload_thread,
                 [logfile, xnat_host, pindex, alabel, pcount, resdir])
@@ -749,6 +750,11 @@ class DaxManager(object):
         num_upload_threads = 0
 
         try:
+
+            if self.is_enabled_cleanup():
+                # Cleanup upload directory
+                self.cleanup()
+
             if self.is_enabled_build():
                 # Build
                 lock_list = os.listdir(self.lock_dir)
@@ -855,7 +861,7 @@ class DaxManager(object):
                             LOGGER.info(f'build thread {i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
 
                     elif num_upload_threads > 0 and not all([x.ready() for x in upload_results]):
-                        LOGGER.info(f'uploads:{len(upload_results)}:{len(upload_pool._pool)}')
+                        LOGGER.info(f'uploads:{len(upload_results)} assessors:{len(upload_pool._pool)} threads')
                         for i, r in enumerate(upload_results):
                             try:
                                 LOGGER.info(f'{i}:ready={r.ready()}:result={r.get(timeout=timeout)}')
@@ -1083,6 +1089,12 @@ class DaxManager(object):
 
     def clean_lockfiles(self):
         lockfiles.clean_lockfiles(self.lock_dir, LOGGER)
+
+    def cleanup(self):
+        # Delete assessors in res dir that do not exist on XNAT, kill running jobs and 
+        # delete anything in DISKQ too. These are assessors that were deleted after 
+        # the job was created.
+        LOGGER.('TBD:delete assessors from diskq/rcq that no longer exist on XNAT')
 
 
 def run_upload_thread(logfile, xnat_host, pindex, alabel, pcount, resdir):
