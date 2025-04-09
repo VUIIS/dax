@@ -634,6 +634,9 @@ class DaxManager(object):
         else:
             self._rcq = None
 
+    def is_enabled_cleanup(self):
+        return True
+
     def is_enabled_instance(self):
         return (self.enabled)
 
