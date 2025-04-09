@@ -16,7 +16,7 @@ from .projectinfo import load_project_info
 from .taskqueue import TaskQueue
 
 
-logger = logging.getLogger('manager.rcq.taskbuilder')
+logger = logging.getLogger('dax')
 
 
 PROCESSING_RENAME = {
