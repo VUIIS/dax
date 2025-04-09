@@ -209,6 +209,7 @@ class AnalysisLauncher(object):
                         updates.append(cur_updates)
                     else:
                         # still running, upload current log file to xnat
+                        logger.info(f'analysis still running, uploading log:{project}:{instance}')
                         self._upload_log(cur)
 
                 elif status in ['COMPLETED', 'FAILED', 'CANCELLED']:
@@ -365,7 +366,7 @@ class AnalysisLauncher(object):
             logger.debug(f'log file not found:{log_file}')
             return
 
-        logger.debug(f'upload log file:{log_file}')
+        logger.info(f'upload log file:{log_file}')
         self._upload_file(log_file, analysis['project'], label)
 
     def _upload_file(self, filename, project, analysis_label):
