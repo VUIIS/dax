@@ -170,7 +170,8 @@ class DaxProjectSettingsManager(object):
         s = '_complete'
         field_list += [p + f + s for f in self.module_names]
 
-        LOGGER.info(f'querying redcap, fields:{field_list}')
+        LOGGER.info(f'querying redcap')
+        LOGGER.debug(f'fields:{field_list}')
         self.records = self._redcap.export_records(
             fields=field_list, raw_or_label='label')
 
@@ -833,8 +834,10 @@ class DaxManager(object):
                 # results from threads. Also, run rcq update each iteration.
                 rcq_count = 0
                 timeout = 1
+                sleep_secs = 180
                 while rcq_count < 3333:
-                    time.sleep(180)
+                    LOGGER.info(f'waiting to run rcq update:{sleep_secs} seconds')
+                    time.sleep(sleep_secs)
                     LOGGER.info(f'rcq update:{rcq_count}')
                     self.rcq_update()
                     rcq_count += 1
@@ -849,9 +852,9 @@ class DaxManager(object):
                                 pass
 
                         for i, p in enumerate(build_pool._pool):
-                            LOGGER.info(f'{i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
+                            LOGGER.info(f'build thread {i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
 
-                    if num_upload_threads > 0 and not all([x.ready() for x in upload_results]):
+                    elif num_upload_threads > 0 and not all([x.ready() for x in upload_results]):
                         LOGGER.info(f'uploads:{len(upload_results)}:{len(upload_pool._pool)}')
                         for i, r in enumerate(upload_results):
                             try:
@@ -860,7 +863,7 @@ class DaxManager(object):
                                 pass
 
                         for i, p in enumerate(upload_pool._pool):
-                            LOGGER.info(f'{i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
+                            LOGGER.info(f'upload thread {i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
                     else:
                         LOGGER.info('all builds and uploads done')
                         break
