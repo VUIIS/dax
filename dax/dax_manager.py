@@ -1094,7 +1094,7 @@ class DaxManager(object):
         # Delete assessors in res dir that do not exist on XNAT, kill running jobs and 
         # delete anything in DISKQ too. These are assessors that were deleted after 
         # the job was created.
-        LOGGER.('TBD:delete assessors from diskq/rcq that no longer exist on XNAT')
+        LOGGER.info('TBD:delete assessors from diskq/rcq that no longer exist on XNAT')
 
 
 def run_upload_thread(logfile, xnat_host, pindex, alabel, pcount, resdir):
