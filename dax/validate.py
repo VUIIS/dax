@@ -14,7 +14,7 @@ def validate(filename):
 
     # Determine which schema should be used based on yaml contents
     try:
-        with open(filename, 'r') as f
+        with open(filename, 'r') as f:
             contents = yaml.safe_load(f)
 
         if contents.get('inputs', False).get('xnat', False).get('subjects', False):
