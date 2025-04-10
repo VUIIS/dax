@@ -59,6 +59,7 @@ resource:
   fdest: str(required=False)
   varname: str(required=False)
   fmulti: enum('any1', required=False)
+  ddest: str(required=False)
 attr:
   varname: str()
   object: enum('subject', 'session', 'scan', 'assessor')
