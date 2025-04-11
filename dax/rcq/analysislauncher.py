@@ -207,6 +207,11 @@ class AnalysisLauncher(object):
 
                         # Add to redcap updates
                         updates.append(cur_updates)
+                    else:
+                        # still running, upload current log file to xnat
+                        logger.info(f'analysis still running, uploading log:{project}:{instance}')
+                        self._upload_log(cur)
+
                 elif status in ['COMPLETED', 'FAILED', 'CANCELLED']:
                     # finish completed job after being uploaded to xnat
                     logger.debug(f'handling complete, status={status}')
@@ -315,10 +320,27 @@ class AnalysisLauncher(object):
                                 'analysis_jobstarttime': 'NULL',
                                 'analysis_jobendtime': 'NULL',
                             })
+                        else:
+                            # Update redcap with launch failed
+                            updates.append({
+                                def_field: cur[def_field],
+                                'redcap_repeat_instrument': 'analyses',
+                                'redcap_repeat_instance': cur['redcap_repeat_instance'],
+                                'analysis_status': 'LAUNCH_FAILED',
+                                })
                     except Exception as err:
                         logger.error(err)
                         import traceback
                         traceback.print_exc()
+
+                        # Update redcap with launch failed
+                        updates.append({
+                            def_field: cur[def_field],
+                            'redcap_repeat_instrument': 'analyses',
+                            'redcap_repeat_instance': cur['redcap_repeat_instance'],
+                            'analysis_status': 'LAUNCH_FAILED',
+                            'analysis_output': str(err),
+                            })
 
                 if updates:
                     # upload changes
@@ -332,6 +354,20 @@ class AnalysisLauncher(object):
             # Delete the lock file
             logger.debug(f'deleting lock file:{lock_file}')
             unlock_flagfile(lock_file)
+
+    def _upload_log(self, analysis):
+        label = analysis.get('analysis_output', None)
+        if not label:
+            logger.debug(f'no output label, cannot upload log')
+            return
+
+        log_file = f'{self._rcqdir}/{label}.txt'
+        if not os.path.isfile(log_file):
+            logger.debug(f'log file not found:{log_file}')
+            return
+
+        logger.info(f'upload log file:{log_file}')
+        self._upload_file(log_file, analysis['project'], label)
 
     def _upload_file(self, filename, project, analysis_label):
         res_uri = f'/projects/{project}/resources/{analysis_label}'
@@ -371,6 +407,8 @@ class AnalysisLauncher(object):
 
             for subj in subjects:
                 inputlist.extend(self.get_subject_inputs(spec, info, subj))
+
+        # TODO: check for inputs on each subject?
 
         # Prepend xnat host to each input path
         for i, d in enumerate(inputlist):
@@ -589,7 +627,20 @@ class AnalysisLauncher(object):
         # Download the subjects sessions
         for sess_spec in spec.get('sessions', []):
 
-            if sess_spec.get('select', '') == 'first-mri':
+            if sess_spec.get('select', '') == 'first-eeg':
+                # only get the first eeg
+                subj_eeg = [x for x in info['scans'] if (x['SUBJECT'] == subject and x['MODALITY'] == 'EEG')]
+                if len(subj_eeg) < 1:
+                    logger.debug('eeg not found')
+                    return
+
+                # Sort by date and get first
+                first = sorted(subj_eeg, key=lambda x: x['DATE'])[0]
+
+                # First session only
+                sessions = [first['SESSION']]
+
+            elif sess_spec.get('select', '') == 'first-mri':
                 # only get the first mri
                 subj_mris = [x for x in info['scans'] if (x['SUBJECT'] == subject and x['MODALITY'] == 'MR')]
                 if len(subj_mris) < 1:
@@ -653,7 +704,10 @@ class AnalysisLauncher(object):
         if analysis['analysis_procrepo']:
             # Load the yaml file contents from github
             logger.info(f'loading:{analysis["analysis_procrepo"]}')
-            p = analysis['analysis_procrepo'].replace(':', '/').split('/')
+
+            # limit split to allow multi-level subdirs
+            p = analysis['analysis_procrepo'].replace(':', '/').split('/', 3)
+
             if len(p) == 4:
                 subdir = p[3]
             elif len(p) == 3:
@@ -850,11 +904,13 @@ class AnalysisLauncher(object):
         else:
             shared = False
 
+        var2val = analysis['processor']['inputs'].get('vars', {})
+
         if command['type'] == 'singularity_run':
-            txt = self.build_singularity_cmd('run', command, shared)
+            txt = self.build_singularity_cmd('run', command, var2val, shared)
 
         elif command['type'] == 'singularity_exec':
-            txt = self.build_singularity_cmd('exec', command, shared)
+            txt = self.build_singularity_cmd('exec', command, var2val, shared)
 
         else:
             err = 'invalid command type: {}'.format(command['type'])
@@ -863,7 +919,7 @@ class AnalysisLauncher(object):
 
         return txt
 
-    def build_singularity_cmd(self, runexec, command, shared=False):
+    def build_singularity_cmd(self, runexec, command, var2val={}, shared=False):
 
         if 'container' not in command:
             err = 'singularity modes require a container to be set'
@@ -904,6 +960,9 @@ class AnalysisLauncher(object):
             # Unescape and then escape double quotes
             cargs = cargs.replace('\\"', '"').replace('"', '\\\"')
             command_txt = '{} {}'.format(command_txt, cargs)
+
+        if var2val:
+            command_txt = command_txt.format(**var2val)
 
         return command_txt
 

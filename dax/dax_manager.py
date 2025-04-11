@@ -170,7 +170,8 @@ class DaxProjectSettingsManager(object):
         s = '_complete'
         field_list += [p + f + s for f in self.module_names]
 
-        LOGGER.info(f'querying redcap, fields:{field_list}')
+        LOGGER.info(f'querying redcap')
+        LOGGER.debug(f'fields:{field_list}')
         self.records = self._redcap.export_records(
             fields=field_list, raw_or_label='label')
 
@@ -191,9 +192,8 @@ class DaxProjectSettingsManager(object):
 
         return rec
 
-    def update_each(self):
+    def update_each(self, run_time):
         errors = []
-        now = datetime.now()
 
         # First load the settings from our defaults project
         default_settings = self.load_defaults(DaxProjectSettings())
@@ -227,7 +227,7 @@ class DaxProjectSettingsManager(object):
                     LOGGER.info('settings unchanged:{}'.format(filename))
                 else:
                     # Write project file
-                    self.write_settings_file(filename, settings, now)
+                    self.write_settings_file(filename, settings, run_time)
 
                     # Append project name to our list of rebuild projects
                     self.rebuild_projects.append(name)
@@ -634,6 +634,9 @@ class DaxManager(object):
         else:
             self._rcq = None
 
+    def is_enabled_cleanup(self):
+        return True
+
     def is_enabled_instance(self):
         return (self.enabled)
 
@@ -667,9 +670,9 @@ class DaxManager(object):
         return self._redcap.export_records(
             records=[instance_name], fields=fields, raw_or_label='label')[0]
 
-    def refresh_settings(self):
+    def refresh_settings(self, run_time):
         # Update settings files, only writing if something changed
-        errors = self.settings_manager.update_each()
+        errors = self.settings_manager.update_each(run_time)
 
         # Delete any left over settings files
         self.settings_manager.delete_disabled()
@@ -691,17 +694,14 @@ class DaxManager(object):
 
         return _log
 
-    def queue_builds(self, build_pool):
-        # TODO: sort builds by how long we expect them to take,
-        # shortest to longest
-
+    def queue_builds(self, build_pool, run_time):
         # Array to store result accessors
         build_results = [None] * len(self.settings_list)
 
         # Run each
         for i, settings_path in enumerate(self.settings_list):
             proj = project_from_settings(settings_path)
-            _log = self.log_name('build', proj, datetime.now())
+            _log = self.log_name('build', proj, run_time)
             last_run = self.get_last_run(proj)
 
             LOGGER.info('SETTINGS:{}'.format(settings_path))
@@ -713,7 +713,7 @@ class DaxManager(object):
 
         return build_results
 
-    def queue_uploads(self, upload_pool):
+    def queue_uploads(self, upload_pool, run_time):
         xnat_host = self.xnat_host
         resdir = self.res_dir
         assessors_list = dax_tools_utils.get_assessor_list('', resdir)
@@ -727,8 +727,9 @@ class DaxManager(object):
             logfile = self.log_name(
                 'upload' + str(pindex),
                 'upload',
-                datetime.now())
+                run_time)
 
+            LOGGER.info(f'queue for upload:{pindex}:{alabel}:{logfile}')
             upload_results[pindex] = upload_pool.apply_async(
                 run_upload_thread,
                 [logfile, xnat_host, pindex, alabel, pcount, resdir])
@@ -736,8 +737,10 @@ class DaxManager(object):
         return upload_results
 
     def run(self):
+        run_time = datetime.now()
+
         # Refresh project settings
-        settings_errors = self.refresh_settings()
+        settings_errors = self.refresh_settings(run_time)
 
         run_errors = settings_errors
         max_build_count = self.max_build_count
@@ -750,6 +753,11 @@ class DaxManager(object):
         num_upload_threads = 0
 
         try:
+
+            if self.is_enabled_cleanup():
+                # Cleanup upload directory
+                self.cleanup()
+
             if self.is_enabled_build():
                 # Build
                 lock_list = os.listdir(self.lock_dir)
@@ -764,8 +772,8 @@ class DaxManager(object):
                     LOGGER.info('starting {} more builds'.format(
                         str(num_build_threads)))
                     build_pool = Pool(processes=num_build_threads)
-                    build_results = self.queue_builds(build_pool)
-                    build_pool.close()  # Close the pool, I dunno if this matters
+                    build_results = self.queue_builds(build_pool, run_time)
+                    build_pool.close()
 
             if self.is_enabled_update():
                 # Update
@@ -775,7 +783,7 @@ class DaxManager(object):
                         proj = project_from_settings(settings_path)
 
                         LOGGER.info('updating jobs:' + proj)
-                        _log = self.log_name('update', proj, datetime.now())
+                        _log = self.log_name('update', proj, run_time)
                         self.run_update(settings_path, _log)
                     except (AutoProcessorError, DaxError) as e:
                         err = 'error running update:project={}\n{}'.format(proj, e)
@@ -785,15 +793,13 @@ class DaxManager(object):
             if self.is_enabled_launch():
                 # Launch - report to log if locked
                 LOGGER.info('launching')
-                # TODO: implement a better sorting method here so that launching
-                # is explicitly fair. This random sample is a temporary solution.
                 for settings_path in random.sample(
                         self.settings_list, len(self.settings_list)):
                     try:
                         proj = project_from_settings(settings_path)
 
                         LOGGER.info('launching jobs:' + proj)
-                        _log = self.log_name('launch', proj, datetime.now())
+                        _log = self.log_name('launch', proj, run_time)
                         self.run_launch(settings_path, _log)
                     except (AutoProcessorError, DaxError) as e:
                         err = 'error running launch:project={}\n{}'.format(proj, e)
@@ -815,7 +821,7 @@ class DaxManager(object):
                 else:
                     LOGGER.info('starting {} more uploads'.format(num_upload_threads))
                     upload_pool = Pool(processes=num_upload_threads)
-                    upload_results = self.queue_uploads(upload_pool)
+                    upload_results = self.queue_uploads(upload_pool, run_time)
                     upload_pool.close()
 
             if self._rcq:
@@ -830,15 +836,17 @@ class DaxManager(object):
 
                 # Run separate rcq build so it locks between dax_managers
                 if self.is_enabled_build():
-                    build_errors = self.run_rcq_build(_projects)
+                    build_errors = self.run_rcq_build(_projects, run_time)
                     run_errors.extend(build_errors)
 
                 # While diskq builds and uploads are running, check and display
                 # results from threads. Also, run rcq update each iteration.
                 rcq_count = 0
                 timeout = 1
+                sleep_secs = 180
                 while rcq_count < 3333:
-                    time.sleep(180)
+                    LOGGER.info(f'waiting to run rcq update:{sleep_secs} seconds')
+                    time.sleep(sleep_secs)
                     LOGGER.info(f'rcq update:{rcq_count}')
                     self.rcq_update()
                     rcq_count += 1
@@ -853,10 +861,10 @@ class DaxManager(object):
                                 pass
 
                         for i, p in enumerate(build_pool._pool):
-                            LOGGER.info(f'{i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
+                            LOGGER.info(f'build thread {i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
 
-                    if num_upload_threads > 0 and not all([x.ready() for x in upload_results]):
-                        LOGGER.info(f'uploads:{len(upload_results)}:{len(upload_pool._pool)}')
+                    elif num_upload_threads > 0 and not all([x.ready() for x in upload_results]):
+                        LOGGER.info(f'uploads:{len(upload_results)} assessors:{len(upload_pool._pool)} threads')
                         for i, r in enumerate(upload_results):
                             try:
                                 LOGGER.info(f'{i}:ready={r.ready()}:result={r.get(timeout=timeout)}')
@@ -864,7 +872,7 @@ class DaxManager(object):
                                 pass
 
                         for i, p in enumerate(upload_pool._pool):
-                            LOGGER.info(f'{i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
+                            LOGGER.info(f'upload thread {i}:pid:{p.pid}:{p.is_alive()}:exit={p.exitcode}')
                     else:
                         LOGGER.info('all builds and uploads done')
                         break
@@ -919,7 +927,6 @@ class DaxManager(object):
         # Check for existing lock
         if is_locked(settings_file, self.lock_dir):
             LOGGER.warn('cannot build, lock exists:{}'.format(settings_file))
-            # TODO: check if it's really running, if not send a notification
         else:
             # dax.bin.build expects a map of project to lastrun
             proj_lastrun = {project: lastrun}
@@ -942,7 +949,7 @@ class DaxManager(object):
             LOGGER.info('run_build:done:{}'.format(project))
             return build_error
 
-    def run_rcq_build(self, projects):
+    def run_rcq_build(self, projects, run_time):
         build_errors = []
         lock_file = f'{self.lock_dir}/RCQ_BUILD.pid'
 
@@ -964,8 +971,13 @@ class DaxManager(object):
 
             for project in build_projects:
                 LOGGER.info(f'rcq build:{project}')
+
+                logfile = self.log_name('build', project, run_time)
+                logging.getLogger('dax').handlers = []
+                dax.bin.set_logger(logfile, debug=False)
                 try:
                     builder.update(project)
+                    logging.getLogger('dax').handlers = []
                     complete_projects.append(project)
                 except Exception as err:
                     err = f'rcq build:{project}:err={traceback.format_exc()}'
@@ -1080,6 +1092,12 @@ class DaxManager(object):
 
     def clean_lockfiles(self):
         lockfiles.clean_lockfiles(self.lock_dir, LOGGER)
+
+    def cleanup(self):
+        # Delete assessors in res dir that do not exist on XNAT, kill running jobs and 
+        # delete anything in DISKQ too. These are assessors that were deleted after 
+        # the job was created.
+        LOGGER.info('TBD:delete assessors from diskq/rcq that no longer exist on XNAT')
 
 
 def run_upload_thread(logfile, xnat_host, pindex, alabel, pcount, resdir):

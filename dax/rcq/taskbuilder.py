@@ -9,12 +9,14 @@ import tempfile
 
 from dax.task import NeedInputsException, NoDataException
 from dax.task import JOB_PENDING, JOB_RUNNING
-from dax.task import NEED_INPUTS, NEED_TO_RUN, NO_DATA
+from dax.task import NEED_INPUTS, NEED_TO_RUN, NO_DATA, RERUN, REPROC_RES_SKIP_LIST
 from dax.processors import load_from_yaml, SgpProcessor
+
 from .projectinfo import load_project_info
 from .taskqueue import TaskQueue
 
-logger = logging.getLogger('manager.rcq.taskbuilder')
+
+logger = logging.getLogger('dax')
 
 
 PROCESSING_RENAME = {
@@ -260,11 +262,17 @@ class TaskBuilder(object):
             (assr, info) = processor.get_assessor(
                 session, inputs, project_info)
 
+            # Check for undo
+            if info['QCSTATUS'] == RERUN:
+                # Undo and set to run
+                logger.info(f'undoing task{info["ASSR"]}')
+                self._undo_task(assr)
+                info['PROCSTATUS'] = NEED_TO_RUN
+
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
-                logger.debug('building task')
+                logger.info(f'building task:{info["ASSR"]}')
                 (assr, info) = self._build_task(
                     assr, info, processor, project_info, custom=custom)
-
                 logger.debug(f'{info}')
                 logger.debug(
                     'status:{}:{}'.format(info['ASSR'], info['PROCSTATUS']))
@@ -287,8 +295,15 @@ class TaskBuilder(object):
             (assr, info) = processor.get_assessor(
                 self._xnat, subject, inputs, project_info)
 
+            # Check for undo
+            if info['PROCSTATUS'] == RERUN:
+                # Undo and set to run
+                logger.info(f'undoing task{info["ASSR"]}')
+                self._undo_task(assr)
+                info['PROCSTATUS'] = NEED_TO_RUN
+
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
-                logger.debug('building task')
+                logger.info(f'building task{info["ASSR"]}')
                 (assr, info) = self._build_task(
                     assr, info, processor, project_info, custom=custom)
 
@@ -342,6 +357,29 @@ class TaskBuilder(object):
 
         return (assr, info)
 
+    def _undo_task(self, assessor):
+        """
+        Unset the job ID, memory used, walltime, and jobnode information
+        """
+
+        atype = assessor.datatype().lower()
+
+        assessor.attrs.mset({
+            f'{atype}/procstatus': NEED_TO_RUN,
+            f'{atype}/validation/status': JOB_PENDING,
+            f'{atype}/jobstartdate': 'NULL',
+            f'{atype}/jobid': 'NULL',
+            f'{atype}/memused': 'NULL',
+            f'{atype}/walltime': 'NULL',
+            f'{atype}/jobnode': 'NULL',
+        })
+
+        for out_resource in assessor.out_resources():
+            out_label = out_resource.label()
+            if out_label not in REPROC_RES_SKIP_LIST:
+                logger.info(f'assessor rerun, removing:{out_label}')
+                out_resource.delete()
+              
 
 def _filter_matches(match_input, match_filter):
     return re.match(fnmatch.translate(match_filter), match_input)
