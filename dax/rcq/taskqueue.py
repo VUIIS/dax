@@ -31,7 +31,7 @@ class TaskQueue(object):
         rec = [x for x in rec if x['task_status'] in ['LOST', 'UPLOADING']]
 
         if len(rec) == 0:
-            logger.info('no active tasks to update')
+            logger.info('nothing to update from XNAT to REDCap')
             return
 
         # Get projects with active tasks
