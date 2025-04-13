@@ -61,6 +61,9 @@ class TaskLauncher(object):
             rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
             rec = [x for x in rec if x['task_status'] not in DONE_STATUSES]
 
+            # Ignore deleted
+            rec = [x for x in rec if x['task_status'] != 'DELETED']
+
             # Update each task
             for i, t in enumerate(rec):
                 assr = t['task_assessor']
@@ -72,7 +75,7 @@ class TaskLauncher(object):
                     pass
                 elif status == 'RUNNING':
                     # check on running job
-                    logger.info(f'checking on running job:{assr}')
+                    logger.debug(f'checking on running job:{assr}')
                     task_updates = get_updates(t)
                     if task_updates:
                         task_updates.update({
