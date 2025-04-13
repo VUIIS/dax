@@ -62,18 +62,17 @@ class TaskLauncher(object):
             rec = [x for x in rec if x['task_status'] not in DONE_STATUSES]
 
             # Update each task
-            logger.debug('updating each task')
             for i, t in enumerate(rec):
                 assr = t['task_assessor']
                 status = t['task_status']
 
-                logger.debug(f'{i}:{assr}:{status}')
+                logger.info(f'updating task:{i}:{assr}:{status}')
 
                 if status in ['NEED_INPUTS', 'UPLOADING']:
                     pass
                 elif status == 'RUNNING':
                     # check on running job
-                    logger.debug('checking on running job')
+                    logger.info(f'checking on running job:{assr}')
                     task_updates = get_updates(t)
                     if task_updates:
                         task_updates.update({
@@ -81,10 +80,11 @@ class TaskLauncher(object):
                             'redcap_repeat_instrument': 'taskqueue',
                             'redcap_repeat_instance': t['redcap_repeat_instance'],
                         })
+                        logger.info(f'task updates:{task_updates}')
 
                         # Add to redcap updates
                         updates.append(task_updates)
-                elif status in ['COMPLETED', 'FAILED', 'CANCELLED', 'NODE_FAIL']:
+                elif status in ['COMPLETED', 'FAILED', 'CANCELLED', 'NODE_FAIL', 'OUT_OF_MEMORY']:
                     # finish completed job by moving to upload
                     logger.debug('setting to upload')
 
