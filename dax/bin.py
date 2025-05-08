@@ -4,11 +4,13 @@
 """ File containing functions called by dax executables """
 
 from datetime import datetime
-import imp
+#import imp
 import os
 import sys
 from multiprocessing import Pool
 import logging
+import importlib.util
+import importlib.machinery
 
 from . import lockfiles
 from . import dax_tools_utils
@@ -47,10 +49,10 @@ def read_settings(settings_path, logger, exe):
 
     # Load the settings file
     logger.info('loading settings from: %s' % settings_path)
-    if settings_path.endswith('.py'):
-        settings = imp.load_source('settings', settings_path)
-        dax_launcher = settings.myLauncher
-    elif settings_path.endswith('.yaml'):
+    #if settings_path.endswith('.py'):
+    #    settings = imp.load_source('settings', settings_path)
+    #    dax_launcher = settings.myLauncher
+    if settings_path.endswith('.yaml'):
         dax_launcher = read_yaml_settings(settings_path, logger)
     else:
         raise DaxError('Wrong type of settings file given.')
@@ -371,7 +373,8 @@ def load_from_file(filepath, args, logger, singularity_imagedir=None, job_templa
         raise DaxError('File %s does not exists.' % filepath)
 
     if filepath.endswith('.py'):
-        test = imp.load_source('test', filepath)
+        #test = imp.load_source('test', filepath)
+        test = _load_source('test', filepath)
         try:
             return eval(_tmp.format(os.path.basename(filepath)[:-3]))
         except AttributeError as e:
@@ -385,6 +388,21 @@ def load_from_file(filepath, args, logger, singularity_imagedir=None, job_templa
             XnatUtils, filepath, args, singularity_imagedir, job_template)
 
     return None
+
+
+def _load_source(modname, filename):
+    """Loads a module from a source file."""
+    loader = importlib.machinery.SourceFileLoader(modname, filename)
+
+    # Check if the file exists
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f'file not found:{filename}')
+    
+    spec = importlib.util.spec_from_file_location(modname, filename, loader=loader)
+    if spec is None:
+        raise ModuleNotFoundError(f'could not create module spec:{filename}')
+  
+    return importlib.util.module_from_spec(spec)
 
 
 def upload(settings_path, max_threads=1):
