@@ -4,7 +4,6 @@
 """ File containing functions called by dax executables """
 
 from datetime import datetime
-import imp
 import os
 import sys
 from multiprocessing import Pool
@@ -47,14 +46,10 @@ def read_settings(settings_path, logger, exe):
 
     # Load the settings file
     logger.info('loading settings from: %s' % settings_path)
-    if settings_path.endswith('.py'):
-        settings = imp.load_source('settings', settings_path)
-        dax_launcher = settings.myLauncher
-    elif settings_path.endswith('.yaml'):
+    if settings_path.endswith('.yaml'):
         dax_launcher = read_yaml_settings(settings_path, logger)
     else:
-        raise DaxError('Wrong type of settings file given. Please use a \
-python file describing the Launcher object or a YAML file.')
+        raise DaxError('Wrong type of settings file given. Please use a YAML file.')
 
     # Run the updates
     logger.info('running launcher, Start Time: %s' % str(datetime.now()))
@@ -372,12 +367,9 @@ def load_from_file(filepath, args, logger, singularity_imagedir=None, job_templa
         raise DaxError('File %s does not exists.' % filepath)
 
     if filepath.endswith('.py'):
-        test = imp.load_source('test', filepath)
         try:
-            #print('evaling:' + _tmp.format(os.path.basename(filepath)[:-3]))
             return eval(_tmp.format(os.path.basename(filepath)[:-3]))
         except AttributeError as e:
-            #print('attribute error', str(e))
             pass
 
         err = '[ERROR] Module or processor NOT FOUND in the python file {}.'

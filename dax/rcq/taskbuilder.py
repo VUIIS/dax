@@ -38,7 +38,7 @@ class TaskBuilder(object):
         self._queue = TaskQueue(projects_redcap)
         self._build_projects = self.projects_with_processing()
 
-    def update(self, project):
+    def update(self, project, only_session=None, only_subject=None):
 
         if project not in self._build_projects:
             logger.info(f'no processing protocols found:{project}')
@@ -90,12 +90,20 @@ class TaskBuilder(object):
                     user_inputs,
                     info,
                     include_filters,
-                    custom=row['CUSTOM'])
+                    custom=row['CUSTOM'],
+                    only_session=only_session,
+                    only_subject=only_subject)
+
+    def update_session(self, project, session):
+        return self.update(project, only_session=session)
+
+    def update_subject(self, project, subject):
+        return self.update(project, only_subject=subject)
 
     def build_projects(self):
         return self._build_projects
 
-    def _build_processor(self, filepath, user_inputs, info, include_filters, custom=False):
+    def _build_processor(self, filepath, user_inputs, info, include_filters, custom=False, only_session=None, only_subject=None):
         # Get lists of subjects/sessions for filtering
 
         # Load the processor
@@ -124,6 +132,12 @@ class TaskBuilder(object):
             else:
                 include_subjects = info['all_subjects']
 
+            if only_subject:
+                if only_subject in include_subjects:
+                    include_subjects = [only_subject]
+                else:
+                    include_subjects = []
+
             logger.debug(f'include subjects={include_subjects}')
 
             # Apply the processor to filtered sessions
@@ -140,6 +154,12 @@ class TaskBuilder(object):
                     info['all_sessions'], include_filters)
             else:
                 include_sessions = info['all_sessions']
+
+            if only_session:
+                if only_session in include_sessions:
+                    include_sessions = [only_session]
+                else:
+                    include_sessions = []
 
             logger.debug(f'include sessions={include_sessions}')
 
@@ -268,6 +288,8 @@ class TaskBuilder(object):
                 logger.info(f'undoing task{info["ASSR"]}')
                 self._undo_task(assr)
                 info['PROCSTATUS'] = NEED_TO_RUN
+            else:
+                logger.info(f'ignoring QCSTATUS:{info["ASSR"]}:{info["QCSTATUS"]}')
 
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
                 logger.info(f'building task:{info["ASSR"]}')
@@ -296,7 +318,7 @@ class TaskBuilder(object):
                 self._xnat, subject, inputs, project_info)
 
             # Check for undo
-            if info['PROCSTATUS'] == RERUN:
+            if info['QCSTATUS'] == RERUN:
                 # Undo and set to run
                 logger.info(f'undoing task{info["ASSR"]}')
                 self._undo_task(assr)
