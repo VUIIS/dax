@@ -5,8 +5,7 @@ import logging
 import json
 
 import pandas as pd
-
-from dax import XnatUtils
+import numpy as np
 
 
 logger = logging.getLogger('manager.rcq.taskqueue')
@@ -32,7 +31,7 @@ class TaskQueue(object):
         rec = [x for x in rec if x['task_status'] in ['LOST', 'UPLOADING']]
 
         if len(rec) == 0:
-            logger.info('no active tasks to update')
+            logger.info('nothing to update from XNAT to REDCap')
             return
 
         # Get projects with active tasks
@@ -40,8 +39,7 @@ class TaskQueue(object):
 
         # Load assesssor data from XNAT as our current status
         logger.info(f'loading XNAT data:{projects}')
-        assr_data = XnatUtils.load_assr_data(xnat, projects)
-        sgp_data = XnatUtils.load_sgp_data(xnat, ','.join(projects))
+        status_df = _load_status(xnat, projects)
 
         # Get updates
         logger.debug('updating each task')
@@ -51,7 +49,7 @@ class TaskQueue(object):
 
             # Find the matching assessor for this task in XNAT data
             match_found = False
-            for k, a in pd.concat([assr_data, sgp_data]).iterrows():
+            for k, a in status_df.iterrows():
                 if a.ASSR != assr:
                     continue
 
@@ -140,9 +138,6 @@ class TaskQueue(object):
             task_id = rec[0]['redcap_repeat_instance']
 
         return task_id
-
-    def current_tasks(self):
-        return
 
     def _add_task(
         self,
@@ -241,3 +236,55 @@ class TaskQueue(object):
                 event=None,
                 repeat_instance=repeat_id,
                 file_object=f)
+
+
+def _get_result(xnat, uri):
+    json_data = json.loads(xnat._exec(uri, 'GET'), strict=False)
+    return json_data['ResultSet']['Result']
+
+
+def _load_status(xnat, projects):
+    base_uri = '/REST/experiments?xsiType=xnat:imagesessiondata&columns=proc:genprocdata/label,proc:genprocdata/procstatus'
+    sgp_uri = '/REST/subjects?xsiType=xnat:subjectdata&columns=proc:subjgenprocdata/label,proc:subjgenprocdata/procstatus'
+    project_filter = ','.join(projects)
+
+    # Main project
+    uri = f'{base_uri}&project={project_filter}'
+    result = _get_result(xnat, uri)
+
+    # Shared project
+    uri = f'{base_uri}&xnat:imagesessiondata/sharing/share/project={project_filter}'
+    result += _get_result(xnat, uri)
+
+    # Create dataframe with renamed columns
+    dfa = pd.DataFrame(result).rename(columns={
+        'proc:genprocdata/label': 'ASSR',
+        'proc:genprocdata/procstatus': 'PROCSTATUS'
+    })
+    dfa = dfa[['ASSR', 'PROCSTATUS']]
+
+    # SGP main project
+    uri = f'{sgp_uri}&project={project_filter}'
+    result = _get_result(xnat, uri)
+
+    # SGP shared project
+    uri = f'{sgp_uri}&xnat:subjectdata/sharing/share/project={project_filter}'
+    result += _get_result(xnat, uri)
+
+    if len(result) > 0:
+        # Create dataframe with renamed columns
+        dfs = pd.DataFrame(result).rename(columns={
+            'proc:subjgenprocdata/label': 'ASSR',
+            'proc:subjgenprocdata/procstatus': 'PROCSTATUS'
+        })
+        dfs = dfs[['ASSR', 'PROCSTATUS']]
+
+        # Combine
+        df = pd.concat([dfa, dfs])
+    else:
+        df = dfa
+
+    # No Blanks
+    df = df.replace('', np.nan).dropna(axis=0, how='any')
+
+    return df

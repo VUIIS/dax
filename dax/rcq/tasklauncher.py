@@ -61,19 +61,21 @@ class TaskLauncher(object):
             rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
             rec = [x for x in rec if x['task_status'] not in DONE_STATUSES]
 
+            # Ignore deleted
+            rec = [x for x in rec if x['task_status'] != 'DELETED']
+
             # Update each task
-            logger.debug('updating each task')
             for i, t in enumerate(rec):
                 assr = t['task_assessor']
                 status = t['task_status']
 
-                logger.debug(f'{i}:{assr}:{status}')
+                logger.info(f'updating task:{i}:{assr}:{status}')
 
                 if status in ['NEED_INPUTS', 'UPLOADING']:
                     pass
                 elif status == 'RUNNING':
                     # check on running job
-                    logger.debug('checking on running job')
+                    logger.debug(f'checking on running job:{assr}')
                     task_updates = get_updates(t)
                     if task_updates:
                         task_updates.update({
@@ -81,10 +83,11 @@ class TaskLauncher(object):
                             'redcap_repeat_instrument': 'taskqueue',
                             'redcap_repeat_instance': t['redcap_repeat_instance'],
                         })
+                        logger.info(f'task updates:{task_updates}')
 
                         # Add to redcap updates
                         updates.append(task_updates)
-                elif status in ['COMPLETED', 'FAILED', 'CANCELLED', 'NODE_FAIL']:
+                elif status in ['COMPLETED', 'FAILED', 'CANCELLED', 'NODE_FAIL', 'OUT_OF_MEMORY', 'TIMEOUT']:
                     # finish completed job by moving to upload
                     logger.debug('setting to upload')
 
@@ -207,6 +210,14 @@ class TaskLauncher(object):
                                 'task_status': 'RUNNING',
                                 'task_jobid': jobid,
                             })
+                        else:
+                            updates.append({
+                                def_field: t[def_field],
+                                'redcap_repeat_instrument': 'taskqueue',
+                                'redcap_repeat_instance': t['redcap_repeat_instance'],
+                                'task_status': 'LAUNCH_FAILED',
+                            })
+                            delete_task_dirs(outdir)
 
                         time.sleep(launch_delay)
 
@@ -214,6 +225,13 @@ class TaskLauncher(object):
                         logger.error(err)
                         import traceback
                         traceback.print_exc()
+                        updates.append({
+                            def_field: t[def_field],
+                            'redcap_repeat_instrument': 'taskqueue',
+                            'redcap_repeat_instance': t['redcap_repeat_instance'],
+                            'task_status': 'LAUNCH_FAILED',
+                        })
+                        delete_task_dirs(outdir)
 
                 if updates:
                     # upload changes
@@ -401,6 +419,14 @@ def make_task_dirs(taskdir):
             os.makedirs(os.path.join(taskdir, subdir))
         except FileExistsError:
             pass
+
+
+def delete_task_dirs(taskdir):
+    """Remove task directory."""
+    try:
+        shutil.rmtree(taskdir)
+    except Exception as err:
+        logger.error(f'while deleting:{taskdir}')
 
 
 def get_updates(task):

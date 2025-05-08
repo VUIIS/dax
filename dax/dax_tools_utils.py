@@ -9,7 +9,6 @@ import csv
 from datetime import datetime
 import getpass
 import glob
-import imp
 import json
 import logging
 import os
@@ -1012,9 +1011,6 @@ def load_upload_settings(f_settings, host, username, password, projects):
         if f_settings.endswith('.json'):
             with open(up_file) as data_file:
                 host_projs = json.load(data_file)
-        elif f_settings.endswith('.py'):
-            settings = imp.load_source('settings', up_file)
-            host_projs = settings.host_projects
         elif f_settings.endswith('.csv'):
             with open(up_file, 'rb') as csvfileread:
                 csvreader = csv.reader(csvfileread, delimiter=',')
