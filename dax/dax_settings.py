@@ -20,6 +20,10 @@ SLURM_COUNTJOBS_LAUNCHED = 'squeue --me --noheader | wc -l'
 
 SLURM_COUNTJOBS_PENDING = 'squeue --me -t PENDING --noheader | wc -l'
 
+SLURM_COUNTJOBS_LAUNCHED_RCQ = 'squeue -A ${job_rungroup} --noheader | wc -l'
+
+SLURM_COUNTJOBS_PENDING_RCQ = 'squeue --A ${job_rungroup} -t PENDING --noheader | wc -l'
+
 SLURM_COUNT_PENDINGUPLOADS = 'ls -d ${resdir}/*-x-* |wc -l'
 
 SLURM_JOBNODE = "sacct -j ${jobid}.batch --format NodeList --noheader"
@@ -121,6 +125,12 @@ class DAX_Settings(object):
 
     def get_cmd_count_jobs_pending(self):
         return SLURM_COUNTJOBS_PENDING
+
+    def get_cmd_count_jobs_launched_rcq(self):
+        return SLURM_COUNTJOBS_LAUNCHED_RCQ
+
+    def get_cmd_count_jobs_pending_rcq(self):
+        return SLURM_COUNTJOBS_PENDING_RCQ
 
     def get_cmd_count_pendinguploads(self):
         return Template(SLURM_COUNT_PENDINGUPLOADS)

@@ -8,7 +8,7 @@ from datetime import datetime
 import yaml
 import requests
 
-from ..cluster import PBS, count_jobs
+from ..cluster import PBS, count_jobs_rcq
 from ..lockfiles import lock_flagfile, unlock_flagfile
 from .projectinfo import load_project_info
 from ..utilities import get_this_instance, parse_list
@@ -284,7 +284,7 @@ class AnalysisLauncher(object):
                 # Launch jobs
                 updates = []
                 for i, cur in enumerate(launch_list):
-                    launched, pending, uploads = count_jobs(self._resdir)
+                    launched, pending, uploads = count_jobs_rcq(self._resdir, instance_settings['main_rungroup'])
                     logger.info(f'Cluster:{launched}/{q_limit} total, {pending}/{p_limit} pending, {uploads}/{u_limit} uploads')
 
                     if launched >= q_limit:
