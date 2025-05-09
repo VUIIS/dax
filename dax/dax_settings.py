@@ -22,7 +22,7 @@ SLURM_COUNTJOBS_PENDING = 'squeue --me -t PENDING --noheader | wc -l'
 
 SLURM_COUNTJOBS_LAUNCHED_RCQ = 'squeue -A ${job_rungroup} --noheader | wc -l'
 
-SLURM_COUNTJOBS_PENDING_RCQ = 'squeue --A ${job_rungroup} -t PENDING --noheader | wc -l'
+SLURM_COUNTJOBS_PENDING_RCQ = 'squeue -A ${job_rungroup} -t PENDING --noheader | wc -l'
 
 SLURM_COUNT_PENDINGUPLOADS = 'ls -d ${resdir}/*-x-* |wc -l'
 
