@@ -27,7 +27,7 @@ class TaskLauncher(object):
         self._projects_redcap = projects_redcap
         self._instance_settings = instance_settings
         self.resdir = self._instance_settings['main_resdir']
-        self._perlimit = self._instance_settings.get(['main_perlimit'], None)
+        self._perlimit = self._instance_settings.get('main_perlimit', None)
 
     def update(self, launch_enabled=True, projects=None):
         """Update all tasks in taskqueue of projects_redcap."""
