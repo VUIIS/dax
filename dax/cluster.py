@@ -86,9 +86,9 @@ def count_jobs_rcq(resdir, job_rungroup, force_no_qsub=False):
         return (0, 0, 0)
     elif command_found(cmd=DAX_SETTINGS.get_cmd_submit()):
         launched = cj_subcmd(DAX_SETTINGS.get_cmd_count_jobs_launched_rcq().
-            safe_substitute({'job_rungroup': job_rungroup})
+            safe_substitute({'job_rungroup': job_rungroup}))
         pending = cj_subcmd(DAX_SETTINGS.get_cmd_count_jobs_pending_rcq().
-            safe_substitute({'job_rungroup': job_rungroup})
+            safe_substitute({'job_rungroup': job_rungroup}))
         cmd = DAX_SETTINGS.get_cmd_count_pendinguploads()
         cmd = cmd.safe_substitute({'resdir': resdir})
         pendinguploads = cj_subcmd(cmd)
