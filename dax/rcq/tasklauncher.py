@@ -11,7 +11,7 @@ import time
 import pandas as pd
 
 from ..processors import load_from_yaml
-from ..cluster import PBS, count_jobs
+from ..cluster import PBS, count_jobs_rcq
 from ..lockfiles import lock_flagfile, unlock_flagfile
 
 
@@ -159,7 +159,7 @@ class TaskLauncher(object):
                 # Launch jobs
                 updates = []
                 for i, t in enumerate(launch_list):
-                    launched, pending, uploads = count_jobs(resdir)
+                    launched, pending, uploads = count_jobs_rcq(resdir, instance_settings['main_rungroup'])
                     logger.info(f'Cluster:{launched}/{q_limit} total, {pending}/{p_limit} pending, {uploads}/{u_limit} uploads')
 
                     if launched >= q_limit:
