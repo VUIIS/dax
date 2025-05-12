@@ -25,10 +25,12 @@ class TaskLauncher(object):
         self._projects_redcap = projects_redcap
         self._instance_settings = instance_settings
         self.resdir = self._instance_settings['main_resdir']
+        self._perlimit = self._instance_settings.get(['main_perlimit'], None)
 
     def update(self, launch_enabled=True, projects=None):
         """Update all tasks in taskqueue of projects_redcap."""
         launch_list = []
+        running_list = []
         updates = []
         resdir = self._instance_settings['main_resdir']
         def_field = self._projects_redcap.def_field
@@ -74,6 +76,8 @@ class TaskLauncher(object):
                 if status in ['NEED_INPUTS', 'UPLOADING']:
                     pass
                 elif status == 'RUNNING':
+                    running_list.append(t)
+
                     # check on running job
                     logger.debug(f'checking on running job:{assr}')
                     task_updates = get_updates(t)
@@ -138,9 +142,13 @@ class TaskLauncher(object):
                     err = 'connection to REDCap interrupted'
                     logger.error(err)
 
-            # TODO: sort or randomize list???
-
             if launch_enabled:
+                if self._perlimit:
+                    # Apply proc/proj limits, filter out proc/proj over limits
+                    logger.info(f'applying proc/proj limits to launch list:n={len(launch_list)}')
+                    launch_list = self._apply_perlimit(launch_list, running_list)
+                    logger.info(f'ready to launch:n={len(launch_list)}')
+
                 q_limit = int(instance_settings['main_queuelimit'])
                 p_limit = int(instance_settings['main_queuelimit_pending'])
                 u_limit = int(instance_settings['main_limit_pendinguploads'])
@@ -245,6 +253,35 @@ class TaskLauncher(object):
             # Delete the lock file
             logger.debug(f'deleting lock file:{lock_file}')
             unlock_flagfile(lock_file)
+
+    def _apply_perlimit(self, launch_list, running_list):
+        result_list = []
+        def_field = self._projects_redcap.def_field
+        per_limit = self._perlimit
+
+        # Get the proj/proc tuples from launch list, count existing, count new, apply
+        df = pd.DataFrame(running_list)
+        df['PROCTYPE'] = df['task_assessor'].str.rsplit('-x-', n=2).str[1]
+        running_counts = df.groupby([def_field, 'PROCTYPE']).size().to_dict()
+
+        for x in launch_list:
+            proctype = x['task_assessor'].rsplit('-x-', 2)[1]
+            project = x[def_field]
+
+            if (project, proctype) not in running_counts:
+                # Initialize proj/type with nothing yet running
+                running_counts[(project, proctype)] = 0
+
+            if running_counts[(project, proctype)] >= per_limit:
+                logger.debug(f'cannot launch, too many already running:{project}:{proctype}')
+                continue
+
+            # Append to list and increment counter for proj/type
+            logger.debug(f'appending to launch list:{project}:{proctype}')
+            result_list.append(x)
+            running_counts[(project, proctype)] += 1
+
+        return result_list
 
     def create_complete_flag(self, assr):
         open(f'{self.resdir}/{assr}/READY_TO_COMPLETE.txt', 'w').close()
