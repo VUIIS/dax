@@ -8,6 +8,8 @@ from datetime import date
 import shutil
 import time
 
+import pandas as pd
+
 from ..processors import load_from_yaml
 from ..cluster import PBS, count_jobs
 from ..lockfiles import lock_flagfile, unlock_flagfile
