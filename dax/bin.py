@@ -396,9 +396,13 @@ def _load_source(modname, filename):
     spec = importlib.util.spec_from_file_location(modname, filename, loader=loader)
     if spec is None:
         raise ModuleNotFoundError(f'could not create module spec:{filename}')
-  
-    return importlib.util.module_from_spec(spec)
 
+    # Load into system modules
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[modname] = mod
+    spec.loader.exec_module(mod)
+
+    return mod
 
 def upload(settings_path, max_threads=1):
     logger = logging.getLogger('dax')
