@@ -259,7 +259,7 @@ class TaskLauncher(object):
     def _apply_perlimit(self, launch_list, running_list):
         result_list = []
         def_field = self._projects_redcap.def_field
-        per_limit = self._perlimit
+        per_limit = int(self._perlimit)
 
         # Get the proj/proc tuples from launch list, count existing, count new, apply
         df = pd.DataFrame(running_list)
