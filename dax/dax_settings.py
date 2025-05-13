@@ -127,10 +127,10 @@ class DAX_Settings(object):
         return SLURM_COUNTJOBS_PENDING
 
     def get_cmd_count_jobs_launched_rcq(self):
-        return SLURM_COUNTJOBS_LAUNCHED_RCQ
+        return Template(SLURM_COUNTJOBS_LAUNCHED_RCQ)
 
     def get_cmd_count_jobs_pending_rcq(self):
-        return SLURM_COUNTJOBS_PENDING_RCQ
+        return Template(SLURM_COUNTJOBS_PENDING_RCQ)
 
     def get_cmd_count_pendinguploads(self):
         return Template(SLURM_COUNT_PENDINGUPLOADS)
