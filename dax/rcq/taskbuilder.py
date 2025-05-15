@@ -289,7 +289,7 @@ class TaskBuilder(object):
                 self._undo_task(assr)
                 info['PROCSTATUS'] = NEED_TO_RUN
             else:
-                logger.info(f'ignoring QCSTATUS:{info["ASSR"]}:{info["QCSTATUS"]}')
+                logger.debug(f'ignoring QCSTATUS:{info["ASSR"]}:{info["QCSTATUS"]}')
 
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
                 logger.info(f'building task:{info["ASSR"]}')
