@@ -260,11 +260,13 @@ class TaskLauncher(object):
         result_list = []
         def_field = self._projects_redcap.def_field
         per_limit = int(self._perlimit)
+        running_counts = {}
 
         # Get the proj/proc tuples from launch list, count existing, count new, apply
-        df = pd.DataFrame(running_list)
-        df['PROCTYPE'] = df['task_assessor'].str.rsplit('-x-', n=2).str[1]
-        running_counts = df.groupby([def_field, 'PROCTYPE']).size().to_dict()
+        if len(running_list) > 0:
+            df = pd.DataFrame(running_list)
+            df['PROCTYPE'] = df['task_assessor'].str.rsplit('-x-', n=2).str[1]
+            running_counts = df.groupby([def_field, 'PROCTYPE']).size().to_dict()
 
         for x in launch_list:
             proctype = x['task_assessor'].rsplit('-x-', 2)[1]
