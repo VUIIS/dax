@@ -20,6 +20,7 @@ jobtemplate: str(required=False)
 command:
   type: enum('singularity_run', 'singularity_exec')
   container: str()
+  opts: str(required=False)
   extraopts: str(required=False)
   args: str(required=False)
 container:
