@@ -15,9 +15,9 @@ from ..cluster import PBS, count_jobs_rcq
 from ..lockfiles import lock_flagfile, unlock_flagfile
 
 
-logger = logging.getLogger('manager.rcq.tasklauncher')
+logger = logging.getLogger('dax')
 
-DONE_STATUSES = ['COMPLETE', 'JOB_FAILED']
+DONE_STATUSES = ['COMPLETE', 'JOB_FAILED', 'LOST']
 
 SUBDIRS = ['OUTLOG', 'PBS', 'PROCESSOR']
 
@@ -178,13 +178,19 @@ class TaskLauncher(object):
                     outdir = f'{resdir}/{assr}'
 
                     if os.path.exists(outdir):
-                        logger.info(f'cannot launch, found existing dir:{outdir}')
+                        logger.info(f'cannot launch, found existing dir, setting status to RUNNING:{outdir}')
+                        updates.append({
+                                def_field: t[def_field],
+                                'redcap_repeat_instrument': 'taskqueue',
+                                'redcap_repeat_instance': t['redcap_repeat_instance'],
+                                'task_status': 'RUNNING',
+                        })
                         continue
-
-                    make_task_dirs(outdir)
 
                     try:
                         logger.debug(f'launch:{i}:{assr}')
+
+                        make_task_dirs(outdir)
 
                         # Locate the processor yaml file
                         if t['task_yamlfile'] == 'CUSTOM':
