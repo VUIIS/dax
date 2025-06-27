@@ -28,7 +28,7 @@ class TaskQueue(object):
 
         # Filter to only uploading jobs
         rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
-        rec = [x for x in rec if x['task_status'] in ['LOST', 'UPLOADING']]
+        rec = [x for x in rec if x['task_status'] in ['UPLOADING']]
 
         if len(rec) == 0:
             logger.info('nothing to update from XNAT to REDCap')
@@ -78,17 +78,6 @@ class TaskQueue(object):
                         'redcap_repeat_instance': t['redcap_repeat_instance'],
                         'task_status': 'JOB_FAILED',
                         'taskqueue_complete': '0'
-                    })
-                elif task_status == 'LOST':
-                    logger.info(f'found lost job, setting to QUEUED:{assr}')
-
-                    task_updates.append({
-                        def_field: t[def_field],
-                        'redcap_repeat_instrument': 'taskqueue',
-                        'redcap_repeat_instance': t['redcap_repeat_instance'],
-                        'task_status': 'QUEUED',
-                        'task_jobid': '',
-                        'task_jobnode': '',
                     })
                 else:
                     logger.debug(f'{i}:{assr}:{task_status}')
