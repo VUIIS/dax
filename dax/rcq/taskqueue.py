@@ -80,7 +80,7 @@ class TaskQueue(object):
                         'taskqueue_complete': '0'
                     })
                 else:
-                    logger.info(f'{i}:{assr}:{task_status}')
+                    logger.info(f'{i}:{assr}:{task_status}:{xnat_status}')
 
                 # we matched so we are done with this task
                 break
