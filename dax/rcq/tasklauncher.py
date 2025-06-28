@@ -139,7 +139,7 @@ class TaskLauncher(object):
 
             if updates:
                 # upload changes
-                logger.debug(f'updating redcap:{updates}')
+                logger.info(f'updating redcap:{updates}')
                 try:
                     projects_redcap.import_records(updates)
                 except Exception as err:
