@@ -120,6 +120,7 @@ class TaskLauncher(object):
                         self.task_to_diskq(t)
                         task_status = 'UPLOADING'
                     except FileNotFoundError as err:
+                        print(assr, err)
                         logger.error(f'failed to update, lost:{assr}:{err}')
                         task_status = 'LOST'
 
