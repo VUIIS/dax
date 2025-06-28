@@ -15,7 +15,8 @@ from ..cluster import PBS, count_jobs_rcq
 from ..lockfiles import lock_flagfile, unlock_flagfile
 
 
-logger = logging.getLogger('dax')
+logger = logging.getLogger('manager.rcq.tasklauncher')
+
 
 DONE_STATUSES = ['COMPLETE', 'JOB_FAILED', 'LOST']
 
@@ -44,7 +45,7 @@ class TaskLauncher(object):
         success = lock_flagfile(lock_file)
         if not success:
             # Failed to get lock
-            logger.warn('failed to get lock:{}'.format(lock_file))
+            logger.error('failed to get lock:{}'.format(lock_file))
             return
 
         try:
@@ -73,6 +74,7 @@ class TaskLauncher(object):
                 assr = t['task_assessor']
                 status = t['task_status']
 
+                print(i, assr, status)
                 logger.info(f'updating task:{i}:{assr}:{status}')
 
                 if status in ['NEED_INPUTS', 'UPLOADING']:
@@ -118,7 +120,7 @@ class TaskLauncher(object):
                         self.task_to_diskq(t)
                         task_status = 'UPLOADING'
                     except FileNotFoundError as err:
-                        logger.warn(f'failed to update, lost:{assr}:{err}')
+                        logger.error(f'failed to update, lost:{assr}:{err}')
                         task_status = 'LOST'
 
                     # Add to redcap updates

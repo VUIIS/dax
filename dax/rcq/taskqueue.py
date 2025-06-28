@@ -121,7 +121,7 @@ class TaskQueue(object):
         rec = [x for x in rec if x['task_assessor'] == assessor]
 
         if len(rec) > 1:
-            logger.warn(f'duplicate tasks for assessor, not good:{assessor}')
+            logger.error(f'duplicate tasks for assessor, not good:{assessor}')
             task_id = rec[0]['redcap_repeat_instance']
         elif len(rec) == 1:
             task_id = rec[0]['redcap_repeat_instance']
