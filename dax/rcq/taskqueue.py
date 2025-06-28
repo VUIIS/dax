@@ -28,7 +28,7 @@ class TaskQueue(object):
 
         # Filter to only uploading jobs
         rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
-        rec = [x for x in rec if x['task_status'] in ['UPLOADING']]
+        rec = [x for x in rec if x['task_status'] in ['UPLOADING', 'LOST']]
 
         if len(rec) == 0:
             logger.info('nothing to update from XNAT to REDCap')
