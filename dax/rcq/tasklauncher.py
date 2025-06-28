@@ -116,6 +116,7 @@ class TaskLauncher(object):
 
                     try:
                         # Move to disk queue for upload
+                        logger.info(f'task_to_diskq:{assr}')
                         self.task_to_diskq(t)
                         task_status = 'UPLOADING'
                     except FileNotFoundError as err:
