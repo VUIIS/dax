@@ -58,7 +58,7 @@ class TaskQueue(object):
 
                 # We have a match, now check for updates
                 if xnat_status == 'COMPLETE':
-                    logger.debug(f'{i}:{assr}:COMPLETE')
+                    logger.info(f'{i}:{assr}:COMPLETE')
 
                     # Apply complete from xnat to redcap
                     task_updates.append({
@@ -69,7 +69,7 @@ class TaskQueue(object):
                         'taskqueue_complete': '2'
                     })
                 elif xnat_status == 'JOB_FAILED':
-                    logger.debug(f'{i}:{assr}:JOB_FAILED')
+                    logger.info(f'{i}:{assr}:JOB_FAILED')
 
                     # Apply from xnat to redcap
                     task_updates.append({
@@ -80,7 +80,7 @@ class TaskQueue(object):
                         'taskqueue_complete': '0'
                     })
                 else:
-                    logger.debug(f'{i}:{assr}:{task_status}')
+                    logger.info(f'{i}:{assr}:{task_status}')
 
                 # we matched so we are done with this task
                 break
@@ -95,13 +95,13 @@ class TaskQueue(object):
                 })
 
         # Apply updates to REDCap
-        logger.debug(f'updating {len(task_updates)} tasks')
+        logger.info(f'updating {len(task_updates)} tasks')
 
         if task_updates:
-            logger.debug(f'updating task info on redcap:{assr}:{task_updates}')
+            logger.info(f'updating task info on redcap:{assr}:{task_updates}')
             self.apply_updates(task_updates)
         else:
-            logger.debug(f'nothing to update')
+            logger.info(f'nothing to update')
 
     def apply_updates(self, updates):
         try:
