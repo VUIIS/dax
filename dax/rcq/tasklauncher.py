@@ -121,8 +121,9 @@ class TaskLauncher(object):
                         task_status = 'UPLOADING'
                     except FileNotFoundError as err:
                         print(assr, err)
-                        logger.error(f'failed to update, lost:{assr}:{err}')
-                        task_status = 'LOST'
+                        logger.error(f'failed to move to diskq, skipping:{assr}:{err}')
+                        #task_status = 'LOST'
+                        continue
 
                     # Add to redcap updates
                     updates.append({
@@ -387,7 +388,7 @@ class TaskLauncher(object):
         # Check for failed job
         if not self.has_ready_flag(assr):
 
-            # Create failed flag  
+            # Create failed flag
             if not self.has_failed_flag(assr):
                 self.create_failed_flag(assr)
 
