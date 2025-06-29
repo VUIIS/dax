@@ -18,7 +18,7 @@ from ..lockfiles import lock_flagfile, unlock_flagfile
 logger = logging.getLogger('manager.rcq.tasklauncher')
 
 
-DONE_STATUSES = ['COMPLETE', 'JOB_FAILED']
+DONE_STATUSES = ['COMPLETE', 'JOB_FAILED', 'LOST']
 
 SUBDIRS = ['OUTLOG', 'PBS', 'PROCESSOR']
 
@@ -94,7 +94,7 @@ class TaskLauncher(object):
 
                         # Add to redcap updates
                         updates.append(task_updates)
-                elif status in ['LOST', 'COMPLETED', 'FAILED', 'CANCELLED', 'NODE_FAIL', 'OUT_OF_MEMORY', 'TIMEOUT']:
+                elif status in ['COMPLETED', 'FAILED', 'CANCELLED', 'NODE_FAIL', 'OUT_OF_MEMORY', 'TIMEOUT']:
                     # finish completed job by moving to upload
                     logger.debug('setting to upload')
 
@@ -122,7 +122,6 @@ class TaskLauncher(object):
                     except FileNotFoundError as err:
                         print(assr, err)
                         logger.error(f'failed to move to diskq, skipping lost:{assr}:{err}')
-                        #task_status = 'LOST'
                         continue
 
                     # Add to redcap updates
