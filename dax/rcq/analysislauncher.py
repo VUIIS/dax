@@ -830,12 +830,7 @@ class AnalysisLauncher(object):
         maincmd = self.build_main_text(analysis)
 
         # Get the container path so it can optionally be pre-copied to /tmp
-        container_path = self.get_container_path(
-            analysis['processor']['containers'],
-             analysis['processor']['command']['container']
-        )
-        logger.info(analysis['processor']['containers'])
-        logger.info(analysis['processor']['command']['container'])
+        container_path = analysis['processor']['command']['container']
         logger.info(f'{container_path=}')
 
         # Append other paths
