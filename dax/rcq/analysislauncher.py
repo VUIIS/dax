@@ -35,6 +35,7 @@ VERSION={version}
 INLIST={inputs}
 XNATHOST={host}
 XNATUSER={user}
+CONTAINERPATH={container}
 {maincmd}
 
 '''
@@ -828,6 +829,12 @@ class AnalysisLauncher(object):
         # Get main commands text
         maincmd = self.build_main_text(analysis)
 
+        # Get the container path so it can optionally be pre-copied to /tmp
+        container_path = self.get_container_path(
+            analysis['processor']['containers'],
+            'command'
+        )
+
         # Append other paths
         cmd = CMDS_TEMPLATE.format(
             inputs=inputs,
@@ -837,6 +844,7 @@ class AnalysisLauncher(object):
             project=analysis['project'],
             analysis=analysis['label'],
             repo=analysis['procrepo'],
+            container=container_path,
             maincmd=maincmd
         )
 
