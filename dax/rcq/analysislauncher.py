@@ -578,6 +578,11 @@ class AnalysisLauncher(object):
             sgp_spec = spec.get('assessors')
             sgp = [x for x in info['sgp'] if x['SUBJECT'] == subject]
 
+            # Filter to only complete
+            logger.debug(f'found {len(sgp)} total sgp, filtering')
+            sgp = [x for x in sgp if x['PROCSTATUS'] == 'COMPLETE']
+            logger.debug(f'found {len(sgp)} complete sgp')
+
             for assr in sgp:
                 assrlabel = assr['ASSR']
 
