@@ -832,8 +832,9 @@ class AnalysisLauncher(object):
         # Get the container path so it can optionally be pre-copied to /tmp
         container_path = self.get_container_path(
             analysis['processor']['containers'],
-            'command'
+             analysis['processor']['command']['container']
         )
+        logger.info(f'{container_path=}')
 
         # Append other paths
         cmd = CMDS_TEMPLATE.format(
