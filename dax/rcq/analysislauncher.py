@@ -834,6 +834,8 @@ class AnalysisLauncher(object):
             analysis['processor']['containers'],
              analysis['processor']['command']['container']
         )
+        logger.info(analysis['processor']['containers'])
+        logger.info(analysis['processor']['command']['container'])
         logger.info(f'{container_path=}')
 
         # Append other paths
