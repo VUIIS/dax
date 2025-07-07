@@ -36,6 +36,8 @@ INLIST={inputs}
 XNATHOST={host}
 XNATUSER={user}
 CONTAINERPATH={container}
+PRECONTAINERPATH={precontainer}
+POSTCONTAINERPATH={postcontainer}
 {maincmd}
 
 '''
@@ -831,6 +833,8 @@ class AnalysisLauncher(object):
 
         # Get the container path so it can optionally be pre-copied to /tmp
         container_path = analysis['processor']['command']['container']
+        pre_path = analysis['processor'].get('pre', {}).get('container', None)
+        post_path = analysis['processor'].get('post', {}).get('container', None)
         logger.info(f'{container_path=}')
 
         # Append other paths
@@ -843,6 +847,8 @@ class AnalysisLauncher(object):
             analysis=analysis['label'],
             repo=analysis['procrepo'],
             container=container_path,
+            precontainer=pre_path,
+            postcontainer=post_path,
             maincmd=maincmd
         )
 
