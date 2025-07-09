@@ -753,7 +753,7 @@ class AnalysisLauncher(object):
 
         # Set subject list
         analysis['subjects'] = analysis['analysis_include'].splitlines()
-        analysis['exclude'] = analysis['analysis_exclude'].splitlines()
+        analysis['exclude'] = [x.strip() for x in analysis['analysis_exclude'].split(',')]
 
         # Set the memory
         memreq = analysis.get('analysis_memreq', None)
