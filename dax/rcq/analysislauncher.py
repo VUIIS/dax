@@ -409,8 +409,12 @@ class AnalysisLauncher(object):
                 subjects = sorted(list(set([x['SUBJECT'] for x in info['scans']])))
 
             exclude = analysis.get('exclude', None)
+            logger.info(f'{exclude=}')
+
             if exclude:
                 subjects = [x for x in subjects if x not in exclude]
+
+            logger.info(f'{subjects=}')
 
             for subj in subjects:
                 inputlist.extend(self.get_subject_inputs(spec, info, subj))
@@ -754,6 +758,8 @@ class AnalysisLauncher(object):
         # Set subject list
         analysis['subjects'] = analysis['analysis_include'].splitlines()
         analysis['exclude'] = [x.strip() for x in analysis['analysis_exclude'].split(',')]
+
+        logger.info(f'{analysis}')
 
         # Set the memory
         memreq = analysis.get('analysis_memreq', None)
