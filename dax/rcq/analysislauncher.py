@@ -408,6 +408,10 @@ class AnalysisLauncher(object):
                 # Get unique list of subjects from scans
                 subjects = sorted(list(set([x['SUBJECT'] for x in info['scans']])))
 
+            exclude = analysis.get('exclude', None)
+            if exclude:
+                subjects = [x for x in subjects if x not in exclude]
+
             for subj in subjects:
                 inputlist.extend(self.get_subject_inputs(spec, info, subj))
 
@@ -749,6 +753,7 @@ class AnalysisLauncher(object):
 
         # Set subject list
         analysis['subjects'] = analysis['analysis_include'].splitlines()
+        analysis['exclude'] = analysis['analysis_exclude'].splitlines()
 
         # Set the memory
         memreq = analysis.get('analysis_memreq', None)
