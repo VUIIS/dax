@@ -142,6 +142,19 @@ class TaskQueue(object):
                     adict['session_label'],
                     adict['label'])
 
+            if not xnat_assr.exists():
+                logger.info(f'{i}:{assr}:not found on XNAT')
+
+                # Append update for REDCap
+                updates.append({
+                    def_field: t[def_field],
+                    'redcap_repeat_instrument': 'taskqueue',
+                    'redcap_repeat_instance': t['redcap_repeat_instance'],
+                    'task_status': 'LOST',
+                    'taskqueue_complete': '0'
+                })
+                continue
+
             xsi_type = xnat_assr.datatype().lower()
             xnat_status = xnat_assr.attrs.get(f'{xsi_type}/procstatus')
 
