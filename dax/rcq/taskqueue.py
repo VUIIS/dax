@@ -33,7 +33,7 @@ class TaskQueue(object):
         launch_failed = [x for x in rec if x['task_status'] in ['LAUNCH_FAILED']]
         uploading = [x for x in rec if x['task_status'] in ['UPLOADING', 'LOST']]
 
-        if len(launch_failed) == 0 and len(uploading) == 0::
+        if len(launch_failed) == 0 and len(uploading) == 0:
             logger.info('no active tasks to sync between XNAT and REDCap')
             return
 
