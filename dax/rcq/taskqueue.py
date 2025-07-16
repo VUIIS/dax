@@ -19,8 +19,8 @@ class TaskQueue(object):
         self._rc = projects_redcap
 
     def sync(self, xnat, projects):
-        task_updates = []
         def_field = self._rc.def_field
+        task_updates = []
 
         logger.info('loading taskqueue records from REDCap')
         rec = self._rc.export_records(
@@ -31,16 +31,33 @@ class TaskQueue(object):
         # Filter
         rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
         launch_failed = [x for x in rec if x['task_status'] in ['LAUNCH_FAILED']]
-        rec = [x for x in rec if x['task_status'] in ['UPLOADING', 'LOST']]
+        uploading = [x for x in rec if x['task_status'] in ['UPLOADING', 'LOST']]
 
-        if len(launch_failed) == 0 and len(rec) == 0:
+        if len(launch_failed) == 0 and len(uploading) == 0::
             logger.info('no active tasks to sync between XNAT and REDCap')
             return
 
-        task_updates += self.sync_launch_failed(launch_failed, xnat)
+        if len(launch_failed) > 0:
+            task_updates += self.sync_launch_failed(launch_failed, xnat)
+
+        if len(uploading) > 0:
+            task_updates += self.sync_uploading(uploading, xnat)
+
+        # Apply updates to REDCap
+        logger.info(f'updating {len(task_updates)} tasks')
+
+        if task_updates:
+            logger.info(f'updating task info on redcap:{task_updates}')
+            self.apply_updates(task_updates)
+        else:
+            logger.info(f'nothing to update')
+
+    def sync_uploading(self, tasks, xnat):
+        def_field = self._rc.def_field
+        updates = []
 
         # Get projects with active tasks
-        projects = list(set([x[def_field] for x in rec]))
+        projects = list(set([x[def_field] for x in tasks]))
 
         # Load assesssor data from XNAT as our current status
         logger.info(f'loading XNAT data:{projects}')
@@ -48,7 +65,7 @@ class TaskQueue(object):
 
         # Get updates
         logger.debug('updating each task')
-        for i, t in enumerate(rec):
+        for i, t in enumerate(tasks):
             assr = t['task_assessor']
             task_status = t['task_status']
 
@@ -66,7 +83,7 @@ class TaskQueue(object):
                     logger.info(f'{i}:{assr}:COMPLETE')
 
                     # Apply complete from xnat to redcap
-                    task_updates.append({
+                    updates.append({
                         def_field: t[def_field],
                         'redcap_repeat_instrument': 'taskqueue',
                         'redcap_repeat_instance': t['redcap_repeat_instance'],
@@ -77,7 +94,7 @@ class TaskQueue(object):
                     logger.info(f'{i}:{assr}:JOB_FAILED')
 
                     # Apply from xnat to redcap
-                    task_updates.append({
+                    updates.append({
                         def_field: t[def_field],
                         'redcap_repeat_instrument': 'taskqueue',
                         'redcap_repeat_instance': t['redcap_repeat_instance'],
@@ -92,21 +109,14 @@ class TaskQueue(object):
 
             if not match_found:
                 logger.debug(f'no match, set to DELETED:{assr}')
-                task_updates.append({
+                updates.append({
                     def_field: t[def_field],
                     'redcap_repeat_instrument': 'taskqueue',
                     'redcap_repeat_instance': t['redcap_repeat_instance'],
                     'task_status': 'DELETED',
                 })
 
-        # Apply updates to REDCap
-        logger.info(f'updating {len(task_updates)} tasks')
-
-        if task_updates:
-            logger.info(f'updating task info on redcap:{assr}:{task_updates}')
-            self.apply_updates(task_updates)
-        else:
-            logger.info(f'nothing to update')
+        return updates
 
     def sync_launch_failed(self, tasks, xnat):
         def_field = self._rc.def_field
