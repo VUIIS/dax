@@ -913,6 +913,35 @@ class DaxManager(object):
 
         return run_errors
 
+    def run_nodiskq(self):
+        if not self._rcq:
+            LOGGER.info('rcq not found')
+            return []
+
+        run_errors = []
+        run_time = datetime.now()
+        _projects = self.settings_manager.project_names()
+
+        LOGGER.info(f'rcq update:{_projects}')
+        rcq.update(
+            self._rcq,
+            self.settings_manager._instance_settings,
+            build_enabled=False, 
+            launch_enabled=self.is_enabled_launch(),
+            projects=_projects)
+
+        # Run separate rcq build so it locks between dax_managers
+        if self.is_enabled_build():
+            build_errors = self.run_rcq_build(_projects, run_time)
+            run_errors.extend(build_errors)
+
+            if run_errors:
+                LOGGER.info('ERROR:dax manager DONE with errors')
+            else:
+                LOGGER.info('run DONE with no errors!')
+
+        return run_errors
+
     def rcq_update(self):
         rcq.update(
             self._rcq,

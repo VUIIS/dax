@@ -143,7 +143,12 @@ option if you use different XNAT_HOST).'
     # manager:
     manager_desc = 'Extracts settings from REDCap, then \
 runs build, launch, update and upload.'
-    dax_parser.add_parser('manager', help=manager_desc)
+    manager_parser = dax_parser.add_parser('manager', help=manager_desc)
+    manager_parser.add_argument(
+        '--nodiskq',
+        dest='diskq',
+        action='store_false',
+        help='Only update rcq not diskq.')
 
     # setup:
     setup_desc = 'Set up dax on your computer'
@@ -229,7 +234,10 @@ if __name__ == '__main__':
             manager.clean_lockfiles()
 
             # And run it
-            errors = manager.run()
+            if not args.diskq:
+                errors = manager.run_nodiskq()
+            else:
+                errors = manager.run()
 
             if errors:
                 print('ERROR:dax manager errors, emailing admin:', errors)
