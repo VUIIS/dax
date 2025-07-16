@@ -150,7 +150,7 @@ class TaskQueue(object):
                     def_field: t[def_field],
                     'redcap_repeat_instrument': 'taskqueue',
                     'redcap_repeat_instance': t['redcap_repeat_instance'],
-                    'task_status': 'LOST',
+                    'task_status': 'DELETED',
                     'taskqueue_complete': '0'
                 })
                 continue
