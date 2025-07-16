@@ -7,7 +7,7 @@ import json
 import pandas as pd
 import numpy as np
 
-from ..assessor_utils import parse_full_assessor_name
+from ..assessor_utils import parse_full_assessor_name, is_sgp_assessor
 
 
 logger = logging.getLogger('manager.rcq.taskqueue')
@@ -120,7 +120,7 @@ class TaskQueue(object):
 
             # Connect to the assessor on xnat, sgp or assr
             adict = parse_full_assessor_name(assr)
-            if is_sgp(assr):
+            if is_sgp_assessor(assr):
                 xnat_assr = xnat.select_sgp_assessor(
                     adict['project_id'],
                     adict['subject_label'],
