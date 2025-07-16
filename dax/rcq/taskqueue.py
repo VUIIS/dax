@@ -7,6 +7,8 @@ import json
 import pandas as pd
 import numpy as np
 
+from ..assessor_utils import parse_full_assessor_name
+
 
 logger = logging.getLogger('manager.rcq.taskqueue')
 
@@ -26,13 +28,16 @@ class TaskQueue(object):
             forms=['taskqueue'],
             fields=[def_field])
 
-        # Filter to only uploading jobs
+        # Filter
         rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
+        launch_failed = [x for x in rec if x['task_status'] in ['LAUNCH_FAILED']]
         rec = [x for x in rec if x['task_status'] in ['UPLOADING', 'LOST']]
 
-        if len(rec) == 0:
-            logger.info('nothing to update from XNAT to REDCap')
+        if len(launch_failed) == 0 and len(rec) == 0:
+            logger.info('no active tasks to sync between XNAT and REDCap')
             return
+
+        task_updates += self.sync_launch_failed(launch_failed, xnat)
 
         # Get projects with active tasks
         projects = list(set([x[def_field] for x in rec]))
@@ -102,6 +107,53 @@ class TaskQueue(object):
             self.apply_updates(task_updates)
         else:
             logger.info(f'nothing to update')
+
+    def sync_launch_failed(self, tasks, xnat):
+        def_field = self._rc.def_field
+        updates = []
+
+        for i, t in enumerate(tasks):
+            assr = t['task_assessor']
+            task_status = t['task_status']
+
+            logger.info(f'sync_launch_failed:{i}:{assr}:{task_status}')
+
+            # Connect to the assessor on xnat, sgp or assr
+            adict = parse_full_assessor_name(assr)
+            if is_sgp(assr):
+                xnat_assr = xnat.select_sgp_assessor(
+                    adict['project_id'],
+                    adict['subject_label'],
+                    adict['label'])
+            else:
+                xnat_assr = xnat.select_assessor(
+                    adict['project_id'],
+                    adict['subject_label'],
+                    adict['session_label'],
+                    adict['label'])
+
+            xsi_type = xnat_assr.datatype().lower()
+            xnat_status = xnat_assr.attrs.get(f'{xsi_type}/procstatus')
+
+            if task_status == 'LAUNCH_FAILED' and xnat_status == 'JOB_RUNNING':
+                logger.info(f'{i}:{assr}:apply launch failed from REDCap to XNAT')
+
+                # set XNAT statuses
+                xnat_assr.attrs.set(f'{xsi_type}/procstatus', 'JOB_FAILED')
+                xnat_assr.attrs.set(f'{xsi_type}/validation/status', 'Launch Failed')
+
+                # Append update for REDCap
+                updates.append({
+                    def_field: t[def_field],
+                    'redcap_repeat_instrument': 'taskqueue',
+                    'redcap_repeat_instance': t['redcap_repeat_instance'],
+                    'task_status': 'JOB_FAILED',
+                    'taskqueue_complete': '0'
+                })
+            else:
+                logger.info(f'{i}:{assr}:{task_status}:{xnat_status}')
+
+            return updates
 
     def apply_updates(self, updates):
         try:
