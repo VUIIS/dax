@@ -176,7 +176,7 @@ class TaskQueue(object):
             else:
                 logger.info(f'{i}:{assr}:{task_status}:{xnat_status}')
 
-            return updates
+        return updates
 
     def apply_updates(self, updates):
         try:
