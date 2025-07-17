@@ -521,6 +521,12 @@ def get_updates(task):
     if job_node and job_node != task.get('task_jobnode', ''):
         task_updates['task_jobnode'] = job_node
 
+    if job_start and job_start != task.get('task_jobstart', ''):
+        task_updates['task_jobstart'] = job_start
+
+    if job_end and job_end != task.get('task_jobend', ''):
+        task_updates['task_jobend'] = job_end
+
     if job_state != task['task_status']:
         logger.debug(f'changing status to:{job_state}')
         task_updates['task_status'] = job_state
