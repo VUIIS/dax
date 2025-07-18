@@ -617,6 +617,8 @@ class DaxManager(object):
         self.enabled = (instance_settings['main_complete'] == 'Complete')
         self.xnat_host = instance_settings['main_xnathost']
 
+        self._make_lock_dir()
+
         # Create our settings manager and update our settings directory
         self.settings_manager = DaxProjectSettingsManager(
             api_url,
@@ -633,6 +635,9 @@ class DaxManager(object):
                 self._rcq = redcap.Project(api_url, api_key_rcq)
         else:
             self._rcq = None
+
+    def _make_lock_dir(self):
+        os.makedirs(self.lock_dir, exist_ok=True)
 
     def is_enabled_cleanup(self):
         return True
