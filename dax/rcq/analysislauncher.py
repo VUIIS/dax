@@ -755,6 +755,17 @@ class AnalysisLauncher(object):
 
         processor = analysis['processor']
 
+
+        # TODO: validate processor here and handle invalid
+        # import validate
+        # try:
+        #    validate.validate_processor(processor)
+        #    print('Valid!')
+        #except Exception as err:
+        #    print('Not valid!')
+        #    print(err)
+
+
         # Set subject list
         analysis['subjects'] = analysis['analysis_include'].splitlines()
         analysis['exclude'] = [x.strip() for x in analysis['analysis_exclude'].split(',')]
