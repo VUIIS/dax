@@ -1201,7 +1201,7 @@ class InterfaceTemp(Interface):
                         anew['inputs'] = asse.get('%s/inputs' % pfix)
                         anew['dax_docker_version'] = asse['%s/dax_docker_version' % pfix]
                         anew['dax_version'] = asse['%s/dax_version' % pfix]
-                        anew['dax_version_hash'] = asse['%s/dax_version_hash' % pfix] 
+                        anew['dax_version_hash'] = asse['%s/dax_version_hash' % pfix]
                         assessors_dict[key] = anew
 
         return sorted(list(assessors_dict.values()), key=lambda k: k['label'])
@@ -1959,7 +1959,8 @@ def upload_folder_to_obj(directory, resource_obj, resource_label, remove=False,
 
     # Zip all the files in the directory
     os.chdir(directory)
-    os.system('zip -r %s * > /dev/null' % fzip)
+    os.system('find . -type f -print | zip %s -@' %fzip)
+    #os.system('zip -r %s * > /dev/null' % fzip)
     # upload
     resource_obj.put_zip(os.path.join(directory, fzip), overwrite=True,
                          extract=extract)
@@ -2336,7 +2337,7 @@ class CachedImageSession(object):
                 self.project, self.subject, self.session)
         return self.full_object_
 
-    def creation_timestamp(self): 
+    def creation_timestamp(self):
         if self.creation_timestamp_ is None:
             self.creation_timestamp_ = self.full_object().attrs.get(
                 self.datatype() + '/meta/insert_date')
