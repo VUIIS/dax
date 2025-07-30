@@ -617,6 +617,8 @@ class DaxManager(object):
         self.enabled = (instance_settings['main_complete'] == 'Complete')
         self.xnat_host = instance_settings['main_xnathost']
 
+        self._make_lock_dir()
+
         # Create our settings manager and update our settings directory
         self.settings_manager = DaxProjectSettingsManager(
             api_url,
@@ -633,6 +635,9 @@ class DaxManager(object):
                 self._rcq = redcap.Project(api_url, api_key_rcq)
         else:
             self._rcq = None
+
+    def _make_lock_dir(self):
+        os.makedirs(self.lock_dir, exist_ok=True)
 
     def is_enabled_cleanup(self):
         return True
@@ -910,6 +915,35 @@ class DaxManager(object):
 
             if upload_pool:
                 upload_pool.join()
+
+        return run_errors
+
+    def run_nodiskq(self):
+        if not self._rcq:
+            LOGGER.info('rcq not found')
+            return []
+
+        run_errors = []
+        run_time = datetime.now()
+        _projects = self.settings_manager.project_names()
+
+        LOGGER.info(f'rcq update:{_projects}')
+        rcq.update(
+            self._rcq,
+            self.settings_manager._instance_settings,
+            build_enabled=False, 
+            launch_enabled=self.is_enabled_launch(),
+            projects=_projects)
+
+        # Run separate rcq build so it locks between dax_managers
+        if self.is_enabled_build():
+            build_errors = self.run_rcq_build(_projects, run_time)
+            run_errors.extend(build_errors)
+
+            if run_errors:
+                LOGGER.info('ERROR:dax manager DONE with errors')
+            else:
+                LOGGER.info('run DONE with no errors!')
 
         return run_errors
 

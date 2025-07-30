@@ -192,7 +192,7 @@ def setup_info_logger(name, log_file=None):
     :return: logging object
     """
     if log_file:
-        handler = logging.FileHandler(log_file, 'w')
+        handler = logging.FileHandler(log_file)
     else:
         handler = logging.StreamHandler(sys.stdout)
 

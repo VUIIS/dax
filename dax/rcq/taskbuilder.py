@@ -53,6 +53,15 @@ class TaskBuilder(object):
                 logger.debug(f'no processing protocols found:{project}')
                 return
 
+            # TODO: validate processor here and handle invalid
+            # import validate
+            # try:
+            #    validate.validate_processor(processor)
+            #    print('Valid!')
+            #except Exception as err:
+            #    print('Not valid!')
+            #    print(err)
+
             info = load_project_info(self._xnat, project)
 
             # Iterate processing protocols

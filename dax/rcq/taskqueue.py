@@ -7,6 +7,8 @@ import json
 import pandas as pd
 import numpy as np
 
+from ..assessor_utils import parse_full_assessor_name, is_sgp_assessor
+
 
 logger = logging.getLogger('manager.rcq.taskqueue')
 
@@ -17,8 +19,8 @@ class TaskQueue(object):
         self._rc = projects_redcap
 
     def sync(self, xnat, projects):
-        task_updates = []
         def_field = self._rc.def_field
+        task_updates = []
 
         logger.info('loading taskqueue records from REDCap')
         rec = self._rc.export_records(
@@ -26,16 +28,36 @@ class TaskQueue(object):
             forms=['taskqueue'],
             fields=[def_field])
 
-        # Filter to only uploading jobs
+        # Filter
         rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
-        rec = [x for x in rec if x['task_status'] in ['LOST', 'UPLOADING']]
+        launch_failed = [x for x in rec if x['task_status'] in ['LAUNCH_FAILED']]
+        uploading = [x for x in rec if x['task_status'] in ['UPLOADING', 'LOST']]
 
-        if len(rec) == 0:
-            logger.info('nothing to update from XNAT to REDCap')
+        if len(launch_failed) == 0 and len(uploading) == 0:
+            logger.info('no active tasks to sync between XNAT and REDCap')
             return
 
+        if len(launch_failed) > 0:
+            task_updates += self.sync_launch_failed(launch_failed, xnat)
+
+        if len(uploading) > 0:
+            task_updates += self.sync_uploading(uploading, xnat)
+
+        # Apply updates to REDCap
+        logger.info(f'updating {len(task_updates)} tasks')
+
+        if task_updates:
+            logger.info(f'updating task info on redcap:{task_updates}')
+            self.apply_updates(task_updates)
+        else:
+            logger.info(f'nothing to update')
+
+    def sync_uploading(self, tasks, xnat):
+        def_field = self._rc.def_field
+        updates = []
+
         # Get projects with active tasks
-        projects = list(set([x[def_field] for x in rec]))
+        projects = list(set([x[def_field] for x in tasks]))
 
         # Load assesssor data from XNAT as our current status
         logger.info(f'loading XNAT data:{projects}')
@@ -43,7 +65,7 @@ class TaskQueue(object):
 
         # Get updates
         logger.debug('updating each task')
-        for i, t in enumerate(rec):
+        for i, t in enumerate(tasks):
             assr = t['task_assessor']
             task_status = t['task_status']
 
@@ -58,10 +80,10 @@ class TaskQueue(object):
 
                 # We have a match, now check for updates
                 if xnat_status == 'COMPLETE':
-                    logger.debug(f'{i}:{assr}:COMPLETE')
+                    logger.info(f'{i}:{assr}:COMPLETE')
 
                     # Apply complete from xnat to redcap
-                    task_updates.append({
+                    updates.append({
                         def_field: t[def_field],
                         'redcap_repeat_instrument': 'taskqueue',
                         'redcap_repeat_instance': t['redcap_repeat_instance'],
@@ -69,50 +91,92 @@ class TaskQueue(object):
                         'taskqueue_complete': '2'
                     })
                 elif xnat_status == 'JOB_FAILED':
-                    logger.debug(f'{i}:{assr}:JOB_FAILED')
+                    logger.info(f'{i}:{assr}:JOB_FAILED')
 
                     # Apply from xnat to redcap
-                    task_updates.append({
+                    updates.append({
                         def_field: t[def_field],
                         'redcap_repeat_instrument': 'taskqueue',
                         'redcap_repeat_instance': t['redcap_repeat_instance'],
                         'task_status': 'JOB_FAILED',
                         'taskqueue_complete': '0'
                     })
-                elif task_status == 'LOST':
-                    logger.info(f'found lost job, setting to QUEUED:{assr}')
-
-                    task_updates.append({
-                        def_field: t[def_field],
-                        'redcap_repeat_instrument': 'taskqueue',
-                        'redcap_repeat_instance': t['redcap_repeat_instance'],
-                        'task_status': 'QUEUED',
-                        'task_jobid': '',
-                        'task_jobnode': '',
-                    })
                 else:
-                    logger.debug(f'{i}:{assr}:{task_status}')
+                    logger.info(f'{i}:{assr}:{task_status}:{xnat_status}')
 
                 # we matched so we are done with this task
                 break
 
             if not match_found:
                 logger.debug(f'no match, set to DELETED:{assr}')
-                task_updates.append({
+                updates.append({
                     def_field: t[def_field],
                     'redcap_repeat_instrument': 'taskqueue',
                     'redcap_repeat_instance': t['redcap_repeat_instance'],
                     'task_status': 'DELETED',
                 })
 
-        # Apply updates to REDCap
-        logger.debug(f'updating {len(task_updates)} tasks')
+        return updates
 
-        if task_updates:
-            logger.debug(f'updating task info on redcap:{assr}:{task_updates}')
-            self.apply_updates(task_updates)
-        else:
-            logger.debug(f'nothing to update')
+    def sync_launch_failed(self, tasks, xnat):
+        def_field = self._rc.def_field
+        updates = []
+
+        for i, t in enumerate(tasks):
+            assr = t['task_assessor']
+            task_status = t['task_status']
+
+            logger.info(f'sync_launch_failed:{i}:{assr}:{task_status}')
+
+            # Connect to the assessor on xnat, sgp or assr
+            adict = parse_full_assessor_name(assr)
+            if is_sgp_assessor(assr):
+                xnat_assr = xnat.select_sgp_assessor(
+                    adict['project_id'],
+                    adict['subject_label'],
+                    adict['label'])
+            else:
+                xnat_assr = xnat.select_assessor(
+                    adict['project_id'],
+                    adict['subject_label'],
+                    adict['session_label'],
+                    adict['label'])
+
+            if not xnat_assr.exists():
+                logger.info(f'{i}:{assr}:not found on XNAT')
+
+                # Append update for REDCap
+                updates.append({
+                    def_field: t[def_field],
+                    'redcap_repeat_instrument': 'taskqueue',
+                    'redcap_repeat_instance': t['redcap_repeat_instance'],
+                    'task_status': 'DELETED',
+                    'taskqueue_complete': '0'
+                })
+                continue
+
+            xsi_type = xnat_assr.datatype().lower()
+            xnat_status = xnat_assr.attrs.get(f'{xsi_type}/procstatus')
+
+            if task_status == 'LAUNCH_FAILED' and xnat_status == 'JOB_RUNNING':
+                logger.info(f'{i}:{assr}:apply launch failed from REDCap to XNAT')
+
+                # set XNAT statuses
+                xnat_assr.attrs.set(f'{xsi_type}/procstatus', 'JOB_FAILED')
+                xnat_assr.attrs.set(f'{xsi_type}/validation/status', 'Launch Failed')
+
+                # Append update for REDCap
+                updates.append({
+                    def_field: t[def_field],
+                    'redcap_repeat_instrument': 'taskqueue',
+                    'redcap_repeat_instance': t['redcap_repeat_instance'],
+                    'task_status': 'JOB_FAILED',
+                    'taskqueue_complete': '0'
+                })
+            else:
+                logger.info(f'{i}:{assr}:{task_status}:{xnat_status}')
+
+        return updates
 
     def apply_updates(self, updates):
         try:
@@ -132,7 +196,7 @@ class TaskQueue(object):
         rec = [x for x in rec if x['task_assessor'] == assessor]
 
         if len(rec) > 1:
-            logger.warn(f'duplicate tasks for assessor, not good:{assessor}')
+            logger.error(f'duplicate tasks for assessor, not good:{assessor}')
             task_id = rec[0]['redcap_repeat_instance']
         elif len(rec) == 1:
             task_id = rec[0]['redcap_repeat_instance']

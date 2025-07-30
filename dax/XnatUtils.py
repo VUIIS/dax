@@ -448,10 +448,8 @@ class InterfaceTemp(Interface):
         """Given project, subject, assessor (strings),
            returns assessor path (string)
         """
-        return '/projects/{}/subjects/{}/assessors/{}'.format(
-            project=project,
-            subject=subject,
-            assessor=assessor)
+        return '/projects/{}/subjects/{}/experiment/{}'.format(
+            project, subject, assessor)
 
     def select_assessor(self, project, subject, session, assessor):
         """Given project, subject, session, assessor (strings),

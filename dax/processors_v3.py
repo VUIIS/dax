@@ -2001,7 +2001,7 @@ def parse_proctype(yaml_file):
 def parse_procversion(yaml_file):
     # At this point we assume the yaml file name is valid
     tmp = os.path.basename(yaml_file)
-    tmp = os.path.splitext(yaml_file)[0]
+    tmp = os.path.splitext(tmp)[0]
     tmp = tmp.rsplit('_v')[1]
     return tmp
 

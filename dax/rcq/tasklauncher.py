@@ -17,7 +17,8 @@ from ..lockfiles import lock_flagfile, unlock_flagfile
 
 logger = logging.getLogger('manager.rcq.tasklauncher')
 
-DONE_STATUSES = ['COMPLETE', 'JOB_FAILED']
+
+DONE_STATUSES = ['COMPLETE', 'JOB_FAILED', 'LOST']
 
 SUBDIRS = ['OUTLOG', 'PBS', 'PROCESSOR']
 
@@ -44,7 +45,7 @@ class TaskLauncher(object):
         success = lock_flagfile(lock_file)
         if not success:
             # Failed to get lock
-            logger.warn('failed to get lock:{}'.format(lock_file))
+            logger.error('failed to get lock:{}'.format(lock_file))
             return
 
         try:
@@ -115,11 +116,13 @@ class TaskLauncher(object):
 
                     try:
                         # Move to disk queue for upload
+                        logger.info(f'task_to_diskq:{assr}')
                         self.task_to_diskq(t)
                         task_status = 'UPLOADING'
                     except FileNotFoundError as err:
-                        logger.warn(f'failed to update, lost:{assr}:{err}')
-                        task_status = 'LOST'
+                        print(assr, err)
+                        logger.error(f'failed to move to diskq, skipping lost:{assr}:{err}')
+                        continue
 
                     # Add to redcap updates
                     updates.append({
@@ -137,7 +140,7 @@ class TaskLauncher(object):
 
             if updates:
                 # upload changes
-                logger.debug(f'updating redcap:{updates}')
+                logger.info(f'updating redcap:{updates}')
                 try:
                     projects_redcap.import_records(updates)
                 except Exception as err:
@@ -178,13 +181,19 @@ class TaskLauncher(object):
                     outdir = f'{resdir}/{assr}'
 
                     if os.path.exists(outdir):
-                        logger.info(f'cannot launch, found existing dir:{outdir}')
+                        logger.info(f'cannot launch, found existing dir, setting status to RUNNING:{outdir}')
+                        updates.append({
+                                def_field: t[def_field],
+                                'redcap_repeat_instrument': 'taskqueue',
+                                'redcap_repeat_instance': t['redcap_repeat_instance'],
+                                'task_status': 'RUNNING',
+                        })
                         continue
-
-                    make_task_dirs(outdir)
 
                     try:
                         logger.debug(f'launch:{i}:{assr}')
+
+                        make_task_dirs(outdir)
 
                         # Locate the processor yaml file
                         if t['task_yamlfile'] == 'CUSTOM':
@@ -378,7 +387,7 @@ class TaskLauncher(object):
         # Check for failed job
         if not self.has_ready_flag(assr):
 
-            # Create failed flag  
+            # Create failed flag
             if not self.has_failed_flag(assr):
                 self.create_failed_flag(assr)
 
@@ -511,6 +520,12 @@ def get_updates(task):
 
     if job_node and job_node != task.get('task_jobnode', ''):
         task_updates['task_jobnode'] = job_node
+
+    if job_start and job_start != task.get('task_jobstart', ''):
+        task_updates['task_jobstart'] = job_start
+
+    if job_end and job_end != 'Unknown' and job_end != task.get('task_jobend', ''):
+        task_updates['task_jobend'] = job_end
 
     if job_state != task['task_status']:
         logger.debug(f'changing status to:{job_state}')

@@ -778,7 +778,7 @@ name as a key and list of yaml filepaths as values.'
         tmp_dir = tempfile.mkdtemp()
         tmp_name = '{}_build_log-{}.txt'.format(sess_label, now_time)
         tmp_file = os.path.join(tmp_dir, tmp_name)
-        handler = logging.FileHandler(tmp_file, 'w')
+        handler = logging.FileHandler(tmp_file)
         handler.setFormatter(logging.Formatter(
             fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s'))
         LOGGER.addHandler(handler)

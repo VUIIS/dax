@@ -35,6 +35,9 @@ VERSION={version}
 INLIST={inputs}
 XNATHOST={host}
 XNATUSER={user}
+CONTAINERPATH={container}
+PRECONTAINERPATH={precontainer}
+POSTCONTAINERPATH={postcontainer}
 {maincmd}
 
 '''
@@ -405,6 +408,14 @@ class AnalysisLauncher(object):
                 # Get unique list of subjects from scans
                 subjects = sorted(list(set([x['SUBJECT'] for x in info['scans']])))
 
+            exclude = analysis.get('exclude', None)
+            logger.debug(f'{exclude=}')
+
+            if exclude:
+                subjects = [x for x in subjects if x not in exclude]
+
+            logger.debug(f'{subjects=}')
+
             for subj in subjects:
                 inputlist.extend(self.get_subject_inputs(spec, info, subj))
 
@@ -578,6 +589,11 @@ class AnalysisLauncher(object):
             sgp_spec = spec.get('assessors')
             sgp = [x for x in info['sgp'] if x['SUBJECT'] == subject]
 
+            # Filter to only complete
+            logger.debug(f'found {len(sgp)} total sgp, filtering')
+            sgp = [x for x in sgp if x['PROCSTATUS'] == 'COMPLETE']
+            logger.debug(f'found {len(sgp)} complete sgp')
+
             for assr in sgp:
                 assrlabel = assr['ASSR']
 
@@ -739,8 +755,22 @@ class AnalysisLauncher(object):
 
         processor = analysis['processor']
 
+
+        # TODO: validate processor here and handle invalid
+        # import validate
+        # try:
+        #    validate.validate_processor(processor)
+        #    print('Valid!')
+        #except Exception as err:
+        #    print('Not valid!')
+        #    print(err)
+
+
         # Set subject list
         analysis['subjects'] = analysis['analysis_include'].splitlines()
+        analysis['exclude'] = [x.strip() for x in analysis['analysis_exclude'].split(',')]
+
+        logger.debug(f'{analysis}')
 
         # Set the memory
         memreq = analysis.get('analysis_memreq', None)
@@ -823,6 +853,12 @@ class AnalysisLauncher(object):
         # Get main commands text
         maincmd = self.build_main_text(analysis)
 
+        # Get the container path so it can optionally be pre-copied to /tmp
+        container_path = analysis['processor']['command']['container']
+        pre_path = analysis['processor'].get('pre', {}).get('container', None)
+        post_path = analysis['processor'].get('post', {}).get('container', None)
+        logger.info(f'{container_path=}')
+
         # Append other paths
         cmd = CMDS_TEMPLATE.format(
             inputs=inputs,
@@ -832,6 +868,9 @@ class AnalysisLauncher(object):
             project=analysis['project'],
             analysis=analysis['label'],
             repo=analysis['procrepo'],
+            container=container_path,
+            precontainer=pre_path,
+            postcontainer=post_path,
             maincmd=maincmd
         )
 

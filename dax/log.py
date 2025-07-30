@@ -17,7 +17,7 @@ def setup_debug_logger(name, logfile):
     formatter = logging.Formatter(fmt=fmt)
 
     if logfile:
-        handler = logging.FileHandler(logfile, 'w')
+        handler = logging.FileHandler(logfile)
     else:
         handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
@@ -41,7 +41,7 @@ def setup_info_logger(name, logfile):
     formatter = logging.Formatter(fmt=fmt)
 
     if logfile:
-        handler = logging.FileHandler(logfile, 'w')
+        handler = logging.FileHandler(logfile)
     else:
         handler = logging.StreamHandler(sys.stdout)
 
@@ -63,7 +63,7 @@ def setup_critical_logger(name, logfile):
 
     """
     if logfile:
-        handler = logging.FileHandler(logfile, 'w')
+        handler = logging.FileHandler(logfile)
     else:
         handler = logging.StreamHandler(sys.stdout)
 
@@ -83,7 +83,7 @@ def setup_warning_logger(name, logfile):
 
     """
     if logfile:
-        handler = logging.FileHandler(logfile, 'w')
+        handler = logging.FileHandler(logfile)
     else:
         handler = logging.StreamHandler(sys.stdout)
 
@@ -103,7 +103,7 @@ def setup_error_logger(name, logfile):
 
     """
     if logfile:
-        handler = logging.FileHandler(logfile, 'w')
+        handler = logging.FileHandler(logfile)
     else:
         handler = logging.StreamHandler(sys.stdout)
 
