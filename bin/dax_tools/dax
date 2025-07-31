@@ -170,6 +170,13 @@ runs build, launch, update and upload.'
     rcq_parser = dax_parser.add_parser('rcq', help=rcq_desc)
     rcq_parser.add_argument(dest='path')
 
+    # trial:
+    trial_desc = 'trial run of processor on project'
+    trial_parser = dax_parser.add_parser('trial', help=trial_desc)
+    trial_parser.add_argument('-p', dest='project', required=True)
+    trial_parser.add_argument('-y', dest='processor', help='.yaml processor file', required=True)
+    trial_parser.add_argument('-s', dest='subject', help='Subject/Session to run on', required=True)
+
     # version:
     version_desc = 'Print dax version.'
     dax_parser.add_parser('version', help=version_desc)
@@ -289,6 +296,37 @@ if __name__ == '__main__':
                 projects=projects)
         except Exception as err:
             print('rcq failed!', err)
+
+    elif args.command == 'trial':
+        import logging
+        logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+        try:
+            API_URL = os.environ.get('API_URL', 'https://redcap.vumc.org/api/')
+            API_KEY_P = os.environ['API_KEY_DAX_PROJECTS']
+            API_KEY_Q = os.environ.get('API_KEY_DAX_RCQ', API_KEY_P)
+
+            from dax.rcq.trialbuilder import TrialBuilder
+            from dax.XnatUtils import get_interface
+            from redcap import Project
+
+            # Get the redcap with task queue
+            rc = Project(API_URL, API_KEY_Q)
+
+            # Get our xnat
+            xnat = get_interface()
+
+            # Create a trial builder for this xnat and redcap
+            if os.environ.get('XNAT2_HOST', False):
+                print(f'xnat_override={os.environ.get("XNAT2_HOST")}')
+                t = TrialBuilder(rc, xnat, xnat_override=os.environ['XNAT2_HOST'])
+            else:
+                t = TrialBuilder(rc, xnat)
+
+            # Build the trial for requested proj/proc/subj
+            t.build(args.project, args.processor, args.subject)
+        except Exception as err:
+            print(f'trial failed:{err}')
 
     elif args.command == 'version':
         print(dax.__version__)
