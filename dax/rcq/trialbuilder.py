@@ -89,7 +89,7 @@ class TrialBuilder(object):
 
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
                 logger.info(f'building task:{info["ASSR"]}')
-                (assr, info) = self._build_trial(assr, info, processor, project_info, custom=True)
+                (assr, info) = self._build_trial(assr, info, processor, project_info)
                 logger.debug(f'{info}')
                 logger.debug('status:{}:{}'.format(info['ASSR'], info['PROCSTATUS']))
             else:
