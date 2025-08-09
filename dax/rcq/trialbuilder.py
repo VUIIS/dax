@@ -112,6 +112,7 @@ class TrialBuilder(object):
                 logger.info(f'building task:{info["ASSR"]}')
                 (assr, info) = self._build_trial(assr, info, processor, project_info)
                 logger.debug(f'assr after={info}')
+                logger.info(info['PROCSTATUS'])
             else:
                 logger.info('already built:{}'.format(info['ASSR']))
 
