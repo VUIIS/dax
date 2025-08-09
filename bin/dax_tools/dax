@@ -176,6 +176,7 @@ runs build, launch, update and upload.'
     trial_parser.add_argument('-p', dest='project', required=True)
     trial_parser.add_argument('-y', dest='processor', help='.yaml processor file', required=True)
     trial_parser.add_argument('-s', dest='subject', help='Subject/Session to run on', required=True)
+    trial_parser.add_argument('--debug', dest='debug', action='store_true')
 
     # version:
     version_desc = 'Print dax version.'
@@ -299,7 +300,11 @@ if __name__ == '__main__':
 
     elif args.command == 'trial':
         import logging
-        logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+        if args.debug:
+            logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+        else:
+            logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
         try:
             API_URL = os.environ.get('API_URL', 'https://redcap.vumc.org/api/')
