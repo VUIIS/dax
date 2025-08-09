@@ -89,11 +89,11 @@ class TrialBuilder(object):
 
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
                 logger.info(f'building task:{info["ASSR"]}')
-                (assr, info) = self._build_trial(assr, info, processor, project_info, custom=True)
+                (assr, info) = self._build_trial(assr, info, processor, project_info)
                 logger.debug(f'{info}')
-                logger.debug('status:{}:{}'.format(info['ASSR'], info['PROCSTATUS']))
+                logger.info(info['PROCSTATUS'])
             else:
-                logger.debug('already built:{}'.format(info['ASSR']))
+                logger.info('already built:{}'.format(info['ASSR']))
 
     def _build_subject_trial(self, processor, subject, project_info):
         # Get list of inputs sets (not yet matched with existing)
