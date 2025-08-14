@@ -54,7 +54,6 @@ def start_download():
 
     # XnatDownload
     full_comm = XD_comm + scan_comm + assessor_comm
-    print(full_comm) 
     subprocess.run(full_comm, shell=True)
 
     # Output on command line
