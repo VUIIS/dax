@@ -39,8 +39,8 @@ if __name__ == '__main__':
         # Gather assessor inputs
         inputs = XnatUtils.get_assessor_inputs(assessor_obj)
 
+        scan_dict = {}
         if inputs:
-            scan_dict = {}
             for x,y in inputs.items():
                 val = y.split('/')
                 typ = str(val[7:8])
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         project: {
             subject: {
                 session: {
-                    str(assess_dict)
+                    'Assessor': assess_dict
                 }
             }
         }
