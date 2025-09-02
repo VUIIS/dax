@@ -2,6 +2,7 @@
 
 from dax import XnatUtils
 import argparse
+import json
 
 
 def parse_args():
@@ -12,10 +13,6 @@ def parse_args():
     return parser
 
 
-# TO DO: Funtion to grab assessor inputs
-#def input_grab():
-
-
 if __name__ == '__main__':
     PARSER = parse_args()
     OPTIONS = PARSER.parse_args()
@@ -24,14 +21,11 @@ if __name__ == '__main__':
     subject = OPTIONS.subject
     session = OPTIONS.session
 
-    print('Project: {}'.format(project))
-    print('Subject: {}'.format(subject))
-    print('Session: {}'.format(session))
-    print('Assessors:')
-
     # Get assessor list given proj/subj/sess
     with XnatUtils.get_interface() as xnat:
         assessors = xnat.get_assessors(project,subject,session)
+
+    assess_dict = {}
 
     # Loop through assessors
     for assessor in assessors:
@@ -42,19 +36,28 @@ if __name__ == '__main__':
         assess = str(assessor_obj)
         assess = assess.split(' ')
 
-        print('  - assessor_label: {}'.format(assess[2]))
-
         # Gather assessor inputs
         inputs = XnatUtils.get_assessor_inputs(assessor_obj)
 
-        # If assessor has inputs, print them out here; otherwise say no inputs
         if inputs:
-            values = list(inputs.values())
-            print('    inputs:')
-            cnt = 1
+            scan_dict = {}
             for x,y in inputs.items():
                 val = y.split('/')
-                print('      - {}: {}'.format(x,val[8:]))
-                cnt += 1
-        else:
-            print('    inputs: NO INPUTS FOUND')
+                typ = str(val[7:8])
+                typ = typ.strip("[']")
+                scas = str(val[8:]).strip("[']")
+                scan_dict.update({typ+"_"+scas: scas})
+
+        assess_dict.update({assess[2]: scan_dict})
+
+    data = {
+        project: {
+            subject: {
+                session: {
+                    str(assess_dict)
+                }
+            }
+        }
+    }
+
+    print(data)
