@@ -1,0 +1,115 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Tool to remove scan/resource data BY PROJECT
+#   - scan resources
+#   - entire scans
+#   - assessors given their status
+#   - entire assessor groups 
+# 
+# OPTIONS:
+#   --proj            REQUIRED - Project you're wanting to remove data from
+#   [--scan]          OPTIONAL - Scan type you want removed
+#   [--sc_resource]   OPTIONAL - Resource of scan you want removed - MUST ALSO INCLUDE SCAN
+#   [--assess]        OPTIONAL - Assessor type you want removed
+#   [--as_status]     OPTIONAL - Status of assessor you want removed - MUST ALSO INCLUDE ASSESSOR
+
+
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from dax import XnatUtils
+
+xnat = XnatUtils.get_interface()
+
+
+def parse_args():
+    argp = ArgumentParser(prog='SwitchProjects', formatter_class=RawDescriptionHelpFormatter)
+    argp.add_argument('--proj', dest='project', required=True, help='Project we want to remove from')
+    argp.add_argument('--scan', dest='scan', help='Scan type we want removed')
+    argp.add_argument('--sc_resource', dest='scan_resource', help='Scan resource we want removed')
+    argp.add_argument('--assess', dest='assessor', help='Assessor we want removed')
+    argp.add_argument('--as_status', dest='assessor_status', help='Assessor status we want removed')
+    return argp
+
+
+def remove_scan_res(proj,scan,scan_res):
+    scans = xnat.get_project_scans(proj,scan)
+
+    for sca in scans:
+        if scan in sca['scan_description']:
+            print('Selected subject {}, session {}, scan {} - {}'.format(sca['subject_label'], sca['session_label'], sca['scan_id'], scan))
+            resources = xnat.get_scan_resources(proj, sca['subject_label'], sca['session_label'], sca['scan_id'])
+            for resource in resources:
+                if scan_res in resource['label']:
+                    print('Selected {} resource'.format(scan_res))
+                    res_obj = xnat.select_scan_resource(proj, sca['subject_label'], sca['session_label'], sca['scan_id'], resource['label'])
+                    print('REMOVING {} resource'.format(scan_res))
+                    res_obj.delete()
+                    print('----------------------------------------------')
+
+
+def remove_scan(proj,scan):
+    scans = xnat.get_project_scans(proj,scan)
+
+    for sca in scans:
+        if scan in sca['scan_description']:
+            print('Selected subject {}, session {}, scan {} - {}'.format(sca['subject_label'], sca['session_label'], sca['scan_id'], scan))
+            scan_string = xnat.get_scan_path(proj, sca['subject_label'], sca['session_label'], scan)
+            scan_obj = xnat.select(scan_string)
+            print('REMOVING {} scan'.format(scan))
+            scan_obj.delete()
+            print('----------------------------------------------')
+
+
+def remove_assess_stat(proj,assessor,assessor_status):
+    assessors = xnat.list_project_assessors(proj)
+
+    for assess in assessors:
+        if assessor in assess['proctype']:
+            print('Selected subject {}, session {}, assessor {} - {}'.format(assess['subject_label'], assess['session_label'], assess['scan_id'], assess))
+            if assessor_status in assess['procstatus']:
+                print('Selected {} status'.format(assessor_status))
+                assessor_string = xnat.get_assessor_path(proj,assess['subject_label'],assess['session_label'],assessor)
+                assessor_obj = xnat.select(assessor_string)
+                print('REMOVING {} assessor'.format(assessor))
+                assessor_obj.delete()
+                print('----------------------------------------------')
+
+
+def remove_assess(proj,assessor):
+    assessors = xnat.list_project_assessors(proj)
+
+    for assess in assessors:
+        if assessor in assess['proctype']:
+            print('Selected subject {}, session {}, assessor {} - {}'.format(assess['subject_label'], assess['session_label'], assess['scan_id'], assess))
+            assessor_string = xnat.get_assessor_path(proj,assess['subject_label'],assess['session_label'],assessor)
+            assessor_obj = xnat.select(assessor_string)
+            print('REMOVING {} assessor'.format(assess))
+            assessor_obj.delete()
+            print('----------------------------------------------')
+
+
+if __name__ == '__main__':
+    PARSER = parse_args()
+    OPTIONS = PARSER.parse_args()
+
+    project = OPTIONS.project
+
+    if project:
+        if OPTIONS.scan:
+            scan = OPTIONS.scan
+            if OPTIONS.scan_resource:
+                scan_resource = OPTIONS.scan_resource
+                remove_scan_res(project,scan,scan_resource)
+            else:
+                remove_scan(project,scan)
+        
+        if OPTIONS.assessor:
+            assessor = OPTIONS.assessor
+            if OPTIONS.assessor_status:
+                assessor_status = OPTIONS.assessor_status
+                remove_assess_stat(project,assessor,assessor_status)
+            else:
+                remove_assess(project,assessor)
+
+    else:
+        print('Project is REQUIRED!')
