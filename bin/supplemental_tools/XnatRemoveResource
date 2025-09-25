@@ -65,7 +65,7 @@ def remove_assess_stat(proj,assessor,assessor_status):
 
     for assess in assessors:
         if assessor in assess['proctype']:
-            print('Selected subject {}, session {}, assessor {} - {}'.format(assess['subject_label'], assess['session_label'], assess['scan_id'], assess))
+            print('Selected subject {}, session {}, assessor {}'.format(assess['subject_label'], assess['session_label'], assess))
             if assessor_status in assess['procstatus']:
                 print('Selected {} status'.format(assessor_status))
                 assessor_string = xnat.get_assessor_path(proj,assess['subject_label'],assess['session_label'],assessor)
