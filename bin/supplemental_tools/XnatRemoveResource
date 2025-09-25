@@ -53,7 +53,7 @@ def remove_scan(proj,scan):
     for sca in scans:
         if scan in sca['scan_description']:
             print('Selected subject {}, session {}, scan {} - {}'.format(sca['subject_label'], sca['session_label'], sca['scan_id'], scan))
-            scan_string = xnat.get_scan_path(proj, sca['subject_label'], sca['session_label'], scan)
+            scan_string = xnat.get_scan_path(proj, sca['subject_label'], sca['session_label'], sca['scan_id'])
             scan_obj = xnat.select(scan_string)
             print('REMOVING {} scan'.format(scan))
             scan_obj.delete()
@@ -65,10 +65,9 @@ def remove_assess_stat(proj,assessor,assessor_status):
 
     for assess in assessors:
         if assessor in assess['proctype']:
-            print('Selected subject {}, session {}, assessor {}'.format(assess['subject_label'], assess['session_label'], assess))
             if assessor_status in assess['procstatus']:
-                print('Selected {} status'.format(assessor_status))
-                assessor_string = xnat.get_assessor_path(proj,assess['subject_label'],assess['session_label'],assessor)
+                print('Selected subject {}, session {}, assessor {}'.format(assess['subject_label'], assess['session_label'], assess))
+                assessor_string = xnat.get_assessor_path(proj,assess['subject_label'],assess['session_label'],assess['assessor_label'])
                 assessor_obj = xnat.select(assessor_string)
                 print('REMOVING {} assessor'.format(assessor))
                 assessor_obj.delete()
@@ -81,12 +80,11 @@ def remove_assess(proj,assessor):
     for assess in assessors:
         if assessor in assess['proctype']:
             print('Selected subject {}, session {}, assessor {} - {}'.format(assess['subject_label'], assess['session_label'], assess['scan_id'], assess))
-            assessor_string = xnat.get_assessor_path(proj,assess['subject_label'],assess['session_label'],assessor)
+            assessor_string = xnat.get_assessor_path(proj,assess['subject_label'],assess['session_label'],assess['assessor_label'])
             assessor_obj = xnat.select(assessor_string)
             print('REMOVING {} assessor'.format(assess))
             assessor_obj.delete()
             print('----------------------------------------------')
-
 
 if __name__ == '__main__':
     PARSER = parse_args()
