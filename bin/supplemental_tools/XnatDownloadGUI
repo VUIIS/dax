@@ -1,0 +1,104 @@
+#!/usr/bin/env python
+
+import subprocess
+import tkinter as tk
+from tkinter import filedialog
+from tkinter import ttk
+from tkinter import messagebox
+
+
+def start_download():
+    # Grab information
+    project_id = project_entry.get()
+    subject_id = subject_entry.get()
+    session_id = session_entry.get()
+    scan_id = scan_entry.get()
+    scan_resource = scan_resource_entry.get()
+    assessor_id = assessor_entry.get()
+    assessor_resource = assessor_resource_entry.get()
+
+    scan_comm = ""
+    assessor_comm = ""
+
+    if not project_id:
+        messagebox.showerror("No Project", "Project ID is required!")
+
+    if not subject_id:
+        subject_id = 'all'
+
+    if not session_id:
+        session_id = 'all'
+
+    if scan_id and not scan_resource:
+        scan_comm = f" -s {scan_id} --rs all"
+    elif not scan_id and scan_resource:
+        scan_comm = f" -s all --rs {scan_resource}"
+    elif scan_id and scan_resource:
+        scan_comm = f" -s {scan_id} --rs {scan_resource}"
+
+    if assessor_id and not assessor_resource:
+        assessor_comm = f" -a {assessor_id} --ra all"
+    elif not assessor_id and assessor_resource:
+        assessor_comm = f" -a all --ra {assessor_resource}"
+    elif assessor_id and assessor_resource:
+        assessor_comm = f" -a {assessor_id} --ra {assessor_resource}"
+
+    # Ask for download directory
+    output_dir = filedialog.askdirectory(title="Select Output Directory")
+
+    XD_comm = f"XnatDownload -p {project_id} -d {output_dir} --subj {subject_id} --sess {session_id}"
+
+    # XnatDownload
+    full_comm = XD_comm + scan_comm + assessor_comm
+    subprocess.run(full_comm, shell=True)
+
+    # Output on command line
+    print(f"Downloading project {project_id} to {output_dir}...")
+
+
+# Create/Size the main window
+root = tk.Tk()
+root.geometry('640x640')
+root.configure(bg="lightgrey")
+root.title("XNAT Downloader")
+
+# Add input fields - Project ID
+tk.Label(root, text="Project ID:").pack(pady=5)
+project_entry = tk.Entry(root)
+project_entry.pack(pady=5)
+
+# Add input fields - Subject ID 
+tk.Label(root, text="Subject ID:").pack(pady=5)
+subject_entry = tk.Entry(root)
+subject_entry.pack(pady=5)
+
+# Add input fields - Session ID
+tk.Label(root, text="Session ID:").pack(pady=5)
+session_entry = tk.Entry(root)
+session_entry.pack(pady=5)
+
+# Add input field - Scan ID
+tk.Label(root, text="Scan ID:").pack(pady=5)
+scan_entry = tk.Entry(root)
+scan_entry.pack(pady=5)
+
+# Add input field - Scan Resource
+tk.Label(root, text="Scan Resource:").pack(pady=5)
+scan_resource_entry = tk.Entry(root)
+scan_resource_entry.pack(pady=5)
+
+# Add input field - Assessor ID
+tk.Label(root, text="Assessor ID:").pack(pady=5)
+assessor_entry = tk.Entry(root)
+assessor_entry.pack(pady=5)
+
+# Add input field - Assessor Resource
+tk.Label(root, text="Assessor Resource:").pack(pady=5)
+assessor_resource_entry = tk.Entry(root)
+assessor_resource_entry.pack(pady=5)
+
+# Button creation and start_download call
+tk.Button(root, fg="blue", text="Select Output Directory and Start", command=start_download).pack(pady=20)
+
+# Keep window open
+root.mainloop()
