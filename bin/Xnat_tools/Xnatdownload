@@ -292,6 +292,7 @@ given as a parameter or it does not exist on XNAT.')
                 scans_list.extend(XNAT.get_project_scans(project))
             if OPTIONS.assessortype:
                 asses_list.extend(XNAT.list_project_assessors(project))
+                asses_list.extend(XNAT.list_project_sgp(project))
 
          #   if OPTIONS.subject:
           #      scans_list.extend(XNAT.get_project_scans(project))
@@ -586,11 +587,16 @@ def get_assessor_path(assessor_dict):
     """
     if OPTIONS.oneDir:
         proc_path = DIRECTORY
+    elif assessor_dict.get('session_label', False):
+        proc_path = os.path.join(DIRECTORY, assessor_dict['project_id'],
+            assessor_dict['subject_label'],
+            assessor_dict['session_label'],
+            assessor_dict['label'])
     else:
         proc_path = os.path.join(DIRECTORY, assessor_dict['project_id'],
-                                 assessor_dict['subject_label'],
-                                 assessor_dict['session_label'],
-                                 assessor_dict['label'])
+            assessor_dict['subject_label'],
+            assessor_dict['label'])
+
     return proc_path
 
 
@@ -653,8 +659,8 @@ def download_data_xnat():
                 # deepcopy to start each line from this row
                 row = copy.deepcopy(['assessor', assessor_dict['project_id'],
                                      assessor_dict['subject_label'],
-                                     assessor_dict['session_type'],
-                                     assessor_dict['session_label'],
+                                     assessor_dict.get('session_type', ''),
+                                     assessor_dict.get('session_label', ''),
                                      assessor_dict['label'],
                                      assessor_dict['proctype'],
                                      assessor_dict['procstatus'],
@@ -723,17 +729,24 @@ def download_assessor(directory, assessor_dict, resources_list, row):
 
     :return: None
     """
-    assessor_obj = XNAT.select_assessor(
-        assessor_dict['project_label'] if 'project_label' in assessor_dict.keys() else assessor_dict['project_id'],
-        assessor_dict['subject_label'],
-        assessor_dict['session_label'],
-        assessor_dict['assessor_label'] if 'assessor_label' in assessor_dict.keys() else assessor_dict['label'])
+    if 'session_label' in assessor_dict:
+        assessor_obj = XNAT.select_assessor(
+            assessor_dict['project_label'] if 'project_label' in assessor_dict.keys() else assessor_dict['project_id'],
+            assessor_dict['subject_label'],
+            assessor_dict['session_label'],
+            assessor_dict['assessor_label'] if 'assessor_label' in assessor_dict.keys() else assessor_dict['label'])
+    else:
+        assessor_obj = XNAT.select_sgp_assessor(
+            assessor_dict['project_label'],
+            assessor_dict['subject_label'],
+            assessor_dict['assessor_label'])
+
     if not assessor_obj.exists():
         LOGGER.info('  ->WARNING: No processor with the label given.')
     else:
         out_reslist = get_resources_list(assessor_dict, resources_list)
         for rname in out_reslist:
-            download_resource(directory, assessor_obj.out_resource(rname),
+            download_resource(directory, assessor_obj.resource(rname),
                               rname, row, OPTIONS.oneDir,
                               assessor_dict['label'] + '-x-' + rname)
 
@@ -1098,7 +1111,7 @@ def main_display():
     print('#                                                              #')
     print('# Developed by the MASI Lab Vanderbilt University, TN, USA.    #')
     print('# If issues, please start a thread here:                       #')
-    print('# https://groups.google.com/forum/#!forum/vuiis-cci            #')
+    print('# https://github.com/VUIIS/dax                                 #')
     print('# Usage:                                                       #')
     print('#     Download data from XNAT based on input args              #')
     print('# Parameters :                                                 #')
