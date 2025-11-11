@@ -24,7 +24,7 @@ from .utilities import decode_url_json_string
 from .task import (JOB_FAILED, JOB_RUNNING, READY_TO_UPLOAD)
 from .errors import (XnatUtilsError, XnatAuthentificationError)
 from .dax_settings import (DAX_Settings, DAX_Netrc, DEFAULT_DATATYPE,
-                           DEFAULT_FS_DATATYPE)
+                           DEFAULT_FS_DATATYPE, DEFAULT_SGP_DATATYPE)
 
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __all__ = ["InterfaceTemp", "AssessorHandler", "SpiderProcessHandler",
@@ -1203,6 +1203,86 @@ class InterfaceTemp(Interface):
                         anew['dax_version'] = asse['%s/dax_version' % pfix]
                         anew['dax_version_hash'] = asse['%s/dax_version_hash' % pfix] 
                         assessors_dict[key] = anew
+
+        return sorted(list(assessors_dict.values()), key=lambda k: k['label'])
+
+    def list_project_sgp(self, projectid):
+        """
+        List all the subject assessors of a project.
+
+        :param projectid (string): ID of a project on XNAT
+        :return: List of dict per assessor
+        """
+        pstype = DEFAULT_SGP_DATATYPE
+        assessors_dict = dict()
+        pfix = DEFAULT_SGP_DATATYPE.lower()
+
+        if not has_genproc_datatypes(self):
+            return []
+
+        post_uri = f'/REST/archive/experiments?project={projectid}&xsiType={pstype}&columns=\
+ID,\
+subject_label,\
+label,\
+URI,\
+xsiType,\
+{pstype}/procstatus,\
+{pstype}/proctype,\
+{pstype}/validation/status,\
+{pstype}/validation/notes,\
+{pstype}/procversion,\
+{pstype}/dax_docker_version,\
+{pstype}/dax_version,\
+{pstype}/dax_version_hash,\
+{pstype}/jobid,\
+{pstype}/jobnode,\
+{pstype}/jobstartdate,\
+{pstype}/walltimeused,\
+{pstype}/memused,\
+{pstype}/inputs,\
+{pstype}/resources/resource/label,\
+'
+        # Post URI to get results as json list
+        assessor_list = self._get_json(post_uri)
+
+        for asse in assessor_list:
+            if not asse['label']:
+                print(f'no label:{asse}')
+                continue
+
+            key = asse['label']
+            if assessors_dict.get(key):
+                # Alread added, appending another file resource
+                res = '%s/resources/resource/label' % pfix
+                assessors_dict[key]['resources'].append(asse[res])
+            else:
+                anew = {}
+                anew['ID'] = asse['ID']
+                anew['label'] = asse['label']
+                anew['uri'] = asse['URI']
+                anew['assessor_id'] = asse['ID']
+                anew['assessor_label'] = asse['label']
+                anew['assessor_uri'] = asse['URI']
+                anew['project_id'] = projectid
+                anew['project_label'] = projectid
+                anew['subject_label'] = asse['subject_label']
+                anew['procstatus'] = asse['%s/procstatus' % pfix]
+                anew['proctype'] = asse['%s/proctype' % pfix]
+                anew['qcstatus'] = asse['%s/validation/status' % pfix]
+                anew['qcnotes'] = asse['%s/validation/notes' % pfix]
+                anew['version'] = asse['%s/procversion' % pfix]
+                anew['xsiType'] = asse['xsiType']
+                anew['jobid'] = asse.get('%s/jobid' % pfix)
+                anew['jobnode'] = asse.get('%s/jobnode' % pfix)
+                anew['jobstartdate'] =asse.get('%s/jobstartdate' % pfix)
+                anew['memused'] = asse.get('%s/memused' % pfix)
+                anew['walltimeused'] =asse.get('%s/walltimeused' % pfix)
+                anew['resources'] = [asse['%s/resources/resource/label' % pfix]]
+                anew['inputs'] = asse.get('%s/inputs' % pfix)
+                anew['dax_docker_version'] = asse['%s/dax_docker_version' % pfix]
+                anew['dax_version'] = asse['%s/dax_version' % pfix]
+                anew['dax_version_hash'] = asse['%s/dax_version_hash' % pfix] 
+                assessors_dict[key] = anew
 
         return sorted(list(assessors_dict.values()), key=lambda k: k['label'])
 

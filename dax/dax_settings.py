@@ -9,6 +9,7 @@ from .errors import DaxNetrcError
 # Assessor datatypes
 DEFAULT_FS_DATATYPE = 'fs:fsData'
 DEFAULT_DATATYPE = 'proc:genProcData'
+DEFAULT_SGP_DATATYPE = 'proc:subjGenProcData'
 
 SLURM_JOBMEM = "sacct -j ${jobid}.batch --format MaxRss --noheader | awk '{print $1+0}'"
 
