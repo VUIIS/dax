@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+
+from argparse import ArgumentParser
+from dax import XnatUtils
+import os
+import requests
+
+__exe__ = os.path.basename(__file__)
+__purpose__ = "Download file from specific assessor resource on given project"
+
+
+def parse_args():
+    ap = ArgumentParser(prog=__exe__, description=__purpose__)
+    ap.add_argument('--project', dest='project', default=None, help='Project')
+    ap.add_argument('--assessor', dest='ass_name', default=None, help='Assessor Name')
+    ap.add_argument('--resource', dest='res_name', default=None, help='Assessor Resource')
+    ap.add_argument('--file', dest='file_name', default=None, help='File Name')
+    ap.add_argument('--dir', dest='download_dir', default=None, help='Download Directory')
+    return ap.parse_args()
+
+
+if __name__ == '__main__':
+    args = parse_args()
+
+    with XnatUtils.get_interface() as xnat:
+        assessors = xnat.list_project_assessors(args.project)
+
+    if not os.path.exists(args.download_dir):
+        os.makedirs(args.download_dir)
+
+    for assessor in assessors:
+        if args.ass_name in assessor['proctype'] and 'COMPLETE' in assessor['procstatus']:
+            req = f"https://xnat.vanderbilt.edu/xnat/data/projects/{assessor['project_id']}/subjects/{assessor['subject_label']}/experiments/\
+{assessor['session_label']}/assessors/{assessor['assessor_label']}/out/resources/{args.res_name}/files/{args.file_name}"
+            filename = f"{assessor['assessor_label']}_{args.file_name}"
+            file_path = os.path.join(args.download_dir, filename)
+            with requests.get(req) as r:
+                r.raise_for_status()
+                with open(file_path,'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
