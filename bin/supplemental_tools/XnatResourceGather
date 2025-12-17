@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+
+from dax import XnatUtils
+import argparse
+import yaml
+import json
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--proj', dest='project', help='Project name', required=True)
+    parser.add_argument('--subj', dest='subject', help='Subject ID', required=True)
+    parser.add_argument('--sess', dest='session', help='Session ID', required=True)
+    parser.add_argument('--assess', dest='assessor', help='Assessor ID', default='all')
+    return parser
+
+
+def grab_inputs(project,subject,session,assess_label):
+    assessor_string = xnat.get_assessor_path(project,subject,session,assess_label)
+    assessor_obj = xnat.select(assessor_string)
+
+    assessor_str = str(assessor_obj)
+    assessor_str = assessor_str.split(' ')
+
+    inputs = XnatUtils.get_assessor_inputs(assessor_obj)
+
+    scan_dict = {}
+
+    if inputs:
+        for x,y in inputs.items():
+            val = y.split('/')
+            typ = str(val[7:8])
+            typ = typ.strip("[']")
+            scas = str(val[8:]).strip("[']")
+            if 'scan' in typ:
+                scan = xnat.select_scan(project,subject,session,scas)
+                scan = str(scan).split('`')
+                scan_dict.update({typ+"_"+scas: scan[1]})
+            else:
+                ass_str, sc_dict = grab_inputs(project,subject,session,scas)
+                scan_dict.update({ass_str[2]: sc_dict})
+
+    return assessor_str, scan_dict
+
+
+if __name__ == '__main__':
+    PARSER = parse_args()
+    OPTIONS = PARSER.parse_args()
+
+    project = OPTIONS.project
+    subject = OPTIONS.subject
+    session = OPTIONS.session
+    assess = OPTIONS.assessor
+
+    # Get assessor list given proj/subj/sess
+    with XnatUtils.get_interface() as xnat:
+        assessors = xnat.get_assessors(project,subject,session)
+
+    assess_dict = {}
+
+    for assessor in assessors:
+        if assess == 'all':
+            asse, scan_dict = grab_inputs(project,subject,session,assessor['assessor_label'])
+            assess_dict.update({asse[2]: scan_dict})
+        elif assess == assessor['proctype']:
+            asse, scan_dict = grab_inputs(project,subject,session,assessor['assessor_label'])
+            assess_dict.update({asse[2]: scan_dict})
+
+    data = {
+        project: {
+            subject: {
+                session: {
+                    'Assessor': assess_dict
+                }
+            }
+        }
+    }
+
+    format_data = yaml.dump(data, indent=1)
+    print(format_data)
+
