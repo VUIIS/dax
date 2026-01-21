@@ -59,46 +59,50 @@ def start_download():
 # Create/Size the main window
 root = tk.Tk()
 root.geometry('640x640')
-root.configure(bg="lightgrey")
+root.configure(bg="#033769")
 root.title("XNAT Downloader")
 
-# Add input fields - Project ID
-tk.Label(root, text="Project ID:").pack(pady=5)
-project_entry = tk.Entry(root)
-project_entry.pack(pady=5)
+frame = tk.Frame(root,width=620,height=620)
+frame.pack(padx=30, pady=30)
+frame.configure(bg="lightgrey")
 
-# Add input fields - Subject ID 
-tk.Label(root, text="Subject ID:").pack(pady=5)
-subject_entry = tk.Entry(root)
-subject_entry.pack(pady=5)
+# Add input fields - Project ID
+tk.Label(frame, text="Project ID:").pack(pady=5)
+project_entry = tk.Entry(frame)
+project_entry.pack(pady=5, padx=100)
+
+# Add input fields - Subject ID
+tk.Label(frame, text="Subject ID:").pack(pady=5)
+subject_entry = tk.Entry(frame)
+subject_entry.pack(pady=5, padx=100)
 
 # Add input fields - Session ID
-tk.Label(root, text="Session ID:").pack(pady=5)
-session_entry = tk.Entry(root)
-session_entry.pack(pady=5)
+tk.Label(frame, text="Session ID:").pack(pady=5)
+session_entry = tk.Entry(frame)
+session_entry.pack(pady=5, padx=100)
 
 # Add input field - Scan ID
-tk.Label(root, text="Scan ID:").pack(pady=5)
-scan_entry = tk.Entry(root)
-scan_entry.pack(pady=5)
+tk.Label(frame, text="Scan ID:").pack(pady=5)
+scan_entry = tk.Entry(frame)
+scan_entry.pack(pady=5, padx=100)
 
 # Add input field - Scan Resource
-tk.Label(root, text="Scan Resource:").pack(pady=5)
-scan_resource_entry = tk.Entry(root)
-scan_resource_entry.pack(pady=5)
+tk.Label(frame, text="Scan Resource:").pack(pady=5)
+scan_resource_entry = tk.Entry(frame)
+scan_resource_entry.pack(pady=5, padx=100)
 
 # Add input field - Assessor ID
-tk.Label(root, text="Assessor ID:").pack(pady=5)
-assessor_entry = tk.Entry(root)
-assessor_entry.pack(pady=5)
+tk.Label(frame, text="Assessor ID:").pack(pady=5)
+assessor_entry = tk.Entry(frame)
+assessor_entry.pack(pady=5, padx=100)
 
 # Add input field - Assessor Resource
-tk.Label(root, text="Assessor Resource:").pack(pady=5)
-assessor_resource_entry = tk.Entry(root)
-assessor_resource_entry.pack(pady=5)
+tk.Label(frame, text="Assessor Resource:").pack(pady=5)
+assessor_resource_entry = tk.Entry(frame)
+assessor_resource_entry.pack(pady=5, padx=100)
 
 # Button creation and start_download call
-tk.Button(root, fg="blue", text="Select Output Directory and Start", command=start_download).pack(pady=20)
+tk.Button(frame, fg="#033769", bg="lightgrey", text="Select Output Directory and Start", command=start_download).pack(pady=20)
 
 # Keep window open
 root.mainloop()
