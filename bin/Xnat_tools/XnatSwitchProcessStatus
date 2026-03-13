@@ -7,6 +7,7 @@ Change assessor job/quality control status
 Created on Jan 24, 2013
 Edited on February 19, 2015
 Edited on February 22, 2017
+Edited on March 13, 2026 - Added Subject Level Assessor
 
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
@@ -411,7 +412,7 @@ def set_qc_status(assessor_obj, status, username='NULL',
                      % (assessor_obj.label(), status))
 
 
-def set_proc_status(assessor_obj, status, username='NULL',
+def set_proc_status(assessor_obj, args, status, username='NULL',
                     xsitype=XnatUtils.DEFAULT_DATATYPE):
     """
     Function to set the proc status and remove other information for an
@@ -424,18 +425,22 @@ def set_proc_status(assessor_obj, status, username='NULL',
     :param xsitype: datatype to change status
     :return: None
     """
+    if args.sublev:
+        xsitype = 'proc:subjGenProcData'
+
     assessor_obj.attrs.set(xsitype + '/procstatus', status)
+
     if status == task.NEED_INPUTS or status == task.NEED_TO_RUN:
         assessor_obj.attrs.mset({xsitype + '/validation/status': 'Job Pending',
-                                    xsitype + '/jobid': 'NULL',
-                                    xsitype + '/memused': 'NULL',
-                                    xsitype + '/walltimeused': 'NULL',
-                                    xsitype + '/jobnode': 'NULL',
-                                    xsitype + '/jobstartdate': 'NULL',
-                                    xsitype + '/validation/validated_by': 'NULL',
-                                    xsitype + '/validation/date': 'NULL',
-                                    xsitype + '/validation/notes': 'NULL',
-                                    xsitype + '/validation/method': 'NULL'})
+                                 xsitype + '/jobid': 'NULL',
+                                 xsitype + '/memused': 'NULL',
+                                 xsitype + '/walltimeused': 'NULL',
+                                 xsitype + '/jobnode': 'NULL',
+                                 xsitype + '/jobstartdate': 'NULL',
+                                 xsitype + '/validation/validated_by': 'NULL',
+                                 xsitype + '/validation/date': 'NULL',
+                                 xsitype + '/validation/notes': 'NULL',
+                                 xsitype + '/validation/method': 'NULL'})
     sys.stdout.write('   - Job Status on Assessor %s changed to %s\n'
                     % (assessor_obj.label(), status))
     if status == task.COMPLETE:
@@ -465,10 +470,10 @@ def set_need_inputs_proctype(xnat, args, assessor, need_inputs, full_regex=False
         assessor_obj = xnat.select_assessor(a_linked_dict['label'])
         if assessor_obj.exists():
             if a_linked_dict['xsiType'] == XnatUtils.DEFAULT_FS_DATATYPE:
-                set_proc_status(assessor_obj, task.NEED_INPUTS,
+                set_proc_status(assessor_obj, args, task.NEED_INPUTS,
                                 xsitype=XnatUtils.DEFAULT_FS_DATATYPE)
             else:
-                set_proc_status(assessor_obj, task.NEED_INPUTS)
+                set_proc_status(assessor_obj, args, task.NEED_INPUTS)
 
             li_assessors = xnat.get_assessor_out_resources(
                 a_linked_dict['project_id'],
@@ -575,7 +580,7 @@ def set_status_assessor(xnat, args, assessor, status,
     # Subject level
     else:
         assessor_obj = xnat.select_sgp_assessor(
-            labels[0], labels[1], assessor)
+            labels[0], labels[1], assessor['label'])
 
     if qcstatus:
         if assessor['xsiType'] == XnatUtils.DEFAULT_FS_DATATYPE:
@@ -585,10 +590,10 @@ def set_status_assessor(xnat, args, assessor, status,
             set_qc_status(assessor_obj, status, username=xnat.user)
     else:
         if assessor['xsiType'] == XnatUtils.DEFAULT_FS_DATATYPE:
-            set_proc_status(assessor_obj, status, username=xnat.user,
+            set_proc_status(assessor_obj, args, status, username=xnat.user,
                             xsitype=XnatUtils.DEFAULT_FS_DATATYPE)
         else:
-            set_proc_status(assessor_obj, status, username=xnat.user)
+            set_proc_status(assessor_obj, args, status, username=xnat.user)
 
         if delete_resources:
             if 'resources' in list(assessor.keys()):
