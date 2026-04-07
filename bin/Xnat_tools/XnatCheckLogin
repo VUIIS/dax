@@ -15,7 +15,7 @@ Edited on April 6, 2026 - Added token generation
 import json
 import netrc
 import os
-import subprocess
+import requests
 import sys
 
 from dax import DAX_Netrc
@@ -26,20 +26,22 @@ import dax.xnat_tools_utils as utils
 from getpass import getpass
 
 
+__author__ = 'byvernault'
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __exe__ = os.path.basename(__file__)
-__author__ = 'byvernault'
+__machine__ = 'xnat.vanderbilt.edu'
 __purpose__ = "Set and Check the logins for XNAT."
+__url__ = "https://xnat.vanderbilt.edu/xnat/data/services/tokens/issue"
 BASH_PROFILE_XNAT = """# Xnat Host for default dax executables:
 {export_cmd}
 """
 
 
-def update_netrc(host,new_log,new_pass,netrc_path):
+def update_netrc(new_log,new_pass,netrc_path):
     try:
         netrc_info = netrc.netrc(netrc_path)
 
-        netrc_info.hosts[host] = (new_log,None,new_pass)
+        netrc_info.hosts[__machine__] = (new_log,None,new_pass)
 
         new_content = ""
 
@@ -63,22 +65,15 @@ def grab_details():
     username = input("Enter your XNAT username: ")
     password = getpass("Enter your XNAT password: ")
 
-    usr_pass = username+":"+password
-    url = "https://xnat.vanderbilt.edu/xnat/data/services/tokens/issue"
-
-    command = "curl -u {} {}".format(usr_pass,url)
-
-    result = subprocess.run(command,shell=True,text=True,capture_output=True)
-    res = result.stdout
-    data = json.loads(res)
-
+    result = requests.get(__url__,auth=(username,password))
+    data = json.loads(result.text)
+    
     netrc_path = os.path.expanduser('~/.netrc')
 
     alias = data["alias"]
     secret = data["secret"]
-    machine = 'xnat.vanderbilt.edu'
 
-    update_netrc(machine,alias,secret,netrc_path)
+    update_netrc(alias,secret,netrc_path)
 
 
 def check_settings(host):
