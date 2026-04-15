@@ -274,7 +274,6 @@ class DaxProjectSettingsManager(object):
         rec['singularity_imagedir'] = ins['main_singularityimagedir']
         rec['resdir'] = ins['main_resdir']
         rec['jobtemplate'] = ins['main_jobtemplate']
-        rec['admin_email'] = ins['main_adminemail']
         rec['attrs'] = {}
         rec['attrs']['queue_limit'] = int(ins['main_queuelimit'])
         rec['attrs']['queue_limit_pending'] = int(ins['main_queuelimit_pending'])
@@ -609,10 +608,8 @@ class DaxManager(object):
         self.max_build_count = int(instance_settings['main_buildlimit'])
         self.max_upload_count = int(instance_settings['main_uploadlimit'])
         self.res_dir = instance_settings['main_resdir']
-        self.admin_emails = instance_settings['main_adminemail'].split(',')
         self.lock_dir = os.path.join(self.res_dir, 'FlagFiles')
         self.job_template = instance_settings['main_jobtemplate']
-        self.smtp_host = instance_settings['main_smtphost']
         self.mode = instance_settings['main_mode']
         self.enabled = (instance_settings['main_complete'] == 'Complete')
         self.xnat_host = instance_settings['main_xnathost']
@@ -1114,15 +1111,6 @@ class DaxManager(object):
                 ready = False
 
         return ready
-
-    def email_errors(self, errors):
-        # email the errors
-        _msg = 'ERRORS:\n\n'
-        _msg += '\n\n'.join(errors)
-        _msg += '\n\n'
-        _to = self.admin_emails
-        _subj = 'ERROR:dax manager'
-        utilities.send_email_netrc(self.smtp_host, _to, _subj, _msg)
 
     def clean_lockfiles(self):
         lockfiles.clean_lockfiles(self.lock_dir, LOGGER)

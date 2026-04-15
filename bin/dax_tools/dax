@@ -248,9 +248,7 @@ if __name__ == '__main__':
                 errors = manager.run()
 
             if errors:
-                print('ERROR:dax manager errors, emailing admin:', errors)
-                manager.email_errors(errors)
-
+                print('ERROR:dax manager errors:', errors)
         else:
             print('This instance is currently disabled in REDCap.')
 
