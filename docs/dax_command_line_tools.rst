@@ -432,21 +432,62 @@ Xnatdownload will download all the resources that you asked for in a directory. 
 XnatUpload
 ----------
 
-Xnatupload will create subject/experiment/scan/resources for a project on XNAT and upload the data into the project from a folder. Xnatupload provides bulk upload of data to a project on XNAT. You need to provide a specific CSV file with the following header:
+IMPORTANT: Never upload identifiable data to XNAT. DICOM files may contain many identifiers
+and should not be uploaded, or should only be uploaded after careful verification that
+identifiers are not present.
 
-- object_type,project_id,subject_label,session_type,session_label,as_label,as_type,as_description,quality,resource,fpath
+All uploaded NIFTI files should be gzipped.
 
-where:
+Xnatupload will create subject/experiment/scan/resources for a project on XNAT and upload the data into the project from a folder. Xnatupload provides bulk upload of data to a project on XNAT. 
 
-- as_label corresponds to assessor or scan label
-- as_type corresponds to proctype or scantype
-- as_description corresponds to procstatus or series description for the scan
-- quality corresponds to qastatus or quality for scan
+**Command Line**
 
-It should be similar to this (project in the example is CIBS-TEST):
+Use `Xnatupload -h` to show an outline of usage. A typical command line, however, is simply
 
-object_type,project_id,subject_label,session_type,session_label,as_label,as_type,as_description,quality,resource,fpath
-scan,CIBS-TEST,CIBS-TEST_01,MR,CIBS-TEST_01,401,BRAIN2_3DT1,BRAIN2_3DT1,usable,NIFTI,/Users/<USER>/Downloads/Archive/DICOM_T1W_3D_TFE.nii.gz
+::
+
+	Xnatupload -c file_info.csv
+
+
+**CSV file format**
+
+The CSV file supplied with the `-c` or `--csv` option must contain certain columns in 
+exact order:
+
+::
+    
+	object_type,project_id,subject_label,session_type,session_label,as_label,as_type,as_description,as_quality,resource,fpath
+
+The column labels can be included as the first line of the CSV for reference, but are
+ignored by `Xnatupload`.
+
+The content of the columns is as follows:
+
+::
+
+    object_type        'scan' or 'assessor'; typically 'scan' when uploading image data
+    project_id         Which project on XNAT to upload to
+    subject_label      How to label the subject on XNAT
+    session_type       Always 'MR' for an MRI session
+    session_label      How to label the session on XNAT
+    as_label           The ID field for the scan on XNAT ("Scan")
+    as_type            The scan type field on XNAT ("Type")
+    as_description     The scan description field on XNAT ("Series Desc")
+    as_quality         A quality rating from "questionable", "usable", or "unusable". Typically "questionable", meaning not QC'd yet
+    resource           Which scan/assessor resource to upload to. For scans, typically DICOM, NIFTI, or JSON
+    fpath              The local path to the specific file or directory to upload
+
+
+Here is an example CSV for a single T1 scan in Nifti/json format. There are two lines in the CSV
+because there are two files associated with the scan:
+
+::
+
+    object_type,project_id,subject_label,session_type,session_label,as_label,as_type,as_description,as_quality,resource,fpath
+    scan,EXAMPLE_PROJECT,1001,MR,1001-01,301,T1w,T1w whole brain,questionable,NIFTI,/Volumes/data/1001/T1w.nii.gz
+    scan,EXAMPLE_PROJECT,1001,MR,1001-01,301,T1w,T1w whole brain,questionable,JSON,/Volumes/data/1001/T1w.json
+
+These files will be uploaded to series `301` in session `1001-01` for subject `1001` of `EXAMPLE_PROJECT` on XNAT.
 
 **Methods**
 
