@@ -127,14 +127,16 @@ REQUIRES = [
     'pandas',
     'fpdf2',
     'PyPDF2',
-    'yamale']
+    'yamale',
+    'nibabel',
+]
 
 DOCS_REQUIRES = [
     'Sphinx>=%s' % SPHINX_MIN_VERSION]
 
 TESTS_REQUIRES = ['nose']
 
-BIDS_REQUIRES = ['cubids-bond-fork', 'nibabel']
+BIDS_REQUIRES = ['cubids-bond-fork']
 
 
 if __name__ == '__main__':
