@@ -1191,7 +1191,7 @@ XnatResourceGather will display the inputs for all or given assessors for a give
 	#     Check the help for examples by running --help                      #
 	##########################################################################
 	
-	usage: XnatResourceGather [-h] --proj PROJECT --subj SUBJECT --sess SESSION [--assess ASSESSOR]
+	usage: XnatResourceGather --proj PROJECT --subj SUBJECT --sess SESSION [--assess ASSESSOR]
 
 	What is the script doing :
    		*Generate a nested summary of the inputs for the assessor list
@@ -1203,7 +1203,6 @@ XnatResourceGather will display the inputs for all or given assessors for a give
         		XnatResourceGather --proj PROJECT --subj SUBJECT --sess SESSION --assess slant_gpu_v1
 
 	optional arguments:
-  	  -h, --help            show this help message and exit
 	  --proj PROJECT        Project to gather from
 	  --subj SUBJECT        Subject to gather from
 	  --sess SESSION        Session to gather from
