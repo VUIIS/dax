@@ -1187,8 +1187,6 @@ XnatResourceGather will display the inputs for all or given assessors for a give
 	# https://groups.google.com/forum/#!forum/vuiis-cci                      #
 	# Usage:                                                                 #
 	#     Display all assessors inputs for a given session                   #
-	# Examples:                                                              #
-	#     Check the help for examples by running --help                      #
 	##########################################################################
 	
 	usage: XnatResourceGather --proj PROJECT --subj SUBJECT --sess SESSION [--assess ASSESSOR]
