@@ -21,6 +21,8 @@ Table of Contents
  14. `Xnatsessionupdate <#xnatsessionupdate>`__
  15. `BIDSMapping <#bidsmapping>`__
  16. `XnatBOND <#xnatbond>`__
+ 17. `XnatRemoveResource <#xnatremoveresource>`__
+ 18. `XnatResourceGather <#xnatresourcegather>`__
 
 List of the Tools
 ~~~~~~~~~~~~~~~~~
@@ -1129,11 +1131,77 @@ XnatBOND takes in a BIDS directory and detects the Key and Parameter Groups. Thi
         		XnatBOND --bids_dir BIDS_DIR --modify_keyparam
 
 	optional arguments:
-  	-h, --help            show this help message and exit
-  	--bids_dir BIDS_DIR   BIDS data directory.
-  	-b BOND_DIR, --bond_dir BOND_DIR
+  	  -h, --help            show this help message and exit
+  	  --bids_dir BIDS_DIR   BIDS data directory.
+  	  -b BOND_DIR, --bond_dir BOND_DIR
                               BOND data directory.
-  	-m keyparam_edited keyparam_files new_keyparam_prefix, --modify_keyparam keyparam_edited keyparam_files new_keyparam_prefix
+  	  -m keyparam_edited keyparam_files new_keyparam_prefix, --modify_keyparam keyparam_edited keyparam_files new_keyparam_prefix
                               Values to modify the keyparam in bids.
-  	-o LOGFILE, --logfile LOGFILE
+  	  -o LOGFILE, --logfile LOGFILE
                               Write the display/output in a file given to this OPTIONS.
+
+------------------
+XnatRemoveResource
+------------------
+
+XnatRemoveResoure will remove scan, scan resources, assessor, or assessor resources by PROJECT.
+
+::
+
+	# Tool to remove scan/resource data BY PROJECT
+	#   - scan resources
+	#   - entire scans
+	#   - assessors given their status
+	#   - entire assessor groups 
+	# 
+	# OPTIONS:
+	#   --proj            REQUIRED - Project you're wanting to remove data from
+	#   [--scan]          OPTIONAL - Scan type you want removed
+	#   [--sc_resource]   OPTIONAL - Resource of scan you want removed - MUST ALSO INCLUDE SCAN
+	#   [--assess]        OPTIONAL - Assessor type you want removed
+	#   [--as_status]     OPTIONAL - Status of assessor you want removed - MUST ALSO INCLUDE ASSESSOR
+
+	Examples:
+		*Remove all T1 scans from given project
+			XnatRemoveResource --proj PROJECT --scan T1
+		*Remove all slant_gpu_v1 assessors from the project
+			XnatRemoveResource --proj PROJECT --slant_gpu_v1
+		*Remove all T1 NIFTI resources from given project
+			XnatRemoveResource --proj PROJECT --scan T1 --sc_resource NIFTI
+		*Remove all slant_gpu_v1 assessors with JOB_FAILED status from project
+			XnatRemoveResource --proj PROJECT --assess slant_gpu_v1 --as_status JOB_FAILED
+
+------------------
+XnatResourceGather
+------------------
+
+XnatResourceGather will display the inputs for all or given assessors for a given session
+
+::
+
+	##########################################################################
+	#                             XnatResourceGather                         #
+	#                                                                        #
+	# Developed by the MASI Lab Vanderbilt University, TN, USA.              #
+	# If issues, please start a thread here:                                 #
+	# https://groups.google.com/forum/#!forum/vuiis-cci                      #
+	# Usage:                                                                 #
+	#     Display all assessors inputs for a given session                   #
+	##########################################################################
+	
+	usage: XnatResourceGather --proj PROJECT --subj SUBJECT --sess SESSION [--assess ASSESSOR]
+
+	What is the script doing :
+   		*Generate a nested summary of the inputs for the assessor list
+
+	Examples:
+   		*Display list of all assessor inputs for given session:
+        		XnatResourceGather --proj PROJECT --subj SUBJECT --sess SESSION
+   		*Display list of slant_gpu_v1 input for given session
+        		XnatResourceGather --proj PROJECT --subj SUBJECT --sess SESSION --assess slant_gpu_v1
+
+	optional arguments:
+	  --proj PROJECT        Project to gather from
+	  --subj SUBJECT        Subject to gather from
+	  --sess SESSION        Session to gather from
+	  --assess ASSESSOR     Assessor selected for input list
