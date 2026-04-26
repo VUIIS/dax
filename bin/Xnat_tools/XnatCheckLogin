@@ -7,12 +7,15 @@ Set and Check the logins for XNAT.
 Created on Jan 24, 2013
 Edited on February 26,2015
 Edited on January 25, 2017
+Edited on April 6, 2026 - Added token generation
 
 @author: byvernault
 '''
 
-
+import json
+import netrc
 import os
+import requests
 import sys
 
 from dax import DAX_Netrc
@@ -20,14 +23,57 @@ from dax.dax_tools_utils import test_connection_xnat
 from dax.errors import DaxNetrcError
 import dax.xnat_tools_utils as utils
 
+from getpass import getpass
 
+
+__author__ = 'byvernault'
 __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 __exe__ = os.path.basename(__file__)
-__author__ = 'byvernault'
+__machine__ = 'xnat.vanderbilt.edu'
 __purpose__ = "Set and Check the logins for XNAT."
+__url__ = "https://xnat.vanderbilt.edu/xnat/data/services/tokens/issue"
 BASH_PROFILE_XNAT = """# Xnat Host for default dax executables:
 {export_cmd}
 """
+
+
+def update_netrc(new_log,new_pass,netrc_path):
+    try:
+        netrc_info = netrc.netrc(netrc_path)
+
+        netrc_info.hosts[__machine__] = (new_log,None,new_pass)
+
+        new_content = ""
+
+        for h, (l,a,p) in netrc_info.hosts.items():
+            new_content += f"machine {h}\n"
+            new_content += f"login {l}\n"
+            new_content += f"password {p}\n\n"
+
+        with open(netrc_path,'w') as f:
+            f.write(new_content)
+
+    except netrc.NetrcParseError as e:
+        print(f"Error parsing .netrc file: {e}")
+    except KeyError:
+        print("Machine 'xnat.vanderbilt.edu' not found in .netrc file.")
+    except FileNotFoundError:
+        print("The .netrc file was not found in your home directory.")
+
+
+def grab_details():
+    username = input("Enter your XNAT username: ")
+    password = getpass("Enter your XNAT password: ")
+
+    result = requests.get(__url__,auth=(username,password))
+    data = json.loads(result.text)
+    
+    netrc_path = os.path.expanduser('~/.netrc')
+
+    alias = data["alias"]
+    secret = data["secret"]
+
+    update_netrc(alias,secret,netrc_path)
 
 
 def check_settings(host):
@@ -70,12 +116,15 @@ def parse_args():
     from argparse import ArgumentParser
     ap = ArgumentParser(prog=__exe__, description=__purpose__)
     ap.add_argument('--host', dest='host', default=None, help='Host for XNAT.')
+    ap.add_argument('--gen', dest='gen_alias', action='store_true', help='Generates a new XNAT login token.')
     return ap.parse_args()
 
 
 if __name__ == '__main__':
     args = parse_args()
     utils.print_separators()
+    if args.gen_alias:
+        grab_details()
     print('Checking your settings for XNAT')
     check_settings(args.host)
     utils.print_separators()
