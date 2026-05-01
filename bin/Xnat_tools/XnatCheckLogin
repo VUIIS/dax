@@ -9,7 +9,8 @@ Edited on February 26,2015
 Edited on January 25, 2017
 Edited on April 6, 2026 - Added token generation
 
-@author: byvernault
+@authors: byvernault
+          duettwe
 '''
 
 import json
@@ -104,7 +105,10 @@ def check_settings(host):
         sys.exit(1)
 
     print('Checking connection:host={}, user={}'.format(host, user))
-    test_connection_xnat(host, user, pwd)
+    # test_connection_xnat(host, user, pwd)
+    flag = ''
+    flag = test_connection_xnat(host, user, pwd)
+    return flag
 
 
 def parse_args():
@@ -123,8 +127,15 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     utils.print_separators()
-    if args.gen_alias:
+
+    exist = check_settings(args.host)
+    if args.gen_alias and not exist:
         grab_details()
-    print('Checking your settings for XNAT')
-    check_settings(args.host)
+        print('Checking your settings for XNAT')
+        check_settings(args.host)
+    elif args.gen_alias and exist:
+        print('Alias still valid. Please re-check without --gen option.')
+    elif not exist:
+        print('Alias needs to be generated. Please retry command with --gen option.')
+
     utils.print_separators()
