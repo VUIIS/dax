@@ -56,12 +56,22 @@ Project Info:
 Count:
 ---------------------------------------
 Subjects            : {nb_s}
+Subject Assessors   : {nb_sa}
 Sessions            : {nb_se}
 Scans               : {nb_sc}
 Assessors/Processes : {nb_a}
 ---------------------------------------
 
 {scan_str}
+
+Subject Level Process info :
+--------------------------------------------------------------------------
+  Process type                                  | Count |   C   |   RC  |   U   |   RU  |\
+   JF  |   JR  |  NTR  |   NI  |   ND  |   UN
+  --------------------------------------------------------------------------\
+---------------------------------------
+{subject_assessor_info}
+--------------------------------------------------------------------------
 
 Process info :
 --------------------------------------------------------------------------
@@ -150,6 +160,7 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
 
     # for all process except FS
     assessors_found = dict()
+    subject_assessors_found = dict()
 
     # Check project:
     proj_obj = xnat.select('/project/%s' % project)
@@ -174,6 +185,21 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
             scans_found[scan_dict['type']] += 1
         else:
             scans_found[scan_dict['type']] = 1
+
+    # subject assessor loop
+    subject_assessor_list = xnat.list_project_sgp(project)
+    subject_assessor_number = len(subject_assessor_list)
+    for subject_assessor_dict in subject_assessor_list:
+         # add to dictionary of process
+        if subject_assessor_dict['procstatus'] in list(STATUS_DICT.keys()):
+            subject_assessors_found = add_process_to_dict(subject_assessors_found,
+                                                          subject_assessor_dict['proctype'],
+                                                          subject_assessor_dict['procstatus'])
+        else:
+            unknown_status.append(subject_assessor_dict['procstatus'])
+            subject_assessors_found = add_process_to_dict(subject_assessors_found,
+                                                          subject_assessor_dict['proctype'],
+                                                          'UNKNOWN')
 
     # assessor loop
     assessors_list = xnat.list_project_assessors(project)
@@ -211,6 +237,30 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
 
         scans_str = SCAN_TEMPLATE.format(scan_info='\n'.join(scan_info),
                                          scan_unusable='\n'.join(unusables))
+
+    # Subject Assessors display
+    subj_as_len = 45
+    _format = '  %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | %*s | \
+%*s | %*s '
+    subj_assrs_info = []
+    for subject_assessor_dict in subject_assessor_list:
+        if len(subject_assessor_dict['proctype']) > subj_as_len:
+            subj_as_len = len(subject_assessor_dict['proctype']) + 5
+    for key in sorted(subject_assessors_found):
+      subj_assrs_info.append(
+            _format %
+            (-1 * subj_as_len, key,
+             -5, subject_assessors_found[key][0],
+             -5, subject_assessors_found[key][STATUS_DICT['COMPLETE']],
+             -5, subject_assessors_found[key][STATUS_DICT['READY_TO_COMPLETE']],
+             -5, subject_assessors_found[key][STATUS_DICT['UPLOADING']],
+             -5, subject_assessors_found[key][STATUS_DICT['READY_TO_UPLOAD']],
+             -5, subject_assessors_found[key][STATUS_DICT['JOB_FAILED']],
+             -5, subject_assessors_found[key][STATUS_DICT['JOB_RUNNING']],
+             -5, subject_assessors_found[key][STATUS_DICT['NEED_TO_RUN']],
+             -5, subject_assessors_found[key][STATUS_DICT['NEED_INPUTS']],
+             -5, subject_assessors_found[key][STATUS_DICT['NO_DATA']],
+             -5, subject_assessors_found[key][STATUS_DICT['UNKNOWN']]))
 
     # Assessors display
     as_len = 45
@@ -271,10 +321,12 @@ def report_project(xnat, project, ignore_scans, ignore_unusable, running,
         project=project,
         date=str(datetime.now()),
         nb_s=subj_number,
+        nb_sa=subject_assessor_number,
         nb_se=sess_number,
         nb_sc=scan_number,
         nb_a=assessor_number,
         scan_str=scans_str,
+        subject_assessor_info='\n'.join(subj_assrs_info),
         assessor_info='\n'.join(assrs_info),
         extra=extra_str,
     )
