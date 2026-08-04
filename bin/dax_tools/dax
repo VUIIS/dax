@@ -13,6 +13,7 @@ import dax
 from dax import dax_tools_utils as dax_tools
 from dax import dax_manager
 from dax import validate
+from dax import simulate
 from dax import rcq
 
 __author__ = "Benjamin Yvernault"
@@ -165,6 +166,14 @@ runs build, launch, update and upload.'
     validate_parser.add_argument(
         dest='file', help='File to be validated')
 
+    # simulate:
+    simulate_desc = 'Simulate build'
+    simulate_parser = dax_parser.add_parser('simulate', help=simulate_desc)
+    simulate_parser.add_argument('-p', dest='project', help='Project to build', required=True)
+    simulate_parser.add_argument('-y', dest='processor', help='.yaml processor file', required=False)
+    simulate_parser.add_argument('-s', dest='subject', help='Subject/Session to run on', required=False)
+    simulate_parser.add_argument('-u', dest='unverified', action='store_true', help='Include processors with unverified status')
+
     # rcq:
     rcq_desc = 'rcq build a session or subject'
     rcq_parser = dax_parser.add_parser('rcq', help=rcq_desc)
@@ -269,6 +278,41 @@ if __name__ == '__main__':
         except Exception as err:
             print('Not valid!')
             print(err)
+
+    elif args.command == 'simulate':
+        #import logging
+        from dax.simulate import DaxSimulator
+        from dax.XnatUtils import get_interface
+        from redcap import Project
+
+        #if args.debug:
+        #    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+        #else:
+        #    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+        try:
+            API_URL = os.environ.get('API_URL', 'https://redcap.vumc.org/api/')
+            API_KEY = os.environ['API_KEY_DAX_PROJECTS']
+
+            print('get redcap')
+            rc = Project(API_URL, API_KEY)
+
+            print('get simulator')
+            ds = DaxSimulator(rc)
+
+            pritn('get xnat')
+            xnat = get_interface()
+
+            print('run simulate')
+            ds.simulate(
+                xnat,
+                processor=args.processor,
+                subject=args.subject,
+                unverified=args.unverified
+            )
+            print('simulate:Done!')
+        except Exception as err:
+            print(f'simulate failed:{err}')
 
     elif args.command == 'rcq':
         # rcd build a specific subject/session
