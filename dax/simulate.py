@@ -213,7 +213,7 @@ class DaxSimulator(object):
         # Simulate build on processor(s) to get potential assessors
         with tempfile.TemporaryDirectory() as tmpdir:
             logger.debug(f'loading processing protocols:{project}')
-            protocols = self._load_protocols(project, tmpdir)
+            protocols = self._load_protocols(project, tmpdir, unverified=unverified)
 
             # TODO: Iterate while new potentials are found
 
@@ -280,6 +280,7 @@ class DaxSimulator(object):
             pprint(allp)
         else:
             print('No potential new assessors from simulated build.')
+
 
 def _find_session_novels(inputsets, session, proctype, project_info):
     novels = []
