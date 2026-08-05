@@ -172,7 +172,8 @@ runs build, launch, update and upload.'
     simulate_parser.add_argument('-p', dest='project', help='Project to build', required=True)
     simulate_parser.add_argument('-d', dest='yamldir', help='YAML Processors Directory', required=True)
     simulate_parser.add_argument('-y', dest='processor', help='.yaml processor file', required=False)
-    simulate_parser.add_argument('-s', dest='subject', help='Subject/Session to run on', required=False)
+    simulate_parser.add_argument('-s', dest='subject', help='Subject to run on', required=False)
+    simulate_parser.add_argument('-e', dest='session', help='Session to run on', required=False)
     simulate_parser.add_argument('-u', dest='unverified', action='store_true', help='Include processors with unverified status')
     simulate_parser.add_argument('--debug', dest='debug', action='store_true')
 
@@ -312,7 +313,8 @@ if __name__ == '__main__':
                 args.project,
                 xnat,
                 processor=args.processor,
-                subject=args.subject,
+                only_subject=args.subject,
+                only_session=args.session,
                 unverified=args.unverified
             )
             print('simulate:Done!')

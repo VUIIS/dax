@@ -193,7 +193,8 @@ class DaxSimulator(object):
         project,
         xnat,
         processor=None,
-        subject=None,
+        only_subject=None,
+        only_session=None,
         unverified=None,
     ):
         allp = []
@@ -255,8 +256,6 @@ class DaxSimulator(object):
                     include_filters = []
 
                 logger.debug(f'building processor:{filepath}')
-                only_session=None
-                only_subject=None
                 procp = self._sim_processor(
                     xnat,
                     filepath,
