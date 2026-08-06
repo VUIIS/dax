@@ -297,18 +297,10 @@ if __name__ == '__main__':
             API_URL = os.environ.get('API_URL', 'https://redcap.vumc.org/api/')
             API_KEY = os.environ['API_KEY_DAX_PROJECTS']
 
-            print('get redcap')
             rc = Project(API_URL, API_KEY)
-
-            print('get simulator')
             ds = DaxSimulator(rc, args.yamldir)
-
-            print('get xnat')
             xnat = get_interface()
 
-            print('run simulate')
-            print(args.project)
-            print(args.processor)
             ds.simulate(
                 args.project,
                 xnat,
@@ -317,7 +309,6 @@ if __name__ == '__main__':
                 only_session=args.session,
                 unverified=args.unverified
             )
-            print('simulate:Done!')
         except Exception as err:
             print(f'simulate failed:{err}')
 

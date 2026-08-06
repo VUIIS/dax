@@ -198,18 +198,23 @@ class DaxSimulator(object):
         unverified=None,
     ):
         allp = []
+        lastp = []
 
         # Load project info
-        logger.info(f'loading project info:{project=}')
+        logger.debug(f'loading project info:{project=}')
         info = load_project_info(xnat, project)
 
-        print(f'PROJECT INFO:{project=}')
-        print(info['name'])
-        print('scan count=', len(info['scans']))
-        print('assr count=', len(info['assessors']))
-        print('sgp count=', len(info['sgp']))
-        print('session count=', len(info['all_sessions']))
-        print('subject count=', len(info['all_subjects']))
+        scan_count = len(info['scans'])
+        assr_count = len(info['assessors'])
+        sgp_count = len(info['sgp'])
+        sess_count = len(info['all_sessions'])
+        subj_count = len(info['all_subjects'])
+
+        logger.info(f'{subj_count=}')
+        logger.info(f'{sess_count=}')
+        logger.info(f'{scan_count=}')
+        logger.info(f'{assr_count=}')
+        logger.info(f'{sgp_count=}')
 
         # Simulate build on processor(s) to get potential assessors
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -217,6 +222,7 @@ class DaxSimulator(object):
             protocols = self._load_protocols(project, tmpdir, unverified=unverified)
 
             # TODO: Iterate while new potentials are found
+            #icount = 0
 
             # Iterate processing protocols
             for i, row in enumerate(protocols):
@@ -227,7 +233,7 @@ class DaxSimulator(object):
                 # Validate first
                 try:
                     validate_processor(filepath)
-                    logger.info(f'Validated:{filepath}')
+                    logger.debug(f'Validated:{filepath}')
                 except Exception as err:
                     logger.error(f'processor failed to validate:{filepath}:{err}')
                     continue
@@ -275,10 +281,10 @@ class DaxSimulator(object):
 
         # Display existing and potential assessors
         if allp:
-            print('Potential new assessors from simulated build=')
+            logger.info(f'{len(allp)} potential new assessors from simulated build:')
             pprint(allp)
         else:
-            print('No potential new assessors from simulated build.')
+            logger.info('No potential new assessors from simulated build.')
 
 
 def _find_session_novels(inputsets, session, proctype, project_info):
