@@ -15,6 +15,8 @@ import tempfile
 import logging
 from pprint import pprint
 
+import pandas as pd
+
 from .rcq.projectinfo import load_project_info
 from .rcq.taskbuilder import PROCESSING_RENAME, _get_proctype, _filter_labels, save_processor_file
 from .processors import load_from_yaml, SgpProcessor
@@ -283,8 +285,19 @@ class DaxSimulator(object):
         if allp:
             logger.info(f'{len(allp)} potential new assessors from simulated build:')
             pprint(allp)
+
+            # Counts for each type
+            _print_type_counts(allp)
         else:
             logger.info('No potential new assessors from simulated build.')
+
+
+def _print_type_counts(allp):
+    df = pd.DataFrame(allp)
+
+    print('TYPE,COUNT')
+    for t in sorted(df.TYPE.unique()):
+        print(f'{t},{len(df[df.TYPE == t])}')
 
 
 def _find_session_novels(inputsets, session, proctype, project_info):
