@@ -7,8 +7,7 @@
 #    -processing protocols/processors
 # outputs: 
 #   -table of *new" assessors that would be created
-#   -table of existing that was loaded
-# then show counts of existing or something?
+#   -then show counts by type
 
 import os
 import tempfile
@@ -78,8 +77,12 @@ class DaxSimulator(object):
 
                 # Create list of potentials for this subject/processor
                 subjp = []
-                for i in inputsets:
-                    subjp.append({'SUBJECT': subj, 'INPUTS': i})
+                for i, s in enumerate(inputsets):
+                    subjp.append({
+                        'SUBJECT': subj,
+                        'INPUTS': s,
+                        'full_path': f'{subj}/{processor.name}-NEW{i+1}',
+                    })
 
                 # Add to list for this processor across all subjects
                 procp.extend(subjp)
@@ -106,8 +109,12 @@ class DaxSimulator(object):
                 logger.debug(f'session:{sess}')
                 inputsets = self._sim_session_processor(processor, sess, info, custom=custom)
                 sessp = []
-                for i in inputsets:
-                    sessp.append({'SESSION': sess, 'INPUTS': i})
+                for i, s in enumerate(inputsets):
+                    sessp.append({
+                        'SESSION': sess,
+                        'INPUTS': s,
+                        'full_path': f'{sess}/{processor.name}-NEW{i+1}',
+                    })
 
                 procp.extend(sessp)
 
@@ -223,63 +230,79 @@ class DaxSimulator(object):
             logger.debug(f'loading processing protocols:{project}')
             protocols = self._load_protocols(project, tmpdir, unverified=unverified)
 
-            # TODO: Iterate while new potentials are found
-            #icount = 0
+            # Iterate while new potentials are found
+            icount = 0
+            ncount = 1
+            while ncount > 0 and icount < 5:
 
-            # Iterate processing protocols
-            for i, row in enumerate(protocols):
-                filepath = row['FILE']
+                # Increment loop counter
+                icount += 1
 
-                logger.debug(f'{project}:{filepath}')
+                # Reset novel counter
+                ncount = 0
 
-                # Validate first
-                try:
-                    validate_processor(filepath)
-                    logger.debug(f'Validated:{filepath}')
-                except Exception as err:
-                    logger.error(f'processor failed to validate:{filepath}:{err}')
-                    continue
+                # Iterate processing protocols
+                for i, row in enumerate(protocols):
+                    filepath = row['FILE']
 
-                if row.get('ARGS', False):
-                    user_inputs = row.get('ARGS')
-                    logger.debug(f'overrides:{user_inputs}')
-                    rlist = user_inputs.strip().split('\r\n')
-                    rdict = {}
-                    for arg in rlist:
-                        try:
-                            key, val = arg.split(':', 1)
-                            rdict[key] = val.strip()
-                        except ValueError as e:
-                            msg = f'invalid arg:{project}:{filepath}:{arg}:{e}'
-                            raise Exception(msg)
+                    logger.debug(f'{project}:{filepath}')
 
-                    user_inputs = rdict
-                    logger.debug(f'user_inputs:{user_inputs}')
-                else:
-                    user_inputs = None
+                    # Validate first
+                    try:
+                        validate_processor(filepath)
+                        logger.debug(f'Validated:{filepath}')
+                    except Exception as err:
+                        logger.error(f'processor failed to validate:{filepath}:{err}')
+                        continue
 
-                if row['FILTER']:
-                    include_filters = row['FILTER'].replace(' ', '').split(',')
-                else:
-                    include_filters = []
+                    if row.get('ARGS', False):
+                        user_inputs = row.get('ARGS')
+                        logger.debug(f'overrides:{user_inputs}')
+                        rlist = user_inputs.strip().split('\r\n')
+                        rdict = {}
+                        for arg in rlist:
+                            try:
+                                key, val = arg.split(':', 1)
+                                rdict[key] = val.strip()
+                            except ValueError as e:
+                                msg = f'invalid arg:{project}:{filepath}:{arg}:{e}'
+                                raise Exception(msg)
 
-                logger.debug(f'building processor:{filepath}')
-                procp = self._sim_processor(
-                    xnat,
-                    filepath,
-                    user_inputs,
-                    info,
-                    include_filters,
-                    custom=row['CUSTOM'],
-                    only_session=only_session,
-                    only_subject=only_subject
-                )
+                        user_inputs = rdict
+                        logger.debug(f'user_inputs:{user_inputs}')
+                    else:
+                        user_inputs = None
 
-                # Set proc type
-                for p in procp:
-                    p['TYPE'] = row['TYPE']
+                    if row['FILTER']:
+                        include_filters = row['FILTER'].replace(' ', '').split(',')
+                    else:
+                        include_filters = []
 
-                allp.extend(procp)
+                    logger.debug(f'building processor:{filepath}')
+                    procp = self._sim_processor(
+                        xnat,
+                        filepath,
+                        user_inputs,
+                        info,
+                        include_filters,
+                        custom=row['CUSTOM'],
+                        only_session=only_session,
+                        only_subject=only_subject
+                    )
+
+                    # Set proc type
+                    for p in procp:
+                        p['TYPE'] = row['TYPE']
+                        p['PROCTYPE'] = row['TYPE']
+
+                    # Append proc list to overall list
+                    allp.extend(procp)
+
+                    # Novel count
+                    ncount += len(procp)
+
+                    # Append novels to project info for next iteration
+                    info['assessors'].extend(procp)
 
         # Display existing and potential assessors
         if allp:
