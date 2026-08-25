@@ -46,7 +46,7 @@ class TaskBuilder(object):
 
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            logger.debug(f'loading processing protools:{project}')
+            logger.debug(f'loading processing protocols:{project}')
             protocols = self._load_protocols(project, tmpdir)
 
             if len(protocols) == 0:
@@ -432,3 +432,33 @@ def _get_proctype(procfile):
     # Split on periods and grab the 4th value from right,
     # thus allowing periods in the main processor name
     return tmp.rsplit('.')[-4]
+
+
+def save_processor_file(rc, project, repeat_id, outdir):
+    # Get the file contents from REDCap
+    try:
+        (cont, hdr) = rc.export_file(
+            record=project,
+            field='processor_yamlupload',
+            repeat_instance=repeat_id)
+
+        if cont == '':
+            raise Exception('error exporting file from REDCap')
+
+    except Exception as err:
+        logger.error(f'downloading file:{err}')
+        return None
+
+    # Save contents to local file, prepend a subdir so we don't 
+    # clobber multiple files of same name
+    _dir = os.path.join(outdir, f'{project}_{repeat_id}')
+    os.mkdir(_dir)
+    filename = os.path.join(_dir, hdr['name'])
+    try:
+        with open(filename, 'wb') as f:
+            f.write(cont)
+
+        return filename
+    except FileNotFoundError as err:
+        logger.error(f'file not found:{filename}:{err}')
+        return None
