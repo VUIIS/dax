@@ -43,6 +43,7 @@ scan:
   needs_qc: bool(required=False)
   skip_unusable: bool(required=False)
   keep_multis: str(required=False)
+  require_usable: bool(required=False)
 output:
   path: str(required=False)
   resource: str(required=False)
