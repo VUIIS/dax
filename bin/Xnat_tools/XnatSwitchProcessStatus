@@ -694,3 +694,4 @@ status to NEED_INPUTS from JOB_FAILED and delete previous resources.'
 if __name__ == '__main__':
     utils.run_tool(__exe__, __description__, add_to_parser, __purpose__,
                    run_xnat_switch_process_status)
+
