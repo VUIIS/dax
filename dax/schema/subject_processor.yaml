@@ -4,6 +4,7 @@ containers: list(include('container'))
 requirements:
   walltime: str()
   memory: str()
+  ppn: str(required=False)
 inputs:
   vars: map(required=False)
   xnat:
@@ -28,7 +29,9 @@ container:
   path: str()
   source: str(required=False)
 session:
-  type: str()
+  select: str(required=False)
+  tracer: str(required=False)
+  type: str(required=False)
   scans: list(include('scan'), required=False)
   assessors: list(include('assessor'), required=False)
 assessor:
