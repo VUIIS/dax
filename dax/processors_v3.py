@@ -1499,7 +1499,7 @@ class Processor_v3(object):
                         artefacts_by_input[i] = []
                     else:
                         artefacts_by_input[i] = [sorted_info[idx_multi-1][0]]
-                        LOGGER.info(
+                        LOGGER.debug(
                             f'Keeping only the {idx_multi}th scan found for '
                             f'{i}: {sorted_info[idx_multi-1][0]}'
                             )
@@ -2599,7 +2599,7 @@ class SgpProcessor(Processor_v3):
 
         # Get lists for scans/assrs for this subject
         scans = [x for x in project_data.get('scans') if x['SUBJECT'] == subject]
-        assrs = [x for x in project_data.get('assessors') if x['SUBJECT'] == subject]
+        assrs = [x for x in project_data.get('assessors') if x.get('SUBJECT', '') == subject]
 
         # Find list of scans/assessors that match each specified input
         # for i, iv in list(inputs.items()):

@@ -3,10 +3,12 @@ procyamlversion: enum('3.0.0-dev.0')
 containers: list(include('container'))
 requirements:
   walltime: str()
-  memory: str()
+  memory: any(str(), int())
+  ppn: int(required=False)
 inputs:
   vars: map(required=False)
   xnat:
+    petscans: list(include('petscan'), required=False)
     scans: list(include('scan'), required=False)
     assessors: list(include('assessor'), required=False)
     attrs: list(include('attr'), required=False)
@@ -44,6 +46,16 @@ scan:
   skip_unusable: bool(required=False)
   keep_multis: str(required=False)
   require_usable: bool(required=False)
+petscan:
+  name: str()
+  tracer: str()
+  scantypes: str()
+  nifti: str(required=False)
+  resources: list(include('resource'), required=False)
+  needs_qc: bool(required=False)
+  skip_unusable: bool(required=False)
+  keep_multis: str(required=False)
+  require_usable: bool(required=False)
 output:
   path: str(required=False)
   resource: str(required=False)
@@ -58,6 +70,7 @@ resource:
   fdest: str(required=False)
   varname: str(required=False)
   fmulti: enum('any1', required=False)
+  fcount: int(required=False)
 attr:
   varname: str()
   object: enum('subject', 'session', 'scan', 'assessor')

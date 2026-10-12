@@ -314,6 +314,8 @@ class DaxSimulator(object):
         else:
             logger.info('No potential new assessors from simulated build.')
 
+        return info
+
 
 def _print_type_counts(allp):
     df = pd.DataFrame(allp)
