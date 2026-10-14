@@ -14,6 +14,7 @@ from importlib import resources
 
 import pandas as pd
 import numpy as np
+from redcap import Project
 
 from ..rcq.projectinfo import load_project_info
 from .export_templates import *
@@ -99,6 +100,95 @@ class DaxExporter(object):
         logger.info(f'saving html:{filename}:{projects=}')
         _write_html(html_text, filename)
 
+    def _load_project_data(self, xnat, project):
+        info = load_project_info(xnat, project)
+        info['stats'] = self._load_project_stats(project, pd.concat([
+            pd.DataFrame(info['assessors']),
+            pd.DataFrame(info['sgp'])
+        ]))
+        return info
+
+    def _stats_redcap(self, project):
+        def_field = self._redcap.def_field
+
+        # get the project ID for the stats redcap for this project
+        _fields = [def_field, 'project_stats']
+        logger.debug(f'loading projects stats key from redcap')
+        rec = self._redcap.export_records(records=[project], fields=_fields)
+        rec = [x for x in rec if x[def_field] == project][0]
+        key = rec['project_stats']
+
+        logger.debug(f'loading redcap with key:{project}')
+        return Project(self._redcap.url, key)
+
+
+    def _load_project_stats(self, project, assessors, proctypes=None, sesstypes=None):
+        df = pd.DataFrame(columns=['ASSR', 'PROCTYPE', 'SESSTYPE'])
+
+        try:
+            """Get the stats data from REDCap."""
+            statsrc = self._stats_redcap(project)
+            rec = statsrc.export_records(forms=['stats'])
+        except:
+            logger.info(f'failed to load stats project:{project}')
+            return df
+
+        # Filter out FS6 if found, old
+        rec = [x for x in rec if 'FS6_v1' not in x['stats_assr']]
+
+        # Filter out old FS7 if found
+        rec = [x for x in rec if not x['stats_name'].startswith('fs7_')]
+
+        # Make a dataframe of columns we need
+        df = pd.DataFrame(rec,columns=['stats_assr', 'stats_name', 'stats_value'])
+        df = df.drop_duplicates(subset=['stats_assr', 'stats_name'])
+
+        # Pivot to row per assessor, col per stats_name, values as stats_value
+        df = pd.pivot(
+            df,
+            index='stats_assr',
+            values='stats_value',
+            columns='stats_name')
+
+        df = df.reset_index()
+
+        # Filter out failed
+        logger.debug(f'filtering out Failed assessors')
+        assessors = assessors[~assessors.QCSTATUS.isin(['Failed'])]
+
+        # Only keep some columns
+        assessors = assessors[[
+            'ASSR',
+            'PROJECT',
+            'SUBJECT',
+            'SESSION',
+            'SESSTYPE',
+            'SITE',
+            'DATE',
+            'PROCTYPE'
+        ]]
+
+        # Merge with assessors
+        df = pd.merge(assessors, df, left_on='ASSR', right_on='stats_assr')
+
+        # Clean up
+        df = df.drop(columns=['stats_assr'])
+        df = df.dropna(axis=1, how='all')
+
+        if df.empty:
+            return pd.DataFrame(columns=['ASSR', 'PROCTYPE', 'SESSTYPE'])
+
+        df = df.sort_values('ASSR')
+
+        # Apply filters
+        if proctypes:
+            df = df[df.PROCTYPE.isin(proctypes)]
+
+        if sesstypes:
+            df = df[df.SESSTYPE.isin(sesstypes)]
+
+        return df.to_dict('records')
+
     def _load_data(self, xnat, projects):
         infos = []
         info = {}
@@ -106,19 +196,20 @@ class DaxExporter(object):
 
         for p in projects:
             logger.debug(f'loading project info:{p=}')
-            infos.append(load_project_info(xnat, p))
+            infos.append(self._load_project_data(xnat, p))
 
         # Combine list of project info into a single info
         for i in infos:
             # Append each list by key
-            for k in ['scans', 'assessors', 'sgp']:
+            for k in ['scans', 'assessors', 'sgp', 'stats']:
                 info[k] = info.get(k, []) + i[k]
 
+        # Create df versions
         data['subjects'] = pd.DataFrame(columns=SUBJ_COLUMNS)
         data['scans'] = pd.DataFrame(info['scans'])
         data['assessors'] = pd.DataFrame(info['assessors'])
         data['sgp'] = pd.DataFrame(info['sgp'])
-        data['stats'] = pd.DataFrame(columns=STATS_COLUMNS)
+        data['stats'] = pd.DataFrame(info['stats'])
         data['analyses'] = pd.DataFrame(columns=ANALYSES_COLUMNS+['INVESTIGATOR'])
         data['processors'] = pd.DataFrame([])
 
@@ -133,7 +224,7 @@ def _map_proc2stats(stats):
         df = stats[stats.PROCTYPE == proc]
         df = df.replace(r'^\s*$', np.nan, regex=True)
         df = df.dropna(axis=1, how='all')
-        proc2stats[proc] = [x for x in list(df.columns) if x not in STAT_COLUMNS]
+        proc2stats[proc] = [x for x in list(df.columns) if x not in STATS_COLUMNS]
 
     return proc2stats
 
@@ -412,8 +503,8 @@ def _stats_panel(data):
 
     # Filters and Graph in next row
     _projects = sorted(list(data['assessors'].PROJECT.unique()))
-    _proctypes = sorted(list(data['assessors'].PROCTYPE.unique()))
-    _sesstypes = sorted(list(data['assessors'].SESSTYPE.unique()))
+    _proctypes = sorted(list(data['stats'].PROCTYPE.unique()))
+    _sesstypes = sorted(list(data['stats'].SESSTYPE.unique()))
     _measures = data['stats'].columns
     _dropdowns = ''.join([
         _csv_button('stats'),
@@ -594,11 +685,11 @@ def _get_buttons(data):
     return buttons
 
 def _dashboard_pre_js():
-    return resources.read_text('garjus.dashboard', 'assets/dashboard_pre.js')
+    return resources.read_text('dax.exports', 'assets/dashboard_pre.js')
 
 
 def _dashboard_post_js():
-    return resources.read_text('garjus.dashboard', 'assets/dashboard_post.js')
+    return resources.read_text('dax.exports', 'assets/dashboard_post.js')
 
 
 def _dropdown_js(label):
