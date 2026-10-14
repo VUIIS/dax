@@ -18,7 +18,7 @@ from redcap import Project
 
 from ..rcq.projectinfo import load_project_info
 from .export_templates import *
-
+from ..rcq.taskbuilder import PROCESSING_RENAME, _get_proctype
 
 logger = logging.getLogger('dax')
 
@@ -39,10 +39,26 @@ PROCESSORS_COLUMNS = [
 ]
 
 
+ANALYSES_RENAME = {
+    'redcap_repeat_instance': 'ID',
+    'analysis_name': 'NAME',
+    'analysis_lead': 'INVESTIGATOR',
+    'analysis_include': 'SUBJECTS',
+    'analysis_processor': 'PROCESSOR',
+    'analysis_input': 'INPUT',
+    'analysis_output': 'OUTPUT',
+    'analyses_complete': 'COMPLETE',
+    'analysis_status': 'STATUS',
+    'analysis_covars': 'COVARS',
+    'analysis_notes': 'NOTES',
+}
+
+
 class DaxExporter(object):
 
     def __init__(self, rc):
         self._redcap = rc
+        self._redcap_pid = None
 
     def export(
         self,
@@ -101,11 +117,15 @@ class DaxExporter(object):
         _write_html(html_text, filename)
 
     def _load_project_data(self, xnat, project):
+        # Load scans/assessors/sgp
         info = load_project_info(xnat, project)
+
+        # Then get stats for loaded assessors
         info['stats'] = self._load_project_stats(project, pd.concat([
             pd.DataFrame(info['assessors']),
             pd.DataFrame(info['sgp'])
         ]))
+
         return info
 
     def _stats_redcap(self, project):
@@ -189,6 +209,91 @@ class DaxExporter(object):
 
         return df.to_dict('records')
 
+
+    def _load_analyses(self, projects):
+        data = []
+        def_field = self._redcap.def_field
+
+        logger.debug(f'analyses projects={projects}')
+
+        rec = self._redcap.export_records(
+            records=projects,
+            forms=['analyses'],
+            fields=[def_field])
+
+        rec = [x for x in rec if x['redcap_repeat_instrument'] == 'analyses']
+
+        # Apply hideshow
+        rec = [x for x in rec if x['analysis_hideshow'] != '1']
+
+        for r in rec:
+            # Initialize record
+            project_id = r[def_field]
+            repeat_id = r['redcap_repeat_instance']
+            link = self.get_link('analyses', project_id, repeat_id)
+            d = {
+                'PROJECT': project_id,
+                'ID': repeat_id,
+                'EDIT': link,
+            }
+
+            # Get renamed variables
+            for k, v in ANALYSES_RENAME.items():
+                d[v] = r.get(k, '')
+
+            if r['analysis_procrepo']:
+                d['PROCESSOR'] = r['analysis_procrepo']
+
+            # Finally, add to our list
+            data.append(d)
+
+        return pd.DataFrame(data, columns=ANALYSES_COLUMNS + ['INVESTIGATOR'])
+
+
+    def _load_processors(self, projects):
+        data = []
+        def_field = self._redcap.def_field
+
+        rec = self._redcap.export_records(
+            records=projects,
+            forms=['processing'],
+            fields=[def_field])
+
+        rec = [x for x in rec if x['redcap_repeat_instrument'] == 'processing']
+
+        # Only enabled processing
+        rec = [x for x in rec if str(x['processing_complete']) == '2']
+
+        for r in rec:
+            # Initialize record with project
+            project_id = r[def_field]
+            repeat_id = r['redcap_repeat_instance']
+            link = self.get_link('processing', project_id, repeat_id)
+            d = {
+                'PROJECT': project_id,
+                'EDIT': link,
+                'ID': repeat_id,
+            }
+
+            # Find the yaml file
+            if r['processor_yamlupload']:
+                filepath = r['processor_yamlupload']
+            else:
+                filepath = r['processor_file']
+
+            # Get renamed variables
+            for k, v in PROCESSING_RENAME.items():
+                d[v] = r.get(k, '')
+
+            d['FILE'] = filepath
+            d['TYPE'] = _get_proctype(d['FILE'])
+
+            # Finally, add to our list
+            data.append(d)
+
+        return pd.DataFrame(data, columns=PROCESSORS_COLUMNS)
+
+
     def _load_data(self, xnat, projects):
         infos = []
         info = {}
@@ -210,10 +315,29 @@ class DaxExporter(object):
         data['assessors'] = pd.DataFrame(info['assessors'])
         data['sgp'] = pd.DataFrame(info['sgp'])
         data['stats'] = pd.DataFrame(info['stats'])
-        data['analyses'] = pd.DataFrame(columns=ANALYSES_COLUMNS+['INVESTIGATOR'])
-        data['processors'] = pd.DataFrame([])
+        data['analyses'] = self._load_analyses(projects)
+        data['processors'] = self._load_processors(projects)
 
         return data
+
+    def redcap_pid(self):
+        """Get the redcad project id"""
+        if self._redcap_pid is None:
+            self._redcap_pid = str(self._redcap.export_project_info().get('project_id'))
+
+        return self._redcap_pid
+
+    def get_link(self, instrument, project_id, repeat_id):
+        url = self._redcap.url
+        ver = self._redcap.redcap_version
+        pid = self.redcap_pid()
+
+        if url.endswith('/api/'):
+            url = url[:-5]
+
+        redcap_link = f'{url}/redcap_v{ver}/DataEntry/index.php?pid={pid}&page={instrument}&id={project_id}&instance={repeat_id}'
+
+        return redcap_link
 
 
 def _map_proc2stats(stats):
