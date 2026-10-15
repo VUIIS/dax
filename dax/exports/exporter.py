@@ -19,6 +19,8 @@ from redcap import Project
 from ..rcq.projectinfo import load_project_info
 from .export_templates import *
 from ..rcq.taskbuilder import PROCESSING_RENAME, _get_proctype
+from . import export_duckdb
+
 
 logger = logging.getLogger('dax')
 
@@ -109,12 +111,16 @@ class DaxExporter(object):
         # Get map of projects to scan types
         data['proj2scantypes'] = _map_proj2scantypes(data['qa'])
 
-        # Get html from ag grid data
-        html_text = _to_html(data)
+        if filename.endswith('.html'):
+            # Get html from ag grid data
+            html_text = _to_html(data)
 
-        # Write html to file
-        logger.info(f'saving html:{filename}:{projects=}')
-        _write_html(html_text, filename)
+            # Write html to file
+            logger.info(f'saving html:{filename}:{projects=}')
+            _write_html(html_text, filename)
+        else:
+            logger.info(f'saving duckdb:{filename}:{projects=}')
+            export_duckdb.save(data, filename)
 
     def _load_project_data(self, xnat, project):
         # Load scans/assessors/sgp
