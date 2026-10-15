@@ -70,57 +70,57 @@ class DaxExporter(object):
     ):
         data = self._load_data(xnat, projects)
 
-        # Set emoji statuses on scans/assessors
-        _set_emojis(data)
+        if filename.endswith('.duckdb'):
+            logger.info(f'saving duckdb:{filename}:{projects=}')
+            export_duckdb.save(data, filename)
+        else:
+            # Set emoji statuses on scans/assessors
+            _set_emojis(data)
 
-        data['timestamp'] = datetime.now().strftime("%I:%M:%S %p %Y-%m-%d ")
-        data['qa'] = pd.concat([data['scans'], data['assessors']]).fillna(np.nan)
-        data['qa'].DATE = pd.to_datetime(data['qa'].DATE).dt.date
+            data['timestamp'] = datetime.now().strftime("%I:%M:%S %p %Y-%m-%d ")
+            data['qa'] = pd.concat([data['scans'], data['assessors']]).fillna(np.nan)
+            data['qa'].DATE = pd.to_datetime(data['qa'].DATE).dt.date
 
-        # Merge in subject columns
-        data['qa'] = pd.merge(
-            data['qa'],
-            data['subjects'],
-           left_on=('SUBJECT','PROJECT'),
-            right_on=('ID','PROJECT'),
-            how='left'
-        ).drop(columns=['ID'])
+            # Merge in subject columns
+            data['qa'] = pd.merge(
+                data['qa'],
+                data['subjects'],
+               left_on=('SUBJECT','PROJECT'),
+                right_on=('ID','PROJECT'),
+                how='left'
+            ).drop(columns=['ID'])
 
-        # Merge in stats columns
-        data['stats'] = pd.merge(
-            data['stats'],
-            data['subjects'],
-            left_on=('SUBJECT','PROJECT'),
-            right_on=('ID', 'PROJECT'),
-            how='left'
-        ).drop(columns=['ID'])
+            # Merge in stats columns
+            data['stats'] = pd.merge(
+                data['stats'],
+                data['subjects'],
+                left_on=('SUBJECT','PROJECT'),
+                right_on=('ID', 'PROJECT'),
+                how='left'
+            ).drop(columns=['ID'])
 
-        data['stats'] = data['stats'].replace('', np.nan).dropna(subset=['SESSTYPE'])
-        data['stats'] = data['stats'].replace(r'^\s*$', np.nan, regex=True).replace(np.nan, '')
-        data['stats'].DATE = pd.to_datetime(data['stats'].DATE).dt.date
+            data['stats'] = data['stats'].replace('', np.nan).dropna(subset=['SESSTYPE'])
+            data['stats'] = data['stats'].replace(r'^\s*$', np.nan, regex=True).replace(np.nan, '')
+            data['stats'].DATE = pd.to_datetime(data['stats'].DATE).dt.date
 
-        # Add processing type to list stats mapping
-        data['proc2stats'] = _map_proc2stats(data['stats'])
+            # Add processing type to list stats mapping
+            data['proc2stats'] = _map_proc2stats(data['stats'])
 
-        # Get map of projects to proc types
-        data['proj2proctypes'] = _map_proj2proctypes(data['qa'])
+            # Get map of projects to proc types
+            data['proj2proctypes'] = _map_proj2proctypes(data['qa'])
 
-        # Get map of projects to sess types
-        data['proj2sesstypes'] = _map_proj2sesstypes(data['qa'])
+            # Get map of projects to sess types
+            data['proj2sesstypes'] = _map_proj2sesstypes(data['qa'])
 
-        # Get map of projects to scan types
-        data['proj2scantypes'] = _map_proj2scantypes(data['qa'])
+            # Get map of projects to scan types
+            data['proj2scantypes'] = _map_proj2scantypes(data['qa'])
 
-        if filename.endswith('.html'):
             # Get html from ag grid data
             html_text = _to_html(data)
 
             # Write html to file
             logger.info(f'saving html:{filename}:{projects=}')
             _write_html(html_text, filename)
-        else:
-            logger.info(f'saving duckdb:{filename}:{projects=}')
-            export_duckdb.save(data, filename)
 
     def _load_project_data(self, xnat, project):
         # Load scans/assessors/sgp
