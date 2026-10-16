@@ -44,6 +44,12 @@ which can then be activated or deactivated with:
 	conda activate daxvenv    # Activation of environment
 	conda deactivate          # Deactivation of environment
 
+If you run into certificate errors, here's an ... adequate way to install miniconda when they happen:
+
+::
+
+	CONDA_SSL_VERIFY=false conda create -n dax python=3.14
+
 After activating the new environment, git version 2.11+ should be installed. 
 
  - For ACCRE users, refer to the instructions here: https://dax.readthedocs.io/en/latest/requirements_for_dax_on_accre.html
