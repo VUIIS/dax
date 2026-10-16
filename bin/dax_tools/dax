@@ -321,7 +321,6 @@ if __name__ == '__main__':
 
     elif args.command == 'export':
         import logging
-        from dax.exports import DaxExporter
         from dax.XnatUtils import get_interface
         from redcap import Project
 
@@ -330,22 +329,43 @@ if __name__ == '__main__':
         else:
             logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-        try:
-            API_URL = os.environ.get('API_URL', 'https://redcap.vumc.org/api/')
-            API_KEY = os.environ['API_KEY_DAX_PROJECTS']
+        if 'API_KEY_NOXNAT_PROJECTS' in os.environ:
+            from dax.exports.exporter_noxnat import Exporter as DaxNoXnatExporter
 
-            rc = Project(API_URL, API_KEY)
-            exporter = DaxExporter(rc)
-            xnat = get_interface()
-            projects = args.projects.split(',')
+            try:
+                API_URL = os.environ.get('API_URL', 'https://redcap.vumc.org/api/')
+                API_KEY = os.environ['API_KEY_NOXNAT_PROJECTS']
+                rc = Project(API_URL, API_KEY)
+                exporter = DaxNoXnatExporter(rc)
+                projects = args.projects.split(',')
+                filename = args.filename
 
-            exporter.export(
-                projects,
-                xnat,
-                args.filename
-            )
-        except Exception as err:
-            print(f'export failed:{err}')
+                if filename.endswith('.duckdb'):
+                    exporter.export_duckdb(projects, filename)
+                else:
+                    exporter.export_html(projects, filename)
+
+            except Exception as err:
+                print(f'export failed:{err}')
+        else:
+            from dax.exports import DaxExporter
+
+            try:
+                API_URL = os.environ.get('API_URL', 'https://redcap.vumc.org/api/')
+                API_KEY = os.environ['API_KEY_DAX_PROJECTS']
+
+                rc = Project(API_URL, API_KEY)
+                exporter = DaxExporter(rc)
+                xnat = get_interface()
+                projects = args.projects.split(',')
+
+                exporter.export(
+                    projects,
+                    xnat,
+                    args.filename
+                )
+            except Exception as err:
+                print(f'export failed:{err}')
 
     elif args.command == 'rcq':
         # rcd build a specific subject/session
