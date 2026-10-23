@@ -62,6 +62,7 @@ ASSESSORS_RENAME = {
     'assr_subject': 'SUBJECT',
     'assr_session': 'SESSION',
     'assr_proctype': 'PROCTYPE',
+    'assr_procversion': 'PROCVERSION',
     'assr_procstatus': 'PROCSTATUS',
     'assr_memreq': 'MEMREQ',
     'assr_timereq': 'TIMEREQ',
