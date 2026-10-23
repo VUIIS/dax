@@ -1,9 +1,13 @@
 '''Create task builder from duckdb and run update'''
 import sys
+import logging
 
 import pandas as pd
 
 from dax.rcq.builder_noxnat import TaskBuilderNoXnat, _fix_duckdb
+
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 if __name__ == '__main__':
