@@ -4,20 +4,20 @@ import logging
 
 import pandas as pd
 
-from dax.rcq.builder_noxnat import TaskBuilderNoXnat, _fix_duckdb
+from dax.rcq.builder_noxnat import TaskBuilderNoXnat
 
 
 logging.basicConfig(level=logging.DEBUG)
 
 
 if __name__ == '__main__':
-	duckfile = sys.argv[1]
-	yamldir = sys.argv[2]
-	rootdir = sys.argv[3]
+	rootdir = sys.argv[1]
 
-	_fix_duckdb(duckfile)
+	if True:
+		from dax.rcq.database_noxnat import DatabaseNoXnat
+		DatabaseNoXnat(f'{rootdir}/db/dax.duckdb').fix_duckdb()
 
-	builder = TaskBuilderNoXnat(duckfile, yamldir, rootdir)
+	builder = TaskBuilderNoXnat(rootdir)
 
 	print('processors=', builder._data['processors'])
 
@@ -35,6 +35,6 @@ if __name__ == '__main__':
 
 	print(builder._data['processors'])
 
-	results = builder.update_all(only_session='180093a')
+	results = builder.update_all(only_session='180093b')
 
-	#print(results)
+	print(f'{results=}')

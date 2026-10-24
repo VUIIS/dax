@@ -1,21 +1,16 @@
 """ Task Builder for DAX without XNAT, builds using duckdb data and local filesystem. 
-Creates assessor in duckdb and creates folder in local files. Stops at NEEDS_RUN, ready for launch"""
 
-# create_assessor with given input artefacts, creates a folder in project assessors folder
-# ROOTDIR/PROJECT/assessors
-# then build_task (if any required files are missing, raises NEED_INPUTS)
+Creates assessor with input artefacts in duckdb. 
 
-# INSERT to duckdb on create assessor and on build task? Or should we batch create assessors then build each task? Or both?
+Stops at NEEDS_RUN, ready for launch.
 
-# Create flag files for NEED_INPUTS, NEEDS_RUN, etc. so we can see status on disk? or RUNNING, dunno.
+If any required files are missing, raises NEED_INPUTS.
 
-
-# inputs is stored in database as a string, but should be a dict immediately after loaded
+Inputs is stored in database as a string, but should always be a dict after loaded
+"""
 
 import os
 import logging
-import re
-import fnmatch
 import json
 from datetime import date
 from uuid import uuid4
@@ -28,131 +23,33 @@ from ..task import JOB_PENDING, JOB_RUNNING
 from ..task import NEED_INPUTS, NEED_TO_RUN, NO_DATA, RERUN, REPROC_RES_SKIP_LIST
 from ..task import NeedInputsException, NoDataException
 from ..XnatUtils import decode_inputs
+from .database_noxnat import DatabaseNoXnat
 
 
 logger = logging.getLogger('dax')
 
 
-def load_task_builder(filename, yamldir):
-    data = _load_data_duckdb(filename)
-
-    task_builder = TaskBuilderNoXnat(data, yamldir)
-
-    return task_builder
-
-
-def _fix_duckdb(filename):
-    data = _load_data_duckdb(filename)
-
-    if 'PROCVERSION' not in data['assessors'].columns:
-        logger.debug('adding PROCVERSION column to assessors in duckdb')
-        with duckdb.connect(filename) as con:
-            con.sql('ALTER TABLE assessors ADD COLUMN PROCVERSION VARCHAR')
-
-    # Check for task queue table, add if needed
-    if 'taskqueue' not in data.keys():
-        logger.debug('adding taskqueue table to duckdb')
-        _add_taskqueue_duckdb(filename)
-
-
-def _add_taskqueue_duckdb(filename):
-    with duckdb.connect(filename) as con:
-        con.execute(
-            CREATE TABLE taskqueue (
-                
-            )
-        )
-
-
-def _load_data_duckdb(filename):
-    '''Load all tables from duckdb file as dict of df'''
-    data = {}
-
-    con = duckdb.connect(filename)
-
-    table_names = (con.sql('SHOW ALL TABLES').df())['name'].tolist()
-
-    for t in table_names:
-        data[t] = con.sql(f"SELECT * FROM {t}").df()
-        data[t] = data[t].fillna('')
-
-    return data
-
-
-def _add_assessor_duckdb(assessor, filename):
-    logger.debug(f'adding assessor to duckdb:{filename}')
-
-    with duckdb.connect(filename) as con:
-        con.execute("""
-            INSERT INTO assessors 
-            (
-                PROJECT,
-                ASSR,
-                SUBJECT,
-                SESSION,
-                QCSTATUS,
-                PROCTYPE,
-                PROCVERSION,
-                PROCSTATUS,
-                INPUTS
-            )
-            VALUES 
-            (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            [
-                assessor['PROJECT'],
-                assessor['ASSR'], 
-                assessor['SUBJECT'],
-                assessor['SESSION'],
-                assessor['QCSTATUS'], 
-                assessor['PROCTYPE'], 
-                assessor['PROCVERSION'], 
-                assessor['PROCSTATUS'], 
-                assessor['INPUTS']
-            ]
-        )
-
-
-def _set_task_duckdb(filename, task):
-
-    with duckdb.connect(filename) as con:
-        con.execute("""
-            INSERT INTO taskqueue ()
-            VALUES (?, ?, ?)
-            ON CONFLICT (ASSR) DO UPDATE
-        """)
-
-
-def _update_assessor_duckdb(id, field, value, filename):
-
-    logger.debug(f'update assessor in duckdb:{filename=}:{id=}:{field=}:{value=}')
-
-    query = f"""
-        UPDATE assessors
-        SET {field} = ?
-        WHERE ASSR = ?
-    """
-
-    with duckdb.connect(filename) as con:
-        con.execute(query, [value, id])
-
-
 class TaskBuilderNoXnat(object):
     # Builds tasks and adds to queue
 
-    def __init__(self, dbfile, yamldir, rootdir):
-        self._dbfile = dbfile
-        self._data = self._load_db()
-        self._yamldir = yamldir
-        self._build_projects = self.projects_with_processing()
+    def __init__(self, rootdir):
         self._rootdir = rootdir
+        self._dbfile = f'{rootdir}/db/dax.duckdb'
+        self._db = DatabaseNoXnat(self._dbfile)
+        self._data = self._load_data()
+        self._yamldir = f'{rootdir}/processors'
+        self._singularitys_dir = f'{rootdir}/singularitys'
+        self._logs_dir = f'{rootdir}/logs'
+        self._scans_dir = f'{rootdir}/scans'
+        self._assrs_dir = f'{rootdir}/assessors'
+        self._flags_dir = f'{rootdir}/flagfiles'
+        self._build_projects = self.projects_with_processing()
 
-    def _load_db(self):
-        return _load_data_duckdb(self._dbfile)
+    def _load_data(self):
+        return self._db.load_data()
 
     def _project_info(self, project):
         '''Extract project info from data'''
-
         info = {}
 
         # Scans
@@ -207,27 +104,30 @@ class TaskBuilderNoXnat(object):
         return protocols
 
     def update_all(self, only_session=None):
+        results = []
         projects = self._build_projects
 
         logger.debug(f'update_all:{projects=}')
 
         for p in projects:
             logger.debug(f'update:{p=}')
-            results = self.update(p, only_session=only_session)
+            results.extend(self.update(p, only_session=only_session))
+
+        return results
 
     def update(self, project, only_session=None, only_subject=None):
         results = []
 
         if project not in self._build_projects:
             logger.info(f'no processing protocols found:{project}')
-            return
+            return results
 
         logger.debug(f'loading processing protocols:{project}')
         protocols = self._load_protocols(project)
 
         if len(protocols) == 0:
             logger.debug(f'no processing protocols found:{project}')
-            return
+            return results
 
         info = self._project_info(project)
 
@@ -326,7 +226,7 @@ class TaskBuilderNoXnat(object):
 
             # Apply the processor to filtered sessions
             for sess in sorted(include_sessions):
-                cur_results  = self._build_session_processor(processor, sess, info, custom=custom)
+                cur_results = self._build_session_processor(processor, sess, info, custom=custom)
                 results.extend(cur_results)
 
         return results
@@ -399,8 +299,6 @@ class TaskBuilderNoXnat(object):
                 logger.info(f'TBD:undoing task{info["ASSR"]}')
                 #self._undo_task(assr)
                 #info['PROCSTATUS'] = NEED_TO_RUN
-            else:
-                logger.debug(f'ignoring QCSTATUS:{info["ASSR"]}:{info["QCSTATUS"]}')
 
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
                 logger.info(f'building task:{info["ASSR"]}')
@@ -420,7 +318,7 @@ class TaskBuilderNoXnat(object):
         return results
 
     def _build_task(self, info, processor, project_info, custom=False):
-        '''Build a task, create assessor in XNAT, add new record to redcap'''
+        '''Build a task'''
         old_proc_status = info['PROCSTATUS']
         old_qc_status = info['QCSTATUS']
 
@@ -451,6 +349,8 @@ class TaskBuilderNoXnat(object):
         except NoDataException as e:
             new_proc_status = NO_DATA
             new_qc_status = e.value
+        except Exception as err:
+            raise Exception(f'add task failed:{err}')
 
         # Update in database and locally
         # TODO:TBD batch db updates for whole project
@@ -574,7 +474,6 @@ class TaskBuilderNoXnat(object):
         return subject
 
     def _add_assessor(self, assessor):
-        # TODO: check for uniqueness PROJECT/SESSION/PROCTYPE/INPUTS or PROJECT/SUBJECT/PROCTYPE/INPUTS
         # Copy so we can edit
         _assessor = assessor.copy()
 
@@ -582,19 +481,21 @@ class TaskBuilderNoXnat(object):
         _assessor['INPUTS'] = json.dumps(_assessor['INPUTS'])
 
         # Save edited assessor
-        _add_assessor_duckdb(_assessor, self._dbfile)
+        self._db.add_assessor(_assessor)
 
     def _compare_inputs(self, inputs1, inputs2):
         assert type(inputs1) == dict
         assert type(inputs2) == dict
-
         return inputs1 == inputs2
 
     def _update_assessor_procstatus(self, id, procstatus):
-        _update_assessor_duckdb(id, 'PROCSTATUS', procstatus, self._dbfile)
+        self._db.update_assessor(id, 'PROCSTATUS', procstatus)
 
     def _update_assessor_qcstatus(self, id, qcstatus):
-        _update_assessor_duckdb(id, 'QCSTATUS', qcstatus, self._dbfile)
+        self._db.update_assessor(id, 'QCSTATUS', qcstatus)
+
+    def _set_task(self, task):
+        self._db.set_task(task)
 
     def _add_task(
         self,
@@ -608,41 +509,26 @@ class TaskBuilderNoXnat(object):
         userinputs,
         custom=False
     ):
-        """Add a new task record ."""
+        """Create or update task record"""
 
         # Convert to string for storing
         var2val = json.dumps(var2val)
         inputlist = json.dumps(inputlist)
         userinputs = json.dumps(userinputs)
 
-        if custom:
-            task_yamlfile = 'CUSTOM'
-        else:
-            task_yamlfile = os.path.basename(yamlfile)
-
-        # Update existing record
-        self._update_task({
-            'PROJECT': project,
-            'task_status': 'QUEUED',
-            'task_inputlist': inputlist,
-            'task_var2val': var2val,
-            'task_walltime': walltime,
-            'task_memreq': memreq,
-            'task_yamlfile': task_yamlfile,
-            'task_userinputs': userinputs,
-            'task_timeused': '',
-            'task_memused': ''
-        })
-
-        # If the file is not in yaml dir, we need to upload it to the task
-        if task_yamlfile == 'CUSTOM':
-            logger.debug(f'yaml not in shared library, uploading to task')
-            if not task_id:
-                # Try to match existing record
-                task_id = self._assessor_task_id(project, assr)
-
-            logger.debug(f'uploading file:{yamlfile}')
-            self._upload_task_processor_file(
-                project,
-                task_id,
-                yamlfile)
+        try:
+            self._set_task({
+                'ASSR': assr,
+                'PROJECT': project,
+                'PROCSTATUS': 'QUEUED',
+                'INPUTLIST': inputlist,
+                'VAR2VAL': var2val,
+                'WALLTIME': walltime,
+                'MEMREQ': memreq,
+                'YAMLFILE': task_yamlfile,
+                'USERINPUTS': userinputs,
+                'TIMEUSED': '',
+                'MEMUSED': ''
+            })
+        except Exception as err:
+            raise Exception(f'set task failed:{err}')
