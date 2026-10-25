@@ -18,3 +18,5 @@ from .git_revision import git_revision as __git_revision__
 from .XnatUtils import SpiderProcessHandler, AssessorHandler
 from .modules import ScanModule, SessionModule
 from .processors import AutoProcessor
+
+from . import noxnat

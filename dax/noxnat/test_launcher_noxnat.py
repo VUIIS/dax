@@ -11,10 +11,4 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 if __name__ == '__main__':
-	rootdir = sys.argv[1]
-
-	launcher = TaskLauncherNoXnat(rootdir)
-
-	results = launcher.update()
-
-	print(f'{results=}')
+	TaskLauncherNoXnat(sys.argv[1]).update()

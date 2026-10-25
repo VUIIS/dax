@@ -17,7 +17,7 @@ from uuid import uuid4
 
 import duckdb
 
-from .taskbuilder import _filter_labels, _filter_matches, _get_proctype
+from ..rcq.taskbuilder import _filter_labels, _filter_matches, _get_proctype
 from ..processors_noxnat import ProcessorNoXnat, load_from_yaml_noxnat
 from ..task import JOB_PENDING, JOB_RUNNING
 from ..task import NEED_INPUTS, NEED_TO_RUN, NO_DATA, RERUN, REPROC_RES_SKIP_LIST
@@ -27,6 +27,9 @@ from .database_noxnat import DatabaseNoXnat
 
 
 logger = logging.getLogger('dax')
+
+
+# TODO: handle JOB_RUNNING in assessors with lost task in taskqueue
 
 
 class TaskBuilderNoXnat(object):

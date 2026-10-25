@@ -33,6 +33,12 @@ class DatabaseNoXnat(object):
         
         return df
 
+    def clear_taskqueue(self):
+        filename = self._filename
+
+        with duckdb.connect(filename) as con:
+            con.sql("DELETE FROM taskqueue")
+
     def fix_duckdb(self):
         filename = self._filename
         logger.info(f'fix_duckdb:{filename}')
