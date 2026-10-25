@@ -217,6 +217,7 @@ class TaskLauncherNoXnat(object):
         """Update all tasks in taskqueue of projects_redcap."""
 
         # Try to lock
+        os.makedirs(self._flags_dir, exist_ok=True)
         lock_file = f'{self._flags_dir}/rcq.pid'
         success = lock_flagfile(lock_file)
         if not success:
