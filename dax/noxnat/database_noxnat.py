@@ -11,6 +11,20 @@ class DatabaseNoXnat(object):
     def __init__(self, filename):
         self._filename = filename
 
+    def delete_bad_assessors(self):
+        filename = self._filename
+
+        with duckdb.connect(filename) as con:
+            con.execute("""
+                DELETE FROM assessors
+                WHERE PROCSTATUS == 'NEED_INPUTS';
+            """)
+
+            con.execute("""
+                DELETE FROM assessors
+                WHERE PROCSTATUS == 'JOB_RUNNING';
+            """)
+
     def load_data(self):
         data = {}
         filename = self._filename

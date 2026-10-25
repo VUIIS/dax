@@ -13,18 +13,29 @@ import pandas as pd
 
 from ..cluster import PBS, cj_subcmd, DAX_SETTINGS, command_found
 from ..lockfiles import lock_flagfile, unlock_flagfile
-from ..processors_noxnat import ProcessorNoXnat, load_from_yaml_noxnat
+from .processors_noxnat import ProcessorNoXnat, load_from_yaml_noxnat
 from .database_noxnat import DatabaseNoXnat
 
 
 logger = logging.getLogger('dax')
 
 
-DONE_STATUSES = ['COMPLETE', 'JOB_FAILED', 'LOST']
+DONE_STATUSES = [
+    'COMPLETE',
+    'JOB_FAILED',
+    'LOST'
+]
 
 SUBDIRS = ['OUTLOG', 'PBS', 'PROCESSOR']
 
-COMPLETED_STATUSES = ['COMPLETED', 'FAILED', 'CANCELLED', 'NODE_FAIL', 'OUT_OF_MEMORY', 'TIMEOUT']
+COMPLETED_STATUSES = [
+    'COMPLETED',
+    'FAILED',
+    'CANCELLED',
+    'NODE_FAIL',
+    'OUT_OF_MEMORY',
+    'TIMEOUT'
+]
 
 
 class TaskLauncherNoXnat(object):

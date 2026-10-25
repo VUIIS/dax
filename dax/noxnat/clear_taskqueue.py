@@ -11,3 +11,4 @@ logging.basicConfig(level=logging.DEBUG)
 
 if __name__ == '__main__':
 	DatabaseNoXnat(f'{sys.argv[1]}/db/dax.duckdb').clear_taskqueue()
+	DatabaseNoXnat(f'{sys.argv[1]}/db/dax.duckdb').delete_bad_assessors()

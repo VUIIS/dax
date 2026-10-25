@@ -4,7 +4,7 @@ import logging
 
 import pandas as pd
 
-from dax.rcq.launcher_noxnat import TaskLauncherNoXnat
+from dax.noxnat.launcher_noxnat import TaskLauncherNoXnat
 
 
 logging.basicConfig(level=logging.DEBUG)

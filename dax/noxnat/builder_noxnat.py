@@ -18,11 +18,11 @@ from uuid import uuid4
 import duckdb
 
 from ..rcq.taskbuilder import _filter_labels, _filter_matches, _get_proctype
-from ..processors_noxnat import ProcessorNoXnat, load_from_yaml_noxnat
 from ..task import JOB_PENDING, JOB_RUNNING
 from ..task import NEED_INPUTS, NEED_TO_RUN, NO_DATA, RERUN, REPROC_RES_SKIP_LIST
 from ..task import NeedInputsException, NoDataException
 from ..XnatUtils import decode_inputs
+from .processors_noxnat import ProcessorNoXnat, load_from_yaml_noxnat
 from .database_noxnat import DatabaseNoXnat
 
 
@@ -528,7 +528,7 @@ class TaskBuilderNoXnat(object):
                 'VAR2VAL': var2val,
                 'WALLTIME': walltime,
                 'MEMREQ': memreq,
-                'YAMLFILE': task_yamlfile,
+                'YAMLFILE': yamlfile,
                 'USERINPUTS': userinputs,
                 'TIMEUSED': '',
                 'MEMUSED': ''
