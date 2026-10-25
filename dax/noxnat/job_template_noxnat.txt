@@ -1,0 +1,98 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=${job_ppn}
+#SBATCH --time=${job_walltime}
+#SBATCH --mem=${job_memory}
+#SBATCH -o ${job_output_file}
+
+
+uname -a # outputs node info (name, date&time, type, OS, etc)
+date
+
+
+#=============================================================================
+#VERSION=
+#JOBDIR=
+#INDIR=
+#OUTDIR=
+#DSTDIR=
+#INLIST=
+#OUTLIST=
+#CONTAINERPATH=
+#MAINCMD=
+${job_cmds}
+#=============================================================================
+
+# Show settings
+echo $DSTDIR
+echo $INDIR
+echo $OUTDIR
+echo $CONTAINERPATH
+
+# Create job io dirs
+mkdir -p $INDIR
+mkdir -p $OUTDIR
+
+# Collect inputs
+for IN in "${INLIST[@]}"; do
+    IFS=',' read -r col1 col2 col3 <<< "$IN"
+    if [ $col2 == "FILE" ]; then
+        CMD="cp \"$col3\" $INDIR/$col1"
+    elif [ $col2 == "DIRJ" ]; then
+        CMD="zip -rq $INDIR/${col1}.zip \"$col3\""
+        CMD+=" && unzip -q -j $INDIR/${col1}.zip -d $INDIR/$col1"
+    else
+        CMD="zip -r $INDIR/${col1}.zip \"${col3}\""
+        CMD+=" && unzip -q $INDIR/${col1}.zip -d $INDIR/$col1"
+    fi
+
+    # Show the whole command
+    echo $CMD
+
+    # Run the full command
+    eval result=\$\($CMD\)
+    echo "result=$result"
+done
+
+# Run main command
+echo $_JAVA_OPTIONS
+echo $MAINCMD
+eval $MAINCMD
+
+# Write version files
+mkdir -p $DSTDIR
+echo $VERSION > $DSTDIR/version.txt
+sha256sum $CONTAINERPATH | awk '{print $1}' > $DSTDIR/dax_docker_version.txt
+
+
+# Handle outputs
+errors=0
+haspdf=0
+for OUT in "${OUTLIST[@]}"; do
+    IFS=',' read -r col1 col2 col3 col4 <<< "$OUT"
+    pathlist=(${OUTDIR}/${col1})
+    
+    # Check for missing output
+    if [[ ${#pathlist[@]} == 1 && ! -e $pathlist ]]; then
+        if [[ $col4 != "F" ]]; then errors=1 && echo "ERROR:missing required output:$col1"
+        else echo "WARN:output not required"; fi
+        continue
+    fi
+
+    # Copy output based on type
+    mkdir -p "$DSTDIR/$col3"
+    if [ $col3 == "PDF" ]; then
+        if [ $col2 != "FILE" ]; then errors=1 && echo "ERROR:illegal type for PDF";
+        elif [[ ${#pathlist[@]} != 1 ]]; then errors=1 && echo "ERROR:multiple PDFs";
+        else haspdf=1 && cp $OUTDIR/$col1 $DSTDIR/$col3 || errors=1; fi
+    elif [ $col2 == "FILE" ]; then cp $OUTDIR/$col1 $DSTDIR/$col3 || errors=1;
+    elif [ $col2 == "DIR" ]; then cp -r $OUTDIR/$col1/. $DSTDIR/$col3 || errors=1;
+    else errors=1 && echo "ERROR:invalid type:$col2"; fi
+done
+
+if [ $errors -gt 0 ]; then echo "JOB_FAILED" && touch $DSTDIR/JOB_FAILED.txt;
+else echo "COMPLETE" && touch $DSTDIR/READY_TO_UPLOAD.txt; fi
+
+rm -rf $INDIR $OUTDIR
+
+echo "DONE!"
