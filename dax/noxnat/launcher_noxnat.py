@@ -161,7 +161,7 @@ class TaskLauncherNoXnat(object):
                 logger.info(f'cannot launch, found existing dir, setting status to RUNNING:{outdir}')
                 updates.append({
                     'ASSR': assr,
-                    'STATUS': 'RUNNING',
+                    'PROCSTATUS': 'RUNNING',
                 })
                 continue
 
