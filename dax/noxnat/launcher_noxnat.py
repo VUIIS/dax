@@ -130,7 +130,6 @@ class TaskLauncherNoXnat(object):
         launch_list = []
         running_list = []
         records = self._load_queue()
-
         # Load lists of tasks currently running and ready to launch
         running_list = [x for x in records if x['PROCSTATUS'] == 'RUNNING']
         launch_list = [x for x in records if x['PROCSTATUS'] == 'QUEUED']
@@ -212,6 +211,7 @@ class TaskLauncherNoXnat(object):
 
     def _apply_updates(self, updates):
         print(f'applyihg updates to db:{updates}')
+        self._db.update_tasks(updates)
 
     def update(self, launch_enabled=True, projects=None):
         """Update all tasks in taskqueue of projects_redcap."""
