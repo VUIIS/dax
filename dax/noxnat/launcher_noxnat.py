@@ -187,7 +187,7 @@ class TaskLauncherNoXnat(object):
 
                 updates.append({
                     'ASSR': assr,
-                    'STATUS': 'RUNNING',
+                    'PROCSTATUS': 'RUNNING',
                     'JOBID': jobid,
                 })
 
@@ -196,7 +196,7 @@ class TaskLauncherNoXnat(object):
                 traceback.print_exc()
                 updates.append({
                     'ASSR': assr,
-                    'STATUS': 'LAUNCH_FAILED',
+                    'PROCSTATUS': 'LAUNCH_FAILED',
                 })
                 #delete_task_dirs(outdir)
                 print(f'delete_task_dirs:{outdir}')
@@ -361,7 +361,7 @@ class TaskLauncherNoXnat(object):
                 self.create_failed_flag(assr)
 
             # Set task status to be saved as failed
-            task['task_status'] = 'JOB_FAILED'
+            task['PROCSTATUS'] = 'JOB_FAILED'
 
         # Save attributes to disk
         self.save_results(task, filename)
@@ -371,7 +371,7 @@ class TaskLauncherNoXnat(object):
 
     def _save_results(self, task, filename):
         with open(filename, 'w') as f:
-            for keys in ['JOBID', 'JOBNODE', 'JOBSTART', 'MEMUSED', 'TIMEUSED', 'STATUS']:
+            for keys in ['JOBID', 'JOBNODE', 'JOBSTART', 'MEMUSED', 'TIMEUSED', 'PROCSTATUS']:
                 f.write(key +'=' + value + '\n')
 
 
