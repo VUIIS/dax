@@ -73,7 +73,7 @@ class DatabaseNoXnat(object):
         filename = self._filename
 
         with duckdb.connect(filename) as con:
-            con.sql("DROP taskqueue")
+            con.sql("DROP TABLE taskqueue")
 
     def _add_taskqueue(self):
         filename = self._filename
