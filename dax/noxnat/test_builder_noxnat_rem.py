@@ -44,12 +44,12 @@ if __name__ == '__main__':
 			{
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'struct_preproc_v1.0.1.yaml',
-			'FILTER': '17000*a',
+			'FILTER': '17*a',
 			},
 			{
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'struct_preproc_noflair_v1.0.0.yaml',
-			'FILTER': '17000*b',
+			'FILTER': '17*b',
 			},
 		])]
 	).fillna('')
