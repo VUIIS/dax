@@ -69,6 +69,12 @@ class DatabaseNoXnat(object):
             logger.debug('adding taskqueue table to duckdb')
             _add_taskqueue_duckdb(filename)
 
+    def _delete_taskqueue(self):
+        filename = self._filename
+
+        with duckdb.connect(filename) as con:
+            con.sql("DROP taskqueue")
+
     def _add_taskqueue(self):
         filename = self._filename
 
@@ -76,6 +82,11 @@ class DatabaseNoXnat(object):
             con.execute("""
                 CREATE TABLE taskqueue (
                     ASSR VARCHAR PRIMARY KEY,
+                    JOBID VARCHAR,
+                    JOBNODE VARCHAR,
+                    JOBDATE VARCHAR,
+                    TIMEUSED VARCHAR,
+                    MEMUSED VARCHAR,
                     PROJECT VARCHAR,
                     PROCSTATUS VARCHAR,
                     INPUTLIST VARCHAR,

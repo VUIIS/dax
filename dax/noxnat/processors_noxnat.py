@@ -1128,10 +1128,11 @@ def get_scan_status(project_data, scan_path):
     path_parts = scan_path.split('/')
     sess_label = path_parts[4]
     scan_label = path_parts[5]
+    scan_id = scan_label.split('-x-')[0]
 
     scans = project_data.get('scans')
     for s in scans:
-        if s['SESSION'] == sess_label and s['SCANID'] == scan_label:
+        if s['SESSION'] == sess_label and s['SCANID'] == scan_id:
             return s['QUALITY']
 
     raise XnatUtilsError('Invalid scan path:' + scan_path)
