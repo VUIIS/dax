@@ -379,7 +379,7 @@ class TaskLauncherNoXnat(object):
         self.create_complete_flag(task)
 
         # Save attributes to disk
-        LOGGER.debug(f'saving task results to file:{filename}')
+        logger.debug(f'saving task results to file:{filename}')
         task['PROCSTATUS'] = status
         self.save_results(task, filename)
 
