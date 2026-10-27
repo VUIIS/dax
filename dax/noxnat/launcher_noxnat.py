@@ -101,13 +101,13 @@ class TaskLauncherNoXnat(object):
         """Update completed jobs and apply to db"""
         records = self._load_queue()
         updates = []
-        completed_list = [x for x in records if x['PROCSTATUS'] in [COMPLETED_STATUSES]]
+        completed_list = [x for x in records if x['PROCSTATUS'] in COMPLETED_STATUSES]
 
         # Finish completed jobs
         for i, t in enumerate(completed_list):
             assr = t['ASSR']
             try:
-                logger.info(f'complete task:{assr}')
+                logger.info(f'completing task:{assr}')
                 status = self._complete_task(t)
             except FileNotFoundError as err:
                 print(assr, err)
