@@ -84,7 +84,8 @@ class TaskLauncherNoXnat(object):
             logger.debug(f'checking on running job:{assr}')
             task_updates = get_running_updates(t)
             if task_updates:
-                # Add to batch updates
+                # Set primeary key then add to batch updates
+                task_updates['ASSR'] = assr
                 logger.info(f'task updates:{task_updates}')
                 updates.append(task_updates)
 
@@ -104,16 +105,17 @@ class TaskLauncherNoXnat(object):
 
         # Finish completed jobs
         for i, t in enumerate(completed_list):
+            assr = t['ASSR']
             try:
                 logger.info(f'complete task:{assr}')
-                task_updates = self._complete_task(t)
+                status = self._complete_task(t)
             except FileNotFoundError as err:
                 print(assr, err)
                 logger.error(f'failed to complete, skipping:{assr}:{err}')
                 continue
 
-            # Add to updates
-            updates.append(task_updates)
+            # Add final status to updates
+            updates.append({'ASSR': assr, 'PROCSTATUS': status})
 
         if updates:
             # apply changes
@@ -352,6 +354,7 @@ class TaskLauncherNoXnat(object):
         """Complete task"""
         assr = task['ASSR']
         today_str = str(date.today())
+        status = 'COMPLETE'
 
         # Check for failed job
         if not self.has_ready_flag(assr):
@@ -361,14 +364,19 @@ class TaskLauncherNoXnat(object):
                 self.create_failed_flag(assr)
 
             # Set task status to be saved as failed
-            task['PROCSTATUS'] = 'JOB_FAILED'
-
-        # Save attributes to disk
-        LOGGER.debug(f'saving task results to file:{filename}')
-        self.save_results(task, filename)
+            status = 'JOB_FAILED'
+        else:
+            status = 'COMPLETE'
 
         # Finally, complete flag
         self.create_complete_flag(assr)
+
+        # Save attributes to disk
+        LOGGER.debug(f'saving task results to file:{filename}')
+        task['PROCSTATUS'] = status
+        self.save_results(task, filename)
+
+        return status
 
     def _save_results(self, task, filename):
         SAVE_KEYS = ['ASSR', 'JOBID', 'JOBNODE', 'JOBSTART', 'JOBEND', 'MEMUSED', 'TIMEUSED', 'PROCSTATUS']
@@ -411,7 +419,7 @@ def get_running_updates(task):
 
     # only update usage if job is not still running
     if job_state == 'RUNNING':
-        logger.debug(f'job still running not setting used:{assr}')
+        logger.debug(f'job still running, not checking time/mem usage yet:{assr}')
     else:
         if job_mem and job_mem != task.get('MEMUSED', ''):
             task_updates['MEMUSED'] = job_mem
