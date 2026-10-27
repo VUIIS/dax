@@ -388,12 +388,17 @@ class TaskLauncherNoXnat(object):
     def _save_results(self, task):
         assr = task['ASSR']
         proj = task['PROJECT']
-        filename = f'{self._assrs_dir}/{proj}/{assr}/results.txt'
-        SAVE_KEYS = ['ASSR', 'JOBID', 'JOBNODE', 'JOBSTART', 'JOBEND', 'MEMUSED', 'TIMEUSED', 'PROCSTATUS']
+        filename = f'{self._assrs_dir}/{proj}/{assr}/dax.txt'
+        SAVE_KEYS = [
+            'ASSR', 'PROJECT', 'PROCSTATUS', 'YAMLFILE',
+            'JOBID', 'JOBNODE', 'JOBSTART', 'JOBEND',
+            'WALLTIME', 'MEMREQ', 'MEMUSED', 'TIMEUSED',
+            'INPUTLIST', 'USERINPUTS', 'VAR2VAL'
+        ]
 
-        print(f'save task results:{filename}:{task}')
+        logger.debug(f'save task results:{filename}')
         with open(filename, 'w') as f:
-            for k in SAVE_KEYS:
+            for k in sorted(SAVE_KEYS):
                 v = task[k]
                 f.write(f'{k}={v}\n')
 
