@@ -52,11 +52,11 @@ if __name__ == '__main__':
 		print('show taskqueue')
 		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
 		q = db.load_taskqueue()
-		print(q)
+		print(q[['ASSR', 'PROCSTATUS', 'JOBSTART', 'JOBEND']])
 
 	if '-a' in sys.argv:
 		print('show running assessors')
 		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
 		a = db.load_data()['assessors']
 		a = a[a.PROCSTATUS == 'JOB_RUNNING']
-		print(a)
+		print(a[['ASSR', 'PROCSTATUS']])
