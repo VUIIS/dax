@@ -14,9 +14,10 @@ logging.basicConfig(level=logging.DEBUG)
 if __name__ == '__main__':
 	rootdir = sys.argv[1]
 
-	db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
-	db._delete_taskqueue()
-	db._add_taskqueue()
+	if False:
+		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
+		db._delete_taskqueue()
+		db._add_taskqueue()
 
 	# Get a builder for this dax dir
 	builder = TaskBuilderNoXnat(rootdir)
