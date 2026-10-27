@@ -34,12 +34,24 @@ if __name__ == '__main__':
 	# Manually add a processor to a project
 	builder._data['processors'] = pd.concat(
 		[builder._data['processors'],
-		pd.DataFrame([{
+		pd.DataFrame([
+			{
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'synbold_v1.3.2.yaml',
 			'FILTER': '17000*a',
 			'ARGS': 'inputs.xnat.scans.scan_t1.types=T1\r\ninputs.xnat.scans.scan_fmri.types=fMRI_REST1',
-		}])]
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'struct_preproc_v1.0.1.yaml',
+			'FILTER': '17000*a',
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'struct_preproc_noflair_v1.0.0.yaml',
+			'FILTER': '17000*b',
+			},
+		])]
 	)
 
 	# Reload processing
