@@ -273,17 +273,25 @@ class TaskLauncherNoXnat(object):
 
         return result_list
 
-    def create_complete_flag(self, assr):
-        open(f'{self._assrs_dir}/{assr}/READY_TO_COMPLETE.txt', 'w').close()
+    def create_complete_flag(self, task):
+        assr = task['ASSR']
+        proj = task['PROJECT']
+        open(f'{self._assrs_dir}/{proj}/{assr}/READY_TO_COMPLETE.txt', 'w').close()
 
-    def create_failed_flag(self, assr):
-        open(f'{self._assrs_dir}/{assr}/JOB_FAILED.txt', 'w').close()
+    def create_failed_flag(self, task):
+        assr = task['ASSR']
+        proj = task['PROJECT']
+        open(f'{self._assrs_dir}/{proj}/{assr}/JOB_FAILED.txt', 'w').close()
 
-    def has_ready_flag(self, assr):
-        return os.path.exists(f'{self._assrs_dir}/{assr}/READY_TO_UPLOAD.txt')
+    def has_ready_flag(self, task):
+        assr = task['ASSR']
+        proj = task['PROJECT']
+        return os.path.exists(f'{self._assrs_dir}/{proj}/{assr}/READY_TO_UPLOAD.txt')
 
-    def has_failed_flag(self, assr):
-        return os.path.exists(f'{self._assrs_dir}/{assr}/JOB_FAILED.txt')
+    def has_failed_flag(self, task):
+        assr = task['ASSR']
+        proj = task['PROJECT']
+        return os.path.exists(f'{self._assrs_dir}/{proj}/{assr}/JOB_FAILED.txt')
 
     def launch_task(self, task):
         """Launch task as SLURM Job, write batch and submit. Return job id."""
@@ -352,16 +360,15 @@ class TaskLauncherNoXnat(object):
 
     def _complete_task(self, task):
         """Complete task"""
-        assr = task['ASSR']
         today_str = str(date.today())
         status = 'COMPLETE'
 
         # Check for failed job
-        if not self.has_ready_flag(assr):
+        if not self.has_ready_flag(task):
 
             # Create failed flag
-            if not self.has_failed_flag(assr):
-                self.create_failed_flag(assr)
+            if not self.has_failed_flag(task):
+                self.create_failed_flag(task)
 
             # Set task status to be saved as failed
             status = 'JOB_FAILED'
@@ -369,7 +376,7 @@ class TaskLauncherNoXnat(object):
             status = 'COMPLETE'
 
         # Finally, complete flag
-        self.create_complete_flag(assr)
+        self.create_complete_flag(task)
 
         # Save attributes to disk
         LOGGER.debug(f'saving task results to file:{filename}')
