@@ -379,13 +379,14 @@ class TaskLauncherNoXnat(object):
         self.create_complete_flag(task)
 
         # Save attributes to disk
-        logger.debug(f'saving task results to file:{filename}')
+        logger.debug(f'saving task results file')
         task['PROCSTATUS'] = status
-        self.save_results(task, filename)
+        self._save_results(task)
 
         return status
 
-    def _save_results(self, task, filename):
+    def _save_results(self, task):
+        filename = f'{self._assrs_dir}/{proj}/{assr}/results.txt'
         SAVE_KEYS = ['ASSR', 'JOBID', 'JOBNODE', 'JOBSTART', 'JOBEND', 'MEMUSED', 'TIMEUSED', 'PROCSTATUS']
 
         print(f'save task results:{filename}:{task}')
