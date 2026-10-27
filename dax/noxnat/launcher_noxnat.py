@@ -386,6 +386,8 @@ class TaskLauncherNoXnat(object):
         return status
 
     def _save_results(self, task):
+        assr = task['ASSR']
+        proj = task['PROJECT']
         filename = f'{self._assrs_dir}/{proj}/{assr}/results.txt'
         SAVE_KEYS = ['ASSR', 'JOBID', 'JOBNODE', 'JOBSTART', 'JOBEND', 'MEMUSED', 'TIMEUSED', 'PROCSTATUS']
 
