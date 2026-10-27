@@ -350,7 +350,7 @@ class TaskLauncherNoXnat(object):
 
         return jobid
 
-    def complete_task(self, task):
+    def _complete_task(self, task):
         """Complete task"""
         assr = task['ASSR']
         today_str = str(date.today())
