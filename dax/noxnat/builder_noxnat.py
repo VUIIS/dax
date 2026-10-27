@@ -271,6 +271,9 @@ class TaskBuilderNoXnat(object):
 
             d['EDIT'] = 'edit'
 
+            d['FILTER'] = p['FILTER']
+            d['ARGS'] = p['ARGS']
+
             # Finally, add to our list
             protocols.append(d)
 
