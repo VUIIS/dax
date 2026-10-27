@@ -141,7 +141,7 @@ class TaskBuilderNoXnat(object):
             logger.info(f'{project}:{filepath}')
 
             if row.get('ARGS', False):
-                user_inputs = row.get('ARGS')
+                user_inputs = row.get('ARGS').replace('=', ':')
                 logger.debug(f'overrides:{user_inputs}')
                 rlist = user_inputs.strip().split('\r\n')
                 rdict = {}
