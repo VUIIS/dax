@@ -7,7 +7,7 @@ import itertools
 import json
 from datetime import date
 
-import requests
+#import requests
 
 from .. import yaml_doc
 from ..processors_v3 import validate_yaml_filename, parse_proctype, parse_procversion, SINGULARITY_BASEOPTS
@@ -502,7 +502,7 @@ class ProcessorNoXnat(object):
         txt = 'INLIST=(\n'
 
         for cur in inputs:
-            cur['fpath'] = requests.utils.quote(cur['fpath'], safe=":/")
+            #cur['fpath'] = requests.utils.quote(cur['fpath'], safe=":/")
             txt += '{fdest},{ftype},{fpath},{ddest}\n'.format(**cur)
 
         txt += ')\n\n'
