@@ -24,13 +24,14 @@ if __name__ == '__main__':
 		df = db.load_data()['assessors']
 		df = df[df.PROCSTATUS == 'JOB_RUNNING']
 		for i, a in df.iterrows():
-			print(f'reset:{i}:{a}')
-			db.update_assessor(a['ASSR'], 'PROCSTATUS', 'NEED_INPUTS')
+			id = a['ASSR']
+			print(f'reset:{i}:{id}')
+			db.update_assessor(id, 'PROCSTATUS', 'NEED_INPUTS')
 
 	if '-q' in sys.argv:
 		print('show taskqueue')
 		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
-		q = db.load_task_queue()
+		q = db.load_taskqueue()
 		print(q)
 
 	if '-a' in sys.argv:
