@@ -5,6 +5,7 @@ import logging
 import pandas as pd
 
 from dax.noxnat.builder_noxnat import TaskBuilderNoXnat
+from dax.noxnat.database_noxnat import DatabaseNoXnat
 
 
 logging.basicConfig(level=logging.DEBUG)
