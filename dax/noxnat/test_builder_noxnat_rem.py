@@ -24,8 +24,8 @@ if __name__ == '__main__':
 			'FILE': 'synbold_v1.3.2.yaml',
 			'FILTER': '170006a',
 			'ARGS': """
-			inputs.scan_t1.types=T1
-			inputs.scan_fmri.types=fMRI_REST1
+			inputs.xnat.scans.scan_t1.types=T1
+			inputs.xnat.scans.scan_fmri.types=fMRI_REST1
 			""",
 		}])]
 	)
