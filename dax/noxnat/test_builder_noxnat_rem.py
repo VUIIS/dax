@@ -28,20 +28,6 @@ if __name__ == '__main__':
 			print(f'reset:{i}:{id}')
 			db.update_assessor(id, 'PROCSTATUS', 'NEED_INPUTS')
 
-	if '-q' in sys.argv:
-		print('show taskqueue')
-		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
-		q = db.load_taskqueue()
-		print(q)
-
-	if '-a' in sys.argv:
-		print('show running assessors')
-		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
-		a = db.load_data()['assessors']
-		a = a[a.PROCSTATUS == 'JOB_RUNNING']
-		print(a)
-
-
 	# Get a builder for this dax dir
 	builder = TaskBuilderNoXnat(rootdir)
 
@@ -62,4 +48,15 @@ if __name__ == '__main__':
 	# Run
 	results = builder.update_all()
 
-	print(f'{results=}')
+	if '-q' in sys.argv:
+		print('show taskqueue')
+		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
+		q = db.load_taskqueue()
+		print(q)
+
+	if '-a' in sys.argv:
+		print('show running assessors')
+		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
+		a = db.load_data()['assessors']
+		a = a[a.PROCSTATUS == 'JOB_RUNNING']
+		print(a)
