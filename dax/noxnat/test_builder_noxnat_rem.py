@@ -37,7 +37,7 @@ if __name__ == '__main__':
 		pd.DataFrame([{
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'synbold_v1.3.2.yaml',
-			'FILTER': '170006a',
+			'FILTER': '17000*a',
 			'ARGS': 'inputs.xnat.scans.scan_t1.types=T1\r\ninputs.xnat.scans.scan_fmri.types=fMRI_REST1',
 		}])]
 	)
