@@ -15,9 +15,23 @@ if __name__ == '__main__':
 	rootdir = sys.argv[1]
 
 	if '-r' in sys.argv:
+		print('reset database')
 		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
 		db._delete_taskqueue()
 		db._add_taskqueue()
+
+	if '-q' in sys.argv:
+		print('show taskqueue')
+		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
+		q = db.load_task_queue()
+		print(q)
+
+	if 'a' in sys.argv:
+		print('show running assessors')
+		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
+		a = db.load_data()['assessors']
+		a = a[a.PROCSTATUS == 'JOB_RUNNING']
+		print(a)
 
 	# Get a builder for this dax dir
 	builder = TaskBuilderNoXnat(rootdir)
