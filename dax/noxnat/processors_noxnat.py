@@ -1124,9 +1124,10 @@ def parse_artefacts(csess, pets=[]):
 
 
 def get_scan_status(project_data, scan_path):
+    # scans/NIFTI/PROJECT/SUBJECT/SESSION/SCAN
     path_parts = scan_path.split('/')
-    sess_label = path_parts[6]
-    scan_label = path_parts[8]
+    sess_label = path_parts[4]
+    scan_label = path_parts[5]
 
     scans = project_data.get('scans')
     for s in scans:
@@ -1137,13 +1138,13 @@ def get_scan_status(project_data, scan_path):
 
 
 def get_assr_status(project_data, assr_path):
+    # assessors/PROJECT/ASSESSOR
     path_parts = assr_path.split('/')
-    sess_label = path_parts[6]
-    assr_label = path_parts[8]
+    assr_label = path_parts[2]
 
     assrs = project_data.get('assessors')
     for a in assrs:
-        if a['SESSION'] == sess_label and a['ASSR'] == assr_label:
+        if a['ASSR'] == assr_label:
             return a['PROCSTATUS'], a['QCSTATUS']
 
     raise XnatUtilsError('Invalid assessor path:' + assr_path)
@@ -1154,13 +1155,15 @@ def verify_artefact_status(proc_inputs, assr_inputs, project_data):
     # Check artefact status
     LOGGER.debug('checking status of each artefact')
     for artk, artv in list(assr_inputs.items()):
-        LOGGER.debug('checking status:' + artk)
         inp = proc_inputs[artk]
         art_type = inp['artefact_type']
 
         if art_type == 'scan' and not inp['needs_qc']:
             # Not checking qc status
+            LOGGER.debug('not checking status:' + artk)
             continue
+
+        LOGGER.debug('checking status:' + artk)
 
         if art_type == 'scan':
             # Check status of each input scan
