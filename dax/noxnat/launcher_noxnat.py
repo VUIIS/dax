@@ -160,10 +160,10 @@ class TaskLauncherNoXnat(object):
             outdir = f'{self._assrs_dir}/{proj}/{assr}'
 
             if os.path.exists(outdir):
-                logger.info(f'cannot launch, found existing dir, setting status to RUNNING:{outdir}')
+                logger.info(f'cannot launch, found existing dir:{outdir}')
                 updates.append({
                     'ASSR': assr,
-                    'PROCSTATUS': 'RUNNING',
+                    'PROCSTATUS': 'EXISTING',
                 })
                 continue
 
@@ -200,8 +200,8 @@ class TaskLauncherNoXnat(object):
                     'ASSR': assr,
                     'PROCSTATUS': 'LAUNCH_FAILED',
                 })
-                #delete_task_dirs(outdir)
                 print(f'delete_task_dirs:{outdir}')
+                delete_task_dirs(outdir)
 
         if updates:
             # upload changes
@@ -468,3 +468,11 @@ def make_task_dirs(taskdir):
             os.makedirs(os.path.join(taskdir, subdir))
         except FileExistsError:
             pass
+
+
+def delete_task_dirs(taskdir):
+    """Remove task directory."""
+    try:
+        shutil.rmtree(taskdir)
+    except Exception as err:
+        logger.error(f'while deleting:{taskdir}')
