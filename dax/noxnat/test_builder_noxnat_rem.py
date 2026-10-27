@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG)
 if __name__ == '__main__':
 	rootdir = sys.argv[1]
 
-	if False:
+	if '-r' in sys.argv:
 		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
 		db._delete_taskqueue()
 		db._add_taskqueue()

@@ -364,15 +364,20 @@ class TaskLauncherNoXnat(object):
             task['PROCSTATUS'] = 'JOB_FAILED'
 
         # Save attributes to disk
+        LOGGER.debug(f'saving task results to file:{filename}')
         self.save_results(task, filename)
 
         # Finally, complete flag
         self.create_complete_flag(assr)
 
     def _save_results(self, task, filename):
+        SAVE_KEYS = ['ASSR', 'JOBID', 'JOBNODE', 'JOBSTART', 'JOBEND', 'MEMUSED', 'TIMEUSED', 'PROCSTATUS']
+
+        print(f'save task results:{filename}:{task}')
         with open(filename, 'w') as f:
-            for keys in ['JOBID', 'JOBNODE', 'JOBSTART', 'MEMUSED', 'TIMEUSED', 'PROCSTATUS']:
-                f.write(key +'=' + value + '\n')
+            for k in SAVE_KEYS:
+                v = task[k]
+                f.write(f'{k}={v}\n')
 
 
 def get_running_updates(task):
