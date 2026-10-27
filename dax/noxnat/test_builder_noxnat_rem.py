@@ -23,11 +23,10 @@ if __name__ == '__main__':
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'synbold_v1.3.2.yaml',
 			'FILTER': '170006a',
-			'ARGS': [
-				"""inputs.scan_t1.types=T1
-				inputs.scan_fmri.types=fMRI_REST1
-				"""
-			],
+			'ARGS': """
+			inputs.scan_t1.types=T1
+			inputs.scan_fmri.types=fMRI_REST1
+			""",
 		}])]
 	)
 
