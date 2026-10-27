@@ -52,7 +52,7 @@ if __name__ == '__main__':
 			'FILTER': '17000*b',
 			},
 		])]
-	)
+	).fillna('')
 
 	# Reload processing
 	builder._build_projects = builder.projects_with_processing()
