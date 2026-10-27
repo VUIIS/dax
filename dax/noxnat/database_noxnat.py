@@ -85,8 +85,6 @@ class DatabaseNoXnat(object):
                     JOBID VARCHAR,
                     JOBNODE VARCHAR,
                     JOBDATE VARCHAR,
-                    TIMEUSED VARCHAR,
-                    MEMUSED VARCHAR,
                     PROJECT VARCHAR,
                     PROCSTATUS VARCHAR,
                     INPUTLIST VARCHAR,
