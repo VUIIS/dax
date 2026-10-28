@@ -1,6 +1,5 @@
 '''Create task builder from duckdb and run update'''
 import sys
-import logging
 
 import pandas as pd
 
@@ -8,11 +7,12 @@ from dax.noxnat.builder_noxnat import TaskBuilderNoXnat
 from dax.noxnat.database_noxnat import DatabaseNoXnat
 
 
-logging.basicConfig(level=logging.DEBUG)
-
-
 if __name__ == '__main__':
 	rootdir = sys.argv[1]
+
+	if '--debug' in sys.argv:
+		import logging
+		logging.basicConfig(level=logging.DEBUG)
 
 	if '-r' in sys.argv:
 		print('reset taskqueue')
