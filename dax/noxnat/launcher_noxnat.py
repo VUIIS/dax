@@ -82,10 +82,10 @@ class TaskLauncherNoXnat(object):
         records = self._db.load_taskqueue().to_dict('records')
 
         # Filter to only open jobs
-        records = [x for x in records if x['PROCSTATUS'] not in DONE_STATUSES]
+        #records = [x for x in records if x['PROCSTATUS'] not in DONE_STATUSES]
 
         # Ignore deleted
-        records = [x for x in records if x['PROCSTATUS'] != 'DELETED']
+        records = [x for x in records if x['PROCSTATUS'] != 'DELETEME']
 
         return records
 
