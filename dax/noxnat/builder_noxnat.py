@@ -74,7 +74,7 @@ class TaskBuilderNoXnat(object):
         _assrs['full_path'] = \
             'asssessors/' + \
             _assrs['PROJECT'] + '/' + \
-            _assrs['SUBJECT'] + '/' + \
+            #_assrs['SUBJECT'] + '/' + \
             _assrs['ASSR']
 
         # Decode inputs
@@ -466,7 +466,7 @@ class TaskBuilderNoXnat(object):
             #'JOBENDTIME', 
             #'NOTE_x',
             #'NOTE_y',
-            'full_path': f'/projects/{project}/subjects/{subject}/experiments/{session}/assessors/{assr_label}'
+            #'full_path': f'/projects/{project}/subjects/{subject}/experiments/{session}/assessors/{assr_label}'
         }
 
         self._add_assessor(assessor)

@@ -161,6 +161,8 @@ class TaskLauncherNoXnat(object):
 
         # Launch jobs
         for i, t in enumerate(launch_list):
+            assr = t['ASSR']
+
             launched, pending = count_jobs()
             logger.info(f'Cluster:{launched}/{q_limit} total, {pending}/{p_limit} pending')
 
@@ -172,9 +174,7 @@ class TaskLauncherNoXnat(object):
                 logger.info(f'pending limit reached:{p_limit}')
                 break
 
-            assr = t['ASSR']
-            proj = t['PROJECT']
-            outdir = f'{self._assrs_dir}/{proj}/{assr}'
+            out_dir = self._task_dir(task)
 
             if os.path.exists(outdir):
                 logger.info(f'cannot launch, found existing dir:{outdir}')
@@ -291,24 +291,20 @@ class TaskLauncherNoXnat(object):
         return result_list
 
     def create_complete_flag(self, task):
-        assr = task['ASSR']
-        proj = task['PROJECT']
-        open(f'{self._assrs_dir}/{proj}/{assr}/READY_TO_COMPLETE.txt', 'w').close()
+        _filename = f'{self._task_dir(task)}/READY_TO_COMPLETE.txt'
+        open(_filename, 'w').close()
 
     def create_failed_flag(self, task):
-        assr = task['ASSR']
-        proj = task['PROJECT']
-        open(f'{self._assrs_dir}/{proj}/{assr}/JOB_FAILED.txt', 'w').close()
+        _filename = f'{self._task_dir(task)}/JOB_FAILED.txt'
+        open(_filename, 'w').close()
 
     def has_ready_flag(self, task):
-        assr = task['ASSR']
-        proj = task['PROJECT']
-        return os.path.exists(f'{self._assrs_dir}/{proj}/{assr}/READY_TO_UPLOAD.txt')
+        _filename = f'{self._task_dir(task)}/READY_TO_UPLOAD.txt'
+        return os.path.exists(_filename)
 
     def has_failed_flag(self, task):
-        assr = task['ASSR']
-        proj = task['PROJECT']
-        return os.path.exists(f'{self._assrs_dir}/{proj}/{assr}/JOB_FAILED.txt')
+        _filename = f'{self._task_dir(task)}/JOB_FAILED.txt'
+        return os.path.exists(_filename)
 
     def launch_task(self, task):
         """Launch task as SLURM Job, write batch and submit. Return job id."""
@@ -404,9 +400,7 @@ class TaskLauncherNoXnat(object):
         return status
 
     def _save_results(self, task):
-        assr = task['ASSR']
-        proj = task['PROJECT']
-        filename = f'{self._assrs_dir}/{proj}/{assr}/dax.txt'
+        filename = f'{self._task_dir(task)}/dax.txt'
         SAVE_KEYS = [
             'ASSR', 'PROJECT', 'PROCSTATUS', 'YAMLFILE',
             'JOBID', 'JOBNODE', 'JOBSTART', 'JOBEND',
@@ -419,6 +413,13 @@ class TaskLauncherNoXnat(object):
             for k in sorted(SAVE_KEYS):
                 v = task[k]
                 f.write(f'{k}={v}\n')
+
+    def _task_dir(self, task):
+        assr = task['ASSR']
+        proj = assr.split('-x-')[0]
+        subj = task['SUBJECT']
+        #return = f'{self._assrs_dir}/{proj}/{subj}/{assr}'
+        return = f'{self._assrs_dir}/{proj}/{assr}'
 
 
 def get_running_updates(task):
