@@ -6,9 +6,9 @@ import pandas as pd
 
 from dax.noxnat.launcher_noxnat import TaskLauncherNoXnat
 
-
-logging.basicConfig(level=logging.DEBUG)
-
-
 if __name__ == '__main__':
+
+	if '--debug' in sys.argv:
+		logging.basicConfig(level=logging.DEBUG)
+
 	TaskLauncherNoXnat(sys.argv[1]).update()
