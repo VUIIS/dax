@@ -309,6 +309,9 @@ class TaskLauncherNoXnat(object):
             if launch_enabled:
                 self._launch()
 
+            # Archive finished tasks
+            self._archive_done()
+
         finally:
             # Delete the lock file
             logger.debug(f'deleting lock file:{lock_file}')
