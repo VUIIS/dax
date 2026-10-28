@@ -1,5 +1,6 @@
 '''Create task builder from duckdb and run update'''
 import sys
+import logging
 
 import pandas as pd
 
@@ -11,7 +12,6 @@ if __name__ == '__main__':
 	rootdir = sys.argv[1]
 
 	if '--debug' in sys.argv:
-		import logging
 		logging.basicConfig(level=logging.DEBUG)
 	else:
 		logging.basicConfig(level=logging.INFO)
