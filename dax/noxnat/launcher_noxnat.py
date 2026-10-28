@@ -290,7 +290,7 @@ class TaskLauncherNoXnat(object):
 
     def _apply_updates_assessor(self, updates):
         logger.debug(f'applying assessor updates to db:{updates}')
-        self._db.update_asessors(updates)
+        self._db.update_assessors(updates)
 
     def update(self, launch_enabled=True, projects=None):
         """Update all tasks in taskqueue of projects_redcap."""
