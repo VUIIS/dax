@@ -10,6 +10,9 @@ if __name__ == '__main__':
 
 	if '--debug' in sys.argv:
 		logging.basicConfig(level=logging.DEBUG)
+	else:
+		logging.basicConfig(level=logging.INFO)
+
 
 	launcher = TaskLauncherNoXnat(sys.argv[1])
 	launcher._set_plimit(100)

@@ -13,6 +13,8 @@ if __name__ == '__main__':
 	if '--debug' in sys.argv:
 		import logging
 		logging.basicConfig(level=logging.DEBUG)
+	else:
+		logging.basicConfig(level=logging.INFO)
 
 	if '-r' in sys.argv:
 		print('reset taskqueue')
