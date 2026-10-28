@@ -372,7 +372,7 @@ class TaskLauncherNoXnat(object):
 
         jobid, job_failed = batch.submit(outlog=outlog)
         success = not job_failed
-        logger.info(f'job submit resuilts:{jobid=}:{success=}')
+        logger.debug(f'job submit results:{assr}:{jobid=}:{success=}')
 
         return jobid
 
