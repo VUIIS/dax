@@ -193,7 +193,7 @@ class DatabaseNoXnat(object):
         # Get all columns not key
         columns = list(dict.fromkeys(col for record in updates for col in record if col != key))
         if not columns:
-            print('empty updates')
+            logger.debug('empty updates')
             return
 
         # Make (columns,present)

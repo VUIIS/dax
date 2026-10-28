@@ -110,7 +110,6 @@ class TaskLauncherNoXnat(object):
                 logger.info(f'completing task:{assr}')
                 status = self._complete_task(t)
             except FileNotFoundError as err:
-                print(assr, err)
                 logger.error(f'failed to complete, skipping:{assr}:{err}')
                 continue
 
@@ -200,7 +199,7 @@ class TaskLauncherNoXnat(object):
                     'ASSR': assr,
                     'PROCSTATUS': 'LAUNCH_FAILED',
                 })
-                print(f'delete_task_dirs:{outdir}')
+                logger.debug(f'delete_task_dirs:{outdir}')
                 delete_task_dirs(outdir)
 
         if updates:
@@ -212,7 +211,7 @@ class TaskLauncherNoXnat(object):
                 logger.error(f'error while applying updates:{err}')
 
     def _apply_updates(self, updates):
-        print(f'applyihg updates to db:{updates}')
+        logger.debug(f'applyihg updates to db:{updates}')
         self._db.update_tasks(updates)
 
     def update(self, launch_enabled=True, projects=None):
@@ -354,7 +353,8 @@ class TaskLauncherNoXnat(object):
             raise Exception('squeue command not found')
 
         jobid, job_failed = batch.submit(outlog=outlog)
-        logger.info(f'job submit results:{jobid}:{job_failed}')
+        success = not job_failed
+        logger.info(f'job submit resuilts:{jobid=}:{success=}')
 
         return jobid
 
@@ -469,10 +469,10 @@ def count_jobs():
     try:
         launched = cj_subcmd(DAX_SETTINGS.get_cmd_count_jobs_launched())
         pending = cj_subcmd(DAX_SETTINGS.get_cmd_count_jobs_pending())
+        logger.debug(f'{launched=}, {pending=}')
     except Exception as err:
         raise 'failed to count jobs:{err}'
  
-    print(f'{launched=}, {pending=}')
     return (launched, pending)
 
 
