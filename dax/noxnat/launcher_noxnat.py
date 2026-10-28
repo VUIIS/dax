@@ -63,19 +63,19 @@ class TaskLauncherNoXnat(object):
         try:
             self._qlimit = int(qlimit)
         except Exception as err:
-            logger.error(f'failed to set qlimit:{qlimit}')
+            logger.error(f'failed to set qlimit:{qlimit}:{err}')
 
     def _set_plimit(self, plimit):
         try:
             self._plimit = int(plimit)
         except Exception as err:
-            logger.error(f'failed to set plimit:{plimit}')
+            logger.error(f'failed to set plimit:{plimit}:{err}')
 
     def _set_perlimit(self, perlimit):
         try:
             self._perlimit = int(perlimit)
         except Exception as err:
-            logger.error(f'failed to set perlimit:{perlimit}')
+            logger.error(f'failed to set perlimit:{perlimit}:{err}')
 
     def _load_queue(self):
         logger.debug('loading current taskqueue records')
@@ -186,7 +186,7 @@ class TaskLauncherNoXnat(object):
                 'USERINPUTS': task['USERINPUTS']
             }])
         except Exception as err:
-            logger.error(f'failed to apply task updates to assessor:{assr}')
+            logger.error(f'failed to apply task updates to assessor:{assr}:{err}')
             return
 
         try:
@@ -196,7 +196,7 @@ class TaskLauncherNoXnat(object):
                 'PROCSTATUS': 'DELETEME'
             }])
         except Exception as err:
-            logger.error(f'failed to archive task:{assr}')
+            logger.error(f'failed to archive task:{assr}:{err}')
             return
 
     def _launch(self):
