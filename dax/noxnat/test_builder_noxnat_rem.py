@@ -51,6 +51,10 @@ if __name__ == '__main__':
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'struct_preproc_noflair_v1.0.0.yaml',
 			'FILTER': '*b,*c',
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'fmri_rest_v4.0.0.yaml',
 			}
 		])]
 	).astype(str).fillna('')
