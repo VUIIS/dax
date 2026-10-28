@@ -106,6 +106,18 @@ class TaskBuilderNoXnat(object):
 
         return protocols
 
+    def fix_qcstatus(self):
+        assessors = self._data['assessors'].to_dict('records')
+
+        bad_assessors = [x for x in assessors if x['PROCSTATUS'] == 'COMPLETE' and x['QCSTATUS'] == 'Job Pending']
+
+        logger.info(f'{len(bad_assessors)} bad assessors found')
+
+        for a in bad_assessors:
+            assr = a['ASSR']
+            logger.info(f'fix qcstatus:{assr}')
+            self._update_assessor_qcstatus(assr, 'Needs QA')
+
     def update_all(self, only_session=None):
         results = []
         projects = self._build_projects
