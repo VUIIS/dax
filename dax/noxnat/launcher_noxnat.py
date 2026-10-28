@@ -59,6 +59,18 @@ class TaskLauncherNoXnat(object):
     def _load_data(self):
         return self._db.load_data()
 
+    def _set_qlimit(self, qlimit):
+        try:
+            self._qlimit = int(qlimit)
+        except Exception as err:
+            logger.error(f'failed to set qlimit:{qlimit}')
+
+    def _set_plimit(self, plimit):
+        try:
+            self._plimit = int(plimit)
+        except Exception as err:
+            logger.error(f'failed to set plimit:{plimit}')
+
     def _load_queue(self):
         logger.debug('loading current taskqueue records')
         records = self._db.load_taskqueue().to_dict('records')
