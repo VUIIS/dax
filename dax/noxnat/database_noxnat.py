@@ -232,3 +232,50 @@ class DatabaseNoXnat(object):
         # Apply batch of updates
         with duckdb.connect(filename) as con:
             con.execute(full_query, data)
+
+    def update_assessors(self, updates):
+        filename = self._filename
+        key = 'ASSR'
+        table = 'assessors'
+
+        # Get all columns not key
+        columns = list(dict.fromkeys(col for record in updates for col in record if col != key))
+        if not columns:
+            logger.debug('empty updates')
+            return
+
+        # Make (columns,present)
+        value_columns = [item for c in columns for item in (c, f"{c}_present")]
+
+        # Build values ? string
+        values_query = ", ".join(
+            "(" + ", ".join("?" for _ in range(1 + 2*len(columns))) + ")"
+            for _ in updates
+        )
+
+        # Generate string of columns to update
+        set_query = ", ".join(
+            f"{c} = CASE WHEN v.{c}_present THEN v.{c} "
+            f"ELSE a.{c} END"
+            for c in columns
+        )
+
+        # Build full query
+        full_query = f"""
+            UPDATE {table} AS a
+            SET {set_query}
+            FROM (VALUES {values_query}) AS v 
+                ({key}, {", ".join(value_columns)})
+            WHERE a.{key} = v.{key}
+        """
+
+        # Get data rows to update
+        data = []
+        for u in updates:
+            data.append(u[key])
+            for c in columns:
+                data.extend([u.get(c), c in u])
+
+        # Apply batch of updates
+        with duckdb.connect(filename) as con:
+            con.execute(full_query, data)

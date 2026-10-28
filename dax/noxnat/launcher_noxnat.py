@@ -111,7 +111,7 @@ class TaskLauncherNoXnat(object):
             # apply changes
             logger.info(f'updating database:{updates}')
             try:
-                self._apply_updates(updates)
+                self._apply_updates_task(updates)
             except Exception as err:
                 logger.error(f'error while applying task updates:{err}')
 
@@ -138,9 +138,60 @@ class TaskLauncherNoXnat(object):
             # apply changes
             logger.info(f'updating database:{updates}')
             try:
-                self._apply_updates(updates)
+                self._apply_updates_task(updates)
             except Exception as err:
                 logger.error(f'error while applying task updates:{err}')
+
+    def _archive_done(self):
+        """Move done tasks (complete or job_failed) to assessors"""
+        records = self._load_queue()
+        updates = []
+        done_list = [x for x in records if x['PROCSTATUS'] in DONE_STATUSES]
+
+        # Finish done tasks
+        for i, t in enumerate(done_list):
+            assr = t['ASSR']
+            try:
+                logger.info(f'archiving task:{assr}')
+                status = self._archive_task(t)
+            except Exception as err:
+                logger.error(f'failed to archive, skipping:{assr}:{err}')
+                continue
+
+    def _archive_task(self, task):
+        assr = task['ASSR']
+
+        logger.info(f'archiving task:{assr}')
+
+        # Copy results from taskqueue record to assessor record
+        try:
+            self._apply_updates_assessor([{
+                'ASSR': assr,
+                'PROCSTATUS': task['PROCSTATUS'],
+                'JOBID': task['JOBID'],
+                'JOBNODE': task['JOBNODE'],
+                'JOBSTARTTIME': task['JOBSTART'],
+                'JOBENDTIME': task['JOBEND'],
+                'WALLTIME': task['WALLTIME'],
+                'MEMREQ': task['MEMREQ'],
+                'TIMEUSED': task['TIMEUSED'],
+                'MEMUSED': task['MEMUSED'],
+                'YAMLFILE': task['YAMLFILE'],
+                'USERINPUTS': task['USERINPUTS']
+            }])
+        except Exception as err:
+            logger.error(f'failed to apply task updates to assessor:{assr}')
+            return
+
+        try:
+            # Set record in taskqueue to DELETEME?
+            self._apply_updates_task([{
+                'ASSR': assr,
+                'PROCSTATUS': 'DELETEME'
+            }])
+        except Exception as err:
+            logger.error(f'failed to archive task:{assr}')
+            return
 
     def _launch(self):
         q_limit = self._qlimit
@@ -223,13 +274,17 @@ class TaskLauncherNoXnat(object):
             # upload changes
             logger.debug(f'updating database:{updates}')
             try:
-                self._apply_updates(updates)
+                self._apply_updates_task(updates)
             except Exception as err:
                 logger.error(f'error while applying updates:{err}')
 
-    def _apply_updates(self, updates):
-        logger.debug(f'applyihg updates to db:{updates}')
+    def _apply_updates_task(self, updates):
+        logger.debug(f'applying task updates to db:{updates}')
         self._db.update_tasks(updates)
+
+    def _apply_updates_assessor(self, updates):
+        logger.debug(f'applying assessor updates to db:{updates}')
+        self._db.update_asessors(updates)
 
     def update(self, launch_enabled=True, projects=None):
         """Update all tasks in taskqueue of projects_redcap."""
