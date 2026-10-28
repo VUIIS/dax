@@ -38,19 +38,18 @@ if __name__ == '__main__':
 			{
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'synbold_v1.3.2.yaml',
-			'FILTER': '17000*a',
 			'ARGS': 'inputs.xnat.scans.scan_t1.types=T1\r\ninputs.xnat.scans.scan_fmri.types=fMRI_REST1',
 			},
 			{
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'struct_preproc_v1.0.1.yaml',
-			'FILTER': '17*a',
+			'FILTER': '*a,*d',
 			},
 			{
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'struct_preproc_noflair_v1.0.0.yaml',
-			'FILTER': '17*b',
-			},
+			'FILTER': '*b,*c',
+			}
 		])]
 	).astype(str).fillna('')
 
@@ -64,6 +63,7 @@ if __name__ == '__main__':
 		print('show taskqueue')
 		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
 		q = db.load_taskqueue()
+		q = q[q.PROCSTATUS != 'COMPLETE']
 		print(q[['ASSR', 'PROCSTATUS', 'JOBSTART', 'JOBEND']])
 
 	if '-a' in sys.argv:
