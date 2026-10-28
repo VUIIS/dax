@@ -71,6 +71,12 @@ class TaskLauncherNoXnat(object):
         except Exception as err:
             logger.error(f'failed to set plimit:{plimit}')
 
+    def _set_perlimit(self, perlimit):
+        try:
+            self._perlimit = int(perlimit)
+        except Exception as err:
+            logger.error(f'failed to set perlimit:{perlimit}')
+
     def _load_queue(self):
         logger.debug('loading current taskqueue records')
         records = self._db.load_taskqueue().to_dict('records')

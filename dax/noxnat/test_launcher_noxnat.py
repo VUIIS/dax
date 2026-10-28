@@ -14,4 +14,5 @@ if __name__ == '__main__':
 	launcher = TaskLauncherNoXnat(sys.argv[1])
 	launcher._set_plimit(100)
 	launcher._set_qlimit(100)
+	launcher._set_perlimit(100)
 	launcher.update()
