@@ -174,7 +174,6 @@ class TaskLauncherNoXnat(object):
             self._apply_updates_assessor([{
                 'ASSR': assr,
                 'PROCSTATUS': task['PROCSTATUS'],
-                'JOBID': task['JOBID'],
                 'JOBNODE': task['JOBNODE'],
                 'JOBSTARTTIME': task['JOBSTART'],
                 'JOBENDTIME': task['JOBEND'],
