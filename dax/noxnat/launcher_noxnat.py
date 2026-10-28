@@ -416,9 +416,9 @@ class TaskLauncherNoXnat(object):
 
     def _task_dir(self, task):
         assr = task['ASSR']
-        proj = assr.split('-x-')[0]
-        subj = task['SUBJECT']
-        #return f'{self._assrs_dir}/{proj}/{subj}/{assr}'
+        proj = task['PROJECT']
+        #subj = assr.split('-x-')[1]
+        #return = f'{self._assrs_dir}/{proj}/{subj}/{assr}'
         return f'{self._assrs_dir}/{proj}/{assr}'
 
 
