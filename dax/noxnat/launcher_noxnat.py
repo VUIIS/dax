@@ -177,7 +177,7 @@ class TaskLauncherNoXnat(object):
                 'JOBNODE': task['JOBNODE'],
                 'JOBSTARTTIME': task['JOBSTART'],
                 'JOBENDTIME': task['JOBEND'],
-                'WALLTIME': task['WALLTIME'],
+                'TIMEREQ': task['WALLTIME'],
                 'MEMREQ': task['MEMREQ'],
                 'TIMEUSED': task['TIMEUSED'],
                 'MEMUSED': task['MEMUSED'],
