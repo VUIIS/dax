@@ -162,6 +162,7 @@ class TaskLauncherNoXnat(object):
         # Launch jobs
         for i, t in enumerate(launch_list):
             assr = t['ASSR']
+            out_dir = self._task_dir(t)
 
             launched, pending = count_jobs()
             logger.info(f'Cluster:{launched}/{q_limit} total, {pending}/{p_limit} pending')
@@ -173,8 +174,6 @@ class TaskLauncherNoXnat(object):
             if pending >= p_limit:
                 logger.info(f'pending limit reached:{p_limit}')
                 break
-
-            out_dir = self._task_dir(task)
 
             if os.path.exists(outdir):
                 logger.info(f'cannot launch, found existing dir:{outdir}')
