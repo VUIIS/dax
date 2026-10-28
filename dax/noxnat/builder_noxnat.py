@@ -72,7 +72,7 @@ class TaskBuilderNoXnat(object):
         # Assessors
         _assrs = self._data['assessors']
         _assrs['full_path'] = \
-            'asssessors/' + \
+            'assessors/' + \
             _assrs['PROJECT'] + '/' + \
             _assrs['ASSR']
             #_assrs['SUBJECT'] + '/' + \
@@ -395,7 +395,7 @@ class TaskBuilderNoXnat(object):
             subject = self._subject_for_session(project_info, session)
             proctype = processor.proctype
             procversion = processor.procversion
-            logger.debug(f'no match, creating session asssessor:{subject}:{session}:{proctype}')
+            logger.debug(f'no match, creating session assessor:{subject}:{session}:{proctype}')
             assessor = self.create_session_assessor(
                 project_info['name'],
                 subject,
@@ -439,7 +439,7 @@ class TaskBuilderNoXnat(object):
             guid[:guidchars]])
 
         # Create the assessor
-        logger.info(f'creating session asssessor:{assr_label}')
+        logger.info(f'creating session assessor:{assr_label}')
         assessor = {
             'PROJECT': project,
             'SUBJECT': subject,
