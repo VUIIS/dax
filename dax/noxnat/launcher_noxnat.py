@@ -95,6 +95,8 @@ class TaskLauncherNoXnat(object):
         updates = []
         running_list = [x for x in records if x['PROCSTATUS'] == 'RUNNING']
 
+        logger.info(f'{len(running_list)} of {len(records)}:tasks running')
+
         # Update each task
         for i, t in enumerate(running_list):
             # check on running job
@@ -120,6 +122,8 @@ class TaskLauncherNoXnat(object):
         records = self._load_queue()
         updates = []
         completed_list = [x for x in records if x['PROCSTATUS'] in COMPLETED_STATUSES]
+
+        logger.info(f'{len(completed_list)} of {len(records)}:tasks to complete')
 
         # Finish completed jobs
         for i, t in enumerate(completed_list):
@@ -147,6 +151,8 @@ class TaskLauncherNoXnat(object):
         records = self._load_queue()
         updates = []
         done_list = [x for x in records if x['PROCSTATUS'] in DONE_STATUSES]
+
+        logger.info(f'{len(done_list)} of {len(records)}:tasks to archive')
 
         # Finish done tasks
         for i, t in enumerate(done_list):
@@ -312,10 +318,14 @@ class TaskLauncherNoXnat(object):
             # Archive finished tasks
             self._archive_done()
 
+            logger.info('update:DONE!')
+
         finally:
             # Delete the lock file
             logger.debug(f'deleting lock file:{lock_file}')
             unlock_flagfile(lock_file)
+
+
 
     def _apply_perlimit(self, launch_list, running_list):
         result_list = []
