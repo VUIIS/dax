@@ -25,7 +25,7 @@ from ..task import (
 
 
 # Logger for logs
-LOGGER = logging.getLogger('dax')
+logger = logging.getLogger('dax')
 
 
 def load_from_yaml_noxnat(
@@ -42,11 +42,11 @@ def load_from_yaml_noxnat(
 
     # Load file based on yaml version and data type
     if yaml_obj.contents.get('inputs').get('xnat').get('sessions', False):
-        print('load as subject assessor sgp')
+        logger.debug('load as subject assessor sgp')
         # This must be a subjgenproc
         return SgpProcessorNoXnat(filepath, user_inputs, singularity_imagedir, job_template)
     elif yaml_obj.contents.get('procyamlversion', '') == '3.0.0-dev.0':
-        print('load as session assessor')
+        logger.debug('load as session assessor')
         return ProcessorNoXnat(filepath, user_inputs, singularity_imagedir, job_template)
     else:
         raise Exception('failed to load from yaml, invalid file')
@@ -120,14 +120,14 @@ class ProcessorNoXnat(object):
 
         """
         for key, val in self.user_inputs.items():
-            LOGGER.debug('overriding:key={}'.format(key))
+            logger.debug('overriding:key={}'.format(key))
             tags = key.split('.')
             if key.startswith('inputs.xnat'):
                 # change value
                 if tags[2] not in list(self.xnat_inputs.keys()):
                     msg = 'key not found in xnat inputs:key={}'
                     msg = msg.format(tags[3])
-                    LOGGER.error(msg)
+                    logger.error(msg)
                     raise AutoProcessorError(msg)
 
                 # Match the scan number or assessor number (e.g: scan1)
@@ -140,7 +140,7 @@ class ProcessorNoXnat(object):
                 if sobj is None:
                     msg = 'invalid override:key={}'
                     msg = msg.format(key)
-                    LOGGER.error(msg)
+                    logger.error(msg)
                     raise AutoProcessorError(msg)
 
                 if tags[4] == 'resources':
@@ -154,20 +154,20 @@ class ProcessorNoXnat(object):
 
                         if robj is None:
                             msg = 'invalid override:key={}'
-                            LOGGER.error(msg)
+                            logger.error(msg)
                             raise AutoProcessorError(msg)
 
                         msg = 'overriding fmatch:key={}'
                         msg = msg.format(key, val)
-                        LOGGER.debug(msg)
+                        logger.debug(msg)
                         robj['fmatch'] = val
                     else:
                         msg = 'invalid override:key={}'
                         msg = msg.format(key)
-                        LOGGER.error(msg)
+                        logger.error(msg)
                         raise AutoProcessorError(msg)
                 else:
-                    LOGGER.info('overriding:{}:{}'.format(tags[4], str(val)))
+                    logger.info('overriding:{}:{}'.format(tags[4], str(val)))
                     obj[tags[4]] = val
 
             elif key in ['walltime', 'attrs.walltime']:
@@ -177,7 +177,7 @@ class ProcessorNoXnat(object):
             else:
                 msg = 'invalid override:key={}'
                 msg = msg.format(key)
-                LOGGER.error(msg)
+                logger.error(msg)
                 raise AutoProcessorError(msg)
 
     def _read_yaml(self, yaml_file):
@@ -252,7 +252,7 @@ class ProcessorNoXnat(object):
                 self.container_path = self.containers[0].get('path')
             else:
                 msg = 'multiple containers requires a primary to be set'
-                LOGGER.error(msg)
+                logger.error(msg)
                 raise AutoProcessorError(msg)
 
         # Outputs from Yaml
@@ -398,12 +398,12 @@ class ProcessorNoXnat(object):
 
         if 'container' not in command:
             err = 'singularity modes require a container to be set'
-            LOGGER.error(err)
+            logger.error(err)
             raise AutoProcessorError(err)
 
         if runexec not in ['run', 'exec']:
             err = f'singularity mode {runexec} not known'
-            LOGGER.error(err)
+            logger.error(err)
             raise AutoProcessorError(err)
 
         # Use the container name to get the path
@@ -411,7 +411,7 @@ class ProcessorNoXnat(object):
 
         if not cpath:
             err = 'container path not found'
-            LOGGER.error(err)
+            logger.error(err)
             raise AutoProcessorError(err)
 
         # Initialize command
@@ -472,7 +472,7 @@ class ProcessorNoXnat(object):
         # Build and append the post command
         if 'type' not in command:
             err = 'command type not set'
-            LOGGER.error(err)
+            logger.error(err)
             raise AutoProcessorError(err)
 
         if command['type'] == 'singularity_run':
@@ -483,7 +483,7 @@ class ProcessorNoXnat(object):
 
         else:
             err = 'invalid command type: {}'.format(command['type'])
-            LOGGER.error(err)
+            logger.error(err)
             raise AutoProcessorError(err)
 
         return txt
@@ -532,17 +532,17 @@ class ProcessorNoXnat(object):
             f.write('\n')
 
     def parse_session_pd(self, session, project_data):
-        LOGGER.debug(f'parsing session with project data:{session}')
+        logger.debug(f'parsing session with project data:{session}')
         """
         Parse a session to determine what assessors *should* exist for
         this processor
         """
 
         artefacts_by_input = self._map_inputs(session, project_data)
-        LOGGER.debug(f'artefacts_by_input={artefacts_by_input}')
+        logger.debug(f'artefacts_by_input={artefacts_by_input}')
 
         param_sets = self._generate_parameter_matrix_pd(artefacts_by_input)
-        LOGGER.debug(f'parameter_matrix={param_sets}')
+        logger.debug(f'parameter_matrix={param_sets}')
 
         # Apply filters (e.g., remove parameter sets where inputs don't match)
         artefact_inputs = {}
@@ -550,7 +550,7 @@ class ProcessorNoXnat(object):
             artefact_inputs[a['full_path']] = a['INPUTS']
 
         param_sets = self._filter_matrix_pd(param_sets, artefact_inputs)
-        LOGGER.debug(f'filtered={param_sets}')
+        logger.debug(f'filtered={param_sets}')
 
         return param_sets
 
@@ -586,18 +586,18 @@ class ProcessorNoXnat(object):
         # This will raise a NeedInputs exception if any inputs aren't ready
         verify_artefact_status(self.proc_inputs, inputs, project_data)
 
-        LOGGER.debug(self.variables_to_inputs.items())
+        logger.debug(self.variables_to_inputs.items())
 
         # Map from parameters to input resources
-        LOGGER.debug('mapping params to artefact resources')
+        logger.debug('mapping params to artefact resources')
         for k, v in list(self.variables_to_inputs.items()):
-            LOGGER.debug('mapping:' + k, v)
+            logger.debug('mapping:' + k, v)
             inp = self.proc_inputs[v['input']]
             resource = v['resource']
 
-            LOGGER.debug('vinput={}'.format(v['input']))
-            LOGGER.debug(f'resource={resource}')
-            LOGGER.debug(inp['resources'])
+            logger.debug('vinput={}'.format(v['input']))
+            logger.debug(f'resource={resource}')
+            logger.debug(inp['resources'])
 
             # Find the resource
             cur_res = None
@@ -614,7 +614,7 @@ class ProcessorNoXnat(object):
                 file_list = _get_file_list(resource_dir, resource)
 
                 if len(file_list) == 0:
-                    LOGGER.debug('empty or missing resource')
+                    logger.debug('empty or missing resource')
                     raise NeedInputsException(f'No Resource:{resource}')
 
                 if 'fmatch' in cur_res:
@@ -637,7 +637,7 @@ class ProcessorNoXnat(object):
                     file_list = [x for x in file_list if regex.match(x)]
 
                     if len(file_list) == 0:
-                        LOGGER.debug('no matching files found on resource')
+                        logger.debug('no matching files found on resource')
                         raise NeedInputsException('No Files')
 
                     if len(file_list) > 1:
@@ -647,9 +647,9 @@ class ProcessorNoXnat(object):
                         # other options
 
                         if 'fmulti' in cur_res and cur_res['fmulti'] == 'any1':
-                            LOGGER.debug('multiple files, fmulti==any1, using first found')
+                            logger.debug('multiple files, fmulti==any1, using first found')
                         else:
-                            LOGGER.debug('multiple files, fmulti not set')
+                            logger.debug('multiple files, fmulti not set')
                             raise NeedInputsException(str(k) + ': multiple files')
 
                     # Create the full path to the file on the resource
@@ -693,7 +693,7 @@ class ProcessorNoXnat(object):
                 if 'varname' in cur_res:
                     variable_set[k] = fdest
 
-        LOGGER.debug('finished mapping params to artefact resources')
+        logger.debug('finished mapping params to artefact resources')
 
         return variable_set, input_list
 
@@ -764,7 +764,7 @@ class ProcessorNoXnat(object):
                 types = [_.strip() for _ in a['types'].split(',')]
             else:
                 msg = 'no types for assessor:{}'.format(name)
-                LOGGER.error(msg)
+                logger.error(msg)
                 raise AutoProcessorError(msg)
 
             resources = a.get('resources', [])
@@ -833,13 +833,13 @@ class ProcessorNoXnat(object):
         # Get the sessions/dates for this subject
         scans = project_data.get('scans')
         subject = [x for x in scans if x['SESSION'] == session][0]['SUBJECT']
-        LOGGER.debug(f'is_first_mr_session:{session}:{subject}:getting scans')
+        logger.debug(f'is_first_mr_session:{session}:{subject}:getting scans')
         scans = [x for x in scans if x['SUBJECT'] == subject and x['MODALITY'] == 'MR']
         scans = sorted(scans, key=lambda x: x['DATE'])
 
         # Check if this is the first
         if len(scans) > 0 and scans[0]['SESSION'] != session:
-            LOGGER.debug(f'is_first_mr_session:{session}:nope')
+            logger.debug(f'is_first_mr_session:{session}:nope')
             is_first = False
 
         return is_first
@@ -850,17 +850,17 @@ class ProcessorNoXnat(object):
         artefact_ids_by_input = {k: [] for k in inputs}
 
         # Get lists for scans/assrs for this session
-        LOGGER.debug('prepping session data')
+        logger.debug('prepping session data')
         scans = [x for x in project_data.get('scans') if x['SESSION'] == session]
         assrs = [x for x in project_data.get('assessors') if x['SESSION'] == session]
 
         petscans = []
         # if this is the first mri, add scans
         if self.is_first_mr_session(session, project_data):
-            LOGGER.debug(f'is first mri, adding pets:{session}')
+            logger.debug(f'is first mri, adding pets:{session}')
             petscans = self._get_petscans(session, project_data)
 
-        LOGGER.debug('matching artefacts')
+        logger.debug('matching artefacts')
         # Find list of scans/assessors that match each specified input
         # for i, iv in list(inputs.items()):
         for i, iv in sorted(inputs.items()):
@@ -887,7 +887,7 @@ class ProcessorNoXnat(object):
                         if regex.match(p['SCANTYPE']):
                             # Found a match, now check quality
                             if p['QUALITY'] == 'unusable':
-                                LOGGER.debug('excluding unusable scan')
+                                logger.debug('excluding unusable scan')
                             else:
                                 artefacts_by_input[i].append(p['full_path'])
 
@@ -901,9 +901,9 @@ class ProcessorNoXnat(object):
                         regex = re.compile(fnmatch.translate(expression))
                         if regex.match(cscan.get('SCANTYPE')):
                             scanid = cscan.get('SCANID')
-                            LOGGER.debug('match found!')
+                            logger.debug('match found!')
                             if iv['skip_unusable'] and cscan.get('QUALITY') == 'unusable':
-                                LOGGER.info(f'Excluding unusable scan:{scanid}')
+                                logger.info(f'Excluding unusable scan:{scanid}')
                             else:
                                 # Get scan path, scan ID for each matching scan.
                                 # Break if the scan matches so we don't find it again comparing
@@ -930,16 +930,16 @@ class ProcessorNoXnat(object):
                             idx_multi = int(iv['keep_multis'])
                         except:
                             msg = f'For {i}, keep_multis must be first, last, or index 1,2,3,...'
-                            LOGGER.error(msg)
+                            logger.error(msg)
                             raise AutoProcessorError(msg)
 
                     if idx_multi > num_scans:
                         msg = f'Requested {idx_multi}th scan for {i}, but only {num_scans} found'
-                        LOGGER.info(msg)
+                        logger.info(msg)
                         artefacts_by_input[i] = []
                     else:
                         artefacts_by_input[i] = [sorted_info[idx_multi-1][0]]
-                        LOGGER.debug(
+                        logger.debug(
                             f'Keeping only the {idx_multi}th scan found for '
                             f'{i}: {sorted_info[idx_multi-1][0]}'
                             )
@@ -964,7 +964,7 @@ class ProcessorNoXnat(object):
                 _inputs = f['inputs'].split(',')
                 match_list.append(_inputs)
             else:
-                LOGGER.error('invalid filter type:{}'.format(_type))
+                logger.error('invalid filter type:{}'.format(_type))
 
         self.match_filters = match_list
 
@@ -1093,7 +1093,7 @@ def get_input_value_pd(input_name, parameter, artefact_inputs):
 
         if parent_inputs is None:
             # Check that inputs field is not empty
-            LOGGER.info(f'inputs field is empty:{parent_val}')
+            logger.info(f'inputs field is empty:{parent_val}')
             val = None
         else:
             # Get the inputs field from the child
@@ -1154,17 +1154,17 @@ def get_assr_status(project_data, assr_path):
 def verify_artefact_status(proc_inputs, assr_inputs, project_data):
 
     # Check artefact status
-    LOGGER.debug('checking status of each artefact')
+    logger.debug('checking status of each artefact')
     for artk, artv in list(assr_inputs.items()):
         inp = proc_inputs[artk]
         art_type = inp['artefact_type']
 
         if art_type == 'scan' and not inp['needs_qc']:
             # Not checking qc status
-            LOGGER.debug('not checking status:' + artk)
+            logger.debug('not checking status:' + artk)
             continue
 
-        LOGGER.debug('checking status:' + artk)
+        logger.debug('checking status:' + artk)
 
         if art_type == 'scan':
             # Check status of each input scan
