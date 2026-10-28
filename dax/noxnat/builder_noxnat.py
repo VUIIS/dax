@@ -74,8 +74,8 @@ class TaskBuilderNoXnat(object):
         _assrs['full_path'] = \
             'asssessors/' + \
             _assrs['PROJECT'] + '/' + \
-            #_assrs['SUBJECT'] + '/' + \
             _assrs['ASSR']
+            #_assrs['SUBJECT'] + '/' + \
 
         # Decode inputs
         records = _assrs[_assrs.PROJECT == project].to_dict('records')
