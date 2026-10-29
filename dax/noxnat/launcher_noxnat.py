@@ -490,22 +490,45 @@ class TaskLauncherNoXnat(object):
         # Retry each
         for a in failed_assessors:
             assr = a['ASSR']
-            logger.info(f'TBD:retrying:{assr}')
+            logger.info(f'retrying:{assr}')
             self._retry(a)
-            #self._update_assessor_qcstatus(assr, 'Needs QA')
 
     def _retry(self, assessor):
         assr = assessor['ASSR']
 
         # Delete any existing files
-        logger.info(f'TBD:deleting:{assr}')
-        self._delete_assessor_files(assessor)
+        logger.info(f'deleting assessor files:{assr}')
+        self.delete_task_dirs(assessor)
 
         # Reset record in assessor
         logger.info(f'TBD:reset assessor:{assr}')
+        self._reset_assessor(assr)
 
         # Reset record in task
         logger.info(f'TBD:reset task:{assr}')
+        self._reset_task(assr)
+
+    def _reset_assessor(self, assr):
+        self._apply_updates_assessor([{
+            'ASSR': assr,
+            'PROCSTATUS': 'NEED_INPUTS',
+            'QCSTATUS': 'Job Pending',
+            'JOBNODE': '',
+            'JOBSTARTTIME': '',
+            'JOBENDTIME': '',
+            'TIMEREQ': '',
+            'MEMREQ': '',
+            'TIMEUSED': '',
+            'MEMUSED': '',
+            'YAMLFILE': '',
+            'USERINPUTS': '',
+        }])
+
+    def _reset_task(self, assr):
+        self._apply_updates_task([{
+            'ASSR': assr,
+            'PROCSTATUS': 'DELETEME'
+        }])
 
     def _task_dir(self, task):
         assr = task['ASSR']
@@ -513,14 +536,6 @@ class TaskLauncherNoXnat(object):
         #subj = assr.split('-x-')[1]
         #return = f'{self._assrs_dir}/{proj}/{subj}/{assr}'
         return f'{self._assrs_dir}/{proj}/{assr}'
-
-    def _delete_assessor_files(self, assessor):
-        proj = assessor['PROJECT']
-        assr = assessor['ASSR']
-        assessor_dir = f'{self._assrs_dir}/{proj}/{assr}'
-        logger.info(f'TBD:deleting directory:{assessor_dir}')
-        #shutil.rmtree(assessor_dir)
-
 
 def get_running_updates(task):
     """Update information about given task from local SLURM."""
