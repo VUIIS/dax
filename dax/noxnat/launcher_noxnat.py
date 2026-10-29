@@ -505,7 +505,7 @@ class TaskLauncherNoXnat(object):
         logger.info(f'TBD:reset assessor:{assr}')
 
         # Reset record in task
-        logger.info()f'TBD:reset task:{assr}'
+        logger.info(f'TBD:reset task:{assr}')
 
     def _task_dir(self, task):
         assr = task['ASSR']
