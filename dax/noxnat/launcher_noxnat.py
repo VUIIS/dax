@@ -499,7 +499,7 @@ class TaskLauncherNoXnat(object):
 
         # Delete any existing files
         logger.info(f'TBD:deleting:{assr}')
-        _delete_assessor_files(self, assessor)
+        self._delete_assessor_files(assessor)
 
         # Reset record in assessor
         logger.info(f'TBD:reset assessor:{assr}')
