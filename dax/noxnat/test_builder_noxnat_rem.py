@@ -79,5 +79,9 @@ if __name__ == '__main__':
 		print('show running assessors')
 		db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
 		a = db.load_data()['assessors']
+
+		print(a.QCSTATUS.value_counts())
+		print(a.PROCSTATUS.value_counts())
+		
 		a = a[a.PROCSTATUS == 'JOB_RUNNING']
 		print(a[['ASSR', 'PROCSTATUS']])
