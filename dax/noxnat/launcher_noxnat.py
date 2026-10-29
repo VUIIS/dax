@@ -325,8 +325,6 @@ class TaskLauncherNoXnat(object):
             logger.debug(f'deleting lock file:{lock_file}')
             unlock_flagfile(lock_file)
 
-
-
     def _apply_perlimit(self, launch_list, running_list):
         result_list = []
         per_limit = int(self._perlimit)
@@ -481,12 +479,47 @@ class TaskLauncherNoXnat(object):
                 v = task[k]
                 f.write(f'{k}={v}\n')
 
+    def retry_failed(self):
+        # Get list of JOB_FAILED
+        assessors = self._data['assessors'].to_dict('records')
+
+        failed_assessors = [x for x in assessors if x['PROCSTATUS'] == 'JOB_FAILED']
+
+        logger.info(f'{len(failed_assessors)} failed assessors found')
+
+        # Retry each
+        for a in failed_assessors:
+            assr = a['ASSR']
+            logger.info(f'TBD:retrying:{assr}')
+            self._retry(a)
+            #self._update_assessor_qcstatus(assr, 'Needs QA')
+
+    def _retry(self, assessor):
+        assr = assessor['ASSR']
+
+        # Delete any existing files
+        logger.info(f'TBD:deleting:{assr}')
+        _delete_assessor_files(self, assessor)
+
+        # Reset record in assessor
+        logger.info(f'TBD:reset assessor:{assr}')
+
+        # Reset record in task
+        logger.info()f'TBD:reset task:{assr}'
+
     def _task_dir(self, task):
         assr = task['ASSR']
         proj = task['PROJECT']
         #subj = assr.split('-x-')[1]
         #return = f'{self._assrs_dir}/{proj}/{subj}/{assr}'
         return f'{self._assrs_dir}/{proj}/{assr}'
+
+    def _delete_assessor_files(self, assessor):
+        proj = assessor['PROJECT']
+        assr = assessor['ASSR']
+        assessor_dir = f'{self._assrs_dir}/{proj}/{assr}'
+        logger.info(f'TBD:deleting directory:{assessor_dir}')
+        #shutil.rmtree(assessor_dir)
 
 
 def get_running_updates(task):
