@@ -109,7 +109,7 @@ class TaskBuilderNoXnat(object):
     def fix_qcstatus(self):
         assessors = self._data['assessors'].to_dict('records')
 
-        bad_assessors = [x for x in assessors if x['PROCSTATUS'] == 'COMPLETE' and x['QCSTATUS'] == 'Job Pending']
+        bad_assessors = [x for x in assessors if (x['PROCSTATUS'] in ['JOB_FAILED', 'COMPLETE']) and (x['QCSTATUS'] == 'Job Pending')]
 
         logger.info(f'{len(bad_assessors)} bad assessors found')
 
