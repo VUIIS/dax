@@ -58,6 +58,21 @@ if __name__ == '__main__':
 			{
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'fmri_rest_v4.0.0.yaml',
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'FS7_v1.1.0.yaml',
+			'FILTER': '*a',
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'FS7_v1.1.0.yaml',
+			'FILTER': '*a',
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'FS7HPCAMG_v1.1.0.yaml',
+			'FILTER': '*a',
 			}
 		])]
 	).astype(str).fillna('')
