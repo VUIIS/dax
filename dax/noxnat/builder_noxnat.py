@@ -319,15 +319,14 @@ class TaskBuilderNoXnat(object):
                 #info['PROCSTATUS'] = NEED_TO_RUN
 
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
-                logger.info(f'building task:{info["ASSR"]}')
                 try:
                     info = self._build_task(info, processor, project_info, custom=custom)
+                    logger.info(f'build task:{info["ASSR"]}:{info["PROCSTATUS"]}')
                 except Exception as err:
                     logger.info(f'build_task failed:{err}')
                     continue
 
                 logger.debug(f'{info}')
-                logger.debug('status:{}:{}'.format(info['ASSR'], info['PROCSTATUS']))
             else:
                 logger.debug('already built:{}'.format(info['ASSR']))
 

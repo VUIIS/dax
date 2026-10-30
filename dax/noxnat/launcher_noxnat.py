@@ -497,16 +497,16 @@ class TaskLauncherNoXnat(object):
         assr = assessor['ASSR']
 
         # Delete any existing files
-        logger.info(f'deleting assessor files:{assr}')
+        logger.debug(f'deleting assessor files:{assr}')
         _dir = self._task_dir(assessor)
         delete_task_dirs(_dir)
 
         # Reset record in assessor
-        logger.info(f'TBD:reset assessor:{assr}')
+        logger.debug(f'reset assessor:{assr}')
         self._reset_assessor(assr)
 
         # Reset record in task
-        logger.info(f'TBD:reset task:{assr}')
+        logger.debug(f'reset task:{assr}')
         self._reset_task(assr)
 
     def _reset_assessor(self, assr):
