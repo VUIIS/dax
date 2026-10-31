@@ -14,9 +14,9 @@ if __name__ == '__main__':
 		logging.basicConfig(level=logging.INFO)
 
 	launcher = TaskLauncherNoXnat(sys.argv[1])
-	launcher._set_plimit(500)
-	launcher._set_qlimit(500)
-	launcher._set_perlimit(100)
+	launcher._set_plimit(1000)
+	launcher._set_qlimit(1000)
+	launcher._set_perlimit(1000)
 	launcher.update()
 
 	if '-r' in sys.argv:
