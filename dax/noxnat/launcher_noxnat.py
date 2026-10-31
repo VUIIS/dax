@@ -167,8 +167,6 @@ class TaskLauncherNoXnat(object):
     def _archive_task(self, task):
         assr = task['ASSR']
 
-        logger.info(f'archiving task:{assr}')
-
         # Copy results from taskqueue record to assessor record
         try:
             self._apply_updates_assessor([{
