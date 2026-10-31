@@ -70,8 +70,12 @@ if __name__ == '__main__':
 			},
 			{
 			'PROJECT': 'REMBRANDT',
-			'FILE': 'FS7HPCAMG_v1.1.0.yaml',
+			'FILE': 'FS7HPCAMG_v1.0.0.yaml',
 			'FILTER': '*a',
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'fmri_rest_denoise_v1.0.0.yaml',
 			}
 		])]
 	).astype(str).fillna('')
