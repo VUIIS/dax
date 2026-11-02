@@ -321,7 +321,7 @@ class TaskBuilderNoXnat(object):
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
                 try:
                     info = self._build_task(info, processor, project_info, custom=custom)
-                    logger.info(f'build task:{info["ASSR"]}:{info["PROCSTATUS"]}')
+                    logger.info(f'build task:{info["ASSR"]}:{info["PROCSTATUS"]}:{info["QCSTATUS"]}')
                 except Exception as err:
                     logger.info(f'build_task failed:{err}')
                     continue
