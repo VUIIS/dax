@@ -62,16 +62,6 @@ if __name__ == '__main__':
 			{
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'FS7_v1.1.0.yaml',
-			'FILTER': '*a',
-			},
-			{
-			'PROJECT': 'REMBRANDT',
-			'FILE': 'FS7_v1.1.0.yaml',
-			},
-			{
-			'PROJECT': 'REMBRANDT',
-			'FILE': 'FS7HPCAMG_v1.0.0.yaml',
-			'FILTER': '*a',
 			},
 			{
 			'PROJECT': 'REMBRANDT',
@@ -90,6 +80,10 @@ if __name__ == '__main__':
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'fmri_msit_v5.0.0.yaml',
 			'ARGS': 'inputs.xnat.scans.scan_ap.types=fMRI_REST_FSA\r\ninputs.xnat.scans.scan_pa.types=fMRI_MSIT',
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'fmri_msit_denoise_v1.0.3.yaml',
 			}
 		])]
 	).astype(str).fillna('')
