@@ -1208,5 +1208,11 @@ def _get_file_list(resource_dir, resource):
         file_list = [x for x in file_list if x.endswith('.nii.gz')]
     elif resource == 'JSON':
         file_list = [x for x in file_list if x.endswith('.json')]
+    elif resource == 'EDAT':
+        file_list = [x for x in file_list if x.endswith('edat2tab.txt')]
+    elif resource == 'BVAL':
+        file_list = [x for x in file_list if x.endswith('.bval')]
+    elif resource == 'BVEC':
+        file_list = [x for x in file_list if x.endswith('.bvec')]
 
     return file_list
