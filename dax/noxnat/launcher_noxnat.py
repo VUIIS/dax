@@ -421,7 +421,7 @@ class TaskLauncherNoXnat(object):
             'NOXNAT')
 
         # Write the script
-        logger.info(f'writing batch file:{batch_file}')
+        logger.debug(f'writing batch file:{batch_file}')
         batch = PBS(
             batch_file,
             outlog,
