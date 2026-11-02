@@ -168,9 +168,9 @@ class TaskLauncherNoXnat(object):
             assr = t['ASSR']
             try:
                 logger.debug(f'archiving task:{assr}')
-                status = self._archive_task(t)
+                self._archive_task(t)
                 c+=1
-                logger.info(f'{c}:{assr}:archived successfully:{status=}')
+                logger.info(f'{c}:{assr}:archived successfully')
             except Exception as err:
                 logger.error(f'failed to archive, skipping:{assr}:{err}')
                 continue
