@@ -273,6 +273,8 @@ class TaskLauncherNoXnat(object):
                 # Increment launch counter
                 c+=1
 
+                logger.info(f'{c}:{assr}:launched successfully:{jobid=}')
+
                 updates.append({
                     'ASSR': assr,
                     'PROCSTATUS': 'RUNNING',
