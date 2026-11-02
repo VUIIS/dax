@@ -165,7 +165,7 @@ class ProcessorNoXnat(object):
                         logger.error(msg)
                         raise AutoProcessorError(msg)
                 else:
-                    logger.info('overriding:{}:{}'.format(tags[4], str(val)))
+                    logger.debug('overriding:{}:{}'.format(tags[4], str(val)))
                     obj[tags[4]] = val
 
             elif key in ['walltime', 'attrs.walltime']:
