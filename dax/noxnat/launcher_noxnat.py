@@ -106,12 +106,12 @@ class TaskLauncherNoXnat(object):
             if task_updates:
                 # Set primeary key then add to batch updates
                 task_updates['ASSR'] = assr
-                logger.info(f'task updates:{task_updates}')
+                logger.debug(f'task updates:{task_updates}')
                 updates.append(task_updates)
 
         if updates:
             # apply changes
-            logger.info(f'updating database:{updates}')
+            logger.debug(f'updating database:{updates}')
             try:
                 self._apply_updates_task(updates)
             except Exception as err:
@@ -129,7 +129,7 @@ class TaskLauncherNoXnat(object):
         for i, t in enumerate(completed_list):
             assr = t['ASSR']
             try:
-                logger.info(f'completing task:{assr}')
+                logger.debug(f'completing task:{assr}')
                 status = self._complete_task(t)
             except FileNotFoundError as err:
                 logger.error(f'failed to complete, skipping:{assr}:{err}')
@@ -140,7 +140,7 @@ class TaskLauncherNoXnat(object):
 
         if updates:
             # apply changes
-            logger.info(f'updating database:{updates}')
+            logger.debug(f'updating database:{updates}')
             try:
                 self._apply_updates_task(updates)
             except Exception as err:
@@ -155,14 +155,18 @@ class TaskLauncherNoXnat(object):
         logger.info(f'{len(done_list)} of {len(records)}:tasks to archive')
 
         # Finish done tasks
+        c = 0
         for i, t in enumerate(done_list):
             assr = t['ASSR']
             try:
-                logger.info(f'archiving task:{assr}')
+                logger.debug(f'archiving task:{assr}')
                 status = self._archive_task(t)
+                c+=1
             except Exception as err:
                 logger.error(f'failed to archive, skipping:{assr}:{err}')
                 continue
+
+        logger.info(f'{len(c)}:tasks archived')
 
     def _archive_task(self, task):
         assr = task['ASSR']
@@ -220,7 +224,7 @@ class TaskLauncherNoXnat(object):
             outdir = self._task_dir(t)
 
             launched, pending = count_jobs()
-            logger.info(f'Cluster:{launched}/{q_limit} total, {pending}/{p_limit} pending')
+            logger.debug(f'Cluster:{launched}/{q_limit} total, {pending}/{p_limit} pending')
 
             if launched >= q_limit:
                 logger.info(f'queue limit reached:{q_limit}')
