@@ -81,6 +81,15 @@ if __name__ == '__main__':
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'fmri_rest_v4.0.0.yaml',
 			'ARGS': 'inputs.xnat.scans.scan_ap.types=fMRI_REST_FSA\r\ninputs.xnat.scans.scan_pa.types=fMRI_REST1',
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'fmri_msit_v5.0.0.yaml',
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'fmri_msit_v5.0.0.yaml',
+			'ARGS': 'inputs.xnat.scans.scan_ap.types=fMRI_REST_FSA\r\ninputs.xnat.scans.scan_pa.types=fMRI_MSIT',
 			}
 		])]
 	).astype(str).fillna('')
