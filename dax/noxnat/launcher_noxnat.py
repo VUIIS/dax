@@ -141,7 +141,7 @@ class TaskLauncherNoXnat(object):
                 continue
 
             # Add final status to updates
-            updates.append({'ASSR f': assr, 'PROCSTATUS': status})
+            updates.append({'ASSR': assr, 'PROCSTATUS': status})
 
         logger.info(f'{c}:tasks completed successfully')
 
