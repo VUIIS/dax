@@ -136,6 +136,7 @@ class TaskLauncherNoXnat(object):
                 logger.debug(f'completing task:{assr}')
                 status = self._complete_task(t)
                 c+=1
+                logger.info(f'{c}:{assr}:completed successfully:{status=}')
             except FileNotFoundError as err:
                 logger.error(f'failed to complete, skipping:{assr}:{err}')
                 continue
@@ -169,6 +170,7 @@ class TaskLauncherNoXnat(object):
                 logger.debug(f'archiving task:{assr}')
                 status = self._archive_task(t)
                 c+=1
+                logger.info(f'{c}:{assr}:archived successfully:{status=}')
             except Exception as err:
                 logger.error(f'failed to archive, skipping:{assr}:{err}')
                 continue
