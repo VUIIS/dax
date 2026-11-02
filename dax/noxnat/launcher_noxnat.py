@@ -95,9 +95,10 @@ class TaskLauncherNoXnat(object):
         updates = []
         running_list = [x for x in records if x['PROCSTATUS'] == 'RUNNING']
 
-        logger.info(f'{len(running_list)} of {len(records)}:tasks running')
+        logger.info(f'{len(running_list)} of {len(records)}:running tasks to update')
 
         # Update each task
+        c = 0
         for i, t in enumerate(running_list):
             # check on running job
             assr = t['ASSR']
@@ -108,12 +109,14 @@ class TaskLauncherNoXnat(object):
                 task_updates['ASSR'] = assr
                 logger.debug(f'task updates:{task_updates}')
                 updates.append(task_updates)
+                c+=1
 
         if updates:
             # apply changes
             logger.debug(f'updating database:{updates}')
             try:
                 self._apply_updates_task(updates)
+                logger.info(f'{c}:tasks with changes, successfully updated')
             except Exception as err:
                 logger.error(f'error while applying task updates:{err}')
 
@@ -123,20 +126,24 @@ class TaskLauncherNoXnat(object):
         updates = []
         completed_list = [x for x in records if x['PROCSTATUS'] in COMPLETED_STATUSES]
 
-        logger.info(f'{len(completed_list)} of {len(records)}:tasks to complete')
+        logger.info(f'{len(completed_list)} of {len(records)}:ready to complete')
 
         # Finish completed jobs
+        c = 0
         for i, t in enumerate(completed_list):
             assr = t['ASSR']
             try:
                 logger.debug(f'completing task:{assr}')
                 status = self._complete_task(t)
+                c+=1
             except FileNotFoundError as err:
                 logger.error(f'failed to complete, skipping:{assr}:{err}')
                 continue
 
             # Add final status to updates
-            updates.append({'ASSR': assr, 'PROCSTATUS': status})
+            updates.append({'ASSR f': assr, 'PROCSTATUS': status})
+
+        logger.info(f'{c}:tasks completed successfully')
 
         if updates:
             # apply changes
@@ -152,7 +159,7 @@ class TaskLauncherNoXnat(object):
         updates = []
         done_list = [x for x in records if x['PROCSTATUS'] in DONE_STATUSES]
 
-        logger.info(f'{len(done_list)} of {len(records)}:tasks to archive')
+        logger.info(f'{len(done_list)} of {len(records)}:tasks ready to archive')
 
         # Finish done tasks
         c = 0
@@ -166,7 +173,7 @@ class TaskLauncherNoXnat(object):
                 logger.error(f'failed to archive, skipping:{assr}:{err}')
                 continue
 
-        logger.info(f'{len(c)}:tasks archived')
+        logger.info(f'{c}:tasks archived successfully')
 
     def _archive_task(self, task):
         assr = task['ASSR']
@@ -216,9 +223,10 @@ class TaskLauncherNoXnat(object):
             # Apply proc/proj limits, filter out proc/proj over limits
             logger.info(f'applying proc/proj limits to launch list:n={len(launch_list)}')
             launch_list = self._apply_perlimit(launch_list, running_list)
-            logger.info(f'ready to launch:n={len(launch_list)}')
+            logger.info(f'{len(launch_list)}:tasks ready to launch')
 
         # Launch jobs
+        c = 0
         for i, t in enumerate(launch_list):
             assr = t['ASSR']
             outdir = self._task_dir(t)
@@ -262,6 +270,9 @@ class TaskLauncherNoXnat(object):
                 if not jobid:
                     raise Exception('launch failed')
 
+                # Increment launch counter
+                c+=1
+
                 updates.append({
                     'ASSR': assr,
                     'PROCSTATUS': 'RUNNING',
@@ -277,6 +288,8 @@ class TaskLauncherNoXnat(object):
                 })
                 logger.debug(f'delete_task_dirs:{outdir}')
                 delete_task_dirs(outdir)
+
+        logger.info(f'{c}:tasks launched successfully')
 
         if updates:
             # upload changes
