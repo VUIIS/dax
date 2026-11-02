@@ -385,7 +385,7 @@ def submit_job(filename, outlog=None, force_no_qsub=False):
             proc = sb.Popen(cmd.split(), stdout=sb.PIPE, stderr=sb.PIPE)
             output, error = proc.communicate()
             if output:
-                LOGGER.info(output.decode().strip())
+                LOGGER.debug(output.decode().strip())
             if error:
                 LOGGER.error(error.decode())
             jobid = get_specific_str(
