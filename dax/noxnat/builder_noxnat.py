@@ -118,6 +118,14 @@ class TaskBuilderNoXnat(object):
             logger.info(f'fix qcstatus:{assr}')
             self._update_assessor_qcstatus(assr, 'Needs QA')
 
+    def fix_duplicates(self):
+        df = self._data['assessors']
+        logger.info(f'{len(df)} total assessors')
+
+        dupes = df[df.duplicated(subset=['PROJECT', 'PROCTYPE', 'INPUTS'])]
+        logger.info(f'{len(dupes)} duplicates found')
+        print(dupes)
+
     def update_all(self, only_session=None):
         results = []
         projects = self._build_projects

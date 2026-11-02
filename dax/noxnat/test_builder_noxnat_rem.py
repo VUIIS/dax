@@ -36,6 +36,9 @@ if __name__ == '__main__':
 	print('fixing qc status')
 	builder.fix_qcstatus()
 
+	print('fix duplicates')
+	builder.fix_duplicates()
+
 	# Manually add a processor to a project
 	builder._data['processors'] = pd.concat(
 		[builder._data['processors'],
