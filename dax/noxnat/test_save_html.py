@@ -4,7 +4,7 @@ import tempfile
 import webbrowser
 
 from dax.noxnat.database_noxnat import DatabaseNoXnat
-from dax.exports.export_html import save as save_html
+from dax.exports import save_html
 
 if __name__ == '__main__':
     rootdir = sys.argv[1]
