@@ -562,7 +562,8 @@ class TaskLauncherNoXnat(object):
 
     def _scancel(self, jobid):
         cmd = f'scancel -Q {jobid}'
-        os.system.cmd(cmd)
+        logger.info(f'running command:{cmd}')
+        os.system(cmd)
 
     def _retry(self, assessor):
         assr = assessor['ASSR']
