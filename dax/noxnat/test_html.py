@@ -4,7 +4,8 @@ import tempfile
 import webbrowser
 
 from dax.noxnat.database_noxnat import DatabaseNoXnat
-from dax.exports import save_html
+from dax.exports.export_html import save as save_html
+
 
 if __name__ == '__main__':
     rootdir = sys.argv[1]
@@ -16,10 +17,11 @@ if __name__ == '__main__':
 
         filename = f'{tmpdir}/dax.html'
 
-        # Save html
+        # Save html file
         print(f'saving file:{filename}')
         save_html(data, filename)
 
-        # Open html in browser
+        # Open html in firefox web browser
         print(f'opening file in browser:{filename}')
-        webbrowser.open_new_tab(filename)
+        firefox = webbrowser.get('firefox')
+        firefox.open_new_tab(filename)

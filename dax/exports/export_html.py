@@ -554,11 +554,11 @@ def _get_buttons(data):
     return buttons
 
 def _dashboard_pre_js():
-    return resources.read_text('dax.exports', 'assets/dashboard_pre.js')
+    return resources.read_text('dax.exports.assets', 'dashboard_pre.js')
 
 
 def _dashboard_post_js():
-    return resources.read_text('dax.exports', 'assets/dashboard_post.js')
+    return resources.read_text('dax.exports.assets', 'dashboard_post.js')
 
 
 def _dropdown_js(label):
