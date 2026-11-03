@@ -11,6 +11,15 @@ class DatabaseNoXnat(object):
     def __init__(self, filename):
         self._filename = filename
 
+    def delete_all_need_inputs(self):
+        filename = self._filename
+
+        with duckdb.connect(filename) as con:
+            con.execute("""
+                DELETE FROM assessors
+                WHERE PROCSTATUS == 'NEED_INPUTS';
+            """)
+
     def delete_bad_assessors(self):
         filename = self._filename
 
@@ -104,6 +113,10 @@ class DatabaseNoXnat(object):
         filename = self._filename
         assr = assessor['ASSR']
         logger.debug(f'adding assessor to duckdb:{assr}:{filename}')
+
+
+        # TODO: check for uniqueness of PROJECT/PROCTYPE/INPUTS
+
 
         with duckdb.connect(filename) as con:
             con.execute("""

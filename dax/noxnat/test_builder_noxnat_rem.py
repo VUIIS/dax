@@ -30,6 +30,10 @@ if __name__ == '__main__':
 			print(f'reset:{i}:{id}')
 			db.update_assessor(id, 'PROCSTATUS', 'NEED_INPUTS')
 
+	if '-n' in sys.argv:
+		print('purge all NEED_INPUTS')
+		DatabaseNoXnat(f'{rootdir}/db/dax.duckdb').delete_all_need_inputs()
+
 	# Get a builder for this dax dir
 	builder = TaskBuilderNoXnat(rootdir)
 
