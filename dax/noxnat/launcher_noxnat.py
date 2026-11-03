@@ -512,6 +512,58 @@ class TaskLauncherNoXnat(object):
             logger.info(f'retrying:{assr}')
             self._retry(a)
 
+
+    def cancel_running(self):
+
+        # Get running
+        records = self._load_queue()
+        running = [x for x in records if x['PROCSTATUS'] == 'RUNNING']
+        logger.info(f'{len(running)} running assessors found to cancel')
+
+        for t in running:
+            assr = t['ASSR']
+            logger.info(f'canceling:{assr}')
+            self._cancel(task)
+
+    def _cancel(self, task):
+        assr = task['ASSR']
+
+        # Mark assessor as canceling
+        self._apply_updates_assessor([{
+            'ASSR': assr,
+            'PROCSTATUS': 'CANCELING',
+        }])
+
+        # Mark task as canceling
+        self._apply_updates_task([{
+            'ASSR': assr,
+            'PROCSTATUS': 'CANCELING'
+        }])
+
+        try:
+            # Cancel slurm job
+            jobid = task['JOBID']
+            logger.info(f'running scancel:{assr}:{jobid=}')
+            self._scancel(jobid)
+        except Exception as err:
+            logger.error(f'error running scancel:{assr}:{jobid=}:{err}')
+
+        # Delete any existing files
+        logger.debug(f'deleting assessor files:{assr}')
+        delete_task_dirs(self._task_dir(task))
+
+        # Reset assessor
+        logger.debug(f'reset assessor:{assr}')
+        self._reset_assessor(assr)
+
+        # Reset record in task
+        logger.debug(f'reset task:{assr}')
+        self._reset_task(assr)
+
+    def _scancel(self, jobid):
+        cmd = f'scancel -Q {jobid}'
+        os.system.cmd(cmd)
+
     def _retry(self, assessor):
         assr = assessor['ASSR']
 
