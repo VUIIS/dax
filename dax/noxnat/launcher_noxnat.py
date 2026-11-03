@@ -523,7 +523,7 @@ class TaskLauncherNoXnat(object):
         for t in running:
             assr = t['ASSR']
             logger.info(f'canceling:{assr}')
-            self._cancel(task)
+            self._cancel(t)
 
     def _cancel(self, task):
         assr = task['ASSR']
