@@ -37,7 +37,7 @@ PROCESSORS_COLUMNS = [
 
 def save(data, filename, projects=None):
     if projects:
-        for t in ['assessors', 'scans', 'subjects', 'stats']
+        for t in ['assessors', 'scans', 'subjects', 'stats']:
             data[t] = data[t][data[t].PROJECT.isin(projects)]
 
     # Set emoji statuses on scans/assessors
