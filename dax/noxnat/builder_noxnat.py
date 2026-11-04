@@ -112,6 +112,7 @@ class TaskBuilderNoXnat(object):
         assessors = self._data['assessors'].to_dict('records')
 
         for i, rec in enumerate(assessors):
+            assr = rec['ASSR']
             proj = rec['PROJECT']
             subj = rec['SUBJECT']
             inputs = rec['INPUTS']
@@ -119,7 +120,7 @@ class TaskBuilderNoXnat(object):
             inputs = inputs.replace(f'scans/NIFTI/{proj}', f'projects/{proj}/SCANS')
             inputs = inputs.replace(f'assessors/{proj}', f'projects/{proj}/ASSESSORS/{subj}')
             print('set assessor inputs', inputs)
-            self._db.update_assessor(id, 'INPUTS', inputs)
+            self._db.update_assessor(assr, 'INPUTS', inputs)
 
         return records
 
