@@ -563,15 +563,14 @@ class TaskBuilderNoXnat(object):
             raise Exception(f'set task failed:{err}')
 
 
-def _fix_inputs(df):
-    print(df)
-    for i, row in df.iterrows():
-        inputs = row['INPUTS']
-        proj = row['PROJECT']
-        subj = row['SUBJECT']
-        for j, val in enumerate(inputs):
-            assessors.iloc[i]['INPUTS'][j] = val.replace(f'scans/NIFTI/{proj}', f'projects/{proj}/SCANS')
-            assessors.iloc[i]['INPUTS'][j] = val.replace(f'assessors/{proj}', f'projects/{proj}/ASSESSORS/{subj}')
+def _fix_inputs(records):
 
-    print(df)
-    return df
+    for i, rec in enumerate(records):
+        inputs = rec['INPUTS']
+        proj = rec['PROJECT']
+        subj = rec['SUBJECT']
+        for j, val in enumerate(inputs):
+            records[i]['INPUTS'][j] = val.replace(f'scans/NIFTI/{proj}', f'projects/{proj}/SCANS')
+            records[i]['INPUTS'][j] = val.replace(f'assessors/{proj}', f'projects/{proj}/ASSESSORS/{subj}')
+
+    return records
