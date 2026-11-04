@@ -96,6 +96,7 @@ class TaskLauncherNoXnat(object):
         running_list = [x for x in records if x['PROCSTATUS'] == 'RUNNING']
 
         logger.info(f'{len(running_list)} of {len(records)}:running tasks to update')
+        logger.debug(running_list)
 
         # Update each task
         c = 0
@@ -127,6 +128,7 @@ class TaskLauncherNoXnat(object):
         completed_list = [x for x in records if x['PROCSTATUS'] in COMPLETED_STATUSES]
 
         logger.info(f'{len(completed_list)} of {len(records)}:ready to complete')
+        logger.debug(completed_list)
 
         # Finish completed jobs
         c = 0
@@ -161,6 +163,7 @@ class TaskLauncherNoXnat(object):
         done_list = [x for x in records if x['PROCSTATUS'] in DONE_STATUSES]
 
         logger.info(f'{len(done_list)} of {len(records)}:tasks ready to archive')
+        logger.debug(done_list)
 
         # Finish done tasks
         c = 0
