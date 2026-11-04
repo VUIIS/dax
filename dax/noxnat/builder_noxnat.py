@@ -116,13 +116,16 @@ class TaskBuilderNoXnat(object):
             proj = rec['PROJECT']
             subj = rec['SUBJECT']
             inputs = rec['INPUTS']
+            old_inputs = inputs.copy()
 
             inputs = inputs.replace(f'scans/NIFTI/{proj}', f'projects/{proj}/SCANS')
             inputs = inputs.replace(f'assessors/{proj}', f'projects/{proj}/ASSESSORS/{subj}')
-            print('set assessor inputs', inputs)
-            self._db.update_assessor(assr, 'INPUTS', inputs)
 
-        return records
+            if inputs == old_inputs:
+                print(f'{i}:{assr}:same inputs, nothing to set')
+            else:
+                print(f'{i}:{assr}:set assessor inputs:{inputs}')
+                self._db.update_assessor(assr, 'INPUTS', inputs)
 
     def fix_qcstatus(self):
         assessors = self._data['assessors'].to_dict('records')
