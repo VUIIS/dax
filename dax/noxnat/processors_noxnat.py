@@ -1121,10 +1121,10 @@ def parse_artefacts(csess, pets=[]):
 
 
 def get_scan_status(project_data, scan_path):
-    # PROJECT/SCANS/SUBJECT/SESSION/SCAN
+    # projects/PROJECT/SCANS/SUBJECT/SESSION/SCAN
     path_parts = scan_path.split('/')
-    sess_label = path_parts[3]
-    scan_label = path_parts[4]
+    sess_label = path_parts[4]
+    scan_label = path_parts[5]
     scan_id = scan_label.split('-x-')[0]
 
     scans = project_data.get('scans')
@@ -1136,9 +1136,9 @@ def get_scan_status(project_data, scan_path):
 
 
 def get_assr_status(project_data, assr_path):
-    # PROJECT/ASSESSORS/SUBJECT/ASSESSOR
+    # projects/PROJECT/ASSESSORS/SUBJECT/ASSESSOR
     path_parts = assr_path.split('/')
-    assr_label = path_parts[3]
+    assr_label = path_parts[4]
 
     assrs = project_data.get('assessors')
     for a in assrs:
