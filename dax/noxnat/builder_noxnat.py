@@ -570,8 +570,8 @@ def _fix_inputs(records):
         proj = rec['PROJECT']
         subj = rec['SUBJECT']
         print(proj, subj, inputs)
-        for j, val in enumerate(inputs):
-            records[i]['INPUTS'][j] = val.replace(f'scans/NIFTI/{proj}', f'projects/{proj}/SCANS')
-            records[i]['INPUTS'][j] = val.replace(f'assessors/{proj}', f'projects/{proj}/ASSESSORS/{subj}')
+        for k, v in inputs.items():
+            records[i]['INPUTS'][k] = v.replace(f'scans/NIFTI/{proj}', f'projects/{proj}/SCANS')
+            records[i]['INPUTS'][k] = v.replace(f'assessors/{proj}', f'projects/{proj}/ASSESSORS/{subj}')
 
     return records
