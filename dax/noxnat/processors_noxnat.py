@@ -1121,10 +1121,10 @@ def parse_artefacts(csess, pets=[]):
 
 
 def get_scan_status(project_data, scan_path):
-    # scans/NIFTI/PROJECT/SUBJECT/SESSION/SCAN
+    # PROJECT/SCANS/SUBJECT/SESSION/SCAN
     path_parts = scan_path.split('/')
-    sess_label = path_parts[4]
-    scan_label = path_parts[5]
+    sess_label = path_parts[3]
+    scan_label = path_parts[4]
     scan_id = scan_label.split('-x-')[0]
 
     scans = project_data.get('scans')
@@ -1132,20 +1132,20 @@ def get_scan_status(project_data, scan_path):
         if s['SESSION'] == sess_label and s['SCANID'] == scan_id:
             return s['QUALITY']
 
-    raise XnatUtilsError('Invalid scan path:' + scan_path)
+    raise Exception('Invalid scan path:' + scan_path)
 
 
 def get_assr_status(project_data, assr_path):
-    # assessors/PROJECT/ASSESSOR
+    # PROJECT/ASSESSORS/SUBJECT/ASSESSOR
     path_parts = assr_path.split('/')
-    assr_label = path_parts[2]
+    assr_label = path_parts[3]
 
     assrs = project_data.get('assessors')
     for a in assrs:
         if a['ASSR'] == assr_label:
             return a['PROCSTATUS'], a['QCSTATUS']
 
-    raise XnatUtilsError('Invalid assessor path:' + assr_path)
+    raise Exception('Invalid assessor path:' + assr_path)
 
 
 def verify_artefact_status(proc_inputs, assr_inputs, project_data):
