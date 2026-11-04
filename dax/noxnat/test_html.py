@@ -9,6 +9,7 @@ from dax.exports.export_html import save as save_html
 
 if __name__ == '__main__':
     rootdir = sys.argv[1]
+    projects = sys.argv[2].split(',')
 
     # Load data from database file
     data = DatabaseNoXnat(f'{sys.argv[1]}/db/dax.duckdb').load_data()
@@ -18,8 +19,8 @@ if __name__ == '__main__':
         filename = f'{tmpdir}/dax.html'
 
         # Save html file
-        print(f'saving file:{filename}')
-        save_html(data, filename)
+        print(f'saving file:{filename}:{projects=}')
+        save_html(data, filename, projects=projects)
 
         # Open html in firefox web browser
         print(f'opening file in browser:{filename}')
