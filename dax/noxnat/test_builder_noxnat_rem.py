@@ -99,7 +99,7 @@ if __name__ == '__main__':
 	builder._build_projects = builder.projects_with_processing()
 
 	# Run
-	results = builder.update_all()
+	results = builder.update_all(only_session='170034d')
 
 	if '-q' in sys.argv:
 		print('show taskqueue')
