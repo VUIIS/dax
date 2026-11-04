@@ -43,6 +43,9 @@ if __name__ == '__main__':
 	print('fix duplicates')
 	builder.fix_duplicates()
 
+	print('fix inputs')
+	builder.fix_inputs()
+
 	# Manually add a processor to a project
 	builder._data['processors'] = pd.concat(
 		[builder._data['processors'],

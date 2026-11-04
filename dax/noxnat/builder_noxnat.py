@@ -92,8 +92,6 @@ class TaskBuilderNoXnat(object):
 
         info['assessors'] = records
 
-        info['assessors'] = _fix_inputs(info['assessors'])
-
         # Quick access information
         info['all_sessions'] = list(set([x['SESSION'] for x in info['scans']]))
         info['all_subjects'] = list(set([x['SUBJECT'] for x in info['scans']]))
@@ -109,6 +107,21 @@ class TaskBuilderNoXnat(object):
         protocols =  _protocols[_protocols.PROJECT == project].to_dict('records')
 
         return protocols
+
+    def fix_inputs(self):
+        assessors = self._data['assessors'].to_dict('records')
+
+        for i, rec in enumerate(assessors):
+            proj = rec['PROJECT']
+            subj = rec['SUBJECT']
+            inputs = rec['INPUTS']
+
+            inputs = inputs.replace(f'scans/NIFTI/{proj}', f'projects/{proj}/SCANS')
+            inputs = inputs.replace(f'assessors/{proj}', f'projects/{proj}/ASSESSORS/{subj}')
+            print('set assessor inputs', inputs)
+            self._db.update_assessor(id, 'INPUTS', inputs)
+
+        return records
 
     def fix_qcstatus(self):
         assessors = self._data['assessors'].to_dict('records')
@@ -561,21 +574,3 @@ class TaskBuilderNoXnat(object):
             })
         except Exception as err:
             raise Exception(f'set task failed:{err}')
-
-
-def _fix_inputs(records):
-
-    for i, rec in enumerate(records):
-        inputs = rec['INPUTS']
-        proj = rec['PROJECT']
-        subj = rec['SUBJECT']
-
-        print(proj, subj, inputs)
-
-        for k, v in inputs.items():
-            records[i]['INPUTS'][k] = v.replace(f'scans/NIFTI/{proj}', f'projects/{proj}/SCANS')
-            records[i]['INPUTS'][k] = v.replace(f'assessors/{proj}', f'projects/{proj}/ASSESSORS/{subj}')
-
-        print(proj, subj, inputs)
-
-    return records
