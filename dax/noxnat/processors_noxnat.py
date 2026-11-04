@@ -1194,9 +1194,9 @@ def verify_artefact_status(proc_inputs, assr_inputs, project_data):
 
 
 def _get_resource_dir(root_dir, artefact_path, resource):
-    if artefact_path.contains('SCANS'):
+    if 'SCANS' in artefact_path:
         return f'{root_dir}/{artefact_path}'
-    elif artefact_path.contains('ASSESSORS'):
+    elif 'ASSESSORS' in artefact_path:
         return f'{root_dir}/{artefact_path}/{resource}'
     else:
         raise f'unsupported resource:{artefact_path}:{resource}'

@@ -89,7 +89,10 @@ class TaskBuilderNoXnat(object):
                     records[i]['INPUTS'] = {}
                     continue
 
+
         info['assessors'] = records
+
+        info['assessors'] = _fix_inputs(info['assessors'])
 
         # Quick access information
         info['all_sessions'] = list(set([x['SESSION'] for x in info['scans']]))
@@ -558,3 +561,17 @@ class TaskBuilderNoXnat(object):
             })
         except Exception as err:
             raise Exception(f'set task failed:{err}')
+
+
+def _fix_inputs(df):
+    print(df)
+    for i, row in df.iterrows():
+        inputs = row['INPUTS']
+        proj = row['PROJECT']
+        subj = row['SUBJECT']
+        for j, val in enumerate(inputs):
+            assessors.iloc[i]['INPUTS'][j] = val.replace(f'scans/NIFTI/{proj}', f'projects/{proj}/SCANS')
+            assessors.iloc[i]['INPUTS'][j] = val.replace(f'assessors/{proj}', f'projects/{proj}/ASSESSORS/{subj}')
+
+    print(df)
+    return df
