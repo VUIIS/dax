@@ -43,8 +43,6 @@ class TaskBuilderNoXnat(object):
         self._yamldir = f'{rootdir}/processors'
         self._singularitys_dir = f'{rootdir}/singularitys'
         self._logs_dir = f'{rootdir}/logs'
-        self._scans_dir = f'{rootdir}/scans'
-        self._assrs_dir = f'{rootdir}/assessors'
         self._flags_dir = f'{rootdir}/flagfiles'
         self._build_projects = self.projects_with_processing()
 
@@ -58,8 +56,10 @@ class TaskBuilderNoXnat(object):
         # Scans
         scans = self._data['scans']
         scans = scans[scans.PROJECT == project]
-        scans['full_path'] = 'scans/NIFTI/' + \
-            scans['PROJECT'].astype(str) + '/' + \
+        scans['full_path'] = \
+            'projects/' + \
+            scans['PROJECT'].astype(str) + \
+            '/SCANS/' + \
             scans['SUBJECT'].astype(str) + '/' + \
             scans['SESSION'].astype(str) + '/' + \
             scans['SCANID'].astype(str) + '-x-' + \
@@ -72,10 +72,11 @@ class TaskBuilderNoXnat(object):
         # Assessors
         _assrs = self._data['assessors']
         _assrs['full_path'] = \
-            'assessors/' + \
-            _assrs['PROJECT'] + '/' + \
+            'projects/' + \
+            _assrs['PROJECT'] + \
+            '/ASSESSORS/' + \
+            _assrs['SUBJECT'] + '/' + \
             _assrs['ASSR']
-            #_assrs['SUBJECT'] + '/' + \
 
         # Decode inputs
         records = _assrs[_assrs.PROJECT == project].to_dict('records')

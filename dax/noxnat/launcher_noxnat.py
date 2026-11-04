@@ -26,7 +26,7 @@ DONE_STATUSES = [
     'LOST'
 ]
 
-SUBDIRS = ['OUTLOG', 'PBS', 'PROCESSOR']
+SUBDIRS = ['OUTLOG', 'PBS', 'PROCESSOR', 'DAX']
 
 COMPLETED_STATUSES = [
     'COMPLETED',
@@ -49,7 +49,7 @@ class TaskLauncherNoXnat(object):
         self._singularitys_dir = f'{rootdir}/singularitys'
         self._yamldir = f'{rootdir}/processors'
         self._logs_dir = f'{rootdir}/logs'
-        self._assrs_dir = f'{rootdir}/assessors'
+        self._projects_dir = f'{rootdir}/projects'
         self._flags_dir = f'{rootdir}/flagfiles'
         self._templates_dir = f'{rootdir}/templates'
         self._perlimit = 25
@@ -606,9 +606,8 @@ class TaskLauncherNoXnat(object):
     def _task_dir(self, task):
         assr = task['ASSR']
         proj = task['PROJECT']
-        #subj = assr.split('-x-')[1]
-        #return = f'{self._assrs_dir}/{proj}/{subj}/{assr}'
-        return f'{self._assrs_dir}/{proj}/{assr}'
+        subj = assr.split('-x-')[1]
+        return f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}'
 
 def get_running_updates(task):
     """Update information about given task from local SLURM."""
@@ -685,7 +684,7 @@ def count_jobs():
 
 def make_task_dirs(taskdir):
     """Make subdirectories for task directory."""
-    for subdir in ['OUTLOG', 'PBS', 'PROCESSOR']:
+    for subdir in SUBDIRS:
         try:
             os.makedirs(os.path.join(taskdir, subdir))
         except FileExistsError:
