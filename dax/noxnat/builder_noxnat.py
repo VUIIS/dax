@@ -574,4 +574,5 @@ def _fix_inputs(records):
             records[i]['INPUTS'][k] = v.replace(f'scans/NIFTI/{proj}', f'projects/{proj}/SCANS')
             records[i]['INPUTS'][k] = v.replace(f'assessors/{proj}', f'projects/{proj}/ASSESSORS/{subj}')
 
+    print(records)
     return records
