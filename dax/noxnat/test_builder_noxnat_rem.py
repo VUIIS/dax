@@ -37,14 +37,15 @@ if __name__ == '__main__':
 	# Get a builder for this dax dir
 	builder = TaskBuilderNoXnat(rootdir)
 
-	print('fixing qc status')
-	builder.fix_qcstatus()
+	if '-f' in sys.argv:
+		print('fixing qc status')
+		builder.fix_qcstatus()
 
-	print('fix duplicates')
-	builder.fix_duplicates()
+		print('fix duplicates')
+		builder.fix_duplicates()
 
-	print('fix inputs')
-	builder.fix_inputs()
+		print('fix inputs')
+		builder.fix_inputs()
 
 	# Manually add a processor to a project
 	builder._data['processors'] = pd.concat(
