@@ -569,10 +569,13 @@ def _fix_inputs(records):
         inputs = rec['INPUTS']
         proj = rec['PROJECT']
         subj = rec['SUBJECT']
+
         print(proj, subj, inputs)
+
         for k, v in inputs.items():
             records[i]['INPUTS'][k] = v.replace(f'scans/NIFTI/{proj}', f'projects/{proj}/SCANS')
             records[i]['INPUTS'][k] = v.replace(f'assessors/{proj}', f'projects/{proj}/ASSESSORS/{subj}')
 
-    print(records)
+        print(proj, subj, inputs)
+
     return records

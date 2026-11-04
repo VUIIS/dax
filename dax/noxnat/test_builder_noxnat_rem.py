@@ -98,8 +98,9 @@ if __name__ == '__main__':
 	# Reload processing
 	builder._build_projects = builder.projects_with_processing()
 
-	# Run
-	results = builder.update_all(only_session='170034d')
+	if '-b' in sys.argv:
+		# Run build update
+		results = builder.update_all(only_session='170034d')
 
 	if '-q' in sys.argv:
 		print('show taskqueue')
