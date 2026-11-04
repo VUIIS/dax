@@ -90,6 +90,10 @@ class TaskBuilderNoXnat(object):
                     continue
 
 
+        print([x for x in records if not x['INPUTS']])
+
+        records = [x for x in records if x['INPUTS']]
+
         info['assessors'] = records
 
         # Quick access information
