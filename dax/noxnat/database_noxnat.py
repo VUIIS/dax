@@ -129,7 +129,7 @@ class DatabaseNoXnat(object):
                     PROCSTATUS,
                     INPUTS
                 )
-                SELECT (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
                 WHERE NOT EXISTS (
                     SELECT 1
                     FROM assessors
