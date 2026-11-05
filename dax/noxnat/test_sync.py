@@ -1,5 +1,5 @@
 '''sync database with filesystem'''
-import os, sys
+import os, sys, shutil
 import glob
 
 from dax.noxnat.database_noxnat import DatabaseNoXnat
