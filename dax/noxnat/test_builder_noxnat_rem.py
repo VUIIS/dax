@@ -108,7 +108,7 @@ if __name__ == '__main__':
 
 	if '-b' in sys.argv:
 		# Run build update
-		results = builder.update_all(only_session='170171b')
+		results = builder.update_all()
 
 	if '-q' in sys.argv:
 		print('show taskqueue')
