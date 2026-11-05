@@ -148,7 +148,7 @@ class DatabaseNoXnat(object):
                     assessor['PROCTYPE'], 
                     assessor['PROCVERSION'], 
                     assessor['PROCSTATUS'], 
-                    assessor['INPUTS']
+                    assessor['INPUTS'],
                     assessor['PROJECT'],
                     assessor['PROCTYPE'],
                     assessor['INPUTS']
