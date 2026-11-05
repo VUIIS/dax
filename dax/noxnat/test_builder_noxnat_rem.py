@@ -95,6 +95,10 @@ if __name__ == '__main__':
 			{
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'fmri_msit_denoise_v1.0.3.yaml',
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'fmri_roi_v2.0.0.yaml',
 			}
 		])]
 	).astype(str).fillna('')
