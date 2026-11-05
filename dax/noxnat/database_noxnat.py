@@ -114,12 +114,9 @@ class DatabaseNoXnat(object):
         assr = assessor['ASSR']
         logger.debug(f'adding assessor to duckdb:{assr}:{filename}')
 
-
-        # TODO: check for uniqueness of PROJECT/PROCTYPE/INPUTS
-
-
+        # Add record but, first check for uniqueness of PROJECT/PROCTYPE/INPUTS
         with duckdb.connect(filename) as con:
-            con.execute("""
+            result = con.execute("""
                 INSERT INTO assessors 
                 (
                     PROJECT,
@@ -132,8 +129,15 @@ class DatabaseNoXnat(object):
                     PROCSTATUS,
                     INPUTS
                 )
-                VALUES 
-                (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                SELECT (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM assessors
+                    WHERE PROJECT = ?
+                     AND PROCTYPE = ?
+                     AND INPUTS = ?
+                )
+                RETURNING *
                 """,
                 [
                     assessor['PROJECT'],
@@ -145,8 +149,14 @@ class DatabaseNoXnat(object):
                     assessor['PROCVERSION'], 
                     assessor['PROCSTATUS'], 
                     assessor['INPUTS']
+                    assessor['PROJECT'],
+                    assessor['PROCTYPE'],
+                    assessor['INPUTS']
                 ]
-            )
+            ).fetchall()
+
+        if not bool(result):
+            raise Exception('failed to add assessor, existing record found with same PROJECT/PROCTYPE/INPUTS')
 
         logger.debug(f'assessor added to duckdb:{assr}')
 
