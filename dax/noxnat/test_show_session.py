@@ -14,7 +14,7 @@ if __name__ == '__main__':
 	data = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb').load_data()
 
 	scans = data['scans'][data['scans'].SESSION == session]
-	print(scans)
+	print(scans[['PROJECT', 'SESSION', 'SCANID', 'SCANTYPE']])
 
 	assessors = data['assessors'][data['assessors'].SESSION == session]
-	print(assessors)
+	print(assessors[['PROJECT', 'ASSR', 'INPUTS']])
