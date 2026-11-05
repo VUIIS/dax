@@ -20,7 +20,7 @@ if __name__ == '__main__':
 	# Get list of assessors in filesystem not found in database
 	delete_assessors = [x for x in fs_assessors if os.path.basename(x) not in db_assessors]
 	print(f'to be deleted n={len(delete_assessors)}')
-	print(list(delete_assessors))
+	print(*delete_assessors, sep='\n')
 
 	if '-d' in sys.argv:
 		print('deleting files for assessors not found in database')
