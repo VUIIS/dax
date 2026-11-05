@@ -439,7 +439,7 @@ class TaskBuilderNoXnat(object):
             subject = self._subject_for_session(project_info, session)
             proctype = processor.proctype
             procversion = processor.procversion
-            logger.debug(f'no match, creating session assessor:{subject}:{session}:{proctype}')
+            logger.debug(f'no match, creating session assessor:{subject=}:{session=}:{proctype=}:{inputs=}')
             assessor = self.create_session_assessor(
                 project_info['name'],
                 subject,
