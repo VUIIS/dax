@@ -20,6 +20,15 @@ class DatabaseNoXnat(object):
                 WHERE PROCSTATUS == 'NEED_INPUTS';
             """)
 
+    def delete_assessor(self, assr):
+        filename = self._filename
+        query = f"DELETE FROM assessors WHERE ASSR='{assr}')"
+
+        print(query)
+
+        with duckdb.connect(filename) as con:
+            con.execute(query)
+
     def delete_bad_assessors(self):
         filename = self._filename
 
