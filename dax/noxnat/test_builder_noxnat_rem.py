@@ -99,6 +99,10 @@ if __name__ == '__main__':
 			{
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'fmri_roi_v2.0.0.yaml',
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'dtiQA_synb0_v7.2.4.yaml',
 			}
 		])]
 	).astype(str).fillna('')
