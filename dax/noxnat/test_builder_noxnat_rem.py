@@ -103,12 +103,19 @@ if __name__ == '__main__':
 			{
 			'PROJECT': 'REMBRANDT',
 			'FILE': 'dtiQA_synb0_v7.2.4.yaml',
+			},
+			{
+			'PROJECT': 'REMBRANDT',
+			'FILE': 'fmriprep_v25.2.7.yaml',
 			}
 		])]
 	).astype(str).fillna('')
 
 	# Reload processing
 	builder._build_projects = builder.projects_with_processing()
+
+	if '-s' in sys.argv:
+		builder.update_all(only_session='170009a')
 
 	if '-b' in sys.argv:
 		# Run build update
