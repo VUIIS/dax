@@ -36,8 +36,9 @@ if __name__ == '__main__':
         data = yaml.safe_load(f)
 
     # Make into datafrme
-    df = pd.DataFrame(data).astype(str).fillna('')
-    builder._data['processors'] = pd.concat([builder._data['processors'], df])
+    df = pd.DataFrame(data)
+    builder._data['processors'] = pd.concat(
+        [builder._data['processors'], df]).astype(str).fillna('')
     print(df)
 
     # Reload processing
