@@ -1,7 +1,7 @@
 - PROJECT: REMBRANDT
-	FILE: fmriprep_v25.2.7.yaml
-	FILTER: '17000*'
+  FILE: fmriprep_v25.2.7.yaml
+  FILTER: '17000*'
 - PROJECT: D3
-	FILE: fmriprep_v25.2.7.yaml
+  FILE: fmriprep_v25.2.7.yaml
 - PROJECT: DepMIND3
-	FILE: fmriprep_v25.2.7.yaml
+  FILE: fmriprep_v25.2.7.yaml
