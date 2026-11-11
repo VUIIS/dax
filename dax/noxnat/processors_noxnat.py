@@ -302,22 +302,21 @@ class ProcessorNoXnat(object):
             _val = ''
 
             if _obj == 'subject':
-                _val = assr.parent().parent().attrs.get(_attr)
+                _val = _get_subject_value(project_data, info['SUBJECT'], _attr)
             elif _obj == 'session':
-                _val = assr.parent().attrs.get(_attr)
+                _val = _get_session_value(project_data, info['SESSION'], _attr)
             elif _obj == 'scan':
                 _ref = attr_in['ref']
                 _refval = [a.rsplit('/', 1)[1] for a in inputs[_ref]]
-                _val = ','.join(
-                    [assr.parent().scan(r).attrs.get(_attr) for r in _refval]
-                )
+                _val = ','.join(_get_scan_values(project_data, info['SESSION'], _refval, _attr))
             elif _obj == 'assessor':
                 if 'ref' in attr_in:
                     _ref = attr_in['ref']
                     _refval = [a.rsplit('/', 1)[1] for a in inputs[_ref]]
-                    _val = ','.join([assr.parent().assessor(r).attrs.get(_attr) for r in _refval])
                 else:
-                    _val = assr.attrs.get(_attr)
+                    _refval = [info['ASSR']]
+
+                _val = _get_assessor_values(project_data, info['SESSION'], _refval, _attr)
             else:
                 logger.error('invalid YAML')
                 err = 'YAML File:contains invalid attribute:{}'
@@ -1118,6 +1117,95 @@ def parse_artefacts(csess, pets=[]):
         parse(p.scans(), artefacts)
 
     return artefacts
+
+
+def _get_subject_value(project_data, subject, attr):
+    if attr == 'subject_label':
+        _attr = 'SUBJECT'
+    elif attr == 'subject':
+        _attr = 'SUBJECT'
+    else:
+        _attr = attr.upper()
+
+    # Look for attribute in scans
+    scan_data = [x for x in project_data.get('scans') if x['SUBJECT'] == subject]
+    for d in scan_data:
+        if d.get(_attr, ''):
+            return d.get(_attr)
+
+    # Now look in assessors
+    assr_data = [x for x in project_data.get('assessors') if x['SUBJECT'] == subject]
+    for d in assr_data:
+        if d.get(_attr, ''):
+            return d.get(_attr)
+
+    logger.error(f'subject attribute not found:{subject}:{attr=}')
+    return ''
+
+
+def _get_session_value(project_data, session, attr):
+    if attr == 'session_label':
+        _attr = 'SESSION'
+    elif attr == 'label':
+        _attr = 'SESSION'
+    elif attr == 'subject_label':
+        _attr = 'SUBJECT'
+    else:
+        _attr = attr.upper()
+
+    # Look for attribute in scans
+    scan_data = [x for x in project_data.get('scans') if x['SUBJECT'] == subject]
+    for d in scan_data:
+        if d.get(_attr, ''):
+            return d.get(_attr)
+
+    # Now look in assessors
+    assr_data = [x for x in project_data.get('assessors') if x['SUBJECT'] == subject]
+    for d in assr_data:
+        if d.get(_attr, ''):
+            return d.get(_attr)
+
+    logger.error(f'subject attribute not found:{subject}:{attr=}')
+    return ''
+
+
+def _get_scan_values(project_data, session, scans, attr):
+    vals = []
+    scan_data = [x for x in project_data.get('scans') if x['SESSION'] == session]
+
+    if attr == 'ID':
+        _attr = 'SCANID'
+    elif attr == 'series_description':
+        _attr = 'DESCRIP'
+    else:
+        _attr = attr.upper()
+
+    for s in scans:
+        # Find the scan record
+        for d in scan_data:
+            if d['SCANID'] == s:
+                # Get scan value
+                v = d.get(_attr, '')
+                vals.append(v)
+
+    return ','.join(vals)
+
+
+def _get_assessor_values(project_data, session, assessors, attr):
+    vals = []
+    assr_data = [x for x in project_data.get('assessors') if x['SESSION'] == session]
+
+    _attr = attr.upper()
+
+    for a in assessors:
+        # Find the scan record
+        for d in assr_data:
+            if d['ASSR'] == a:
+                # Get attribute value
+                v = d.get(attr, '')
+                vals.append(v)
+
+    return ','.join(vals)
 
 
 def get_scan_status(project_data, scan_path):
