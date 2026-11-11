@@ -37,8 +37,8 @@ if __name__ == '__main__':
 
     # Make into datafrme
     df = pd.DataFrame(data).astype(str).fillna('')
+    builder._data['processors'] = pd.concat([builder._data['processors'], df])
     print(df)
-    builder._data['processors'] = df
 
     # Reload processing
     builder._build_projects = builder.projects_with_processing()
