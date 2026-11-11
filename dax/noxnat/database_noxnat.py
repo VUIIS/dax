@@ -22,7 +22,7 @@ class DatabaseNoXnat(object):
 
     def delete_assessor(self, assr):
         filename = self._filename
-        query = f"DELETE FROM assessors WHERE ASSR='{assr}')"
+        query = f"DELETE FROM assessors WHERE ASSR='{assr}'"
 
         print(query)
 
