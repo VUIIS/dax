@@ -1,6 +1,7 @@
 '''Create task builder from duckdb and run update'''
 import sys
 import logging
+import yaml
 
 import pandas as pd
 
@@ -31,7 +32,7 @@ if __name__ == '__main__':
     builder = TaskBuilderNoXnat(rootdir)
 
     # Load processors from yaml file
-    with open("records.yaml", "r", encoding="utf-8") as f:
+    with open(yamlfile, 'r', encoding='utf-8') as f:
         data = yaml.safe_load(f)
 
     # Make into datafrme
