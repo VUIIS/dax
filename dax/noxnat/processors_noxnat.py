@@ -720,6 +720,10 @@ class ProcessorNoXnat(object):
                 # Add an EDAT resource using value as fdest
                 resources.append({'resource': 'EDAT', 'fdest': s['edat']})
 
+            if 'json' in s:
+                # Add JSON resource using value as fdest
+                resources.append({'resource': 'JSON', 'fdest': s['json']})
+
             # 2021-11-14 bdb Is anyone using this?
             artefact_required = False
             for r in resources:
@@ -791,6 +795,11 @@ class ProcessorNoXnat(object):
                 # Add a NIFTI resource using value as fdest
                 resources.append(
                     {'resource': 'NIFTI', 'fdest': p['nifti']})
+
+            if 'json' in p:
+                # Add JSON resource using value as fdest
+                resources.append(
+                    {'resource': 'JSON', 'fdest': p['json']})
 
             self.proc_inputs[name] = {
                 'types': types,
