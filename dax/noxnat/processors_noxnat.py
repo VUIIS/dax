@@ -1154,18 +1154,18 @@ def _get_session_value(project_data, session, attr):
         _attr = attr.upper()
 
     # Look for attribute in scans
-    scan_data = [x for x in project_data.get('scans') if x['SUBJECT'] == subject]
+    scan_data = [x for x in project_data.get('scans') if x['SESSION'] == session]
     for d in scan_data:
         if d.get(_attr, ''):
             return d.get(_attr)
 
     # Now look in assessors
-    assr_data = [x for x in project_data.get('assessors') if x['SUBJECT'] == subject]
+    assr_data = [x for x in project_data.get('assessors') if x['SESSION'] == session]
     for d in assr_data:
         if d.get(_attr, ''):
             return d.get(_attr)
 
-    logger.error(f'subject attribute not found:{subject}:{attr=}')
+    logger.error(f'session attribute not found:{session}:{attr=}')
     return ''
 
 
