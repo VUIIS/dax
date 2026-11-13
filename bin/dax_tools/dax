@@ -204,6 +204,12 @@ runs build, launch, update and upload.'
     run_parser.add_argument('--debug', dest='debug', action='store_true')
     run_parser.add_argument('-p', dest='projects', help='Project(s) to run', required=False)
 
+    # html:
+    html_parser = dax_parser.add_parser('html', help='save html file')
+    html_parser.add_argument('-f', dest='filename', required=True)
+    html_parser.add_argument('--debug', dest='debug', action='store_true')
+    html_parser.add_argument('-p', dest='projects', help='Project(s) to run', required=False)
+
     # version:
     version_desc = 'Print dax version.'
     dax_parser.add_parser('version', help=version_desc)
