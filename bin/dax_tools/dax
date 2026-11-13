@@ -203,6 +203,16 @@ runs build, launch, update and upload.'
     run_parser.add_argument('-y', dest='yamlfile', required=False, help='override processors yamlfile')
     run_parser.add_argument('--debug', dest='debug', action='store_true')
     run_parser.add_argument('-p', dest='projects', help='Project(s) to run', required=False)
+    run_parser.add_argument('-s', dest='steps', help='limit steps to create/build/launch/finish')
+    run_parser.add_argument('--db', dest='db', required=False, help='override database file path')
+    run_parser.add_argument('--rootdir', dest='rootdir', required=False, help='override root directory path')
+    run_parser.add_argument('--retry-failed', dest='retry', action='store_true')
+    run_parser.add_argument('--purge-needinputs', dest='purge', action='store_true')
+
+    # status:
+    status_desc = 'status commands'
+    status_parser = dax_parser.add_parser('status', help=run_desc)
+    status_parser.add_argument('--debug', dest='debug', action='store_true')
 
     # html:
     html_parser = dax_parser.add_parser('html', help='save html file')
@@ -212,6 +222,8 @@ runs build, launch, update and upload.'
     html_parser.add_argument('-t', dest='tabs', required=False, help='tabs to include from qa/stats/processors/analyses/taskqueue')
     html_parser.add_argument('--db', dest='db', required=False, help='override database file path')
     html_parser.add_argument('--rootdir', dest='rootdir', required=False, help='override root directory path')
+    html_parser.add_argument('--links', dest='links', action='store_true', help='include hyperlinks')
+    html_parser.add_argument('--emos', dest='emos', action='store_true', help='use emojis')
 
     # version:
     version_desc = 'Print dax version.'
@@ -340,6 +352,8 @@ if __name__ == '__main__':
         projects = None
         run_build = True
         run_launch = True
+        retry_failed = args.retry
+        purge_needinputs = args.purge
         plimit = 1000
         qlimit = 1000
         perlimit = 1000
@@ -361,7 +375,7 @@ if __name__ == '__main__':
 
             if args.projects:
                 projects = args.projects.split(',') or None
-            
+
             # Make launcher
             launcher = TaskLauncherNoXnat(rootdir)
             launcher._set_plimit(plimit)
@@ -375,7 +389,6 @@ if __name__ == '__main__':
             builder = TaskBuilderNoXnat(rootdir)
 
             # Set processors from command-line or default optional location
-
             if yamlfile:
                 print(f'set processors to user specified:{yamlfile}')
                 builder.set_processors(yamlfile)
@@ -389,9 +402,13 @@ if __name__ == '__main__':
             if run_launch:
                 launcher.update()
 
-                q = db.load_taskqueue()
-                q = q[q.PROCSTATUS != 'COMPLETE']
-                print(q[['ASSR', 'PROCSTATUS', 'JOBSTART', 'JOBEND']])
+            if retry_failed:
+                print('retrying JOB_FAILED')
+                launcher.retry_failed()
+
+            if purge_needinputs:
+                print('purge all NEED_INPUTS')
+                db.delete_all_need_inputs()
 
         except Exception as err:
             print(f'run failed:{err}')
@@ -400,6 +417,7 @@ if __name__ == '__main__':
         rootdir = None
         projects = None
         filename = args.filename
+        tabs = args.tabs
 
         from dax.noxnat.database_noxnat import DatabaseNoXnat
         from dax.exports.export_html import save as save_html
@@ -419,10 +437,49 @@ if __name__ == '__main__':
 
             # Save html file
             print(f'saving file:{filename}:{projects=}')
-            save_html(data, filename, projects=projects)
+            save_html(data, filename, projects=projects, tabs=tabs)
 
         except Exception as err:
             print(f'run failed:{err}')
+
+    elif args.command == 'status':
+        rootdir = None
+        dbfile = f'{rootdir}/db/dax.duckdb'
+
+        from dax.noxnat.database_noxnat import DatabaseNoXnat
+
+        if args.debug:
+            logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+        else:
+            logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+        try:
+            rootdir = os.environ['DAXROOTDIR']
+            if args.projects:
+                projects = args.projects.split(',') or None
+
+            # Load data from database file
+            db = DatabaseNoXnat(dbfile)
+
+            # Show the queue
+            q = db.load_taskqueue()
+            q = q[q.PROCSTATUS != 'COMPLETE']
+            print(q[['ASSR', 'PROCSTATUS', 'JOBSTART', 'JOBEND']])
+
+            # Get assessors
+            print('show running assessors')
+            a = db.load_data()['assessors']
+
+            # Show Some counts
+            print(a.QCSTATUS.value_counts())
+            print(a.PROCSTATUS.value_counts())
+
+            # Show running statuses
+            a = a[a.PROCSTATUS == 'JOB_RUNNING']
+            print(a[['ASSR', 'PROCSTATUS']])
+
+        except Exception as err:
+            print(f'status failed:{err}')
 
     elif args.command == 'export':
         from dax.XnatUtils import get_interface
