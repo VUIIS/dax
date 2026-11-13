@@ -377,7 +377,7 @@ if __name__ == '__main__':
             if yamlfile:
                 print(f'set processors to user specified:{yamlfile}')
                 builder.set_processors(yamlfile)
-            elif os.path.isfile(opt_processors)
+            elif os.path.isfile(opt_processors):
                 print(f'set processors to default location:{opt_processors}')
                 builder.set_processors(opt_processors)
 
