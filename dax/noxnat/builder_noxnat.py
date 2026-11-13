@@ -12,9 +12,11 @@ Inputs is stored in database as a string, but should always be a dict after load
 import os
 import logging
 import json
+import yaml
 from datetime import date
 from uuid import uuid4
 
+import pandas as pd
 import duckdb
 
 from ..rcq.taskbuilder import _filter_labels, _filter_matches, _get_proctype
@@ -287,6 +289,20 @@ class TaskBuilderNoXnat(object):
             projects = _protocols.PROJECT.unique()
 
         return projects
+
+    def set_processors(self, yamlfile):
+        # Load processors from yaml file
+        with open(yamlfile, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+
+        # Append to processing
+        self._data['processors'] = pd.concat([
+            self._data['processors'], 
+            pd.DataFrame(data)
+        ]).astype(str).fillna('')
+
+        # Reset build projects
+        self._build_projects = self.projects_with_processing()
 
     def _load_protocols(self, project):
         protocols = []

@@ -8,6 +8,7 @@ Main DAX entry point
 import traceback
 import sys
 import os
+import logging
 
 import dax
 from dax import dax_tools_utils as dax_tools
@@ -27,7 +28,6 @@ def strip_leading_and_trailing_spaces(list_arg):
 
 
 def enable_stdout():
-    import logging
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 
@@ -197,6 +197,11 @@ runs build, launch, update and upload.'
     trial_parser.add_argument('-s', dest='subject', help='Subject/Session to run on', required=True)
     trial_parser.add_argument('--debug', dest='debug', action='store_true')
 
+    # run:
+    run_desc = 'run commands'
+    run_parser = dax_parser.add_parser('run', help=run_desc)
+    run_parser.add_argument('-y', dest='yamlfile', required=False)
+
     # version:
     version_desc = 'Print dax version.'
     dax_parser.add_parser('version', help=version_desc)
@@ -290,7 +295,6 @@ if __name__ == '__main__':
             print(err)
 
     elif args.command == 'simulate':
-        import logging
         from dax.simulate import DaxSimulator
         from dax.XnatUtils import get_interface
         from redcap import Project
@@ -319,8 +323,60 @@ if __name__ == '__main__':
         except Exception as err:
             print(f'simulate failed:{err}')
 
+    elif args.command == 'run':
+        rootdir = None
+        yamlfile = None
+        projects = None
+        run_build = True
+        run_launch = True
+        plimit = 1000
+        qlimit = 1000
+        perlimit = 1000
+
+        from dax.noxnat.builder_noxnat import TaskBuilderNoXnat
+        from dax.noxnat.database_noxnat import DatabaseNoXnat
+        from dax.noxnat.launcher_noxnat import TaskLauncherNoXnat
+
+        if args.debug:
+            logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+        else:
+            logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+        try:
+            rootdir = os.environ['DAXROOTDIR']
+            yamlfile = args.yamlfile
+            projects = args.projects.split(',')
+
+            # Make launcher
+            launcher = TaskLauncherNoXnat(rootdir)
+            launcher._set_plimit(plimit)
+            launcher._set_qlimit(qlimit)
+            launcher._set_perlimit(perlimit)
+
+            # Database
+            db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
+
+            # Get a builder
+            builder = TaskBuilderNoXnat(rootdir)
+
+            if yamlfile:
+                builder.set_processors(yamlfile)
+
+            if run_build:
+                builder.update_all()
+
+            if run_launch:
+                launcher.update()
+
+                q = db.load_taskqueue()
+                q = q[q.PROCSTATUS != 'COMPLETE']
+                print(q[['ASSR', 'PROCSTATUS', 'JOBSTART', 'JOBEND']])
+
+        except Exception as err:
+            print(f'run failed:{err}')
+
+
     elif args.command == 'export':
-        import logging
         from dax.XnatUtils import get_interface
         from redcap import Project
 
@@ -394,8 +450,6 @@ if __name__ == '__main__':
             print('rcq failed!', err)
 
     elif args.command == 'trial':
-        import logging
-
         if args.debug:
             logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         else:
