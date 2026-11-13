@@ -444,7 +444,7 @@ if __name__ == '__main__':
 
     elif args.command == 'status':
         rootdir = None
-        dbfile = f'{rootdir}/db/dax.duckdb'
+        dbfile = None
 
         from dax.noxnat.database_noxnat import DatabaseNoXnat
 
@@ -455,8 +455,7 @@ if __name__ == '__main__':
 
         try:
             rootdir = os.environ['DAXROOTDIR']
-            if args.projects:
-                projects = args.projects.split(',') or None
+            dbfile = f'{rootdir}/db/dax.duckdb'
 
             # Load data from database file
             db = DatabaseNoXnat(dbfile)
