@@ -200,15 +200,18 @@ runs build, launch, update and upload.'
     # run:
     run_desc = 'run commands'
     run_parser = dax_parser.add_parser('run', help=run_desc)
-    run_parser.add_argument('-y', dest='yamlfile', required=False)
+    run_parser.add_argument('-y', dest='yamlfile', required=False, help='override processors yamlfile')
     run_parser.add_argument('--debug', dest='debug', action='store_true')
     run_parser.add_argument('-p', dest='projects', help='Project(s) to run', required=False)
 
     # html:
     html_parser = dax_parser.add_parser('html', help='save html file')
-    html_parser.add_argument('-f', dest='filename', required=True)
     html_parser.add_argument('--debug', dest='debug', action='store_true')
+    html_parser.add_argument('-f', dest='filename', required=True)
     html_parser.add_argument('-p', dest='projects', help='Project(s) to run', required=False)
+    html_parser.add_argument('-t', dest='tabs', required=False, help='tabs to include from qa/stats/processors/analyses/taskqueue')
+    html_parser.add_argument('--db', dest='db', required=False, help='override database file path')
+    html_parser.add_argument('--rootdir', dest='rootdir', required=False, help='override root directory path')
 
     # version:
     version_desc = 'Print dax version.'
@@ -340,6 +343,7 @@ if __name__ == '__main__':
         plimit = 1000
         qlimit = 1000
         perlimit = 1000
+        opt_processors = f'{rootdir}/settings/processors.yaml'
 
         from dax.noxnat.builder_noxnat import TaskBuilderNoXnat
         from dax.noxnat.database_noxnat import DatabaseNoXnat
@@ -353,9 +357,10 @@ if __name__ == '__main__':
         try:
             rootdir = os.environ['DAXROOTDIR']
             yamlfile = args.yamlfile
+
             if args.projects:
                 projects = args.projects.split(',') or None
-
+            
             # Make launcher
             launcher = TaskLauncherNoXnat(rootdir)
             launcher._set_plimit(plimit)
@@ -368,8 +373,13 @@ if __name__ == '__main__':
             # Get a builder
             builder = TaskBuilderNoXnat(rootdir)
 
+            # Set processors from command-line or default optional location
             if yamlfile:
+                print(f'set processors to user specified:{yamlfile}')
                 builder.set_processors(yamlfile)
+            elif os.path.isfile(opt_processors)
+                print(f'set processors to default location:{opt_processors}')
+                builder.set_processors(opt_processors)
 
             if run_build:
                 builder.update_all(only_projects=projects)
