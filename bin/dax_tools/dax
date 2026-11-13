@@ -343,7 +343,7 @@ if __name__ == '__main__':
         plimit = 1000
         qlimit = 1000
         perlimit = 1000
-        opt_processors = f'{rootdir}/settings/processors.yaml'
+        opt_processors = None
 
         from dax.noxnat.builder_noxnat import TaskBuilderNoXnat
         from dax.noxnat.database_noxnat import DatabaseNoXnat
@@ -356,6 +356,7 @@ if __name__ == '__main__':
 
         try:
             rootdir = os.environ['DAXROOTDIR']
+            opt_processors = f'{rootdir}/settings/processors.yaml'
             yamlfile = args.yamlfile
 
             if args.projects:
@@ -374,6 +375,7 @@ if __name__ == '__main__':
             builder = TaskBuilderNoXnat(rootdir)
 
             # Set processors from command-line or default optional location
+
             if yamlfile:
                 print(f'set processors to user specified:{yamlfile}')
                 builder.set_processors(yamlfile)
