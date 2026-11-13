@@ -35,10 +35,17 @@ PROCESSORS_COLUMNS = [
 ]
 
 
-def save(data, filename, projects=None):
+def save(data, filename, projects=None, tabs=None):
     if projects:
         for t in ['assessors', 'scans', 'subjects', 'stats']:
             data[t] = data[t][data[t].PROJECT.isin(projects)]
+
+    if tabs:
+        tabs = tabs.replace(' ', '').split(',')
+    else:
+        tabs = ['qa', 'stats', 'processors', 'analyses', 'taskqueue']
+
+    print(f'tabs to save:{tabs}')
 
     # Set emoji statuses on scans/assessors
     _set_emojis(data)
@@ -82,7 +89,7 @@ def save(data, filename, projects=None):
     data['proj2scantypes'] = _map_proj2scantypes(data['qa'])
 
     # Get html from ag grid data
-    html_text = _to_html(data)
+    html_text = _to_html(data, only_tabs=tabs)
 
     # Write html to file
     logger.info(f'saving html:{filename}')
@@ -179,16 +186,35 @@ def _set_emojis(data):
     }).fillna('?')
 
 
-def _to_html(data):
+def _to_html(data, only_tabs=None):
     html_text = ''
 
-    tabs = [
-        {'label': 'qa', 'panel': _qa_panel(data),  'active': True},
-        {'label': 'stats', 'panel': _stats_panel(data), 'active': False},
-        #{'label': 'home', 'panel': _home_panel(data)},
-        {'label': 'processors', 'panel': _processors_panel(data),  'active': False},
-        {'label': 'analyses', 'panel': _analyses_panel(data),  'active': False},
-    ]
+    if only_tabs:
+        include_tabs = only_tabs
+    else:
+        include_tabs = ['qa', 'stats', 'processors', 'analyses', 'taskqueue']
+
+
+    tabs = []
+
+    if 'qa' in include_tabs:
+        tabs.append({'label': 'qa', 'panel': _qa_panel(data),  'active': True})
+
+    if 'stats' in include_tabs:
+        tabs.append({'label': 'stats', 'panel': _stats_panel(data), 'active': False})
+
+    if 'home' in include_tabs:
+        tabs.append({'label': 'home', 'panel': _home_panel(data)})
+
+    if 'processors' in include_tabs:
+        tabs.append({'label': 'processors', 'panel': _processors_panel(data),  'active': False})
+     
+    if 'analyses' in include_tabs:
+        tabs.append({'label': 'analyses', 'panel': _analyses_panel(data),  'active': False})
+
+    if 'taskqueue' in include_tabs:
+        print('TBD:taskqueue tab')
+        #tabs.append({'label': 'taskqueue', 'panel': _taskqueue_panel(data),  'active': False})
 
     tab_buttons, tab_panels = _get_tabs(tabs)
 
