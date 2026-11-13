@@ -347,7 +347,8 @@ if __name__ == '__main__':
         try:
             rootdir = os.environ['DAXROOTDIR']
             yamlfile = args.yamlfile
-            projects = args.projects.split(',') or None
+            if args.projects:
+                projects = args.projects.split(',') or None
 
             # Make launcher
             launcher = TaskLauncherNoXnat(rootdir)
