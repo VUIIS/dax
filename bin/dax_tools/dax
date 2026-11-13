@@ -202,6 +202,7 @@ runs build, launch, update and upload.'
     run_parser = dax_parser.add_parser('run', help=run_desc)
     run_parser.add_argument('-y', dest='yamlfile', required=False)
     run_parser.add_argument('--debug', dest='debug', action='store_true')
+    run_parser.add_argument('-p', dest='projects', help='Project(s) to run', required=False)
 
     # version:
     version_desc = 'Print dax version.'
@@ -346,7 +347,7 @@ if __name__ == '__main__':
         try:
             rootdir = os.environ['DAXROOTDIR']
             yamlfile = args.yamlfile
-            projects = args.projects.split(',')
+            projects = args.projects.split(',') or None
 
             # Make launcher
             launcher = TaskLauncherNoXnat(rootdir)
@@ -364,7 +365,7 @@ if __name__ == '__main__':
                 builder.set_processors(yamlfile)
 
             if run_build:
-                builder.update_all()
+                builder.update_all(only_projects=projects)
 
             if run_launch:
                 launcher.update()

@@ -153,9 +153,11 @@ class TaskBuilderNoXnat(object):
         logger.info(f'{len(dupes)} duplicates found')
         print(dupes)
 
-    def update_all(self, only_session=None):
+    def update_all(self, only_session=None, only_projects=None):
         results = []
         projects = self._build_projects
+        if only_projects:
+            projects = [x for x in projects if x in only_projects]
 
         logger.debug(f'update_all:{projects=}')
 
