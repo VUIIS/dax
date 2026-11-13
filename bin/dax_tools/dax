@@ -378,6 +378,33 @@ if __name__ == '__main__':
         except Exception as err:
             print(f'run failed:{err}')
 
+    elif args.command == 'html':
+        rootdir = None
+        projects = None
+        filename = args.filename
+
+        from dax.noxnat.database_noxnat import DatabaseNoXnat
+        from dax.exports.export_html import save as save_html
+
+        if args.debug:
+            logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+        else:
+            logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+        try:
+            rootdir = os.environ['DAXROOTDIR']
+            if args.projects:
+                projects = args.projects.split(',') or None
+
+            # Load data from database file
+            data = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb').load_data()
+
+            # Save html file
+            print(f'saving file:{filename}:{projects=}')
+            save_html(data, filename, projects=projects)
+
+        except Exception as err:
+            print(f'run failed:{err}')
 
     elif args.command == 'export':
         from dax.XnatUtils import get_interface
