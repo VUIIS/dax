@@ -400,15 +400,15 @@ if __name__ == '__main__':
                 builder.update_all(only_projects=projects)
 
             if run_launch:
-                launcher.update()
+                launcher.update(projects=projects)
 
             if retry_failed:
                 print('retrying JOB_FAILED')
-                launcher.retry_failed()
+                launcher.retry_failed(projects=projects)
 
             if purge_needinputs:
                 print('purge all NEED_INPUTS')
-                db.delete_all_need_inputs()
+                db.delete_all_need_inputs(projects=projects)
 
         except Exception as err:
             print(f'run failed:{err}')

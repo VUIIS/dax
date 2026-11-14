@@ -77,9 +77,12 @@ class TaskLauncherNoXnat(object):
         except Exception as err:
             logger.error(f'failed to set perlimit:{perlimit}:{err}')
 
-    def _load_queue(self):
+    def _load_queue(self, projects=None):
         logger.debug('loading current taskqueue records')
         records = self._db.load_taskqueue().to_dict('records')
+
+        if projects:
+            records = [x for x in records if x['PROJECT'] in projects]
 
         # Filter to only open jobs
         #records = [x for x in records if x['PROCSTATUS'] not in DONE_STATUSES]
@@ -89,9 +92,9 @@ class TaskLauncherNoXnat(object):
 
         return records
 
-    def _update_running(self):
+    def _update_running(self, projects=None):
         """Update running jobs and apply to db"""
-        records = self._load_queue()
+        records = self._load_queue(projects=projects)
         updates = []
         running_list = [x for x in records if x['PROCSTATUS'] == 'RUNNING']
 
@@ -121,9 +124,9 @@ class TaskLauncherNoXnat(object):
             except Exception as err:
                 logger.error(f'error while applying task updates:{err}')
 
-    def _update_completed(self):
+    def _update_completed(self, projects=None):
         """Update completed jobs and apply to db"""
-        records = self._load_queue()
+        records = self._load_queue(projects=projects)
         updates = []
         completed_list = [x for x in records if x['PROCSTATUS'] in COMPLETED_STATUSES]
 
@@ -156,10 +159,10 @@ class TaskLauncherNoXnat(object):
             except Exception as err:
                 logger.error(f'error while applying task updates:{err}')
 
-    def _archive_done(self):
+    def _archive_done(self, projects=None):
         """Move done tasks (complete or job_failed) to assessors"""
-        records = self._load_queue()
         updates = []
+        records = self._load_queue(projects=projects)
         done_list = [x for x in records if x['PROCSTATUS'] in DONE_STATUSES]
 
         logger.info(f'{len(done_list)} of {len(records)}:tasks ready to archive')
@@ -213,13 +216,13 @@ class TaskLauncherNoXnat(object):
             logger.error(f'failed to archive task:{assr}:{err}')
             return
 
-    def _launch(self):
+    def _launch(self, projects=None):
         q_limit = self._qlimit
         p_limit = self._plimit
         updates = []
         launch_list = []
         running_list = []
-        records = self._load_queue()
+        records = self._load_queue(projects=projects)
         # Load lists of tasks currently running and ready to launch
         running_list = [x for x in records if x['PROCSTATUS'] == 'RUNNING']
         launch_list = [x for x in records if x['PROCSTATUS'] == 'QUEUED']
@@ -328,17 +331,17 @@ class TaskLauncherNoXnat(object):
 
         try:
             # Update currently running
-            self._update_running()
+            self._update_running(projects=projects)
 
             # Update completed
-            self._update_completed()
+            self._update_completed(projects=projects)
 
             # Launch
             if launch_enabled:
-                self._launch()
+                self._launch(projects=projects)
 
             # Archive finished tasks
-            self._archive_done()
+            self._archive_done(projects=projects)
 
             logger.info('update:DONE!')
 
@@ -501,9 +504,12 @@ class TaskLauncherNoXnat(object):
                 v = task[k]
                 f.write(f'{k}={v}\n')
 
-    def retry_failed(self):
+    def retry_failed(self, projects=None):
         # Get list of JOB_FAILED
         assessors = self._data['assessors'].to_dict('records')
+
+        if projects:
+            assessors = [x for x in assessors if x['PROJECT'] in projects]
 
         failed_assessors = [x for x in assessors if x['PROCSTATUS'] == 'JOB_FAILED']
 
@@ -516,10 +522,10 @@ class TaskLauncherNoXnat(object):
             self._retry(a)
 
 
-    def cancel_running(self):
+    def cancel_running(self, projects=None):
 
         # Get running
-        records = self._load_queue()
+        records = self._load_queue(projects=projects)
         running = [x for x in records if x['PROCSTATUS'] == 'RUNNING']
         logger.info(f'{len(running)} running assessors found to cancel')
 
