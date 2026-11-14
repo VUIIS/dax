@@ -35,7 +35,7 @@ PROCESSORS_COLUMNS = [
 ]
 
 
-def save(data, filename, projects=None, tabs=None):
+def save(data, filename, projects=None, tabs=None, emojis=False):
     if projects:
         for t in ['assessors', 'scans', 'subjects', 'stats']:
             data[t] = data[t][data[t].PROJECT.isin(projects)]
@@ -47,8 +47,9 @@ def save(data, filename, projects=None, tabs=None):
 
     print(f'tabs to save:{tabs}')
 
-    # Set emoji statuses on scans/assessors
-    _set_emojis(data)
+    if emojis:
+        # Set emoji statuses on scans/assessors
+        _set_emojis(data)
 
     data['timestamp'] = datetime.now().strftime("%I:%M:%S %p %Y-%m-%d ")
     data['qa'] = pd.concat([data['scans'], data['assessors']]).fillna(np.nan)
