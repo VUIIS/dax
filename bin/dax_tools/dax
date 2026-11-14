@@ -413,6 +413,7 @@ if __name__ == '__main__':
 
     elif args.command == 'html':
         rootdir = None
+        dbfile = None
         projects = None
         filename = args.filename
         tabs = args.tabs
@@ -430,8 +431,13 @@ if __name__ == '__main__':
             if args.projects:
                 projects = args.projects.split(',') or None
 
+            if args.db:
+                dbfile = args.db
+            else:
+                dbfile = f'{rootdir}/db/dax.duckdb'
+
             # Load data from database file
-            data = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb').load_data()
+            data = DatabaseNoXnat(dbfile).load_data()
 
             # Save html file
             print(f'saving file:{filename}:{projects=}')
