@@ -222,8 +222,6 @@ runs build, launch, update and upload.'
     html_parser.add_argument('-t', dest='tabs', required=False, help='tabs to include from qa/stats/processors/analyses/taskqueue')
     html_parser.add_argument('--db', dest='db', required=False, help='override database file path')
     html_parser.add_argument('--rootdir', dest='rootdir', required=False, help='override root directory path')
-    html_parser.add_argument('--links', dest='links', action='store_true', help='include hyperlinks')
-    html_parser.add_argument('--emos', dest='emos', action='store_true', help='use emojis')
 
     # version:
     version_desc = 'Print dax version.'
