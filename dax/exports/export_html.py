@@ -68,21 +68,25 @@ def save(data, filename, projects=None, tabs=None, emojis=False):
         how='left'
     ).drop(columns=['ID'])
 
-    # Merge in stats columns
-    data['stats'] = pd.merge(
-        data['stats'],
-        data['subjects'],
-        left_on=('SUBJECT','PROJECT'),
-        right_on=('ID', 'PROJECT'),
-        how='left'
-    ).drop(columns=['ID'])
+    if 'stats' in tabs:
+        # Merge in stats columns
+        data['stats'] = pd.merge(
+            data['stats'],
+            data['subjects'],
+            left_on=('SUBJECT','PROJECT'),
+            right_on=('ID', 'PROJECT'),
+            how='left'
+        ).drop(columns=['ID'])
 
-    data['stats'] = data['stats'].replace('', np.nan).dropna(subset=['SESSTYPE'])
-    data['stats'] = data['stats'].replace(r'^\s*$', np.nan, regex=True).replace(np.nan, '')
-    data['stats'].DATE = pd.to_datetime(data['stats'].DATE).dt.date
+        data['stats'] = data['stats'].replace('', np.nan).dropna(subset=['SESSTYPE'])
+        data['stats'] = data['stats'].replace(r'^\s*$', np.nan, regex=True).replace(np.nan, '')
+        data['stats'].DATE = pd.to_datetime(data['stats'].DATE).dt.date
 
-    # Add processing type to list stats mapping
-    data['proc2stats'] = _map_proc2stats(data['stats'])
+        # Add processing type to list stats mapping
+        data['proc2stats'] = _map_proc2stats(data['stats'])
+    else:
+        data['stats'] = []
+        data['proc2stats'] = {}
 
     # Get map of projects to proc types
     data['proj2proctypes'] = _map_proj2proctypes(data['qa'])
@@ -247,11 +251,14 @@ def _to_html(data, only_tabs=None):
 
     qa_data = _get_qa_data(data)
 
-    stats_data = _get_stats_data(data)
+    if stats in tabs:
+        stats_data = _get_stats_data(data)
+    else:
+        stats_data = ''
 
     data_dict = _get_data_dict(data)
 
-    grids = ''.join(_get_grids(data))
+    grids = ''.join(_get_grids(data, tabs))
 
     buttons = ''.join(_get_buttons(data))
 
@@ -528,35 +535,39 @@ def _get_data_dict(data):
     return data_dict
 
 
-def _get_grids(data):
+def _get_grids(data, tabs):
     grids = []
 
-    # QA initialize with no data loaded
-    _label = 'qa'
-    _data = []
-    _defs = _coldefs(data['qa'])
-    _defs = [];
-    grids.append(_grid(_label, _data, _defs))
+    if 'qa' in tabs:
+        # QA initialize with no data loaded
+        _label = 'qa'
+        _data = []
+        _defs = _coldefs(data['qa'])
+        _defs = [];
+        grids.append(_grid(_label, _data, _defs))
 
-    # Stats initialize with no data loaded
-    _label = 'stats'
-    _data = []
-    _defs = _coldefs(data['stats'])
-    grids.append(_grid(_label, _data, _defs))
+    if 'stats' in tabs:
+        # Stats initialize with no data loaded
+        _label = 'stats'
+        _data = []
+        _defs = _coldefs(data['stats'])
+        grids.append(_grid(_label, _data, _defs))
 
-    # Analyses
-    _label = 'analyses'
-    _data = _records(data['analyses'])
-    _defs = _coldefs(data['analyses'])
-    _defs = _hide_columns(_defs, ANALYSES_COLUMNS)
-    grids.append(_grid(_label, _data, _defs))
+    if 'analyses' in tabs:
+        # Analyses
+        _label = 'analyses'
+        _data = _records(data['analyses'])
+        _defs = _coldefs(data['analyses'])
+        _defs = _hide_columns(_defs, ANALYSES_COLUMNS)
+        grids.append(_grid(_label, _data, _defs))
 
-    # Processors
-    _label = 'processors'
-    _data = _records(data['processors'])
-    _defs = _coldefs(data['processors'])
-    _defs = _hide_columns(_defs, PROCESSORS_COLUMNS)
-    grids.append(_grid(_label, _data, _defs))
+    if 'processors' in tabs:
+        # Processors
+        _label = 'processors'
+        _data = _records(data['processors'])
+        _defs = _coldefs(data['processors'])
+        _defs = _hide_columns(_defs, PROCESSORS_COLUMNS)
+        grids.append(_grid(_label, _data, _defs))
 
     return grids
 
