@@ -249,9 +249,12 @@ def _to_html(data, only_tabs=None):
 
     tab_buttons, tab_panels = _get_tabs(tabs)
 
-    qa_data = _get_qa_data(data)
+    if 'qa' in tabs:
+        qa_data = _get_qa_data(data)
+    else:
+        qa_data = ''
 
-    if stats in tabs:
+    if 'stats' in tabs:
         stats_data = _get_stats_data(data)
     else:
         stats_data = ''
