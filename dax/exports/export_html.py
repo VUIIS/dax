@@ -56,6 +56,7 @@ def save(data, filename, projects=None, tabs=None, emojis=False):
         _set_statuses(data)
 
     data['timestamp'] = datetime.now().strftime("%I:%M:%S %p %Y-%m-%d ")
+
     data['qa'] = pd.concat([data['scans'], data['assessors']]).fillna(np.nan)
     data['qa'].DATE = pd.to_datetime(data['qa'].DATE).dt.date
 
@@ -68,25 +69,21 @@ def save(data, filename, projects=None, tabs=None, emojis=False):
         how='left'
     ).drop(columns=['ID'])
 
-    if 'stats' in tabs:
-        # Merge in stats columns
-        data['stats'] = pd.merge(
-            data['stats'],
-            data['subjects'],
-            left_on=('SUBJECT','PROJECT'),
-            right_on=('ID', 'PROJECT'),
-            how='left'
-        ).drop(columns=['ID'])
+    # Merge in stats columns
+    data['stats'] = pd.merge(
+        data['stats'],
+        data['subjects'],
+        left_on=('SUBJECT','PROJECT'),
+        right_on=('ID', 'PROJECT'),
+        how='left'
+    ).drop(columns=['ID'])
 
-        data['stats'] = data['stats'].replace('', np.nan).dropna(subset=['SESSTYPE'])
-        data['stats'] = data['stats'].replace(r'^\s*$', np.nan, regex=True).replace(np.nan, '')
-        data['stats'].DATE = pd.to_datetime(data['stats'].DATE).dt.date
+    data['stats'] = data['stats'].replace('', np.nan).dropna(subset=['SESSTYPE'])
+    data['stats'] = data['stats'].replace(r'^\s*$', np.nan, regex=True).replace(np.nan, '')
+    data['stats'].DATE = pd.to_datetime(data['stats'].DATE).dt.date
 
-        # Add processing type to list stats mapping
-        data['proc2stats'] = _map_proc2stats(data['stats'])
-    else:
-        data['stats'] = []
-        data['proc2stats'] = {}
+    # Add processing type to list stats mapping
+    data['proc2stats'] = _map_proc2stats(data['stats'])
 
     # Get map of projects to proc types
     data['proj2proctypes'] = _map_proj2proctypes(data['qa'])
@@ -225,7 +222,6 @@ def _to_html(data, only_tabs=None):
     else:
         include_tabs = ['qa', 'stats', 'processors', 'analyses', 'taskqueue']
 
-
     tabs = []
 
     if 'qa' in include_tabs:
@@ -250,11 +246,13 @@ def _to_html(data, only_tabs=None):
     tab_buttons, tab_panels = _get_tabs(tabs)
 
     if 'qa' in tabs:
+        logger.info('loading qa data')
         qa_data = _get_qa_data(data)
     else:
         qa_data = ''
 
     if 'stats' in tabs:
+        logger.info('loading stats data')
         stats_data = _get_stats_data(data)
     else:
         stats_data = ''
@@ -633,8 +631,6 @@ def _dashboard_pre_js():
 
 
 def _dashboard_post_js(tabs):
-    js_text = ''
-
     js_text = resources.read_text('dax.exports.assets', 'dashboard_post.js')
 
     if 'qa' in tabs:
