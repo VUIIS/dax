@@ -35,7 +35,7 @@ PROCESSORS_COLUMNS = [
 ]
 
 
-def save(data, filename, projects=None, tabs=None, emojis=False):
+def save(data, filename, projects=None, tabs=None, emojis=True):
     if projects:
         for t in ['assessors', 'scans', 'subjects', 'stats']:
             data[t] = data[t][data[t].PROJECT.isin(projects)]
