@@ -35,7 +35,7 @@ PROCESSORS_COLUMNS = [
 ]
 
 
-def save(data, filename, projects=None, tabs=None, emojis=True):
+def save(data, filename, projects=None, tabs=None, emojis=False):
     if projects:
         for t in ['assessors', 'scans', 'subjects', 'stats']:
             data[t] = data[t][data[t].PROJECT.isin(projects)]
@@ -49,8 +49,10 @@ def save(data, filename, projects=None, tabs=None, emojis=True):
 
     if emojis:
         # Set emoji statuses on scans/assessors
+        logger.info('_set_emojis')
         _set_emojis(data)
     else:
+        logger.info('_set_statuses')
         _set_statuses(data)
 
     data['timestamp'] = datetime.now().strftime("%I:%M:%S %p %Y-%m-%d ")
