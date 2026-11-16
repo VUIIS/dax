@@ -50,6 +50,8 @@ def save(data, filename, projects=None, tabs=None, emojis=False):
     if emojis:
         # Set emoji statuses on scans/assessors
         _set_emojis(data)
+    else:
+        _set_statuses(data)
 
     data['timestamp'] = datetime.now().strftime("%I:%M:%S %p %Y-%m-%d ")
     data['qa'] = pd.concat([data['scans'], data['assessors']]).fillna(np.nan)
@@ -141,6 +143,28 @@ def _map_proj2scantypes(qa):
         proj2types[proj] = list(df.SCANTYPE.unique())
 
     return proj2types
+
+def _set_statuses(data):
+    # scan status
+    df = data['scans']
+    df['STATUS'] = df['QUALITY'].fillna('UNKNOWN')
+
+    # assessor status as single emoji
+    df = data['assessors']
+
+    # Handle a few specific procstatuses
+    df['STATUS'] = df['PROCSTATUS'].map({
+        'NEED_INPUTS': 'NEED_INPUTS',
+        'JOB_FAILED': 'JOB_FAILED',
+    })
+
+    # Otherwise use QCSTATUS
+    df['STATUS'] = df['QCSTATUS'].map({
+        'Passed': 'Passed',
+        'Job Pending': 'Job Running',
+        'Needs QA': 'Needs QA',
+        'Failed': 'Failed QA',
+    }).fillna('UNKNOWN')
 
 
 def _set_emojis(data):
