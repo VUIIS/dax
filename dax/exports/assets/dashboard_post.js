@@ -2,7 +2,7 @@
 // Set functions to check if there is an external filter to be applied
 // Set external filter function
 
-if (true || grid_instances["qa"].api) {
+if (grid_instances["qa"].api) {
   gridApi_qa.setGridOption(
     "isExternalFilterPresent", 
     () => (
@@ -90,7 +90,7 @@ if (true || grid_instances["qa"].api) {
 }
 
 
-if (true || grid_instances["stats"].api) {
+if (grid_instances["stats"].api) {
   gridApi_stats.setGridOption(
     "isExternalFilterPresent", 
     () => (
@@ -198,7 +198,7 @@ if (true || grid_instances["stats"].api) {
 }
 
 
-if (true || grid_instances["analyses"].api) {
+if (grid_instances["analyses"].api) {
   gridApi_analyses.setGridOption(
     "isExternalFilterPresent", 
     () => (
@@ -244,7 +244,7 @@ if (true || grid_instances["analyses"].api) {
 }
 
 
-if (true || grid_instances["processors"].api) {
+if (grid_instances["processors"].api) {
   gridApi_processors.setGridOption(
     "isExternalFilterPresent", 
     () => (
