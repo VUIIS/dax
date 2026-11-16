@@ -263,7 +263,7 @@ def _to_html(data, only_tabs=None):
 
     grids = ''.join(_get_grids(data, tabs))
 
-    buttons = ''.join(_get_buttons(data))
+    buttons = ''.join(_get_buttons(data, tabs))
 
     # Insert tabs pieces into webpage
     html_text = main_html_template
