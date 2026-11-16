@@ -5,7 +5,7 @@ def load_stats(rootdir):
 	projects = [x for x in os.listdir(rootdir) if not x.startswith('.')]
 
 	for p in projects:
-		logger.(f'loading stats:project={p}')
+		logger.info(f'loading stats:project={p}')
 		resources = glob.glob(rootdir, f'{rootdir}/{p}/*/STATS')
 		logger.info(f'found {len(resources)} STATS folders for project {p}')
 		for r in resources:
