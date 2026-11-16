@@ -57,42 +57,45 @@ def save(data, filename, projects=None, tabs=None, emojis=False):
 
     data['timestamp'] = datetime.now().strftime("%I:%M:%S %p %Y-%m-%d ")
 
-    data['qa'] = pd.concat([data['scans'], data['assessors']]).fillna(np.nan)
-    data['qa'].DATE = pd.to_datetime(data['qa'].DATE).dt.date
+    if 'qa' in tabs:
+        data['qa'] = pd.concat([data['scans'], data['assessors']]).fillna(np.nan)
+        data['qa'].DATE = pd.to_datetime(data['qa'].DATE).dt.date
 
-    # Merge in subject columns
-    data['qa'] = pd.merge(
-        data['qa'],
-        data['subjects'],
-       left_on=('SUBJECT','PROJECT'),
-        right_on=('ID','PROJECT'),
-        how='left'
-    ).drop(columns=['ID'])
+        # Merge in subject columns
+        data['qa'] = pd.merge(
+            data['qa'],
+            data['subjects'],
+           left_on=('SUBJECT','PROJECT'),
+            right_on=('ID','PROJECT'),
+            how='left'
+        ).drop(columns=['ID'])
 
-    # Merge in stats columns
-    data['stats'] = pd.merge(
-        data['stats'],
-        data['subjects'],
-        left_on=('SUBJECT','PROJECT'),
-        right_on=('ID', 'PROJECT'),
-        how='left'
-    ).drop(columns=['ID'])
 
-    data['stats'] = data['stats'].replace('', np.nan).dropna(subset=['SESSTYPE'])
-    data['stats'] = data['stats'].replace(r'^\s*$', np.nan, regex=True).replace(np.nan, '')
-    data['stats'].DATE = pd.to_datetime(data['stats'].DATE).dt.date
+        # Get map of projects to proc types
+        data['proj2proctypes'] = _map_proj2proctypes(data['qa'])
 
-    # Add processing type to list stats mapping
-    data['proc2stats'] = _map_proc2stats(data['stats'])
+        # Get map of projects to sess types
+        data['proj2sesstypes'] = _map_proj2sesstypes(data['qa'])
 
-    # Get map of projects to proc types
-    data['proj2proctypes'] = _map_proj2proctypes(data['qa'])
+        # Get map of projects to scan types
+        data['proj2scantypes'] = _map_proj2scantypes(data['qa'])
 
-    # Get map of projects to sess types
-    data['proj2sesstypes'] = _map_proj2sesstypes(data['qa'])
+    if 'stats' in tabs:
+        # Merge in stats columns
+        data['stats'] = pd.merge(
+            data['stats'],
+            data['subjects'],
+            left_on=('SUBJECT','PROJECT'),
+            right_on=('ID', 'PROJECT'),
+            how='left'
+        ).drop(columns=['ID'])
 
-    # Get map of projects to scan types
-    data['proj2scantypes'] = _map_proj2scantypes(data['qa'])
+        data['stats'] = data['stats'].replace('', np.nan).dropna(subset=['SESSTYPE'])
+        data['stats'] = data['stats'].replace(r'^\s*$', np.nan, regex=True).replace(np.nan, '')
+        data['stats'].DATE = pd.to_datetime(data['stats'].DATE).dt.date
+
+        # Add processing type to list stats mapping
+        data['proc2stats'] = _map_proc2stats(data['stats'])
 
     # Get html from ag grid data
     html_text = _to_html(data, only_tabs=tabs)
@@ -216,13 +219,12 @@ def _set_emojis(data):
 
 def _to_html(data, only_tabs=None):
     html_text = ''
+    tabs = []
 
     if only_tabs:
         include_tabs = only_tabs
     else:
         include_tabs = ['qa', 'stats', 'processors', 'analyses', 'taskqueue']
-
-    tabs = []
 
     if 'qa' in include_tabs:
         tabs.append({'label': 'qa', 'panel': _qa_panel(data),  'active': True})
@@ -245,13 +247,13 @@ def _to_html(data, only_tabs=None):
 
     tab_buttons, tab_panels = _get_tabs(tabs)
 
-    if 'qa' in tabs:
+    if 'qa' in include_tabs:
         logger.info('loading qa data')
         qa_data = _get_qa_data(data)
     else:
         qa_data = ''
 
-    if 'stats' in tabs:
+    if 'stats' in include_tabs:
         logger.info('loading stats data')
         stats_data = _get_stats_data(data)
     else:
