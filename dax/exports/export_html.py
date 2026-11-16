@@ -261,9 +261,9 @@ def _to_html(data, only_tabs=None):
 
     data_dict = _get_data_dict(data)
 
-    grids = ''.join(_get_grids(data, tabs))
+    grids = ''.join(_get_grids(data, include_tabs))
 
-    buttons = ''.join(_get_buttons(data, tabs))
+    buttons = ''.join(_get_buttons(data, include_tabs))
 
     # Insert tabs pieces into webpage
     html_text = main_html_template
