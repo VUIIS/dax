@@ -524,10 +524,10 @@ def _get_stats_data(data):
 
 
 def _get_data_dict(data):
-    proc2stats = data['proc2stats']
-    proj2proctypes = data['proj2proctypes']
-    proj2sesstypes = data['proj2sesstypes']
-    proj2scantypes = data['proj2scantypes']
+    proc2stats = data.get('proc2stats', {})
+    proj2proctypes = data.get('proj2proctypes', {})
+    proj2sesstypes = data.get('proj2sesstypes', {})
+    proj2scantypes = data.get('proj2scantypes', {})
 
     data_dict = data_dict_js_template
     data_dict = data_dict.replace('PROC2STATS', json.dumps(proc2stats, default=str))
