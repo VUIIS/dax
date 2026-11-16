@@ -1,6 +1,6 @@
 import os
 import glob
-import loggin
+import logging
 
 
 logger = logging.getLogger('dax')
