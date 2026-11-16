@@ -592,32 +592,36 @@ def _hide_columns(column_defs, show_columns):
     return column_defs
 
 
-def _get_buttons(data):
+def _get_buttons(data, tabs):
     buttons = []
 
     # Add pre javascript
     buttons.append(_dashboard_pre_js())
 
-    # Stats dropdowns
-    buttons.append(_dropdown_js('stats_projects'))
-    buttons.append(_dropdown_js('stats_sesstypes'))
-    buttons.append(_dropdown_js('stats_proctypes'))
-    buttons.append(_dropdown_js('stats_measures'))
-    buttons.append(_dropdown_js('stats_xvariable'))
+    if 'stats' in tabs:
+        # Stats dropdowns
+        buttons.append(_dropdown_js('stats_projects'))
+        buttons.append(_dropdown_js('stats_sesstypes'))
+        buttons.append(_dropdown_js('stats_proctypes'))
+        buttons.append(_dropdown_js('stats_measures'))
+        buttons.append(_dropdown_js('stats_xvariable'))
 
-    # QA dropdowns
-    buttons.append(_dropdown_js('qa_projects'))
-    buttons.append(_dropdown_js('qa_proctypes'))
-    buttons.append(_dropdown_js('qa_scantypes'))
-    buttons.append(_dropdown_js('qa_sesstypes'))
+    if 'qa' in tabs:
+        # QA dropdowns
+        buttons.append(_dropdown_js('qa_projects'))
+        buttons.append(_dropdown_js('qa_proctypes'))
+        buttons.append(_dropdown_js('qa_scantypes'))
+        buttons.append(_dropdown_js('qa_sesstypes'))
 
-    # Analyses dropdowns
-    buttons.append(_dropdown_js('analyses_projects'))
-    buttons.append(_dropdown_js('analyses_invest'))
-    buttons.append(_dropdown_js('analyses_status'))
+    if 'analyses' in tabs:
+        # Analyses dropdowns
+        buttons.append(_dropdown_js('analyses_projects'))
+        buttons.append(_dropdown_js('analyses_invest'))
+        buttons.append(_dropdown_js('analyses_status'))
 
-    # Processors dropdowns
-    buttons.append(_dropdown_js('processors_projects'))
+    if 'processors' in tabs:
+        # Processors dropdowns
+        buttons.append(_dropdown_js('processors_projects'))
 
     # Add post javascript
     buttons.append(_dashboard_post_js())
