@@ -633,18 +633,23 @@ def _dashboard_pre_js():
 
 
 def _dashboard_post_js(tabs):
+    logger.info('_dashboard_post_js')
     js_text = resources.read_text('dax.exports.assets', 'dashboard_post.js')
 
     if 'qa' in tabs:
+        logger.info('_dashboard_post_js:qa')
         js_text += resources.read_text('dax.exports.assets', 'dashboard_post_qa.js')
 
     if 'stats' in tabs:
+        logger.info('_dashboard_post_js:stats')
         js_text += resources.read_text('dax.exports.assets', 'dashboard_post_stats.js')
 
     if 'processors' in tabs:
+        logger.info('_dashboard_post_js:processors')
         js_text += resources.read_text('dax.exports.assets', 'dashboard_post_processors.js')
 
     if 'analyses' in tabs:
+        logger.info('_dashboard_post_js:analyses')
         js_text += resources.read_text('dax.exports.assets', 'dashboard_post_analyses.js')
 
     return js_text
