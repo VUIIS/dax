@@ -632,8 +632,24 @@ def _dashboard_pre_js():
     return resources.read_text('dax.exports.assets', 'dashboard_pre.js')
 
 
-def _dashboard_post_js():
-    return resources.read_text('dax.exports.assets', 'dashboard_post.js')
+def _dashboard_post_js(tabs):
+    js_text = ''
+
+    js_text = resources.read_text('dax.exports.assets', 'dashboard_post.js')
+
+    if 'qa' in tabs:
+        js_text += resources.read_text('dax.exports.assets', 'dashboard_post_qa.js')
+
+    if 'stats' in tabs:
+        js_text += resources.read_text('dax.exports.assets', 'dashboard_post_stats.js')
+
+    if 'processors' in tabs:
+        js_text += resources.read_text('dax.exports.assets', 'dashboard_post_processors.js')
+
+    if 'analyses' in tabs:
+        js_text += resources.read_text('dax.exports.assets', 'dashboard_post_analyses.js')
+
+    return js_text
 
 
 def _dropdown_js(label):
