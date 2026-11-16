@@ -419,6 +419,7 @@ if __name__ == '__main__':
         tabs = args.tabs
 
         from dax.noxnat.database_noxnat import DatabaseNoXnat
+        from dax.noxnat import load_stats
         from dax.exports.export_html import save as save_html
 
         if args.debug:
@@ -438,6 +439,10 @@ if __name__ == '__main__':
 
             # Load data from database file
             data = DatabaseNoXnat(dbfile).load_data()
+
+            print(data['stats'])
+            print('loading stats')
+            data['stats'] = load_stats(rootdir)
 
             # Save html file
             print(f'saving file:{filename}:{projects=}')
