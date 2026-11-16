@@ -624,7 +624,7 @@ def _get_buttons(data, tabs):
         buttons.append(_dropdown_js('processors_projects'))
 
     # Add post javascript
-    buttons.append(_dashboard_post_js())
+    buttons.append(_dashboard_post_js(tabs))
 
     return buttons
 
