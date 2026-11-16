@@ -1,3 +1,10 @@
+import os
+import glob
+import loggin
+
+
+logger = logging.getLogger('dax')
+
 
 def load_stats(rootdir):
 	stats = []
