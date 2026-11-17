@@ -10,10 +10,7 @@ logger = logging.getLogger('dax')
 
 def load_stats(rootdir):
 	records = []
-	stats = pd.DataFrame(columns=[
-		'ASSR', 'PROJECT', 'SUBJECT', 'SESSION', 'SESSTYPE', 'SITE', 'DATE', 'PROCTYPE'
-	])
-
+	stats = None
 	projects = [x for x in os.listdir(f'{rootdir}/projects') if not x.startswith('.')]
 
 	for p in projects:
@@ -23,11 +20,15 @@ def load_stats(rootdir):
 		for res in resources:
 			logger.info(f'loading resource:{res}')
 			rec = _load_resource(res)
-			rec['resource'] = resource
+			rec['resource'] = res
 			records.append(rec)
-	
+
 	if len(data) > 0:
 		stats = pd.DataFrame(records)
+	else:
+		stats = pd.DataFrame(columns=[
+			'ASSR', 'PROJECT', 'SUBJECT', 'SESSION', 'SESSTYPE', 'SITE', 'DATE', 'PROCTYPE'
+		])
 
 	return stats
 
