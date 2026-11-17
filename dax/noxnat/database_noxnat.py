@@ -1,4 +1,4 @@
-""" Stores database in .duckdb file"""
+""" Stores database in .duckdb file. All SQL should be in this file"""
 import logging
 
 import duckdb
@@ -217,6 +217,20 @@ class DatabaseNoXnat(object):
 
         with duckdb.connect(filename) as con:
             con.execute(query, [value, id])
+
+    def fill_scans_usable(self):
+        filename = self._filename
+
+        logger.debug(f'fill scans QUALITY=usable in duckdb:{filename=}')
+
+        query = f"""
+            UPDATE scans
+            SET QUALITY = 'usable'
+            WHERE QUALITY IS NULL OR TRIM(QUALITY) = ''
+        """
+
+        with duckdb.connect(filename) as con:
+            con.execute(query)
 
     def update_tasks(self, updates):
         filename = self._filename
