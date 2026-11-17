@@ -440,10 +440,8 @@ if __name__ == '__main__':
             # Load data from database file
             data = DatabaseNoXnat(dbfile).load_data()
 
-            print(data['stats'])
             print('loading stats')
             data['stats'] = load_stats(rootdir)
-            print(data['stats'])
 
             # Save html file
             print(f'saving file:{filename}:{projects=}')
