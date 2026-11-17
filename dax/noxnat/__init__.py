@@ -23,7 +23,7 @@ def load_stats(rootdir):
 			rec['resource'] = res
 			records.append(rec)
 
-	if len(rcords) > 0:
+	if len(records) > 0:
 		stats = pd.DataFrame(records)
 	else:
 		stats = pd.DataFrame(columns=[
