@@ -43,8 +43,8 @@ def _load_resource(resource):
 	return data
 
 
-def _load_stats_file(filename)
-	data = {'filename:' filename}
+def _load_stats_file(filename):
+	data = {'filename': filename}
 
 	return data
 
