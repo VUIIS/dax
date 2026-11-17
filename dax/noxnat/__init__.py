@@ -18,9 +18,8 @@ def load_stats(rootdir):
 		resources = glob.glob(f'{rootdir}/projects/{p}/ASSESSORS/*/*/STATS')
 		logger.info(f'found {len(resources)} STATS folders for project {p}')
 		for res in resources:
-			logger.info(f'loading resource:{res}')
+			logger.debug(f'loading resource:{res}')
 			assr = res.rsplit('/', 2)[1]
-			print(f'{assr=}')
 			_, subj, sess, proctype, _ = assr.split('-x-', 4)
 			rec = {
 				'ASSR': assr,
@@ -33,8 +32,7 @@ def load_stats(rootdir):
 				'PROCTYPE': proctype,
 				'resource': res
 			}
-			print(rec)
-			rec = rec.update(_load_resource(res))
+			rec.update(_load_resource(res))
 			records.append(rec)
 
 	if len(records) > 0:
@@ -43,6 +41,8 @@ def load_stats(rootdir):
 		stats = pd.DataFrame(columns=[
 			'ASSR', 'PROJECT', 'SUBJECT', 'SESSION', 'SESSTYPE', 'SITE', 'DATE', 'PROCTYPE'
 		])
+
+	print(stats)
 
 	return stats
 
