@@ -10,59 +10,59 @@ logger = logging.getLogger('dax')
 
 
 def load_stats(rootdir):
-	records = []
-	stats = None
-	projects = [x for x in os.listdir(f'{rootdir}/projects') if not x.startswith('.')]
+    records = []
+    stats = None
+    projects = [x for x in os.listdir(f'{rootdir}/projects') if not x.startswith('.')]
 
-	for p in projects:
-		logger.info(f'loading stats:project={p}')
-		resources = glob.glob(f'{rootdir}/projects/{p}/ASSESSORS/*/*/STATS')
-		logger.info(f'found {len(resources)} STATS folders for project {p}')
-		for res in resources:
-			logger.debug(f'loading resource:{res}')
-			assr = res.rsplit('/', 2)[1]
-			_, subj, sess, proctype, _ = assr.split('-x-', 4)
-			rec = {
-				'ASSR': assr,
-				'PROJECT': p,
-				'SUBJECT': subj,
-				'SESSION': sess,
-				'SESSTYPE': '',
-				'SITE': '',
-				'DATE': '',
-				'PROCTYPE': proctype,
-				'resource': res
-			}
-			rec.update(_load_resource(res))
-			records.append(rec)
+    for p in projects:
+        logger.info(f'loading stats:project={p}')
+        resources = glob.glob(f'{rootdir}/projects/{p}/ASSESSORS/*/*/STATS')
+        logger.info(f'found {len(resources)} STATS folders for project {p}')
+        for res in resources:
+            logger.debug(f'loading resource:{res}')
+            assr = res.rsplit('/', 2)[1]
+            _, subj, sess, proctype, _ = assr.split('-x-', 4)
+            rec = {
+                'ASSR': assr,
+                'PROJECT': p,
+                'SUBJECT': subj,
+                'SESSION': sess,
+                'SESSTYPE': '',
+                'SITE': '',
+                'DATE': '',
+                'PROCTYPE': proctype,
+                'resource': res
+            }
+            rec.update(_load_resource(res))
+            records.append(rec)
 
-	if len(records) > 0:
-		stats = pd.DataFrame(records)
-	else:
-		stats = pd.DataFrame(columns=[
-			'ASSR', 'PROJECT', 'SUBJECT', 'SESSION', 'SESSTYPE', 'SITE', 'DATE', 'PROCTYPE'
-		])
+    if len(records) > 0:
+        stats = pd.DataFrame(records)
+    else:
+        stats = pd.DataFrame(columns=[
+            'ASSR', 'PROJECT', 'SUBJECT', 'SESSION', 'SESSTYPE', 'SITE', 'DATE', 'PROCTYPE'
+        ])
 
-	print(stats)
+    print(stats)
 
-	return stats
+    return stats
 
 
 def _load_resource(resource):
-	data = {}
+    data = {}
 
-	'''Load key/value pairs from file'''
-	for f in os.listdir(resource):
-		logger.debug(f'loading file:{resource}/{f}')
-		data.update(_load_stats_file(f'{resource}/{f}'))
+    '''Load key/value pairs from file'''
+    for f in os.listdir(resource):
+        logger.debug(f'loading file:{resource}/{f}')
+        data.update(_load_stats_file(f'{resource}/{f}'))
 
-	return data
+    return data
 
 
 def _load_stats_file(filename):
 
-	# Read file to determine format
-	lines = []
+    # Read file to determine format
+    lines = []
     with open(filename) as f:
         lines = f.readlines()
 
@@ -115,8 +115,8 @@ def _load_stats_tall(filename):
 
 
 def load_processors(rootdir):
-	return []
+    return []
 
 
 def load_analyses(rootdir):
-	return []
+    return []
