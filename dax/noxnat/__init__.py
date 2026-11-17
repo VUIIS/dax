@@ -9,6 +9,7 @@ logger = logging.getLogger('dax')
 
 
 def load_stats(rootdir):
+	records = []
 	stats = pd.DataFrame(columns=[
 		'ASSR', 'PROJECT', 'SUBJECT', 'SESSION', 'SESSTYPE', 'SITE', 'DATE', 'PROCTYPE'
 	])
@@ -19,10 +20,33 @@ def load_stats(rootdir):
 		logger.info(f'loading stats:project={p}')
 		resources = glob.glob(f'{rootdir}/projects/{p}/ASSESSORS/*/*/STATS')
 		logger.info(f'found {len(resources)} STATS folders for project {p}')
-		for r in resources:
-			logger.info(f'loading resource:{r}')
+		for res in resources:
+			logger.info(f'loading resource:{res}')
+			rec = _load_resource(res)
+			rec['resource'] = resource
+			records.append(rec)
+	
+	if len(data) > 0:
+		stats = pd.DataFrame(records)
 
 	return stats
+
+
+def _load_resource(resource):
+	data = {}
+
+	'''Load key/value pairs from file'''
+	for f in os.listdir(resource):
+		logger.info(f'loading file:{resource}/{f}')
+		data.update(_load_stats_file(f'{resource}/{f}'))
+
+	return data
+
+
+def _load_stats_file(filename)
+	data = {'filename:' filename}
+
+	return data
 
 
 def load_processors(rootdir):
