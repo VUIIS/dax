@@ -9,7 +9,7 @@ logger = logging.getLogger('dax')
 def load_stats(rootdir):
 	stats = []
 
-	projects = [x for x in os.listdir(rootdir) if not x.startswith('.')]
+	projects = [x for x in os.listdir(f'{rootdir}/projects') if not x.startswith('.')]
 
 	for p in projects:
 		logger.info(f'loading stats:project={p}')
