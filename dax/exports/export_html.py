@@ -81,9 +81,6 @@ def save(data, filename, projects=None, tabs=None, emojis=False):
         data['proj2scantypes'] = _map_proj2scantypes(data['qa'])
 
     if 'stats' in tabs:
-        print(f'adding stats data')
-        print(data['stats'])
-
         # Merge in stats columns
         data['stats'] = pd.merge(
             data['stats'],

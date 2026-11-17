@@ -43,8 +43,6 @@ def load_stats(rootdir):
             'ASSR', 'PROJECT', 'SUBJECT', 'SESSION', 'SESSTYPE', 'SITE', 'DATE', 'PROCTYPE'
         ])
 
-    print(stats)
-
     return stats
 
 
