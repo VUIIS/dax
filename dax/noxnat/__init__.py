@@ -27,8 +27,8 @@ def load_stats(rootdir):
                 'PROJECT': p,
                 'SUBJECT': subj,
                 'SESSION': sess,
-                'SESSTYPE': '',
-                'SITE': '',
+                'SESSTYPE': 'TBD',
+                'SITE': 'TBD',
                 'DATE': '',
                 'PROCTYPE': proctype,
                 'resource': res
