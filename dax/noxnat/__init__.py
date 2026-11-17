@@ -7,7 +7,9 @@ logger = logging.getLogger('dax')
 
 
 def load_stats(rootdir):
-	stats = []
+	stats = pd.DataFrame(columns=[
+		'ASSR', 'PROJECT', 'SUBJECT', 'SESSION', 'SESSTYPE', 'SITE', 'DATE', 'PROCTYPE'
+	])
 
 	projects = [x for x in os.listdir(f'{rootdir}/projects') if not x.startswith('.')]
 
