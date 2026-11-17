@@ -2,6 +2,8 @@ import os
 import glob
 import logging
 
+import pandas as pd
+
 
 logger = logging.getLogger('dax')
 
