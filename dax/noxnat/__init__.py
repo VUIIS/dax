@@ -53,9 +53,16 @@ def _load_resource(resource):
     files = [x for x in os.listdir(resource) if x.endswith('.txt') or x.endswith('.csv')]
 
     '''Load key/value pairs from file'''
-    for f in files:
-        logger.debug(f'loading file:{resource}/{f}')
-        data.update(_load_stats_file(f'{resource}/{f}'))
+    if 'stats.csv' in files:
+        logger.debug(f'loading file:{resource}/stats.csv')
+        data.update(_load_stats_file(f'{resource}/stats.csv'))
+    elif 'stats.txt' in files:
+        logger.debug(f'loading file:{resource}/stats.txt')
+        data.update(_load_stats_file(f'{resource}/stats.txt'))
+    else:
+        for f in files:
+            logger.debug(f'loading file:{resource}/{f}')
+            data.update(_load_stats_file(f'{resource}/{f}'))
 
     return data
 
@@ -108,8 +115,8 @@ def _load_stats_tall(filename):
         for r in rows:
             (k, v) = r.strip().replace('=', ',').split(',')
             data[k] = v
-    except ValueError:
-        logger.error(f'cannot load stats file:{filename}')
+    except ValueError as err:
+        logger.error(f'cannot load stats file:{filename}:{err}')
         return {}
 
     return data
