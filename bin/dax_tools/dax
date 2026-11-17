@@ -222,6 +222,7 @@ runs build, launch, update and upload.'
     html_parser.add_argument('-t', dest='tabs', required=False, help='tabs to include from qa/stats/processors/analyses/taskqueue')
     html_parser.add_argument('--db', dest='db', required=False, help='override database file path')
     html_parser.add_argument('--rootdir', dest='rootdir', required=False, help='override root directory path')
+    html_parser.add_argument('--emojis', dest='emojis', action='store_true', required=False, help='show status with emojis')
 
     # version:
     version_desc = 'Print dax version.'
@@ -417,6 +418,7 @@ if __name__ == '__main__':
         projects = None
         filename = args.filename
         tabs = args.tabs
+        emojis = args.emojis
 
         from dax.noxnat.database_noxnat import DatabaseNoXnat
         from dax.noxnat import load_stats
@@ -445,7 +447,7 @@ if __name__ == '__main__':
 
             # Save html file
             print(f'saving file:{filename}:{projects=}')
-            save_html(data, filename, projects=projects, tabs=tabs)
+            save_html(data, filename, projects=projects, tabs=tabs, emojis=emojis)
 
         except Exception as err:
             print(f'run failed:{err}')
