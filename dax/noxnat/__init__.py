@@ -1,6 +1,7 @@
 import os
 import glob
 import logging
+import csv
 
 import pandas as pd
 
@@ -52,16 +53,65 @@ def _load_resource(resource):
 
 	'''Load key/value pairs from file'''
 	for f in os.listdir(resource):
-		logger.info(f'loading file:{resource}/{f}')
+		logger.debug(f'loading file:{resource}/{f}')
 		data.update(_load_stats_file(f'{resource}/{f}'))
 
 	return data
 
 
 def _load_stats_file(filename):
-	data = {'filename': filename}
 
-	return data
+	# Read file to determine format
+	lines = []
+    with open(filename) as f:
+        lines = f.readlines()
+
+    # Redirect by file formatting
+    if ('=' in lines[0]) or (len(lines) >= 3 and len(lines[0].split(',')) <= 3):
+        return _load_stats_tall(filename)
+    else:
+        return _load_stats_wide(filename)
+
+
+def _load_stats_wide(filename):
+    data = {}
+
+    with open(filename, newline='') as f:
+        # Connect csv reader
+        reader = csv.reader(f)
+
+        # Load header from first line
+        header = next(reader)
+
+        # Read data from subsequent lines
+        for line in reader:
+            for i, v in enumerate(line):
+                data[header[i]] = v
+
+    return data
+
+
+def _load_stats_tall(filename):
+    data = {}
+    rows = []
+
+    try:
+        with open(filename) as f:
+            rows = f.readlines()
+
+        if len(rows) == 1 and rows[0].startswith('excess_spikes') and 'spike_count' in rows[0]:
+            _tmp = rows[0]
+            rows[0] = _tmp.split('spike_count')[0]
+            rows.append('spike_count' + _tmp.split('spike_count')[1])
+
+        for r in rows:
+            (k, v) = r.strip().replace('=', ',').split(',')
+            data[k] = v
+    except ValueError:
+        logger.error(f'cannot load stats file:{filename}')
+        return {}
+
+    return data
 
 
 def load_processors(rootdir):
