@@ -19,8 +19,22 @@ def load_stats(rootdir):
 		logger.info(f'found {len(resources)} STATS folders for project {p}')
 		for res in resources:
 			logger.info(f'loading resource:{res}')
-			rec = _load_resource(res)
-			rec['resource'] = res
+			assr = res.rsplit('/', 2)[1]
+			print(f'{assr=}')
+			_, subj, sess, proctype, _ = assr.split('-x-', 4)
+			rec = {
+				'ASSR': assr,
+				'PROJECT': p,
+				'SUBJECT': subj,
+				'SESSION': sess,
+				'SESSTYPE': '',
+				'SITE': '',
+				'DATE': '',
+				'PROCTYPE': proctype,
+				'resource': res
+			}
+			print(rec)
+			rec = rec.update(_load_resource(res))
 			records.append(rec)
 
 	if len(records) > 0:
