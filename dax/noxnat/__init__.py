@@ -50,9 +50,10 @@ def load_stats(rootdir):
 
 def _load_resource(resource):
     data = {}
+    files = [x for x in os.listdir(resource) if x.endswith('.txt') or x.endswith('.csv')]
 
     '''Load key/value pairs from file'''
-    for f in os.listdir(resource):
+    for f in files:
         logger.debug(f'loading file:{resource}/{f}')
         data.update(_load_stats_file(f'{resource}/{f}'))
 
