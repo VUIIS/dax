@@ -1,3 +1,5 @@
+import os
+
 from dax.noxnat.builder_noxnat import TaskBuilderNoXnat
 from dax.noxnat.database_noxnat import DatabaseNoXnat
 from dax.noxnat.launcher_noxnat import TaskLauncherNoXnat
