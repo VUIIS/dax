@@ -367,7 +367,7 @@ if __name__ == '__main__':
 
             if args.createonly:
                 _build = _launch = _update = _finish = False
-            elif args.build_only:
+            elif args.buildonly:
                 _create = _launch = _update = _finish = False
             elif args.launchonly:
                 _create = _build = _update = _finish = False
@@ -421,7 +421,7 @@ if __name__ == '__main__':
                 rootdir,
                 projects=args.projects,
                 show_queue=args.showqueue,
-                show_assessors=args.showassesssors
+                show_assessors=args.showassessors
             )
         except Exception as err:
             print(f'status failed:{err}')
