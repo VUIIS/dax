@@ -58,6 +58,21 @@ class TaskLauncherNoXnat(object):
         self._launch_enabled = launch_enabled
         self._finish_enabled = finish_enabled
 
+    def apply_settings(self, filename):
+        # Load settings from yaml file
+        with open(filename, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+
+        if 'qlimit' in data:
+            self._qlimit = data['qlimit']
+
+        if 'plimit' in data:
+            self._plimit = data['plimit']
+
+        if 'perlimit' in data:
+            self._perlimit = data['perlimit']
+
+
     def _load_data(self):
         return self._db.load_data()
 
