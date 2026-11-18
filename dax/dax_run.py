@@ -47,7 +47,7 @@ def run_noxnat(
         builder.disable_build()
 
     if not run_create:
-        builder.disable_create()        
+        builder.disable_create()
 
     if not run_update:
         launcher.disable_update()
@@ -61,10 +61,10 @@ def run_noxnat(
     elif os.path.isfile(opt_processors):
         builder.set_processors(opt_processors)
 
-    if run_build:
+    if run_build or run_create:
         builder.update_all(only_projects=only_projects)
 
-    if run_launch:
+    if run_launch or run_update or run_finish:
         launcher.update(projects=only_projects)
 
     if retry_failed:
