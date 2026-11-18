@@ -154,7 +154,7 @@ class TaskLauncherNoXnat(object):
         completed_list = [x for x in records if x['PROCSTATUS'] in COMPLETED_STATUSES]
 
         if not completed_list:
-            logger.debug('no completed tasks to update')
+            logger.info('no completed tasks to update')
             return
 
         logger.info(f'{len(completed_list)} of {len(records)}:ready to complete')

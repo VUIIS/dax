@@ -378,6 +378,7 @@ if __name__ == '__main__':
 
             dax_run.run_noxnat(
                 rootdir,
+                projects=args.projects,
                 yamlfile=args.yamlfile,
                 retry_failed=args.retry,
                 purge_needinputs=args.purge,
