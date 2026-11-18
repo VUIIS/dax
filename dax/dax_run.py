@@ -3,7 +3,7 @@ from dax.noxnat.database_noxnat import DatabaseNoXnat
 from dax.noxnat.launcher_noxnat import TaskLauncherNoXnat
 
 
-def dax_run_noxnat(rootdir, yamlfile=None, projects=None, retry=False, purge=False, only_steps=None):
+def run_noxnat(rootdir, yamlfile=None, projects=None, retry=False, purge=False, only_steps=None):
     run_build = True
     run_launch = True
     builder = None
