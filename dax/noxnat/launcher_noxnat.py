@@ -100,6 +100,10 @@ class TaskLauncherNoXnat(object):
         updates = []
         running_list = [x for x in records if x['PROCSTATUS'] == 'RUNNING']
 
+        if not running_list:
+            logger.debug('no running tasks to update')
+            return
+
         logger.info(f'{len(running_list)} of {len(records)}:running tasks to update')
         logger.debug(running_list)
 
@@ -131,6 +135,10 @@ class TaskLauncherNoXnat(object):
         records = self._load_queue(projects=projects)
         updates = []
         completed_list = [x for x in records if x['PROCSTATUS'] in COMPLETED_STATUSES]
+
+        if not completed_list:
+            logger.debug('no completed tasks to update')
+            return
 
         logger.info(f'{len(completed_list)} of {len(records)}:ready to complete')
         logger.debug(completed_list)
@@ -166,6 +174,10 @@ class TaskLauncherNoXnat(object):
         updates = []
         records = self._load_queue(projects=projects)
         done_list = [x for x in records if x['PROCSTATUS'] in DONE_STATUSES]
+
+        if not done_list:
+            logger.debug('no done tasks to archive')
+            return
 
         logger.info(f'{len(done_list)} of {len(records)}:tasks ready to archive')
         logger.debug(done_list)
@@ -229,11 +241,12 @@ class TaskLauncherNoXnat(object):
         running_list = [x for x in records if x['PROCSTATUS'] == 'RUNNING']
         launch_list = [x for x in records if x['PROCSTATUS'] == 'QUEUED']
 
-        if self._perlimit:
+        if launch_list and self._perlimit:
             # Apply proc/proj limits, filter out proc/proj over limits
             logger.info(f'applying proc/proj limits to launch list:n={len(launch_list)}')
             launch_list = self._apply_perlimit(launch_list, running_list)
-            logger.info(f'{len(launch_list)}:tasks ready to launch')
+
+        logger.info(f'{len(launch_list)} tasks ready to launch')
 
         # Launch jobs
         c = 0
@@ -301,7 +314,8 @@ class TaskLauncherNoXnat(object):
                 logger.debug(f'delete_task_dirs:{outdir}')
                 delete_task_dirs(outdir)
 
-        logger.info(f'{c}:tasks launched successfully')
+        if c > 0:
+            logger.info(f'{c}:tasks launched successfully')
 
         if updates:
             # upload changes
