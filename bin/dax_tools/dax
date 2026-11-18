@@ -16,6 +16,9 @@ from dax import dax_manager
 from dax import validate
 from dax import simulate
 from dax import rcq
+from dax import dax_status
+from dax import dax_html
+from dax import dax_run
 
 __author__ = "Benjamin Yvernault"
 __description__ = "Main python executable for dax."
@@ -352,24 +355,6 @@ if __name__ == '__main__':
             print(f'simulate failed:{err}')
 
     elif args.command == 'run':
-        rootdir = None
-        yamlfile = None
-        projects = None
-        run_build = True
-        run_launch = True
-        retry_failed = args.retry
-        purge_needinputs = args.purge
-        plimit = 1000
-        qlimit = 1000
-        perlimit = 1000
-        opt_processors = None
-        builder = None
-        launcher = None
-
-        from dax.noxnat.builder_noxnat import TaskBuilderNoXnat
-        from dax.noxnat.database_noxnat import DatabaseNoXnat
-        from dax.noxnat.launcher_noxnat import TaskLauncherNoXnat
-
         if args.debug:
             logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         else:
@@ -377,77 +362,16 @@ if __name__ == '__main__':
 
         try:
             rootdir = os.environ['DAXROOTDIR']
-            opt_processors = f'{rootdir}/settings/processors.yaml'
-            yamlfile = args.yamlfile
-
-            if args.projects:
-                projects = args.projects.split(',') or None
-
-            # Get a task launcher
-            launcher = TaskLauncherNoXnat(
+            dax_run.run_noxnat(
                 rootdir,
-                plimit=plimit,
-                qlimit=qlimit,
-                perlimit=perlimit
+                yamlfile=args.yamlfile,
+                retry_failed=args.retry,
+                purge_needinputs=args.purge,
             )
-
-            # Task builder
-            builder = TaskBuilderNoXnat(rootdir)
-
-            # Database
-            db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
-
-            # Configure as requested
-            if args.launchonly:
-                run_build = False
-                run_launch = True
-                launcher.set_launch_only()
-            elif args.createonly:
-                run_build = True
-                run_launch = False
-                builder.set_create_only()
-            elif args.buildonly:
-                run_build = True
-                run_launch = False
-                builder.set_build_only()        
-            elif args.finishonly:
-                run_build = False
-                run_launch = True
-                launcher.set_finish_only()
-
-            # Set processors from command-line or default optional location
-            if yamlfile:
-                builder.set_processors(yamlfile)
-            elif os.path.isfile(opt_processors):
-                builder.set_processors(opt_processors)
-
-            if run_build:
-                builder.update_all(only_projects=projects)
-
-            if run_launch:
-                launcher.update(projects=projects)
-
-            if retry_failed:
-                launcher.retry_failed(projects=projects)
-
-            if purge_needinputs:
-                db.delete_all_need_inputs(projects=projects)
-
         except Exception as err:
             print(f'run failed:{err}')
 
     elif args.command == 'html':
-        rootdir = None
-        dbfile = None
-        projects = None
-        filename = args.filename
-        tabs = args.tabs
-        emojis = args.emojis
-
-        from dax.noxnat.database_noxnat import DatabaseNoXnat
-        from dax.noxnat import load_stats
-        from dax.exports.export_html import save as save_html
-
         if args.debug:
             logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         else:
@@ -455,33 +379,18 @@ if __name__ == '__main__':
 
         try:
             rootdir = os.environ['DAXROOTDIR']
-            if args.projects:
-                projects = args.projects.split(',') or None
-
-            if args.db:
-                dbfile = args.db
-            else:
-                dbfile = f'{rootdir}/db/dax.duckdb'
-
-            # Load data from database file
-            data = DatabaseNoXnat(dbfile).load_data()
-
-            print('loading stats')
-            data['stats'] = load_stats(rootdir)
-
-            # Save html file
-            print(f'saving file:{filename}:{projects=}')
-            save_html(data, filename, projects=projects, tabs=tabs, emojis=emojis)
-
+            dax_html.save_html_noxnat(
+                rootdir,
+                args.filename,
+                projects=args.projects,
+                dbfile=args.db,
+                tabs=args.tabs,
+                emojis=args.emojis
+            )
         except Exception as err:
-            print(f'run failed:{err}')
+            print(f'html failed:{err}')
 
     elif args.command == 'status':
-        rootdir = None
-        dbfile = None
-
-        from dax.noxnat.database_noxnat import DatabaseNoXnat
-
         if args.debug:
             logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         else:
@@ -489,40 +398,12 @@ if __name__ == '__main__':
 
         try:
             rootdir = os.environ['DAXROOTDIR']
-            dbfile = f'{rootdir}/db/dax.duckdb'
-
-            # Load data from database file
-            db = DatabaseNoXnat(dbfile)
-            q = db.load_taskqueue()
-            a = db.load_data()['assessors']
-
-            # TODO: show assr counts by project/proctype/status to show progress of processing
-
-            if len(q) == 0:
-                print('Nothing in the SLURM queue')
-            else:
-                # TODO: show queue counts by project/proctype/status
-                q = q[q.PROCSTATUS != 'COMPLETE']
-                print(f'{len(q)} jobs in the SLURM queue')
-                print(q.PROCSTATUS.value_counts().to_string())
-
-            if len(q) > 0 and args.showqueue:
-                # Show the queue
-                q = q[q.PROCSTATUS != 'COMPLETE']
-                print(q[['ASSR', 'PROCSTATUS', 'JOBSTART', 'JOBEND']])
-
-            if len(a) > 0 and args.showassessors:
-                # Get assessors
-                print('show running assessors')
-
-                # Show Some counts
-                print(a.QCSTATUS.value_counts().to_string())
-                print(a.PROCSTATUS.value_counts().to_string())
-        
-                # Show running statuses
-                a = a[a.PROCSTATUS == 'JOB_RUNNING']
-                print(a[['ASSR', 'PROCSTATUS']])
-
+            dax_status.show_status_noxnat(
+                rootdir,
+                projects=args.projects,
+                show_queue=args.showqueue,
+                show_assessors=args.showassesssors
+            )
         except Exception as err:
             print(f'status failed:{err}')
 

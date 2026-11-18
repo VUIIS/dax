@@ -1003,6 +1003,13 @@ class DaxManager(object):
             for project in build_projects:
                 LOGGER.info(f'rcq build:{project}')
 
+
+
+                # TODO: fix this. why are build logs not going to project specific files?
+                # Should we remove debug=False?
+
+
+
                 logfile = self.log_name('build', project, run_time)
                 logging.getLogger('dax').handlers = []
                 dax.bin.set_logger(logfile, debug=False)
