@@ -41,7 +41,7 @@ COMPLETED_STATUSES = [
 class TaskLauncherNoXnat(object):
     # Launches tasks on cluster and tracks updates
 
-    def __init__(self, rootdir, qlimit=10, plimit=10, perlimit=25, launch_enabled=True, finish_enabled=True):
+    def __init__(self, rootdir, qlimit=10, plimit=10, perlimit=25, launch_enabled=True, update_enabled=True, finish_enabled=True):
         self._rootdir = rootdir
         self._dbfile = f'{rootdir}/db/dax.duckdb'
         self._db = DatabaseNoXnat(self._dbfile)
@@ -56,6 +56,7 @@ class TaskLauncherNoXnat(object):
         self._qlimit = qlimit
         self._plimit = plimit
         self._launch_enabled = launch_enabled
+        self._update_enabled = update_enabled
         self._finish_enabled = finish_enabled
 
     def apply_settings(self, filename):
@@ -361,7 +362,7 @@ class TaskLauncherNoXnat(object):
             return
 
         try:
-            if self._finish_enabled:
+            if self._update_enabled:
                 # Update currently running
                 self._update_running(projects=projects)
 
@@ -537,13 +538,14 @@ class TaskLauncherNoXnat(object):
                 v = task[k]
                 f.write(f'{k}={v}\n')
 
-    def set_launch_only(self):
-        self._launch_enabled = True
+    def disable_launch(self):
+        self._launch_enabled = False
+
+    def disable_finish(self):
         self._finish_enabled = False
 
-    def set_finish_only(self):
-        self._launch_enabled = False
-        self._finish_enabled = True
+    def disable_update(self):
+        self._update_enabled = False
 
     def retry_failed(self, projects=None):
         # Get list of JOB_FAILED

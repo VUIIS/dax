@@ -208,12 +208,13 @@ runs build, launch, update and upload.'
     run_parser.add_argument('-p', dest='projects', help='Project(s) to run', required=False)
     run_parser.add_argument('--db', dest='db', required=False, help='override database file path')
     run_parser.add_argument('--rootdir', dest='rootdir', required=False, help='override root directory path')
-    run_parser.add_argument('--retry-failed', dest='retry', action='store_true')
-    run_parser.add_argument('--purge-needinputs', dest='purge', action='store_true')
-    run_parser.add_argument('--create-only', dest='createonly', action='store_true')
-    run_parser.add_argument('--build-only', dest='buildonly', action='store_true')
-    run_parser.add_argument('--launch-only', dest='launchonly', action='store_true')
-    run_parser.add_argument('--finish-only', dest='finishonly', action='store_true')
+    run_parser.add_argument('--retry-failed', dest='retry', action='store_true', help='Delete outputs and reset assessor to NEED_INPUTS')
+    run_parser.add_argument('--purge-needinputs', dest='purge', action='store_true', help='Delete assessors with status NEED_INPUTS')
+    run_parser.add_argument('--create-only', dest='createonly', action='store_true', help='Only run the build step to create new assessors')
+    run_parser.add_argument('--build-only', dest='buildonly', action='store_true', help='Only run the build step to queue assessors')
+    run_parser.add_argument('--launch-only', dest='launchonly', action='store_true', help='Only run the step to launch jobs')
+    run_parser.add_argument('--update-only', dest='updateonly', action='store_true', help='Only run the step to update running jobs')
+    run_parser.add_argument('--finish-only', dest='finishonly', action='store_true', help='Only run the step to archive finished jobs')
 
     # status:
     status_desc = 'status commands'
@@ -362,11 +363,29 @@ if __name__ == '__main__':
 
         try:
             rootdir = os.environ['DAXROOTDIR']
+            _create = _build = _launch = _update = _finish = True
+
+            if args.createonly:
+                _build = _launch = _update = _finish = False
+            elif args.build_only:
+                _create = _launch = _update = _finish = False
+            elif args.launchonly:
+                _create = _build = _update = _finish = False
+            elif args.updateonly:
+                _create = _build = _launch = _finish = False
+            elif args.finishonly:
+                _create = _build = _launch = _update = False
+
             dax_run.run_noxnat(
                 rootdir,
                 yamlfile=args.yamlfile,
                 retry_failed=args.retry,
                 purge_needinputs=args.purge,
+                run_create=_create,
+                run_build=_build,
+                run_launch=_launch,
+                run_update=_update,
+                run_finish=_finish,
             )
         except Exception as err:
             print(f'run failed:{err}')

@@ -37,7 +37,7 @@ logger = logging.getLogger('dax')
 class TaskBuilderNoXnat(object):
     # Builds tasks and adds to queue
 
-    def __init__(self, rootdir, create_disabled=False, build_disabled=False):
+    def __init__(self, rootdir, create_enabled=True, build_enabled=True):
         self._rootdir = rootdir
         self._dbfile = f'{rootdir}/db/dax.duckdb'
         self._db = DatabaseNoXnat(self._dbfile)
@@ -47,16 +47,20 @@ class TaskBuilderNoXnat(object):
         self._logs_dir = f'{rootdir}/logs'
         self._flags_dir = f'{rootdir}/flagfiles'
         self._build_projects = self.projects_with_processing()
-        self._create_disabled = create_disabled
-        self._build_disabled = build_disabled
+        self._create_enabled = create_enabled
+        self._build_enabled = build_enabled
 
-    def set_create_only(self):
-        self._create_disabled = False
-        self._build_disabled = True
+    def disable_create(self):
+        self._create_enabled = False
 
-    def set_build_only(self):
-        self._create_disabled = True
-        self._build_disabled = False
+    def disable_build(self):
+        self._build_enabled = False
+
+    def enable_create(self):
+        self._create_enabled = True
+
+    def enable_build(self):
+        self._build_enabled = True
 
     def _load_data(self):
         return self._db.load_data()
@@ -365,7 +369,7 @@ class TaskBuilderNoXnat(object):
             # Get(create) assessor with given inputs and proc type
             info = self.get_session_assessor(project_info, session, processor, inputs)
             if not info:
-                if self._create_disabled:
+                if not self._create_enabled:
                     # finished with this input set
                     logger.debug(f'no assessor found for this input set, create disabled, skipping')
                     continue
@@ -380,7 +384,7 @@ class TaskBuilderNoXnat(object):
                 #info['PROCSTATUS'] = NEED_TO_RUN
 
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
-                if self._build_disabled:
+                if not self._build_enabled:
                     logger.debug(f'assessor ready for task queue but build is disabled, skipping')
                 else:
                     try:
@@ -464,7 +468,7 @@ class TaskBuilderNoXnat(object):
         if assessor:
             logger.debug('matches existing:{}'.format(assessor['ASSR']))
             return assessor
-        elif not self._create_disabled:
+        elif self._create_enabled:
             logger.debug('no existing assessors found, creating a new one')
 
             # Create the assessor
