@@ -504,7 +504,7 @@ if __name__ == '__main__':
                 # TODO: show queue counts by project/proctype/status
                 q = q[q.PROCSTATUS != 'COMPLETE']
                 print(f'{len(q)} jobs in the SLURM queue')
-                print(q.PROCSTATUS.value_counts(dtype=False, name=False))
+                print(q.PROCSTATUS.value_counts().to_string())
 
             if len(q) > 0 and args.showqueue:
                 # Show the queue
@@ -516,8 +516,8 @@ if __name__ == '__main__':
                 print('show running assessors')
 
                 # Show Some counts
-                print(a.QCSTATUS.value_counts(dtype=False, name=False))
-                print(a.PROCSTATUS.value_counts(dtype=False, name=False))
+                print(a.QCSTATUS.value_counts().to_string())
+                print(a.PROCSTATUS.value_counts().to_string())
         
                 # Show running statuses
                 a = a[a.PROCSTATUS == 'JOB_RUNNING']
