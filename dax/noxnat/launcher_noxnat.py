@@ -41,7 +41,7 @@ COMPLETED_STATUSES = [
 class TaskLauncherNoXnat(object):
     # Launches tasks on cluster and tracks updates
 
-    def __init__(self, rootdir):
+    def __init__(self, rootdir, qlimit=10, plimit=10, perlimit=25, launch_enabled=True, finish_enabled=True):
         self._rootdir = rootdir
         self._dbfile = f'{rootdir}/db/dax.duckdb'
         self._db = DatabaseNoXnat(self._dbfile)
@@ -52,9 +52,11 @@ class TaskLauncherNoXnat(object):
         self._projects_dir = f'{rootdir}/projects'
         self._flags_dir = f'{rootdir}/flagfiles'
         self._templates_dir = f'{rootdir}/templates'
-        self._perlimit = 25
-        self._qlimit = 10
-        self._plimit = 10
+        self._perlimit = perlimit
+        self._qlimit = qlimit
+        self._plimit = plimit
+        self._launch_enabled = launch_enabled
+        self._finish_enabled = finish_enabled
 
     def _load_data(self):
         return self._db.load_data()
@@ -317,7 +319,7 @@ class TaskLauncherNoXnat(object):
         logger.debug(f'applying assessor updates to db:{updates}')
         self._db.update_assessors(updates)
 
-    def update(self, launch_enabled=True, projects=None):
+    def update(self, projects=None):
         """Update all tasks in taskqueue of projects_redcap."""
 
         # Try to lock
@@ -330,18 +332,20 @@ class TaskLauncherNoXnat(object):
             return
 
         try:
-            # Update currently running
-            self._update_running(projects=projects)
+            if self._finish_enabled:
+                # Update currently running
+                self._update_running(projects=projects)
 
-            # Update completed
-            self._update_completed(projects=projects)
+                # Update completed
+                self._update_completed(projects=projects)
 
             # Launch
-            if launch_enabled:
+            if self._launch_enabled:
                 self._launch(projects=projects)
 
-            # Archive finished tasks
-            self._archive_done(projects=projects)
+            if self._finish_enabled:
+                # Archive finished tasks
+                self._archive_done(projects=projects)
 
             logger.info('update:DONE!')
 
@@ -503,6 +507,14 @@ class TaskLauncherNoXnat(object):
             for k in sorted(SAVE_KEYS):
                 v = task[k]
                 f.write(f'{k}={v}\n')
+
+    def set_launch_only(self):
+        self._launch_enabled = True
+        self._finish_enabled = False
+
+    def set_finish_only(self):
+        self._launch_enabled = False
+        self._finish_enabled = True
 
     def retry_failed(self, projects=None):
         # Get list of JOB_FAILED

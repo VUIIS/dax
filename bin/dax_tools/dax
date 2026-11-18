@@ -203,16 +203,22 @@ runs build, launch, update and upload.'
     run_parser.add_argument('-y', dest='yamlfile', required=False, help='override processors yamlfile')
     run_parser.add_argument('--debug', dest='debug', action='store_true')
     run_parser.add_argument('-p', dest='projects', help='Project(s) to run', required=False)
-    run_parser.add_argument('-s', dest='steps', help='limit steps to create/build/launch/finish')
     run_parser.add_argument('--db', dest='db', required=False, help='override database file path')
     run_parser.add_argument('--rootdir', dest='rootdir', required=False, help='override root directory path')
     run_parser.add_argument('--retry-failed', dest='retry', action='store_true')
     run_parser.add_argument('--purge-needinputs', dest='purge', action='store_true')
+    run_parser.add_argument('--create-only', dest='createonly', action='store_true')
+    run_parser.add_argument('--build-only', dest='buildonly', action='store_true')
+    run_parser.add_argument('--launch-only', dest='launchonly', action='store_true')
+    run_parser.add_argument('--finish-only', dest='finishonly', action='store_true')
 
     # status:
     status_desc = 'status commands'
     status_parser = dax_parser.add_parser('status', help=run_desc)
     status_parser.add_argument('--debug', dest='debug', action='store_true')
+    status_parser.add_argument('-p', dest='projects', help='Specify projects to include', required=False)
+    status_parser.add_argument('-q', dest='showqueue', action='store_true', help='Show jobs in queue', required=False)
+    status_parser.add_argument('-a', dest='showassessors', action='store_true', help='Show assessor counts', required=False)
 
     # html:
     html_parser = dax_parser.add_parser('html', help='save html file')
@@ -357,6 +363,8 @@ if __name__ == '__main__':
         qlimit = 1000
         perlimit = 1000
         opt_processors = None
+        builder = None
+        launcher = None
 
         from dax.noxnat.builder_noxnat import TaskBuilderNoXnat
         from dax.noxnat.database_noxnat import DatabaseNoXnat
@@ -375,24 +383,42 @@ if __name__ == '__main__':
             if args.projects:
                 projects = args.projects.split(',') or None
 
-            # Make launcher
-            launcher = TaskLauncherNoXnat(rootdir)
-            launcher._set_plimit(plimit)
-            launcher._set_qlimit(qlimit)
-            launcher._set_perlimit(perlimit)
+            # Get a task launcher
+            launcher = TaskLauncherNoXnat(
+                rootdir,
+                plimit=plimit,
+                qlimit=qlimit,
+                perlimit=perlimit
+            )
+
+            # Task builder
+            builder = TaskBuilderNoXnat(rootdir)
 
             # Database
             db = DatabaseNoXnat(f'{rootdir}/db/dax.duckdb')
 
-            # Get a builder
-            builder = TaskBuilderNoXnat(rootdir)
+            # Configure as requested
+            if args.launchonly:
+                run_build = False
+                run_launch = True
+                launcher.set_launch_only()
+            elif args.createonly:
+                run_build = True
+                run_launch = False
+                builder.set_create_only()
+            elif args.buildonly:
+                run_build = True
+                run_launch = False
+                builder.set_build_only()        
+            elif args.finishonly:
+                run_build = False
+                run_launch = True
+                launcher.set_finish_only()
 
             # Set processors from command-line or default optional location
             if yamlfile:
-                print(f'set processors to user specified:{yamlfile}')
                 builder.set_processors(yamlfile)
             elif os.path.isfile(opt_processors):
-                print(f'set processors to default location:{opt_processors}')
                 builder.set_processors(opt_processors)
 
             if run_build:
@@ -402,11 +428,9 @@ if __name__ == '__main__':
                 launcher.update(projects=projects)
 
             if retry_failed:
-                print('retrying JOB_FAILED')
                 launcher.retry_failed(projects=projects)
 
             if purge_needinputs:
-                print('purge all NEED_INPUTS')
                 db.delete_all_need_inputs(projects=projects)
 
         except Exception as err:
@@ -469,23 +493,35 @@ if __name__ == '__main__':
 
             # Load data from database file
             db = DatabaseNoXnat(dbfile)
-
-            # Show the queue
             q = db.load_taskqueue()
-            q = q[q.PROCSTATUS != 'COMPLETE']
-            print(q[['ASSR', 'PROCSTATUS', 'JOBSTART', 'JOBEND']])
-
-            # Get assessors
-            print('show running assessors')
             a = db.load_data()['assessors']
 
-            # Show Some counts
-            print(a.QCSTATUS.value_counts())
-            print(a.PROCSTATUS.value_counts())
+            # TODO: show assr counts by project/proctype/status to show progress of processing
 
-            # Show running statuses
-            a = a[a.PROCSTATUS == 'JOB_RUNNING']
-            print(a[['ASSR', 'PROCSTATUS']])
+            if len(q) == 0:
+                print('Nothing in the SLURM queue')
+            else:
+                # TODO: show queue counts by project/proctype/status
+                q = q[q.PROCSTATUS != 'COMPLETE']
+                print(f'{len(q)} jobs in the SLURM queue')
+                print(q.PROCSTATUS.value_counts(dtype=False, name=False))
+
+            if len(q) > 0 and args.showqueue:
+                # Show the queue
+                q = q[q.PROCSTATUS != 'COMPLETE']
+                print(q[['ASSR', 'PROCSTATUS', 'JOBSTART', 'JOBEND']])
+
+            if len(a) > 0 and args.showassessors:
+                # Get assessors
+                print('show running assessors')
+
+                # Show Some counts
+                print(a.QCSTATUS.value_counts(dtype=False, name=False))
+                print(a.PROCSTATUS.value_counts(dtype=False, name=False))
+        
+                # Show running statuses
+                a = a[a.PROCSTATUS == 'JOB_RUNNING']
+                print(a[['ASSR', 'PROCSTATUS']])
 
         except Exception as err:
             print(f'status failed:{err}')

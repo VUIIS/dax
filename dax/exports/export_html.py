@@ -628,6 +628,7 @@ def _get_buttons(data, tabs):
 
     return buttons
 
+
 def _dashboard_pre_js():
     return resources.read_text('dax.exports.assets', 'dashboard_pre.js')
 

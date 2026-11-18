@@ -37,7 +37,7 @@ logger = logging.getLogger('dax')
 class TaskBuilderNoXnat(object):
     # Builds tasks and adds to queue
 
-    def __init__(self, rootdir):
+    def __init__(self, rootdir, create_disabled=False, build_disabled=False):
         self._rootdir = rootdir
         self._dbfile = f'{rootdir}/db/dax.duckdb'
         self._db = DatabaseNoXnat(self._dbfile)
@@ -47,6 +47,16 @@ class TaskBuilderNoXnat(object):
         self._logs_dir = f'{rootdir}/logs'
         self._flags_dir = f'{rootdir}/flagfiles'
         self._build_projects = self.projects_with_processing()
+        self._create_disabled = create_disabled
+        self._build_disabled = build_disabled
+
+    def set_create_only(self):
+        self._create_disabled = False
+        self._build_disabled = True
+
+    def set_build_only(self):
+        self._create_disabled = True
+        self._build_disabled = False
 
     def _load_data(self):
         return self._db.load_data()
@@ -359,8 +369,12 @@ class TaskBuilderNoXnat(object):
             # Get(create) assessor with given inputs and proc type
             info = self.get_session_assessor(project_info, session, processor, inputs)
             if not info:
-                raise Exception('failed to get new assessor')
-                continue
+                if self._create_disabled:
+                    # finished with this input set
+                    logger.debug(f'no assessor found for this input set, create disabled, skipping')
+                    continue
+                else:
+                    raise Exception('failed to get new assessor')
 
             # Check for undo
             if info['QCSTATUS'] == RERUN:
@@ -370,14 +384,17 @@ class TaskBuilderNoXnat(object):
                 #info['PROCSTATUS'] = NEED_TO_RUN
 
             if info['PROCSTATUS'] in [NEED_TO_RUN, NEED_INPUTS]:
-                try:
-                    info = self._build_task(info, processor, project_info, custom=custom)
-                    logger.info(f'build task:{info["ASSR"]}:{info["PROCSTATUS"]}:{info["QCSTATUS"]}')
-                except Exception as err:
-                    logger.info(f'build_task failed:{err}')
-                    continue
+                if self._build_disabled:
+                    logger.debug(f'assessor ready for task queue but build is disabled, skipping')
+                else:
+                    try:
+                        info = self._build_task(info, processor, project_info, custom=custom)
+                        logger.info(f'build task:{info["ASSR"]}:{info["PROCSTATUS"]}:{info["QCSTATUS"]}')
+                    except Exception as err:
+                        logger.info(f'build_task failed:{err}')
+                        continue
 
-                logger.debug(f'{info}')
+                    logger.debug(f'{info}')
             else:
                 logger.debug('already built:{}'.format(info['ASSR']))
 
@@ -450,7 +467,8 @@ class TaskBuilderNoXnat(object):
 
         if assessor:
             logger.debug('matches existing:{}'.format(assessor['ASSR']))
-        else:
+            return assessor
+        elif not self._create_disabled:
             logger.debug('no existing assessors found, creating a new one')
 
             # Create the assessor
@@ -470,8 +488,9 @@ class TaskBuilderNoXnat(object):
             # Add to currently loaded data
             project_info['assessors'].append(assessor)
             logger.debug('created:{}'.format(assessor['ASSR']))
-
-        return assessor
+            return assessor
+        else:
+            return None
 
     def create_session_assessor(self, project, subject, session, proctype, procversion, inputs):
         assessor = {}
