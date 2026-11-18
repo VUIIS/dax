@@ -101,9 +101,6 @@ class TaskBuilderNoXnat(object):
                     records[i]['INPUTS'] = {}
                     continue
 
-
-        print([x for x in records if not x['INPUTS']])
-
         records = [x for x in records if x['INPUTS']]
 
         info['assessors'] = records
@@ -161,7 +158,6 @@ class TaskBuilderNoXnat(object):
 
         dupes = df[df.duplicated(subset=['PROJECT', 'PROCTYPE', 'INPUTS'])]
         logger.info(f'{len(dupes)} duplicates found')
-        print(dupes)
 
     def update_all(self, only_session=None, only_projects=None):
         results = []
