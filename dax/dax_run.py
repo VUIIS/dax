@@ -3,7 +3,7 @@ import os
 from dax.noxnat.builder_noxnat import TaskBuilderNoXnat
 from dax.noxnat.database_noxnat import DatabaseNoXnat
 from dax.noxnat.launcher_noxnat import TaskLauncherNoXnat
-
+from dax.noxnat.analysis_noxnat import AnalysisLauncherNoXnat
 
 def run_noxnat(
     rootdir,
@@ -72,3 +72,12 @@ def run_noxnat(
 
     if purge_needinputs:
         db.delete_all_need_inputs(projects=only_projects)
+
+    # Handle analyses
+    analyses = AnalysisLauncherNoXnat(rootdir)
+    analyses.update(
+        projects=projects,
+        launch_enabled=run_launch,
+        update_enabled=run_update,
+        finish_enabled=run_finish
+    )

@@ -65,6 +65,15 @@ class DatabaseNoXnat(object):
         
         return df
 
+    def load_analyses(self):
+        filename = self._filename
+
+        with duckdb.connect(filename) as con:
+            df = con.sql(f"SELECT * FROM analyses").df()
+            df.fillna('')
+        
+        return df
+
     def clear_taskqueue(self):
         filename = self._filename
 
