@@ -8,7 +8,6 @@ import requests
 
 from ..cluster import PBS
 from ..lockfiles import lock_flagfile, unlock_flagfile
-from .projectinfo import load_project_info
 from ..utilities import parse_list
 from .database_noxnat import DatabaseNoXnat
 
@@ -314,7 +313,51 @@ class AnalysisLauncherNoXnat(object):
                 logger.error(f'failed to apply updates to db:{err}')
 
     def get_info(self, project):
-        return load_project_info(project)
+        #return load_project_info(project)
+        data = self._db.load_data()
+        info = {}
+
+        # Scans
+        scans = data['scans']
+        scans = scans[scans.PROJECT == project]
+        scans['full_path'] = \
+            'projects/' + \
+            scans['PROJECT'].astype(str) + \
+            '/SCANS/' + \
+            scans['SUBJECT'].astype(str) + '/' + \
+            scans['SESSION'].astype(str) + '/' + \
+            scans['SCANID'].astype(str) + '-x-' + \
+            scans['SCANTYPE'].astype(str) + '-x-' + \
+            scans['DESCRIP'].astype(str)
+
+        # Convert to list of dicts instead of df
+        info['scans'] = scans.to_dict('records')
+
+        # Assessors
+        _assrs = data['assessors']
+        _assrs['full_path'] = \
+            'projects/' + \
+            _assrs['PROJECT'] + \
+            '/ASSESSORS/' + \
+            _assrs['SUBJECT'] + '/' + \
+            _assrs['ASSR']
+
+        # Decode inputs
+        records = _assrs[_assrs.PROJECT == project].to_dict('records')
+        for i, r in enumerate(records):
+            inputs = r['INPUTS']
+            if isinstance(inputs, str):
+                try:
+                    records[i]['INPUTS'] = decode_inputs(inputs)
+                except Exception as err:
+                    records[i]['INPUTS'] = {}
+                    continue
+
+        records = [x for x in records if x['INPUTS']]
+
+        info['assessors'] = records
+
+        return info
 
     def label_analysis(self, project, analysis_id):
         analysis_datetime = datetime.now().strftime("%Y-%m-%d-%H%M%S")
