@@ -104,8 +104,9 @@ class AnalysisLauncherNoXnat(object):
 
         return yaml.safe_load(r.text)
 
-    def _load_analyses(self, projects=None, filename=self._settings):
+    def _load_analyses(self, projects=None):
         analyses = []
+        filename = self._settings
 
         # Get the current analysis table from yaml
         logger.debug('loading current analysis records')
