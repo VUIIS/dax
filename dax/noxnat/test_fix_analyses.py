@@ -1,3 +1,7 @@
+import sys
+
+from dax.noxnat.database_noxnat import DatabaseNoXnat
+
 
 if __name__ == '__main__':
 	rootdir = sys.argv[1]
