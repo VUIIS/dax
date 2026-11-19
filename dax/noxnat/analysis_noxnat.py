@@ -79,6 +79,7 @@ class AnalysisLauncherNoXnat(object):
         self._job_template = f'{rootdir}/templates/project_job_template.txt'
         self._projects_dir = f'{rootdir}/projects'
         self._db = DatabaseNoXnat(self._dbfile)
+        self._flags_dir = f'{rootdir}/flagfiles'
 
     def load_processor_github(self, user, repo, version, subdir):
         """Export file from github."""
