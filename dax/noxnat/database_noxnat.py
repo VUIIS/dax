@@ -102,6 +102,12 @@ class DatabaseNoXnat(object):
         with duckdb.connect(filename) as con:
             con.sql("DROP TABLE IF EXISTS taskqueue")
 
+    def _delete_analyses(self):
+        filename = self._filename
+
+        with duckdb.connect(filename) as con:
+            con.sql("DROP TABLE IF EXISTS analyses")
+
     def _add_taskqueue(self):
         filename = self._filename
 
@@ -123,6 +129,33 @@ class DatabaseNoXnat(object):
                     USERINPUTS VARCHAR,
                     TIMEUSED VARCHAR,
                     MEMUSED VARCHAR
+                    )
+                """
+            )
+
+    def _add_analyses(self):
+        filename = self._filename
+
+        with duckdb.connect(filename) as con:
+            con.execute("""
+                CREATE TABLE analyses (
+                    ID VARCHAR PRIMARY KEY,
+                    PROJECT VARCHAR,
+                    LABEL VARCHAR,
+                    OTHERPROJECTS VARCHAR,
+                    PROCREPO VARCHAR,
+                    INCLUDE VARCHAR,
+                    EXCLUDE VARCHAR,
+                    JOBID VARCHAR,
+                    JOBNODE VARCHAR,
+                    JOBSTARTTIME VARCHAR,
+                    JOBENDTIME VARCHAR,
+                    STATUS VARCHAR,
+                    WALLTIME VARCHAR,
+                    MEMREQ VARCHAR,
+                    TIMEUSED VARCHAR,
+                    MEMUSED VARCHAR,
+                    OUTPUT VARCHAR
                     )
                 """
             )
