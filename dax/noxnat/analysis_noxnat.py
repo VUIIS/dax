@@ -842,8 +842,13 @@ class AnalysisLauncherNoXnat(object):
             log_file,
             cmds,
             walltime,
-            memreq,
-            job_template=self._job_template
+            mem_mb=memreq,
+            ppn=1,
+            env=None,
+            email=None,
+            email_options='FAIL',
+            job_template=self._job_template,
+            xnat_host='NOXNAT'
         )
 
         # Save to file
