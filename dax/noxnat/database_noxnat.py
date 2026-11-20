@@ -280,7 +280,7 @@ class DatabaseNoXnat(object):
                 ]
             )
 
-        logger.debug(f'task set in duckdb:{task}:{filename}')
+        logger.debug(f'analysis set in duckdb:{analysis}:{filename}')
 
     def update_assessor(self, id, field, value):
         filename = self._filename
