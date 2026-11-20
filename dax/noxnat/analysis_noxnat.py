@@ -324,7 +324,7 @@ class AnalysisLauncherNoXnat(object):
                         'JOBNODE': 'NULL',
                         'TIMEUSED': 'NULL',
                         'MEMUSED': 'NULL',
-                        'JOBSTARTIME': 'NULL',
+                        'JOBSTARTTIME': 'NULL',
                         'JOBENDTIME': 'NULL',
                     })
                 else:
@@ -1061,8 +1061,8 @@ def get_updates(analysis):
     if job_node and job_node != analysis.get('JOBNODE', ''):
         updates['JOBNODE'] = job_node
 
-    if job_start and job_start != analysis.get('JOBSTARTIME', ''):
-        updates['JOBSTARTIME'] = job_start
+    if job_start and job_start != analysis.get('JOBSTARTTIME', ''):
+        updates['JOBSTARTTIME'] = job_start
 
     if job_end and job_end != analysis.get('JOBENDTIME', ''):
         updates['JOBENDTIME'] = job_end
