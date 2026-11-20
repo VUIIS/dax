@@ -223,6 +223,7 @@ runs build, launch, update and upload.'
     status_parser.add_argument('-p', dest='projects', help='Specify projects to include', required=False)
     status_parser.add_argument('-q', dest='showqueue', action='store_true', help='Show jobs in queue', required=False)
     status_parser.add_argument('-a', dest='showassessors', action='store_true', help='Show assessor counts', required=False)
+    status_parser.add_argument('-g', dest='showanalyses', action='store_true', help='Show group analyses', required=False)
 
     # html:
     html_parser = dax_parser.add_parser('html', help='save html file')
@@ -422,7 +423,8 @@ if __name__ == '__main__':
                 rootdir,
                 projects=args.projects,
                 show_queue=args.showqueue,
-                show_assessors=args.showassessors
+                show_assessors=args.showassessors,
+                show_analyses=args.showanalyses
             )
         except Exception as err:
             print(f'status failed:{err}')

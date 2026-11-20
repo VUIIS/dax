@@ -1,7 +1,7 @@
 from dax.noxnat.database_noxnat import DatabaseNoXnat
 
 
-def show_status_noxnat(rootdir, projects=None, show_queue=False, show_assessors=False):
+def show_status_noxnat(rootdir, projects=None, show_queue=False, show_assessors=False, show_analyses=False):
 
     dbfile = f'{rootdir}/db/dax.duckdb'
 
@@ -9,6 +9,7 @@ def show_status_noxnat(rootdir, projects=None, show_queue=False, show_assessors=
     db = DatabaseNoXnat(dbfile)
     q = db.load_taskqueue()
     a = db.load_data()['assessors']
+    g = db.load()['analyses']
 
     print(f'{projects=}')
 
@@ -38,3 +39,7 @@ def show_status_noxnat(rootdir, projects=None, show_queue=False, show_assessors=
         # Show running statuses
         a = a[a.PROCSTATUS == 'JOB_RUNNING']
         print(a[['ASSR', 'PROCSTATUS']])
+
+    if len(g) > 0 and show_analyses:
+        print('show analyses')
+        print(g)
