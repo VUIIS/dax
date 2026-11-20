@@ -726,6 +726,9 @@ class AnalysisLauncherNoXnat(object):
     def launch_analysis(self, analysis):
         """Launch as SLURM Job, write batch and submit. Return job id."""
         imagedir = self._singularitys_dir
+        processor = None
+
+        print(f'{analysis=}')
 
         if analysis['PROCREPO']:
             # Load the yaml file contents from github
@@ -748,23 +751,23 @@ class AnalysisLauncherNoXnat(object):
 
             logger.info(f'loading:{user=}:{repo=}:{version=}:{subdir=}')
 
-            analysis['PROCESSOR'] = self.load_processor_github(
+            processor = self.load_processor_github(
                 user,
                 repo,
                 version,
                 subdir=subdir
             )
+            print(f'{processor=}')
             analysis['PROCREPO'] = f'https://github.com/{user}/{repo}/archive/refs/tags/{version}.tar.gz'
             analysis['PROCVERSION'] = version.replace('v', '')
         elif analysis['PROCESSOR']:
             # Load the yaml file contents
             logger.debug(f'loading:{analysis["PROCESSOR"]}')
-            analysis['PROCESSOR'] = self.load_processor_file(
+            processor = self.load_processor_file(
                 analysis['PROJECT'],
                 analysis['ID'])
-
-        processor = analysis['PROCESSOR']
-
+        else:
+            raise Exception(f'cannot launch, no processor specified:{analysis}')
 
         # TODO: validate processor here and handle invalid
         # import validate
@@ -774,13 +777,14 @@ class AnalysisLauncherNoXnat(object):
         #except Exception as err:
         #    print('Not valid!')
         #    print(err)
-
+        print(f'{processor=}')
+        analysis['PROCESSOR'] = processor
 
         # Set subject list
         analysis['SUBJECTS'] = analysis['INCLUDE'].splitlines()
         analysis['EXCLUDE'] = [x.strip() for x in analysis['EXCLUDE'].split(',')]
 
-        logger.debug(f'{analysis}')
+        logger.debug(f'{analysis=}')
 
         # Set the memory
         memreq = analysis.get('MEMREQ', None)
