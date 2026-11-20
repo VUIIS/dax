@@ -234,6 +234,15 @@ class AnalysisLauncherNoXnat(object):
             else:
                 logger.info(f'analysis still running:{project}:{instance}')
 
+        if updates:
+            # upload changes
+            logger.debug(f'applying updating:{updates}')
+            try:
+                self._apply_updates_analyses(updates)
+            except Exception as err:
+                err = f'failed to apply changes:{err}'
+                logger.error(err)
+
     def _update_completed(self, projects=None):
         updates = []
         records = self._load_analyses(projects=projects)
@@ -278,7 +287,7 @@ class AnalysisLauncherNoXnat(object):
             # upload changes
             logger.debug(f'applying updating:{updates}')
             try:
-                pass
+                self._apply_updates_analyses(updates)
             except Exception as err:
                 err = f'failed to apply changes:{err}'
                 logger.error(err)

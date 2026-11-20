@@ -262,10 +262,21 @@ class DatabaseNoXnat(object):
                     OUTPUT
                 )
                 VALUES
-                (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 [
-                   
+                    analysis['ID'],
+                    analysis['SUBJECTS'],
+                    analysis['JOBID'],
+                    analysis['JOBNODE'],
+                    analysis['JOBSTARTTIME'],
+                    analysis['JOBENDTIME'],
+                    analysis['STATUS'],
+                    analysis['WALLTIME'],
+                    analysis['MEMREQ'],
+                    analysis['TIMEUSED'],
+                    analysis['MEMUSED'],
+                    analysis['OUTPUT']
                 ]
             )
 
