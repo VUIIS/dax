@@ -855,7 +855,7 @@ class AnalysisLauncherNoXnat(object):
 
         return jobid, label
 
-    def get_cmds(self, host, user, input_list, analysis):
+    def get_cmds(self, input_list, analysis):
         # Get inputs text
         inputs = self.build_inputs_text(input_list)
 
@@ -872,8 +872,6 @@ class AnalysisLauncherNoXnat(object):
         cmd = CMDS_TEMPLATE.format(
             inputs=inputs,
             version=analysis['PROCVERSION'],
-            host=host,
-            user=user,
             project=analysis['PROJECT'],
             analysis=analysis['LABEL'],
             repo=analysis['PROCREPO'],
