@@ -106,7 +106,6 @@ class AnalysisLauncherNoXnat(object):
         return yaml.safe_load(r.text)
 
     def _load_analyses(self, projects=None):
-        analyses = []
         filename = self._settings
 
         # Get the current analysis table from yaml
@@ -117,27 +116,27 @@ class AnalysisLauncherNoXnat(object):
                 records = yaml.safe_load(f)
 
             # Load db records
-            data = self._db.load_analyses().to_dict('records')
+            df = self._db.load_analyses()
 
             # Merge
-            records = pd.merge(
-                records,
-                data,
+            df = pd.merge(
+                pd.DataFrame(records),
+                df,
                 left_on=('ID'),
                 right_on=('ID'),
                 how='left'
             )
 
             # Filter to only open jobs
-            analyses = [x for x in rec if x['STATUS'] not in DONE_STATUSES]
+            df = df[~df['STATUS'].isin(DONE_STATUSES)]
 
         except Exception as err:
             logger.error(f'failed to load analyses:{err}')
             return
 
-        logger.debug(f'found {len(analyses)} open analysis records')
+        logger.debug(f'found {len(df)} open analysis records')
 
-        return analyses
+        return df.to_records('dict')
 
     def update(self, projects, launch_enabled=True, update_enabled=True, finish_enabled=True):
         """Update analyses."""
