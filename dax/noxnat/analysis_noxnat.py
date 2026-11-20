@@ -216,10 +216,8 @@ class AnalysisLauncherNoXnat(object):
             status = cur['STATUS']
             instance = cur['ID']
 
-            logger.debug(f'{i}:{instance}:{status}')
-
             # check on running job
-            logger.debug('checking on running job')
+            logger.debug(f'{i}:{instance}:{status=}:checking on running job')
             cur_updates = get_updates(cur)
             if cur_updates:
                 cur_updates.update({
@@ -254,8 +252,11 @@ class AnalysisLauncherNoXnat(object):
 
         # Update each record
         for i, cur in enumerate(completed_list):
+            status = cur['STATUS']
+            instance = cur['ID']
+
             # finish completed job
-            logger.debug(f'handling complete, status={status}')
+            logger.debug(f'{i}:{instance}:{status=}:handling complete job')
 
             # Get the output label
             label = cur.get('OUTPUT', None)
