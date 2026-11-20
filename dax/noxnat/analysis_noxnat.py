@@ -723,6 +723,10 @@ class AnalysisLauncherNoXnat(object):
 
         return data
 
+    def _adir(self, label):
+        proj = label.split('-')[0]
+        return f'{self._projects_dir}/{proj}/ANALYSES/{label}'
+
     def launch_analysis(self, analysis):
         """Launch as SLURM Job, write batch and submit. Return job id."""
         imagedir = self._singularitys_dir
@@ -756,7 +760,6 @@ class AnalysisLauncherNoXnat(object):
                 version,
                 subdir=subdir
             )
-            print(f'{processor=}')
             analysis['PROCREPO'] = f'https://github.com/{user}/{repo}/archive/refs/tags/{version}.tar.gz'
             analysis['PROCVERSION'] = version.replace('v', '')
         elif analysis.get('PROCFILE', False):
@@ -805,9 +808,10 @@ class AnalysisLauncherNoXnat(object):
         # Create and set the label for our new analysis
         analysis['label'] = self.label_analysis(analysis)
         label = analysis['label']
-        batch_file = f'{self._rcqdir}/{label}.slurm'
-        log_file = f'{self._rcqdir}/{label}.txt'
-        covar_file = f'{self._rcqdir}/{label}.csv'
+        _adir = self._adir(label)
+        batch_file = f'{_adir}/{label}.slurm'
+        log_file = f'{_adir}/{label}.txt'
+        covar_file = f'{_adir}/{label}.csv'
 
         if analysis.get('COVARFILE', False):
             self.save_covariates_file(analysis, covar_file)
@@ -893,22 +897,10 @@ class AnalysisLauncherNoXnat(object):
 
         return txt
 
-    def build_dir_text(self, analysis):
-        # Set shared jobdir
-        txt = 'JOBDIR=$(mktemp -d "{}.XXXXXXXXX") || '.format(self._rcqdir)
-        txt += '{ echo "mktemp failed"; exit 1; }\n'
-        txt += 'INDIR=$JOBDIR/INPUTS\n'
-        txt += 'OUTDIR=$JOBDIR/OUTPUTS\n'
-
-        return txt
-
     def build_main_text(self, analysis):
         pre = ''
         post = ''
         txt = ''
-
-        if analysis['PROCESSOR'].get('jobdir', '') == 'shared':
-            txt += self.build_dir_text(analysis)
 
         # Get the pre command that runs before main
         if analysis['PROCESSOR'].get('pre', False):
