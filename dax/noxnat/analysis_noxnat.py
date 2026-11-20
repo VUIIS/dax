@@ -28,6 +28,9 @@ from .database_noxnat import DatabaseNoXnat
 # to Q with dax rerun -p PROJECT -a ID or
 # test_rerun.py PROJECT-ID
 
+# When you queue an analysis, it clears the record in db
+# for a new slurm job.
+
 
 logger = logging.getLogger('dax')
 
@@ -92,6 +95,26 @@ class AnalysisLauncherNoXnat(object):
         self._db = DatabaseNoXnat(self._dbfile)
         self._flags_dir = f'{rootdir}/flagfiles'
 
+    def queue_analysis(self, analysis_id):
+        # Set status to queued and clear previous run
+        self._set_analysis({          
+            'ID': analysis_id,
+            'STATUS': 'QUEUED',
+            'SUBJECTS': '',
+            'JOBID': '',
+            'JOBNODE': '',
+            'JOBSTARTTIME': '',
+            'JOBENDTIME': '',
+            'WALLTIME': '',
+            'MEMREQ': '',
+            'TIMEUSED': '',
+            'MEMUSED': '',
+            'OUTPUT': '',
+        })
+
+    def _set_analysis(self, analysis):
+        return self._db.set_analysis(analysis)
+
     def load_processor_github(self, user, repo, version, subdir):
         """Export file from github."""
         base = 'https://raw.githubusercontent.com'
@@ -126,8 +149,6 @@ class AnalysisLauncherNoXnat(object):
                 _records = yaml.safe_load(f)
                 df = pd.DataFrame(_records, columns=ANALYSES_COLUMNS, dtype=str).fillna('')
 
-            print(df)
-
             # Load db records
             data = self._db.load_analyses()
 
@@ -140,12 +161,8 @@ class AnalysisLauncherNoXnat(object):
                 how='left'
             ).astype(str).fillna('')
 
-            print(df)
-
             # Filter to only open jobs
             df = df[~df['STATUS'].isin(DONE_STATUSES)]
-
-            print(df)
 
         except Exception as err:
             logger.error(f'failed to load analyses:{err}')
@@ -290,7 +307,6 @@ class AnalysisLauncherNoXnat(object):
                 if jobid and label:
                     # Append to updates, clear existing info
                     updates.append({
-                        'PROJECT': cur['PROJECT'],
                         'ID': cur['ID'],
                         'STATUS': 'RUNNING',
                         'JOBID': jobid,
@@ -304,7 +320,6 @@ class AnalysisLauncherNoXnat(object):
                 else:
                     # Update with launch failed
                     updates.append({
-                        'PROJECT': cur['PROJECT'],
                         'ID': cur['ID'],
                         'STATUS': 'LAUNCH_FAILED',
                         })
@@ -315,7 +330,6 @@ class AnalysisLauncherNoXnat(object):
 
                 # Update with launch failed
                 updates.append({
-                    'PROJECT': cur['PROJECT'],
                     'ID': cur['ID'],
                     'STATUS': 'LAUNCH_FAILED',
                     'OUTPUT': str(err),
@@ -325,10 +339,13 @@ class AnalysisLauncherNoXnat(object):
             # upload changes
             logger.info(f'updating db:{updates}')
             try:
-                #projects_redcap.import_records(updates)
-                pass
+                self._apply_updates_analyses(updates)
             except Exception as err:
                 logger.error(f'failed to apply updates to db:{err}')
+
+    def _apply_updates_analyses(self, updates):
+        logger.debug(f'applying analyses updates to db:{updates}')
+        self._db.update_analyses(updates)
 
     def get_info(self, project):
         #return load_project_info(project)
@@ -377,9 +394,9 @@ class AnalysisLauncherNoXnat(object):
 
         return info
 
-    def label_analysis(self, project, analysis_id):
+    def label_analysis(self, analysis_id):
         analysis_datetime = datetime.now().strftime("%Y-%m-%d-%H%M%S")
-        analysis_label = f'{project}_A{analysis_id}_{analysis_datetime}'
+        analysis_label = f'{analysis_id}_{analysis_datetime}'
         return analysis_label
 
     def get_inputlist(self, analysis):
