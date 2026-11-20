@@ -798,12 +798,17 @@ class AnalysisLauncherNoXnat(object):
 
         # Set the walltime
         walltime = analysis.get('WALLTIME', None)
+        print(f'{walltime=}')
 
-        if walltime is None:
+        if not walltime:
             walltime = processor['requirements'].get('walltime', None)
 
-        if walltime is None:
+        print(f'{walltime=}')
+
+        if not walltime:
             walltime = '0-12'
+
+        print(f'{walltime=}')
 
         # Create and set the label for our new analysis
         analysis['label'] = self.label_analysis(analysis['ID'])
