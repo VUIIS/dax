@@ -90,7 +90,7 @@ class AnalysisLauncherNoXnat(object):
         self._rootdir = rootdir
         self._dbfile = f'{rootdir}/db/dax.duckdb'
         self._settings = f'{rootdir}/settings/analyses.yaml'
-        self._job_template = f'{rootdir}/templates/project_job_template.txt'
+        self._job_template = f'{rootdir}/templates/project_job_template_noxnat.txt'
         self._projects_dir = f'{rootdir}/projects'
         self._db = DatabaseNoXnat(self._dbfile)
         self._flags_dir = f'{rootdir}/flagfiles'
@@ -820,8 +820,7 @@ class AnalysisLauncherNoXnat(object):
         inputlist = self.get_inputlist(analysis)
 
         # Get the job batch script template
-        job_template = self._get_job_template()
-        if not os.path.exists(job_template):
+        if not os.path.exists(self._job_template):
             logger.error('cannot find project job template')
             return
 
@@ -844,7 +843,7 @@ class AnalysisLauncherNoXnat(object):
             cmds,
             walltime,
             memreq,
-            job_template=job_template
+            job_template=self._job_template
         )
 
         # Save to file
