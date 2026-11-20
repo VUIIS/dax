@@ -45,6 +45,16 @@ COMPLETED_STATUSES = [
 
 QUEUED_STATUSES = ['QUEUED', 'Q']
 
+ANALYSES_COLUMNS = [
+    'ID', 
+    'PROJECT',
+    'LABEL',
+    'OTHERPROJECTS',
+    'PROCREPO',
+    'INCLUDE', 
+    'EXCLUDE'
+]
+
 CMDS_TEMPLATE = '''
 
 ANALYSISID={analysis}
@@ -113,11 +123,10 @@ class AnalysisLauncherNoXnat(object):
         try:
             # Load settings from yaml file
             with open(filename, 'r', encoding='utf-8') as f:
-                df = pd.DataFrame(yaml.safe_load(f))
-
+                _records = yaml.safe_load(f)
+                df = pd.DataFrame(records, columns=ANALYSES_COLUMNS)
 
             print(df)
-
 
             # Load db records
             data = self._db.load_analyses()

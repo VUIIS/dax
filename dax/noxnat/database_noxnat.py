@@ -140,12 +140,7 @@ class DatabaseNoXnat(object):
             con.execute("""
                 CREATE TABLE analyses (
                     ID VARCHAR PRIMARY KEY,
-                    PROJECT VARCHAR,
-                    LABEL VARCHAR,
-                    OTHERPROJECTS VARCHAR,
-                    PROCREPO VARCHAR,
-                    INCLUDE VARCHAR,
-                    EXCLUDE VARCHAR,
+                    SUBJECTS VARCHAR,
                     JOBID VARCHAR,
                     JOBNODE VARCHAR,
                     JOBSTARTTIME VARCHAR,
