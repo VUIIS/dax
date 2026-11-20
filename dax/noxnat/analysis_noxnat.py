@@ -138,7 +138,7 @@ class AnalysisLauncherNoXnat(object):
 
         return df.to_records('dict')
 
-    def update(self, projects, launch_enabled=True, update_enabled=True, finish_enabled=True):
+    def update(self, projects, launch_enabled=True, update_enabled=True):
         """Update analyses."""
         updates = []
 
@@ -158,9 +158,6 @@ class AnalysisLauncherNoXnat(object):
 
             if launch_enabled:
                 self._launch(projects=projects)
-
-            if finish_enabled:
-                self._archive_done(projects=projects)
 
         finally:
             # Delete the lock file

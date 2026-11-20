@@ -79,5 +79,4 @@ def run_noxnat(
         projects=projects,
         launch_enabled=run_launch,
         update_enabled=run_update,
-        finish_enabled=run_finish
     )
