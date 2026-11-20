@@ -3,6 +3,7 @@ import logging
 import subprocess
 from datetime import datetime
 
+import pandas as pd
 import yaml
 import requests
 
