@@ -74,7 +74,7 @@ class AnalysisLauncherNoXnat(object):
 
     def __init__(self, rootdir):
         self._rootdir = rootdir
-        self._dbfile = f'{rootdir}/db/dax.db'
+        self._dbfile = f'{rootdir}/db/dax.duckdb'
         self._settings = f'{rootdir}/settings/analyses.yaml'
         self._job_template = f'{rootdir}/templates/project_job_template.txt'
         self._projects_dir = f'{rootdir}/projects'
