@@ -94,6 +94,7 @@ class AnalysisLauncherNoXnat(object):
         self._projects_dir = f'{rootdir}/projects'
         self._db = DatabaseNoXnat(self._dbfile)
         self._flags_dir = f'{rootdir}/flagfiles'
+        self._singularitys_dir = f'{rootdir}/singularitys'
 
     def queue_analysis(self, analysis_id):
         # Set status to queued and clear previous run
@@ -724,7 +725,7 @@ class AnalysisLauncherNoXnat(object):
 
     def launch_analysis(self, analysis):
         """Launch as SLURM Job, write batch and submit. Return job id."""
-        instance_settings = self._instance_settings
+        imagedir = self._singularitys_dir
 
         if analysis['PROCREPO']:
             # Load the yaml file contents from github
@@ -805,8 +806,6 @@ class AnalysisLauncherNoXnat(object):
         batch_file = f'{self._rcqdir}/{label}.slurm'
         log_file = f'{self._rcqdir}/{label}.txt'
         covar_file = f'{self._rcqdir}/{label}.csv'
-
-        imagedir = instance_settings['main_singularityimagedir']
 
         if analysis.get('COVARFILE', False):
             self.save_covariates_file(analysis, covar_file)
