@@ -171,7 +171,7 @@ class AnalysisLauncherNoXnat(object):
 
         logger.debug(f'found {len(df)} open analysis records')
 
-        return df.to_records('dict')
+        return df.to_dict('records')
 
     def update(self, projects, launch_enabled=True, update_enabled=True):
         """Update analyses."""
@@ -730,7 +730,7 @@ class AnalysisLauncherNoXnat(object):
 
         print(f'{analysis=}')
 
-        if analysis['PROCREPO']:
+        if analysis.get('PROCREPO', False):
             # Load the yaml file contents from github
             logger.info(f'loading:{analysis["PROCREPO"]}')
 
@@ -750,8 +750,7 @@ class AnalysisLauncherNoXnat(object):
             version = p[2]
 
             logger.info(f'loading:{user=}:{repo=}:{version=}:{subdir=}')
-
-            processor = self.load_processor_github(
+            analysis['PROCESSOR'] = self.load_processor_github(
                 user,
                 repo,
                 version,
@@ -760,12 +759,10 @@ class AnalysisLauncherNoXnat(object):
             print(f'{processor=}')
             analysis['PROCREPO'] = f'https://github.com/{user}/{repo}/archive/refs/tags/{version}.tar.gz'
             analysis['PROCVERSION'] = version.replace('v', '')
-        elif analysis['PROCESSOR']:
+        elif analysis.get('PROCFILE', False):
             # Load the yaml file contents
-            logger.debug(f'loading:{analysis["PROCESSOR"]}')
-            processor = self.load_processor_file(
-                analysis['PROJECT'],
-                analysis['ID'])
+            logger.debug(f'loading:{analysis["PROCFILE"]}')
+            analysis['PROCESSOR'] = self.load_processor_file(analysis['PROCFILE'])
         else:
             raise Exception(f'cannot launch, no processor specified:{analysis}')
 
@@ -777,8 +774,9 @@ class AnalysisLauncherNoXnat(object):
         #except Exception as err:
         #    print('Not valid!')
         #    print(err)
-        print(f'{processor=}')
-        analysis['PROCESSOR'] = processor
+
+        processor = analysis['PROCESSOR']
+        print(processor)
 
         # Set subject list
         analysis['SUBJECTS'] = analysis['INCLUDE'].splitlines()
