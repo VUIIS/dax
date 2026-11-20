@@ -61,9 +61,7 @@ ANALYSES_COLUMNS = [
 CMDS_TEMPLATE = '''
 
 ANALYSISID={analysis}
-PROJECT={project}
 REPO={repo}
-VERSION={version}
 INLIST={inputs}
 CONTAINERPATH={container}
 PRECONTAINERPATH={precontainer}
@@ -216,24 +214,22 @@ class AnalysisLauncherNoXnat(object):
         # Update each record
         for i, cur in enumerate(running_list):
             status = cur['STATUS']
-            project = cur['PROJECT']
             instance = cur['ID']
 
-            logger.debug(f'{i}:{project}:{instance}:{status}')
+            logger.debug(f'{i}:{instance}:{status}')
 
             # check on running job
             logger.debug('checking on running job')
             cur_updates = get_updates(cur)
             if cur_updates:
                 cur_updates.update({
-                    'PROJECT': project,
                     'ID': instance,
                 })
 
                 # Add to redcap updates
                 updates.append(cur_updates)
             else:
-                logger.info(f'analysis still running:{project}:{instance}')
+                logger.info(f'analysis still running:{instance}')
 
         if updates:
             # upload changes
@@ -279,7 +275,6 @@ class AnalysisLauncherNoXnat(object):
 
             # Add to updates
             updates.append({
-                project: cur['PROJECT'],
                 'ID': instance,
                 'STATUS': status,
             })
@@ -321,11 +316,11 @@ class AnalysisLauncherNoXnat(object):
                         'STATUS': 'RUNNING',
                         'JOBID': jobid,
                         'OUTPUT': label,
-                        'JOBNODE': 'NULL',
-                        'TIMEUSED': 'NULL',
-                        'MEMUSED': 'NULL',
-                        'JOBSTARTTIME': 'NULL',
-                        'JOBENDTIME': 'NULL',
+                        'JOBNODE': '',
+                        'TIMEUSED': '',
+                        'MEMUSED': '',
+                        'JOBSTARTTIME': '',
+                        'JOBENDTIME': '',
                     })
                 else:
                     # Update with launch failed
@@ -358,7 +353,6 @@ class AnalysisLauncherNoXnat(object):
         self._db.update_analyses(updates)
 
     def get_info(self, project):
-        #return load_project_info(project)
         data = self._db.load_data()
         info = {}
 
@@ -414,7 +408,9 @@ class AnalysisLauncherNoXnat(object):
 
         spec = analysis['PROCESSOR']['inputs']['xnat']['subjects']
 
-        projects = [analysis['PROJECT']]
+        proj = analysis['ID'].split('-')[0]
+
+        projects = [proj]
 
         if analysis['OTHERPROJECTS']:
             projects.extend(parse_list(analysis['OTHERPROJECTS']))
@@ -732,8 +728,6 @@ class AnalysisLauncherNoXnat(object):
         imagedir = self._singularitys_dir
         processor = None
 
-        print(f'{analysis=}')
-
         if analysis.get('PROCREPO', False):
             # Load the yaml file contents from github
             logger.info(f'loading:{analysis["PROCREPO"]}')
@@ -761,7 +755,6 @@ class AnalysisLauncherNoXnat(object):
                 subdir=subdir
             )
             analysis['PROCREPO'] = f'https://github.com/{user}/{repo}/archive/refs/tags/{version}.tar.gz'
-            analysis['PROCVERSION'] = version.replace('v', '')
         elif analysis.get('PROCFILE', False):
             # Load the yaml file contents
             logger.debug(f'loading:{analysis["PROCFILE"]}')
@@ -779,7 +772,6 @@ class AnalysisLauncherNoXnat(object):
         #    print(err)
 
         processor = analysis['PROCESSOR']
-        print(processor)
 
         # Set subject list
         analysis['SUBJECTS'] = analysis['INCLUDE'].splitlines()
@@ -798,22 +790,16 @@ class AnalysisLauncherNoXnat(object):
 
         # Set the walltime
         walltime = analysis.get('WALLTIME', None)
-        print(f'{walltime=}')
 
         if not walltime:
             walltime = processor['requirements'].get('walltime', None)
 
-        print(f'{walltime=}')
-
         if not walltime:
             walltime = '0-12'
-
-        print(f'{walltime=}')
 
         # Create and set the label for our new analysis
         analysis['label'] = self.label_analysis(analysis['ID'])
         label = analysis['label']
-        print(label)
         _adir = self._adir(label)
         batch_file = f'{_adir}/{label}.slurm'
         log_file = f'{_adir}/{label}.txt'
@@ -882,8 +868,6 @@ class AnalysisLauncherNoXnat(object):
         # Append other paths
         cmd = CMDS_TEMPLATE.format(
             inputs=inputs,
-            version=analysis['PROCVERSION'],
-            project=analysis['PROJECT'],
             analysis=analysis['LABEL'],
             repo=analysis['PROCREPO'],
             container=container_path,
@@ -1020,12 +1004,11 @@ class AnalysisLauncherNoXnat(object):
 
 def get_updates(analysis):
     """Update information from local SLURM."""
-    project = analysis['PROJECT']
     instance = analysis['ID']
     updates = {}
 
     if 'JOBID' not in analysis:
-        logger.info(f'no jobid for analysis:{project}:{instance}')
+        logger.info(f'no jobid for analysis:{instance}')
         return
 
     jobid = analysis['JOBID']
@@ -1050,7 +1033,7 @@ def get_updates(analysis):
 
     # only update usage if job is not still running
     if job_state == 'RUNNING':
-        logger.debug(f'job still running:{project}:{instance}')
+        logger.debug(f'job still running:{instance}')
     else:
         if job_mem and job_mem != analysis.get('MEMUSED', ''):
             updates['MEMUSED'] = job_mem
