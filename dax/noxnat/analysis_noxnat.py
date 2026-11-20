@@ -124,7 +124,7 @@ class AnalysisLauncherNoXnat(object):
             # Load settings from yaml file
             with open(filename, 'r', encoding='utf-8') as f:
                 _records = yaml.safe_load(f)
-                df = pd.DataFrame(records, columns=ANALYSES_COLUMNS)
+                df = pd.DataFrame(_records, columns=ANALYSES_COLUMNS)
 
             print(df)
 
