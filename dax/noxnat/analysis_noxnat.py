@@ -113,22 +113,30 @@ class AnalysisLauncherNoXnat(object):
         try:
             # Load settings from yaml file
             with open(filename, 'r', encoding='utf-8') as f:
-                records = yaml.safe_load(f)
+                df = pd.DataFrame(yaml.safe_load(f))
+
+
+            print(df)
+
 
             # Load db records
-            df = self._db.load_analyses()
+            data = self._db.load_analyses()
 
             # Merge
             df = pd.merge(
-                pd.DataFrame(records),
                 df,
+                data,
                 left_on=('ID'),
                 right_on=('ID'),
                 how='left'
             )
 
+            print(df)
+
             # Filter to only open jobs
             df = df[~df['STATUS'].isin(DONE_STATUSES)]
+
+            print(df)
 
         except Exception as err:
             logger.error(f'failed to load analyses:{err}')
@@ -158,6 +166,8 @@ class AnalysisLauncherNoXnat(object):
 
             if launch_enabled:
                 self._launch(projects=projects)
+
+            logger.info('analyses update:DONE!')
 
         finally:
             # Delete the lock file
@@ -253,7 +263,7 @@ class AnalysisLauncherNoXnat(object):
         launch_list = [x for x in records if x['STATUS'] in QUEUED_STATUSES]
 
         if not launch_list:
-            logger.debug('no queued analyses to updated')
+            logger.debug('no queued analyses to update')
             return
 
         logger.info(f'{len(launch_list)} queued analyses to update')
