@@ -8,8 +8,9 @@ def show_status_noxnat(rootdir, projects=None, show_queue=False, show_assessors=
     # Load data from database file
     db = DatabaseNoXnat(dbfile)
     q = db.load_taskqueue()
-    a = db.load_data()['assessors']
-    g = db.load()['analyses']
+    data = db.load_data()
+    a = data['assessors']
+    g = data['analyses']
 
     print(f'{projects=}')
 
