@@ -551,11 +551,14 @@ class AnalysisLauncherNoXnat(object):
 
         # Get the assessors for this session
         assessors = [x for x in info['assessors'] if x['SESSION'] == session]
+        print(f'{assessors=}')
 
         # Filter to only complete assessors
         logger.debug(f'found {len(assessors)} total assessors, filtering')
         assessors = [x for x in assessors if x['PROCSTATUS'] == 'COMPLETE']
         logger.debug(f'found {len(assessors)} complete assessors')
+
+        print(f'{assessors=}')
 
         for assr_spec in spec.get('assessors', []):
             logger.debug(f'assr_spec={assr_spec}')
