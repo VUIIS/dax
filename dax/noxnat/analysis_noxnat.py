@@ -800,8 +800,8 @@ class AnalysisLauncherNoXnat(object):
             walltime = '0-12'
 
         # Create and set the label for our new analysis
-        analysis['label'] = self.label_analysis(analysis['ID'])
-        label = analysis['label']
+        analysis['LABEL'] = self.label_analysis(analysis['ID'])
+        label = analysis['LABEL']
         _adir = self._adir(label)
         batch_file = f'{_adir}/{label}.slurm'
         log_file = f'{_adir}/{label}.txt'
