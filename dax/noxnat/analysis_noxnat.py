@@ -420,6 +420,8 @@ class AnalysisLauncherNoXnat(object):
             logger.info(f'get_inputlist:{project=}')
             info = self.get_info(project=project)
 
+            print(f'{info=}')
+
             subjects = analysis.get('SUBJECTS', None)
             if not subjects:
                 # Get unique list of subjects from scans
@@ -447,6 +449,8 @@ class AnalysisLauncherNoXnat(object):
 
     def get_session_inputs(self, spec, info, subject, session):
         inputs = []
+
+        print(f'{info=}')
 
         # Get the scans for this session
         scans = [x for x in info['scans'] if x['SESSION'] == session]
@@ -549,18 +553,13 @@ class AnalysisLauncherNoXnat(object):
                             ddest
                         ))
 
-        print(info['assessors'])
-
         # Get the assessors for this session
         assessors = [x for x in info['assessors'] if x['SESSION'] == session]
-        print(f'{assessors=}')
 
         # Filter to only complete assessors
         logger.debug(f'found {len(assessors)} total assessors, filtering')
         assessors = [x for x in assessors if x['PROCSTATUS'] == 'COMPLETE']
         logger.debug(f'found {len(assessors)} complete assessors')
-
-        print(f'{assessors=}')
 
         for assr_spec in spec.get('assessors', []):
             logger.debug(f'assr_spec={assr_spec}')
@@ -614,6 +613,8 @@ class AnalysisLauncherNoXnat(object):
 
     def get_subject_inputs(self, spec, info, subject):
         inputs = []
+
+        print(f'{info=}')
 
         # subject-level assessors, aka sgp
         if spec.get('assessors', None):
