@@ -66,6 +66,7 @@ INLIST={inputs}
 CONTAINERPATH={container}
 PRECONTAINERPATH={precontainer}
 POSTCONTAINERPATH={postcontainer}
+DSTDIR={dstdir}
 {maincmd}
 
 '''
@@ -874,6 +875,7 @@ class AnalysisLauncherNoXnat(object):
             container=container_path,
             precontainer=pre_path,
             postcontainer=post_path,
+            dstdir=self._adir(analysis['LABEL']),
             maincmd=maincmd
         )
 
