@@ -566,8 +566,12 @@ class AnalysisLauncherNoXnat(object):
 
             logger.debug(f'assr_types={assr_types}')
 
+            logger.info(f'get_session_inputs:{assr_types=}')
+
             for assr in [x for x in assessors if x['PROCTYPE'] in assr_types]:
                 assrlabel = assr["ASSR"]
+
+                logger.info(f'get_session_inputs:{assr=}')
 
                 for res_spec in assr_spec['resources']:
 
@@ -598,6 +602,8 @@ class AnalysisLauncherNoXnat(object):
                             'DIR',
                             None,
                             ddest))
+
+        print(f'{inputs=}')
 
         return inputs
 
