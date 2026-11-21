@@ -452,7 +452,7 @@ class AnalysisLauncherNoXnat(object):
         scans = [x for x in info['scans'] if x['SESSION'] == session]
 
         for scan_spec in spec.get('scans', []):
-            logger.info(f'get_session_inputs:{scan=}')
+            logger.info(f'get_session_inputs:{scan_spec=}')
 
             logger.debug(f'scan_spec={scan_spec}')
 
@@ -559,6 +559,8 @@ class AnalysisLauncherNoXnat(object):
 
         for assr_spec in spec.get('assessors', []):
             logger.debug(f'assr_spec={assr_spec}')
+
+            logger.info(f'get_session_inputs:{assr_spec=}')
 
             assr_types = parse_list(assr_spec['types'])
 
