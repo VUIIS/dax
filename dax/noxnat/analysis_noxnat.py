@@ -383,8 +383,13 @@ class AnalysisLauncherNoXnat(object):
 
         # Decode inputs
         records = _assrs[_assrs.PROJECT == project].to_dict('records')
+        print(records)
+
+        print(len(records))
+
         for i, r in enumerate(records):
             inputs = r['INPUTS']
+            print(inputs)
             if isinstance(inputs, str):
                 try:
                     records[i]['INPUTS'] = decode_inputs(inputs)
@@ -393,6 +398,7 @@ class AnalysisLauncherNoXnat(object):
                     continue
 
         records = [x for x in records if x['INPUTS']]
+        print(len(records))
 
         info['assessors'] = records
 
@@ -419,8 +425,6 @@ class AnalysisLauncherNoXnat(object):
         for project in projects:
             logger.info(f'get_inputlist:{project=}')
             info = self.get_info(project=project)
-
-            print(f'{info=}')
 
             subjects = analysis.get('SUBJECTS', None)
             if not subjects:
@@ -449,8 +453,6 @@ class AnalysisLauncherNoXnat(object):
 
     def get_session_inputs(self, spec, info, subject, session):
         inputs = []
-
-        print(f'{info=}')
 
         # Get the scans for this session
         scans = [x for x in info['scans'] if x['SESSION'] == session]
@@ -613,8 +615,6 @@ class AnalysisLauncherNoXnat(object):
 
     def get_subject_inputs(self, spec, info, subject):
         inputs = []
-
-        print(f'{info=}')
 
         # subject-level assessors, aka sgp
         if spec.get('assessors', None):
