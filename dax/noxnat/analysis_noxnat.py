@@ -401,6 +401,8 @@ class AnalysisLauncherNoXnat(object):
 
         info['assessors'] = records
 
+        info['name'] = project
+
         return info
 
     def label_analysis(self, analysis_id):
