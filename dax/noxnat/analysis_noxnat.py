@@ -805,7 +805,7 @@ class AnalysisLauncherNoXnat(object):
 
         file_list = glob(f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}/{res}/*')
 
-        file_list = [x for x in file_list if x == fmatch]
+        file_list = [x for x in file_list if os.path.basename(x) == fmatch]
 
         return file_list[0]
 
@@ -816,7 +816,7 @@ class AnalysisLauncherNoXnat(object):
 
         file_list = glob(f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}/{res}/*')
 
-        file_list = [x for x in file_list if x == fmatch]
+        file_list = [x for x in file_list if os.path.basename(x) == fmatch]
 
         return file_list[0]
 
