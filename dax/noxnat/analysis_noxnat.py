@@ -770,7 +770,7 @@ class AnalysisLauncherNoXnat(object):
 
         return inputs
 
-    def _scan_first_file(self,  proj, subj, sess, scan, res):
+    def _scan_first_file(self, proj, subj, sess, scan, res):
 
         file_list = glob(f'{self._projects_dir}/{proj}/SCANS/{subject}/{session}/{scanid}-x-*/*')
 
@@ -787,7 +787,7 @@ class AnalysisLauncherNoXnat(object):
 
         return file_list[0]
 
-    def _scan_fmatch_file(self,  proj, subj, sess, scan, res, fmatch):
+    def _scan_fmatch_file(self, proj, subj, sess, scan, res, fmatch):
 
         file_list = glob(f'{self._projects_dir}/{proj}/SCANS/{subject}/{session}/{scanid}-x-*/*')
 
@@ -795,33 +795,33 @@ class AnalysisLauncherNoXnat(object):
 
         return file_list[0]
 
-    def _scan_dir(self,  proj, subj, sess, scan, res):
+    def _scan_dir(self, proj, subj, sess, scan, res):
 
         file_list = glob(f'{self._projects_dir}/{proj}/SCANS/{subject}/{session}/{scanid}-x-*/')
 
         return file_list[0]
 
-    def _assessor_fmatch_file(self,  proj, subj, sess, assr, res, fmatch):
+    def _assessor_fmatch_file(self, proj, subj, sess, assr, res, fmatch):
 
-        file_list = glob(f'{self._projects_dir}/{proj}/ASSESSORS/{subject}/{assr}/{res}/*')
+        file_list = glob(f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}/{res}/*')
 
         file_list = [x for x in file_list if x == fmatch]
 
         return file_list[0]
 
-    def _assessor_dir(self,  proj, subj, sess, assr, res):
-        return f'{self._projects_dir}/{proj}/ASSESSORS/{subject}/{assr}/{res}'
+    def _assessor_dir(self, proj, subj, sess, assr, res):
+        return f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}/{res}'
 
     def _sgp_fmatch_file(self,  proj, subj, assr, res, fmatch):
 
-        file_list = glob(f'{self._projects_dir}/{proj}/ASSESSORS/{subject}/{assr}/{res}/*')
+        file_list = glob(f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}/{res}/*')
 
         file_list = [x for x in file_list if x == fmatch]
 
         return file_list[0]
 
-    def _sgp_dir(self,  proj, subj, assr, res):
-        return f'{self._projects_dir}/{proj}/ASSESSORS/{subject}/{assr}/{res}'
+    def _sgp_dir(self, proj, subj, assr, res):
+        return f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}/{res}'
 
     def _input(self, fpath, ftype, fdest='', ddest=''):
         data = {
