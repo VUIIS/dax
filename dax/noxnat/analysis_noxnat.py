@@ -549,6 +549,8 @@ class AnalysisLauncherNoXnat(object):
                             ddest
                         ))
 
+        print(info['assessors'])
+
         # Get the assessors for this session
         assessors = [x for x in info['assessors'] if x['SESSION'] == session]
         print(f'{assessors=}')
