@@ -59,8 +59,6 @@ ANALYSES_COLUMNS = [
 ]
 
 CMDS_TEMPLATE = '''
-
-ANALYSISID={analysis}
 REPO={repo}
 INLIST={inputs}
 CONTAINERPATH={container}
@@ -417,7 +415,9 @@ class AnalysisLauncherNoXnat(object):
         if analysis['OTHERPROJECTS']:
             projects.extend(parse_list(analysis['OTHERPROJECTS']))
 
+        logger.info(f'get_inputlist:{projects=}')
         for project in projects:
+            logger.info(f'get_inputlist:{project=}')
             info = self.get_info(project=project)
 
             subjects = analysis.get('SUBJECTS', None)
@@ -433,7 +433,10 @@ class AnalysisLauncherNoXnat(object):
 
             logger.debug(f'{subjects=}')
 
+            logger.info(f'get_inputlist:{subjects=}')
+
             for subj in subjects:
+                logger.info(f'get_inputlist:{subj=}')
                 inputlist.extend(self.get_subject_inputs(spec, info, subj))
 
 
@@ -449,6 +452,8 @@ class AnalysisLauncherNoXnat(object):
         scans = [x for x in info['scans'] if x['SESSION'] == session]
 
         for scan_spec in spec.get('scans', []):
+            logger.info(f'get_session_inputs:{scan=}')
+
             logger.debug(f'scan_spec={scan_spec}')
 
             # Get list of resources to download from this scan
@@ -694,6 +699,7 @@ class AnalysisLauncherNoXnat(object):
 
             # Append inputs for this spec
             for sess in sessions:
+                logger.info(f'get_subject_inputs:{sess=}')
                 inputs += self.get_session_inputs(
                     sess_spec,
                     info,
@@ -870,7 +876,6 @@ class AnalysisLauncherNoXnat(object):
         # Append other paths
         cmd = CMDS_TEMPLATE.format(
             inputs=inputs,
-            analysis=analysis['LABEL'],
             repo=analysis['PROCREPO'],
             container=container_path,
             precontainer=pre_path,
