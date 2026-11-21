@@ -2,6 +2,7 @@ import os
 import logging
 import subprocess
 from datetime import datetime
+from glob import glob
 
 import pandas as pd
 import yaml
@@ -523,34 +524,52 @@ class AnalysisLauncherNoXnat(object):
                         ddest += '/' + res_spec.get('ddest')
 
                     if 'fdest' in res_spec:
-                        _file = self._first_file(
-                            info['name'],
+                        # we use fdest to specify we want the first file in the resource renamed to fdest value
+                        fsrc = self._scan_first_file(
+                            info["name"],
                             subject,
                             session,
-                            scan['SCANID'],
+                            scanid,
                             res
                         )
-                        fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/scans/{scanid}/resources/{res}/files/{_file}'
+
+                        fdst = res_spec['fdest']
+
                         inputs.append(self._input(
-                            fpath,
+                            fsrc,
                             'FILE',
-                            res_spec.get('fdest', _file),
+                            fdst,
                             ddest,
                         ))
+
                     elif 'fmatch' in res_spec:
                         for fmatch in parse_list(res_spec['fmatch']):
-                            fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/scans/{scan["SCANID"]}/resources/{res}/files/{fmatch}'
+                            fsrc = self._scan_fmatch_file(
+                                info["name"],
+                                subject,
+                                session,
+                                scanid,
+                                res,
+                                fmatch
+                            )
+                            fdst = fmatch
                             inputs.append(self._input(
-                                fpath,
+                                fsrc,
                                 'FILE',
-                                res_spec.get('fdest', fmatch),
+                                fdst,
                                 ddest
                             ))
                     else:
-                        # Download whole resource
-                        fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/scans/{scan["SCANID"]}/resources/{res}/files'
+                        #  Whole resource
+                        fsrc = self._scan_dir(
+                            info["name"],
+                            subject,
+                            session,
+                            scanid,
+                            res
+                        )
                         inputs.append(self._input(
-                            fpath,
+                            fsrc,
                             'DIR',
                             None,
                             ddest
@@ -595,20 +614,35 @@ class AnalysisLauncherNoXnat(object):
 
                     if 'fmatch' in res_spec:
                         for fmatch in parse_list(res_spec['fmatch']):
-                            fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/assessors/{assrlabel}/out/resources/{res}/files/{fmatch}'
+                            fsrc = self._assessor_fmatch_file(
+                                info["name"],
+                                subject,
+                                session,
+                                assrlabel,
+                                res,
+                                fmatch
+                            )
                             inputs.append(self._input(
-                                fpath,
+                                fsrc,
                                 'FILE',
                                 res_spec.get('fdest', fmatch),
-                                ddest))
+                                ddest
+                            ))
                     else:
                         # whole resource
-                        fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{session}/assessors/{assrlabel}/out/resources/{res}/files'
+                        fsrc = self._assessor_dir(
+                            info["name"],
+                            subject,
+                            session,
+                            assrlabel,
+                            res
+                        )
                         inputs.append(self._input(
-                            fpath,
+                            fsrc,
                             'DIR',
                             None,
-                            ddest))
+                            ddest
+                        ))
 
         print(f'{inputs=}')
 
@@ -658,21 +692,33 @@ class AnalysisLauncherNoXnat(object):
                         if 'fmatch' in res_spec:
                             # Add each file
                             for fmatch in parse_list(res_spec['fmatch']):
-                                fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assrlabel}/resources/{res}/files/{fmatch}'
+                                fsrc = self._sgp_fmatch_file(
+                                    info["name"],
+                                    subject,
+                                    assrlabel,
+                                    res,
+                                    fmatch
+                                )
                                 inputs.append(self._input(
-                                    fpath,
+                                    fsrc,
                                     'FILE',
                                     res_spec.get('fdest', fmatch),
                                     ddest
                                 ))
                         else:
                             # We want the whole resource as one download
-                            fpath = f'data/projects/{info["name"]}/subjects/{subject}/experiments/{assrlabel}/resources/{res}/files'
+                            fsrc = self._sgp_dir(
+                                info["name"],
+                                subject,
+                                assrlabel,
+                                res
+                            )
                             inputs.append(self._input(
-                                fpath,
+                                fsrc,
                                 'DIR',
                                 None,
-                                ddest))
+                                ddest
+                            ))
 
         # Download the subjects sessions
         for sess_spec in spec.get('sessions', []):
@@ -723,6 +769,59 @@ class AnalysisLauncherNoXnat(object):
                 )
 
         return inputs
+
+    def _scan_first_file(self,  proj, subj, sess, scan, res):
+
+        file_list = glob(f'{self._projects_dir}/{proj}/SCANS/{subject}/{session}/{scanid}-x-*/*')
+
+        if res == 'NIFTI':
+            file_list = [x for x in file_list if x.endswith('.nii.gz')]
+        elif resource == 'JSON':
+            file_list = [x for x in file_list if x.endswith('.json')]
+        elif resource == 'EDAT':
+            file_list = [x for x in file_list if x.endswith('edat2tab.txt')]
+        elif resource == 'BVAL':
+            file_list = [x for x in file_list if x.endswith('.bval')]
+        elif resource == 'BVEC':
+            file_list = [x for x in file_list if x.endswith('.bvec')]
+
+        return file_list[0]
+
+    def _scan_fmatch_file(self,  proj, subj, sess, scan, res, fmatch):
+
+        file_list = glob(f'{self._projects_dir}/{proj}/SCANS/{subject}/{session}/{scanid}-x-*/*')
+
+        file_list = [x for x in file_list if x == fmatch]
+
+        return file_list[0]
+
+    def _scan_dir(self,  proj, subj, sess, scan, res):
+
+        file_list = glob(f'{self._projects_dir}/{proj}/SCANS/{subject}/{session}/{scanid}-x-*/')
+
+        return file_list[0]
+
+    def _assessor_fmatch_file(self,  proj, subj, sess, assr, res, fmatch):
+
+        file_list = glob(f'{self._projects_dir}/{proj}/ASSESSORS/{subject}/{assr}/{res}/*')
+
+        file_list = [x for x in file_list if x == fmatch]
+
+        return file_list[0]
+
+    def _assessor_dir(self,  proj, subj, sess, assr, res):
+        return f'{self._projects_dir}/{proj}/ASSESSORS/{subject}/{assr}/{res}'
+
+    def _sgp_fmatch_file(self,  proj, subj, assr, res, fmatch):
+
+        file_list = glob(f'{self._projects_dir}/{proj}/ASSESSORS/{subject}/{assr}/{res}/*')
+
+        file_list = [x for x in file_list if x == fmatch]
+
+        return file_list[0]
+
+    def _sgp_dir(self,  proj, subj, assr, res):
+        return f'{self._projects_dir}/{proj}/ASSESSORS/{subject}/{assr}/{res}'
 
     def _input(self, fpath, ftype, fdest='', ddest=''):
         data = {
