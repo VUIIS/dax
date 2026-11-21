@@ -11,6 +11,7 @@ from ..cluster import PBS
 from ..lockfiles import lock_flagfile, unlock_flagfile
 from ..utilities import parse_list
 from .database_noxnat import DatabaseNoXnat
+from ..XnatUtils import decode_inputs
 
 
 # Current analyses are in settings/analyses.yaml
@@ -383,17 +384,15 @@ class AnalysisLauncherNoXnat(object):
 
         # Decode inputs
         records = _assrs[_assrs.PROJECT == project].to_dict('records')
-        print(records)
-
         print(len(records))
 
         for i, r in enumerate(records):
             inputs = r['INPUTS']
-            print(inputs)
             if isinstance(inputs, str):
                 try:
                     records[i]['INPUTS'] = decode_inputs(inputs)
                 except Exception as err:
+                    print(f'decode failed:{inputs}')
                     records[i]['INPUTS'] = {}
                     continue
 
