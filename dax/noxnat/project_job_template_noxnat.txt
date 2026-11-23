@@ -62,7 +62,7 @@ echo $MAINCMD
 eval $MAINCMD
 
 # Handle outputs
-if [ $DSTDIR ne $OUTDIR ]; then
+if [ "$DSTDIR" != "$OUTDIR" ]; then
     mv $OUTDIR/* $DSTDIR
 fi
 
