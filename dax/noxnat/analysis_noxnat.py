@@ -975,6 +975,8 @@ class AnalysisLauncherNoXnat(object):
         return jobid, label
 
     def get_cmds(self, input_list, analysis):
+        dstdir = self._adir(analysis['LABEL'])
+
         # Get inputs text
         inputs = self.build_inputs_text(input_list)
 
@@ -994,9 +996,18 @@ class AnalysisLauncherNoXnat(object):
             container=container_path,
             precontainer=pre_path,
             postcontainer=post_path,
-            dstdir=self._adir(analysis['LABEL']),
+            dstdir=dstdir,
             maincmd=maincmd
         )
+
+        if 'OUTDEST' in analysis and analysis['OUTDEST']:
+            # Link output to destination
+            print('linking output to destination')
+            cmd = f'''
+            OUTDIR={dstdir}
+            ''' + cmd
+        else:
+            print('not linking output to destination')
 
         return [cmd]
 
