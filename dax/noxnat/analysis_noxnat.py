@@ -386,7 +386,6 @@ class AnalysisLauncherNoXnat(object):
 
         # Decode inputs
         records = _assrs[_assrs.PROJECT == project].to_dict('records')
-        print(len(records))
 
         for i, r in enumerate(records):
             inputs = r['INPUTS']
@@ -399,7 +398,6 @@ class AnalysisLauncherNoXnat(object):
                     continue
 
         records = [x for x in records if x['INPUTS']]
-        print(len(records))
 
         info['assessors'] = records
 
@@ -424,9 +422,9 @@ class AnalysisLauncherNoXnat(object):
         if analysis['OTHERPROJECTS']:
             projects.extend(parse_list(analysis['OTHERPROJECTS']))
 
-        logger.info(f'get_inputlist:{projects=}')
+        logger.debug(f'get_inputlist:{projects=}')
         for project in projects:
-            logger.info(f'get_inputlist:{project=}')
+            logger.debug(f'get_inputlist:{project=}')
             info = self.get_info(project=project)
 
             subjects = analysis.get('SUBJECTS', None)
@@ -440,12 +438,10 @@ class AnalysisLauncherNoXnat(object):
             if exclude:
                 subjects = [x for x in subjects if x not in exclude]
 
-            logger.debug(f'{subjects=}')
-
-            logger.info(f'get_inputlist:{subjects=}')
+            logger.debug(f'get_inputlist:{subjects=}')
 
             for subj in subjects:
-                logger.info(f'get_inputlist:{subj=}')
+                logger.debug(f'get_inputlist:{subj=}')
                 inputlist.extend(self.get_subject_inputs(spec, info, subj))
 
 
@@ -461,9 +457,7 @@ class AnalysisLauncherNoXnat(object):
         scans = [x for x in info['scans'] if x['SESSION'] == session]
 
         for scan_spec in spec.get('scans', []):
-            logger.info(f'get_session_inputs:{scan_spec=}')
-
-            logger.debug(f'scan_spec={scan_spec}')
+            logger.debug(f'get_session_inputs:{scan_spec=}')
 
             # Get list of resources to download from this scan
             resources = scan_spec.get('resources', [])
@@ -585,20 +579,15 @@ class AnalysisLauncherNoXnat(object):
         logger.debug(f'found {len(assessors)} complete assessors')
 
         for assr_spec in spec.get('assessors', []):
-            logger.debug(f'assr_spec={assr_spec}')
-
-            logger.info(f'get_session_inputs:{assr_spec=}')
+            logger.debug(f'get_session_inputs:{assr_spec=}')
 
             assr_types = parse_list(assr_spec['types'])
-
-            logger.debug(f'assr_types={assr_types}')
-
-            logger.info(f'get_session_inputs:{assr_types=}')
+            logger.debug(f'get_session_inputs:{assr_types=}')
 
             for assr in [x for x in assessors if x['PROCTYPE'] in assr_types]:
                 assrlabel = assr["ASSR"]
 
-                logger.info(f'get_session_inputs:{assr=}')
+                logger.debug(f'get_session_inputs:{assr=}')
 
                 for res_spec in assr_spec['resources']:
 
@@ -644,8 +633,6 @@ class AnalysisLauncherNoXnat(object):
                             None,
                             ddest
                         ))
-
-        print(f'{inputs=}')
 
         return inputs
 
@@ -761,7 +748,7 @@ class AnalysisLauncherNoXnat(object):
 
             # Append inputs for this spec
             for sess in sessions:
-                logger.info(f'get_subject_inputs:{sess=}')
+                logger.debug(f'get_subject_inputs:{sess=}')
                 inputs += self.get_session_inputs(
                     sess_spec,
                     info,
@@ -1003,12 +990,12 @@ class AnalysisLauncherNoXnat(object):
 
         if 'OUTDEST' in analysis and analysis['OUTDEST']:
             # Link output to destination
-            print('linking output to destination')
+            logger.info(f'linking output to destination:{dstdir}')
             cmd = f'''
             OUTDIR={dstdir}
             ''' + cmd
         else:
-            print('not linking output to destination')
+            logger.info('not linking output to destination')
 
         return [cmd]
 
