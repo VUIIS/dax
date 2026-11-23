@@ -1,0 +1,72 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=${job_ppn}
+#SBATCH --time=${job_walltime}
+#SBATCH --mem=${job_memory}
+#SBATCH -o ${job_output_file}
+uname -a # outputs node info (name, date&time, type, OS, etc)
+date
+JOBDIR=$(mktemp -d "/tmp/tmp.XXXXXXXXX") || { echo "mktemp failed"; exit 1; }
+INDIR=$JOBDIR/INPUTS
+OUTDIR=$JOBDIR/OUTPUTS
+REPODIR=$JOBDIR/REPO
+#=============================================================================
+# These fields should be added here by replacing job_cmds:
+#REPO=
+#INLIST=
+#MAINCMD=
+#DSTDIR=
+${job_cmds}
+#=============================================================================
+echo $REPO
+echo $INDIR
+echo $OUTDIR
+echo $REPODIR
+echo $DSTDIR
+
+mkdir -p $REPODIR
+mkdir -p $INDIR
+mkdir -p $OUTDIR
+mkdir -p $DSTDIR
+
+# Download the code repository
+curl -sL $REPO | tar zxvf - -C $REPODIR --strip-components=1
+
+# Handle inputs
+for IN in "${INLIST[@]}"; do
+    IFS=',' read -r col1 col2 col3 col4 <<< "$IN"
+
+    if [ $col4 ]; then
+        # Create the subdir
+        DDIR="$INDIR/$col4"
+        mkdir -p $DDIR        
+    else
+        DDIR="$INDIR"
+    fi
+
+    if [ $col2 == "FILE" ]; then
+        CMD="cp \"$col3\" $DDIR/$col1"
+    elif [ $col2 == "DIRJ" ]; then
+        CMD="zip -rq $DDIR/${col1}.zip \"$col3\""
+        CMD+=" && unzip -q -j $DDIR/${col1}.zip -d $DDIR/$col1"
+    else
+        CMD="cp -r \"${col3}\" $DDIR/${col1}"
+    fi
+
+    # Run the full command
+    eval result=\$\($CMD\)
+done
+
+# Run main commands
+echo $MAINCMD
+eval $MAINCMD
+
+# Handle outputs
+if [ $DSTDIR ne $OUTDIR ]; then
+    mv $OUTDIR/* $DSTDIR
+fi
+
+# Delete temporary files
+rm -rf $JOBDIR
+
+echo "DONE!"

@@ -42,29 +42,26 @@ for IN in "${INLIST[@]}"; do
         CMD="zip -rq $INDIR/${col1}.zip \"$col3\""
         CMD+=" && unzip -q -j $INDIR/${col1}.zip -d $INDIR/$col1"
     else
-        CMD="zip -r $INDIR/${col1}.zip \"${col3}\""
-        CMD+=" && unzip -q $INDIR/${col1}.zip -d $INDIR/$col1"
+        CMD="cp -r \"${col3}\" $INDIR/${col1}"
     fi
-
     # Show the whole command
     echo $CMD
-
     # Run the full command
     eval result=\$\($CMD\)
     echo "result=$result"
 done
-
 # Run main command
 echo $_JAVA_OPTIONS
 echo $MAINCMD
 eval $MAINCMD
-
 # Write version files
 mkdir -p $DSTDIR
 echo $VERSION > $DSTDIR/version.txt
 sha256sum $CONTAINERPATH | awk '{print $1}' > $DSTDIR/dax_docker_version.txt
-
-
+# Convert ps to pdf
+if [ -e $OUTDIR/report.ps ]; then
+    gs -sDEVICE=pdfwrite -o $OUTDIR/report.pdf $OUTDIR/report.ps
+fi
 # Handle outputs
 errors=0
 haspdf=0
@@ -78,7 +75,6 @@ for OUT in "${OUTLIST[@]}"; do
         else echo "WARN:output not required"; fi
         continue
     fi
-
     # Copy output based on type
     mkdir -p "$DSTDIR/$col3"
     if [ $col3 == "PDF" ]; then
@@ -89,10 +85,7 @@ for OUT in "${OUTLIST[@]}"; do
     elif [ $col2 == "DIR" ]; then cp -r $OUTDIR/$col1/. $DSTDIR/$col3 || errors=1;
     else errors=1 && echo "ERROR:invalid type:$col2"; fi
 done
-
 if [ $errors -gt 0 ]; then echo "JOB_FAILED" && touch $DSTDIR/JOB_FAILED.txt;
 else echo "COMPLETE" && touch $DSTDIR/READY_TO_UPLOAD.txt; fi
-
 rm -rf $INDIR $OUTDIR
-
 echo "DONE!"
