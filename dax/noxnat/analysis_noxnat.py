@@ -57,7 +57,8 @@ ANALYSES_COLUMNS = [
     'OTHERPROJECTS',
     'PROCREPO',
     'INCLUDE', 
-    'EXCLUDE'
+    'EXCLUDE',
+    'OUTDEST'
 ]
 
 CMDS_TEMPLATE = '''
