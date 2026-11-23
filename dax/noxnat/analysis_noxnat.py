@@ -791,12 +791,9 @@ class AnalysisLauncherNoXnat(object):
         return file_list[0]
 
     def _assessor_fmatch_file(self, proj, subj, sess, assr, res, fmatch):
-        print('glob', f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}/{res}/*')
-        file_list = glob(f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}/{res}/*')
+        print('glob', f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}/{res}/{fmatch}')
+        file_list = glob(f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}/{res}/{fmatch}')
         print(file_list)
-
-        file_list = [x for x in file_list if os.path.basename(x) == fmatch]
-
         return file_list[0]
 
     def _assessor_dir(self, proj, subj, sess, assr, res):
