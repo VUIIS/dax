@@ -604,15 +604,19 @@ class AnalysisLauncherNoXnat(object):
 
                     if 'fmatch' in res_spec:
                         for fmatch in parse_list(res_spec['fmatch']):
-                            print(info["name"], subject, session, assrlabel, res, fmatch)
-                            fsrc = self._assessor_fmatch_file(
-                                info["name"],
-                                subject,
-                                session,
-                                assrlabel,
-                                res,
-                                fmatch
-                            )
+                            try:
+                                fsrc = self._assessor_fmatch_file(
+                                    info["name"],
+                                    subject,
+                                    session,
+                                    assrlabel,
+                                    res,
+                                    fmatch
+                                )
+                            except Exception as err:
+                                logger.error(f'failed to match file:{info["name"]}:{subject}:{session}:{assrlabel}:{res}:{fmatch}')
+                                continue
+
                             fdst = res_spec.get('fdest', os.path.basename(fmatch))
                             inputs.append(self._input(
                                 fsrc,
