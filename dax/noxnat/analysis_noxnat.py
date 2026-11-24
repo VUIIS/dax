@@ -612,7 +612,7 @@ class AnalysisLauncherNoXnat(object):
                                 res,
                                 fmatch
                             )
-                            fdst = res_spec.get('fdest', os.path.basename(fmatch)),
+                            fdst = res_spec.get('fdest', os.path.basename(fmatch))
                             inputs.append(self._input(
                                 fsrc,
                                 'FILE',
