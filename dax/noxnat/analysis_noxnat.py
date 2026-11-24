@@ -604,6 +604,7 @@ class AnalysisLauncherNoXnat(object):
 
                     if 'fmatch' in res_spec:
                         for fmatch in parse_list(res_spec['fmatch']):
+                            print(info["name"], subject, session, assrlabel, res, fmatch)
                             fsrc = self._assessor_fmatch_file(
                                 info["name"],
                                 subject,
