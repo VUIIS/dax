@@ -604,7 +604,6 @@ class AnalysisLauncherNoXnat(object):
 
                     if 'fmatch' in res_spec:
                         for fmatch in parse_list(res_spec['fmatch']):
-                            print(fmatch)
                             fsrc = self._assessor_fmatch_file(
                                 info["name"],
                                 subject,
@@ -613,10 +612,11 @@ class AnalysisLauncherNoXnat(object):
                                 res,
                                 fmatch
                             )
+                            fdst = res_spec.get('fdest', os.path.basename(fmatch)),
                             inputs.append(self._input(
                                 fsrc,
                                 'FILE',
-                                res_spec.get('fdest', fmatch),
+                                fdst,
                                 ddest
                             ))
                     else:
@@ -791,9 +791,7 @@ class AnalysisLauncherNoXnat(object):
         return file_list[0]
 
     def _assessor_fmatch_file(self, proj, subj, sess, assr, res, fmatch):
-        print('glob', f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}/{res}/{fmatch}')
         file_list = glob(f'{self._projects_dir}/{proj}/ASSESSORS/{subj}/{assr}/{res}/{fmatch}')
-        print(file_list)
         return file_list[0]
 
     def _assessor_dir(self, proj, subj, sess, assr, res):
