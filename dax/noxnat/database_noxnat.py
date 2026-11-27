@@ -20,11 +20,21 @@ class DatabaseNoXnat(object):
                 WHERE PROCSTATUS == 'NEED_INPUTS';
             """)
 
-    def _export_project_tsv(self, project, outdir):
+    def _export_tsv(self, outdir):
         filename = self._filename
 
         with duckdb.connect(filename) as con:
             for (t,) in con.execute("SHOW TABLES").fetchall():
+                outfile = f'{outdir}/{t}.tsv'
+                logger.info(f'SAVING:{outfile}')
+                con.execute(f'COPY {t} TO "{outfile}" (DELIMITER "\t", HEADER true);')
+
+    def _export_project_tsv(self, project, outdir):
+        filename = self._filename
+        tables = ['scans', 'assessors', 'subjects', 'sessions']
+
+        with duckdb.connect(filename) as con:
+            for t in tables:
                 query = f'SELECT * FROM {t} WHERE PROJECT = "project"'
                 outfile = f'{outdir}/{t}.tsv'
                 logger.info(f'SAVING:{outfile}')
