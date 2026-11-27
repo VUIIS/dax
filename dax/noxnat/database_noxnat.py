@@ -28,7 +28,7 @@ class DatabaseNoXnat(object):
                 query = f'SELECT * FROM {t} WHERE PROJECT = "project"'
                 outfile = f'{outdir}/{t}.tsv'
                 logger.info(f'SAVING:{outfile}')
-                con.execute(f'COPY {query} TO "{outfile}"" (DELIMITER "\t", HEADER true);')
+                con.execute(f'COPY {query} TO "{outfile}" (DELIMITER "\t", HEADER true);')
 
     def delete_assessor(self, assr):
         filename = self._filename
