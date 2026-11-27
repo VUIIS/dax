@@ -35,7 +35,7 @@ class DatabaseNoXnat(object):
 
         with duckdb.connect(filename) as con:
             for t in tables:
-                query = f'SELECT * FROM {t} WHERE PROJECT = "project"'
+                query = f'SELECT * FROM {t} WHERE PROJECT = "{project}"'
                 outfile = f'{outdir}/{t}.tsv'
                 logger.info(f'SAVING:{outfile}')
                 con.execute(f'COPY ({query}) TO "{outfile}" (DELIMITER "\t", HEADER true);')
