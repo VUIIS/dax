@@ -20,6 +20,15 @@ class DatabaseNoXnat(object):
                 WHERE PROCSTATUS == 'NEED_INPUTS';
             """)
 
+    def _export_tsv(self, outdir):
+        filename = self._filename
+
+        with duckdb.connect(filename) as con:
+            for (tablename,) in con.execute("SHOW TABLES").fetchall():
+                outfile = f'{outdir}/{tablename}.tsv'
+                logger.info(f'SAVING:{outfile}')
+                con.execute(f"COPY {tablename} TO '{outfile}' (DELIMITER '\t', HEADER true);")
+
     def delete_assessor(self, assr):
         filename = self._filename
         query = f"DELETE FROM assessors WHERE ASSR='{assr}'"
