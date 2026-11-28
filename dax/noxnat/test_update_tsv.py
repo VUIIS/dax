@@ -11,7 +11,7 @@ def update(tsvdir):
     data = {}
     tables = ['subjects', 'sessions', 'scans', 'assessors']
 
-    for t in tables;
+    for t in tables:
         data[t] = _read_tsv( f'{tsvdir}/{t}.tsv')
         print(t, len(data[t]), data[t].head())
 
