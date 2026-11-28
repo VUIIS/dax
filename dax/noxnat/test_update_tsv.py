@@ -25,7 +25,7 @@ def _load(tsvdir):
 def update(tsvdir):
     data = _load(tsvdir)
 
-    for k, df in data:
+    for k, df in data.items():
         print(k, len(df))
         df.head()
 
