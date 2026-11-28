@@ -20,6 +20,7 @@ def _load(tsvdir):
         data[t] = _read_tsv(f'{tsvdir}/{t}.tsv').fillna('')
         print(t, len(data[t]))
 
+    return data
 
 def update(tsvdir):
     data = _load(tsvdir)
