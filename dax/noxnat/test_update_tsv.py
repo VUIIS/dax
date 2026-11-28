@@ -27,7 +27,7 @@ def update(tsvdir):
 
     for k, df in data.items():
         print(k, len(df))
-        df.head()
+        print(df.head())
 
 
 if __name__ == '__main__':
